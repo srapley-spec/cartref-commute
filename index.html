@@ -201,6 +201,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <option value="rdm">Rail Data Marketplace (Darwin key)</option>
           <option value="proxy">My proxy (Cloudflare Worker)</option>
           <option value="huxley">Huxley2 (Darwin token)</option>
+          <option value="tfl">TfL timetable (no key, not live)</option>
           <option value="demo">Example data (no key)</option>
         </select>
       </label>
@@ -316,6 +317,56 @@ function boardUrl(from,to){
   if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
   return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
 }
+// Which train source runs: demo, tfl (timetable), or darwin. Darwin without a key falls back to tfl.
+function source(){ const p=S().provider; if(p==="demo"||p==="tfl") return p; return missingCreds()?"tfl":"darwin"; }
+
+// ---------- TfL timetable source (no key; not live) ----------
+const COORDS={ LET:"51.98002,-0.22909", KGX:"51.53197,-0.12341", STP:"51.53062,-0.12594", ZFD:"51.52036,-0.10514" };
+function hubOf(name){ const n=String(name||"");
+  if(/letchworth/i.test(n)) return "LET"; if(/st\.? ?pancras/i.test(n)) return "STP"; if(/king'?s cross/i.test(n)) return "KGX"; if(/farringdon/i.test(n)) return "ZFD"; return null; }
+const pad=n=>String(n).padStart(2,"0");
+async function tflJourneys(from,to,t){
+  const d=new Date(t);
+  const url=`https://api.tfl.gov.uk/Journey/JourneyResults/${COORDS[from]}/to/${COORDS[to]}?mode=national-rail&timeIs=Departing&date=${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}&time=${pad(d.getHours())}${pad(d.getMinutes())}&journeyPreference=leasttime`;
+  let r; try{ r=await fetch(url,{cache:"no-store"}); }catch(e){ throw new Error("Couldn't reach TfL's journey planner for train times."); }
+  if(r.status===429) throw new Error("TfL is rate-limiting requests. Times will refresh shortly.");
+  if(!r.ok) throw new Error(`TfL journey planner couldn't plan ${STATIONS[from]} to ${STATIONS[to]} (HTTP ${r.status}).`);
+  return (await r.json()).journeys||[];
+}
+// Keep only journeys that are a single direct train between Letchworth and a London hub.
+function trainFromJourney(j){
+  const rail=(j.legs||[]).filter(l=>l.mode&&l.mode.id==="national-rail"); if(rail.length!==1) return null;
+  const l=rail[0], a=hubOf(l.departurePoint&&l.departurePoint.commonName), b=hubOf(l.arrivalPoint&&l.arrivalPoint.commonName);
+  if(!a||!b||a===b||(a!=="LET"&&b!=="LET")) return null;
+  const dep=new Date(l.departureTime).getTime(), arr=new Date(l.arrivalTime).getTime(); if(!isFinite(dep)||!isFinite(arr)) return null;
+  const sched=l.scheduledDepartureTime?new Date(l.scheduledDepartureTime).getTime():dep;
+  const text=[l.instruction&&l.instruction.summary,l.instruction&&l.instruction.detailed,...(l.routeOptions||[]).map(o=>`${o.name||""} ${(o.directions||[]).join(" ")}`)].join(" ");
+  const operator=/thameslink/i.test(text)?"Thameslink":/great northern/i.test(text)?"Great Northern":((a==="KGX"||b==="KGX")?"Great Northern":"Thameslink");
+  const msgs=(l.disruptions||[]).map(d=>stripHtml(d.description)).filter(Boolean);
+  return { key:`${a}-${b}`, msgs, svc:{ from:a,to:b,std:hhmm(isFinite(sched)?sched:dep),dep,depLate:isFinite(sched)?Math.max(0,mins(dep-sched)):0,depUnknown:false,
+    arr,arrLate:0,platform:null,operator,cancelled:false,reason:"",timetable:true } };
+}
+async function fetchTflBoards(){
+  const now=Date.now(), boards={}, ensure=k=>(boards[k]=boards[k]||{services:[],msgs:[]});
+  const pairs=boardKeys().map(k=>k.split("-")); pairs.forEach(p=>ensure(p.join("-")));
+  let ok=0, firstErr=null;
+  await Promise.all(pairs.map(async([a,b])=>{
+    try{
+      let t=now;
+      for(let i=0;i<3;i++){   // each call returns a few journeys; walk forward to cover ~2 hours
+        const js=await tflJourneys(a,b,t); ok++; let last=t;
+        js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
+          if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc);
+          B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); });
+        if(last<=t || last>now+2*3600e3) break; t=last+60e3;
+      }
+    }catch(e){ firstErr=firstErr||e.message; }
+  }));
+  Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
+  if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
+  return {boards, err:firstErr};
+}
+
 function missingCreds(){
   const s=S();
   if(s.provider==="rdm") return !s.rdmKey || !s.rdmBase;
@@ -555,7 +606,7 @@ function renderHero(list, now){
   if(!j){ h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">No catchable trains in the next two hours.</div>`; return; }
   const t0=now+30e3, spare=j.leave-t0, dest=j.dest||(dir==="office"?"office":"home");
   h.innerHTML = `
-    <div class="lbl">If you leave now · ${esc(hhmm(t0))}</div>
+    <div class="lbl">If you leave now · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""}</div>
     <div class="big"><span class="arr t">${hhmm(j.arrive)}</span><span class="arrlbl">at ${esc(dest)} · ${dur(j.arrive-t0)}</span></div>
     <div>${spare>=60e3?`<span class="slack">${mins(spare)} min spare</span> <span style="opacity:.8;font-size:13px">latest leave <span class="t">${hhmm(j.leave)}</span> · <span data-cd="${j.leave}"></span></span>`:`<span class="slack">Leave now</span>`}</div>
     <ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>
@@ -605,6 +656,7 @@ function railWarnings(){
 function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
+  if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
   state.errors.forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
@@ -626,6 +678,7 @@ function renderBanners(){
   if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${esc(m)}</span>`).join("")}</details></div>`);
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
 }
+function trainsNote(){ const r=state.railSource||source(); return r==="tfl"?"Train times are TfL timetable, not live.":r==="demo"?"Train times are examples.":"Trains are live from National Rail."; }
 function renderControls(){
   const leisure=state.saved.mode==="leisure";
   document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.saved.mode)));
@@ -643,8 +696,8 @@ function renderControls(){
   $("#originRow").hidden = !showOrigin;
   const s=S(); const fast=state.saved.pace==="fast";
   $("#modelNote").textContent = leisure
-    ? `Trains are live from National Rail. ${dir==="home"?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
-    : `Trains are live from National Rail. Tube legs are estimates: a ${mins(s.tubeWait*1000)} min wait allowance plus typical ride time, editable in Settings. Times assume ${fast?"fast":"average"} walking pace.`;
+    ? `${trainsNote()} ${dir==="home"?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
+    : `${trainsNote()} Tube legs are estimates: a ${mins(s.tubeWait*1000)} min wait allowance plus typical ride time, editable in Settings. Times assume ${fast?"fast":"average"} walking pace.`;
 }
 function render(){
   const now=Date.now(), list=state.boards?ranked(now):[];
@@ -657,25 +710,34 @@ function tick(){
 }
 
 // ---------- Data refresh ----------
+async function loadTflTimetable(){
+  try{ const {boards,err}=await fetchTflBoards(); state.boards=boards; if(err) state.errors.push(err); }
+  catch(e){ state.boards=null; state.errors.push(e.message); }
+}
 async function refresh(){
-  if(state.loading) return; state.loading=true; state.errors=[]; render();
+  if(state.loading){ state.again=true; return; }
+  state.loading=true; state.again=false; state.errors=[]; render();
   const s=S(), now=Date.now();
   const tflP=fetchTfl().then(v=>{state.status=v;}).catch(e=>{ state.status=[]; state.errors.push("Couldn't load TfL line status."); });
   const nrP=fetchNrStatus().then(v=>{state.nrStatus=v||[];});
   let railP;
-  if(s.provider==="demo"){ state.boards=demoBoards(now); railP=Promise.resolve(); }
-  else if(missingCreds()){ state.boards=null; railP=Promise.resolve(); }
+  state.railSource=source(); state.darwinFailed=false;
+  if(state.railSource==="demo"){ state.boards=demoBoards(now); railP=Promise.resolve(); }
+  else if(state.railSource==="tfl"){ railP=loadTflTimetable(); }
   else {
     const pairs=PAIRS;
-    railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(rs=>{
+    railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
       const boards={}; let firstErr=null;
       rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
-      state.boards=Object.keys(boards).length?boards:null;
-      if(firstErr) state.errors.push(firstErr);
+      if(Object.keys(boards).length){ state.boards=boards; if(firstErr) state.errors.push(firstErr); }
+      else { // Darwin down: fall back to the TfL timetable.
+        state.errors.push(firstErr); state.darwinFailed=true; state.railSource="tfl"; await loadTflTimetable();
+      }
     });
   }
   await Promise.all([tflP,nrP,railP,refreshLondon()]);
   state.loading=false; state.fetchedAt=Date.now(); render();
+  if(state.again) refresh();
 }
 async function refreshLondon(){
   if(state.saved.mode!=="leisure" || direction()!=="home") return;
@@ -729,8 +791,10 @@ $("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.save
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
-document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; save(); render(); refreshLondon().then(render); }));
-document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; save(); render(); refreshLondon().then(render); }));
+// The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
+const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl") refresh(); else refreshLondon().then(render); };
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
 $("#refreshBtn").addEventListener("click",refresh);
@@ -738,7 +802,7 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
-if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"demo"}; }
+if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
 locate(); render(); refresh();
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);

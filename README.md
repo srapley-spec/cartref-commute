@@ -20,6 +20,7 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 
 ## Model
 - Modes: **Commute** (Cartref ⇄ office) and **Leisure**: from Cartref to King's Cross or St Pancras, or from wherever you are in London home via King's Cross, St Pancras or Farringdon. The London leg comes from TfL's journey planner (slow walking); leisure walks use a 1.15× multiplier on your average times.
+- Train source: Darwin (live) when a key is set; otherwise TfL journey planner timetable (not live), also used as a backup if Darwin fails.
 - Rail legs: live departures and calling-point estimates from Darwin; cancelled trains are excluded and listed.
 - Tube legs: modelled as interchange walk + wait allowance + typical ride time. All editable in Settings.
 - Aldgate East (H&C) is used only when Circle and Met are both closed or suspended.
