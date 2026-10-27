@@ -191,7 +191,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 </div>
 
 <dialog id="settings">
-  <form class="sheet" id="settingsForm" method="dialog">
+  <form class="sheet" id="settingsForm" method="dialog" novalidate>
     <h3>Settings</h3>
 
     <fieldset>
@@ -214,32 +214,32 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
     <fieldset>
       <legend>Walk: Cartref ⇄ Letchworth (min)</legend>
-      <label class="f"><span>To station, average</span><input id="s_walkHomeStationAvg" type="number" step="0.1" min="0"></label>
-      <label class="f"><span>To station, fast</span><input id="s_walkHomeStationFast" type="number" step="0.1" min="0"></label>
-      <label class="f"><span>To home, average</span><input id="s_walkStationHomeAvg" type="number" step="0.1" min="0"></label>
-      <label class="f"><span>To home, fast</span><input id="s_walkStationHomeFast" type="number" step="0.1" min="0"></label>
+      <label class="f"><span>To station, average</span><input id="s_walkHomeStationAvg" type="number" step="any" min="0"></label>
+      <label class="f"><span>To station, fast</span><input id="s_walkHomeStationFast" type="number" step="any" min="0"></label>
+      <label class="f"><span>To home, average</span><input id="s_walkStationHomeAvg" type="number" step="any" min="0"></label>
+      <label class="f"><span>To home, fast</span><input id="s_walkStationHomeFast" type="number" step="any" min="0"></label>
     </fieldset>
 
     <fieldset>
       <legend>Stations and interchanges (min, average pace)</legend>
-      <label class="f"><span>Letchworth: entrance to platform</span><input id="s_letEntry" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Letchworth: train to exit</span><input id="s_letExit" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Be on platform before train leaves</span><input id="s_catchMargin" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>King's Cross: rail ⇄ Circle/Met</span><input id="s_kxInterchange" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Farringdon: Thameslink ⇄ Circle/Met</span><input id="s_farInterchange" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Tube wait allowance</span><input id="s_tubeWait" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate</span><input id="s_rideKxAld" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate</span><input id="s_rideFarAld" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Aldgate: platform ⇄ street</span><input id="s_aldPlatform" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Walk Aldgate ⇄ office</span><input id="s_aldWalk" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>St Pancras: Thameslink ⇄ tube</span><input id="s_stpInterchange" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Fast pace multiplier (London walks)</span><input id="s_fastFactor" type="number" step="0.01" min="0.5" max="1"></label>
-      <label class="f"><span>Leisure pace multiplier (all walks)</span><input id="s_leisureFactor" type="number" step="0.01" min="1" max="2"></label>
+      <label class="f"><span>Letchworth: entrance to platform</span><input id="s_letEntry" type="number" step="any" min="0"></label>
+      <label class="f"><span>Letchworth: train to exit</span><input id="s_letExit" type="number" step="any" min="0"></label>
+      <label class="f"><span>Be on platform before train leaves</span><input id="s_catchMargin" type="number" step="any" min="0"></label>
+      <label class="f"><span>King's Cross: rail ⇄ Circle/Met</span><input id="s_kxInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Farringdon: Thameslink ⇄ Circle/Met</span><input id="s_farInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube wait allowance</span><input id="s_tubeWait" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate</span><input id="s_rideKxAld" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate</span><input id="s_rideFarAld" type="number" step="any" min="0"></label>
+      <label class="f"><span>Aldgate: platform ⇄ street</span><input id="s_aldPlatform" type="number" step="any" min="0"></label>
+      <label class="f"><span>Walk Aldgate ⇄ office</span><input id="s_aldWalk" type="number" step="any" min="0"></label>
+      <label class="f"><span>St Pancras: Thameslink ⇄ tube</span><input id="s_stpInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Fast pace multiplier (London walks)</span><input id="s_fastFactor" type="number" step="any" min="0.5" max="1"></label>
+      <label class="f"><span>Leisure pace multiplier (all walks)</span><input id="s_leisureFactor" type="number" step="any" min="1" max="2"></label>
       <p class="hint">Fallback via Aldgate East (only used when Circle and Met are both closed or suspended):</p>
-      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate East</span><input id="s_rideKxAde" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate East</span><input id="s_rideFarAde" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Aldgate East: platform ⇄ street</span><input id="s_adePlatform" type="number" step="0.5" min="0"></label>
-      <label class="f"><span>Walk Aldgate East ⇄ office</span><input id="s_adeWalk" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate East</span><input id="s_rideKxAde" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate East</span><input id="s_rideFarAde" type="number" step="any" min="0"></label>
+      <label class="f"><span>Aldgate East: platform ⇄ street</span><input id="s_adePlatform" type="number" step="any" min="0"></label>
+      <label class="f"><span>Walk Aldgate East ⇄ office</span><input id="s_adeWalk" type="number" step="any" min="0"></label>
     </fieldset>
 
     <div class="actions">
