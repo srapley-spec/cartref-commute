@@ -99,6 +99,7 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .row .mid{min-width:0;display:flex;flex-direction:column;gap:4px}
 .row .route{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:600}
 .row .meta{font-size:12px;color:var(--muted)}
+.row .meta b{color:var(--ink);font-weight:800}
 .row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .row.gone{opacity:.5}
 
@@ -511,7 +512,7 @@ function buildJourneys(dir, now){
         legs=[
           {t:leave, d:"Leave Cartref", note:`walk ${dur(sec(walkOut))}`},
           {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:"", train:true},
-          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`change ${dur(w(ic[hub]))}`},
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`${dur(t.arr-t.dep)} on the train, change ${dur(w(ic[hub]))}`},
           {t:tubeBoard + sec(s.tubeWait), d:`${tube.fallback?"H&C":"Circle or Met"} to ${tube.stop}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
           {t:arrive, d:"Arrive office", note:`walk ${dur(w(tube.walk))}`}
         ];
@@ -524,7 +525,7 @@ function buildJourneys(dir, now){
           {t:leave, d:"Leave office", note:`walk to ${tube.stop} ${dur(w(tube.walk))}`},
           {t:tubeDep, d:`${tube.fallback?"H&C":"Circle or Met"} to ${STATIONS[hub]}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
           {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:t.platform?`platform ${t.platform}`:"platform not yet shown", train:true},
-          {t:t.arr, d:"Arrive Letchworth", note:""},
+          {t:t.arr, d:"Arrive Letchworth", note:`${dur(t.arr-t.dep)} on the train`},
           {t:arrive, d:"Arrive Cartref", note:`walk ${dur(sec(walkBack))}`}
         ];
       }
@@ -587,7 +588,7 @@ function buildLeisure(dir, now){
         out.push({ hub, train:t, leave, arrive:t.arr, dest:STATIONS[hub], leisure:true, flags:nrFlags(t), legs:[
           {t:leave, d:"Leave Cartref", note:`walk ${dur(walk)}`},
           {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:""},
-          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:""}
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`${dur(t.arr-t.dep)} on the train`}
         ]});
       }
     }
@@ -607,7 +608,7 @@ function buildLeisure(dir, now){
         out.push({ hub, train:t, leave, arrive, dest:"home", leisure:true, london:leg, flags, legs:[
           {t:leave, d:`Set off to ${hub==="ZFD"?"Farringdon":"King's Cross St Pancras"}`, note:`${leg.summary} (${dur(leg.dur)})`},
           {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:`allow ${dur(w(ic[hub]))} to reach the platform${t.platform?`, platform ${t.platform}`:""}`},
-          {t:t.arr, d:"Arrive Letchworth", note:""},
+          {t:t.arr, d:"Arrive Letchworth", note:`${dur(t.arr-t.dep)} on the train`},
           {t:arrive, d:"Arrive Cartref", note:`walk ${dur(walkBack)}`}
         ]});
       }
@@ -665,7 +666,7 @@ function renderList(list, now){
       <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · ${dur(j.arrive-j.leave)} · <span data-cd="${j.leave}"></span></div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · ${dur(j.arrive-j.leave)} door to door · <span data-cd="${j.leave}"></span></div>
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
