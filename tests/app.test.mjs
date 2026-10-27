@@ -64,7 +64,7 @@ test("A hung request times out; the app recovers and refreshes again", async () 
   assert.equal(app.c.state.loading, false, "not stuck loading");
   assert.match(app.banners().join(" "), /didn't respond in time/);
   hangNow = false;
-  await app.c.refresh();
+  await app.c.refresh({ force: true });
   assert.equal(app.rows().length, 5);
   assert.doesNotMatch(app.banners().join(" "), /didn't respond/);
   app.close();
@@ -75,11 +75,11 @@ test("TfL rate limiting backs off and keeps the last good times, then flags them
   const app = await createApp({ route: (u) => (limited && parseJourneyUrl(u) ? json({}, 429) : undefined) });
   assert.equal(app.rows().length, 5);
   limited = true;
-  await app.c.refresh();
+  await app.c.refresh({ force: true });
   assert.equal(app.rows().length, 5, "previous trains kept");
   assert.match(app.banners().join(" "), /rate-limiting/);
   const n = app.calls.length;
-  await app.c.refresh();
+  await app.c.refresh({ force: true });
   assert.equal(app.calls.filter((u, i) => i >= n && parseJourneyUrl(u)).length, 0, "no TfL journey calls while backing off");
   app.c.state.boardsAt = Date.now() - 4 * 60e3;
   app.c.render();
@@ -104,7 +104,7 @@ test("Darwin partial failure keeps the boards that loaded; total failure falls b
   assert.match(app.banners().join(" "), /National Rail feed error \(HTTP 500\)/);
   assert.equal(app.rows().length, 1);
   mode = "down";
-  await app.c.refresh();
+  await app.c.refresh({ force: true });
   assert.equal(app.c.state.railSource, "tfl");
   assert.match(app.banners().join(" "), /live National Rail feed failed/);
   assert.equal(app.rows().length, 5);
@@ -145,5 +145,44 @@ test("Settings save closes the sheet and keeps values", async () => {
   assert.equal(app.c.S().kxInterchange, 450);
   assert.equal(app.c.S().walkHomeStationAvg, 1337, "untouched measured walk preserved");
   await sleep(400); // let the refresh that Save starts finish before closing the page
+  app.close();
+});
+
+// ---------- Request volume ----------
+test("Frequent location updates do not trigger requests; automatic refreshes are throttled", async () => {
+  let push;
+  const app = await createApp({ geo: null, settle: 50 });
+  // take over the location watch so the test can send many position updates
+  app.w.navigator.geolocation.watchPosition = (ok) => { push = ok; return 3; };
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(20);
+  push(NEAR_LETCHWORTH);
+  await sleep(400);
+  const afterFirst = app.calls.length;
+  assert.ok(afterFirst > 0 && afterFirst <= 10, `first load made ${afterFirst} requests`);
+  for (let i = 0; i < 30; i++) { push({ coords: { latitude: 51.975 + i * 1e-5, longitude: -0.23, accuracy: 10 } }); await sleep(5); }
+  await sleep(300);
+  assert.equal(app.calls.length, afterFirst, "position updates in the same direction made no requests");
+  await app.c.refresh();               // automatic refresh inside 30 s: skipped
+  assert.equal(app.calls.length, afterFirst);
+  await app.c.refresh({ force: true }); // your Refresh tap: runs, but reuses status and the timetable is re-read
+  assert.ok(app.calls.length > afterFirst);
+  assert.match(app.text("#updated"), /requests in the last minute: TfL \d+/);
+  app.close();
+});
+
+test("A rate-limited first load does not turn location updates into a request loop", async () => {
+  let push;
+  const app = await createApp({ geo: null, settle: 50, route: (u) => (parseJourneyUrl(u) ? json({}, 429) : undefined) });
+  app.w.navigator.geolocation.watchPosition = (ok) => { push = ok; return 4; };
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(20);
+  push(NEAR_LETCHWORTH);
+  await sleep(400);
+  const n = app.calls.length;
+  for (let i = 0; i < 30; i++) { push(NEAR_LETCHWORTH); await sleep(5); }
+  await sleep(300);
+  assert.equal(app.calls.length, n, "no extra requests while TfL is refusing");
+  assert.equal(app.banners().filter((b) => /rate-limiting/.test(b)).length, 1, "one banner, not duplicates");
   app.close();
 });

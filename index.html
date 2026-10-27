@@ -304,7 +304,12 @@ const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 // ---------- Network ----------
 // Every request has a timeout so a hung connection can never leave the app stuck loading.
 const FETCH_TIMEOUT = () => (window.COMMUTE_FETCH_TIMEOUT_MS || 12000);
+// Requests made in the last minute, by service, shown in the footer.
+const reqLog=[];
+function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
+function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
 async function fetchT(url, opts){
+  logRequest(url);
   const ctl = new AbortController(), id = setTimeout(()=>ctl.abort(), FETCH_TIMEOUT());
   try{ return await fetch(url, Object.assign({cache:"no-store"}, opts||{}, {signal:ctl.signal})); }
   catch(e){ const err=new Error(ctl.signal.aborted?"timeout":"network"); err.timeout=ctl.signal.aborted; throw err; }
@@ -734,7 +739,7 @@ function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
-  state.errors.forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
+  [...new Set(state.errors)].forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
   if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
@@ -824,7 +829,10 @@ async function planBy(){
   // Within the live window with Darwin running: use the live boards already loaded.
   if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
   state.by={T,loading:true}; render();
-  try{ const boards=await fetchTflArriving(T); if(state.byToken!==token) return; state.by={T,boards,live:false}; }
+  const key=`${T}|${state.saved.mode}|${direction()}`; state.byCache=state.byCache||{};
+  const hit=state.byCache[key];
+  if(hit && Date.now()-hit.at<10*60e3){ state.by={T,boards:hit.boards,live:false}; render(); return; }
+  try{ const boards=await fetchTflArriving(T); if(state.byToken!==token) return; state.byCache[key]={boards,at:Date.now()}; state.by={T,boards,live:false}; }
   catch(e){ if(state.byToken!==token) return; state.by={T,err:e.message}; }
   render();
 }
@@ -861,7 +869,7 @@ function renderByHero(opts){
 function render(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
-  if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh(); }
+  if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
   if(awaitingLocation()){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
@@ -885,7 +893,8 @@ function render(){
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next 5 by arrival";
   }
   renderStatus(); tick();
-  $("#updated").textContent = state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet");
+  const rc=requestCounts();
+  $("#updated").textContent = (state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet")) + ` · requests in the last minute: TfL ${rc.tfl}${rc.other?`, National Rail ${rc.other}`:""}`;
 }
 function tick(){
   const now=Date.now();
@@ -894,24 +903,36 @@ function tick(){
 
 // ---------- Data refresh ----------
 // Successful train data is stamped; when a later load fails the last good data stays on screen, marked stale.
-function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); }
+function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; }
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
   try{ const {boards,err}=await fetchTflBoards(); setBoards(boards); if(err) state.errors.push(err); }
   catch(e){ state.errors.push(e.message); state.boards = boardsFit(prev) ? prev : null; }
 }
-async function refresh(){
-  if(state.loading){ state.again=true; return; }
+// How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
+// a refresh you ask for, or a change of direction or settings, always runs.
+const MIN_GAP=30e3, TIMETABLE_REUSE=5*60e3, STATUS_REUSE=2*60e3;
+async function refresh(opts){
+  const force=!!(opts&&opts.force);
+  if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
+  if(!force && state.lastRefreshAt && Date.now()-state.lastRefreshAt<MIN_GAP) return;
+  state.lastRefreshAt=Date.now();
   state.loading=true; state.again=false; state.errors=[]; render();
   const prev=state.boards;
   try{
     const now=Date.now();
-    const tflP=fetchTfl().then(v=>{state.status=v;}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrP=fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    // Line status changes slowly: reuse it for 2 minutes unless you asked for a refresh.
+    const statusFresh = !force && state.statusAt && now-state.statusAt<STATUS_REUSE;
+    const tflP = statusFresh ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
+    const nrP = statusFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
     if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
-    else if(state.railSource==="tfl"){ railP = awaitingLocation() ? Promise.resolve() : loadTflTimetable(prev); }   // load once we know the direction
+    else if(state.railSource==="tfl"){
+      // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
+      const reuse = !force && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
+      railP = (awaitingLocation()||reuse) ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
+    }
     else {
       const pairs=PAIRS;
       railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
@@ -932,7 +953,7 @@ async function refresh(){
   } finally {
     state.loading=false; state.fetchedAt=Date.now(); render();
   }
-  if(state.again) refresh();
+  if(state.again){ const f=state.again==="force"; state.again=false; refresh({force:f}); }
 }
 async function refreshLondon(){
   if(state.saved.mode!=="leisure" || direction()!=="home") return;
@@ -954,9 +975,13 @@ function onPosition(p){
   state.autoDir = dLet<=dAld ? "office" : "home";
   const where = dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
-  if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
-  if(state.saved.dirMode==="auto" && (prev!==state.autoDir || (!state.boards && !state.loading))) refresh();
-  render(); planBy();
+  // Replan the London leg when you have moved, at most once a minute.
+  if(moved && state.saved.mode==="leisure" && !state.origin && (!state.londonAt || Date.now()-state.londonAt>60e3)){ state.londonAt=Date.now(); refreshLondon().then(render); }
+  // Only a change of direction needs new trains; ordinary position updates (every few seconds) must not
+  // trigger requests.
+  const dirChanged = prev!==state.autoDir;
+  if(state.saved.dirMode==="auto" && dirChanged) refresh({force:true});
+  render(); if(dirChanged) planBy();
 }
 function onPositionError(e){
   state.locStatus = e && e.code===1 ? "denied" : "unavailable";
@@ -994,12 +1019,12 @@ function readSettings(){
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
 $("#s_provider").addEventListener("change",showProviderFields);
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
-$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; refresh(); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; state.byCache={}; refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
-const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl") refresh(); else refreshLondon().then(render); planBy(); };
+const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl") refresh({force:true}); else refreshLondon().then(render); planBy(); };
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ state.saved.view=b.dataset.view; save(); render(); planBy(); }));
 ["#byDate","#byTime"].forEach(id=>$(id).addEventListener("change",()=>{ state.saved.byTime=$("#byTime").value||state.saved.byTime; save(); planBy(); }));
 $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planBy(); });
@@ -1008,19 +1033,19 @@ document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",(
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
-$("#refreshBtn").addEventListener("click",refresh);
+$("#refreshBtn").addEventListener("click",()=>refresh({force:true}));
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(); if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
 if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
-locate(); render(); refresh().then(planBy);
+locate(); render(); refresh({force:true}).then(planBy);
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
 setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 // Exposed for testing only.
-window.__commute={parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
