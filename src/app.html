@@ -1,0 +1,1010 @@
+<title>Cartref Commute</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column, a departure-board hero for "leave now", then a ranked list. */
+:root{
+  --paper:#EDF0EC; --card:#F8F9F6; --ink:#17201B; --muted:#5B6760; --line:#D2D9D3;
+  --accent:#B0500C; --accent-ink:#FFFFFF;
+  --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318;
+  --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE;
+  --circle:#FFD329; --circle-ink:#1A1A1A; --met:#9B0058; --met-ink:#FFFFFF; --hc:#F4A9BE; --hc-ink:#1A1A1A;
+  --font-display:"Overpass", "Helvetica Neue", Arial, sans-serif;
+  --font-body:"Overpass", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:"Overpass Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
+  --accent:#EE9A45; --accent-ink:#1A1208;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
+  --accent:#EE9A45; --accent-ink:#1A1208;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.mono,.t{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0}
+.sub{color:var(--muted);font-size:13px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--card)}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.dirnote{font-size:12px;color:var(--muted);width:100%}
+.origin{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.originbar{display:flex;gap:8px}
+.originbar input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
+.byform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.byf{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+.byf input{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;font:inherit;font-size:16px;font-family:var(--font-mono);padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%;max-width:100%;min-width:0}
+.chip.walk{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.hero .chip.walk{color:var(--paper);border-color:color-mix(in srgb,var(--paper) 35%,transparent)}
+
+.banner{border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
+.banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
+.banner.info{background:var(--card);border:1px dashed var(--line)}
+.banner b{font-weight:800}
+.banner details summary{cursor:pointer;font-weight:600}
+.banner .msg{color:var(--muted)}
+
+.hero{background:var(--ink);color:var(--paper);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.hero .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.7;font-weight:600}
+.hero .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hero .arr{font-family:var(--font-mono);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.hero .arrlbl{font-size:15px;opacity:.85}
+.hero .slack{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:800;border-radius:6px;padding:3px 8px;font-size:13px}
+.legs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:6px;font-size:14px}
+.legs .t{opacity:.95}
+.legs .d{min-width:0}
+.legs .d small{opacity:.7}
+.hero .flags{display:flex;gap:6px;flex-wrap:wrap}
+.hero .empty{font-size:15px;opacity:.85}
+
+h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;letter-spacing:.1em;margin:4px 0 0;color:var(--muted);font-weight:800}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.row{display:grid;grid-template-columns:4.2em 1fr 4.2em;gap:10px;padding:12px;align-items:center;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .leave .t{font-size:18px;font-weight:600}
+.row .leave small,.row .arrive small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.row .arrive{text-align:right}
+.row .arrive .t{font-size:18px;font-weight:600}
+.row .mid{min-width:0;display:flex;flex-direction:column;gap:4px}
+.row .route{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:600}
+.row .meta{font-size:12px;color:var(--muted)}
+.row .meta b{color:var(--ink);font-weight:800}
+.row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
+.row.gone{opacity:.5}
+
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
+.chip.rail{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+.hero .chip.rail{background:transparent;border-color:color-mix(in srgb,var(--paper) 35%,transparent);color:var(--paper)}
+.chip.circle{background:var(--circle);color:var(--circle-ink)}
+.chip.met{background:var(--met);color:var(--met-ink)}
+.chip.hc{background:var(--hc);color:var(--hc-ink)}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.info{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.hero .pill.info{border-color:color-mix(in srgb,var(--paper) 35%,transparent);color:var(--paper)}
+
+.status{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.st .n{font-size:13px;font-weight:800;display:flex;gap:6px;align-items:center}
+.st .s{font-size:12px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+
+footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.note{font-size:12px;color:var(--muted)}
+
+/* Settings */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.sheet{padding:16px;display:flex;flex-direction:column;gap:14px}
+.sheet h3{margin:0;font-family:var(--font-display);font-size:18px}
+.sheet fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:0}
+.sheet legend{font-weight:800;font-size:13px;padding:0 4px}
+.f{display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center;font-size:13px}
+.f.wide{grid-template-columns:1fr}
+.f input,.f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.f input[type=number]{text-align:right;font-family:var(--font-mono)}
+.sheet .hint{font-size:12px;color:var(--muted);margin:0}
+.sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
+@media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Cartref Commute</h1>
+      <div class="sub" id="routeLabel">Cartref ⇄ 20 Mansfield Street</div>
+    </div>
+    <button class="iconbtn" id="settingsBtn" type="button">Settings</button>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" data-mode="commute">Commute</button>
+      <button type="button" data-mode="leisure">Leisure</button>
+    </div>
+    <div class="seg" role="group" aria-label="Direction">
+      <button type="button" data-dir="auto">Auto</button>
+      <button type="button" data-dir="office" id="dirOutBtn">To office</button>
+      <button type="button" data-dir="home">To home</button>
+    </div>
+    <div class="seg" role="group" aria-label="Walking pace" id="paceSeg">
+      <button type="button" data-pace="avg">Average pace</button>
+      <button type="button" data-pace="fast">Fast pace</button>
+    </div>
+    <div class="dirnote" id="dirNote"></div>
+  </div>
+
+  <form class="origin" id="originRow" hidden>
+    <label for="originInput">Where are you? Location isn't available, so enter a postcode.</label>
+    <div class="originbar">
+      <input id="originInput" type="text" autocomplete="postal-code" spellcheck="false" placeholder="e.g. SE1 9SG">
+      <button type="submit" class="primary">Plan</button>
+    </div>
+  </form>
+
+  <div id="banners" class="wrap" style="gap:8px"></div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Plan">
+      <button type="button" data-view="now">Leave now</button>
+      <button type="button" data-view="by">Arrive by</button>
+    </div>
+  </div>
+
+  <form class="byform" id="byForm" hidden>
+    <label class="byf"><span>Day</span><input id="byDate" type="date"></label>
+    <label class="byf"><span>Be there by</span><input id="byTime" type="time" step="60"></label>
+  </form>
+
+  <section class="hero" id="hero" aria-live="polite"></section>
+
+  <h2 id="listTitle">Next 5 by arrival</h2>
+  <div class="list" id="list"></div>
+  <p class="note" id="modelNote"></p>
+
+  <h2>Line status</h2>
+  <div class="status" id="status"></div>
+
+  <footer>
+    <span id="updated">Not updated yet</span>
+    <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
+  </footer>
+</div>
+
+<dialog id="settings">
+  <form class="sheet" id="settingsForm" method="dialog" novalidate>
+    <h3>Settings</h3>
+
+    <fieldset>
+      <legend>National Rail live data</legend>
+      <label class="f wide"><span>Source</span>
+        <select id="s_provider">
+          <option value="rdm">Rail Data Marketplace (Darwin key)</option>
+          <option value="proxy">My proxy (Cloudflare Worker)</option>
+          <option value="huxley">Huxley2 (Darwin token)</option>
+          <option value="tfl">TfL timetable (no key, not live)</option>
+          <option value="demo">Example data (no key)</option>
+        </select>
+      </label>
+      <label class="f wide" data-p="rdm"><span>API key (x-apikey)</span><input id="s_rdmKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <label class="f wide" data-p="rdm"><span>Endpoint base URL, from the product page (ends …/LDBWS/api/20220120)</span><input id="s_rdmBase" type="url" spellcheck="false"></label>
+      <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
+      <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
+      <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
+      <label class="f wide"><span>TfL app key (optional, free from api-portal.tfl.gov.uk; raises TfL's request limit)</span><input id="s_tflKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <p class="hint">Keys are stored only in this browser on this device. A key typed here can be read by anything that runs on this page; the proxy option keeps the National Rail key off the phone entirely.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Walk: Cartref ⇄ Letchworth (min)</legend>
+      <label class="f"><span>To station, average</span><input id="s_walkHomeStationAvg" type="number" step="any" min="0"></label>
+      <label class="f"><span>To station, fast</span><input id="s_walkHomeStationFast" type="number" step="any" min="0"></label>
+      <label class="f"><span>To home, average</span><input id="s_walkStationHomeAvg" type="number" step="any" min="0"></label>
+      <label class="f"><span>To home, fast</span><input id="s_walkStationHomeFast" type="number" step="any" min="0"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Stations and interchanges (min, average pace)</legend>
+      <label class="f"><span>Letchworth: entrance to platform</span><input id="s_letEntry" type="number" step="any" min="0"></label>
+      <label class="f"><span>Letchworth: train to exit</span><input id="s_letExit" type="number" step="any" min="0"></label>
+      <label class="f"><span>Be on platform before train leaves</span><input id="s_catchMargin" type="number" step="any" min="0"></label>
+      <label class="f"><span>King's Cross: rail ⇄ Circle/Met</span><input id="s_kxInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Farringdon: Thameslink ⇄ Circle/Met</span><input id="s_farInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube wait allowance</span><input id="s_tubeWait" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate</span><input id="s_rideKxAld" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate</span><input id="s_rideFarAld" type="number" step="any" min="0"></label>
+      <label class="f"><span>Aldgate: platform ⇄ street</span><input id="s_aldPlatform" type="number" step="any" min="0"></label>
+      <label class="f"><span>Walk Aldgate ⇄ office</span><input id="s_aldWalk" type="number" step="any" min="0"></label>
+      <label class="f"><span>St Pancras: Thameslink ⇄ tube</span><input id="s_stpInterchange" type="number" step="any" min="0"></label>
+      <label class="f"><span>Fast pace multiplier (London walks)</span><input id="s_fastFactor" type="number" step="any" min="0.5" max="1"></label>
+      <label class="f"><span>Leisure pace multiplier (all walks)</span><input id="s_leisureFactor" type="number" step="any" min="1" max="2"></label>
+      <p class="hint">Fallback via Aldgate East (only used when Circle and Met are both closed or suspended):</p>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate East</span><input id="s_rideKxAde" type="number" step="any" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate East</span><input id="s_rideFarAde" type="number" step="any" min="0"></label>
+      <label class="f"><span>Aldgate East: platform ⇄ street</span><input id="s_adePlatform" type="number" step="any" min="0"></label>
+      <label class="f"><span>Walk Aldgate East ⇄ office</span><input id="s_adeWalk" type="number" step="any" min="0"></label>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="ghost" id="resetBtn">Reset times to defaults</button>
+      <button type="submit" class="primary" id="saveBtn" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+// ---------- Config ----------
+const STATIONS = { LET:"Letchworth", KGX:"King's Cross", STP:"St Pancras", ZFD:"Farringdon" };
+const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
+const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
+const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
+// All durations in seconds.
+const DEFAULTS = {
+  provider:"rdm",
+  rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
+  rdmKey:"", tflKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
+  walkHomeStationAvg:1337, walkHomeStationFast:1086, walkStationHomeAvg:1332, walkStationHomeFast:1111,
+  letEntry:120, letExit:90, catchMargin:60,
+  kxInterchange:360, farInterchange:240, tubeWait:180,
+  rideKxAld:600, rideFarAld:420, aldPlatform:90, aldWalk:420,
+  rideKxAde:660, rideFarAde:480, adePlatform:90, adeWalk:360,
+  stpInterchange:420,
+  fastFactor:0.82, leisureFactor:1.15
+};
+const FACTOR_KEYS = ["fastFactor","leisureFactor"];
+const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
+const LS = "cartrefCommute.v1";
+
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
+const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
+  boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
+  here:null, origin:"", london:null, londonErr:"" };
+const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
+
+// ---------- Network ----------
+// Every request has a timeout so a hung connection can never leave the app stuck loading.
+const FETCH_TIMEOUT = () => (window.COMMUTE_FETCH_TIMEOUT_MS || 12000);
+async function fetchT(url, opts){
+  const ctl = new AbortController(), id = setTimeout(()=>ctl.abort(), FETCH_TIMEOUT());
+  try{ return await fetch(url, Object.assign({cache:"no-store"}, opts||{}, {signal:ctl.signal})); }
+  catch(e){ const err=new Error(ctl.signal.aborted?"timeout":"network"); err.timeout=ctl.signal.aborted; throw err; }
+  finally{ clearTimeout(id); }
+}
+// TfL: optional free app key (raises the rate limit) and a shared back-off after HTTP 429.
+function tflUrl(u){ const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
+function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
+function noteTfl429(){ state.tflBackoffUntil=Date.now()+60e3; }
+async function fetchTfl_(u){
+  if(tflBackingOff()){ const e=new Error("TfL is rate-limiting requests. Retrying in a minute."); e.rateLimited=true; throw e; }
+  const r=await fetchT(tflUrl(u));
+  if(r.status===429){ noteTfl429(); const e=new Error("TfL is rate-limiting requests. Retrying in a minute."); e.rateLimited=true; throw e; }
+  return r;
+}
+
+// ---------- Helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pick = (o,...ks) => { for(const k of ks){ if(o && o[k]!=null) return o[k]; } return undefined; };
+// Notice text arrives as HTML from third parties. Parse it in an inert document (no scripts run, no images load)
+// and keep only the text.
+const stripHtml = h => {
+  const src=String(h||"");
+  try{ const doc=new DOMParser().parseFromString(src,"text/html"); doc.querySelectorAll("script,style,noscript,template").forEach(n=>n.remove());
+    return (doc.body&&doc.body.textContent||"").replace(/\s+/g," ").trim(); }
+  catch(e){ return src.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim(); }
+};
+const hhmm = t => { const d=new Date(t); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+const mins = ms => Math.round(ms/60000);
+function dur(ms){ const m=Math.round(ms/60000); return m>=60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m` : `${m} min`; }
+function countdown(ms){ if(ms<=0) return "now"; const s=Math.floor(ms/1000), m=Math.floor(s/60); return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m ${String(s%60).padStart(2,"0")}s`; }
+function km(a,b){ const R=6371,r=x=>x*Math.PI/180; const dl=r(b[0]-a[0]), dn=r(b[1]-a[1]);
+  const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+
+// "HH:MM" -> epoch ms nearest to now (handles midnight).
+function clock(str, now){
+  const m=/^(\d{1,2}):(\d{2})/.exec(str||""); if(!m) return null;
+  const d=new Date(now); d.setHours(+m[1], +m[2], 0, 0); let t=d.getTime();
+  if(t-now < -6*3600e3) t+=86400e3; else if(t-now > 18*3600e3) t-=86400e3; return t;
+}
+// Scheduled + estimate -> {t, late (min), unknownDelay, cancelled}
+function resolve(sched, est, now){
+  const base=clock(sched, now); if(base==null) return null;
+  const e=String(est||"");
+  if(/cancel/i.test(e)) return {t:base,late:0,cancelled:true};
+  if(/delay/i.test(e)) return {t:base,late:0,unknownDelay:true};
+  const et=clock(e, now); if(et!=null) return {t:et,late:Math.max(0,mins(et-base))};
+  return {t:base,late:0};
+}
+
+// ---------- Darwin ----------
+function boardUrl(from,to){
+  const s=S(), trim=u=>String(u||"").trim().replace(/\/+$/,"");
+  if(s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120`, headers:{"x-apikey":s.rdmKey} };
+  if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
+  return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
+}
+// Which train source runs: demo, tfl (timetable), or darwin. Darwin without a key falls back to tfl.
+function source(){ const p=S().provider; if(p==="demo"||p==="tfl") return p; return missingCreds()?"tfl":"darwin"; }
+
+// ---------- TfL timetable source (no key; not live) ----------
+const COORDS={ LET:"51.98002,-0.22909", KGX:"51.53197,-0.12341", STP:"51.53062,-0.12594", ZFD:"51.52036,-0.10514" };
+function hubOf(name){ const n=String(name||"");
+  if(/letchworth/i.test(n)) return "LET"; if(/st\.? ?pancras/i.test(n)) return "STP"; if(/king'?s cross/i.test(n)) return "KGX"; if(/farringdon/i.test(n)) return "ZFD"; return null; }
+const pad=n=>String(n).padStart(2,"0");
+async function tflJourneys(from,to,t,timeIs){
+  const d=new Date(t);
+  const url=`https://api.tfl.gov.uk/Journey/JourneyResults/${COORDS[from]}/to/${COORDS[to]}?mode=national-rail&timeIs=${timeIs||"Departing"}&date=${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}&time=${pad(d.getHours())}${pad(d.getMinutes())}&journeyPreference=leasttime`;
+  let r; try{ r=await fetchTfl_(url); }
+  catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner for train times."); }
+  if(!r.ok) throw new Error(`TfL journey planner couldn't plan ${STATIONS[from]} to ${STATIONS[to]} (HTTP ${r.status}).`);
+  return (await r.json()).journeys||[];
+}
+// Keep only journeys that are a single direct train between Letchworth and a London hub.
+function trainFromJourney(j){
+  const rail=(j.legs||[]).filter(l=>l.mode&&l.mode.id==="national-rail"); if(rail.length!==1) return null;
+  const l=rail[0], a=hubOf(l.departurePoint&&l.departurePoint.commonName), b=hubOf(l.arrivalPoint&&l.arrivalPoint.commonName);
+  if(!a||!b||a===b||(a!=="LET"&&b!=="LET")) return null;
+  const dep=new Date(l.departureTime).getTime(), arr=new Date(l.arrivalTime).getTime(); if(!isFinite(dep)||!isFinite(arr)) return null;
+  const sched=l.scheduledDepartureTime?new Date(l.scheduledDepartureTime).getTime():dep;
+  const text=[l.instruction&&l.instruction.summary,l.instruction&&l.instruction.detailed,...(l.routeOptions||[]).map(o=>`${o.name||""} ${(o.directions||[]).join(" ")}`)].join(" ");
+  const operator=/thameslink/i.test(text)?"Thameslink":/great northern/i.test(text)?"Great Northern":((a==="KGX"||b==="KGX")?"Great Northern":"Thameslink");
+  const msgs=(l.disruptions||[]).map(d=>stripHtml(d.description)).filter(Boolean);
+  return { key:`${a}-${b}`, msgs, svc:{ from:a,to:b,std:hhmm(isFinite(sched)?sched:dep),dep,depLate:isFinite(sched)?Math.max(0,mins(dep-sched)):0,depUnknown:false,
+    arr,arrLate:0,platform:null,operator,cancelled:false,reason:"",timetable:true } };
+}
+async function fetchTflBoards(){
+  const now=Date.now(), boards={}, ensure=k=>(boards[k]=boards[k]||{services:[],msgs:[]});
+  const pairs=boardKeys().map(k=>k.split("-")); pairs.forEach(p=>ensure(p.join("-")));
+  let ok=0, firstErr=null;
+  await Promise.all(pairs.map(async([a,b])=>{
+    try{
+      let t=now;
+      for(let i=0;i<3;i++){   // each call returns a few journeys; walk forward to cover ~2 hours
+        const js=await tflJourneys(a,b,t); ok++; let last=t;
+        js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
+          if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc);
+          B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); });
+        if(last<=t || last>now+2*3600e3) break; t=last+60e3;
+      }
+    }catch(e){ firstErr=firstErr||e.message; }
+  }));
+  Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
+  if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
+  return {boards, err:firstErr};
+}
+
+function missingCreds(){
+  const s=S();
+  if(s.provider==="rdm") return !s.rdmKey || !s.rdmBase;
+  if(s.provider==="proxy") return !s.proxyBase;
+  if(s.provider==="huxley") return !s.huxleyToken;
+  return false;
+}
+async function fetchBoard(from,to){
+  const {url,headers}=boardUrl(from,to);
+  let r;
+  try{ r=await fetchT(url,{headers}); }
+  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  if(r.status===401||r.status===403) throw new Error(`National Rail feed refused the key (HTTP ${r.status}). Check the key and that you're subscribed to this product.`);
+  if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
+  if(!r.ok) throw new Error(`National Rail feed error (HTTP ${r.status}).`);
+  return parseBoard(await r.json(), from, to, Date.now());
+}
+function callingPoints(list){
+  const out=[]; (list||[]).forEach(g=>{ const cp=pick(g,"callingPoint","CallingPoint"); if(Array.isArray(cp)) out.push(...cp); else if(g && g.crs) out.push(g); }); return out;
+}
+function parseBoard(json, from, to, now){
+  const svcs=pick(json,"trainServices","TrainServices")||[];
+  const msgs=(pick(json,"nrccMessages","NrccMessages")||[]).map(m=>stripHtml(typeof m==="string"?m:pick(m,"value","Value","xhtmlMessage"))).filter(Boolean);
+  const services=svcs.map(s=>{
+    const dep=resolve(pick(s,"std"),pick(s,"etd"),now);
+    const cp=callingPoints(pick(s,"subsequentCallingPoints")).find(c=>String(pick(c,"crs")||"").toUpperCase()===to);
+    const arr=cp?resolve(pick(cp,"st"),pick(cp,"et"),now):null;
+    const cancelled=pick(s,"isCancelled")===true || (dep&&dep.cancelled) || (cp&&(pick(cp,"isCancelled")===true||(arr&&arr.cancelled)));
+    return { from,to, std:pick(s,"std"), dep:dep&&dep.t, depLate:dep?dep.late:0, depUnknown:!!(dep&&dep.unknownDelay),
+      arr:arr&&arr.t, arrLate:arr?arr.late:0, arrUnknown:!!(arr&&arr.unknownDelay), platform:pick(s,"platform"), operator:pick(s,"operator")||"",
+      cancelled:!!cancelled, reason:pick(s,"cancelReason")||pick(s,"delayReason")||"",
+      origin:((pick(s,"origin")||[])[0]||{}).locationName||"" };
+  }).filter(x=>x.dep!=null);
+  return {services,msgs};
+}
+
+// Example boards, clearly marked in the UI.
+function demoBoards(now){
+  const mk=(from,to,offsets,travel,op)=>{ const out=[]; const base=new Date(now); base.setMinutes(0,0,0);
+    for(let h=0;h<3;h++) offsets.forEach(o=>{ const dep=base.getTime()+h*3600e3+o*60e3; if(dep<now-5*60e3) return;
+      out.push({from,to,std:hhmm(dep),dep,depLate:0,depUnknown:false,arr:dep+travel*60e3,arrLate:0,platform:"1",operator:op,cancelled:false,reason:""}); });
+    return out.slice(0,8); };
+  const b={ "LET-KGX":{services:mk("LET","KGX",[7,37],35,"Great Northern"),msgs:[]},
+            "LET-ZFD":{services:mk("LET","ZFD",[21,51],47,"Thameslink"),msgs:[]},
+            "LET-STP":{services:mk("LET","STP",[21,51],43,"Thameslink"),msgs:[]},
+            "KGX-LET":{services:mk("KGX","LET",[12,42],34,"Great Northern"),msgs:[]},
+            "ZFD-LET":{services:mk("ZFD","LET",[4,34],46,"Thameslink"),msgs:[]},
+            "STP-LET":{services:mk("STP","LET",[8,38],42,"Thameslink"),msgs:[]} };
+  const t=b["KGX-LET"].services[1]; if(t){ t.dep+=4*60e3; t.arr+=4*60e3; t.depLate=4; t.arrLate=4; t.reason="This train has been delayed by a signalling problem (example)"; }
+  const c=b["LET-ZFD"].services[1]; if(c){ c.cancelled=true; c.reason="This train has been cancelled because of a shortage of train crew (example)"; }
+  return b;
+}
+
+// ---------- TfL ----------
+const BAD_SEV=new Set([1,2,3,4,5,16,20]); // closed / suspended / part closure
+async function fetchTfl(){
+  const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
+  if(!r.ok) throw new Error(`TfL status error (HTTP ${r.status}).`);
+  return (await r.json()).map(l=>({ id:l.id, name:l.name, statuses:(l.lineStatuses||[]).map(s=>({sev:s.statusSeverity,desc:s.statusSeverityDescription,reason:s.reason||""})) }));
+}
+async function fetchNrStatus(){
+  try{ const r=await fetchTfl_("https://api.tfl.gov.uk/Line/Mode/national-rail/Status"); if(!r.ok) return null;
+    return (await r.json()).filter(l=>/thameslink|great northern|great-northern/i.test(l.id+" "+l.name))
+      .map(l=>({ id:l.id, name:l.name, statuses:(l.lineStatuses||[]).map(s=>({sev:s.statusSeverity,desc:s.statusSeverityDescription,reason:s.reason||""})) }));
+  }catch(e){ return null; }
+}
+// London leg for leisure-home: TfL Journey Planner from here to each rail hub.
+function legLabel(l){
+  const m=(l.mode&&l.mode.id)||"", d=Math.round(l.duration||0);
+  if(m==="walking") return `Walk ${d}m`;
+  const name=(l.routeOptions&&l.routeOptions[0]&&l.routeOptions[0].name)||(l.mode&&l.mode.name)||m;
+  return `${m==="bus"?"Bus ":""}${name} ${d}m`;
+}
+async function fetchLondon(from){
+  const go=async to=>{
+    let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
+    catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner."); }
+    if(r.status===300) throw new Error("TfL couldn't pin down that place. Try a full postcode.");
+    if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
+    const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey from there.");
+    const best=js.reduce((a,b)=>new Date(a.arrivalDateTime)<=new Date(b.arrivalDateTime)?a:b);
+    return { dur:(best.duration||0)*60e3, summary:(best.legs||[]).map(legLabel).join(" → "),
+      disruptions:[...new Set((best.legs||[]).filter(l=>l.isDisrupted).flatMap(l=>(l.disruptions||[]).map(d=>stripHtml(d.description))).filter(Boolean))] };
+  };
+  const [kx,far]=await Promise.allSettled([go(TFL_HUBS.KXSP),go(TFL_HUBS.FAR)]);
+  if(kx.status==="rejected" && far.status==="rejected") throw kx.reason;
+  return { KXSP:kx.status==="fulfilled"?kx.value:null, FAR:far.status==="fulfilled"?far.value:null };
+}
+function demoLondon(){
+  return { KXSP:{dur:18*60e3,summary:"Walk 5m → Northern 9m → Walk 4m",disruptions:[]},
+           FAR:{dur:21*60e3,summary:"Walk 6m → Bus 341 11m → Walk 4m",disruptions:[]} };
+}
+function londonOrigin(){ return state.origin || (state.here ? `${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}` : ""); }
+
+const worst = l => l && l.statuses.length ? l.statuses.reduce((a,b)=>a.sev<=b.sev?a:b) : null;
+const lineOk = l => { const w=worst(l); return !w || w.sev===10 || w.sev===18 || w.sev===19; };
+function aldgateUnusable(){
+  if(!state.status) return false;
+  const c=state.status.find(l=>l.id==="circle"), m=state.status.find(l=>l.id==="metropolitan");
+  const bad=l=>l && l.statuses.some(s=>BAD_SEV.has(s.sev));
+  return bad(c) && bad(m);
+}
+
+// ---------- Journey model ----------
+function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"office") : state.saved.dirMode; }
+function buildJourneys(dir, now){
+  const s=S(), fast=state.saved.pace==="fast", k=fast?s.fastFactor:1, sec=x=>x*1000, w=x=>sec(x*k);
+  const useAde=aldgateUnusable();
+  const tube = useAde
+    ? { stop:"Aldgate East", lines:["hc"], ride:{KGX:s.rideKxAde,ZFD:s.rideFarAde}, plat:s.adePlatform, walk:s.adeWalk, fallback:true }
+    : { stop:"Aldgate", lines:["circle","met"], ride:{KGX:s.rideKxAld,ZFD:s.rideFarAld}, plat:s.aldPlatform, walk:s.aldWalk, fallback:false };
+  const ic={KGX:s.kxInterchange, ZFD:s.farInterchange};
+  const walkOut=fast?s.walkHomeStationFast:s.walkHomeStationAvg, walkBack=fast?s.walkStationHomeFast:s.walkStationHomeAvg;
+  const out=[];
+  for(const hub of ["KGX","ZFD"]){
+    const key = dir==="office" ? `LET-${hub}` : `${hub}-LET`;
+    const b=state.boards && state.boards[key]; if(!b) continue;
+    for(const t of b.services){
+      if(!plannable(t)) continue;
+      let leave, arrive, legs;
+      if(dir==="office"){
+        leave = t.dep - sec(s.catchMargin) - w(s.letEntry) - sec(walkOut);
+        const tubeBoard = t.arr + w(ic[hub]);
+        const tubeArr = tubeBoard + sec(s.tubeWait) + sec(tube.ride[hub]);
+        arrive = tubeArr + w(tube.plat) + w(tube.walk);
+        legs=[
+          {t:leave, d:"Leave Cartref", note:`walk ${dur(sec(walkOut))}`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:"", train:true},
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`${dur(t.arr-t.dep)} on the train, change ${dur(w(ic[hub]))}`},
+          {t:tubeBoard + sec(s.tubeWait), d:`${tube.fallback?"H&C":"Circle or Met"} to ${tube.stop}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
+          {t:arrive, d:"Arrive office", note:`walk ${dur(w(tube.walk))}`}
+        ];
+      } else {
+        const tubeArrHub = t.dep - sec(s.catchMargin) - w(ic[hub]);
+        const tubeDep = tubeArrHub - sec(tube.ride[hub]);
+        leave = tubeDep - sec(s.tubeWait) - w(tube.plat) - w(tube.walk);
+        arrive = t.arr + w(s.letExit) + sec(walkBack);
+        legs=[
+          {t:leave, d:"Leave office", note:`walk to ${tube.stop} ${dur(w(tube.walk))}`},
+          {t:tubeDep, d:`${tube.fallback?"H&C":"Circle or Met"} to ${STATIONS[hub]}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:t.platform?`platform ${t.platform}`:"platform not yet shown", train:true},
+          {t:t.arr, d:"Arrive Letchworth", note:`${dur(t.arr-t.dep)} on the train`},
+          {t:arrive, d:"Arrive Cartref", note:`walk ${dur(sec(walkBack))}`}
+        ];
+      }
+      out.push({ hub, train:t, leave, arrive, legs, tube, flags:flagsFor(t,hub,tube) });
+    }
+  }
+  return out;
+}
+// ---------- Standing-room warning ----------
+// Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
+// on Tue–Thu in Hertfordshire school term time. Replace the rule with a list of specific trains when known.
+const BUSY = { arrFrom:"08:00", arrTo:"08:30", days:[2,3,4], maxMins:32, origins:/cambridge|ely|king'?s lynn/i };
+// Hertfordshire community school holidays, inclusive (hertfordshire.gov.uk). After Sep 2028 every day counts as term.
+const HOLIDAYS = [
+  ["2026-10-26","2026-10-30"],["2026-12-21","2027-01-01"],["2027-02-15","2027-02-19"],["2027-03-26","2027-04-09"],
+  ["2027-05-31","2027-06-04"],["2027-07-23","2027-08-31"],["2027-10-25","2027-10-29"],["2027-12-20","2028-01-03"],
+  ["2028-02-14","2028-02-18"],["2028-04-03","2028-04-17"],["2028-05-29","2028-06-02"],["2028-07-25","2028-09-01"]
+];
+const isoDay = t => { const d=new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+function busyDay(t){ const d=new Date(t), day=isoDay(t);
+  return BUSY.days.includes(d.getDay()) && !HOLIDAYS.some(([a,b])=>day>=a && day<=b); }
+function standingRoomOnly(t){
+  if(t.from!=="LET" || t.to!=="KGX" || !/great northern/i.test(t.operator||"")) return false;
+  if(t.arr-t.dep > BUSY.maxMins*60e3) return false;
+  if(t.origin && !BUSY.origins.test(t.origin)) return false;       // Darwin gives the origin; the timetable source doesn't
+  const a=hhmm(t.arr); if(a<BUSY.arrFrom || a>BUSY.arrTo) return false;
+  return busyDay(t.arr);
+}
+
+// Slower trains calling at most stations: Letchworth ⇄ King's Cross/St Pancras 45+ min, Farringdon 52+ min.
+function isStopping(t){ if(t.arr==null||t.dep==null) return false;
+  const london=t.from==="LET"?t.to:t.from; return (t.arr-t.dep) >= (london==="ZFD"?52:45)*60e3; }
+// A train is only used for planning when its times are known: not cancelled, and not "Delayed" without an estimate.
+const plannable = t => !t.cancelled && t.arr!=null && t.dep!=null && !t.depUnknown && !t.arrUnknown;
+function flagsFor(t,hub,tube){
+  const f=[];
+  if(standingRoomOnly(t)) f.push({lvl:"bad",txt:"Usually standing room only"});
+  if(isStopping(t)) f.push({lvl:"info",txt:"Stopping train"});
+  if(t.depUnknown) f.push({lvl:"warn",txt:"Delayed, no estimate"});
+  else if(t.depLate>=1 || t.arrLate>=1) f.push({lvl:t.arrLate>=10||t.depLate>=10?"bad":"warn",txt:`+${Math.max(t.depLate,t.arrLate)} min`});
+  if(t.reason) f.push({lvl:"warn",txt:t.reason,long:true});
+  if(tube && state.status){
+    const ids=tube.fallback?["hammersmith-city"]:["circle","metropolitan"];
+    const ls=ids.map(id=>state.status.find(l=>l.id===id)).filter(Boolean);
+    const notOk=ls.filter(l=>!lineOk(l));
+    if(notOk.length===ls.length && ls.length) f.push({lvl:"bad",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
+    else if(notOk.length) f.push({lvl:"warn",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
+  }
+  if(tube && tube.fallback) f.push({lvl:"warn",txt:"Via Aldgate East: Circle and Met closed"});
+  return f;
+}
+function buildLeisure(dir, now){
+  const s=S(), lk=s.leisureFactor, sec=x=>x*1000, w=x=>sec(x*lk), out=[];
+  const okTrain=plannable;
+  const nrFlags=t=>{ const f=flagsFor(t,null,null); return f; };
+  if(dir==="office"){
+    const walk=w(s.walkHomeStationAvg);
+    for(const hub of ["KGX","STP"]){
+      const b=state.boards&&state.boards[`LET-${hub}`]; if(!b) continue;
+      for(const t of b.services.filter(okTrain)){
+        const leave=t.dep-sec(s.catchMargin)-w(s.letEntry)-walk;
+        out.push({ hub, train:t, leave, arrive:t.arr, dest:STATIONS[hub], leisure:true, flags:nrFlags(t), legs:[
+          {t:leave, d:"Leave Cartref", note:`walk ${dur(walk)}`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:""},
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`${dur(t.arr-t.dep)} on the train`}
+        ]});
+      }
+    }
+  } else {
+    if(!state.london) return out;
+    const ic={KGX:s.kxInterchange, STP:s.stpInterchange, ZFD:s.farInterchange};
+    const walkBack=w(s.walkStationHomeAvg);
+    for(const hub of ["KGX","STP","ZFD"]){
+      const leg=hub==="ZFD"?state.london.FAR:state.london.KXSP; if(!leg) continue;
+      const b=state.boards&&state.boards[`${hub}-LET`]; if(!b) continue;
+      for(const t of b.services.filter(okTrain)){
+        const atHub=t.dep-sec(s.catchMargin)-w(ic[hub]);
+        const leave=atHub-leg.dur;
+        const arrive=t.arr+w(s.letExit)+walkBack;
+        const flags=nrFlags(t);
+        if(leg.disruptions.length) flags.push({lvl:"warn",txt:leg.disruptions[0],long:true});
+        out.push({ hub, train:t, leave, arrive, dest:"home", leisure:true, london:leg, flags, legs:[
+          {t:leave, d:`Set off to ${hub==="ZFD"?"Farringdon":"King's Cross St Pancras"}`, note:`${leg.summary} (${dur(leg.dur)})`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:`allow ${dur(w(ic[hub]))} to reach the platform${t.platform?`, platform ${t.platform}`:""}`},
+          {t:t.arr, d:"Arrive Letchworth", note:`${dur(t.arr-t.dep)} on the train`},
+          {t:arrive, d:"Arrive Cartref", note:`walk ${dur(walkBack)}`}
+        ]});
+      }
+    }
+  }
+  return out;
+}
+function ranked(now){
+  const t0=now+30e3;
+  const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
+  const all=build(direction(), now).filter(j=>j.leave>=t0);
+  all.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave);
+  return all.slice(0,5);
+}
+
+// ---------- Rendering ----------
+function chips(j){
+  if(j.leisure){
+    const rail=`<span class="chip rail">${direction()==="office"?"to ":"from "}${esc(STATIONS[j.hub])}</span>`;
+    return rail + (j.london?`<span class="chip walk">${esc(j.london.summary)}</span>`:"");
+  }
+  const rail = `<span class="chip rail">${j.hub==="KGX"?"via King's Cross":"via Farringdon"}</span>`;
+  const tube = j.tube.fallback ? `<span class="chip hc">H&amp;C</span>` : `<span class="chip circle">Circle</span><span class="chip met">Met</span>`;
+  return rail+tube;
+}
+function pills(flags, short){
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
+}
+function renderHero(list, now){
+  const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
+  if(leisure && dir==="home" && !state.london){
+    h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.londonErr?esc(state.londonErr):(londonOrigin()?"Planning your route to the station…":"Waiting for your location. If it doesn't come through, enter a postcode above.")}</div>`;
+    return;
+  }
+  if(!state.boards){
+    h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.loading?"Loading live trains…":(missingCreds()?"Add your National Rail key in Settings to see live trains, or pick Example data to preview.":"No train data yet.")}</div>`;
+    return;
+  }
+  const j=list[0];
+  if(!j){ h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">No catchable trains in the next two hours.</div>`; return; }
+  const t0=now+30e3, spare=j.leave-t0, dest=j.dest||(dir==="office"?"office":"home");
+  h.innerHTML = `
+    <div class="lbl">If you leave now · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""}</div>
+    <div class="big"><span class="arr t">${hhmm(j.arrive)}</span><span class="arrlbl">at ${esc(dest)} · ${dur(j.arrive-t0)}</span></div>
+    <div>${spare>=60e3?`<span class="slack">${mins(spare)} min spare</span> <span style="opacity:.8;font-size:13px">latest leave <span class="t">${hhmm(j.leave)}</span> · <span data-cd="${j.leave}"></span></span>`:`<span class="slack">Leave now</span>`}</div>
+    <ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>
+    <div class="flags">${chips(j)} ${pills(j.flags,false)}</div>`;
+}
+function renderList(list, now){
+  const el=$("#list");
+  if(!state.boards){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear here once live trains load.</div><div></div></div>`; return; }
+  if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Nothing catchable in the next two hours.</div><div></div></div>`; return; }
+  el.innerHTML=list.map((j,i)=>`
+    <div class="row${i===0?" best":""}">
+      <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
+      <div class="mid">
+        <div class="route">${chips(j)}</div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · ${dur(j.arrive-j.leave)} door to door · <span data-cd="${j.leave}"></span></div>
+        ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
+      </div>
+      <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
+    </div>`).join("");
+}
+function renderStatus(){
+  const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
+  if(!lines.length){ el.innerHTML=`<div class="st"><div class="s note">${state.status===null?"Loading…":"Unavailable"}</div></div>`; return; }
+  const col={circle:"var(--circle)",metropolitan:"var(--met)","hammersmith-city":"var(--hc)"};
+  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=ok?"ok":(l.statuses.some(s=>BAD_SEV.has(s.sev))?"bad":"warn");
+    return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
+}
+// Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
+const CORRIDOR=/\b(baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\.? pancras|farringdon)\b/i;
+const NETWORK_WIDE=/\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
+function boardKeys(){
+  const dir=direction(), leisure=state.saved.mode==="leisure";
+  return dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
+}
+function railWarnings(){
+  const keys=boardKeys(), now=Date.now();
+  const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]);
+  const cancelled=svcs.filter(t=>t.cancelled);
+  // "Your trains" = the next 90 minutes of departures on your boards.
+  const soon=svcs.filter(t=>t.dep>=now-5*60e3 && t.dep<=now+90*60e3);
+  const affected=soon.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
+  const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
+  const onRoute=msgs.filter(m=>CORRIDOR.test(m)||NETWORK_WIDE.test(m));
+  const other=msgs.filter(m=>!onRoute.includes(m));
+  const uncertain=svcs.filter(t=>!t.cancelled && (t.depUnknown||t.arrUnknown) && t.dep>=now-5*60e3);
+  return { cancelled, uncertain, affected, hit:affected>=2, onRoute, other };
+}
+function renderBanners(){
+  const out=[];
+  if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
+  if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
+  state.errors.forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
+  if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
+    out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
+  if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
+  const w=l=>worst(l);
+  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${esc(w(l).reason||"No details given.")}</span></details></div>`;
+  // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
+  if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
+  const elsewhere=[];
+  if(state.boards){
+    const tiers=railWarnings();
+    // Tier 1: your own trains.
+    if(tiers.uncertain.length) out.push(`<div class="banner warn"><details><summary>${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate, not used for planning</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of your next trains are delayed or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span></div>`);
+    // Tier 2: notices naming your corridor.
+    tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details><summary>On your line</summary><span class="msg">${esc(m)}</span></details></div>`));
+    // Tier 3: everything else, promoted only when your trains are being hit.
+    if(tiers.hit){ tiers.other.forEach(m=>out.push(`<div class="banner warn"><details><summary>Elsewhere on the network</summary><span class="msg">${esc(m)}</span></details></div>`)); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(lineBanner(l))); }
+    else { elsewhere.push(...tiers.other); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>elsewhere.push(`${l.name}: ${w(l).desc}. ${w(l).reason||""}`.trim())); }
+  }
+  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${esc(m)}</span>`).join("")}</details></div>`);
+  $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
+}
+function trainsNote(){ const r=state.railSource||source(); return r==="tfl"?"Train times are TfL timetable, not live.":r==="demo"?"Train times are examples.":"Trains are live from National Rail."; }
+function renderControls(){
+  const leisure=state.saved.mode==="leisure";
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.saved.mode)));
+  document.querySelectorAll("[data-dir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.dir===state.saved.dirMode)));
+  document.querySelectorAll("[data-pace]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.pace===state.saved.pace)));
+  $("#paceSeg").hidden=leisure;
+  $("#dirOutBtn").textContent = leisure ? "To London" : "To office";
+  const dir=direction();
+  $("#routeLabel").textContent = leisure
+    ? (dir==="office" ? "Cartref → King's Cross or St Pancras" : "Wherever you are → Cartref")
+    : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
+  const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
+  $("#dirNote").textContent = state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
+  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin);
+  $("#originRow").hidden = !showOrigin;
+  const s=S(); const fast=state.saved.pace==="fast";
+  $("#modelNote").textContent = leisure
+    ? `${trainsNote()} ${dir==="home"?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
+    : `${trainsNote()} Tube legs are estimates: a ${mins(s.tubeWait*1000)} min wait allowance plus typical ride time, editable in Settings. Times assume ${fast?"fast":"average"} walking pace.`;
+}
+// ---------- Arrive by ----------
+function defaultBy(){
+  const d=new Date(); const target=state.saved.byTime||"08:30";
+  const [h,m]=target.split(":").map(Number); const t=new Date(d); t.setHours(h,m,0,0);
+  if(t.getTime()<Date.now()+30*60e3) t.setDate(t.getDate()+1);
+  return { date:`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`, time:target };
+}
+function byTarget(){ const v=$("#byDate").value, t=$("#byTime").value; if(!v||!t) return NaN; return new Date(`${v}T${t}:00`).getTime(); }
+// Time from the train's arrival to the destination, per London hub, under the current mode and pace.
+function postTrain(hub){
+  const s=S(), dir=direction(), fast=state.saved.pace==="fast";
+  if(state.saved.mode==="leisure"){ const lk=s.leisureFactor; return dir==="office"?0:(s.letExit*lk+s.walkStationHomeAvg*lk)*1000; }
+  const k=fast?s.fastFactor:1;
+  if(dir==="office"){ const ic=hub==="KGX"?s.kxInterchange:s.farInterchange, ride=hub==="KGX"?s.rideKxAld:s.rideFarAld;
+    return (ic*k+s.tubeWait+ride+s.aldPlatform*k+s.aldWalk*k)*1000; }
+  return (s.letExit*k+(fast?s.walkStationHomeFast:s.walkStationHomeAvg))*1000;
+}
+async function fetchTflArriving(T){
+  const boards={}, ensure=k=>(boards[k]=boards[k]||{services:[],msgs:[]});
+  const pairs=boardKeys().map(k=>k.split("-")); pairs.forEach(p=>ensure(p.join("-")));
+  let ok=0, firstErr=null;
+  await Promise.all(pairs.map(async([a,b])=>{
+    const hub=a==="LET"?b:a, latest=T-postTrain(hub);
+    const add=js=>{ let last=0; js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
+      if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); }); return last; };
+    // "Arriving" searches return only a few journeys and can skip trains, so sweep forward by departure
+    // from 100 minutes before the target until departures pass the latest useful arrival.
+    try{
+      let t=latest-100*60e3;
+      for(let i=0;i<7 && t<latest;i++){ const last=add(await tflJourneys(a,b,t,"Departing")); ok++; if(!last||last<=t) break; t=last+60e3; }
+    }catch(e){ firstErr=firstErr||e.message; }
+    try{ add(await tflJourneys(a,b,latest,"Arriving")); ok++; }catch(e){ firstErr=firstErr||e.message; }
+  }));
+  Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
+  if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
+  return boards;
+}
+async function planBy(){
+  if(state.saved.view!=="by" || awaitingLocation()) return;
+  const T=byTarget(), token={}; state.byToken=token;
+  if(!isFinite(T)){ state.by={err:"Pick a day and time."}; render(); return; }
+  if(T<Date.now()){ state.by={err:"That time has already passed."}; render(); return; }
+  // Within the live window with Darwin running: use the live boards already loaded.
+  if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
+  state.by={T,loading:true}; render();
+  try{ const boards=await fetchTflArriving(T); if(state.byToken!==token) return; state.by={T,boards,live:false}; }
+  catch(e){ if(state.byToken!==token) return; state.by={T,err:e.message}; }
+  render();
+}
+function byOptions(){
+  const b=state.by; if(!b||!b.boards) return [];
+  const keep=state.boards; state.boards=b.boards;
+  const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
+  let js=build(direction(), Date.now()); state.boards=keep;
+  js=js.filter(j=>j.arrive<=b.T && j.leave>=Date.now());
+  js.sort((x,y)=>y.leave-x.leave || x.arrive-y.arrive);
+  js=js.slice(0,8);
+  js.forEach(j=>{ if(b.T-j.arrive<5*60e3 && !j.flags.some(f=>f.fine)) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
+  return js;
+}
+function dayLabel(t){ const d=new Date(t), today=new Date(); const diff=Math.round((new Date(d).setHours(0,0,0,0)-new Date(today).setHours(0,0,0,0))/86400e3);
+  return diff===0?"today":diff===1?"tomorrow":d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function renderByHero(opts){
+  const h=$("#hero"), b=state.by||{}, dir=direction(), leisure=state.saved.mode==="leisure";
+  const lbl=isFinite(b.T)?`To arrive by ${hhmm(b.T)} ${dayLabel(b.T)}${b.boards?(b.live?" · live":" · timetable"):""}`:"Arrive by";
+  if(b.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(b.err)}</div>`; return; }
+  if(b.loading||!b.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
+  if(leisure && dir==="home" && !state.london){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Need your location or a postcode to plan the London leg.</div>`; return; }
+  const j=opts[0];
+  if(!j){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No direct train gets you there by then. Try a later time.</div>`; return; }
+  const early=b.T-j.arrive, from=dir==="office"?"Cartref":(leisure?"where you are":"the office");
+  h.innerHTML=`
+    <div class="lbl">${esc(lbl)}</div>
+    <div class="big"><span class="arr t">${hhmm(j.leave)}</span><span class="arrlbl">leave ${esc(from)} ${esc(dayLabel(j.leave))}</span></div>
+    <div><span class="slack">Arrive ${hhmm(j.arrive)} · ${early>=60e3?`${mins(early)} min early`:"just in time"}</span> <span style="opacity:.8;font-size:13px"><span data-cd="${j.leave}"></span></span></div>
+    <ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>
+    <div class="flags">${chips(j)} ${pills(j.flags,false)}</div>`;
+}
+
+function render(){
+  // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
+  // arrived after the first load), reload instead of showing an empty list.
+  if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh(); }
+  const now=Date.now(), byView=state.saved.view==="by";
+  if(awaitingLocation()){
+    document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
+    $("#byForm").hidden=state.saved.view!=="by";
+    renderControls(); renderBanners(); renderStatus();
+    const pending=state.locStatus==="pending"||!state.locStatus;
+    $("#hero").innerHTML=`<div class="lbl">${pending?"Finding your location":"Location needed"}</div><div class="empty">${pending?"Waiting for your phone to say where you are. This usually takes a few seconds.":`${esc(state.autoSrc[0].toUpperCase()+state.autoSrc.slice(1))}. ${esc(LOC_HELP)}`}</div>`;
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear once the direction is known.</div><div></div></div>`;
+    $("#updated").textContent = state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : "Not updated yet";
+    return;
+  }
+  document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
+  $("#byForm").hidden=!byView;
+  renderControls(); renderBanners();
+  if(byView){
+    const opts=byOptions(); renderByHero(opts); renderList(opts, now);
+    $("#listTitle").textContent = isFinite(state.by&&state.by.T) ? `Options arriving by ${hhmm(state.by.T)}, latest leave first` : "Options";
+    if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
+  } else {
+    const list=state.boards?ranked(now):[];
+    renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next 5 by arrival";
+  }
+  renderStatus(); tick();
+  $("#updated").textContent = state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet");
+}
+function tick(){
+  const now=Date.now();
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"missed"; });
+}
+
+// ---------- Data refresh ----------
+// Successful train data is stamped; when a later load fails the last good data stays on screen, marked stale.
+function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); }
+const boardsFit = b => !!b && boardKeys().every(k=>k in b);
+async function loadTflTimetable(prev){
+  try{ const {boards,err}=await fetchTflBoards(); setBoards(boards); if(err) state.errors.push(err); }
+  catch(e){ state.errors.push(e.message); state.boards = boardsFit(prev) ? prev : null; }
+}
+async function refresh(){
+  if(state.loading){ state.again=true; return; }
+  state.loading=true; state.again=false; state.errors=[]; render();
+  const prev=state.boards;
+  try{
+    const now=Date.now();
+    const tflP=fetchTfl().then(v=>{state.status=v;}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
+    const nrP=fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    let railP;
+    state.railSource=source(); state.darwinFailed=false;
+    if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
+    else if(state.railSource==="tfl"){ railP = awaitingLocation() ? Promise.resolve() : loadTflTimetable(prev); }   // load once we know the direction
+    else {
+      const pairs=PAIRS;
+      railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
+        const boards={}; let firstErr=null;
+        rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
+        if(Object.keys(boards).length){
+          // Partial failure: keep the boards that loaded, and last good data for any that didn't.
+          if(firstErr){ state.errors.push(firstErr); if(prev) pairs.forEach(p=>{ const k=p.join("-"); if(!(k in boards) && prev[k]) boards[k]=prev[k]; }); }
+          setBoards(boards);
+        } else { // Darwin down: fall back to the TfL timetable.
+          state.errors.push(firstErr); state.darwinFailed=true; state.railSource="tfl"; await loadTflTimetable(prev);
+        }
+      });
+    }
+    await Promise.all([tflP,nrP,railP,refreshLondon()]);
+  } catch(e){
+    state.errors.push("Something went wrong loading times. Pull to refresh or tap Refresh.");
+  } finally {
+    state.loading=false; state.fetchedAt=Date.now(); render();
+  }
+  if(state.again) refresh();
+}
+async function refreshLondon(){
+  if(state.saved.mode!=="leisure" || direction()!=="home") return;
+  if(S().provider==="demo"){ state.london=demoLondon(); state.londonErr=""; return; }
+  const from=londonOrigin(); if(!from) return;
+  try{ state.london=await fetchLondon(from); state.londonErr=""; }
+  catch(e){ state.london=null; state.londonErr=e.message||"Couldn't plan the London leg."; }
+}
+
+// ---------- Auto direction ----------
+// Direction comes only from the phone's location: near Letchworth -> heading to London/office,
+// otherwise heading to whichever end is further away. No time-of-day guessing.
+const LOC_HELP="Turn it on in iPhone Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, with Precise Location on. Or choose a direction above.";
+function onPosition(p){
+  const here=[p.coords.latitude,p.coords.longitude], acc=Math.round(p.coords.accuracy||0);
+  const moved=!state.here || km(state.here,here)>0.2;
+  state.here=here; state.locAcc=acc; state.locStatus="ok";
+  const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir;
+  state.autoDir = dLet<=dAld ? "office" : "home";
+  const where = dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
+  state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
+  if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
+  if(state.saved.dirMode==="auto" && (prev!==state.autoDir || (!state.boards && !state.loading))) refresh();
+  render(); planBy();
+}
+function onPositionError(e){
+  state.locStatus = e && e.code===1 ? "denied" : "unavailable";
+  state.autoSrc = state.locStatus==="denied" ? "location is off for this app" : "can't get your location right now";
+  render();
+}
+function locate(){
+  if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
+  if(!state.locStatus || state.locStatus!=="ok") state.locStatus = state.locStatus==="denied" ? "denied" : "pending";
+  try{
+    if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);   // restart after the app was in the background
+    state.watchId=navigator.geolocation.watchPosition(onPosition, onPositionError, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
+  }catch(e){ onPositionError(); }
+}
+// True when Auto is selected but the phone hasn't said where you are yet.
+const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
+
+// ---------- Settings ----------
+const dlg=$("#settings");
+function fillSettings(){
+  const s=S();
+  ["provider","rdmBase","rdmKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
+  TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
+}
+function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
+function readSettings(){
+  const o={};
+  ["provider","rdmBase","rdmKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
+  TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
+  const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
+  const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
+  return o;
+}
+$("#settingsBtn").addEventListener("click",()=>{ fillSettings(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+$("#s_provider").addEventListener("change",showProviderFields);
+$("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; refresh(); });
+dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+
+// ---------- Controls ----------
+// The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
+const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl") refresh(); else refreshLondon().then(render); planBy(); };
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ state.saved.view=b.dataset.view; save(); render(); planBy(); }));
+["#byDate","#byTime"].forEach(id=>$(id).addEventListener("change",()=>{ state.saved.byTime=$("#byTime").value||state.saved.byTime; save(); planBy(); }));
+$("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planBy(); });
+{ const d=defaultBy(); $("#byDate").value=d.date; $("#byTime").value=d.time; }
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
+$("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
+document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
+$("#refreshBtn").addEventListener("click",refresh);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(); if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
+
+// ---------- Boot ----------
+// First run with no key: show example trains so the layout is visible.
+if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
+locate(); render(); refresh().then(planBy);
+setInterval(tick,1000);
+setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
+setInterval(()=>{ if(!document.hidden) render(); },15e3);
+
+// Exposed for testing only.
+window.__commute={parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+})();
+</script>

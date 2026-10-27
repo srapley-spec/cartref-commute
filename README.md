@@ -25,3 +25,19 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 - Tube legs: modelled as interchange walk + wait allowance + typical ride time. All editable in Settings.
 - Aldgate East (H&C) is used only when Circle and Met are both closed or suspended.
 - "Fast pace" uses your measured fast walks for Cartref ⇄ Letchworth and a multiplier (0.82, from your data) for London walks.
+
+## Development
+- Edit `src/app.html`, then run `npm run build` to regenerate `index.html` (the hosted page). CI fails if they differ.
+- `npm install && npm test` runs the suite in `tests/` against the built page in jsdom, with mocked network and location:
+  time boundaries, delays and cancellations, door-to-door maths, direction from location, timeouts, rate limiting,
+  partial failures, Arrive by, warnings and the standing-room rule.
+- Fixtures follow the documented Darwin and TfL formats; replacing them with captured real responses is tracked in #9.
+
+## Reliability and security
+- Every request times out after 12 s; the app never stays stuck loading.
+- Trains marked "Delayed" with no estimate are not used for planning and are listed separately.
+- If a refresh fails, the last good times stay on screen and are flagged as out of date after 3 minutes.
+- TfL HTTP 429 triggers a one-minute back-off. A free TfL app key (Settings) raises the limit.
+- Notice text from National Rail and TfL is parsed in an inert document and reduced to plain text.
+- Keys typed into Settings live in this browser's storage. The proxy keeps the National Rail key off the phone;
+  it only answers origins listed in `ALLOW_ORIGIN`.
