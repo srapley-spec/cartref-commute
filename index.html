@@ -824,6 +824,9 @@ function renderByHero(opts){
 }
 
 function render(){
+  // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
+  // arrived after the first load), reload instead of showing an empty list.
+  if(state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh(); }
   const now=Date.now(), byView=state.saved.view==="by";
   document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
   $("#byForm").hidden=!byView;
@@ -885,7 +888,8 @@ async function refreshLondon(){
 // ---------- Auto direction ----------
 function timeOfDayDir(){ return new Date().getHours()<13 ? "office" : "home"; }
 function locate(){
-  state.autoDir=timeOfDayDir(); state.autoSrc="by time of day";
+  // Keep a location-based direction between checks; only fall back to time of day when there is none.
+  if(!state.locDir){ state.autoDir=timeOfDayDir(); state.autoSrc="by time of day"; }
   if(!("geolocation" in navigator)) return;
   try{
     navigator.geolocation.getCurrentPosition(p=>{
@@ -894,9 +898,9 @@ function locate(){
       state.here=here;
       if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
       const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD);
-      if(dLet<15){ state.autoDir="office"; state.autoSrc="you're near Letchworth"; }
-      else if(dAld<15){ state.autoDir="home"; state.autoSrc="you're in London"; }
-      else { state.autoSrc="by time of day (location not near either end)"; }
+      if(dLet<15){ state.locDir="office"; state.autoDir="office"; state.autoSrc="you're near Letchworth"; }
+      else if(dAld<15){ state.locDir="home"; state.autoDir="home"; state.autoSrc="you're in London"; }
+      else { state.locDir=null; state.autoDir=timeOfDayDir(); state.autoSrc="by time of day (location not near either end)"; }
       render();
     },()=>{ state.autoSrc="by time of day (location unavailable)"; render(); },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
   }catch(e){}
