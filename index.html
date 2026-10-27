@@ -736,7 +736,7 @@ function renderControls(){
     ? (dir==="office" ? "Cartref → King's Cross or St Pancras" : "Wherever you are → Cartref")
     : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
   const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
-  $("#dirNote").textContent = state.saved.dirMode==="auto" ? `Heading to ${where} · ${state.autoSrc||"working out where you are"}` : "";
+  $("#dirNote").textContent = state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
   const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin);
   $("#originRow").hidden = !showOrigin;
   const s=S(); const fast=state.saved.pace==="fast";
@@ -782,7 +782,7 @@ async function fetchTflArriving(T){
   return boards;
 }
 async function planBy(){
-  if(state.saved.view!=="by") return;
+  if(state.saved.view!=="by" || awaitingLocation()) return;
   const T=byTarget(), token={}; state.byToken=token;
   if(!isFinite(T)){ state.by={err:"Pick a day and time."}; render(); return; }
   if(T<Date.now()){ state.by={err:"That time has already passed."}; render(); return; }
@@ -826,8 +826,18 @@ function renderByHero(opts){
 function render(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
-  if(state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh(); }
+  if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh(); }
   const now=Date.now(), byView=state.saved.view==="by";
+  if(awaitingLocation()){
+    document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
+    $("#byForm").hidden=state.saved.view!=="by";
+    renderControls(); renderBanners(); renderStatus();
+    const pending=state.locStatus==="pending"||!state.locStatus;
+    $("#hero").innerHTML=`<div class="lbl">${pending?"Finding your location":"Location needed"}</div><div class="empty">${pending?"Waiting for your phone to say where you are. This usually takes a few seconds.":`${esc(state.autoSrc[0].toUpperCase()+state.autoSrc.slice(1))}. ${esc(LOC_HELP)}`}</div>`;
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear once the direction is known.</div><div></div></div>`;
+    $("#updated").textContent = state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : "Not updated yet";
+    return;
+  }
   document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
   $("#byForm").hidden=!byView;
   renderControls(); renderBanners();
@@ -861,7 +871,7 @@ async function refresh(){
   let railP;
   state.railSource=source(); state.darwinFailed=false;
   if(state.railSource==="demo"){ state.boards=demoBoards(now); railP=Promise.resolve(); }
-  else if(state.railSource==="tfl"){ railP=loadTflTimetable(); }
+  else if(state.railSource==="tfl"){ railP = awaitingLocation() ? Promise.resolve() : loadTflTimetable(); }   // load once we know the direction
   else {
     const pairs=PAIRS;
     railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
@@ -886,25 +896,36 @@ async function refreshLondon(){
 }
 
 // ---------- Auto direction ----------
-function timeOfDayDir(){ return new Date().getHours()<13 ? "office" : "home"; }
-function locate(){
-  // Keep a location-based direction between checks; only fall back to time of day when there is none.
-  if(!state.locDir){ state.autoDir=timeOfDayDir(); state.autoSrc="by time of day"; }
-  if(!("geolocation" in navigator)) return;
-  try{
-    navigator.geolocation.getCurrentPosition(p=>{
-      const here=[p.coords.latitude,p.coords.longitude];
-      const moved=!state.here || km(state.here,here)>0.2;
-      state.here=here;
-      if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
-      const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD);
-      if(dLet<15){ state.locDir="office"; state.autoDir="office"; state.autoSrc="you're near Letchworth"; }
-      else if(dAld<15){ state.locDir="home"; state.autoDir="home"; state.autoSrc="you're in London"; }
-      else { state.locDir=null; state.autoDir=timeOfDayDir(); state.autoSrc="by time of day (location not near either end)"; }
-      render();
-    },()=>{ state.autoSrc="by time of day (location unavailable)"; render(); },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
-  }catch(e){}
+// Direction comes only from the phone's location: near Letchworth -> heading to London/office,
+// otherwise heading to whichever end is further away. No time-of-day guessing.
+const LOC_HELP="Turn it on in iPhone Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, with Precise Location on. Or choose a direction above.";
+function onPosition(p){
+  const here=[p.coords.latitude,p.coords.longitude], acc=Math.round(p.coords.accuracy||0);
+  const moved=!state.here || km(state.here,here)>0.2;
+  state.here=here; state.locAcc=acc; state.locStatus="ok";
+  const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir;
+  state.autoDir = dLet<=dAld ? "office" : "home";
+  const where = dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
+  state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
+  if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
+  if(state.saved.dirMode==="auto" && (prev!==state.autoDir || (!state.boards && !state.loading))) refresh();
+  render(); planBy();
 }
+function onPositionError(e){
+  state.locStatus = e && e.code===1 ? "denied" : "unavailable";
+  state.autoSrc = state.locStatus==="denied" ? "location is off for this app" : "can't get your location right now";
+  render();
+}
+function locate(){
+  if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
+  if(!state.locStatus || state.locStatus!=="ok") state.locStatus = state.locStatus==="denied" ? "denied" : "pending";
+  try{
+    if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);   // restart after the app was in the background
+    state.watchId=navigator.geolocation.watchPosition(onPosition, onPositionError, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
+  }catch(e){ onPositionError(); }
+}
+// True when Auto is selected but the phone hasn't said where you are yet.
+const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 
 // ---------- Settings ----------
 const dlg=$("#settings");
