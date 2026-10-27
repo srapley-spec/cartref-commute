@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17201B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Commute">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Cartref Commute</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column, a departure-board hero for "leave now", then a ranked list. */
+:root{
+  --paper:#EDF0EC; --card:#F8F9F6; --ink:#17201B; --muted:#5B6760; --line:#D2D9D3;
+  --accent:#B0500C; --accent-ink:#FFFFFF;
+  --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318;
+  --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE;
+  --circle:#FFD329; --circle-ink:#1A1A1A; --met:#9B0058; --met-ink:#FFFFFF; --hc:#F4A9BE; --hc-ink:#1A1A1A;
+  --font-display:"Overpass", "Helvetica Neue", Arial, sans-serif;
+  --font-body:"Overpass", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:"Overpass Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
+  --accent:#EE9A45; --accent-ink:#1A1208;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
+  --accent:#EE9A45; --accent-ink:#1A1208;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.mono,.t{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0}
+.sub{color:var(--muted);font-size:13px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--card)}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.dirnote{font-size:12px;color:var(--muted);width:100%}
+.origin{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.originbar{display:flex;gap:8px}
+.originbar input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
+.chip.walk{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.hero .chip.walk{color:var(--paper);border-color:color-mix(in srgb,var(--paper) 35%,transparent)}
+
+.banner{border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
+.banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
+.banner.info{background:var(--card);border:1px dashed var(--line)}
+.banner b{font-weight:800}
+.banner details summary{cursor:pointer;font-weight:600}
+.banner .msg{color:var(--muted)}
+
+.hero{background:var(--ink);color:var(--paper);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.hero .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.7;font-weight:600}
+.hero .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hero .arr{font-family:var(--font-mono);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.hero .arrlbl{font-size:15px;opacity:.85}
+.hero .slack{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:800;border-radius:6px;padding:3px 8px;font-size:13px}
+.legs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:6px;font-size:14px}
+.legs .t{opacity:.95}
+.legs .d{min-width:0}
+.legs .d small{opacity:.7}
+.hero .flags{display:flex;gap:6px;flex-wrap:wrap}
+.hero .empty{font-size:15px;opacity:.85}
+
+h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;letter-spacing:.1em;margin:4px 0 0;color:var(--muted);font-weight:800}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.row{display:grid;grid-template-columns:4.2em 1fr 4.2em;gap:10px;padding:12px;align-items:center;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .leave .t{font-size:18px;font-weight:600}
+.row .leave small,.row .arrive small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.row .arrive{text-align:right}
+.row .arrive .t{font-size:18px;font-weight:600}
+.row .mid{min-width:0;display:flex;flex-direction:column;gap:4px}
+.row .route{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:600}
+.row .meta{font-size:12px;color:var(--muted)}
+.row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
+.row.gone{opacity:.5}
+
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
+.chip.rail{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+.hero .chip.rail{background:transparent;border-color:color-mix(in srgb,var(--paper) 35%,transparent);color:var(--paper)}
+.chip.circle{background:var(--circle);color:var(--circle-ink)}
+.chip.met{background:var(--met);color:var(--met-ink)}
+.chip.hc{background:var(--hc);color:var(--hc-ink)}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+
+.status{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.st .n{font-size:13px;font-weight:800;display:flex;gap:6px;align-items:center}
+.st .s{font-size:12px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+
+footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.note{font-size:12px;color:var(--muted)}
+
+/* Settings */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.sheet{padding:16px;display:flex;flex-direction:column;gap:14px}
+.sheet h3{margin:0;font-family:var(--font-display);font-size:18px}
+.sheet fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:0}
+.sheet legend{font-weight:800;font-size:13px;padding:0 4px}
+.f{display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center;font-size:13px}
+.f.wide{grid-template-columns:1fr}
+.f input,.f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.f input[type=number]{text-align:right;font-family:var(--font-mono)}
+.sheet .hint{font-size:12px;color:var(--muted);margin:0}
+.sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
+@media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Cartref Commute</h1>
+      <div class="sub" id="routeLabel">Cartref ⇄ 20 Mansfield Street</div>
+    </div>
+    <button class="iconbtn" id="settingsBtn" type="button">Settings</button>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" data-mode="commute">Commute</button>
+      <button type="button" data-mode="leisure">Leisure</button>
+    </div>
+    <div class="seg" role="group" aria-label="Direction">
+      <button type="button" data-dir="auto">Auto</button>
+      <button type="button" data-dir="office" id="dirOutBtn">To office</button>
+      <button type="button" data-dir="home">To home</button>
+    </div>
+    <div class="seg" role="group" aria-label="Walking pace" id="paceSeg">
+      <button type="button" data-pace="avg">Average pace</button>
+      <button type="button" data-pace="fast">Fast pace</button>
+    </div>
+    <div class="dirnote" id="dirNote"></div>
+  </div>
+
+  <form class="origin" id="originRow" hidden>
+    <label for="originInput">Where are you? Location isn't available, so enter a postcode.</label>
+    <div class="originbar">
+      <input id="originInput" type="text" autocomplete="postal-code" spellcheck="false" placeholder="e.g. SE1 9SG">
+      <button type="submit" class="primary">Plan</button>
+    </div>
+  </form>
+
+  <div id="banners" class="wrap" style="gap:8px"></div>
+
+  <section class="hero" id="hero" aria-live="polite"></section>
+
+  <h2>Next 5 by arrival</h2>
+  <div class="list" id="list"></div>
+  <p class="note" id="modelNote"></p>
+
+  <h2>Line status</h2>
+  <div class="status" id="status"></div>
+
+  <footer>
+    <span id="updated">Not updated yet</span>
+    <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
+  </footer>
+</div>
+
+<dialog id="settings">
+  <form class="sheet" id="settingsForm" method="dialog">
+    <h3>Settings</h3>
+
+    <fieldset>
+      <legend>National Rail live data</legend>
+      <label class="f wide"><span>Source</span>
+        <select id="s_provider">
+          <option value="rdm">Rail Data Marketplace (Darwin key)</option>
+          <option value="proxy">My proxy (Cloudflare Worker)</option>
+          <option value="huxley">Huxley2 (Darwin token)</option>
+          <option value="demo">Example data (no key)</option>
+        </select>
+      </label>
+      <label class="f wide" data-p="rdm"><span>API key (x-apikey)</span><input id="s_rdmKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <label class="f wide" data-p="rdm"><span>Endpoint base URL, from the product page (ends …/LDBWS/api/20220120)</span><input id="s_rdmBase" type="url" spellcheck="false"></label>
+      <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
+      <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
+      <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
+      <p class="hint">Keys are stored only in this browser on this device.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Walk: Cartref ⇄ Letchworth (min)</legend>
+      <label class="f"><span>To station, average</span><input id="s_walkHomeStationAvg" type="number" step="0.1" min="0"></label>
+      <label class="f"><span>To station, fast</span><input id="s_walkHomeStationFast" type="number" step="0.1" min="0"></label>
+      <label class="f"><span>To home, average</span><input id="s_walkStationHomeAvg" type="number" step="0.1" min="0"></label>
+      <label class="f"><span>To home, fast</span><input id="s_walkStationHomeFast" type="number" step="0.1" min="0"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Stations and interchanges (min, average pace)</legend>
+      <label class="f"><span>Letchworth: entrance to platform</span><input id="s_letEntry" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Letchworth: train to exit</span><input id="s_letExit" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Be on platform before train leaves</span><input id="s_catchMargin" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>King's Cross: rail ⇄ Circle/Met</span><input id="s_kxInterchange" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Farringdon: Thameslink ⇄ Circle/Met</span><input id="s_farInterchange" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Tube wait allowance</span><input id="s_tubeWait" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate</span><input id="s_rideKxAld" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate</span><input id="s_rideFarAld" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Aldgate: platform ⇄ street</span><input id="s_aldPlatform" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Walk Aldgate ⇄ office</span><input id="s_aldWalk" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>St Pancras: Thameslink ⇄ tube</span><input id="s_stpInterchange" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Fast pace multiplier (London walks)</span><input id="s_fastFactor" type="number" step="0.01" min="0.5" max="1"></label>
+      <label class="f"><span>Leisure pace multiplier (all walks)</span><input id="s_leisureFactor" type="number" step="0.01" min="1" max="2"></label>
+      <p class="hint">Fallback via Aldgate East (only used when Circle and Met are both closed or suspended):</p>
+      <label class="f"><span>Tube ride King's Cross ⇄ Aldgate East</span><input id="s_rideKxAde" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Tube ride Farringdon ⇄ Aldgate East</span><input id="s_rideFarAde" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Aldgate East: platform ⇄ street</span><input id="s_adePlatform" type="number" step="0.5" min="0"></label>
+      <label class="f"><span>Walk Aldgate East ⇄ office</span><input id="s_adeWalk" type="number" step="0.5" min="0"></label>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="ghost" id="resetBtn">Reset times to defaults</button>
+      <button type="submit" class="primary" id="saveBtn" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+// ---------- Config ----------
+const STATIONS = { LET:"Letchworth", KGX:"King's Cross", STP:"St Pancras", ZFD:"Farringdon" };
+const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
+const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
+const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
+// All durations in seconds.
+const DEFAULTS = {
+  provider:"rdm",
+  rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
+  rdmKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
+  walkHomeStationAvg:1337, walkHomeStationFast:1086, walkStationHomeAvg:1332, walkStationHomeFast:1111,
+  letEntry:120, letExit:90, catchMargin:60,
+  kxInterchange:360, farInterchange:240, tubeWait:180,
+  rideKxAld:600, rideFarAld:420, aldPlatform:90, aldWalk:420,
+  rideKxAde:660, rideFarAde:480, adePlatform:90, adeWalk:360,
+  stpInterchange:420,
+  fastFactor:0.82, leisureFactor:1.15
+};
+const FACTOR_KEYS = ["fastFactor","leisureFactor"];
+const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
+const LS = "cartrefCommute.v1";
+
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
+const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
+  boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
+  here:null, origin:"", london:null, londonErr:"" };
+const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
+
+// ---------- Helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pick = (o,...ks) => { for(const k of ks){ if(o && o[k]!=null) return o[k]; } return undefined; };
+const stripHtml = h => { const d=document.createElement("div"); d.innerHTML=String(h||""); return (d.textContent||"").replace(/\s+/g," ").trim(); };
+const hhmm = t => { const d=new Date(t); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+const mins = ms => Math.round(ms/60000);
+function dur(ms){ const m=Math.round(ms/60000); return m>=60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m` : `${m} min`; }
+function countdown(ms){ if(ms<=0) return "now"; const s=Math.floor(ms/1000), m=Math.floor(s/60); return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m ${String(s%60).padStart(2,"0")}s`; }
+function km(a,b){ const R=6371,r=x=>x*Math.PI/180; const dl=r(b[0]-a[0]), dn=r(b[1]-a[1]);
+  const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+
+// "HH:MM" -> epoch ms nearest to now (handles midnight).
+function clock(str, now){
+  const m=/^(\d{1,2}):(\d{2})/.exec(str||""); if(!m) return null;
+  const d=new Date(now); d.setHours(+m[1], +m[2], 0, 0); let t=d.getTime();
+  if(t-now < -6*3600e3) t+=86400e3; else if(t-now > 18*3600e3) t-=86400e3; return t;
+}
+// Scheduled + estimate -> {t, late (min), unknownDelay, cancelled}
+function resolve(sched, est, now){
+  const base=clock(sched, now); if(base==null) return null;
+  const e=String(est||"");
+  if(/cancel/i.test(e)) return {t:base,late:0,cancelled:true};
+  if(/delay/i.test(e)) return {t:base,late:0,unknownDelay:true};
+  const et=clock(e, now); if(et!=null) return {t:et,late:Math.max(0,mins(et-base))};
+  return {t:base,late:0};
+}
+
+// ---------- Darwin ----------
+function boardUrl(from,to){
+  const s=S(), trim=u=>String(u||"").trim().replace(/\/+$/,"");
+  if(s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120`, headers:{"x-apikey":s.rdmKey} };
+  if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
+  return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
+}
+function missingCreds(){
+  const s=S();
+  if(s.provider==="rdm") return !s.rdmKey || !s.rdmBase;
+  if(s.provider==="proxy") return !s.proxyBase;
+  if(s.provider==="huxley") return !s.huxleyToken;
+  return false;
+}
+async function fetchBoard(from,to){
+  const {url,headers}=boardUrl(from,to);
+  let r;
+  try{ r=await fetch(url,{headers,cache:"no-store"}); }
+  catch(e){ throw new Error("Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  if(r.status===401||r.status===403) throw new Error(`National Rail feed refused the key (HTTP ${r.status}). Check the key and that you're subscribed to this product.`);
+  if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
+  if(!r.ok) throw new Error(`National Rail feed error (HTTP ${r.status}).`);
+  return parseBoard(await r.json(), from, to, Date.now());
+}
+function callingPoints(list){
+  const out=[]; (list||[]).forEach(g=>{ const cp=pick(g,"callingPoint","CallingPoint"); if(Array.isArray(cp)) out.push(...cp); else if(g && g.crs) out.push(g); }); return out;
+}
+function parseBoard(json, from, to, now){
+  const svcs=pick(json,"trainServices","TrainServices")||[];
+  const msgs=(pick(json,"nrccMessages","NrccMessages")||[]).map(m=>stripHtml(typeof m==="string"?m:pick(m,"value","Value","xhtmlMessage"))).filter(Boolean);
+  const services=svcs.map(s=>{
+    const dep=resolve(pick(s,"std"),pick(s,"etd"),now);
+    const cp=callingPoints(pick(s,"subsequentCallingPoints")).find(c=>String(pick(c,"crs")||"").toUpperCase()===to);
+    const arr=cp?resolve(pick(cp,"st"),pick(cp,"et"),now):null;
+    const cancelled=pick(s,"isCancelled")===true || (dep&&dep.cancelled) || (cp&&(pick(cp,"isCancelled")===true||(arr&&arr.cancelled)));
+    return { from,to, std:pick(s,"std"), dep:dep&&dep.t, depLate:dep?dep.late:0, depUnknown:!!(dep&&dep.unknownDelay),
+      arr:arr&&arr.t, arrLate:arr?arr.late:0, platform:pick(s,"platform"), operator:pick(s,"operator")||"",
+      cancelled:!!cancelled, reason:pick(s,"cancelReason")||pick(s,"delayReason")||"" };
+  }).filter(x=>x.dep!=null);
+  return {services,msgs};
+}
+
+// Example boards, clearly marked in the UI.
+function demoBoards(now){
+  const mk=(from,to,offsets,travel,op)=>{ const out=[]; const base=new Date(now); base.setMinutes(0,0,0);
+    for(let h=0;h<3;h++) offsets.forEach(o=>{ const dep=base.getTime()+h*3600e3+o*60e3; if(dep<now-5*60e3) return;
+      out.push({from,to,std:hhmm(dep),dep,depLate:0,depUnknown:false,arr:dep+travel*60e3,arrLate:0,platform:"1",operator:op,cancelled:false,reason:""}); });
+    return out.slice(0,8); };
+  const b={ "LET-KGX":{services:mk("LET","KGX",[7,37],35,"Great Northern"),msgs:[]},
+            "LET-ZFD":{services:mk("LET","ZFD",[21,51],47,"Thameslink"),msgs:[]},
+            "LET-STP":{services:mk("LET","STP",[21,51],43,"Thameslink"),msgs:[]},
+            "KGX-LET":{services:mk("KGX","LET",[12,42],34,"Great Northern"),msgs:[]},
+            "ZFD-LET":{services:mk("ZFD","LET",[4,34],46,"Thameslink"),msgs:[]},
+            "STP-LET":{services:mk("STP","LET",[8,38],42,"Thameslink"),msgs:[]} };
+  const t=b["KGX-LET"].services[1]; if(t){ t.dep+=4*60e3; t.arr+=4*60e3; t.depLate=4; t.arrLate=4; t.reason="This train has been delayed by a signalling problem (example)"; }
+  const c=b["LET-ZFD"].services[1]; if(c){ c.cancelled=true; c.reason="This train has been cancelled because of a shortage of train crew (example)"; }
+  return b;
+}
+
+// ---------- TfL ----------
+const BAD_SEV=new Set([1,2,3,4,5,16,20]); // closed / suspended / part closure
+async function fetchTfl(){
+  const r=await fetch("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status",{cache:"no-store"});
+  if(!r.ok) throw new Error(`TfL status error (HTTP ${r.status}).`);
+  return (await r.json()).map(l=>({ id:l.id, name:l.name, statuses:(l.lineStatuses||[]).map(s=>({sev:s.statusSeverity,desc:s.statusSeverityDescription,reason:s.reason||""})) }));
+}
+async function fetchNrStatus(){
+  try{ const r=await fetch("https://api.tfl.gov.uk/Line/Mode/national-rail/Status",{cache:"no-store"}); if(!r.ok) return null;
+    return (await r.json()).filter(l=>/thameslink|great northern|great-northern/i.test(l.id+" "+l.name))
+      .map(l=>({ id:l.id, name:l.name, statuses:(l.lineStatuses||[]).map(s=>({sev:s.statusSeverity,desc:s.statusSeverityDescription,reason:s.reason||""})) }));
+  }catch(e){ return null; }
+}
+// London leg for leisure-home: TfL Journey Planner from here to each rail hub.
+function legLabel(l){
+  const m=(l.mode&&l.mode.id)||"", d=Math.round(l.duration||0);
+  if(m==="walking") return `Walk ${d}m`;
+  const name=(l.routeOptions&&l.routeOptions[0]&&l.routeOptions[0].name)||(l.mode&&l.mode.name)||m;
+  return `${m==="bus"?"Bus ":""}${name} ${d}m`;
+}
+async function fetchLondon(from){
+  const go=async to=>{
+    const r=await fetch(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`,{cache:"no-store"});
+    if(r.status===300) throw new Error("TfL couldn't pin down that place. Try a full postcode.");
+    if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
+    const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey from there.");
+    const best=js.reduce((a,b)=>new Date(a.arrivalDateTime)<=new Date(b.arrivalDateTime)?a:b);
+    return { dur:(best.duration||0)*60e3, summary:(best.legs||[]).map(legLabel).join(" → "),
+      disruptions:[...new Set((best.legs||[]).filter(l=>l.isDisrupted).flatMap(l=>(l.disruptions||[]).map(d=>stripHtml(d.description))).filter(Boolean))] };
+  };
+  const [kx,far]=await Promise.allSettled([go(TFL_HUBS.KXSP),go(TFL_HUBS.FAR)]);
+  if(kx.status==="rejected" && far.status==="rejected") throw kx.reason;
+  return { KXSP:kx.status==="fulfilled"?kx.value:null, FAR:far.status==="fulfilled"?far.value:null };
+}
+function demoLondon(){
+  return { KXSP:{dur:18*60e3,summary:"Walk 5m → Northern 9m → Walk 4m",disruptions:[]},
+           FAR:{dur:21*60e3,summary:"Walk 6m → Bus 341 11m → Walk 4m",disruptions:[]} };
+}
+function londonOrigin(){ return state.origin || (state.here ? `${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}` : ""); }
+
+const worst = l => l && l.statuses.length ? l.statuses.reduce((a,b)=>a.sev<=b.sev?a:b) : null;
+const lineOk = l => { const w=worst(l); return !w || w.sev===10 || w.sev===18 || w.sev===19; };
+function aldgateUnusable(){
+  if(!state.status) return false;
+  const c=state.status.find(l=>l.id==="circle"), m=state.status.find(l=>l.id==="metropolitan");
+  const bad=l=>l && l.statuses.some(s=>BAD_SEV.has(s.sev));
+  return bad(c) && bad(m);
+}
+
+// ---------- Journey model ----------
+function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"office") : state.saved.dirMode; }
+function buildJourneys(dir, now){
+  const s=S(), fast=state.saved.pace==="fast", k=fast?s.fastFactor:1, sec=x=>x*1000, w=x=>sec(x*k);
+  const useAde=aldgateUnusable();
+  const tube = useAde
+    ? { stop:"Aldgate East", lines:["hc"], ride:{KGX:s.rideKxAde,ZFD:s.rideFarAde}, plat:s.adePlatform, walk:s.adeWalk, fallback:true }
+    : { stop:"Aldgate", lines:["circle","met"], ride:{KGX:s.rideKxAld,ZFD:s.rideFarAld}, plat:s.aldPlatform, walk:s.aldWalk, fallback:false };
+  const ic={KGX:s.kxInterchange, ZFD:s.farInterchange};
+  const walkOut=fast?s.walkHomeStationFast:s.walkHomeStationAvg, walkBack=fast?s.walkStationHomeFast:s.walkStationHomeAvg;
+  const out=[];
+  for(const hub of ["KGX","ZFD"]){
+    const key = dir==="office" ? `LET-${hub}` : `${hub}-LET`;
+    const b=state.boards && state.boards[key]; if(!b) continue;
+    for(const t of b.services){
+      if(t.cancelled || t.arr==null) continue;
+      let leave, arrive, legs;
+      if(dir==="office"){
+        leave = t.dep - sec(s.catchMargin) - w(s.letEntry) - sec(walkOut);
+        const tubeBoard = t.arr + w(ic[hub]);
+        const tubeArr = tubeBoard + sec(s.tubeWait) + sec(tube.ride[hub]);
+        arrive = tubeArr + w(tube.plat) + w(tube.walk);
+        legs=[
+          {t:leave, d:"Leave Cartref", note:`walk ${dur(sec(walkOut))}`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:"", train:true},
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:`change ${dur(w(ic[hub]))}`},
+          {t:tubeBoard + sec(s.tubeWait), d:`${tube.fallback?"H&C":"Circle or Met"} to ${tube.stop}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
+          {t:arrive, d:"Arrive office", note:`walk ${dur(w(tube.walk))}`}
+        ];
+      } else {
+        const tubeArrHub = t.dep - sec(s.catchMargin) - w(ic[hub]);
+        const tubeDep = tubeArrHub - sec(tube.ride[hub]);
+        leave = tubeDep - sec(s.tubeWait) - w(tube.plat) - w(tube.walk);
+        arrive = t.arr + w(s.letExit) + sec(walkBack);
+        legs=[
+          {t:leave, d:"Leave office", note:`walk to ${tube.stop} ${dur(w(tube.walk))}`},
+          {t:tubeDep, d:`${tube.fallback?"H&C":"Circle or Met"} to ${STATIONS[hub]}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:t.platform?`platform ${t.platform}`:"platform not yet shown", train:true},
+          {t:t.arr, d:"Arrive Letchworth", note:""},
+          {t:arrive, d:"Arrive Cartref", note:`walk ${dur(sec(walkBack))}`}
+        ];
+      }
+      out.push({ hub, train:t, leave, arrive, legs, tube, flags:flagsFor(t,hub,tube) });
+    }
+  }
+  return out;
+}
+function flagsFor(t,hub,tube){
+  const f=[];
+  if(t.depUnknown) f.push({lvl:"warn",txt:"Delayed, no estimate"});
+  else if(t.depLate>=1 || t.arrLate>=1) f.push({lvl:t.arrLate>=10||t.depLate>=10?"bad":"warn",txt:`+${Math.max(t.depLate,t.arrLate)} min`});
+  if(t.reason) f.push({lvl:"warn",txt:t.reason,long:true});
+  if(tube && state.status){
+    const ids=tube.fallback?["hammersmith-city"]:["circle","metropolitan"];
+    const ls=ids.map(id=>state.status.find(l=>l.id===id)).filter(Boolean);
+    const notOk=ls.filter(l=>!lineOk(l));
+    if(notOk.length===ls.length && ls.length) f.push({lvl:"bad",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
+    else if(notOk.length) f.push({lvl:"warn",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
+  }
+  if(state.nrStatus){
+    const want=/thameslink/i.test(t.operator)?/thameslink/i:/northern/i;
+    const l=state.nrStatus.find(x=>want.test(x.name)); if(l && !lineOk(l)) f.push({lvl:"warn",txt:`${l.name}: ${worst(l).desc}`});
+  }
+  if(tube && tube.fallback) f.push({lvl:"warn",txt:"Via Aldgate East: Circle and Met closed"});
+  return f;
+}
+function buildLeisure(dir, now){
+  const s=S(), lk=s.leisureFactor, sec=x=>x*1000, w=x=>sec(x*lk), out=[];
+  const okTrain=t=>!t.cancelled && t.arr!=null;
+  const nrFlags=t=>{ const f=flagsFor(t,null,null); return f; };
+  if(dir==="office"){
+    const walk=w(s.walkHomeStationAvg);
+    for(const hub of ["KGX","STP"]){
+      const b=state.boards&&state.boards[`LET-${hub}`]; if(!b) continue;
+      for(const t of b.services.filter(okTrain)){
+        const leave=t.dep-sec(s.catchMargin)-w(s.letEntry)-walk;
+        out.push({ hub, train:t, leave, arrive:t.arr, dest:STATIONS[hub], leisure:true, flags:nrFlags(t), legs:[
+          {t:leave, d:"Leave Cartref", note:`walk ${dur(walk)}`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from Letchworth`, note:t.platform?`platform ${t.platform}`:""},
+          {t:t.arr, d:`Arrive ${STATIONS[hub]}`, note:""}
+        ]});
+      }
+    }
+  } else {
+    if(!state.london) return out;
+    const ic={KGX:s.kxInterchange, STP:s.stpInterchange, ZFD:s.farInterchange};
+    const walkBack=w(s.walkStationHomeAvg);
+    for(const hub of ["KGX","STP","ZFD"]){
+      const leg=hub==="ZFD"?state.london.FAR:state.london.KXSP; if(!leg) continue;
+      const b=state.boards&&state.boards[`${hub}-LET`]; if(!b) continue;
+      for(const t of b.services.filter(okTrain)){
+        const atHub=t.dep-sec(s.catchMargin)-w(ic[hub]);
+        const leave=atHub-leg.dur;
+        const arrive=t.arr+w(s.letExit)+walkBack;
+        const flags=nrFlags(t);
+        if(leg.disruptions.length) flags.push({lvl:"warn",txt:leg.disruptions[0],long:true});
+        out.push({ hub, train:t, leave, arrive, dest:"home", leisure:true, london:leg, flags, legs:[
+          {t:leave, d:`Set off to ${hub==="ZFD"?"Farringdon":"King's Cross St Pancras"}`, note:`${leg.summary} (${dur(leg.dur)})`},
+          {t:t.dep, d:`${t.std}${t.depLate?` (exp ${hhmm(t.dep)})`:""} ${t.operator||"train"} from ${STATIONS[hub]}`, note:`allow ${dur(w(ic[hub]))} to reach the platform${t.platform?`, platform ${t.platform}`:""}`},
+          {t:t.arr, d:"Arrive Letchworth", note:""},
+          {t:arrive, d:"Arrive Cartref", note:`walk ${dur(walkBack)}`}
+        ]});
+      }
+    }
+  }
+  return out;
+}
+function ranked(now){
+  const t0=now+30e3;
+  const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
+  const all=build(direction(), now).filter(j=>j.leave>=t0);
+  all.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave);
+  return all.slice(0,5);
+}
+
+// ---------- Rendering ----------
+function chips(j){
+  if(j.leisure){
+    const rail=`<span class="chip rail">${direction()==="office"?"to ":"from "}${esc(STATIONS[j.hub])}</span>`;
+    return rail + (j.london?`<span class="chip walk">${esc(j.london.summary)}</span>`:"");
+  }
+  const rail = `<span class="chip rail">${j.hub==="KGX"?"via King's Cross":"via Farringdon"}</span>`;
+  const tube = j.tube.fallback ? `<span class="chip hc">H&amp;C</span>` : `<span class="chip circle">Circle</span><span class="chip met">Met</span>`;
+  return rail+tube;
+}
+function pills(flags, short){
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
+}
+function renderHero(list, now){
+  const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
+  if(leisure && dir==="home" && !state.london){
+    h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.londonErr?esc(state.londonErr):(londonOrigin()?"Planning your route to the station…":"Waiting for your location. If it doesn't come through, enter a postcode above.")}</div>`;
+    return;
+  }
+  if(!state.boards){
+    h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.loading?"Loading live trains…":(missingCreds()?"Add your National Rail key in Settings to see live trains, or pick Example data to preview.":"No train data yet.")}</div>`;
+    return;
+  }
+  const j=list[0];
+  if(!j){ h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">No catchable trains in the next two hours.</div>`; return; }
+  const t0=now+30e3, spare=j.leave-t0, dest=j.dest||(dir==="office"?"office":"home");
+  h.innerHTML = `
+    <div class="lbl">If you leave now · ${esc(hhmm(t0))}</div>
+    <div class="big"><span class="arr t">${hhmm(j.arrive)}</span><span class="arrlbl">at ${esc(dest)} · ${dur(j.arrive-t0)}</span></div>
+    <div>${spare>=60e3?`<span class="slack">${mins(spare)} min spare</span> <span style="opacity:.8;font-size:13px">latest leave <span class="t">${hhmm(j.leave)}</span> · <span data-cd="${j.leave}"></span></span>`:`<span class="slack">Leave now</span>`}</div>
+    <ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>
+    <div class="flags">${chips(j)} ${pills(j.flags,false)}</div>`;
+}
+function renderList(list, now){
+  const el=$("#list");
+  if(!state.boards){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear here once live trains load.</div><div></div></div>`; return; }
+  if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Nothing catchable in the next two hours.</div><div></div></div>`; return; }
+  el.innerHTML=list.map((j,i)=>`
+    <div class="row${i===0?" best":""}">
+      <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
+      <div class="mid">
+        <div class="route">${chips(j)}</div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · ${dur(j.arrive-j.leave)} · <span data-cd="${j.leave}"></span></div>
+        ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
+      </div>
+      <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
+    </div>`).join("");
+}
+function renderStatus(){
+  const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
+  if(!lines.length){ el.innerHTML=`<div class="st"><div class="s note">${state.status===null?"Loading…":"Unavailable"}</div></div>`; return; }
+  const col={circle:"var(--circle)",metropolitan:"var(--met)","hammersmith-city":"var(--hc)"};
+  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=ok?"ok":(l.statuses.some(s=>BAD_SEV.has(s.sev))?"bad":"warn");
+    return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
+}
+function renderBanners(){
+  const out=[];
+  if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
+  state.errors.forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
+  if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
+  const disrupted=[...(state.status||[]),...(state.nrStatus||[])].filter(l=>!lineOk(l));
+  disrupted.forEach(l=>{ const w=worst(l); out.push(`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w.desc)}</summary><span class="msg">${esc(w.reason||"No details given.")}</span></details></div>`); });
+  if(state.boards){
+    const dir=direction(), leisure=state.saved.mode==="leisure";
+    const keys = dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
+    const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
+    msgs.forEach(m=>out.push(`<div class="banner warn"><details><summary>National Rail notice</summary><span class="msg">${esc(m)}</span></details></div>`));
+    const cancelled=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]).filter(t=>t.cancelled);
+    if(cancelled.length) out.push(`<div class="banner warn"><details><summary>${cancelled.length} cancelled train${cancelled.length>1?"s":""}</summary>${cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+  }
+  $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
+}
+function renderControls(){
+  const leisure=state.saved.mode==="leisure";
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.saved.mode)));
+  document.querySelectorAll("[data-dir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.dir===state.saved.dirMode)));
+  document.querySelectorAll("[data-pace]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.pace===state.saved.pace)));
+  $("#paceSeg").hidden=leisure;
+  $("#dirOutBtn").textContent = leisure ? "To London" : "To office";
+  const dir=direction();
+  $("#routeLabel").textContent = leisure
+    ? (dir==="office" ? "Cartref → King's Cross or St Pancras" : "Wherever you are → Cartref")
+    : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
+  const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
+  $("#dirNote").textContent = state.saved.dirMode==="auto" ? `Heading to ${where} · ${state.autoSrc||"working out where you are"}` : "";
+  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin);
+  $("#originRow").hidden = !showOrigin;
+  const s=S(); const fast=state.saved.pace==="fast";
+  $("#modelNote").textContent = leisure
+    ? `Trains are live from National Rail. ${dir==="home"?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
+    : `Trains are live from National Rail. Tube legs are estimates: a ${mins(s.tubeWait*1000)} min wait allowance plus typical ride time, editable in Settings. Times assume ${fast?"fast":"average"} walking pace.`;
+}
+function render(){
+  const now=Date.now(), list=state.boards?ranked(now):[];
+  renderControls(); renderBanners(); renderHero(list, now); renderList(list, now); renderStatus(); tick();
+  $("#updated").textContent = state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet");
+}
+function tick(){
+  const now=Date.now();
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"missed"; });
+}
+
+// ---------- Data refresh ----------
+async function refresh(){
+  if(state.loading) return; state.loading=true; state.errors=[]; render();
+  const s=S(), now=Date.now();
+  const tflP=fetchTfl().then(v=>{state.status=v;}).catch(e=>{ state.status=[]; state.errors.push("Couldn't load TfL line status."); });
+  const nrP=fetchNrStatus().then(v=>{state.nrStatus=v||[];});
+  let railP;
+  if(s.provider==="demo"){ state.boards=demoBoards(now); railP=Promise.resolve(); }
+  else if(missingCreds()){ state.boards=null; railP=Promise.resolve(); }
+  else {
+    const pairs=PAIRS;
+    railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(rs=>{
+      const boards={}; let firstErr=null;
+      rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
+      state.boards=Object.keys(boards).length?boards:null;
+      if(firstErr) state.errors.push(firstErr);
+    });
+  }
+  await Promise.all([tflP,nrP,railP,refreshLondon()]);
+  state.loading=false; state.fetchedAt=Date.now(); render();
+}
+async function refreshLondon(){
+  if(state.saved.mode!=="leisure" || direction()!=="home") return;
+  if(S().provider==="demo"){ state.london=demoLondon(); state.londonErr=""; return; }
+  const from=londonOrigin(); if(!from) return;
+  try{ state.london=await fetchLondon(from); state.londonErr=""; }
+  catch(e){ state.london=null; state.londonErr=e.message||"Couldn't plan the London leg."; }
+}
+
+// ---------- Auto direction ----------
+function timeOfDayDir(){ return new Date().getHours()<13 ? "office" : "home"; }
+function locate(){
+  state.autoDir=timeOfDayDir(); state.autoSrc="by time of day";
+  if(!("geolocation" in navigator)) return;
+  try{
+    navigator.geolocation.getCurrentPosition(p=>{
+      const here=[p.coords.latitude,p.coords.longitude];
+      const moved=!state.here || km(state.here,here)>0.2;
+      state.here=here;
+      if(moved && state.saved.mode==="leisure" && !state.origin) refreshLondon().then(render);
+      const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD);
+      if(dLet<15){ state.autoDir="office"; state.autoSrc="you're near Letchworth"; }
+      else if(dAld<15){ state.autoDir="home"; state.autoSrc="you're in London"; }
+      else { state.autoSrc="by time of day (location not near either end)"; }
+      render();
+    },()=>{ state.autoSrc="by time of day (location unavailable)"; render(); },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
+  }catch(e){}
+}
+
+// ---------- Settings ----------
+const dlg=$("#settings");
+function fillSettings(){
+  const s=S();
+  ["provider","rdmBase","rdmKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
+  TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
+}
+function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
+function readSettings(){
+  const o={};
+  ["provider","rdmBase","rdmKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
+  TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
+  const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
+  const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
+  return o;
+}
+$("#settingsBtn").addEventListener("click",()=>{ fillSettings(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+$("#s_provider").addEventListener("change",showProviderFields);
+$("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; refresh(); });
+dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+
+// ---------- Controls ----------
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; save(); render(); refreshLondon().then(render); }));
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; save(); render(); refreshLondon().then(render); }));
+$("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
+document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
+$("#refreshBtn").addEventListener("click",refresh);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(); if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
+
+// ---------- Boot ----------
+// First run with no key: show example trains so the layout is visible.
+if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"demo"}; }
+locate(); render(); refresh();
+setInterval(tick,1000);
+setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
+setInterval(()=>{ if(!document.hidden) render(); },15e3);
+
+// Exposed for testing only.
+window.__commute={parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render};
+})();
+</script>
+
+</body>
+</html>
