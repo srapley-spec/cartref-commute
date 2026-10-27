@@ -61,9 +61,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .origin{display:flex;flex-direction:column;gap:6px;font-size:13px}
 .originbar{display:flex;gap:8px}
 .originbar input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
-.byform{display:flex;gap:10px;flex-wrap:wrap}
-.byf{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;flex:1;min-width:140px}
-.byf input{font:inherit;font-size:16px;font-family:var(--font-mono);padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%;min-width:0}
+.byform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.byf{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+.byf input{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;font:inherit;font-size:16px;font-family:var(--font-mono);padding:8px 10px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:100%;max-width:100%;min-width:0}
 .chip.walk{background:transparent;border:1px dashed var(--line);color:var(--muted)}
 .hero .chip.walk{color:var(--paper);border-color:color-mix(in srgb,var(--paper) 35%,transparent)}
 
@@ -112,6 +112,8 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 .pill.warn{background:var(--warn-bg);color:var(--warn)}
 .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.info{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.hero .pill.info{border-color:color-mix(in srgb,var(--paper) 35%,transparent);color:var(--paper)}
 
 .status{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -552,9 +554,13 @@ function standingRoomOnly(t){
   return busyDay(t.arr);
 }
 
+// Slower trains calling at most stations: Letchworth ⇄ King's Cross/St Pancras 45+ min, Farringdon 52+ min.
+function isStopping(t){ if(t.arr==null||t.dep==null) return false;
+  const london=t.from==="LET"?t.to:t.from; return (t.arr-t.dep) >= (london==="ZFD"?52:45)*60e3; }
 function flagsFor(t,hub,tube){
   const f=[];
   if(standingRoomOnly(t)) f.push({lvl:"bad",txt:"Usually standing room only"});
+  if(isStopping(t)) f.push({lvl:"info",txt:"Stopping train"});
   if(t.depUnknown) f.push({lvl:"warn",txt:"Delayed, no estimate"});
   else if(t.depLate>=1 || t.arrLate>=1) f.push({lvl:t.arrLate>=10||t.depLate>=10?"bad":"warn",txt:`+${Math.max(t.depLate,t.arrLate)} min`});
   if(t.reason) f.push({lvl:"warn",txt:t.reason,long:true});
@@ -760,12 +766,15 @@ async function fetchTflArriving(T){
   let ok=0, firstErr=null;
   await Promise.all(pairs.map(async([a,b])=>{
     const hub=a==="LET"?b:a, latest=T-postTrain(hub);
-    for(const back of [0,30*60e3]){   // trains arriving by the latest useful time, plus earlier ones for spares
-      try{ const js=await tflJourneys(a,b,latest-back,"Arriving"); ok++;
-        js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
-          if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); });
-      }catch(e){ firstErr=firstErr||e.message; }
-    }
+    const add=js=>{ let last=0; js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
+      if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); }); return last; };
+    // "Arriving" searches return only a few journeys and can skip trains, so sweep forward by departure
+    // from 100 minutes before the target until departures pass the latest useful arrival.
+    try{
+      let t=latest-100*60e3;
+      for(let i=0;i<7 && t<latest;i++){ const last=add(await tflJourneys(a,b,t,"Departing")); ok++; if(!last||last<=t) break; t=last+60e3; }
+    }catch(e){ firstErr=firstErr||e.message; }
+    try{ add(await tflJourneys(a,b,latest,"Arriving")); ok++; }catch(e){ firstErr=firstErr||e.message; }
   }));
   Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
   if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
@@ -790,7 +799,9 @@ function byOptions(){
   let js=build(direction(), Date.now()); state.boards=keep;
   js=js.filter(j=>j.arrive<=b.T && j.leave>=Date.now());
   js.sort((x,y)=>y.leave-x.leave || x.arrive-y.arrive);
-  return js.slice(0,4);
+  js=js.slice(0,8);
+  js.forEach(j=>{ if(b.T-j.arrive<5*60e3 && !j.flags.some(f=>f.fine)) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
+  return js;
 }
 function dayLabel(t){ const d=new Date(t), today=new Date(); const diff=Math.round((new Date(d).setHours(0,0,0,0)-new Date(today).setHours(0,0,0,0))/86400e3);
   return diff===0?"today":diff===1?"tomorrow":d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
