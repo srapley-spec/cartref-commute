@@ -12,6 +12,6 @@ jobs:
           node-version: 22
           cache: npm
       - name: index.html is built from src/app.html
-        run: python3 tools/build.py && git diff --exit-code index.html
+        run: python3 tools/build.py && git diff --exit-code -I 'id="build"' index.html
       - run: npm ci
       - run: npm test

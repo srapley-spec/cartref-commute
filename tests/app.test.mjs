@@ -77,7 +77,7 @@ test("TfL rate limiting backs off and keeps the last good times, then flags them
   limited = true;
   await app.c.refresh({ force: true });
   assert.equal(app.rows().length, 5, "previous trains kept");
-  assert.match(app.banners().join(" "), /rate-limiting/);
+  assert.match(app.banners().join(" "), /rate-limiting|limits requests/);
   const n = app.calls.length;
   await app.c.refresh({ force: true });
   assert.equal(app.calls.filter((u, i) => i >= n && parseJourneyUrl(u)).length, 0, "no TfL journey calls while backing off");
@@ -121,7 +121,7 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
     const pick = q.timeIs === "Departing" ? trains.filter((x) => x.dep >= q.t).slice(0, 3) : trains.filter((x) => x.arr <= q.t - 25 * 60e3).slice(-3);
     return { journeys: pick.map((x) => tflJourney(q.from, q.to, x.dep, x.arr)) };
   };
-  const app = await createApp({ journeys, saved: { mode: "leisure" } });
+  const app = await createApp({ journeys, saved: { mode: "leisure" }, settings: { provider: "tfl", tflKey: "test-key" } });
   app.d.querySelector("#byTime").value = "08:16";
   app.d.querySelector('[data-view="by"]').click();
   await sleep(500);
@@ -183,6 +183,27 @@ test("A rate-limited first load does not turn location updates into a request lo
   for (let i = 0; i < 30; i++) { push(NEAR_LETCHWORTH); await sleep(5); }
   await sleep(300);
   assert.equal(app.calls.length, n, "no extra requests while TfL is refusing");
-  assert.equal(app.banners().filter((b) => /rate-limiting/.test(b)).length, 1, "one banner, not duplicates");
+  assert.equal(app.banners().filter((b) => /rate-limiting|limits requests/.test(b)).length, 1, "one banner, not duplicates");
+  app.close();
+});
+
+test("Without a TfL key, a load stays within a handful of requests, one at a time", async () => {
+  let inFlight = 0, maxInFlight = 0;
+  const app = await createApp({ settle: 600, route: async (u) => {
+    if (!/api\.tfl\.gov\.uk/.test(u)) return undefined;
+    inFlight++; maxInFlight = Math.max(maxInFlight, inFlight); await sleep(20); inFlight--; return undefined;
+  } });
+  const tfl = app.calls.filter((u) => /api\.tfl\.gov\.uk/.test(u));
+  assert.ok(tfl.length <= 3, `keyless first load made ${tfl.length} TfL requests`);
+  assert.ok(!tfl.some((u) => /app_key=/.test(u)));
+  assert.equal(app.rows().length, 5, "still enough trains for the next 5");
+  app.close();
+});
+
+test("With a TfL key, the key is sent and the timetable covers more trains", async () => {
+  const app = await createApp({ settings: { provider: "tfl", tflKey: "abc123" } });
+  const journeyCalls = app.calls.filter((u) => parseJourneyUrl(u));
+  assert.ok(journeyCalls.every((u) => /app_key=abc123/.test(u)));
+  assert.ok(journeyCalls.length > 2);
   app.close();
 });

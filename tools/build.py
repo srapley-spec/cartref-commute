@@ -1,7 +1,8 @@
 """Build index.html (hosted page) from src/app.html (page content, also used for the claude.ai preview)."""
 import re,pathlib
 ROOT=pathlib.Path(__file__).resolve().parent.parent
-src=(ROOT/"src"/"app.html").read_text()
+import datetime
+src=(ROOT/"src"/"app.html").read_text().replace("__BUILD__", datetime.datetime.now(datetime.timezone.utc).strftime("%d %b %H:%M UTC"))
 head='''<!doctype html>
 <html lang="en">
 <head>

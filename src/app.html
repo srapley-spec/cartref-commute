@@ -188,7 +188,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span id="updated">Not updated yet</span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build __BUILD__</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -302,12 +302,17 @@ async function fetchT(url, opts){
 }
 // TfL: optional free app key (raises the rate limit) and a shared back-off after HTTP 429.
 function tflUrl(u){ const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
+// Without a key TfL allows only a handful of requests a minute per IP address, so keyless use keeps
+// each load to a minimum and runs requests one at a time.
+const tflKeyed = () => !!S().tflKey;
+const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retrying in a minute."
+  : "TfL limits requests without a key to a handful a minute. Retrying in a minute; add a free TfL app key in Settings to avoid this.";
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
 function noteTfl429(){ state.tflBackoffUntil=Date.now()+60e3; }
 async function fetchTfl_(u){
-  if(tflBackingOff()){ const e=new Error("TfL is rate-limiting requests. Retrying in a minute."); e.rateLimited=true; throw e; }
+  if(tflBackingOff()){ const e=new Error(TFL_LIMIT_MSG()); e.rateLimited=true; throw e; }
   const r=await fetchT(tflUrl(u));
-  if(r.status===429){ noteTfl429(); const e=new Error("TfL is rate-limiting requests. Retrying in a minute."); e.rateLimited=true; throw e; }
+  if(r.status===429){ noteTfl429(); const e=new Error(TFL_LIMIT_MSG()); e.rateLimited=true; throw e; }
   return r;
 }
 
@@ -382,22 +387,36 @@ function trainFromJourney(j){
   return { key:`${a}-${b}`, msgs, svc:{ from:a,to:b,std:hhmm(isFinite(sched)?sched:dep),dep,depLate:isFinite(sched)?Math.max(0,mins(dep-sched)):0,depUnknown:false,
     arr,arrLate:0,platform:null,operator,cancelled:false,reason:"",timetable:true } };
 }
+// Shortest possible time from leaving to standing on the platform, per London hub (fast pace, no tube wait).
+// Shortest time from leaving to standing on the platform at the current pace (no tube wait), per London hub,
+// less a minute, so the first train a search returns is one you can still catch.
+function earliestCatch(hub){
+  const s=S(), dir=direction(), leisure=state.saved.mode==="leisure", fast=state.saved.pace==="fast";
+  const k = leisure ? s.leisureFactor : (fast ? s.fastFactor : 1);
+  let t;
+  if(dir==="office") t = s.catchMargin + s.letEntry*k + (leisure ? s.walkHomeStationAvg*k : (fast ? s.walkHomeStationFast : s.walkHomeStationAvg));
+  else if(leisure) t = s.catchMargin + s.kxInterchange*k + 300;
+  else { const ic=hub==="KGX"?s.kxInterchange:s.farInterchange, ride=hub==="KGX"?s.rideKxAld:s.rideFarAld;
+    t = s.catchMargin + ic*k + ride + s.aldPlatform*k + s.aldWalk*k; }
+  return Math.max(0, t*1000 - 60e3);
+}
 async function fetchTflBoards(){
   const now=Date.now(), boards={}, ensure=k=>(boards[k]=boards[k]||{services:[],msgs:[]});
   const pairs=boardKeys().map(k=>k.split("-")); pairs.forEach(p=>ensure(p.join("-")));
   let ok=0, firstErr=null;
-  await Promise.all(pairs.map(async([a,b])=>{
+  for(const [a,b] of pairs){   // one route at a time keeps the burst small
     try{
-      let t=now;
-      for(let i=0;i<3;i++){   // each call returns a few journeys; walk forward to cover ~2 hours
+      // Start from the earliest train you could catch, so a single keyless call isn't spent on trains already out of reach.
+      let t=now+earliestCatch(a==="LET"?b:a); const calls=tflKeyed()?3:1;
+      for(let i=0;i<calls;i++){   // each call returns a few journeys; with a key, walk forward to cover ~2 hours
         const js=await tflJourneys(a,b,t); ok++; let last=t;
         js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
           if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc);
           B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); });
         if(last<=t || last>now+2*3600e3) break; t=last+60e3;
       }
-    }catch(e){ firstErr=firstErr||e.message; }
-  }));
+    }catch(e){ firstErr=firstErr||e.message; if(e.rateLimited) break; }
+  }
   Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
   if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
   return {boards, err:firstErr};
@@ -790,18 +809,19 @@ async function fetchTflArriving(T){
   const boards={}, ensure=k=>(boards[k]=boards[k]||{services:[],msgs:[]});
   const pairs=boardKeys().map(k=>k.split("-")); pairs.forEach(p=>ensure(p.join("-")));
   let ok=0, firstErr=null;
-  await Promise.all(pairs.map(async([a,b])=>{
+  for(const [a,b] of pairs){
     const hub=a==="LET"?b:a, latest=T-postTrain(hub);
     const add=js=>{ let last=0; js.forEach(j=>{ const x=trainFromJourney(j); if(!x) return; const B=ensure(x.key);
       if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); }); return last; };
     // "Arriving" searches return only a few journeys and can skip trains, so sweep forward by departure
     // from 100 minutes before the target until departures pass the latest useful arrival.
     try{
-      let t=latest-100*60e3;
-      for(let i=0;i<7 && t<latest;i++){ const last=add(await tflJourneys(a,b,t,"Departing")); ok++; if(!last||last<=t) break; t=last+60e3; }
+      // With a key, sweep every train from 100 min before; without one, start 45 min before with two calls.
+      let t=latest-(tflKeyed()?100:45)*60e3;
+      for(let i=0;i<(tflKeyed()?7:2) && t<latest;i++){ const last=add(await tflJourneys(a,b,t,"Departing")); ok++; if(!last||last<=t) break; t=last+60e3; }
     }catch(e){ firstErr=firstErr||e.message; }
-    try{ add(await tflJourneys(a,b,latest,"Arriving")); ok++; }catch(e){ firstErr=firstErr||e.message; }
-  }));
+    try{ add(await tflJourneys(a,b,latest,"Arriving")); ok++; }catch(e){ firstErr=firstErr||e.message; if(e.rateLimited) break; }
+  }
   Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
   if(!ok) throw new Error(firstErr||"TfL timetable unavailable.");
   return boards;
@@ -898,7 +918,7 @@ async function loadTflTimetable(prev){
 // a refresh you ask for, or a change of direction or settings, always runs.
 const MIN_GAP=30e3, TIMETABLE_REUSE=5*60e3, STATUS_REUSE=2*60e3;
 async function refresh(opts){
-  const force=!!(opts&&opts.force);
+  const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
   if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
   if(!force && state.lastRefreshAt && Date.now()-state.lastRefreshAt<MIN_GAP) return;
   state.lastRefreshAt=Date.now();
@@ -907,9 +927,9 @@ async function refresh(opts){
   try{
     const now=Date.now();
     // Line status changes slowly: reuse it for 2 minutes unless you asked for a refresh.
-    const statusFresh = !force && state.statusAt && now-state.statusAt<STATUS_REUSE;
+    const statusFresh = !manual && state.statusAt && now-state.statusAt<STATUS_REUSE;
     const tflP = statusFresh ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrP = statusFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    const nrP = (statusFresh || !tflKeyed()) ? Promise.resolve() : fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
     if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
@@ -1018,7 +1038,7 @@ document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",(
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
-$("#refreshBtn").addEventListener("click",()=>refresh({force:true}));
+$("#refreshBtn").addEventListener("click",()=>refresh({force:true,manual:true}));
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(); if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
@@ -1029,6 +1049,7 @@ setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
 setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
+{ const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
 window.__commute={requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
