@@ -476,10 +476,6 @@ function flagsFor(t,hub,tube){
     if(notOk.length===ls.length && ls.length) f.push({lvl:"bad",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
     else if(notOk.length) f.push({lvl:"warn",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
   }
-  if(state.nrStatus){
-    const want=/thameslink/i.test(t.operator)?/thameslink/i:/northern/i;
-    const l=state.nrStatus.find(x=>want.test(x.name)); if(l && !lineOk(l)) f.push({lvl:"warn",txt:`${l.name}: ${worst(l).desc}`});
-  }
   if(tube && tube.fallback) f.push({lvl:"warn",txt:"Via Aldgate East: Circle and Met closed"});
   return f;
 }
@@ -587,21 +583,47 @@ function renderStatus(){
   el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=ok?"ok":(l.statuses.some(s=>BAD_SEV.has(s.sev))?"bad":"warn");
     return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
 }
+// Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
+const CORRIDOR=/\b(baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\.? pancras|farringdon)\b/i;
+const NETWORK_WIDE=/\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
+function boardKeys(){
+  const dir=direction(), leisure=state.saved.mode==="leisure";
+  return dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
+}
+function railWarnings(){
+  const keys=boardKeys(), now=Date.now();
+  const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]);
+  const cancelled=svcs.filter(t=>t.cancelled);
+  // "Your trains" = the next 90 minutes of departures on your boards.
+  const soon=svcs.filter(t=>t.dep>=now-5*60e3 && t.dep<=now+90*60e3);
+  const affected=soon.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
+  const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
+  const onRoute=msgs.filter(m=>CORRIDOR.test(m)||NETWORK_WIDE.test(m));
+  const other=msgs.filter(m=>!onRoute.includes(m));
+  return { cancelled, affected, hit:affected>=2, onRoute, other };
+}
 function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   state.errors.forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
-  const disrupted=[...(state.status||[]),...(state.nrStatus||[])].filter(l=>!lineOk(l));
-  disrupted.forEach(l=>{ const w=worst(l); out.push(`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w.desc)}</summary><span class="msg">${esc(w.reason||"No details given.")}</span></details></div>`); });
+  const w=l=>worst(l);
+  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${esc(w(l).reason||"No details given.")}</span></details></div>`;
+  // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
+  if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
+  const elsewhere=[];
   if(state.boards){
-    const dir=direction(), leisure=state.saved.mode==="leisure";
-    const keys = dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
-    const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
-    msgs.forEach(m=>out.push(`<div class="banner warn"><details><summary>National Rail notice</summary><span class="msg">${esc(m)}</span></details></div>`));
-    const cancelled=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]).filter(t=>t.cancelled);
-    if(cancelled.length) out.push(`<div class="banner warn"><details><summary>${cancelled.length} cancelled train${cancelled.length>1?"s":""}</summary>${cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    const tiers=railWarnings();
+    // Tier 1: your own trains.
+    if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of your next trains are delayed or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span></div>`);
+    // Tier 2: notices naming your corridor.
+    tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details><summary>On your line</summary><span class="msg">${esc(m)}</span></details></div>`));
+    // Tier 3: everything else, promoted only when your trains are being hit.
+    if(tiers.hit){ tiers.other.forEach(m=>out.push(`<div class="banner warn"><details><summary>Elsewhere on the network</summary><span class="msg">${esc(m)}</span></details></div>`)); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(lineBanner(l))); }
+    else { elsewhere.push(...tiers.other); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>elsewhere.push(`${l.name}: ${w(l).desc}. ${w(l).reason||""}`.trim())); }
   }
+  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${esc(m)}</span>`).join("")}</details></div>`);
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
 }
 function renderControls(){
