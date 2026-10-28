@@ -1,0 +1,369 @@
+{
+ "load": {
+  "dirNote": "",
+  "banners": [
+   "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
+  ],
+  "hero": "If you leave now · 20:00 · timetable · best, and the next best Leave20:08 → Arrive office21:26 via Farringdon or St PancrasCircleMet 20:20 Thameslink · 44 min train · total 1h 18m · leave within 7 min · leave in 8m 21s Get off at St Pancras 20:59 or Farringdon 21:04 Journey steps20:08Set off from where you are · about 9 min walk to Letchworth station20:2020:20 Thameslink from LetchworthCalls at · Letchworth 20:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 21:0421:04Arrive Farringdon · 44 min on the train, change 4 min21:11Circle or Met to Aldgate · ~7 min, allows 3 min wait21:26Arrive office · walk 7 min Leave20:26 → Arrive office21:34 via King's CrossCircleMet 20:38 Great Northern · 29 min train · total 1h 08m · leave within 25 min · leave in 26m 21s Journey steps20:26Set off from where you are · about 9 min walk to Letchworth station20:3820:38 Great Northern from LetchworthCalls at · Letchworth 20:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:0721:07Arrive King's Cross · 29 min on the train, change 6 min21:16Circle or Met to Aldgate · ~10 min, allows 3 min wait21:34Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "rows": [
+   "Leave20:08 via Farringdon or St PancrasCircleMet 20:20 Thameslink · 44 min train · total 1h 18m · leave in 8m 21s Get off at St Pancras 20:59 or Farringdon 21:04 Arrive21:26",
+   "Leave20:18 via King's CrossCircleMet 20:30 Great Northern · 52 min train · total 1h 31m · leave in 18m 21s Stopping train Arrive21:49",
+   "Leave20:26 via King's CrossCircleMet 20:38 Great Northern · 29 min train · total 1h 08m · leave in 26m 21s Arrive21:34",
+   "Leave20:38 via Farringdon or St PancrasCircleMet 20:50 Thameslink · 44 min train · total 1h 18m · leave in 38m 21s Get off at St Pancras 21:29 or Farringdon 21:34 Arrive21:56",
+   "Leave20:48 via King's CrossCircleMet 21:00 Great Northern · 52 min train · total 1h 31m · leave in 48m 21s Stopping train Arrive22:19",
+   "Leave20:56 via King's CrossCircleMet 21:08 Great Northern · 29 min train · total 1h 08m · leave in 56m 21s Arrive22:04",
+   "Leave21:08 via Farringdon or St PancrasCircleMet 21:20 Thameslink · 44 min train · total 1h 18m · leave in 1h 8m Get off at St Pancras 21:59 or Farringdon 22:04 Arrive22:26",
+   "Leave21:18 via King's CrossCircleMet 21:30 Great Northern · 52 min train · total 1h 31m · leave in 1h 18m Stopping train Arrive22:49",
+   "Leave21:26 via King's CrossCircleMet 21:38 Great Northern · 29 min train · total 1h 08m · leave in 1h 26m Arrive22:34",
+   "Leave21:38 via Farringdon or St PancrasCircleMet 21:50 Thameslink · 44 min train · total 1h 18m · leave in 1h 38m Get off at St Pancras 22:29 or Farringdon 22:34 Arrive22:56",
+   "Leave22:08 via Farringdon or St PancrasCircleMet 22:20 Thameslink · 44 min train · total 1h 18m · leave in 2h 8m Get off at St Pancras 22:59 or Farringdon 23:04 Arrive23:26",
+   "Leave22:38 via Farringdon or St PancrasCircleMet 22:50 Thameslink · 44 min train · total 1h 18m · leave in 2h 38m Get off at St Pancras 23:29 or Farringdon 23:34 Arrive23:56",
+   "Leave23:08 via St PancrasCircleMet 23:20 Thameslink · 39 min train · total 1h 19m · leave in 3h 8m Arrive00:27",
+   "Leave23:38 via St PancrasCircleMet 23:50 Thameslink · 39 min train · total 1h 19m · leave in 3h 38m Arrive00:57"
+  ],
+  "diag": "Letchworth → King's Cross, timetable: 3 searches; TfL returned 9 journeys; 9 direct trains kept (20:20 Letchworth, 20:30 Letchworth, 20:38 Letchworth, 20:50 Letchworth, 21:00 Letchworth, 21:08 Letchworth, 21:20 Letchworth, 21:30 Letchworth, 21:38 Letchworth).Letchworth → Farringdon, timetable: 2 searches; TfL returned 6 journeys; 6 direct trains kept (20:20 Letchworth, 20:50 Letchworth, 21:20 Letchworth, 21:50 Letchworth, 22:20 Letchworth, 22:50 Letchworth).Letchworth → St Pancras, timetable: 3 searches; TfL returned 9 journeys; 9 direct trains kept (21:50 Letchworth, 22:20 Letchworth, 22:50 Letchworth, 23:20 Letchworth, 23:50 Letchworth)."
+ },
+ "options": [
+  {
+   "hub": "ZFD",
+   "train": "20:20 Thameslink LET-ZFD",
+   "leave": "20:08:26",
+   "arrive": "21:26:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 1,
+   "alts": [
+    "STP 20:20:00 leave 20:08:26"
+   ],
+   "flags": [],
+   "legs": [
+    "20:08:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "20:20:00 20:20 Thameslink from Letchworth",
+    "- Calls at · Letchworth 20:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 21:04",
+    "21:04:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "21:11:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "21:26:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "20:30 Great Northern LET-KGX",
+   "leave": "20:18:26",
+   "arrive": "21:49:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "20:18:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "20:30:00 20:30 Great Northern from Letchworth",
+    "- Calls at · Letchworth 20:30 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:22",
+    "21:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "21:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "21:49:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "20:38 Great Northern LET-KGX",
+   "leave": "20:26:26",
+   "arrive": "21:34:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 2,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "20:26:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "20:38:00 20:38 Great Northern from Letchworth",
+    "- Calls at · Letchworth 20:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:07",
+    "21:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "21:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "21:34:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "20:50 Thameslink LET-ZFD",
+   "leave": "20:38:26",
+   "arrive": "21:56:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 20:50:00 leave 20:38:26"
+   ],
+   "flags": [],
+   "legs": [
+    "20:38:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "20:50:00 20:50 Thameslink from Letchworth",
+    "- Calls at · Letchworth 20:50 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 21:34",
+    "21:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "21:41:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "21:56:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "21:00 Great Northern LET-KGX",
+   "leave": "20:48:26",
+   "arrive": "22:19:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "20:48:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:00:00 21:00 Great Northern from Letchworth",
+    "- Calls at · Letchworth 21:00 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:52",
+    "21:52:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "22:01:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "22:19:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "21:08 Great Northern LET-KGX",
+   "leave": "20:56:26",
+   "arrive": "22:04:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "20:56:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:08:00 21:08 Great Northern from Letchworth",
+    "- Calls at · Letchworth 21:08 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:37",
+    "21:37:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "21:46:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "22:04:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "21:20 Thameslink LET-ZFD",
+   "leave": "21:08:26",
+   "arrive": "22:26:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 21:20:00 leave 21:08:26"
+   ],
+   "flags": [],
+   "legs": [
+    "21:08:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:20:00 21:20 Thameslink from Letchworth",
+    "- Calls at · Letchworth 21:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 22:04",
+    "22:04:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "22:11:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "22:26:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "21:30 Great Northern LET-KGX",
+   "leave": "21:18:26",
+   "arrive": "22:49:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "21:18:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:30:00 21:30 Great Northern from Letchworth",
+    "- Calls at · Letchworth 21:30 · Hitchin · Stevenage · Finsbury Park · King's Cross 22:22",
+    "22:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "22:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "22:49:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "21:38 Great Northern LET-KGX",
+   "leave": "21:26:26",
+   "arrive": "22:34:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "21:26:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:38:00 21:38 Great Northern from Letchworth",
+    "- Calls at · Letchworth 21:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 22:07",
+    "22:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "22:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "22:34:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "21:50 Thameslink LET-ZFD",
+   "leave": "21:38:26",
+   "arrive": "22:56:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 21:50:00 leave 21:38:26"
+   ],
+   "flags": [],
+   "legs": [
+    "21:38:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "21:50:00 21:50 Thameslink from Letchworth",
+    "- Calls at · Letchworth 21:50 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 22:34",
+    "22:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "22:41:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "22:56:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "22:20 Thameslink LET-ZFD",
+   "leave": "22:08:26",
+   "arrive": "23:26:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 22:20:00 leave 22:08:26"
+   ],
+   "flags": [],
+   "legs": [
+    "22:08:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "22:20:00 22:20 Thameslink from Letchworth",
+    "- Calls at · Letchworth 22:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 23:04",
+    "23:04:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "23:11:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "23:26:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "22:50 Thameslink LET-ZFD",
+   "leave": "22:38:26",
+   "arrive": "23:56:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 22:50:00 leave 22:38:26"
+   ],
+   "flags": [],
+   "legs": [
+    "22:38:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "22:50:00 22:50 Thameslink from Letchworth",
+    "- Calls at · Letchworth 22:50 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 23:34",
+    "23:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "23:41:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "23:56:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "23:20 Thameslink LET-STP",
+   "leave": "23:08:26",
+   "arrive": "00:27:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "23:08:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "23:20:00 23:20 Thameslink from Letchworth",
+    "- Calls at · Letchworth 23:20 · Hitchin · Stevenage · Finsbury Park · St Pancras 23:59",
+    "23:59:00 Arrive St Pancras · 39 min on the train, change 7 min",
+    "00:09:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "00:27:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "23:50 Thameslink LET-STP",
+   "leave": "23:38:26",
+   "arrive": "00:57:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "23:38:26 Set off from where you are · about 9 min walk to Letchworth station",
+    "23:50:00 23:50 Thameslink from Letchworth",
+    "- Calls at · Letchworth 23:50 · Hitchin · Stevenage · Finsbury Park · St Pancras 00:29",
+    "00:29:00 Arrive St Pancras · 39 min on the train, change 7 min",
+    "00:39:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "00:57:30 Arrive office · walk 7 min"
+   ]
+  }
+ ],
+ "arriveBy": {
+  "dirNote": "",
+  "banners": [
+   "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
+  ],
+  "hero": "To arrive by 08:30 tomorrow · timetable · best, and the next best Leave06:54 → Arrive office08:26 via Farringdon or St PancrasCircleMet 07:20 Thameslink · 44 min train · total 1h 32m · 4 min early · leave in 10h 54m Get off at St Pancras 07:59 or Farringdon 08:04 Cutting it fine Journey steps06:54Leave Cartref · walk 22 min07:2007:20 Thameslink from LetchworthCalls at · Letchworth 07:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 08:0408:04Arrive Farringdon · 44 min on the train, change 4 min08:11Circle or Met to Aldgate · ~7 min, allows 3 min wait08:26Arrive office · walk 7 min Leave06:42 → Arrive office08:04 via King's CrossCircleMet 07:08 Great Northern · 29 min train · total 1h 22m · 26 min early · leave in 10h 42m Journey steps06:42Leave Cartref · walk 22 min07:0807:08 Great Northern from LetchworthCalls at · Letchworth 07:08 · Hitchin · Stevenage · Finsbury Park · King's Cross 07:3707:37Arrive King's Cross · 29 min on the train, change 6 min07:46Circle or Met to Aldgate · ~10 min, allows 3 min wait08:04Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "rows": [
+   "Leave05:54 via Farringdon or St PancrasCircleMet 06:20 Thameslink · 44 min train · total 1h 32m · leave in 9h 54m Get off at St Pancras 06:59 or Farringdon 07:04 Arrive07:26",
+   "Leave06:04 via King's CrossCircleMet 06:30 Great Northern · 52 min train · total 1h 45m · leave in 10h 4m Stopping train Arrive07:49",
+   "Leave06:12 via King's CrossCircleMet 06:38 Great Northern · 29 min train · total 1h 22m · leave in 10h 12m Arrive07:34",
+   "Leave06:24 via Farringdon or St PancrasCircleMet 06:50 Thameslink · 44 min train · total 1h 32m · leave in 10h 24m Get off at St Pancras 07:29 or Farringdon 07:34 Arrive07:56",
+   "Leave06:34 via King's CrossCircleMet 07:00 Great Northern · 52 min train · total 1h 45m · leave in 10h 34m Stopping train Arrive08:19",
+   "Leave06:42 via King's CrossCircleMet 07:08 Great Northern · 29 min train · total 1h 22m · leave in 10h 42m Arrive08:04",
+   "Leave06:54 via Farringdon or St PancrasCircleMet 07:20 Thameslink · 44 min train · total 1h 32m · leave in 10h 54m Get off at St Pancras 07:59 or Farringdon 08:04 Cutting it fine Arrive08:26",
+   "Leave07:04 via King's CrossCircleMet 07:30 Great Northern · 52 min train · total 1h 45m · leave in 11h 4m Late by 20 min Stopping train Arrive08:49",
+   "Leave07:12 via King's CrossCircleMet 07:38 Great Northern · 29 min train · total 1h 22m · leave in 11h 12m Late by 5 min Usually standing room only Arrive08:34",
+   "Leave07:24 via Farringdon or St PancrasCircleMet 07:50 Thameslink · 44 min train · total 1h 32m · leave in 11h 24m Get off at St Pancras 08:29 or Farringdon 08:34 Late by 27 min Arrive08:56",
+   "Leave07:34 via King's CrossCircleMet 08:00 Great Northern · 52 min train · total 1h 45m · leave in 11h 34m Late by 50 min Stopping train Arrive09:19",
+   "Leave07:42 via King's CrossCircleMet 08:08 Great Northern · 29 min train · total 1h 22m · leave in 11h 42m Late by 35 min Arrive09:04",
+   "Leave07:54 via Farringdon or St PancrasCircleMet 08:20 Thameslink · 44 min train · total 1h 32m · leave in 11h 54m Get off at St Pancras 08:59 or Farringdon 09:04 Late by 57 min Arrive09:26",
+   "Leave08:24 via Farringdon or St PancrasCircleMet 08:50 Thameslink · 44 min train · total 1h 32m · leave in 12h 24m Get off at St Pancras 09:29 or Farringdon 09:34 Late by 87 min Arrive09:56",
+   "Leave08:54 via St PancrasCircleMet 09:20 Thameslink · 39 min train · total 1h 33m · leave in 12h 54m Late by 118 min Arrive10:27",
+   "Leave09:24 via St PancrasCircleMet 09:50 Thameslink · 39 min train · total 1h 33m · leave in 13h 24m Late by 148 min Arrive10:57"
+  ],
+  "diag": "Letchworth → King's Cross, timetable: 4 searches; TfL returned 12 journeys; 12 direct trains kept (07:08 Letchworth, 07:00 Letchworth, 07:20 Letchworth, 07:30 Letchworth, 07:38 Letchworth, 06:30 Letchworth, 06:38 Letchworth, 06:50 Letchworth, 07:50 Letchworth, 08:00 Letchworth, 08:08 Letchworth).Letchworth → Farringdon, timetable: 3 searches; TfL returned 9 journeys; 9 direct trains kept (06:20 Letchworth, 06:50 Letchworth, 07:20 Letchworth, 07:50 Letchworth, 08:20 Letchworth, 08:50 Letchworth).Letchworth → St Pancras, timetable: 3 searches; TfL returned 9 journeys; 9 direct trains kept (06:20 Letchworth, 06:50 Letchworth, 07:20 Letchworth, 08:20 Letchworth, 08:50 Letchworth, 09:20 Letchworth, 09:50 Letchworth)."
+ },
+ "requests": [
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Arriving&date=20261103&time=0807&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261102&time=2009&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261102&time=2009&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261102&time=2121&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261102&time=2121&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261103&time=0627&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.52036,-0.10514?mode=national-rail&timeIs=Departing&date=20261103&time=0721&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2149&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2149&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2219&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2219&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2249&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261102&time=2249&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261103&time=0619&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261103&time=0819&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53062,-0.12594?mode=national-rail&timeIs=Departing&date=20261103&time=0849&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Arriving&date=20261103&time=0802&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2009&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2009&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2039&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2039&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2109&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261102&time=2109&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261103&time=0622&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261103&time=0709&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Journey/JourneyResults/51.98002,-0.22909/to/51.53197,-0.12341?mode=national-rail&timeIs=Departing&date=20261103&time=0739&journeyPreference=leasttime&app_key=K",
+  "https://api.tfl.gov.uk/Line/Mode/national-rail/Status?app_key=K",
+  "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status?app_key=K"
+ ],
+ "errors": []
+}

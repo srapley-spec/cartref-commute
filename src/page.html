@@ -386,7 +386,9 @@ function whichTrain(now){
   }
   cands.sort((a,b)=>a.offMin-b.offMin);
   if(!cands.length || cands[0].offMin>10) return { none:true };
-  const best=cands[0], next=cands.find(c=>c.t!==best.t);
+  // The same train appears once per London station it calls at: the runner-up must be a different train.
+  const same=(a,b)=>a.t.operator===b.t.operator && Math.abs(dir==="office" ? a.t.dep-b.t.dep : a.t.arr-b.t.arr)<=60e3;
+  const best=cands[0], next=cands.find(c=>!same(c,best));
   best.sure = !next || next.offMin-best.offMin>=4;
   best.other = best.sure ? null : next;
   return best;
@@ -1511,7 +1513,9 @@ async function refresh(opts){
     else {
       const pairs=livePairs();
       // Live boards are for one direction: wait until location says which.
-      railP=awaitingLocation() ? Promise.resolve() : Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
+      // On a train: the board must include trains that have already left (the one you're on), so start 40 min back.
+      const back = state.onLine ? -40 : 0;
+      railP=awaitingLocation() ? Promise.resolve() : Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,back))).then(async rs=>{
         const boards={}; let firstErr=null;
         rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
         if(Object.keys(boards).length){
@@ -1617,7 +1621,7 @@ dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
-const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && state.boardsDir!==direction())) refresh({force:true}); else refreshLondon().then(render); planView(); };
+const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && (!state.boards || state.boardsDir!==direction()))) refresh({force:true}); else refreshLondon().then(render); planView(); };
 const planView = () => state.saved.view==="at" ? planAt() : planBy();
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view; save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }

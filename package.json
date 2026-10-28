@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "typecheck": "tsc -p .",
-    "test": "node tools/build.mjs && node --test tests/*.test.mjs tests/core/*.test.mjs"
+    "test": "node tools/build.mjs && TZ=Europe/London node --test tests/*.test.mjs tests/core/*.test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

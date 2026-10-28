@@ -350,3 +350,17 @@ test("Disruption banners say they're about trains now when the plan on screen is
     assert.match(app.d.body.textContent, /Now: 1 of your trains cancelled/);
   } finally { c.state.saved.view = "now"; c.state.at = null; }
 });
+
+test("On the train: the same train at two London stations is one candidate, so the runner-up is a different train", () => {
+  const now = at("2026-11-03", "07:25"), m = 60e3;
+  const tl = (to, arr) => svc({ from: "LET", to, dep: at("2026-11-03", "07:20"), arr: at("2026-11-03", arr), operator: "Thameslink" });
+  useBoards({ "LET-STP": { msgs: [], services: [tl("STP", "07:59")] }, "LET-ZFD": { msgs: [], services: [tl("ZFD", "08:04")] },
+              "LET-KGX": { msgs: [], services: [svc({ from: "LET", to: "KGX", dep: at("2026-11-03", "07:08"), arr: at("2026-11-03", "07:37") })] } }, { dirMode: "office" });
+  const realNow = Date.now; Date.now = () => now;
+  try {
+    c.state.here = [51.9500, -0.2150]; c.state.locAcc = 20; c.state.onLine = true;   // just south of Letchworth
+    const w = c.whichTrain(now);
+    assert.equal(w.t.operator, "Thameslink");
+    if (w.other) assert.notEqual(w.other.t.operator, "Thameslink", "runner-up is not the same Thameslink at the other station");
+  } finally { Date.now = realNow; c.state.here = null; c.state.onLine = false; }
+});

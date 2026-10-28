@@ -65,13 +65,19 @@ const open = [];
 export const closeAll = () => { while (open.length) open.pop().close(); };
 
 export async function createApp({ settings = { provider: "tfl" }, saved = {}, geo = NEAR_LETCHWORTH, geoDelay = 20,
-  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400 } = {}) {
+  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null } = {}) {
   const calls = [];
   const errors = [];
   const dom = new JSDOM(HTML, {
     runScripts: "dangerously", pretendToBeVisual: true, url: "https://srapley-spec.github.io/cartref-commute/",
     beforeParse(w) {
       w.COMMUTE_FETCH_TIMEOUT_MS = timeoutMs;
+      // Frozen clock (golden tests): every Date in the page reads `now`, so output is the same on every run.
+      if (now != null) {
+        const D = w.Date;
+        class FrozenDate extends D { constructor(...a) { if (a.length) super(...a); else super(now); } static now() { return now; } }
+        w.Date = FrozenDate;
+      }
       w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings }, saved)));
       w.addEventListener("error", (e) => errors.push(e.message));
       w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };

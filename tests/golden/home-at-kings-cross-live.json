@@ -1,0 +1,285 @@
+{
+ "load": {
+  "dirNote": "Heading home · you're at King's Cross (±15 m)",
+  "banners": [],
+  "hero": "You're at King's Cross · 17:00 · best, and the next best Leave17:14 → Arrive home18:09 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · leave within 13 min · leave in 13m 55s Journey steps17:14You're at King's Cross: go to the King's Cross platform · about 3 min17:1817:18 Great Northern from King's Cross · platform 9Calls at · King's Cross 17:18 · Finsbury Park 17:24 · Stevenage 17:38 · Hitchin 17:42 · Letchworth 17:4617:46Arrive Letchworth · 28 min on the train18:09Arrive Cartref · walk 22 min Leaving right now? The 17:06 Great Northern (55 min train) gets you to home at 18:24, total 1h 23m.Still possible if you hurry: the 17:01 Thameslink leaves St Pancras, train departs in 0m 55s; home 18:02, total 1h 08m. At walking pace you're 6 min short. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "rows": [
+   "Leave16:55 via St PancrasCircleMet 17:01 Thameslink · platform B · 38 min train · total 1h 08m · train departs in 0m 55s Leave time passed: 6 min short at walking pace, run or bike Arrive18:02",
+   "Leave17:02 via King's CrossCircleMet 17:06 Great Northern · platform 9 · 55 min train · total 1h 23m · leave in 1m 55s Stopping train Arrive18:24",
+   "Leave17:14 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · leave in 13m 55s Arrive18:09",
+   "Leave17:25 via St Pancras or FarringdonCircleMet 17:31 Thameslink · 38 min train · total 1h 08m · leave in 24m 55s Board at Farringdon 17:26 platform 4 or St Pancras 17:31 platform B Arrive18:32",
+   "Leave17:32 via King's CrossCircleMet 17:36 Great Northern · platform 9 · 55 min train · total 1h 23m · leave in 31m 55s Stopping train Arrive18:54",
+   "Leave17:44 via King's CrossCircleMet 17:48 Great Northern · platform 9 · 28 min train · total 56 min · leave in 43m 55s Arrive18:39",
+   "Leave17:55 via St Pancras or FarringdonCircleMet 18:01 Thameslink · 38 min train · total 1h 08m · leave in 54m 55s Board at Farringdon 17:56 platform 4 or St Pancras 18:01 platform B Arrive19:02",
+   "Leave18:02 via King's CrossCircleMet 18:06 Great Northern · platform 9 · 55 min train · total 1h 23m · leave in 1h 1m Stopping train Arrive19:24",
+   "Leave18:14 via King's CrossCircleMet 18:18 Great Northern · platform 9 · 28 min train · total 56 min · leave in 1h 13m Arrive19:09",
+   "Leave18:25 via St Pancras or FarringdonCircleMet 18:31 Thameslink · 38 min train · total 1h 08m · leave in 1h 24m Board at Farringdon 18:26 platform 4 or St Pancras 18:31 platform B Arrive19:32",
+   "Leave18:32 via King's CrossCircleMet 18:36 Great Northern · platform 9 · 55 min train · total 1h 23m · leave in 1h 31m Stopping train Arrive19:54",
+   "Leave18:44 via King's CrossCircleMet 18:48 Great Northern · platform 9 · 28 min train · total 56 min · leave in 1h 43m Arrive19:39",
+   "Leave18:55 via St Pancras or FarringdonCircleMet 19:01 Thameslink · 38 min train · total 1h 08m · leave in 1h 54m Board at Farringdon 18:56 platform 4 or St Pancras 19:01 Arrive20:02"
+  ],
+  "diag": "King's Cross → Letchworth, live board: 8 trains: 17:06, 17:18, 17:36, 17:48, 18:06, 18:18, 18:36, 18:48.Farringdon → Letchworth, live board: 4 trains: 17:26, 17:56, 18:26, 18:56.St Pancras → Letchworth, live board: 4 trains: 17:01, 17:31, 18:01, 18:31."
+ },
+ "options": [
+  {
+   "hub": "STP",
+   "train": "17:01 Thameslink STP-LET",
+   "leave": "16:55:00",
+   "arrive": "18:02:42",
+   "missed": true,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "bad: Leave time passed: 6 min short at walking pace, run or bike"
+   ],
+   "legs": [
+    "16:55:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
+    "17:01:00 17:01 Thameslink from St Pancras · platform B",
+    "- Calls at · St Pancras 17:01 · Finsbury Park 17:08 · Stevenage 17:29 · Hitchin 17:34 · Letchworth 17:39",
+    "17:39:00 Arrive Letchworth · 38 min on the train",
+    "18:02:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "17:06 Great Northern KGX-LET",
+   "leave": "17:02:00",
+   "arrive": "18:24:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "17:02:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "17:06:00 17:06 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 17:06 · Finsbury Park 17:14 · Stevenage 17:44 · Hitchin 17:53 · Letchworth 18:01",
+    "18:01:00 Arrive Letchworth · 55 min on the train",
+    "18:24:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "17:18 Great Northern KGX-LET",
+   "leave": "17:14:00",
+   "arrive": "18:09:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 1,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "17:14:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "17:18:00 17:18 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 17:18 · Finsbury Park 17:24 · Stevenage 17:38 · Hitchin 17:42 · Letchworth 17:46",
+    "17:46:00 Arrive Letchworth · 28 min on the train",
+    "18:09:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "17:31 Thameslink STP-LET",
+   "leave": "17:25:00",
+   "arrive": "18:32:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "ZFD 17:26:00 leave 17:12:00"
+   ],
+   "flags": [],
+   "legs": [
+    "17:25:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
+    "17:31:00 17:31 Thameslink from St Pancras · platform B",
+    "- Calls at · St Pancras 17:31 · Finsbury Park 17:38 · Stevenage 17:59 · Hitchin 18:04 · Letchworth 18:09",
+    "18:09:00 Arrive Letchworth · 38 min on the train",
+    "18:32:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "17:36 Great Northern KGX-LET",
+   "leave": "17:32:00",
+   "arrive": "18:54:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "17:32:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "17:36:00 17:36 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 17:36 · Finsbury Park 17:44 · Stevenage 18:14 · Hitchin 18:23 · Letchworth 18:31",
+    "18:31:00 Arrive Letchworth · 55 min on the train",
+    "18:54:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "17:48 Great Northern KGX-LET",
+   "leave": "17:44:00",
+   "arrive": "18:39:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "17:44:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "17:48:00 17:48 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 17:48 · Finsbury Park 17:54 · Stevenage 18:08 · Hitchin 18:12 · Letchworth 18:16",
+    "18:16:00 Arrive Letchworth · 28 min on the train",
+    "18:39:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "18:01 Thameslink STP-LET",
+   "leave": "17:55:00",
+   "arrive": "19:02:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "ZFD 17:56:00 leave 17:42:00"
+   ],
+   "flags": [],
+   "legs": [
+    "17:55:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
+    "18:01:00 18:01 Thameslink from St Pancras · platform B",
+    "- Calls at · St Pancras 18:01 · Finsbury Park 18:08 · Stevenage 18:29 · Hitchin 18:34 · Letchworth 18:39",
+    "18:39:00 Arrive Letchworth · 38 min on the train",
+    "19:02:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "18:06 Great Northern KGX-LET",
+   "leave": "18:02:00",
+   "arrive": "19:24:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "18:02:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "18:06:00 18:06 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 18:06 · Finsbury Park 18:14 · Stevenage 18:44 · Hitchin 18:53 · Letchworth 19:01",
+    "19:01:00 Arrive Letchworth · 55 min on the train",
+    "19:24:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "18:18 Great Northern KGX-LET",
+   "leave": "18:14:00",
+   "arrive": "19:09:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "18:14:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "18:18:00 18:18 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 18:18 · Finsbury Park 18:24 · Stevenage 18:38 · Hitchin 18:42 · Letchworth 18:46",
+    "18:46:00 Arrive Letchworth · 28 min on the train",
+    "19:09:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "18:31 Thameslink STP-LET",
+   "leave": "18:25:00",
+   "arrive": "19:32:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "ZFD 18:26:00 leave 18:12:00"
+   ],
+   "flags": [],
+   "legs": [
+    "18:25:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
+    "18:31:00 18:31 Thameslink from St Pancras · platform B",
+    "- Calls at · St Pancras 18:31 · Finsbury Park 18:38 · Stevenage 18:59 · Hitchin 19:04 · Letchworth 19:09",
+    "19:09:00 Arrive Letchworth · 38 min on the train",
+    "19:32:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "18:36 Great Northern KGX-LET",
+   "leave": "18:32:00",
+   "arrive": "19:54:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "18:32:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "18:36:00 18:36 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 18:36 · Finsbury Park 18:44 · Stevenage 19:14 · Hitchin 19:23 · Letchworth 19:31",
+    "19:31:00 Arrive Letchworth · 55 min on the train",
+    "19:54:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "18:48 Great Northern KGX-LET",
+   "leave": "18:44:00",
+   "arrive": "19:39:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "18:44:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
+    "18:48:00 18:48 Great Northern from King's Cross · platform 9",
+    "- Calls at · King's Cross 18:48 · Finsbury Park 18:54 · Stevenage 19:08 · Hitchin 19:12 · Letchworth 19:16",
+    "19:16:00 Arrive Letchworth · 28 min on the train",
+    "19:39:42 Arrive Cartref · walk 22 min"
+   ]
+  },
+  {
+   "hub": "STP",
+   "train": "19:01 Thameslink STP-LET",
+   "leave": "18:55:00",
+   "arrive": "20:02:42",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "ZFD 18:56:00 leave 18:42:00"
+   ],
+   "flags": [],
+   "legs": [
+    "18:55:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
+    "19:01:00 19:01 Thameslink from St Pancras · platform not yet shown",
+    "- Calls at · St Pancras 19:01 · Finsbury Park 19:08 · Stevenage 19:29 · Hitchin 19:34 · Letchworth 19:39",
+    "19:39:00 Arrive Letchworth · 38 min on the train",
+    "20:02:42 Arrive Cartref · walk 22 min"
+   ]
+  }
+ ],
+ "requests": [
+  "https://api.tfl.gov.uk/Line/Mode/national-rail/Status?app_key=K",
+  "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status?app_key=K",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/KGX?numRows=10&filterCrs=LET&filterType=to&timeWindow=120",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/STP?numRows=10&filterCrs=LET&filterType=to&timeWindow=120",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/ZFD?numRows=10&filterCrs=LET&filterType=to&timeWindow=120"
+ ],
+ "errors": []
+}

@@ -1,0 +1,19 @@
+{
+ "load": {
+  "dirNote": "Heading to the office · you're at King's Cross (±15 m)",
+  "banners": [],
+  "hero": "You're at King's Cross · 08:05 · live tube times 08:31at the office · 27 min Get on the Met to Aldgate eastbound, due 08:13 · in 8m 00s 08:05Walk to the Circle/Met eastbound platform · about 6 min 08:13Met towards Aldgate · Eastbound - Platform 2 08:23Aldgate · about 10 min ride 08:31Arrive office · walk 9 min Your lines: all good service Circle: Good Service Met: Good Service",
+  "rows": [
+   "Train08:13 Met to Aldgate Aldgate 08:23 · in 8m 00s Office08:31",
+   "Train08:17 Circle to Edgware Road (Circle Line) Aldgate 08:27 · in 12m 00s Office08:35"
+  ],
+  "diag": null
+ },
+ "options": [],
+ "requests": [
+  "https://api.tfl.gov.uk/Line/Mode/national-rail/Status?app_key=K",
+  "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status?app_key=K",
+  "https://api.tfl.gov.uk/StopPoint/940GZZLUKSX/Arrivals?app_key=K"
+ ],
+ "errors": []
+}
