@@ -375,7 +375,10 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   await moveTo(app, AT_KINGS_CROSS);
   assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
   const hero = app.text("#hero");
-  assert.match(hero, /You're at King's Cross · \d\d:\d\d/);
+  assert.match(hero, /You're at King's Cross · departures · \d\d:\d\d/);
+  assert.match(hero, /^You're at King's Cross · departures · .*?Departs ?\d\d:\d\d → Arrive home/, "the big time is the departure");
+  assert.match(hero, /walk to the platform by \d\d:\d\d|go to the platform now/);
+  assert.ok(app.rows().filter((r) => /^(Leave|Departs)/.test(r)).every((r) => /^Departs/.test(r)), app.rows().join("\n"));
   assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
   // Farringdon trains are planned with the tube hop from King's Cross (whether or not one makes the card).
   const zfd = app.c.buildJourneys("home", Date.now(), { here: true }).find((j) => j.hub === "ZFD");

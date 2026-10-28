@@ -228,7 +228,7 @@ test("Leave now card: best train, then the next best (same route allowed), total
   assert.equal(opts.length, 2);
   assert.match(opts[0], new RegExp(`${hm(now + 39 * m)} Great Northern · 29 min train · total \\d+h \\d\\dm`), "best: the fast one");
   assert.match(opts[1], new RegExp(`${hm(now + 55 * m)} Great Northern · 29 min train`), "next best: the next fast one, same route");
-  assert.match(app.text("#hero"), /Leaving right now\? The \d\d:\d\d Great Northern \(52 min train\)/);
+  assert.match(app.text("#hero"), new RegExp(`Leaving right now\\? The ${hm(now + 30 * m)} Great Northern — stopping train, 52 min; office \\d\\d:\\d\\d, \\d+ min later than the ${hm(now + 39 * m)} \\(office \\d\\d:\\d\\d\\)`));
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
 });
 

@@ -70,6 +70,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .banner{border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
 .banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
 .banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
+.slowtxt{color:var(--warn)}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -235,7 +236,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 18:04 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 19:34 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1390,16 +1391,35 @@ function pills(flags, short){
   return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
 }
 // A train you could still make if you hurry.
-function hurryLine(j, dest){
+// At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
+// board: the big time is when the train leaves; when to start walking to the platform is the small print.
+function atStation(){
+  if((state.saved.view||"now")!=="now" || state.saved.mode==="leisure") return null;
+  const dir=direction();
+  if(dir==="home" && state.atHub) return HUB_NAME[state.atHub];
+  if(dir==="office" && state.here && state.locAcc<=250 && km(state.here,GEO.LET)<0.25) return "Letchworth";
+  return null;
+}
+const depStation = j => j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
+// How an extra option compares with the best one: slow trains are named as such, with the cost in minutes.
+function vsBest(j, best, dest){
+  const slow = isStopping(j.train) ? `<b class="slowtxt">stopping train, ${dur(j.train.arr-j.train.dep)}</b>` : `${dur(j.train.arr-j.train.dep)} train`;
+  if(!best || best===j) return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>`;
+  const d=Math.round((j.arrive-best.arrive)/60e3);
+  const cmp = d>0 ? `<b>${d} min later</b> than the <span class="t">${esc(best.train.std)}</span> (${esc(dest)} <span class="t">${hhmm(best.arrive)}</span>)`
+    : d<0 ? `${-d} min sooner than the <span class="t">${esc(best.train.std)}</span>` : `same time as the <span class="t">${esc(best.train.std)}</span>`;
+  return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, ${cmp}`;
+}
+function hurryLine(j, dest, best){
   const from = j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
-  return `<div class="alt hurry">Still possible if you hurry: the <span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span>; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, total ${dur(j.arrive-j.leave)}. At walking pace you're ${Math.max(1,Math.round((Date.now()+30e3-j.leave)/60e3))} min short.</div>`;
+  return `<div class="alt hurry">Still possible if you hurry: the <span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}. At walking pace you're ${Math.max(1,Math.round((Date.now()+30e3-j.leave)/60e3))} min short.</div>`;
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
     <div class="optrow">
-      <div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>
+      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>`}
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
@@ -1577,13 +1597,16 @@ function renderHero(list, now){
   const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
   if(!picks.length){ const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
-  const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3); return m>=1?`leave within ${m} min`:"leave now"; };
+  const board=atStation();
+  const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
+    if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
+    return m>=1?`leave within ${m} min`:"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
-  const now1 = first && !picks.includes(first) ? `<div class="alt">Leaving right now? The <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)} (${dur(first.train.arr-first.train.dep)} train) gets you to ${esc(dest)} at <span class="t">${hhmm(first.arrive)}</span>, total ${dur(first.arrive-first.leave)}.</div>` : "";
-  const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
+  const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":"Leaving right now? The"} <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
+  const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest,picks[0])).join("");
   h.innerHTML = `
-    <div class="lbl">${state.atHub&&dir==="home"?`You're at ${esc(HUB_NAME[state.atHub])}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
-    ${picks.map(j=>optionBlock(j,{timing:spare(j)})).join("")}
+    <div class="lbl">${board?`You're at ${esc(board)} · departures`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
+    ${picks.map(j=>optionBlock(j,{timing:spare(j), board})).join("")}
     ${now1}${hurry}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
@@ -1595,7 +1618,7 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
     <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}${j.missed?" missed":""}">
-      <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
+      ${atStation() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
         <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
@@ -1912,7 +1935,7 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"))).join("")}
+    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
