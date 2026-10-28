@@ -445,3 +445,33 @@ test("Notices: links are tappable (with or without https://, full stop left outs
   assert.equal([...app.d.querySelectorAll("#banners details")].filter(isNotice)[1].open, false);
   app.close();
 });
+
+test("Coming home: near Letchworth stays 'home' (Nearly home) for 3 hours after heading home; next morning it's work again", async () => {
+  const now = T("19:40"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto" } });
+  await app.moveTo(51.5139, -0.0710, 10);          // at the office
+  assert.equal(app.c.direction(), "home");
+  await app.moveTo(51.690, -0.180, 30);            // on the way
+  app.at(T("20:20"));
+  await app.moveTo(51.9700, -0.2400, 20);          // near Letchworth, just off the line
+  assert.equal(app.c.direction(), "home", "arriving, not setting off");
+  assert.match(app.text("#hero"), /^Nearly home · 20:20/);
+  assert.doesNotMatch(app.text("#hero"), /Arrive office/);
+  app.close();
+  const morning = await open({ now: T("07:00", NEXT), geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "home", at: T("20:20") } } });
+  await morning.moveTo(51.9700, -0.2400, 20);
+  assert.equal(morning.c.direction(), "office", "11 hours later: setting off for work");
+  morning.close();
+});
+
+test("Nearly home on your train: home time = the train's expected Letchworth time + exit + walk", async () => {
+  const now = T("20:14"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c;
+  const t = { from: "KGX", to: "LET", std: "19:48", dep: T("19:50"), arr: T("20:18"), depLate: 2, arrLate: 2, depUnknown: false, platform: "1", operator: "Great Northern", cancelled: false, reason: "" };
+  c.state.boards = { "KGX-LET": { msgs: [], services: [t] }, "STP-LET": { msgs: [], services: [] }, "ZFD-LET": { msgs: [], services: [] } };
+  c.state.trainLock = { operator: "Great Northern", std: "19:48", from: "KGX" };
+  c.state.here = [51.9700, -0.2400]; c.state.locAcc = 20; c.state.onLine = false;
+  c.render();
+  const s = c.S(), walk = s.walkStationHomeAvg + s.letExit;
+  assert.match(app.text("#hero"), new RegExp(`Nearly home · 20:14 ?${hm(T("20:18") + walk * 1000)} ?at home On the 19:48 Great Northern Letchworth 20:18 expected`));
+  c.state.here = null; c.state.trainLock = null;
+  app.close();
+});

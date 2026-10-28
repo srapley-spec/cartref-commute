@@ -239,7 +239,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:18 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:23 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1543,6 +1543,25 @@ function renderOnTrain(now, m){
     <div class="note" style="color:inherit;opacity:.75">${pg&&pg.data?"Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.":m.live?"Arrival: National Rail's live expected time for this train. Your location says which train you're on.":"Projection: where you are now and the train's timetabled journey time."} ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
 }
+// Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
+const nearlyHome = () => direction()==="home" && state.saved.mode!=="leisure" && !!state.here && !state.onLine && km(state.here,GEO.LET)<3;
+function renderNearlyHome(now){
+  const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
+  const lock=state.trainLock, pg=state.progress && Date.now()-state.progress.at<5*60e3 ? state.progress : null;
+  const t = lock && state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]).find(x=>x.operator===lock.operator && x.std===lock.std && x.from===lock.from) : null;
+  const letAt = t ? ((pg && pg.id===t.serviceId && pg.data && pg.data.at("LET")) || t.arr) : null;
+  const head=`<div class="lbl">Nearly home · ${hhmm(now)}</div>`;
+  if(letAt && letAt>now-60e3){
+    const home=letAt+exit+walk;
+    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(home)}</span><span class="arrlbl">at home</span></div>
+      <div><span class="slack">On the ${esc(t.std)} ${esc(t.operator)}</span></div>
+      <div style="font-size:14px">Letchworth <span class="t">${hhmm(letAt)}</span> expected · then a ${dur(walk)} walk</div>`;
+    return;
+  }
+  const atStationNow = km(state.here,GEO.LET)<0.3;
+  $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${atStationNow?hhmm(now+exit+walk):"—"}</span><span class="arrlbl">${atStationNow?"at home":""}</span></div>
+    <div style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home."}</div>`;
+}
 // From a London station to the office, split as the live cards need it (from the route description):
 // the change to the tube platform, the ride, and what comes after the ride.
 function onwardParts(hub){
@@ -2084,6 +2103,10 @@ function renderInner(){
     renderOnTube(now);
   } else if(atHubToOffice()){
     renderAtHub(now);
+  } else if(nearlyHome()){
+    renderNearlyHome(now);
+    $("#listTitle").textContent="Nearly home";
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Heading home. Tomorrow's trains appear once you set off for work.</div><div></div></div>`;
   } else if(state.onLine){
     const m=whichTrain(now); renderOnTrain(now, m);
     $("#listTitle").textContent="On the train";
@@ -2207,14 +2230,19 @@ function onPosition(p){
   // Once you've been at the office today, anywhere away from Letchworth counts as heading home.
   const today=new Date().toDateString();
   if(km(here,OFFICE)<0.25 && state.saved.officeVisit!==today){ state.saved.officeVisit=today; save(); }
-  if(dLet<3){ state.autoDir="office"; state.saved.trip={dir:"office",at:Date.now()}; save(); }
+  // Near Letchworth you're setting off for work, unless you've been heading home in the last 3 hours (arriving).
+  const comingHome = trip && trip.dir==="home" && Date.now()-trip.at<3*3600e3;
+  if(dLet<3 && comingHome){ state.autoDir="home"; }
+  else if(dLet<3){ state.autoDir="office"; state.saved.trip={dir:"office",at:Date.now()}; save(); }
   else if(state.saved.officeVisit===today){ state.autoDir="home"; }
   else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
   else state.autoDir = dLet<=dAld ? "office" : "home";
+  // Heading home, away from Letchworth: remember it, so arriving near Letchworth isn't taken as setting off.
+  if(state.autoDir==="home" && dLet>=3){ state.saved.trip={dir:"home",at:Date.now()}; save(); }
   state.atHub=hubHere(); state.lastFixAt=Date.now();
   if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
-  const wasOnLine=state.onLine; state.onLine=onLine(); if(!state.onLine) state.trainLock=null;
+  const wasOnLine=state.onLine; state.onLine=onLine(); if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = state.saved.officeVisit===today && !state.atHub && km(here,OFFICE)<0.25 ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
