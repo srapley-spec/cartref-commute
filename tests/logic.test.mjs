@@ -301,3 +301,22 @@ test("Arrive by on the train: says whether this train gets you there on time", (
     assert.match(app.text("#hero"), /^Late for \d\d:\d\d by about (9|10|11) min/);
   } finally { c.state.here = null; c.state.onLine = false; c.state.saved.view = "now"; }
 });
+
+test("The same Thameslink from Farringdon and St Pancras is one option with both boarding points", () => {
+  const now = Date.now(), m = 60e3;
+  const arr = now + 160 * m;
+  const zfd = svc({ from: "ZFD", to: "LET", dep: now + 116 * m, arr, operator: "Thameslink" });
+  const stp = svc({ from: "STP", to: "LET", dep: now + 121 * m, arr, operator: "Thameslink" });
+  const gn = svc({ from: "KGX", to: "LET", dep: now + 114 * m, arr: now + 149 * m, operator: "Great Northern" });
+  useBoards({ "KGX-LET": { msgs: [], services: [gn] }, "STP-LET": { msgs: [], services: [stp] }, "ZFD-LET": { msgs: [], services: [zfd] } }, { dirMode: "home" });
+  const list = c.ranked(now);
+  assert.equal(list.length, 2, "one Thameslink option, one Great Northern");
+  const tl = list.find((j) => j.train.operator === "Thameslink");
+  assert.equal(tl.alts.length, 1);
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /via (St Pancras or Farringdon|Farringdon or St Pancras)/);
+  assert.match(hero, /Same train from (St Pancras|Farringdon): leave \d\d:\d\d( \(\d+ min (earlier|later)\))?, departs \d\d:\d\d/);
+  assert.equal(app.d.querySelectorAll("#hero .opt").length, 2, "card shows Thameslink once plus King's Cross");
+  assert.match(app.rows().join(" "), /Same train from/);
+});

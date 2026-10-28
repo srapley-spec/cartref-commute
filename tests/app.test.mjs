@@ -490,9 +490,9 @@ test("Trains from St Pancras are kept on the King's Cross route; dropped journey
   };
   const app = await createApp({ geo: IN_LONDON, journeys });
   const rows = app.rows();
-  assert.ok(rows.some((r) => /via St Pancras.*Thameslink/.test(r)), "St Pancras Thameslink shown:\n" + rows.join("\n"));
+  // The St Pancras and Farringdon Thameslink here are the same train (same arrival): one row, both stations.
+  assert.ok(rows.some((r) => /via (St Pancras or Farringdon|Farringdon or St Pancras).*Thameslink.*Same train from/.test(r)), "merged Thameslink:\n" + rows.join("\n"));
   assert.ok(rows.some((r) => /via King's Cross.*Great Northern/.test(r)));
-  assert.ok(rows.some((r) => /via Farringdon/.test(r)));
   const diag = app.text("#diagBody");
   assert.match(diag, /King's Cross → Letchworth: 1 search; TfL returned 3 journeys; 2 direct trains kept; 1 with a change of train/);
   app.close();

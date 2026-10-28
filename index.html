@@ -121,6 +121,7 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .diag{font-size:13px;color:var(--muted)}
 .diag summary{cursor:pointer;font-weight:700}
 .diag p{margin:6px 0}
+.hero .altstop{font-size:14px;padding:6px 10px;border-left:3px solid color-mix(in srgb,var(--paper) 40%,transparent)}
 .strip{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--paper) 22%,transparent)}
 .striphead{font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.75;font-weight:700}
 .sreason{font-size:13px;opacity:.9}
@@ -233,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 08:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 11:31 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -947,13 +948,31 @@ function topPicks(options, view){
 
 // Leave now: the next trains you can still catch, in leaving order, at least one per route. The first is the
 // one you'd catch by setting off now (slow or fast); the earliest arrival is always kept and marked "Fastest".
+// The same Thameslink train calls at both Farringdon and St Pancras. Show it once, with both places you
+// can get on (home) or off (to work). Main option: soonest arrival, then latest leave.
+function mergeSameTrain(js){
+  const dir=direction(), out=[], used=new Set();
+  const sameRun=(a,b)=> a!==b && a.train.operator===b.train.operator && a.hub!==b.hub &&
+    ["STP","ZFD"].includes(a.hub) && ["STP","ZFD"].includes(b.hub) &&
+    Math.abs((dir==="office"?a.train.dep-b.train.dep:a.train.arr-b.train.arr))<=60e3;
+  for(const j of js){
+    if(used.has(j)) continue;
+    const group=[j, ...js.filter(o=>!used.has(o) && sameRun(j,o))];
+    group.forEach(g=>used.add(g));
+    if(group.length===1){ out.push(j); continue; }
+    group.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave || (a.hub==="ZFD"?-1:1));
+    const main=group[0]; main.alts=group.slice(1);
+    out.push(main);
+  }
+  return out;
+}
 function ranked(now){
   const t0=now+30e3;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Every train that hasn't left yet is listed; ones you'd have to hurry for are flagged.
   const all=liveAdjust(build(direction(), now), now);
   if(!all.length) return [];
-  const list=all.sort((a,b)=>a.leave-b.leave || a.arrive-b.arrive);
+  const list=mergeSameTrain(all).sort((a,b)=>a.leave-b.leave || a.arrive-b.arrive);
   const usable=list.filter(j=>!j.uncertain && !j.missed);
   if(usable.length){
     usable[0].first=true;
@@ -964,12 +983,23 @@ function ranked(now){
 }
 
 // ---------- Rendering ----------
+// "Same train from St Pancras: leave 17:34, departs 18:01" (or, to work, where you'd get off instead).
+function altLines(j){
+  if(!j.alts || !j.alts.length) return "";
+  const dir=direction();
+  return j.alts.map(a=>{
+    const d=Math.round((a.leave-j.leave)/60e3);
+    return dir==="office"
+      ? `<div class="altstop">Same train also stops at <b>${esc(HUB_NAME[a.hub])}</b> (<span class="t">${hhmm(a.train.arr)}</span>): getting off there, office <span class="t">${hhmm(a.arrive)}</span>.</div>`
+      : `<div class="altstop">Same train from <b>${esc(HUB_NAME[a.hub])}</b>: leave <span class="t">${hhmm(a.leave)}</span>${d?` (${Math.abs(d)} min ${d<0?"earlier":"later"})`:""}, departs <span class="t">${hhmm(a.train.dep)}</span>.</div>`;
+  }).join("");
+}
 function chips(j){
   if(j.leisure){
     const rail=`<span class="chip rail">${direction()==="office"?"to ":"from "}${esc(STATIONS[j.hub])}</span>`;
     return rail + (j.london?`<span class="chip walk">${esc(j.london.summary)}</span>`:"");
   }
-  const rail = `<span class="chip rail">via ${esc(HUB_NAME[j.hub])}</span>`;
+  const rail = `<span class="chip rail">via ${esc(HUB_NAME[j.hub])}${(j.alts||[]).map(a=>` or ${esc(HUB_NAME[a.hub])}`).join("")}</span>`;
   const tube = j.tube.fallback ? `<span class="chip hc">H&amp;C</span>` : `<span class="chip circle">Circle</span><span class="chip met">Met</span>`;
   return rail+tube;
 }
@@ -992,6 +1022,7 @@ function optionBlock(j, opt){
       <div class="optroute">${chips(j)}</div>
     </div>
     <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
     <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
@@ -1183,6 +1214,7 @@ function renderList(list, now, opts){
       <div class="mid">
         <div class="route">${chips(j)}</div>
         <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        ${(j.alts||[]).map(a=>`<div class="meta">Same train ${direction()==="office"?"to":"from"} ${esc(HUB_NAME[a.hub])}: ${direction()==="office"?`arrive ${hhmm(a.arrive)}`:`leave ${hhmm(a.leave)}, departs ${hhmm(a.train.dep)}`}</div>`).join("")}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
@@ -1322,6 +1354,7 @@ function atOptions(){
   js=js.filter(j=>j.leave>=a.T-15*60e3 && j.train.dep>=Date.now());
   js.forEach(j=>{ j.uncertain=!plannable(j.train);
     if(j.leave<a.T) j.flags.unshift({lvl:"warn",txt:`Leave ${Math.max(1,Math.round((a.T-j.leave)/60e3))} min before ${hhmm(a.T)}`}); });
+  js=mergeSameTrain(js);
   // "Around" = leaving up to 10 minutes before your time, or any time after.
   topPicks(js.filter(j=>j.leave>=a.T-10*60e3),"now").forEach(j=>{ j.recommended=true; });
   return js.sort((x,y)=>x.leave-y.leave || x.arrive-y.arrive);
@@ -1399,6 +1432,7 @@ function byOptions(){
   // Only plan from where you are when the target is within the next 3 hours.
   js=liveAdjust(js, Date.now(), {later: b.T-Date.now()>3*3600e3});
   // Every loaded train is listed: the ones that get you there in time and the ones that would make you late.
+  js=mergeSameTrain(js);
   const onTime=js.filter(j=>j.arrive<=b.T), late=js.filter(j=>j.arrive>b.T);
   onTime.forEach(j=>{ if(b.T-j.arrive<5*60e3) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
   late.forEach(j=>{ j.late=true; j.flags.unshift({lvl:"bad",txt:`Late by ${Math.max(1,Math.round((j.arrive-b.T)/60e3))} min`}); });
@@ -1684,7 +1718,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
