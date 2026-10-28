@@ -67,6 +67,8 @@ export const closeAll = () => { while (open.length) open.pop().close(); };
 export async function createApp({ settings = { provider: "tfl" }, saved = {}, geo = NEAR_LETCHWORTH, geoDelay = 20,
   journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null } = {}) {
   const calls = [];
+  const clock = { t: now };
+  let pendingGeo = null;   // frozen clock; tests move it with app.setNow()
   const errors = [];
   const dom = new JSDOM(HTML, {
     runScripts: "dangerously", pretendToBeVisual: true, url: "https://srapley-spec.github.io/cartref-commute/",
@@ -75,7 +77,7 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
       // Frozen clock (golden tests): every Date in the page reads `now`, so output is the same on every run.
       if (now != null) {
         const D = w.Date;
-        class FrozenDate extends D { constructor(...a) { if (a.length) super(...a); else super(now); } static now() { return now; } }
+        class FrozenDate extends D { constructor(...a) { if (a.length) super(...a); else super(clock.t); } static now() { return clock.t; } }
         w.Date = FrozenDate;
       }
       w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings }, saved)));
@@ -84,6 +86,8 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
       w.HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
       Object.defineProperty(w.navigator, "geolocation", { value: {
         watchPosition(ok, err) {
+          // geoDelay "manual": nothing until the test calls app.giveLocation() (no timing race under load).
+          if (geoDelay === "manual") { pendingGeo = () => ok(geo); return 1; }
           setTimeout(() => { if (geo === "denied") err({ code: 1 }); else if (geo) ok(geo); }, geoDelay);
           return 1;
         },
@@ -107,6 +111,8 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
     text: (sel) => (w.document.querySelector(sel)?.textContent || "").replace(/\s+/g, " ").trim(),
     rows: () => [...w.document.querySelectorAll("#list .row")].map((r) => r.textContent.replace(/\s+/g, " ").trim()),
     banners: () => [...w.document.querySelectorAll("#banners .banner")].map((b) => b.textContent.replace(/\s+/g, " ").trim()),
+    setNow: (t) => { clock.t = t; },
+    giveLocation: () => { if (pendingGeo) pendingGeo(); },
     close: () => w.close() };
 }
 export { json };

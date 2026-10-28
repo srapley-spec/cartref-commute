@@ -11,9 +11,10 @@ const pairsFetched = (calls) => [...new Set(calls.map(parseJourneyUrl).filter(Bo
 
 // ---------- Direction from location ----------
 test("Near Letchworth: waits for location, then plans to the office", async () => {
-  const app = await createApp({ geo: NEAR_LETCHWORTH, geoDelay: 150, settle: 50 });
+  const app = await createApp({ geo: NEAR_LETCHWORTH, geoDelay: "manual", settle: 200 });
   assert.match(app.text("#hero"), /Finding your location/);
   assert.equal(pairsFetched(app.calls).length, 0, "no trains loaded before the direction is known");
+  app.giveLocation();
   await sleep(500);
   assert.match(app.text("#dirNote"), /Heading to the office · you're near Letchworth \(±12 m\)/);
   assert.deepEqual(pairsFetched(app.calls), ["LET-KGX", "LET-ZFD"]);

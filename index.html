@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 15:55 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 16:27 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1810,9 +1810,9 @@ async function fetchTflArriving(T, keys){
   if(tflKeyed()) for(let i=0;i<4;i++) rounds.push((k,B)=>{
     const deps=B.services.map(s=>s.dep).filter(d=>d<latest(k)); const last=deps.length?Math.max(...deps):0;
     return last && last<latest(k)-20*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
-  const r=await searchRoutes(keys||boardKeys(), rounds);
-  await completePairs(r.boards, r.diag);
-  return r;
+  // Pair completion is the caller's job, on the full set of boards (a retry of one route mustn't search again
+  // for trains the other routes already found).
+  return searchRoutes(keys||boardKeys(), rounds);
 }
 async function planBy(opts){
   if(state.saved.view!=="by" || awaitingLocation()) return;
@@ -1829,7 +1829,7 @@ async function planBy(opts){
       // Live board stops short of your arrival time: fill the rest from the timetable.
       const hz=liveHorizon(r.boards); let liveTo=null;
       let diag=null;
-      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; diag=tt.diag; }
+      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; await completePairs(tt.boards, tt.diag); mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; diag=tt.diag; }
       state.byCache[lkey]={boards:r.boards,at:Date.now(),liveTo,diag}; state.by={T,boards:r.boards,failed:{},live:true,liveTo,diag}; render(); return; }
     catch(e){ /* fall through to the timetable */ }
   }
@@ -1844,6 +1844,7 @@ async function planBy(opts){
     if(state.byToken!==token) return;
     const boards=Object.assign({}, hit?hit.boards:{}, ...Object.keys(r.boards).filter(k=>!r.failed[k]).map(k=>({[k]:r.boards[k]})));
     boardKeys().forEach(k=>{ boards[k]=boards[k]||{services:[],msgs:[]}; });
+    await completePairs(boards, r.diag); if(state.byToken!==token) return;
     const failed=fetchKeys ? Object.fromEntries(fetchKeys.filter(k=>r.failed[k]).map(k=>[k,r.failed[k]])) : r.failed;
     state.byCache[key]={boards,failed,at:Date.now(),diag:r.diag};
     state.by={T,boards,failed,live:false,diag:r.diag};
@@ -2151,7 +2152,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
