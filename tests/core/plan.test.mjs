@@ -1,0 +1,62 @@
+// Engine: Sam's route descriptions and the Leave now list.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { core, at, MIN, testville, train, option } from "./helpers.mjs";
+
+const sam = core.profiles.samCommute, now = at("2026-11-03", "17:00");
+const T = { walkHomeStationAvg: 1337, walkHomeStationFast: 1086, walkStationHomeAvg: 1332, walkStationHomeFast: 1111, letEntry: 120, letExit: 90, catchMargin: 60,
+  kxInterchange: 360, farInterchange: 240, tubeWait: 180, rideKxAld: 600, rideFarAld: 420, aldPlatform: 90, aldWalk: 420,
+  rideKxAde: 660, rideFarAde: 480, adePlatform: 90, adeWalk: 360, stpInterchange: 420, fastFactor: 0.82, leisureFactor: 1.15 };
+const secs = (segs) => segs.reduce((t, s) => t + s.secs, 0);
+const R = (o) => core.samRoutes({ dir: "office", mode: "commute", pace: "avg", timings: T, ...o });
+
+test("Routes to work: one per London station; door to platform and platform to desk from the timings", () => {
+  const rs = R({});
+  assert.deepEqual(rs.map(r => r.board), ["LET-KGX", "LET-STP", "LET-ZFD"]);
+  assert.equal(secs(rs[0].before), 1337 + 120 + 60);
+  assert.equal(secs(rs[2].after), 240 + 180 + 420 + 90 + 420);
+  const fast = R({ pace: "fast" });
+  assert.equal(secs(fast[0].before), 1086 + 120 * 0.82 + 60);
+  const fb = R({ tubeFallback: true });
+  assert.equal(fb[0].extra.tube.stop, "Aldgate East"); assert.equal(secs(fb[0].after), 360 + 180 + 660 + 90 + 360);
+  assert.match(fb[0].after[1].step.d, /^H&C to Aldgate East/);
+});
+
+test("Routes home; from where you are (walk to Letchworth, or already at King's Cross); leisure", () => {
+  const home = R({ dir: "home" });
+  assert.deepEqual(home.map(r => r.board), ["KGX-LET", "STP-LET", "ZFD-LET"]);
+  assert.equal(secs(home[1].before), 420 + 90 + 180 + 600 + 420 + 60);
+  const walk = R({ here: { walkToStation: 300, atHub: null } });
+  assert.equal(walk[0].before[0].secs, 300); assert.equal(walk[0].extra.fromHere, true);
+  const kx = R({ dir: "home", here: { walkToStation: null, atHub: "KGX" } });
+  assert.equal(secs(kx[0].before), 180 + 60); assert.match(kx[1].before[0].step.d, /You're at King's Cross: go to the St Pancras platform/);
+  assert.equal(secs(kx[2].before), 120 + 180 + 240 + 240 + 60); assert.match(kx[2].before[0].step.d, /Tube from King's Cross to Farringdon/);
+  const lo = R({ mode: "leisure" });
+  assert.deepEqual(lo.map(r => r.hub), ["KGX", "STP"]);
+  const lh = R({ dir: "home", mode: "leisure", london: { KXSP: { dur: 18 * MIN, summary: "Walk", disruptions: [] }, FAR: { dur: 21 * MIN, summary: "Bus", disruptions: [] } } });
+  assert.equal(lh[0].before[0].secs, 18 * 60); assert.equal(lh[2].extra.planned, true);
+  assert.equal(R({ dir: "home", mode: "leisure" })[0].extra.planned, false);
+});
+
+test("liveAdjust: departed trains go; leave time passed is flagged, not hidden; at the station, catchable until a minute before", () => {
+  const o = (leaveMin, depMin, from = "KGX") => option({ hub: from, leave: now + leaveMin * MIN, arrive: now + 60 * MIN, train: train({ from, to: "LET", dep: now + depMin * MIN, arr: now + 50 * MIN }) });
+  const name = (j) => sam.stationNames[j.train.from];
+  const js = core.liveAdjust([o(-30, -1), o(-5, 10), o(5, 20), o(-20, 0.5)], now, null, name);
+  assert.equal(js.length, 3);
+  assert.match(js[0].flags[0].txt, /Leave time passed: 6 min short/); assert.equal(js[1].missed, false);
+  const at = core.liveAdjust([o(-5, 10), o(-20, 0.5), o(-5, 10, "ZFD")], now, "King's Cross", name);
+  assert.equal(at[0].missed, false); assert.equal(at[1].missed, true); assert.equal(at[1].flags[0].txt, "Leaving in under a minute");
+  assert.equal(at[2].missed, true, "a train from another station still needs the trip there");
+  const unc = core.liveAdjust([option({ hub: "KGX", leave: now + 5 * MIN, arrive: now + 60 * MIN, train: train({ from: "KGX", to: "LET", dep: now + 20 * MIN, arr: now + 50 * MIN, depUnknown: true }) })], now, null, name);
+  assert.equal(unc[0].uncertain, true);
+});
+
+test("rankNow: leaving order; first catchable; fastest; card picks within the window", () => {
+  const o = (leave, arrive, op = "Express Rail") => option({ hub: "CEN", leave: now + leave * MIN, arrive: now + arrive * MIN, train: train({ from: "RVS", to: "CEN", operator: op, dep: now + leave * MIN + 15 * MIN, arr: now + arrive * MIN - 5 * MIN }) });
+  const list = core.rankNow([o(10, 70, "A"), o(2, 80, "B"), o(20, 65, "C"), o(30, 100, "D")], "office", testville);
+  assert.deepEqual(list.map(j => j.train.operator), ["B", "A", "C", "D"]);
+  assert.equal(list[0].first, true); assert.equal(list[2].fastest, true);
+  assert.equal(list[2].recommended, 1); assert.equal(list.filter(j => j.recommended).length <= 2, true);
+  assert.equal(list[3].recommended, undefined);
+  assert.deepEqual(core.rankNow([], "office", testville), []);
+});

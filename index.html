@@ -241,7 +241,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 23:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 23:16 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -365,6 +365,7 @@ var CommuteCore = (() => {
     lineLevel: () => lineLevel,
     lineOk: () => lineOk,
     lineProgress: () => lineProgress,
+    liveAdjust: () => liveAdjust,
     liveHorizon: () => liveHorizon,
     lockedTrain: () => lockedTrain,
     markTimetable: () => markTimetable,
@@ -385,8 +386,10 @@ var CommuteCore = (() => {
     plannable: () => plannable,
     profiles: () => profiles,
     railWarnings: () => railWarnings,
+    rankNow: () => rankNow,
     reportedFrac: () => reportedFrac,
     resolve: () => resolve,
+    samRoutes: () => samRoutes,
     standingRoomOnly: () => standingRoomOnly,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
@@ -458,10 +461,10 @@ var CommuteCore = (() => {
     const P = xy(pt);
     let total2 = 0;
     let best = { off: 1e9, at: 0 };
-    const seg = [];
+    const seg2 = [];
     for (let i = 0; i < line.length - 1; i++) {
       const d = km(line[i], line[i + 1]);
-      seg.push(d);
+      seg2.push(d);
       total2 += d;
     }
     let run = 0;
@@ -469,8 +472,8 @@ var CommuteCore = (() => {
       const A = xy(line[i]), B = xy(line[i + 1]), dx = B[0] - A[0], dy = B[1] - A[1], len2 = dx * dx + dy * dy;
       const t = Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / (len2 || 1)));
       const off = Math.hypot(P[0] - (A[0] + t * dx), P[1] - (A[1] + t * dy));
-      if (off < best.off) best = { off, at: run + t * seg[i] };
-      run += seg[i];
+      if (off < best.off) best = { off, at: run + t * seg2[i] };
+      run += seg2[i];
     }
     return { frac: total2 ? best.at / total2 : 0, offKm: best.off };
   }
@@ -813,6 +816,36 @@ var CommuteCore = (() => {
     return f;
   }
 
+  // src/core/plan.ts
+  function liveAdjust(opts, now, atStation, depStation) {
+    const t0 = now + 3e4;
+    const keep = opts.filter((j) => j.train.dep >= now);
+    keep.forEach((j) => {
+      j.uncertain = !plannable(j.train);
+      if (atStation && depStation(j) === atStation) {
+        j.missed = j.train.dep < now + 6e4;
+        if (j.missed) j.flags.unshift({ lvl: "bad", txt: "Leaving in under a minute" });
+        return;
+      }
+      j.missed = j.leave < t0;
+      if (j.missed) j.flags.unshift({ lvl: "bad", txt: `Leave time passed: ${Math.max(1, Math.round((t0 - j.leave) / 6e4))} min short at walking pace, run or bike` });
+    });
+    return keep;
+  }
+  function rankNow(opts, dir, p) {
+    if (!opts.length) return [];
+    const list = mergeSameTrain(opts, dir, p).sort((a, b) => a.leave - b.leave || a.arrive - b.arrive);
+    const usable = list.filter((j) => !j.uncertain && !j.missed);
+    if (usable.length) {
+      usable[0].first = true;
+      usable.reduce((a, b) => b.arrive < a.arrive || b.arrive === a.arrive && b.leave > a.leave ? b : a).fastest = true;
+    }
+    topPicks(list, "now", p.topWindowMin).forEach((j, i) => {
+      j.recommended = i + 1;
+    });
+    return list;
+  }
+
   // src/core/live.ts
   var liveHorizon = (boards) => Math.max(0, ...Object.values(boards).flatMap((b) => b && b.services ? b.services.map((x) => x.dep) : []));
   function mergeBeyond(live, tt, hz) {
@@ -1119,6 +1152,117 @@ var CommuteCore = (() => {
       ]
     }
   };
+
+  // src/core/profiles/samRoutes.ts
+  var NAMES = { KGX: "King's Cross", STP: "St Pancras", ZFD: "Farringdon" };
+  var PLATFORM_WALK = { KGX: 180, STP: 300, ZFD: 120 };
+  var HUB_HOP = 240;
+  var seg = (kind, secs, step) => ({ kind, secs, step: step || null });
+  var sec = (x) => x * 1e3;
+  var paceFactor = (i) => i.mode === "leisure" ? i.timings.leisureFactor : i.pace === "fast" ? i.timings.fastFactor : 1;
+  function samRoutes(i) {
+    const routes = baseRoutes(i);
+    if (i.here) fromHere(routes, i);
+    return routes;
+  }
+  function baseRoutes(i) {
+    const s = i.timings, dir = i.dir, leisure = i.mode === "leisure", fast = !leisure && i.pace === "fast", k = paceFactor(i);
+    const ic = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
+    const routes = [];
+    if (!leisure) {
+      const tube = i.tubeFallback ? { stop: "Aldgate East", lines: ["hc"], ride: { KGX: s.rideKxAde, STP: s.rideKxAde, ZFD: s.rideFarAde }, plat: s.adePlatform, walk: s.adeWalk, fallback: true } : { stop: "Aldgate", lines: ["circle", "met"], ride: { KGX: s.rideKxAld, STP: s.rideKxAld, ZFD: s.rideFarAld }, plat: s.aldPlatform, walk: s.aldWalk, fallback: false };
+      const tubeName = tube.fallback ? "H&C" : "Circle or Met";
+      const walkOut = fast ? s.walkHomeStationFast : s.walkHomeStationAvg, walkBack = fast ? s.walkStationHomeFast : s.walkStationHomeAvg;
+      for (const hub of ["KGX", "STP", "ZFD"]) {
+        const tubeStep = { d: `${tubeName} to ${dir === "office" ? tube.stop : NAMES[hub]}`, note: `~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube: true };
+        if (dir === "office") routes.push({
+          hub,
+          board: `LET-${hub}`,
+          fromName: "Letchworth",
+          before: [seg("walk", walkOut, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walkOut))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+          after: [
+            seg("change", ic[hub] * k),
+            seg("wait", s.tubeWait, { at: "end", ...tubeStep }),
+            seg("ride", tube.ride[hub]),
+            seg("station", tube.plat * k),
+            seg("walk", tube.walk * k, { at: "end", d: "Arrive office", note: `walk ${dur(sec(tube.walk * k))}` })
+          ],
+          arriveLabel: `Arrive ${NAMES[hub]}`,
+          arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
+          extra: { tube }
+        });
+        else routes.push({
+          hub,
+          board: `${hub}-LET`,
+          fromName: NAMES[hub],
+          before: [
+            seg("walk", tube.walk * k, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }),
+            seg("station", tube.plat * k),
+            seg("wait", s.tubeWait),
+            seg("ride", tube.ride[hub], { at: "start", ...tubeStep }),
+            seg("change", ic[hub] * k),
+            seg("margin", s.catchMargin)
+          ],
+          after: [seg("station", s.letExit * k), seg("walk", walkBack, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walkBack))}` })],
+          arriveLabel: "Arrive Letchworth",
+          noPlatform: "platform not yet shown",
+          extra: { tube }
+        });
+      }
+    } else if (dir === "office") {
+      const walk = s.walkHomeStationAvg * k;
+      for (const hub of ["KGX", "STP"]) routes.push({
+        hub,
+        board: `LET-${hub}`,
+        fromName: "Letchworth",
+        before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+        after: [],
+        arriveLabel: `Arrive ${NAMES[hub]}`,
+        extra: { dest: NAMES[hub], leisure: true }
+      });
+    } else {
+      const walkBack = s.walkStationHomeAvg * k;
+      for (const hub of ["KGX", "STP", "ZFD"]) {
+        const leg = i.london ? hub === "ZFD" ? i.london.FAR : i.london.KXSP : null;
+        const planned = leg ? leg.dur / 1e3 : 300;
+        routes.push({
+          hub,
+          board: `${hub}-LET`,
+          fromName: NAMES[hub],
+          before: [
+            seg("planned", planned, leg ? { at: "start", d: `Set off to ${hub === "ZFD" ? "Farringdon" : "King's Cross St Pancras"}`, note: `${leg.summary} (${dur(leg.dur)})` } : null),
+            seg("change", ic[hub] * k),
+            seg("margin", s.catchMargin)
+          ],
+          after: [seg("station", s.letExit * k), seg("walk", walkBack, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walkBack))}` })],
+          arriveLabel: "Arrive Letchworth",
+          depNotePrefix: `allow ${dur(sec(ic[hub] * k))} to reach the platform`,
+          extra: { dest: "home", leisure: true, london: leg, planned: !!leg }
+        });
+      }
+    }
+    return routes;
+  }
+  function fromHere(routes, i) {
+    const s = i.timings, k = paceFactor(i), dir = i.dir, at = i.here.atHub, hw = i.here.walkToStation;
+    const ic = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
+    for (const r of routes) {
+      if (dir === "office" && hw != null) {
+        r.before[0] = seg("walk", hw, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to Letchworth station` });
+        r.extra = { ...r.extra, fromHere: true };
+      } else if (dir === "home" && at) {
+        const same = at === "KGX" && (r.hub === "KGX" || r.hub === "STP") || r.hub === at;
+        r.before = same ? [seg("walk", PLATFORM_WALK[r.hub] * k, { at: "start", d: `You're at ${NAMES[at]}: go to the ${NAMES[r.hub]} platform`, note: `about ${dur(sec(PLATFORM_WALK[r.hub] * k))}` }), seg("margin", s.catchMargin)] : [
+          seg("station", 120 * k, { at: "start", d: `Tube from ${NAMES[at]} to ${NAMES[r.hub]}`, note: `about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change` }),
+          seg("wait", s.tubeWait),
+          seg("ride", HUB_HOP),
+          seg("change", ic[r.hub] * k),
+          seg("margin", s.catchMargin)
+        ];
+        r.extra = { ...r.extra, fromHere: true, planned: true };
+      }
+    }
+  }
 
   // src/core/index.ts
   var profiles = { samCommute };
@@ -1496,78 +1640,8 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 // direction and pace. The engine computes leave and arrive times, steps, search windows and onward
 // timings from these. Nothing else in the page encodes journey timings.
 function routesFor(dir, mode, opts){
-  const routes=baseRoutes(dir, mode);
-  if(opts && opts.here) fromHere(routes, dir, mode);
-  return routes;
-}
-// From where you are now: on the way to Letchworth, the walk starts here; at a London station on the way home,
-// trains from that station need only the walk to the platform, and trains from the other one the tube between.
-const PLATFORM_WALK={KGX:180, STP:300, ZFD:120}, HUB_HOP=240;
-function fromHere(routes, dir, mode){
-  const s=S(), sec=x=>x*1000, k=mode==="leisure"?s.leisureFactor:(state.saved.pace==="fast"?s.fastFactor:1);
-  const ic={KGX:s.kxInterchange, STP:s.stpInterchange, ZFD:s.farInterchange};
-  const seg=(kind, secs, step)=>({kind, secs, step:step||null});
-  const at=state.atHub, hw=walkFromHere();
-  for(const r of routes){
-    if(dir==="office" && hw!=null){
-      r.before[0]=seg("walk", hw, {at:"start", d:"Set off from where you are", note:`about ${dur(sec(hw))} walk to Letchworth station`});
-      r.extra={...r.extra, fromHere:true};
-    } else if(dir==="home" && at){
-      const same = (at==="KGX" && (r.hub==="KGX"||r.hub==="STP")) || r.hub===at;
-      r.before = same
-        ? [ seg("walk", PLATFORM_WALK[r.hub]*k, {at:"start", d:`You're at ${HUB_NAME[at]}: go to the ${STATIONS[r.hub]} platform`, note:`about ${dur(sec(PLATFORM_WALK[r.hub]*k))}`}), seg("margin", s.catchMargin) ]
-        : [ seg("station", 120*k, {at:"start", d:`Tube from ${HUB_NAME[at]} to ${HUB_NAME[r.hub]}`, note:`about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change`}),
-            seg("wait", s.tubeWait), seg("ride", HUB_HOP), seg("change", ic[r.hub]*k), seg("margin", s.catchMargin) ];
-      r.extra={...r.extra, fromHere:true, planned:true};
-    }
-  }
-}
-function baseRoutes(dir, mode){
-  const s=S(), sec=x=>x*1000, leisure=mode==="leisure";
-  const fast=!leisure && state.saved.pace==="fast", k=leisure?s.leisureFactor:(fast?s.fastFactor:1);
-  const ic={KGX:s.kxInterchange, STP:s.stpInterchange, ZFD:s.farInterchange};
-  const seg=(kind, secs, step)=>({kind, secs, step:step||null});
-  const routes=[];
-  if(!leisure){
-    const useAde=aldgateUnusable();
-    const tube = useAde
-      ? { stop:"Aldgate East", lines:["hc"], ride:{KGX:s.rideKxAde,STP:s.rideKxAde,ZFD:s.rideFarAde}, plat:s.adePlatform, walk:s.adeWalk, fallback:true }
-      : { stop:"Aldgate", lines:["circle","met"], ride:{KGX:s.rideKxAld,STP:s.rideKxAld,ZFD:s.rideFarAld}, plat:s.aldPlatform, walk:s.aldWalk, fallback:false };
-    const tubeName = tube.fallback ? "H&C" : "Circle or Met";
-    const walkOut=fast?s.walkHomeStationFast:s.walkHomeStationAvg, walkBack=fast?s.walkStationHomeFast:s.walkStationHomeAvg;
-    // St Pancras (Thameslink) uses the same King's Cross St Pancras tube station.
-    for(const hub of ["KGX","STP","ZFD"]){
-      const tubeStep = {d:`${tubeName} to ${dir==="office"?tube.stop:STATIONS[hub]}`, note:`~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube:true};
-      if(dir==="office") routes.push({ hub, board:`LET-${hub}`, fromName:"Letchworth",
-        before:[ seg("walk", walkOut, {at:"start", d:"Leave Cartref", note:`walk ${dur(sec(walkOut))}`}), seg("station", s.letEntry*k), seg("margin", s.catchMargin) ],
-        after:[ seg("change", ic[hub]*k), seg("wait", s.tubeWait, {at:"end", ...tubeStep}), seg("ride", tube.ride[hub]), seg("station", tube.plat*k),
-                seg("walk", tube.walk*k, {at:"end", d:"Arrive office", note:`walk ${dur(sec(tube.walk*k))}`}) ],
-        arriveLabel:`Arrive ${STATIONS[hub]}`, arriveExtra:`, change ${dur(sec(ic[hub]*k))}`, extra:{tube} });
-      else routes.push({ hub, board:`${hub}-LET`, fromName:STATIONS[hub],
-        before:[ seg("walk", tube.walk*k, {at:"start", d:"Leave office", note:`walk to ${tube.stop} ${dur(sec(tube.walk*k))}`}), seg("station", tube.plat*k), seg("wait", s.tubeWait),
-                 seg("ride", tube.ride[hub], {at:"start", ...tubeStep}), seg("change", ic[hub]*k), seg("margin", s.catchMargin) ],
-        after:[ seg("station", s.letExit*k), seg("walk", walkBack, {at:"end", d:"Arrive Cartref", note:`walk ${dur(sec(walkBack))}`}) ],
-        arriveLabel:"Arrive Letchworth", noPlatform:"platform not yet shown", extra:{tube} });
-    }
-  } else if(dir==="office"){
-    const walk=s.walkHomeStationAvg*k;
-    for(const hub of ["KGX","STP"]) routes.push({ hub, board:`LET-${hub}`, fromName:"Letchworth",
-      before:[ seg("walk", walk, {at:"start", d:"Leave Cartref", note:`walk ${dur(sec(walk))}`}), seg("station", s.letEntry*k), seg("margin", s.catchMargin) ],
-      after:[], arriveLabel:`Arrive ${STATIONS[hub]}`, extra:{dest:STATIONS[hub], leisure:true} });
-  } else {
-    const walkBack=s.walkStationHomeAvg*k;
-    for(const hub of ["KGX","STP","ZFD"]){
-      const leg = state.london ? (hub==="ZFD"?state.london.FAR:state.london.KXSP) : null;
-      // Before the London leg is planned, assume 5 minutes (only used to size searches).
-      const planned = leg ? leg.dur/1000 : 300;
-      routes.push({ hub, board:`${hub}-LET`, fromName:STATIONS[hub],
-        before:[ seg("planned", planned, leg?{at:"start", d:`Set off to ${hub==="ZFD"?"Farringdon":"King's Cross St Pancras"}`, note:`${leg.summary} (${dur(leg.dur)})`}:null),
-                 seg("change", ic[hub]*k), seg("margin", s.catchMargin) ],
-        after:[ seg("station", s.letExit*k), seg("walk", walkBack, {at:"end", d:"Arrive Cartref", note:`walk ${dur(sec(walkBack))}`}) ],
-        arriveLabel:"Arrive Letchworth", depNotePrefix:`allow ${dur(sec(ic[hub]*k))} to reach the platform`, extra:{dest:"home", leisure:true, london:leg, planned:!!leg} });
-    }
-  }
-  return routes;
+  return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
+    london:state.london||null, here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null } : null });
 }
 const currentMode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 const routeFor = hub => routesFor(direction(), currentMode()).find(r=>r.hub===hub);
@@ -1631,20 +1705,7 @@ const whichTube = now => C.whichTube(state.lastHub, now);
 const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
-function liveAdjust(js, now){
-  const t0=now+30e3, here=atStation();
-  const keep=js.filter(j=>j.train.dep>=now);
-  keep.forEach(j=>{
-    j.uncertain=!plannable(j.train);
-    // At the station, for trains from that station: the walk to the platform is a guess (GPS can't tell the
-    // concourse from the platform), so a train stays catchable until a minute before it leaves.
-    if(here && depStation(j)===here){ j.missed = j.train.dep<now+60e3;
-      if(j.missed) j.flags.unshift({lvl:"bad",txt:"Leaving in under a minute"}); return; }
-    j.missed = j.leave<t0;
-    if(j.missed) j.flags.unshift({lvl:"bad",txt:`Leave time passed: ${Math.max(1,Math.round((t0-j.leave)/60e3))} min short at walking pace, run or bike`});
-  });
-  return keep;
-}
+const liveAdjust = (js, now) => C.liveAdjust(js, now, atStation(), depStation);
 
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
@@ -1655,19 +1716,9 @@ function liveAdjust(js, now){
 // The same Thameslink train calls at both Farringdon and St Pancras. Show it once, with both places you
 // can get on (home) or off (to work). Main option: soonest arrival, then latest leave.
 function ranked(now){
-  const t0=now+30e3;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Every train that hasn't left yet is listed; ones you'd have to hurry for are flagged.
-  const all=liveAdjust(build(direction(), now, {here:true}), now);
-  if(!all.length) return [];
-  const list=mergeSameTrain(all).sort((a,b)=>a.leave-b.leave || a.arrive-b.arrive);
-  const usable=list.filter(j=>!j.uncertain && !j.missed);
-  if(usable.length){
-    usable[0].first=true;
-    usable.reduce((a,b)=> b.arrive<a.arrive || (b.arrive===a.arrive && b.leave>a.leave) ? b : a).fastest=true;
-  }
-  topPicks(list,"now",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
-  return list;
+  return C.rankNow(liveAdjust(build(direction(), now, {here:true}), now), direction(), PROFILE);
 }
 
 // ---------- Rendering ----------
