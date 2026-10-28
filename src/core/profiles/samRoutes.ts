@@ -100,3 +100,13 @@ function fromHere(routes: Route[], i: RouteInput) {
     }
   }
 }
+
+/** Off a tube from the office's tube station leaving at `t`: when you reach each London station, and how long
+ *  after that you need before a train (interchange at your pace + margin). For the engine's bestConnections. */
+export function tubeHomeConnections(t: number, s: Timings, pace: "avg" | "fast") {
+  const k = pace === "fast" ? s.fastFactor : 1;
+  return {
+    reach: { ZFD: t + s.rideFarAld * 1000, KGX: t + s.rideKxAld * 1000, STP: t + s.rideKxAld * 1000 } as Record<string, number>,
+    ready: { ZFD: (s.farInterchange * k + s.catchMargin) * 1000, KGX: (s.kxInterchange * k + s.catchMargin) * 1000, STP: (s.stpInterchange * k + s.catchMargin) * 1000 } as Record<string, number>,
+  };
+}

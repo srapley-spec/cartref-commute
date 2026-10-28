@@ -188,3 +188,20 @@ export const nearlyHome = (dir: Direction, mode: Mode, here: LatLon | null, onTh
 /** A walk worked out from a straight line (streets factor, walking speed), in seconds. */
 export const walkSecs = (from: LatLon, to: LatLon, pace: Pace | "leisure", p: Profile) =>
   km(from, to) * p.walking.streetFactor / p.walking.kmh[pace] * 3600;
+
+/** Nearly home: when you'll be home.
+ *  train — from the train's expected time at the home station (+ exit + walk), while it hasn't arrived;
+ *  home — within 100 m of home; walk — the walk from here to home; station — at the station, the usual walk;
+ *  unknown — near the station but home isn't set. */
+export type HomeEta = { kind: "train"; at: number; stationAt: number } | { kind: "home" } | { kind: "walk"; at: number; secs: number }
+  | { kind: "station"; at: number } | { kind: "unknown" };
+export function nearlyHomeEta(now: number, here: LatLon, stationAt: number | null, home: LatLon | null, exitMs: number, walkMs: number, pace: Pace, p: Profile): HomeEta {
+  const atHome = !!home && km(here, home) < 0.1;
+  if (stationAt && stationAt > now - 60e3 && !atHome) return { kind: "train", at: stationAt + exitMs + walkMs, stationAt };
+  if (home) {
+    if (atHome) return { kind: "home" };
+    const secs = walkSecs(here, home, pace, p);
+    return { kind: "walk", at: now + secs * 1000, secs };
+  }
+  return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
+}

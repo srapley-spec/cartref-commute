@@ -97,3 +97,9 @@ export function bestConnections<T extends Option>(reach: Record<string, number>,
   // Same arrival (often the same train at two stations): the one that leaves first, i.e. the earlier stop.
   return Object.values(per).sort((a, b) => a.arrive - b.arrive || a.train.dep - b.train.dep);
 }
+
+/** How an option compares with the best: a stopping train is named, with the train time and minutes later/sooner. */
+export function compareWithBest(o: Option, best: Option | null, profile: Profile): { stopping: boolean; trainMs: number; deltaMin: number | null } {
+  const t = o.train;
+  return { stopping: isStopping(t, profile), trainMs: (t.arr as number) - t.dep, deltaMin: !best || best === o ? null : Math.round((o.arrive - best.arrive) / 60e3) };
+}

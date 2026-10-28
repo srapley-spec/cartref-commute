@@ -29,6 +29,8 @@ test("inferDirection: setting off, arriving home, after the office, mid-journey,
   assert.equal(r.dir, "office"); assert.deepEqual(r.mem.trip, { dir: "office", at: now });
   r = core.inferDirection(OFF, now, D, {}, sam);
   assert.equal(r.dir, "home"); assert.equal(r.mem.officeVisit, D); assert.deepEqual(r.mem.trip, { dir: "home", at: now });
+  assert.equal(core.inferDirection([51.5139 + 0.009, -0.0710], now, D, {}, sam).mem.officeVisit, null, "1 km from the office isn't being there");
+  assert.equal(core.inferDirection([51.5139 + 0.002, -0.0710], now, D, {}, sam).mem.officeVisit, D, "220 m is");
   assert.equal(core.inferDirection(KGX, now, D, { officeVisit: D }, sam).dir, "home");
   assert.equal(core.inferDirection(KGX, now, D, { trip: { dir: "office", at: now - 2 * 3600e3 } }, sam).dir, "office");
   assert.equal(core.inferDirection([51.69, -0.18], now, D, { trip: { dir: "office", at: now - 4 * 3600e3 } }, sam).dir, "home");     // Potters Bar: nearer Aldgate

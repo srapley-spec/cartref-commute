@@ -686,9 +686,7 @@ const whichTubeHome = now => C.whichTubeHome(state.saved.aldHome, now);
 // Off a tube from Aldgate that leaves at `t`: when you reach Farringdon and King's Cross St Pancras, and the
 // best train from each (engine), from the same route timings as everywhere else.
 function tubeConnections(t, now){
-  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1;
-  const reach={ ZFD:t+s.rideFarAld*1000, KGX:t+s.rideKxAld*1000, STP:t+s.rideKxAld*1000 };
-  const ready={ ZFD:(s.farInterchange*k+s.catchMargin)*1000, KGX:(s.kxInterchange*k+s.catchMargin)*1000, STP:(s.stpInterchange*k+s.catchMargin)*1000 };
+  const { reach, ready } = C.tubeHomeConnections(t, S(), state.saved.pace==="fast"?"fast":"avg");
   const opts=buildJourneys("home", now, {}).filter(o=>plannable(o.train));
   return C.bestConnections(reach, ready, opts).map(o=>({ o, at:reach[o.hub] }));
 }
@@ -754,9 +752,9 @@ function atStation(){
 const depStation = j => j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
 // How an extra option compares with the best one: slow trains are named as such, with the cost in minutes.
 function vsBest(j, best, dest){
-  const slow = isStopping(j.train) ? `<b class="slowtxt">stopping train, ${dur(j.train.arr-j.train.dep)}</b>` : `${dur(j.train.arr-j.train.dep)} train`;
-  if(!best || best===j) return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>`;
-  const d=Math.round((j.arrive-best.arrive)/60e3);
+  const c=C.compareWithBest(j, best||null, PROFILE), d=c.deltaMin;
+  const slow = c.stopping ? `<b class="slowtxt">stopping train, ${dur(c.trainMs)}</b>` : `${dur(c.trainMs)} train`;
+  if(d==null) return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>`;
   const cmp = d>0 ? `<b>${d} min later</b> than the <span class="t">${esc(best.train.std)}</span> (${esc(dest)} <span class="t">${hhmm(best.arrive)}</span>)`
     : d<0 ? `${-d} min sooner than the <span class="t">${esc(best.train.std)}</span>` : `same time as the <span class="t">${esc(best.train.std)}</span>`;
   return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, ${cmp}`;
@@ -826,24 +824,21 @@ function renderNearlyHome(now){
   const pg = t ? progressFor(t.serviceId, 5*60e3) : null;
   const letAt = t ? ((pg && pg.data && pg.data.at("LET")) || t.arr) : null;
   const head=`<div class="lbl">Nearly home · ${hhmm(now)}</div>`;
-  if(letAt && letAt>now-60e3 && !(state.saved.home && km(state.here,state.saved.home)<0.1)){
-    const home=letAt+exit+walk;
-    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(home)}</span><span class="arrlbl">at home</span></div>
+  const e=C.nearlyHomeEta(now, state.here, letAt, state.saved.home||null, exit, walk, fast?"fast":"avg", PROFILE);
+  if(e.kind==="train"){
+    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(e.at)}</span><span class="arrlbl">at home</span></div>
       <div><span class="slack">On the ${esc(t.std)} ${esc(t.operator)}</span></div>
-      <div style="font-size:14px">Letchworth <span class="t">${hhmm(letAt)}</span> expected · then a ${dur(walk)} walk</div>`;
+      <div style="font-size:14px">Letchworth <span class="t">${hhmm(e.stationAt)}</span> expected · then a ${dur(walk)} walk</div>`;
     return;
   }
-  const atStationNow = km(state.here,GEO.LET)<0.3, home=state.saved.home;
-  if(home){
-    const d=km(state.here,home);
-    if(d<0.1){ $("#hero").innerHTML=`${head}<div class="big"><span class="arrlbl">You're home.</span></div>`; return; }
-    // Walking: straight line × 1.3 for streets, at your walking pace.
-    const secs=C.walkSecs(state.here, home, fast?"fast":"avg", PROFILE);
-    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(now+secs*1000)}</span><span class="arrlbl">at home</span></div>
-      <div style="font-size:14px">About ${dur(secs*1000)} walk from where you are.</div>`;
+  if(e.kind==="home"){ $("#hero").innerHTML=`${head}<div class="big"><span class="arrlbl">You're home.</span></div>`; return; }
+  if(e.kind==="walk"){
+    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(e.at)}</span><span class="arrlbl">at home</span></div>
+      <div style="font-size:14px">About ${dur(e.secs*1000)} walk from where you are.</div>`;
     return;
   }
-  $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${atStationNow?hhmm(now+exit+walk):"—"}</span><span class="arrlbl">${atStationNow?"at home":""}</span></div>
+  const atStationNow = e.kind==="station";
+  $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${atStationNow?hhmm(e.at):"—"}</span><span class="arrlbl">${atStationNow?"at home":""}</span></div>
     <div style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home. Set your home in Settings to see when you'll be there."}</div>`;
 }
 // Going home from the office: the next tubes from Aldgate (live) and the train each one gets you to.
@@ -969,7 +964,6 @@ function renderAtHub(now){
   return officeAt;
 }
 // "Your lines": every line on the remaining journey with its current status, good or not.
-const NR_STATUS_REUSE=5*60e3;
 function linesStatus(ids){
   const out=[];
   for(const id of ids){
@@ -1402,50 +1396,42 @@ async function loadTflTimetable(prev){
 }
 // How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
 // a refresh you ask for, or a change of direction or settings, always runs.
-const MIN_GAP=30e3, TIMETABLE_REUSE=5*60e3, STATUS_REUSE=2*60e3;
 async function refresh(opts){
   const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
   if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
-  if(!force && state.lastRefreshAt && Date.now()-state.lastRefreshAt<MIN_GAP) return;
+  if(!C.refreshDue(force, state.lastRefreshAt||null, Date.now())) return;
   state.lastRefreshAt=Date.now();
   state.loading=true; state.again=false; state.errors=[]; render();
   const prev=state.boards;
   try{
     const now=Date.now();
-    // Line status changes slowly: reuse it for 2 minutes unless you asked for a refresh.
-    const statusFresh = !manual && state.statusAt && now-state.statusAt<STATUS_REUSE;
-    const statusP = () => statusFresh ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrFresh = !manual && state.nrAt && now-state.nrAt<NR_STATUS_REUSE;
-    const nrP = () => nrFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
-    let railP;
     state.railSource=source(); state.darwinFailed=false;
-    if(inLondonToOffice(now)){
-      const p=state.toOffice;
-      if(!nearOffice() && (!p || now-p.at>120e3 || km(p.from,state.here)>0.3))
-        railP=fetchToOffice().then(v=>{ state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{ state.toOfficeErr=e.message; });
-      else railP=Promise.resolve();
+    // What to load for where you are (engine); the fetching is here.
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",
+      awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
+      onTheLine:!!state.onLine, nearOffice:nearOffice(),
+      boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },
+      toOffice: state.toOffice ? { at:state.toOffice.at, movedKm: state.here ? km(state.toOffice.from,state.here) : 0 } : null,
+      statusAt:state.statusAt||null, nrAt:state.nrAt||null });
+    const statusP = () => !plan.lineStatus ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
+    const nrP = () => !plan.nrStatus ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    let railP=Promise.resolve();
+    if(plan.rail==="toOffice"){
+      if(plan.toOfficeNeeded) railP=fetchToOffice().then(v=>{ state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{ state.toOfficeErr=e.message; });
     }
-    else if(onTube(now)){
+    else if(plan.rail==="officeTubeArrivals"){
       railP=fetchAldgateArrivals().then(a=>{ state.ald={at:Date.now(),arrivals:a,err:null}; }).catch(e=>{ state.ald={at:Date.now(),arrivals:null,err:e.message}; });
     }
-    else if(atHubToOffice()){
+    else if(plan.rail==="hubTubeArrivals"){
       const hub=state.atHub;
       railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; setLastHub({hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}); })
         .catch(e=>{ state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
     }
-    else if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
-    else if(state.railSource==="tfl"){
-      // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
-      const reuse = !force && !state.onLine && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
-      // Arrive by runs its own searches, so the Leave now trains aren't loaded while it's on screen.
-      railP = (awaitingLocation()||reuse||((state.saved.view==="by"||state.saved.view==="at")&&!state.onLine)) ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
-    }
-    else {
+    else if(plan.rail==="demo"){ setBoards(demoBoards(now)); }
+    else if(plan.rail==="timetable"){ railP=loadTflTimetable(prev); }
+    else if(plan.rail==="live"){
       const pairs=livePairs();
-      // Live boards are for one direction: wait until location says which.
-      // On a train: the board must include trains that have already left (the one you're on), so start 40 min back.
-      const back = state.onLine ? -40 : 0;
-      railP=awaitingLocation() ? Promise.resolve() : Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,back))).then(async rs=>{
+      railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,plan.liveBack))).then(async rs=>{
         const boards={}; let firstErr=null;
         rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
         if(Object.keys(boards).length){
@@ -1458,7 +1444,7 @@ async function refresh(opts){
       });
     }
     // Trains first, then line status, so a tight TfL limit is spent on the trains.
-    const aldP = (direction()==="home" && state.saved.mode!=="leisure" && nearOffice() && !state.onLine)
+    const aldP = plan.officeTubeDeps
       ? fetchAldgateDepartures().then(d=>{ state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{ state.aldDeps={at:Date.now(), list:null, err:e.message}; })
       : Promise.resolve();
     await Promise.all([railP,refreshLondon(),aldP]);
