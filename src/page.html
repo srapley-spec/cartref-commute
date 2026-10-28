@@ -8,8 +8,8 @@
 :root{
   --paper:#EDF0EC; --card:#F8F9F6; --ink:#17201B; --muted:#5B6760; --line:#D2D9D3;
   --accent:#B0500C; --accent-ink:#FFFFFF;
-  --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318;
-  --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE;
+  --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318; --note:#B39B00;
+  --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE; --note-bg:#FBF7DC;
   --circle:#FFD329; --circle-ink:#1A1A1A; --met:#9B0058; --met-ink:#FFFFFF; --hc:#F4A9BE; --hc-ink:#1A1A1A;
   --font-display:"Overpass", "Helvetica Neue", Arial, sans-serif;
   --font-body:"Overpass", "Helvetica Neue", Arial, sans-serif;
@@ -18,15 +18,15 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
   --accent:#EE9A45; --accent-ink:#1A1208;
-  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
-  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
   --accent:#EE9A45; --accent-ink:#1A1208;
-  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A;
-  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917;
+  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
+  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -57,6 +57,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .banner{border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
 .banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
 .banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
+.banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
 .banner details summary{cursor:pointer;font-weight:600}
@@ -1161,7 +1162,10 @@ function railWarnings(){
   const onRoute=msgs.filter(m=>CORRIDOR.test(m)||NETWORK_WIDE.test(m));
   const other=msgs.filter(m=>!onRoute.includes(m));
   const uncertain=svcs.filter(t=>!t.cancelled && (t.depUnknown||t.arrUnknown) && t.dep>=now-5*60e3);
-  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other };
+  // How badly your own trains are hit: red = cancelled, no estimate or 15+ min late; amber = 5–14 min late.
+  const late=Math.max(0,...svcs.filter(t=>!t.cancelled).map(t=>Math.max(t.depLate||0,t.arrLate||0)));
+  const level = cancelled.length||uncertain.length||late>=15 ? "red" : late>=5 ? "amber" : "none";
+  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other, level, late };
 }
 function renderBanners(){
   const out=[];
@@ -1185,19 +1189,23 @@ function renderBanners(){
   const elsewhere=[];
   if(state.boards){
     const tiers=railWarnings(), nowNote=planIsLater()?`<span class="msg">This is about trains running now (${hhmm(Date.now())}), not your ${esc(planLabel())} plan.</span>`:"";
-    // Tier 1: your own trains.
-    if(tiers.uncertain.length) out.push(`<div class="banner warn"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    // Graded by what's happening to your own trains (red / amber); notices about your route with no impact on
+    // your trains yet are yellow; notices about other parts of the network are grey.
+    const impact={red:"bad", amber:"warn", none:"note"}[tiers.level];
+    if(tiers.uncertain.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
     if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span>${nowNote}</div>`);
-    // Tier 2: notices naming your corridor.
-    tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details data-key="notice|${esc(m)}"><summary>On your line</summary><span class="msg">${linkify(m)}</span></details></div>`));
-    // Tier 3: everything else, promoted only when your trains are being hit.
-    if(tiers.hit){ tiers.other.forEach(m=>out.push(`<div class="banner warn"><details data-key="notice|${esc(m)}"><summary>Elsewhere on the network</summary><span class="msg">${linkify(m)}</span></details></div>`)); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(lineBanner(l))); }
-    else { elsewhere.push(...tiers.other); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>elsewhere.push(`${l.name}: ${w(l).desc}. ${w(l).reason||""}`.trim())); }
+    if(tiers.hit) out.push(`<div class="banner ${tiers.level==="red"?"bad":"warn"}"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled${tiers.late?`; worst delay ${tiers.late} min`:""}.</span>${nowNote}</div>`);
+    // Notices naming your route, and your operators' status: coloured by the impact on your trains.
+    tiers.onRoute.forEach(m=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(m)}"><summary>${esc(noticeTitle(m))}</summary><span class="msg">${linkify(m)}</span></details></div>`));
+    (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(l.name)}"><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`));
+    // Everything else: grey, folded.
+    elsewhere.push(...tiers.other);
   }
-  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${linkify(m)}</span>`).join("")}</details></div>`);
+  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} notice${elsewhere.length>1?"s":""} elsewhere on the network</summary>${elsewhere.map(m=>`<span class="msg">${linkify(m)}</span>`).join("")}</details></div>`);
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
 }
+// A notice's title: its first sentence, shortened.
+function noticeTitle(m){ const t=String(m).replace(/\s+/g," ").trim(), first=(t.match(/^.*?[.!?](\s|$)/)||[t])[0].trim(); return first.length>90?first.slice(0,87).replace(/\s+\S*$/,"")+"…":first.replace(/\.$/,""); }
 // Notices often carry a link (sometimes without https://, sometimes followed by a full stop): make it tappable.
 function linkify(t){
   return esc(t).replace(/\b(?:https?:\/\/|www\.)[^\s<]+|\bnationalrail\.co\.uk[^\s<]*/gi, m=>{

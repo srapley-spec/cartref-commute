@@ -427,7 +427,8 @@ test("Notices: links are tappable (with or without https://, full stop left outs
   c.state.boards["KGX-LET"].msgs = ["Disruption between Hitchin and Stevenage. See nationalrail.co.uk/status/gn for details.",
     "Engineering at Finsbury Park: https://www.nationalrail.co.uk/travel-updates/engineering?x=1&y=2."];
   c.render();
-  const banner = [...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent));
+  const isNotice = (d) => /Hitchin|Finsbury Park/.test(d.querySelector("summary").textContent);
+  const banner = [...app.d.querySelectorAll("#banners details")].filter(isNotice);
   assert.equal(banner.length, 2);
   const links = [...app.d.querySelectorAll("#banners a")].map((a) => a.getAttribute("href"));
   assert.deepEqual(links, ["https://nationalrail.co.uk/status/gn", "https://www.nationalrail.co.uk/travel-updates/engineering?x=1&y=2"]);
@@ -436,11 +437,11 @@ test("Notices: links are tappable (with or without https://, full stop left outs
   banner[1].open = true; banner[1].dispatchEvent(new app.w.Event("toggle"));
   const steps = app.d.querySelector("#hero details.steps"); steps.open = true; steps.dispatchEvent(new app.w.Event("toggle"));
   c.render(); app.at(now + 20e3); c.render();
-  const after = [...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent));
+  const after = [...app.d.querySelectorAll("#banners details")].filter(isNotice);
   assert.deepEqual(after.map((d) => d.open), [false, true], "the one you opened is still open, the other still closed");
   assert.equal(app.d.querySelector("#hero details.steps").open, true);
   // Closing it sticks too.
   after[1].open = false; after[1].dispatchEvent(new app.w.Event("toggle")); c.render();
-  assert.equal([...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent))[1].open, false);
+  assert.equal([...app.d.querySelectorAll("#banners details")].filter(isNotice)[1].open, false);
   app.close();
 });

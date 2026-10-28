@@ -162,22 +162,34 @@ test("Stopping-train flag thresholds", () => {
 });
 
 // ---------- Route-filtered warnings ----------
-test("Notices: on-route shown, elsewhere folded unless your trains are hit", () => {
+test("Notices graded by your trains: yellow = on your route, no impact yet; amber = delays under 15 min; red = 15+ min, cancelled; grey = elsewhere", () => {
   const now = Date.now();
   const mk = (m, extra) => svc(Object.assign({ from: "LET", to: "KGX", dep: now + m * MIN, arr: now + (m + 30) * MIN }, extra));
-  const msgs = ["Trains between Ely and King's Lynn may be delayed.", "Signal fault between Hitchin and Stevenage.", "Strike action on Saturday."];
+  const msgs = ["Trains between Ely and King's Lynn may be delayed.", "Signal fault between Hitchin and Stevenage. Trains may be delayed by up to 10 minutes.", "Strike action on Saturday."];
   useBoards({ "LET-KGX": { msgs, services: [mk(20), mk(50)] }, "LET-ZFD": { msgs: ["Disruption at Gatwick Airport."], services: [] } });
+  const banners = () => { c.render(); return [...app.d.querySelectorAll("#banners .banner")].map((b) => `${b.className.replace("banner ", "")}: ${b.querySelector("summary,b")?.textContent.trim()}`).filter((x) => !/Example trains/.test(x)); };
   let w = c.railWarnings();
-  assert.deepEqual(plain(w.onRoute), ["Signal fault between Hitchin and Stevenage.", "Strike action on Saturday."]);
-  assert.deepEqual(plain(w.other), ["Trains between Ely and King's Lynn may be delayed.", "Disruption at Gatwick Airport."]);
-  assert.equal(w.hit, false);
-  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 8 }), mk(50, { cancelled: true })];
-  w = c.railWarnings();
-  assert.equal(w.hit, true);
-  c.render();
-  const text = app.banners().join(" | ");
-  assert.match(text, /Your line is disrupted/);
-  assert.match(text, /Elsewhere on the network.*Gatwick/);
+  assert.deepEqual(plain(w.onRoute), [msgs[1], msgs[2]]);
+  assert.deepEqual(plain(w.other), [msgs[0], "Disruption at Gatwick Airport."]);
+  assert.equal(w.level, "none");
+  assert.deepEqual(banners(), ["note: Signal fault between Hitchin and Stevenage", "note: Strike action on Saturday", "info: 2 notices elsewhere on the network"],
+    "no impact on your trains: route notices yellow with their first sentence as title; others grey, folded");
+  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 8 }), mk(50)];
+  assert.equal(c.railWarnings().level, "amber");
+  assert.deepEqual(banners(), ["warn: Signal fault between Hitchin and Stevenage", "warn: Strike action on Saturday", "info: 2 notices elsewhere on the network"], "one train 8 min late: amber");
+  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 8 }), mk(50, { depLate: 6 })];
+  assert.deepEqual(banners()[0], "warn: Your line is disrupted", "two trains late: the headline, amber");
+  assert.match(app.banners().join(" "), /2 of the next 2 trains on your routes are delayed 5\+ min or cancelled; worst delay 8 min\./);
+  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 15 }), mk(50)];
+  assert.equal(c.railWarnings().level, "red");
+  assert.deepEqual(banners().slice(0, 2), ["bad: Signal fault between Hitchin and Stevenage", "bad: Strike action on Saturday"], "15 min late: red");
+  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 4 }), mk(50, { cancelled: true })];
+  assert.deepEqual(banners().slice(0, 2), ["bad: 1 of your trains cancelled", "bad: Signal fault between Hitchin and Stevenage"], "a cancellation: red");
+  c.state.boards["LET-KGX"].services = [mk(20, { depLate: 4 })];
+  assert.equal(c.railWarnings().level, "none", "under 5 min doesn't count");
+  c.state.nrStatus = [{ id: "great-northern", name: "Great Northern", statuses: [{ sev: 9, desc: "Special Service", reason: "See nationalrail.co.uk/gn." }] }];
+  assert.ok(banners().includes("note: Great Northern: Special Service"), "your operator's status is a route notice too");
+  c.state.nrStatus = [];
 });
 
 test("Delayed-without-estimate trains are listed as not used for planning", () => {
