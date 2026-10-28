@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 14:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 14:27 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -817,6 +817,17 @@ async function fetchLiveAhead(offsetMin){
   rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else failed[k]=r.reason.message; });
   if(!Object.keys(boards).length) throw new Error(Object.values(failed)[0]||"National Rail feed failed.");
   return {boards, failed};
+}
+// The live board may stop short of the time you're planning for (it seems to reach about 2 hours from now,
+// whatever the start time). Latest live departure across the boards:
+const liveHorizon = boards => Math.max(0, ...Object.values(boards).flatMap(b=>b&&b.services?b.services.map(x=>x.dep):[]));
+// Timetable trains after the live horizon, added to the live boards (live wins where both exist).
+function mergeBeyond(live, tt, hz){
+  for(const [k,B] of Object.entries(tt)){ if(!B) continue;
+    const L=live[k]=live[k]||{services:[],msgs:[]};
+    B.services.filter(x=>x.dep>hz+60e3).forEach(x=>L.services.push(x));
+    L.services.sort((a,b)=>a.dep-b.dep); }
+  return live;
 }
 // The timetable search may find a train at one London station but not the same train at the other.
 // Look for it: one extra search per missing station, near when it should be. The result decides; nothing is assumed.
@@ -1707,7 +1718,7 @@ async function planAt(){
   if(!isFinite(T)){ state.at={err:"Pick a day and time."}; render(); return; }
   const key=`at|${T}|${state.saved.mode}|${direction()}`; state.atCache=state.atCache||{};
   const hit=state.atCache[key];
-  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live}; render(); return; }
+  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live,liveTo:hit.liveTo}; render(); return; }
   state.at={T,loading:true}; render();
   // Same searches as Leave now, as if it were that time: from the first train you could catch, then the next ones.
   const start = k => T+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
@@ -1719,11 +1730,16 @@ async function planAt(){
     // Within reach of the live board: live times (every stop timed). Otherwise the timetable.
     if(canLiveAhead() && T-15*60e3-Date.now()<=119*60e3){
       try{ r=await fetchLiveAhead((T-Date.now())/60e3-15); r.live=true; }catch(e){ r=null; }
+      // Live board doesn't reach far enough after your time: fill the rest from the timetable.
+      if(r){ const hz=liveHorizon(r.boards);
+        if(hz < T+100*60e3){
+          const tt=await searchRoutes(boardKeys(), [k=>({t:Math.max(hz,T)+60e3, timeIs:"Departing"}), ...rounds.slice(1)]);
+          await completePairs(tt.boards); mergeBeyond(r.boards, tt.boards, hz); r.liveTo=hz; } }
     }
     if(!r){ r=await searchRoutes(boardKeys(), rounds); await completePairs(r.boards); }
     if(state.atToken!==token) return;
-    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live};
-    state.at={T,boards:r.boards,failed:r.failed,live:!!r.live};
+    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live,liveTo:r.liveTo};
+    state.at={T,boards:r.boards,failed:r.failed,live:!!r.live,liveTo:r.liveTo};
     if(Object.keys(r.failed).length) scheduleRouteRetry();
   }catch(e){ if(state.atToken!==token) return; state.at={T,err:e.message}; }
   render();
@@ -1744,7 +1760,7 @@ function atOptions(){
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
-  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)}${a.live?" · live":" · timetable"} · best per route, by arrival`:"Leave around";
+  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)}${a.live?(a.liveTo?` · live to ${hhmm(a.liveTo)}, timetable after`:" · live"):" · timetable"} · best per route, by arrival`:"Leave around";
   if(a.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(a.err)}</div>`; return; }
   if(a.loading||!a.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
   const picks=opts.filter(o=>o.recommended).sort((x,y)=>x.arrive-y.arrive);
@@ -1787,9 +1803,12 @@ async function planBy(opts){
   if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
   if(canLiveAhead() && T-120*60e3-Date.now()<=119*60e3){
     const lkey=`live|${T}|${direction()}`; state.byCache=state.byCache||{}; const h=state.byCache[lkey];
-    if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true}; render(); return; }
+    if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true,liveTo:h.liveTo}; render(); return; }
     try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(state.byToken!==token) return;
-      state.byCache[lkey]={boards:r.boards,at:Date.now()}; state.by={T,boards:r.boards,failed:{},live:true}; render(); return; }
+      // Live board stops short of your arrival time: fill the rest from the timetable.
+      const hz=liveHorizon(r.boards); let liveTo=null;
+      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; }
+      state.byCache[lkey]={boards:r.boards,at:Date.now(),liveTo}; state.by={T,boards:r.boards,failed:{},live:true,liveTo}; render(); return; }
     catch(e){ /* fall through to the timetable */ }
   }
   const key=`${T}|${state.saved.mode}|${direction()}`; state.byCache=state.byCache||{};
@@ -1836,7 +1855,7 @@ function dayLabel(t){ const d=new Date(t), today=new Date(); const diff=Math.rou
   return diff===0?"today":diff===1?"tomorrow":d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
 function renderByHero(opts){
   const h=$("#hero"), b=state.by||{}, dir=direction(), leisure=state.saved.mode==="leisure";
-  const lbl=isFinite(b.T)?`To arrive by ${hhmm(b.T)} ${dayLabel(b.T)}${b.boards?(b.live?" · live":" · timetable"):""}`:"Arrive by";
+  const lbl=isFinite(b.T)?`To arrive by ${hhmm(b.T)} ${dayLabel(b.T)}${b.boards?(b.live?(b.liveTo?` · live to ${hhmm(b.liveTo)}, timetable after`:" · live"):" · timetable"):""}`:"Arrive by";
   if(b.boards && !b.loading && b.failed && boardKeys().every(k=>b.failed[k])){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No trains could be loaded. ${esc(Object.values(b.failed)[0])}</div>`; return; }
   if(b.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(b.err)}</div>`; return; }
   if(b.loading||!b.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }

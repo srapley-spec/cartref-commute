@@ -545,8 +545,7 @@ test("Live boards: only the direction you're going; Leave around within reach us
   await sleep(300);
   const later = app.calls.slice(before);
   assert.ok(later.some((u) => /darwin\.test.*timeOffset=4[45]/.test(u)), later.join("\n"));
-  assert.ok(!later.some((u) => /JourneyResults/.test(u)), "no timetable searches when the live board reaches");
-  assert.match(app.text("#hero"), /Leaving around \d\d:\d\d \S+ · live · best per route/);
+  assert.match(app.text("#hero"), /Leaving around \d\d:\d\d \S+ · live/);
   app.close();
 });
 
@@ -572,5 +571,27 @@ test("Timetable: a Thameslink found at one London station is looked for at the o
   assert.match(rows, /Board at Farringdon 19:26 or St Pancras 19:31/, rows);
   assert.doesNotMatch(rows, /about/);
   assert.ok(app.calls.some((u) => /JourneyResults\/51\.53062,-0\.12594/.test(u)), "searched St Pancras directly");
+  app.close();
+});
+
+test("Leave around: where the live board stops short, later trains come from the timetable and the heading says so", async () => {
+  const now = Date.now(), m = 60e3;
+  // Live board reaches only up to now + 2h whatever the offset (as observed on the real feed).
+  const board = () => ({ locationName: "x", trainServices: [{ std: hm(now + 100 * m), etd: "On time", operator: "Great Northern", platform: "9",
+    subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", locationName: "Letchworth Garden City", st: hm(now + 130 * m), et: "On time" }] }] }], nrccMessages: [] });
+  const later = now + 150 * m;
+  const journeys = (q) => ({ journeys: q.to === "LET" && q.from === "KGX" && q.t <= later ? [tflJourney("KGX", "LET", later, later + 30 * m)] : [] });
+  const app = await createApp({ geo: AT_OFFICE, journeys, settings: { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120" },
+    route: (u) => (/darwin\.test/.test(u) ? json(board()) : undefined) });
+  const t = new Date(now + 90 * m), p = (n) => String(n).padStart(2, "0");
+  app.d.querySelector('[data-view="at"]').click();
+  await sleep(300);
+  app.d.querySelector("#byDate").value = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
+  app.d.querySelector("#byTime").value = `${p(t.getHours())}:${p(t.getMinutes())}`;
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
+  await sleep(500);
+  assert.match(app.text("#hero"), new RegExp(`live to ${hm(now + 100 * m)}, timetable after`));
+  const rows = app.rows().join("\n");
+  assert.ok(rows.includes(hm(now + 100 * m)) && rows.includes(hm(later)), rows);
   app.close();
 });
