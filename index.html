@@ -239,7 +239,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:23 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:34 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -298,6 +298,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <label class="f"><span>Tube ride Farringdon ⇄ Aldgate East</span><input id="s_rideFarAde" type="number" step="any" min="0"></label>
       <label class="f"><span>Aldgate East: platform ⇄ street</span><input id="s_adePlatform" type="number" step="any" min="0"></label>
       <label class="f"><span>Walk Aldgate East ⇄ office</span><input id="s_adeWalk" type="number" step="any" min="0"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Home</legend>
+      <p class="hint" id="homeNote">Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.</p>
+      <button type="button" class="ghost" id="setHomeBtn">Home is where I am now</button>
     </fieldset>
 
     <div class="actions">
@@ -1551,16 +1556,25 @@ function renderNearlyHome(now){
   const t = lock && state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]).find(x=>x.operator===lock.operator && x.std===lock.std && x.from===lock.from) : null;
   const letAt = t ? ((pg && pg.id===t.serviceId && pg.data && pg.data.at("LET")) || t.arr) : null;
   const head=`<div class="lbl">Nearly home · ${hhmm(now)}</div>`;
-  if(letAt && letAt>now-60e3){
+  if(letAt && letAt>now-60e3 && !(state.saved.home && km(state.here,state.saved.home)<0.1)){
     const home=letAt+exit+walk;
     $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(home)}</span><span class="arrlbl">at home</span></div>
       <div><span class="slack">On the ${esc(t.std)} ${esc(t.operator)}</span></div>
       <div style="font-size:14px">Letchworth <span class="t">${hhmm(letAt)}</span> expected · then a ${dur(walk)} walk</div>`;
     return;
   }
-  const atStationNow = km(state.here,GEO.LET)<0.3;
+  const atStationNow = km(state.here,GEO.LET)<0.3, home=state.saved.home;
+  if(home){
+    const d=km(state.here,home);
+    if(d<0.1){ $("#hero").innerHTML=`${head}<div class="big"><span class="arrlbl">You're home.</span></div>`; return; }
+    // Walking: straight line × 1.3 for streets, at your walking pace.
+    const secs=d*STREET_FACTOR/(fast?WALK_KMH.fast:WALK_KMH.avg)*3600;
+    $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(now+secs*1000)}</span><span class="arrlbl">at home</span></div>
+      <div style="font-size:14px">About ${dur(secs*1000)} walk from where you are.</div>`;
+    return;
+  }
   $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${atStationNow?hhmm(now+exit+walk):"—"}</span><span class="arrlbl">${atStationNow?"at home":""}</span></div>
-    <div style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home."}</div>`;
+    <div style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home. Set your home in Settings to see when you'll be there."}</div>`;
 }
 // From a London station to the office, split as the live cards need it (from the route description):
 // the change to the tube platform, the ride, and what comes after the ride.
@@ -2288,8 +2302,13 @@ function readSettings(){
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   return o;
 }
-$("#settingsBtn").addEventListener("click",()=>{ fillSettings(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+$("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
 $("#s_provider").addEventListener("change",showProviderFields);
+// Home location: saved on this phone only.
+function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
+$("#setHomeBtn").addEventListener("click",()=>{
+  if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
+  state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
 $("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; state.byCache={}; refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });

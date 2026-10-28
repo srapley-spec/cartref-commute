@@ -475,3 +475,22 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   c.state.here = null; c.state.trainLock = null;
   app.close();
 });
+
+test("Home location: set from where you are; Nearly home counts the walk from there, and says when you're home", async () => {
+  const now = T("20:25"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c;
+  await app.moveTo(51.9752, -0.2402, 200);
+  app.d.querySelector("#setHomeBtn").click();
+  assert.equal(c.state.saved.home, undefined, "fix not good enough");
+  await app.moveTo(51.9752, -0.2402, 10);
+  app.d.querySelector("#setHomeBtn").click();
+  assert.deepEqual(plain(c.state.saved.home), [51.9752, -0.2402]);
+  await app.moveTo(51.9799, -0.2290, 10);          // Letchworth station, about 900 m away
+  const d = 0.9; // km, roughly
+  const hero = app.text("#hero");
+  assert.match(hero, /^Nearly home · 20:25/);
+  const m = /About (\d+) min walk from where you are/.exec(hero); assert.ok(m, hero);
+  assert.ok(+m[1] >= 11 && +m[1] <= 16, `walk ${m[1]} min for ~${d} km × 1.3 at 5 km/h`);
+  await app.moveTo(51.9753, -0.2401, 10);
+  assert.match(app.text("#hero"), /You're home\./);
+  app.close();
+});
