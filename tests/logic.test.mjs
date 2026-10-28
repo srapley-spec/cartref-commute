@@ -285,11 +285,17 @@ test("On the train: works out which train from your position and projects arriva
     const hero = app.text("#hero");
     assert.match(hero, new RegExp(`On the train · .*You're on the ${hm(fast.dep)} Great Northern`));
     assert.match(hero, /projected at office/);
-    assert.match(hero, /King's Cross \d\d:\d\d projected · timetable \d\d:\d\d · on time/);
-    // Same place 5 minutes later than expected: the fast train is running about 5 min late.
+    assert.match(hero, /King's Cross \d\d:\d\d expected \(live\) · timetable \d\d:\d\d · on time/);
+    // Same place 5 minutes later than expected, live data: still the fast train (it's behind its timetable),
+    // and the arrival is National Rail's live expected time.
     const late = c.whichTrain(now + 5 * m);
     assert.equal(late.t, fast);
-    assert.ok(Math.round((late.projected - fast.arr) / m) >= 4);
+    assert.equal(late.projected, fast.arr);
+    // Timetable data (no live times): the delay is worked out from your position.
+    fast.timetable = true; stopper.timetable = true; c.state.trainLock = null;
+    const lateTt = c.whichTrain(now + 5 * m);
+    assert.equal(lateTt.t, fast);
+    assert.ok(Math.round((lateTt.projected - fast.arr) / m) >= 4);
     // Between Letchworth and Hitchin (where home is): never counted as on a train.
     c.state.here = [51.9650, -0.2480]; assert.equal(c.onLine(), false);
     c.state.here = [51.9790, -0.2300]; assert.equal(c.onLine(), false, "at Letchworth station");
@@ -421,4 +427,32 @@ test("On the train home, the list doesn't talk about the onward tube", () => {
   c.state.here = [51.70, -0.18]; c.state.locAcc = 20; c.state.onLine = true;
   try { c.render(); assert.match(app.text("#list"), /The rest of the way home/); assert.doesNotMatch(app.text("#list"), /onward tube/); }
   finally { c.state.onLine = false; c.state.here = null; }
+});
+
+test("On the train home: a train that hasn't left can't be yours; once sure, it stays with your train when it falls behind (stop at Finsbury Park)", () => {
+  const now = at("2026-10-28", "19:53"), m = 60e3;
+  const g = (dep, mins, late = 0) => svc({ from: "KGX", to: "LET", std: dep, dep: at("2026-10-28", dep) + late * m, arr: at("2026-10-28", dep) + (mins + late) * m, arrLate: late, depLate: late });
+  const t1948 = g("19:48", 28, 2), t1954 = g("19:54", 35);
+  useBoards({ "KGX-LET": { msgs: [], services: [t1948, t1954] }, "ZFD-LET": { msgs: [], services: [] }, "STP-LET": { msgs: [], services: [] } }, { dirMode: "home" });
+  const realNow = Date.now;
+  try {
+    c.state.trainLock = null; c.state.locAcc = 20; c.state.onLine = true; c.state.atHub = null;
+    // 19:51, just out of King's Cross: the 19:48.
+    Date.now = () => at("2026-10-28", "19:51");
+    c.state.here = [51.5450, -0.1180];
+    let w = c.whichTrain(Date.now());
+    assert.equal(w.t, t1948);
+    // 19:53 at Finsbury Park (an extra stop): the 19:54 hasn't left, so it can't be the one.
+    Date.now = () => now; c.state.here = [51.5642, -0.1065];
+    w = c.whichTrain(now);
+    assert.equal(w.t, t1948); assert.equal(w.sure, true); assert.equal(w.other, null);
+    assert.equal(w.projected, t1948.arr, "arrival: National Rail's live expected time");
+    assert.equal(w.t.arr - w.t.arrLate * m, at("2026-10-28", "20:16"), "timetable arrival is the scheduled one");
+    // 20:00, still sitting at Finsbury Park: after the 19:54 has left it still stays with the 19:48 (locked).
+    Date.now = () => at("2026-10-28", "20:00");
+    w = c.whichTrain(Date.now());
+    assert.equal(w.t, t1948); assert.equal(w.locked, true);
+    // Off the line: the lock is forgotten.
+    c.state.trainLock = null;
+  } finally { Date.now = realNow; c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
 });

@@ -236,7 +236,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 19:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:01 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -884,17 +884,30 @@ function whichTrain(now){
       if(t.dep>now+60e3 || t.arr<now-120e3) continue;
       const len=t.arr-t.dep, pr=lineProgress(state.here,hub);
       const mine = toLondon ? pr.frac : 1-pr.frac;           // how far along you are, from where the train started
+      // You can't be on a train that hasn't left: once you're clear of the station (about 1.5 km), only
+      // trains that have departed count.
+      if(mine>0.03 && t.dep>now) continue;
       const expected = Math.max(0,Math.min(1,(now-t.dep)/len));
-      cands.push({ t, hub, mine, offMin: Math.abs(expected-mine)*len/60e3, projected: now+(1-mine)*len });
+      // Arrival: National Rail's live expected time when the train is live; otherwise from your position.
+      const projected = t.timetable ? now+(1-mine)*len : t.arr;
+      cands.push({ t, hub, mine, offMin: Math.abs(expected-mine)*len/60e3, projected, live:!t.timetable });
     }
   }
   cands.sort((a,b)=>a.offMin-b.offMin);
-  if(!cands.length || cands[0].offMin>10) return { none:true };
   // The same train appears once per London station it calls at: the runner-up must be a different train.
   const same=(a,b)=>a.t.operator===b.t.operator && Math.abs(dir==="office" ? a.t.dep-b.t.dep : a.t.arr-b.t.arr)<=60e3;
+  // Once it's sure which train you're on, it stays with that train (a stop or a slow section puts a train
+  // behind its timetable) unless you're clearly somewhere else: over 12 min off, or another train fits 6+ min better.
+  const lock=state.trainLock;
+  const locked = lock && cands.find(c=>c.t.operator===lock.operator && c.t.std===lock.std && c.t.from===lock.from);
+  if(locked && locked.offMin<=12 && !(cands[0]!==locked && !same(cands[0],locked) && locked.offMin-cands[0].offMin>=6)){
+    locked.sure=true; locked.other=null; locked.locked=true; return locked;
+  }
+  if(!cands.length || cands[0].offMin>10) return { none:true };
   const best=cands[0], next=cands.find(c=>!same(c,best));
   best.sure = !next || next.offMin-best.offMin>=4;
   best.other = best.sure ? null : next;
+  if(best.sure) state.trainLock={ operator:best.t.operator, std:best.t.std, from:best.t.from };
   return best;
 }
 function hubHere(){ if(!state.here || !(state.locAcc<=250)) return null;
@@ -1441,7 +1454,7 @@ function renderOnTrain(now, m){
     $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>`;
     return null;
   }
-  const t=m.t, delay=Math.round((m.projected-t.arr)/60e3);
+  const t=m.t, sched=t.arr-(t.arrLate||0)*60e3, delay=Math.round((m.projected-sched)/60e3);
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
   const j=js.find(x=>x.train===t); const shift=m.projected-t.arr;
@@ -1452,10 +1465,10 @@ function renderOnTrain(now, m){
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}</span></div>
-    <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> projected · timetable <span class="t">${hhmm(t.arr)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
+    <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
-    <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
+    <div class="note" style="color:inherit;opacity:.75">${m.live?"Arrival: National Rail's live expected time for this train. Your location says which train you're on.":"Projection: where you are now and the train's timetabled journey time."} ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
 }
 // From a London station to the office, split as the live cards need it (from the route description):
@@ -2125,7 +2138,7 @@ function onPosition(p){
   state.atHub=hubHere(); state.lastFixAt=Date.now();
   if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
-  const wasOnLine=state.onLine; state.onLine=onLine();
+  const wasOnLine=state.onLine; state.onLine=onLine(); if(!state.onLine) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = state.saved.officeVisit===today && !state.atHub && km(here,OFFICE)<0.25 ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
