@@ -336,3 +336,16 @@ test("Platform is on the card and the list without expanding; with two boarding 
     assert.doesNotMatch(s, /Thameslink · platform/);
   }
 });
+
+test("Disruption banners say they're about trains now when the plan on screen is later", () => {
+  const now = Date.now(), m = 60e3;
+  const late = svc({ from: "KGX", to: "LET", dep: now + 20 * m, arr: now + 55 * m, depLate: 15, cancelled: true });
+  useBoards({ "KGX-LET": { msgs: [], services: [late] }, "ZFD-LET": { msgs: [], services: [] } }, { dirMode: "home", view: "now" });
+  try {
+    c.render();
+    assert.doesNotMatch(app.text("#banners") || app.d.body.textContent, /This is about trains running now/);
+    c.state.saved.view = "at"; c.state.at = { T: now + 4 * 60 * m, boards: {}, failed: {} };
+    c.render();
+    assert.match(app.d.body.textContent, /Now: 1 of your trains cancelled/);
+  } finally { c.state.saved.view = "now"; c.state.at = null; }
+});

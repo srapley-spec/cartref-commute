@@ -23,7 +23,9 @@ export interface Train {
   reason: string;
   origin?: string;         // where the train started (Darwin only)
   timetable?: boolean;     // from the timetable, not live
-  calls?: Call[];          // every stop from `from` to `to`, in order, both ends included
+  calls?: Call[];
+  derived?: boolean;       // worked out from another station's train (same train, other stop)
+  estimated?: boolean;     // derived time is an estimate (timetable has no time at that stop)          // every stop from `from` to `to`, in order, both ends included
 }
 
 export interface Board { services: Train[]; msgs: string[]; }

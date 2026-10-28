@@ -700,7 +700,7 @@ function baseRoutes(dir, mode){
 const currentMode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 const routeFor = hub => routesFor(direction(), currentMode()).find(r=>r.hub===hub);
 function buildJourneys(dir, now, o){
-  const opts=C.buildOptions(routesFor(dir,"commute",o), state.boards||{}, PROFILE);
+  const opts=C.buildOptions(routesFor(dir,"commute",o), C.addCallingAlternatives(state.boards||{}, dir, PROFILE), PROFILE);
   opts.forEach(o=>o.flags.push(...tubeFlags(o.tube)));
   return opts;
 }
@@ -728,7 +728,7 @@ function tubeFlags(tube){
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>dir==="office" || r.extra.planned);
-  const opts=C.buildOptions(routes, state.boards||{}, PROFILE);
+  const opts=C.buildOptions(routes, C.addCallingAlternatives(state.boards||{}, dir, PROFILE), PROFILE);
   opts.forEach(o=>{ if(o.london && o.london.disruptions.length) o.flags.push({lvl:"warn",txt:o.london.disruptions[0],long:true}); });
   return opts;
 }
@@ -819,7 +819,7 @@ function altLines(j){
 function altText(j){
   const home=direction()!=="office", at=x=>home?x.train.dep:x.train.arr;
   const all=[j,...(j.alts||[])].sort((a,b)=>at(a)-at(b));
-  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> <span class="t">${hhmm(at(x))}</span>${home?platTag(x.train):""}`).join(" or ");
+  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> ${x.train.estimated?"about ":""}<span class="t">${hhmm(at(x))}</span>${home?platTag(x.train):""}`).join(" or ");
 }
 // Platform on the card itself. Going home from a train with two boarding stations, each station's platform is in the "Board at" line instead.
 function platTag(t){ return t.platform?` <b class="plat">platform ${esc(t.platform)}</b>`:""; }
@@ -1079,6 +1079,14 @@ function boardKeys(){
   const dir=direction(), leisure=state.saved.mode==="leisure";
   return dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
 }
+// Leave around / Arrive by for a time beyond the live board: rail warnings describe now, not that plan.
+function planIsLater(){
+  const v=state.saved.view;
+  if(v==="at") return !!(state.at && state.at.T && state.at.T-Date.now()>100*60e3);
+  if(v==="by") return !!(state.by && state.by.T && !state.by.live);
+  return false;
+}
+function planLabel(){ const v=state.saved.view, T=v==="at"?state.at&&state.at.T:state.by&&state.by.T; return T?hhmm(T):""; }
 function railWarnings(){
   const keys=boardKeys(), now=Date.now();
   const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]);
@@ -1113,11 +1121,11 @@ function renderBanners(){
   if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
   const elsewhere=[];
   if(state.boards){
-    const tiers=railWarnings();
+    const tiers=railWarnings(), nowNote=planIsLater()?`<span class="msg">This is about trains running now (${hhmm(Date.now())}), not your ${esc(planLabel())} plan.</span>`:"";
     // Tier 1: your own trains.
-    if(tiers.uncertain.length) out.push(`<div class="banner warn"><details><summary>${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of your next trains are delayed or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span></div>`);
+    if(tiers.uncertain.length) out.push(`<div class="banner warn"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
+    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of your next trains are delayed or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span>${nowNote}</div>`);
     // Tier 2: notices naming your corridor.
     tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details><summary>On your line</summary><span class="msg">${esc(m)}</span></details></div>`));
     // Tier 3: everything else, promoted only when your trains are being hit.

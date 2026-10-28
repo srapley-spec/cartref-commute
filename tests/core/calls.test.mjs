@@ -56,3 +56,42 @@ test("Same train is recognised from its stops even when the home times differ by
   assert.equal(out.length, 1);
   assert.equal(out[0].alts.length, 1);
 });
+
+test("Same train at the other station is derived from its stops when the search missed it (live times)", () => {
+  const d = at("2026-11-03", "18:56"), s = at("2026-11-03", "19:01"), arr = at("2026-11-03", "19:40");
+  const zfd = { from: "ZFD", to: "LET", std: "18:56", dep: d, arr, depLate: 0, arrLate: 0, depUnknown: false, platform: "4", operator: "Thameslink", cancelled: false, reason: "",
+    calls: [{ name: "Farringdon", code: "ZFD", t: d }, { name: "St Pancras", code: "STP", t: s }, { name: "Letchworth", code: "LET", t: arr }] };
+  const out = core.addCallingAlternatives({ "ZFD-LET": { services: [zfd], msgs: [] } }, "home", sam);
+  const stp = out["STP-LET"].services[0];
+  assert.equal(stp.dep, s); assert.equal(stp.std, "19:01"); assert.equal(stp.platform, null);
+  assert.equal(stp.estimated, false); assert.equal(stp.derived, true);
+  assert.equal(stp.calls[0].code, "STP");
+  // Already there: nothing added. Original boards untouched.
+  const again = core.addCallingAlternatives(out, "home", sam);
+  assert.equal(again["STP-LET"].services.length, 1);
+  assert.equal(out["ZFD-LET"].services.length, 1);
+});
+
+test("Timetable stops have no times: the other station's time is estimated from pairs seen, or not derived at all", () => {
+  const mk = (from, dep, arr, calls) => ({ from, to: "LET", std: "", dep, arr, depLate: 0, arrLate: 0, depUnknown: false, platform: null, operator: "Thameslink", cancelled: false, reason: "", calls });
+  const T = (h) => at("2026-11-03", h);
+  const callsZ = (d, a) => [{ name: "Farringdon", code: "ZFD", t: d }, { name: "St Pancras", code: "STP", t: null }, { name: "Letchworth", code: "LET", t: a }];
+  const boards = { "ZFD-LET": { msgs: [], services: [mk("ZFD", T("17:56"), T("18:39"), callsZ(T("17:56"), T("18:39"))), mk("ZFD", T("18:56"), T("19:40"), callsZ(T("18:56"), T("19:40")))] },
+    "STP-LET": { msgs: [], services: [mk("STP", T("18:01"), T("18:39"), undefined)] } };
+  const out = core.addCallingAlternatives(boards, "home", sam);
+  const added = out["STP-LET"].services.find(t => t.derived);
+  assert.equal(added.dep, T("19:01")); assert.equal(added.estimated, true);
+  assert.equal(out["STP-LET"].services.length, 2, "17:56's St Pancras stop already present: not duplicated");
+  // No pair to learn from: nothing derived.
+  const none = core.addCallingAlternatives({ "ZFD-LET": boards["ZFD-LET"] }, "home", sam);
+  assert.equal(none["STP-LET"], undefined);
+});
+
+test("To work: getting off at the earlier station is derived the same way", () => {
+  const d = at("2026-11-04", "07:20"), s = at("2026-11-04", "08:01"), z = at("2026-11-04", "08:05");
+  const t = { from: "LET", to: "ZFD", std: "07:20", dep: d, arr: z, depLate: 0, arrLate: 0, depUnknown: false, platform: "1", operator: "Thameslink", cancelled: false, reason: "",
+    calls: [{ name: "Letchworth", code: "LET", t: d }, { name: "St Pancras", code: "STP", t: s }, { name: "Farringdon", code: "ZFD", t: z }] };
+  const out = core.addCallingAlternatives({ "LET-ZFD": { services: [t], msgs: [] } }, "office", sam);
+  const stp = out["LET-STP"].services[0];
+  assert.equal(stp.arr, s); assert.equal(stp.dep, d); assert.equal(stp.platform, "1", "Letchworth platform kept");
+});
