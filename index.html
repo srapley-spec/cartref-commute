@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 11:31 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 11:42 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -986,13 +986,14 @@ function ranked(now){
 // "Same train from St Pancras: leave 17:34, departs 18:01" (or, to work, where you'd get off instead).
 function altLines(j){
   if(!j.alts || !j.alts.length) return "";
-  const dir=direction();
-  return j.alts.map(a=>{
-    const d=Math.round((a.leave-j.leave)/60e3);
-    return dir==="office"
-      ? `<div class="altstop">Same train also stops at <b>${esc(HUB_NAME[a.hub])}</b> (<span class="t">${hhmm(a.train.arr)}</span>): getting off there, office <span class="t">${hhmm(a.arrive)}</span>.</div>`
-      : `<div class="altstop">Same train from <b>${esc(HUB_NAME[a.hub])}</b>: leave <span class="t">${hhmm(a.leave)}</span>${d?` (${Math.abs(d)} min ${d<0?"earlier":"later"})`:""}, departs <span class="t">${hhmm(a.train.dep)}</span>.</div>`;
-  }).join("");
+  return `<div class="altstop">${altText(j)}</div>`;
+}
+// "Same train from St Pancras: departs 18:01" (home) / "Same train at St Pancras: arrives 08:03" (to work).
+function altText(j){
+  const home=direction()!=="office";
+  return (j.alts||[]).map(a=> home
+    ? `Same train from <b>${esc(HUB_NAME[a.hub])}</b>: departs <span class="t">${hhmm(a.train.dep)}</span>`
+    : `Same train at <b>${esc(HUB_NAME[a.hub])}</b>: arrives <span class="t">${hhmm(a.train.arr)}</span>`).join(" · ");
 }
 function chips(j){
   if(j.leisure){
@@ -1214,7 +1215,7 @@ function renderList(list, now, opts){
       <div class="mid">
         <div class="route">${chips(j)}</div>
         <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
-        ${(j.alts||[]).map(a=>`<div class="meta">Same train ${direction()==="office"?"to":"from"} ${esc(HUB_NAME[a.hub])}: ${direction()==="office"?`arrive ${hhmm(a.arrive)}`:`leave ${hhmm(a.leave)}, departs ${hhmm(a.train.dep)}`}</div>`).join("")}
+        ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
