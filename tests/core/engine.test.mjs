@@ -178,3 +178,15 @@ test("trainFlags: cancelled, standing room, stopping, delays, unknown — from t
   assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "+12 min"]);
   assert.deepEqual(flags({ depUnknown: true }), ["Usually standing room only", "Delayed, no estimate: times unknown"]);
 });
+
+test("bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never", () => {
+  const T = at("2026-11-03", "16:40");
+  const o = (hub, dep, arrive, extra) => option({ hub, leave: 0, arrive: T + arrive * MIN, train: train({ dep: T + dep * MIN, arr: T + (arrive - 20) * MIN, ...extra }) });
+  const opts = [o("CEN", 16, 82), o("MKT", 21, 82), o("MKT", 38, 75), o("CEN", 10, 70, { cancelled: true }), o("CEN", 12, 90)];
+  const reach = { CEN: T + 8 * MIN, MKT: T + 11 * MIN }, ready = { CEN: 5 * MIN, MKT: 7 * MIN };
+  const best = core.bestConnections(reach, ready, opts);
+  assert.deepEqual(best.map((x) => [x.hub, (x.train.dep - T) / MIN]), [["MKT", 38], ["CEN", 16]]);
+  const tie = core.bestConnections(reach, ready, [o("MKT", 21, 82), o("CEN", 16, 82)]);
+  assert.deepEqual(tie.map((x) => x.hub), ["CEN", "MKT"], "same arrival: the train that leaves first (earlier stop)");
+  assert.deepEqual(core.bestConnections({ CEN: T + 30 * MIN }, { CEN: 0 }, opts).map((x) => (x.train.dep - T) / MIN), [], "nothing left to catch");
+});

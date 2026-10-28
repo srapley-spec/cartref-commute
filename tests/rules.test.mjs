@@ -496,3 +496,25 @@ test("Home location: set from where you are; Nearly home counts the walk from th
   assert.match(app.text("#hero"), /You're home\./);
   app.close();
 });
+
+test("Tube going home: at Aldgate the next tube is noted; underground the card says which tube and where to get off", async () => {
+  const t0 = T("16:36");
+  const deps = (now) => [["metropolitan", "Westbound - Platform 1", "Uxbridge", T("16:41")], ["circle", "Westbound - Platform 2", "Hammersmith", T("16:46")], ["circle", "Eastbound - Platform 3", "Tower Hill", T("16:40")]]
+    .map(([lineId, platformName, dest, t]) => ({ vehicleId: lineId + t, lineId, platformName, destinationName: dest + " Underground Station", expectedArrival: new Date(t).toISOString(), timeToStation: Math.round((t - now) / 1000) }));
+  const app = await open({ now: t0, geo: OFFICE, settings: RDM, extra: (u, now) => (/StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? json(deps(now)) : undefined) });
+  assert.equal(app.c.direction(), "home");
+  // 16:36 at the office: the 16:41 Met needs leaving by 16:32, too late; the 16:46 Circle is the next you can make.
+  assert.match(app.text("#hero"), /Tubes from Aldgate \(live\)Circle 16:46 → King's Cross 16:56: 17:18 Great Northern, home \d\d:\d\d · leave the office by 16:37/);
+  assert.doesNotMatch(app.text("#hero"), /Met 16:41 →/);
+  assert.doesNotMatch(app.text("#hero"), /Tower Hill|16:40/, "eastbound tubes ignored");
+  app.at(T("16:39")); await app.moveTo(51.5142, -0.0755, 10);        // at Aldgate
+  await app.c.refresh({ force: true });
+  assert.ok(app.c.state.saved.aldHome && app.c.state.saved.aldHome.seen === T("16:39"));
+  app.at(T("16:45")); app.c.render();                                   // underground: no fix for 6 min
+  const hero = app.text("#hero");
+  assert.match(hero, /^On the tube · 16:45 · worked out from when you left Aldgate/);
+  assert.match(hero, /Probably the Met that left Aldgate at 16:41/);
+  assert.match(hero, /Get off at Farringdon 16:48 → 16:56 Thameslink · platform 4 · home (\d\d:\d\d)/);
+  assert.match(hero, /or get off at King's Cross 16:51 → .* \(\d+ min later\)/);
+  app.close();
+});

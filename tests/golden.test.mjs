@@ -35,6 +35,13 @@ function tubeArrivals(now) {
     a("metropolitan", "Eastbound - Platform 2", "Aldgate Underground Station", 8), a("circle", "Eastbound - Platform 2", "Edgware Road (Circle Line) Underground Station", 12)];
 }
 
+// Westbound tubes leaving Aldgate (towards Farringdon and King's Cross), plus an eastbound one that must be ignored.
+function aldgateDepartures(now) {
+  const a = (lineId, platformName, dest, mins) => ({ vehicleId: `${lineId[0]}${mins}`, lineId, platformName, destinationName: dest, expectedArrival: new Date(now + mins * 60e3).toISOString(), timeToStation: mins * 60 });
+  return [a("metropolitan", "Westbound - Platform 1", "Uxbridge Underground Station", 4), a("circle", "Westbound - Platform 2", "Hammersmith (H&C Line) Underground Station", 7),
+    a("metropolitan", "Westbound - Platform 1", "Amersham Underground Station", 11), a("circle", "Eastbound - Platform 3", "Tower Hill Underground Station", 2),
+    a("circle", "Westbound - Platform 2", "Hammersmith (H&C Line) Underground Station", 16)];
+}
 async function scenario(name, { now, geo, settings, saved = {}, disrupt = {}, tubeClosed = false, extra, steps = [] }) {
   const svcs = [...services(PREV, disrupt), ...services(DAY, disrupt), ...services(NEXT, disrupt)];
   const tfl = tflResponder(svcs), darwin = darwinResponder(svcs, () => now), details = serviceDetailsResponder(svcs, () => now);
@@ -47,6 +54,7 @@ async function scenario(name, { now, geo, settings, saved = {}, disrupt = {}, tu
       : [status("circle", "Circle"), status("metropolitan", "Metropolitan"), status("hammersmith-city", "Hammersmith & City")]);
     if (/national-rail\/Status/.test(u)) return json([status("great-northern", "Great Northern"), status("thameslink", "Thameslink")]);
     if (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u)) return json(tubeArrivals(now));
+    if (/StopPoint\/940GZZLUALD\/Arrivals/.test(u)) return json(aldgateDepartures(now));
     const q = parseJourneyUrl(u); if (q && q.from && q.to) return json(tfl(q));
     return undefined;
   };

@@ -81,3 +81,19 @@ export function buildOptions(routes: Route[], boards: Record<string, Board | und
   }
   return out;
 }
+
+/**
+ * Off a tube (or any other way of reaching London stations): given when you reach each station (`reach`) and how
+ * long until you're ready to board there (`ready`, ms), the best train per station — the earliest arrival among
+ * trains you can still make — sorted by arrival. Cancelled and no-estimate trains are never picked.
+ */
+export function bestConnections<T extends Option>(reach: Record<string, number>, ready: Record<string, number>, options: T[]): T[] {
+  const per: Record<string, T> = {};
+  for (const o of options) {
+    const r = reach[o.hub]; if (r == null || o.uncertain || o.train.cancelled || o.train.depUnknown) continue;
+    if (o.train.dep < r + (ready[o.hub] || 0)) continue;
+    if (!per[o.hub] || o.arrive < per[o.hub].arrive || (o.arrive === per[o.hub].arrive && o.train.dep < per[o.hub].train.dep)) per[o.hub] = o;
+  }
+  // Same arrival (often the same train at two stations): the one that leaves first, i.e. the earlier stop.
+  return Object.values(per).sort((a, b) => a.arrive - b.arrive || a.train.dep - b.train.dep);
+}

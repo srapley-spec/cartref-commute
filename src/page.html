@@ -58,6 +58,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
 .banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
 .slowtxt{color:var(--warn)}
+.tubes{display:flex;flex-direction:column;gap:4px}
+.tuberow{font-size:14px}
 .pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
 .pick small{width:100%;opacity:.8}
 .pickbtn{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
@@ -671,6 +673,17 @@ async function fetchTubeArrivals(hub){
     .filter(a=>isFinite(a.t))
     .sort((a,b)=>a.t-b.t);
 }
+// Going home: live westbound Circle and Met departures from Aldgate (towards Farringdon and King's Cross).
+async function fetchAldgateDepartures(){
+  const r=await fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
+  if(!r.ok) throw new Error(`TfL tube departures error (HTTP ${r.status}).`);
+  const now=Date.now();
+  return (await r.json())
+    .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
+    .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
+      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000 }))
+    .filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);
+}
 // Live arrivals at Aldgate, to follow the tube you're on by its vehicle id.
 async function fetchAldgateArrivals(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
@@ -871,6 +884,37 @@ function inLondonToOffice(now){
   if(state.atHub || state.onLine || onTube(now||Date.now())) return false;
   return km(state.here,GEO.LET)>15 && km(state.here,OFFICE)<25;
 }
+// Going home: the last time you were at Aldgate (within 150 m) and the tubes due then, kept across reopening.
+function noteAldgate(){
+  if(direction()!=="home" || !state.here || !(state.locAcc<=150) || km(state.here,GEO.ALD)>0.15) return;
+  const deps = state.aldDeps && state.aldDeps.list || (state.saved.aldHome && state.saved.aldHome.deps) || [];
+  state.saved.aldHome={ seen:Date.now(), deps }; save();
+}
+// On the tube going home: at Aldgate in the last 25 min, a tube has left since, and you've left (or the fix is stale).
+function onTubeHome(now){
+  const a=state.saved.aldHome; if(!a || direction()!=="home" || state.saved.mode==="leisure" || now-a.seen>25*60e3 || state.onLine || state.atHub) return false;
+  if(!(a.deps||[]).some(d=>d.t>=a.seen-60e3 && d.t<=now)) return false;
+  const stale = !state.lastFixAt || now-state.lastFixAt>90e3;
+  const atAld = state.here && km(state.here,GEO.ALD)<0.15;
+  if(atAld && !stale) return false;
+  return stale || !nearOffice();
+}
+// Which tube: the first to leave after you were last seen at Aldgate; another within 3 min is "or".
+function whichTubeHome(now){
+  const a=state.saved.aldHome; const gone=(a.deps||[]).filter(d=>d.t>=a.seen-60e3 && d.t<=now+30e3).sort((x,y)=>x.t-y.t);
+  if(!gone.length) return null;
+  const best=gone[0], other=gone.find(d=>d!==best && d.t-best.t<3*60e3);
+  return { best, other };
+}
+// Off a tube from Aldgate that leaves at `t`: when you reach Farringdon and King's Cross St Pancras, and the
+// best train from each (engine), from the same route timings as everywhere else.
+function tubeConnections(t, now){
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1;
+  const reach={ ZFD:t+s.rideFarAld*1000, KGX:t+s.rideKxAld*1000, STP:t+s.rideKxAld*1000 };
+  const ready={ ZFD:(s.farInterchange*k+s.catchMargin)*1000, KGX:(s.kxInterchange*k+s.catchMargin)*1000, STP:(s.stpInterchange*k+s.catchMargin)*1000 };
+  const opts=buildJourneys("home", now, {}).filter(o=>plannable(o.train));
+  return C.bestConnections(reach, ready, opts).map(o=>({ o, at:reach[o.hub] }));
+}
 const nearOffice = () => !!state.here && (km(state.here,OFFICE)<1.2 || km(state.here,GEO.ALD)<1.0);
 // Which tube you probably took: the one that left closest to when you were last seen at the station.
 function whichTube(now){
@@ -1055,6 +1099,33 @@ function renderNearlyHome(now){
   $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${atStationNow?hhmm(now+exit+walk):"—"}</span><span class="arrlbl">${atStationNow?"at home":""}</span></div>
     <div style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home. Set your home in Settings to see when you'll be there."}</div>`;
 }
+// Going home from the office: the next tubes from Aldgate (live) and the train each one gets you to.
+function tubesFromAldgate(now){
+  const d=state.aldDeps;
+  if(direction()!=="home" || state.saved.mode==="leisure" || !nearOffice() || !d || !d.list || Date.now()-d.at>3*60e3) return "";
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=state.here && km(state.here,GEO.ALD)<0.15;
+  const toPlatform=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
+  const rows=d.list.filter(t=>t.t-toPlatform>=now-30e3).slice(0,3).map(t=>{
+    const c=tubeConnections(t.t, now)[0]; if(!c) return "";
+    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(HUB_NAME[c.o.hub==="STP"?"KGX":c.o.hub])} <span class="t">${hhmm(c.at)}</span>: <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}, ${esc(c.o.dest||"home")} <span class="t">${hhmm(c.o.arrive)}</span> · leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-toPlatform)}</span></div>`;
+  }).filter(Boolean);
+  return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}</div>` : "";
+}
+// On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
+function renderOnTubeHome(now){
+  const w=whichTubeHome(now), head=`<div class="lbl">On the tube · ${hhmm(now)} · worked out from when you left Aldgate</div>`;
+  if(!w){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return; }
+  const conns=tubeConnections(w.best.t, now);
+  if(!conns.length){ $("#hero").innerHTML=`${head}<div class="empty">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
+  const name=h=>HUB_NAME[h==="STP"?"KGX":h], [best,...rest]=conns;
+  const line=(c,first)=>`<div style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(name(c.o.hub))}${first?"</b>":""} <span class="t">${hhmm(c.at)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.o.arrive)}</span>${first?"":` (${Math.round((c.o.arrive-best.o.arrive)/60e3)} min later)`}</div>`;
+  $("#hero").innerHTML=`${head}
+    <div class="big"><span class="arr t">${hhmm(best.o.arrive)}</span><span class="arrlbl">at home</span></div>
+    <div><span class="slack">Probably the ${esc(w.best.line)} that left Aldgate at ${hhmm(w.best.t)}</span><span style="opacity:.85;font-size:13px">${w.other?` or the ${esc(w.other.line)} at ${hhmm(w.other.t)}`:""}</span></div>
+    ${line(best,true)}${rest.filter(c=>name(c.o.hub)!==name(best.o.hub)).slice(0,1).map(c=>line(c,false)).join("")}
+    ${statusStrip([...opLines(best.o), "circle", "metropolitan"])}
+    <div class="note" style="color:inherit;opacity:.75">Tube times: live departures from Aldgate plus typical ride times (Settings).</div>`;
+}
 // From a London station to the office, split as the live cards need it (from the route description):
 // the change to the tube platform, the ride, and what comes after the ride.
 function onwardParts(hub){
@@ -1205,10 +1276,11 @@ function renderHero(list, now){
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":"Leaving right now? The"} <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest,picks[0])).join("");
+  const tubes=tubesFromAldgate(now);
   h.innerHTML = `
     <div class="lbl">${board?`You're at ${esc(board)} · departures`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:spare(j), board})).join("")}
-    ${now1}${hurry}
+    ${now1}${hurry}${tubes}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 function renderList(list, now, opts){
@@ -1596,6 +1668,9 @@ function renderInner(){
     renderOnTube(now);
   } else if(atHubToOffice()){
     renderAtHub(now);
+  } else if(onTubeHome(now)){
+    renderOnTubeHome(now);
+    const list=state.boards?ranked(now):[]; renderList(list, now); $("#listTitle").textContent="Trains home";
   } else if(nearlyHome()){
     renderNearlyHome(now);
     $("#listTitle").textContent="Nearly home";
@@ -1690,7 +1765,10 @@ async function refresh(opts){
       });
     }
     // Trains first, then line status, so a tight TfL limit is spent on the trains.
-    await Promise.all([railP,refreshLondon()]);
+    const aldP = (direction()==="home" && state.saved.mode!=="leisure" && nearOffice() && !state.onLine)
+      ? fetchAldgateDepartures().then(d=>{ state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{ state.aldDeps={at:Date.now(), list:null, err:e.message}; })
+      : Promise.resolve();
+    await Promise.all([railP,refreshLondon(),aldP]);
     await refreshTrainProgress();
     await Promise.all([statusP(),nrP()]);
   } catch(e){
@@ -1732,6 +1810,7 @@ function onPosition(p){
   else state.autoDir = dLet<=dAld ? "office" : "home";
   // Heading home, away from Letchworth: remember it, so arriving near Letchworth isn't taken as setting off.
   if(state.autoDir==="home" && dLet>=3){ state.saved.trip={dir:"home",at:Date.now()}; save(); }
+  noteAldgate();
   state.atHub=hubHere(); state.lastFixAt=Date.now();
   if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
