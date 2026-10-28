@@ -32,8 +32,15 @@ See the architecture decision in the Commuter App project. In short:
   - `types.ts` trains, options, flags, profiles · `time.ts` · `geo.ts`
   - `adapters/` Darwin and TfL responses → trains
   - `rules.ts` standing room, stopping trains, plannable · `rank.ts` top picks, every route, same-train merging
-  - `profiles/sam.ts` Sam's commute as data (stations, lines, thresholds, standing-room rule, term dates)
-- `src/page.html` — the **screen**: location, fetching, live-journey states, rendering. Uses the engine through `window.CommuteCore`.
+  - `journey.ts` door-to-door options from route segments · `alternatives.ts` the same train at the other London station
+  - `situation.ts` what you're doing from where you are: direction, at a station, on the line, which train (incl.
+    Service Details), on a tube, tube going home, nearly home
+  - `plan.ts` the Leave now list · `search.ts` which timetable searches each plan makes (run against an injected
+    journey planner) and the Leave around / Arrive by lists · `live.ts` live + timetable mixing · `warnings.ts`
+    warning grading, notices, line status
+  - `profiles/sam.ts` Sam's commute as data (stations, lines, places, thresholds, standing-room rule, term dates)
+    · `profiles/samRoutes.ts` Sam's routes as segments, from his timings
+- `src/page.html` — the **screen**: location, fetching, caching, rendering. Uses the engine through `window.CommuteCore`.
 - `tools/build.mjs` — type-free bundle of the engine (esbuild) inlined into the page → `index.html` (hosted) and `dist/preview.html`.
 
 ## Development
