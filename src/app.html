@@ -105,6 +105,10 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .latetxt{color:var(--accent);font-weight:800}
 .hero .steps summary{cursor:pointer;font-size:13px;opacity:.8;font-weight:600}
 .hero .steps .legs{margin-top:6px}
+.strip{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--paper) 22%,transparent)}
+.striphead{font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.75;font-weight:700}
+.sreason{font-size:13px;opacity:.9}
+.hero .pill.ok{background:color-mix(in srgb,var(--ok) 28%,transparent);color:var(--paper)}
 .verdict{border-radius:8px;padding:8px 10px;font-weight:800;font-size:16px}
 .verdict.ok{background:var(--ok-bg);color:var(--ok)}
 .verdict.bad{background:var(--bad-bg);color:var(--bad)}
@@ -931,6 +935,7 @@ function renderOnTrain(now, m){
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}</span></div>
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> projected · timetable <span class="t">${hhmm(t.arr)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
+    ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
     <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
 }
@@ -965,7 +970,7 @@ function renderAtHub(now){
       <div><span class="slack">Get on the next Circle or Met eastbound to Aldgate</span></div>
       <div class="note" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
   }
-  $("#hero").innerHTML=hero;
+  $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan"]);
   $("#listTitle").textContent="Next Circle and Met trains to Aldgate";
   $("#list").innerHTML = rows.length ? rows.map((a,i)=>`
     <div class="row${i===0?" best":""}">
@@ -976,6 +981,33 @@ function renderAtHub(now){
     </div>`).join("") : `<div class="row"><div></div><div class="mid meta">Live tube times will appear here.</div><div></div></div>`;
   return officeAt;
 }
+// "Your lines": every line on the remaining journey with its current status, good or not.
+const NR_STATUS_REUSE=5*60e3;
+function linesStatus(ids){
+  const out=[];
+  for(const id of ids){
+    if(id==="Great Northern"||id==="Thameslink"){
+      const l=(state.nrStatus||[]).find(x=>new RegExp(id.replace(" ","[- ]?"),"i").test(x.name+" "+x.id));
+      if(!l){ out.push({name:id, lvl:"info", desc: state.nrStatus ? "no live status" : "checking…"}); continue; }
+      const w=worst(l); out.push({name:id, lvl:lineOk(l)?"ok":(l.statuses.some(x=>BAD_SEV.has(x.sev))?"bad":"warn"), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+    } else {
+      const l=(state.status||[]).find(x=>x.id===id);
+      const name={circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[id]||id;
+      if(!l){ out.push({name, lvl:"info", desc: state.status ? "no live status" : "checking…"}); continue; }
+      const w=worst(l); out.push({name, lvl:lineOk(l)?"ok":(l.statuses.some(x=>BAD_SEV.has(x.sev))?"bad":"warn"), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+    }
+  }
+  return out;
+}
+function statusStrip(ids, extra){
+  const ls=linesStatus([...new Set(ids)]);
+  const notices=state.boards ? railWarnings().onRoute.length : 0;
+  const allOk = ls.every(l=>l.lvl==="ok") && !notices;
+  const reasons = ls.filter(l=>l.lvl!=="ok"&&l.reason).map(l=>`<div class="sreason"><b>${esc(l.name)}:</b> ${esc(l.reason)}</div>`).join("");
+  return `<div class="strip"><div class="striphead">${allOk?"Your lines: all good service":"Your lines"}</div>
+    <div class="flags">${ls.map(l=>`<span class="pill ${l.lvl}">${esc(l.name)}: ${esc(l.desc)}</span>`).join(" ")}${notices?` <span class="pill warn">${notices} notice${notices>1?"s":""} on your line, see above</span>`:""}${extra||""}</div>${reasons}</div>`;
+}
+const opLines = j => [ /thameslink/i.test(j.train.operator)?"Thameslink":"Great Northern" ];
 // Arrive by, once you're on your way: will you make it?
 function verdictHtml(arrive, T){
   const d=Math.round((T-arrive)/60e3), dest=direction()==="office"?"the office":"home";
@@ -1004,7 +1036,8 @@ function renderHero(list, now){
   h.innerHTML = `
     <div class="lbl">${state.atHub&&dir==="home"?`You're at ${esc(HUB_NAME[state.atHub])}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best per route, by arrival</div>
     ${picks.map(j=>optionBlock(j,{timing:spare(j)})).join("")}
-    ${now1}${hurry}`;
+    ${now1}${hurry}
+    ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 function renderList(list, now, opts){
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
@@ -1201,7 +1234,8 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best per route, by arrival</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"))).join("")}`;
+    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"))).join("")}
+    ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
 function render(){
@@ -1285,7 +1319,8 @@ async function refresh(opts){
     // Line status changes slowly: reuse it for 2 minutes unless you asked for a refresh.
     const statusFresh = !manual && state.statusAt && now-state.statusAt<STATUS_REUSE;
     const statusP = () => statusFresh ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrP = () => (statusFresh || !tflKeyed()) ? Promise.resolve() : fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    const nrFresh = !manual && state.nrAt && now-state.nrAt<NR_STATUS_REUSE;
+    const nrP = () => nrFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
     if(atHubToOffice()){
@@ -1426,6 +1461,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

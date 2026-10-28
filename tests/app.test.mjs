@@ -200,7 +200,7 @@ test("Without a TfL key, a load stays within a handful of requests, one at a tim
     inFlight++; maxInFlight = Math.max(maxInFlight, inFlight); await sleep(20); inFlight--; return undefined;
   } });
   const tfl = app.calls.filter((u) => /api\.tfl\.gov\.uk/.test(u));
-  assert.ok(tfl.length <= 3, `keyless first load made ${tfl.length} TfL requests`);
+  assert.ok(tfl.length <= 4, `keyless first load made ${tfl.length} TfL requests (2 train searches, tube and rail status)`);
   assert.ok(!tfl.some((u) => /app_key=/.test(u)));
   assert.equal(app.rows().length, 6, "every loaded train is listed (3 per route)");
   app.close();
@@ -369,5 +369,26 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
   assert.match(hero, /Tube from King's Cross to Farringdon|Farringdon/);
   assert.doesNotMatch(hero, /Leave office/);
+  app.close();
+});
+
+test("Live cards say the status of every line on the journey, including good service", async () => {
+  const st = (id, name, sev, desc, reason) => ({ id, name, lineStatuses: [{ statusSeverity: sev, statusSeverityDescription: desc, reason }] });
+  let metSev = 10;
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => {
+    if (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u)) return json(tubeArrivals(Date.now()));
+    if (/Line\/circle,metropolitan/.test(u)) return json([st("circle", "Circle", 10, "Good Service"),
+      metSev === 10 ? st("metropolitan", "Metropolitan", 10, "Good Service") : st("metropolitan", "Metropolitan", 9, "Minor Delays", "Minor delays due to an earlier faulty train."),
+      st("hammersmith-city", "Hammersmith & City", 10, "Good Service")]);
+    if (/national-rail\/Status/.test(u)) return json([st("great-northern", "Great Northern", 10, "Good Service"), st("thameslink", "Thameslink", 10, "Good Service")]);
+    return undefined; } });
+  assert.match(app.text("#hero"), /Your lines: all good service.*Great Northern: Good Service.*Circle: Good Service.*Met: Good Service/);
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#hero"), /Your lines: all good service.*Circle: Good Service.*Met: Good Service/);
+  metSev = 9;
+  await app.c.refresh({ force: true, manual: true });
+  const hero = app.text("#hero");
+  assert.match(hero, /Your lines Circle: Good Service Met: Minor Delays/);
+  assert.match(hero, /Met: Minor delays due to an earlier faulty train/);
   app.close();
 });
