@@ -191,7 +191,9 @@ test("On the train: 'sure' only if the next train is 4+ min further off; nothing
     w = c.whichTrain(now);
     assert.equal(w.sure, true); assert.equal(w.other, null);
     c.state.boards = { "LET-KGX": { msgs: [], services: [at(-11)] } };
-    assert.deepEqual(plain(c.whichTrain(now)), { none: true }, "11 min off: no match");
+    const none = c.whichTrain(now);
+    assert.equal(none.none, true, "11 min off: no match");
+    assert.equal(none.others.length, 1, "but it's offered to pick");
     c.state.boards = { "LET-KGX": { msgs: [], services: [at(-9)] } };
     assert.ok(!c.whichTrain(now).none, "9 min off: still a match");
   } finally { c.state.onLine = false; c.state.here = null; }
