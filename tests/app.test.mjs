@@ -131,11 +131,13 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
   await sleep(500);
   assert.match(app.text("#hero"), /^To arrive by 08:16 tomorrow · timetable/);
   const rows = app.rows();
-  assert.match(rows[0], /07:45 Great Northern · 29 min train/, "latest train that arrives in time comes first");
-  assert.match(rows[0], /Cutting it fine/, "arrives 08:14, two minutes before the target");
-  assert.match(rows[1], /07:15 Great Northern · 29 min train/, "then the next latest leave");
+  const best = app.d.querySelector("#list .row.best").textContent.replace(/\s+/g, " ");
+  assert.match(best, /07:45 Great Northern · 29 min train/, "latest train that arrives in time is recommended");
+  assert.match(best, /Cutting it fine/, "arrives 08:14, two minutes before the target");
+  assert.match(app.text("#hero"), /07:45 Great Northern/);
+  assert.ok(rows.some((r) => /07:15 Great Northern · 29 min train/.test(r)), "earlier option kept");
   assert.ok(rows.some((r) => /07:00 Great Northern · 52 min train.*Stopping train/.test(r)), "stopping train offered and labelled");
-  assert.ok(!rows.some((r) => /07:30 Great Northern/.test(r)), "07:30 stopper arrives 08:22, after the target");
+  assert.ok(rows.some((r) => /07:30 Great Northern.*Late by 6 min/.test(r)), "07:30 stopper arrives 08:22: shown as late");
   app.close();
 });
 
@@ -282,5 +284,31 @@ test("Leave now keeps at least one option per route even when one route dominate
   assert.equal(list.length, 5);
   assert.ok(list.some((j) => j.hub === "ZFD"), "Farringdon option kept");
   assert.equal(list.filter((j) => j.hub === "KGX").length, 4);
+  app.close();
+});
+
+test("Arrive by lists trains either side of the recommended one, including late ones", async () => {
+  const app = await createApp({ journeys: morning(tomorrow()), settings: { provider: "tfl", kxInterchange: 300 } });
+  await arriveBy(app, "08:30");
+  const rows = app.rows();
+  assert.doesNotMatch(rows.join(" "), /Journeys appear here/, "list isn't left blank");
+  const at = (re) => rows.findIndex((r) => re.test(r));
+  const kx708 = at(/07:08 Great Northern/), tl720 = at(/07:20 Thameslink/), kx730 = at(/07:30 Great Northern/);
+  const kx738 = at(/07:38 Great Northern.*Late by/), tl750 = at(/07:50 Thameslink.*Late by/);
+  assert.ok(kx708 >= 0 && tl720 > kx708 && kx730 > tl720, "earlier options in leaving order:\n" + rows.join("\n"));
+  assert.ok(kx738 > kx730 && tl750 > kx738, "late options after, labelled:\n" + rows.join("\n"));
+  const best = app.d.querySelector("#list .row.best").textContent;
+  assert.match(best, /07:30 Great Northern/, "recommended = latest leave that arrives in time");
+  assert.match(app.text("#hero"), /Arrive 08:\d\d · (\d+ min early|just in time)/);
+  app.close();
+});
+
+test("If no train arrives in time, the earliest late one is recommended and says so", async () => {
+  const app = await createApp({ journeys: morning(tomorrow()) });
+  await arriveBy(app, "07:40");
+  assert.match(app.text("#hero"), /min late, no train gets you there in time/);
+  const trains = app.rows().filter((r) => /^Leave/.test(r));
+  assert.ok(trains.length && trains.every((r) => /Late by/.test(r)), trains.join("\n"));
+  assert.match(app.rows().join(" "), /No King's Cross or Farringdon train gets you there by 07:40/);
   app.close();
 });
