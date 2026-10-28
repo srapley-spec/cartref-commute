@@ -109,6 +109,8 @@ test("golden: elsewhere in London on the way to work", () => scenario("office-in
 test("golden: evening at the office, timetable with key; Leave around, Arrive by", () => scenario("home-evening-tfl-keyed",
   { now: T(DAY, "16:30"), geo: PLACES.office, settings: { provider: "tfl", tflKey: "k" },
     steps: [["leaveAround1740", view("at", DAY, "17:40")], ["arriveBy1830", view("by", DAY, "18:30")], ["leaveAroundTomorrow", view("at", NEXT, "17:40")], ["backToNow", view("now")]] }));
+test("golden: evening at the office, fast pace, live", () => scenario("home-evening-fast-live",
+  { now: T(DAY, "17:30"), geo: PLACES.office, settings: RDM, saved: { pace: "fast" } }));
 test("golden: evening at the office, timetable without key", () => scenario("home-evening-tfl-keyless",
   { now: T(DAY, "16:30"), geo: PLACES.office, settings: { provider: "tfl" } }));
 test("golden: evening at the office, live, with cancellations and a delay; every planning view", () => scenario("home-evening-live",

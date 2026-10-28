@@ -2,7 +2,7 @@
 // Written after mutation testing showed these could change without any other test failing.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, json, sleep, closeAll, parseJourneyUrl, NEAR_LETCHWORTH, COORDS } from "./harness.mjs";
+import { createApp, json, sleep, closeAll, parseJourneyUrl, NEAR_LETCHWORTH } from "./harness.mjs";
 import { services, tflResponder, darwinResponder } from "./golden/feeds.mjs";
 
 after(closeAll);
@@ -361,5 +361,29 @@ test("Timetable with a key, to work: a train found only at Farringdon is looked 
   assert.ok(pairs.length > 0, "searched St Pancras");
   assert.ok(pairs.some((x) => hm(x.t) === "06:49"), pairs.map((x) => hm(x.t)).join(", "));
   assert.ok(app.rows().some((r) => /Get off at St Pancras 07:29 or Farringdon 07:34/.test(r)), app.rows().join("\n"));
+  app.close();
+});
+
+// ---------- README rules ----------
+test("TfL rate limit: no TfL requests for a minute, then they resume", async () => {
+  const now = T("16:30");
+  let limited = true;
+  const app = await open({ now, fail: (u) => (limited && /api\.tfl\.gov\.uk/.test(u) ? 429 : 0) });
+  const tflCalls = () => app.calls.filter((u) => /api\.tfl\.gov\.uk/.test(u)).length;
+  const first = tflCalls(); assert.ok(first >= 1);
+  limited = false;
+  app.at(now + 40e3); await app.c.refresh({ force: true });
+  assert.equal(tflCalls(), first, "40 s later: still backing off");
+  app.at(now + 61e3); await app.c.refresh({ force: true });
+  assert.ok(tflCalls() > first, "after a minute: requests again");
+  assert.ok(app.rows().some((r) => /^Leave/.test(r)));
+  app.close();
+});
+
+test("Requests time out after 12 s by default", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, timeoutMs: 0 });
+  app.w.COMMUTE_FETCH_TIMEOUT_MS = undefined;
+  const src = app.w.document.documentElement.innerHTML;
+  assert.match(src, /const FETCH_TIMEOUT = \(\) => \(window\.COMMUTE_FETCH_TIMEOUT_MS \|\| 12000\);/);
   app.close();
 });
