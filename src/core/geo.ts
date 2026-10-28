@@ -23,3 +23,18 @@ export function lineProgress(pt: LatLon, line: LatLon[]): { frac: number; offKm:
   }
   return { frac: total ? best.at / total : 0, offKm: best.off };
 }
+
+/**
+ * Where a train is along `line` (0 = first point, 1 = last), from where it was last reported and the next stop:
+ * between the two in proportion to time. Not yet departed: at its origin. Unknown stations: null.
+ */
+export function reportedFrac(last: { code: string | null; t: number } | null, next: { code: string | null; t: number | null } | null,
+    origin: string, now: number, line: LatLon[], geo: Record<string, LatLon>): number | null {
+  const f = (code: string | null) => (code && geo[code] ? lineProgress(geo[code], line).frac : null);
+  if (!last) return f(origin);
+  const a = f(last.code); if (a == null) return null;
+  if (!next || next.t == null) return a;
+  const b = f(next.code); if (b == null) return a;
+  if (now >= next.t || next.t <= last.t) return b;
+  return a + (b - a) * Math.max(0, Math.min(1, (now - last.t) / (next.t - last.t)));
+}

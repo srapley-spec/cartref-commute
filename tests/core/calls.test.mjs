@@ -128,3 +128,14 @@ test("Darwin board: service ID kept; stops already passed are marked actual", ()
   assert.equal(t.serviceId, "abc123");
   assert.deepEqual(t.calls.map((c) => [c.code, !!c.actual]), [["KGX", false], ["FPK", true], ["LET", false]]);
 });
+
+test("reportedFrac: a train between its last reported stop and the next is placed in proportion to time; not departed = at its origin", () => {
+  const sam = core.profiles.samCommute, line = sam.lines.KGX, geo = sam.stationGeo, f = (c) => core.lineProgress(geo[c], line).frac;
+  const T = (h) => at("2026-10-28", h);
+  const mid = core.reportedFrac({ code: "SVG", t: T("20:00") }, { code: "HIT", t: T("20:04") }, "KGX", T("20:02"), line, geo);
+  assert.ok(Math.abs(mid - (f("SVG") + f("HIT")) / 2) < 1e-9);
+  assert.equal(core.reportedFrac(null, { code: "FPK", t: T("20:00") }, "KGX", T("19:58"), line, geo), f("KGX"), "not departed");
+  assert.equal(core.reportedFrac({ code: "FPK", t: T("19:57") }, { code: "SVG", t: T("20:10") }, "KGX", T("20:12"), line, geo), f("SVG"), "due at the next stop");
+  assert.equal(core.reportedFrac({ code: "XXX", t: T("19:57") }, null, "KGX", T("20:00"), line, geo), null, "unknown station");
+  assert.ok(f("LET") < f("HIT") && f("HIT") < f("SVG") && f("SVG") < f("FPK") && f("FPK") < f("KGX"), "stations in order along the line");
+});

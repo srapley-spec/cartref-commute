@@ -477,3 +477,40 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
     assert.equal(w.t, b, "kept even when the position fits less well");
   } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
 });
+
+test("On the train: where National Rail reported each train settles which one you're on", () => {
+  const now = Date.now(), m = 60e3, P = app.w.CommuteCore;
+  const pad = (n) => String(n).padStart(2, "0"), hhmm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  // You're at Stevenage. By timetable both trains could be there; reports say one is at Stevenage, the other only at Finsbury Park.
+  const sv = [51.9017, -0.2071];
+  const g = (id, dep, mins) => svc({ from: "KGX", to: "LET", dep, arr: dep + mins * m, serviceId: id });
+  const a = g("A", now - 22 * m, 30), b = g("B", now - 20 * m, 26);
+  useBoards({ "KGX-LET": { msgs: [], services: [a, b] }, "ZFD-LET": { msgs: [], services: [] }, "STP-LET": { msgs: [], services: [] } }, { dirMode: "home" });
+  const rep = (lastCrs, lastT, nextCrs, nextT) => P.parseServiceDetails({ crs: "KGX", std: hhmm(now - 22 * m), atd: "On time",
+    subsequentCallingPoints: [{ callingPoint: [{ crs: lastCrs, st: hhmm(lastT), at: hhmm(lastT) }, { crs: nextCrs, st: hhmm(nextT), et: hhmm(nextT) }] }] }, now);
+  c.state.here = sv; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
+  try {
+    const before = c.whichTrain(now);
+    assert.equal(before.sure, false, "by timetable alone it can't tell");
+    c.state.progressById = { A: { at: now, data: rep("FPK", now - 2 * m, "SVG", now + 14 * m) }, B: { at: now, data: rep("SVG", now - m, "HIT", now + 4 * m) } };
+    const w = c.whichTrain(now);
+    assert.equal(w.t, b); assert.equal(w.sure, true); assert.equal(w.reported, true);
+  } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; c.state.progressById = {}; }
+});
+
+test("On the train: a train reported more than 6 min from you is ruled out; if nothing fits, you can still pick", () => {
+  const now = Date.now(), m = 60e3, P = app.w.CommuteCore;
+  const pad = (n) => String(n).padStart(2, "0"), hhmm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const a = svc({ from: "KGX", to: "LET", dep: now - 22 * m, arr: now + 8 * m, serviceId: "A" });
+  useBoards({ "KGX-LET": { msgs: [], services: [a] }, "ZFD-LET": { msgs: [], services: [] }, "STP-LET": { msgs: [], services: [] } }, { dirMode: "home", view: "now" });
+  c.state.here = [51.9017, -0.2071]; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
+  try {
+    assert.equal(c.whichTrain(now).t, a, "by timetable it fits");
+    c.state.progressById = { A: { at: now, data: P.parseServiceDetails({ crs: "KGX", std: hhmm(a.dep), atd: "On time",
+      subsequentCallingPoints: [{ callingPoint: [{ crs: "FPK", st: hhmm(now - 2 * m), at: hhmm(now - 2 * m) }, { crs: "SVG", st: hhmm(now + 14 * m), et: hhmm(now + 14 * m) }] }] }, now) } };
+    const w = c.whichTrain(now);
+    assert.equal(w.none, true, "reported near Finsbury Park, you're at Stevenage");
+    c.render();
+    assert.match(app.text("#hero"), /no train matches where you are right now.*Which train are you on\?/);
+  } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; c.state.progressById = {}; }
+});

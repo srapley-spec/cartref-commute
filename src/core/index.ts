@@ -1,7 +1,7 @@
 // Cartref Commute planning engine. Pure functions: no screen, no network, no hard-coded places.
 export * from "./types";
 export { pad, hhmm, mins, isoDay, dur, countdown, clock, resolve } from "./time";
-export { km, lineProgress } from "./geo";
+export { km, lineProgress, reportedFrac } from "./geo";
 export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
 export { stationOf, stationLabel, trainFromTflJourney, tflDropReason } from "./adapters/tfl";

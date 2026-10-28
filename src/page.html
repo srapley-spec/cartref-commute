@@ -395,10 +395,16 @@ function whichTrain(now){
       // You can't be on a train that hasn't left: once you're clear of the station (about 1.5 km), only
       // trains that have departed count.
       if(mine>0.03 && t.dep>now) continue;
-      const expected = Math.max(0,Math.min(1,(now-t.dep)/len));
+      let expected = Math.max(0,Math.min(1,(now-t.dep)/len)), reported=false;
+      // Where National Rail last reported the train (Service Details), when known: better than its timetable.
+      const pg = progressFor(t.serviceId);
+      if(pg && pg.data){ const rf=C.reportedFrac(pg.data.last, pg.data.next, t.from, now, LINE[hub], PROFILE.stationGeo||{});
+        if(rf!=null){ expected = toLondon ? rf : 1-rf; reported=true; } }
       // Arrival: National Rail's live expected time when the train is live; otherwise from your position.
       const projected = t.timetable ? now+(1-mine)*len : t.arr;
-      cands.push({ t, hub, mine, offMin: Math.abs(expected-mine)*len/60e3, projected, live:!t.timetable });
+      const offMin=Math.abs(expected-mine)*len/60e3;
+      // A reported position is accurate to a few minutes: more than 6 min from you rules the train out (still pickable).
+      cands.push({ t, hub, mine, offMin, projected, live:!t.timetable, reported, ruledOut: reported && offMin>6 });
     }
   }
   cands.sort((a,b)=>a.offMin-b.offMin);
@@ -411,11 +417,12 @@ function whichTrain(now){
   // Others you could be on, for "On a different train?" (one per train, nearest first).
   const others = c0 => cands.filter((c,i)=>!same(c,c0) && cands.findIndex(x=>same(x,c))===i).slice(0,3);
   if(locked && lock.picked){ locked.sure=true; locked.other=null; locked.locked=true; locked.picked=true; locked.others=others(locked); return locked; }
-  if(locked && locked.offMin<=12 && !(cands[0]!==locked && !same(cands[0],locked) && locked.offMin-cands[0].offMin>=6)){
+  if(locked && !locked.ruledOut && locked.offMin<=12 && !(cands[0]!==locked && !same(cands[0],locked) && locked.offMin-cands[0].offMin>=6)){
     locked.sure=true; locked.other=null; locked.locked=true; locked.others=others(locked); return locked;
   }
-  if(!cands.length || cands[0].offMin>10) return { none:true };
-  const best=cands[0], next=cands.find(c=>!same(c,best));
+  const fits=cands.filter(c=>!c.ruledOut);
+  if(!fits.length || fits[0].offMin>10) return { none:true, others: others({t:{operator:"",arr:-1,dep:-1}}) };
+  const best=fits[0], next=fits.find(c=>!same(c,best));
   best.sure = !next || next.offMin-best.offMin>=4;
   best.other = best.sure ? null : next;
   best.others = others(best);
@@ -619,13 +626,19 @@ async function fetchServiceDetails(id){
   if(!r.ok) throw new Error(`Service Details error (HTTP ${r.status}).`);
   return C.parseServiceDetails(await r.json(), Date.now());
 }
-// On the train with live data: follow the train you're on (once per refresh, about once a minute).
+// On the train with live data: follow the train you're on (once per refresh, about once a minute). When it isn't
+// sure which train, also the runner-up, so where each was reported can settle it.
+const progressFor = (id, maxAge=3*60e3) => { const p=state.progressById && id && state.progressById[id]; return p && Date.now()-p.at<maxAge ? p : null; };
 async function refreshTrainProgress(){
-  if(!state.onLine || state.railSource!=="darwin" || S().provider!=="rdm") { state.progress=null; return; }
-  const m=whichTrain(Date.now()); if(!m || m.none || !m.t.serviceId) return;
-  const id=m.t.serviceId;
-  try{ state.progress={ id, at:Date.now(), data:await fetchServiceDetails(id), err:null }; }
-  catch(e){ state.progress={ id, at:Date.now(), data:null, err:e.message }; }
+  if(state.railSource!=="darwin" || S().provider!=="rdm") return;
+  if(!state.onLine && !(nearlyHome() && state.trainLock)) return;
+  const m=state.onLine ? whichTrain(Date.now()) : null, lt=state.onLine ? null : lockedTrain();
+  const ids = m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])].filter(Boolean) : lt && lt.serviceId ? [lt.serviceId] : [];
+  state.progressById=state.progressById||{};
+  for(const id of ids){
+    try{ state.progressById[id]={ id, at:Date.now(), data:await fetchServiceDetails(id), err:null }; }
+    catch(e){ state.progressById[id]={ id, at:Date.now(), data:null, err:e.message }; }
+  }
 }
 // Example boards, clearly marked in the UI.
 function demoBoards(now){
@@ -981,12 +994,13 @@ function renderOnTrain(now, m){
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
   const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location</div>`;
   if(!m || m.none){
-    $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>`;
+    const pick = m && m.others && m.others.length ? `<div class="pick"><small>Which train are you on?</small>${m.others.map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>` : "";
+    $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>${pick}`;
     return null;
   }
   const t=m.t, sched=t.arr-(t.arrLate||0)*60e3;
   // Service Details for this train, if fresh: its expected time at your stop is the best estimate there is.
-  const pg = state.progress && state.progress.id===t.serviceId && Date.now()-state.progress.at<3*60e3 ? state.progress : null;
+  const pg = progressFor(t.serviceId);
   const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
   if(pgAt) { m.projected = pgAt; m.live = true; }
   const delay=Math.round((m.projected-sched)/60e3);
@@ -1010,13 +1024,16 @@ function renderOnTrain(now, m){
     <div class="note" style="color:inherit;opacity:.75">${pg&&pg.data?"Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.":m.live?"Arrival: National Rail's live expected time for this train. Your location says which train you're on.":"Projection: where you are now and the train's timetabled journey time."} ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
 }
+// The train you're on (as remembered), from the loaded boards.
+function lockedTrain(){ const lock=state.trainLock; return lock && state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]).find(x=>x.operator===lock.operator && x.std===lock.std && x.from===lock.from) || null : null; }
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
 const nearlyHome = () => direction()==="home" && state.saved.mode!=="leisure" && !!state.here && !state.onLine && km(state.here,GEO.LET)<3;
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
-  const lock=state.trainLock, pg=state.progress && Date.now()-state.progress.at<5*60e3 ? state.progress : null;
-  const t = lock && state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]).find(x=>x.operator===lock.operator && x.std===lock.std && x.from===lock.from) : null;
-  const letAt = t ? ((pg && pg.id===t.serviceId && pg.data && pg.data.at("LET")) || t.arr) : null;
+  const lock=state.trainLock;
+  const t = lockedTrain();
+  const pg = t ? progressFor(t.serviceId, 5*60e3) : null;
+  const letAt = t ? ((pg && pg.data && pg.data.at("LET")) || t.arr) : null;
   const head=`<div class="lbl">Nearly home · ${hhmm(now)}</div>`;
   if(letAt && letAt>now-60e3 && !(state.saved.home && km(state.here,state.saved.home)<0.1)){
     const home=letAt+exit+walk;

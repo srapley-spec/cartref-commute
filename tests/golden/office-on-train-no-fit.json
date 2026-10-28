@@ -1,0 +1,276 @@
+{
+ "load": {
+  "dirNote": "",
+  "banners": [],
+  "hero": "On the train · 07:25 · worked out from your locationYou're on the line between Letchworth and London, but no train matches where you are right now. Which train are you on?07:20 Thameslink07:08 Great Northern07:00 Great Northern",
+  "rows": [
+   "At the London station the app switches to the onward tube and live departures."
+  ],
+  "diag": "Letchworth → King's Cross, live board: 10 trains: 07:00, 07:08, 07:30, 07:38, 08:00, 08:08, 08:30, 08:38, 09:00, 09:08.Letchworth → Farringdon, live board: 6 trains: 06:50, 07:20, 07:50, 08:20, 08:50, 09:20.Letchworth → St Pancras, live board: 6 trains: 06:50, 07:20, 07:50, 08:20, 08:50, 09:20."
+ },
+ "options": [
+  {
+   "hub": "KGX",
+   "train": "07:30 Great Northern LET-KGX",
+   "leave": "07:04:43",
+   "arrive": "08:49:30",
+   "missed": true,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "bad: Leave time passed: 21 min short at walking pace, run or bike",
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "07:04:43 Leave Cartref · walk 22 min",
+    "07:30:00 07:30 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 07:30 · Hitchin 07:36 · Stevenage 07:46 · Finsbury Park 08:14 · King's Cross 08:22",
+    "08:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "08:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "08:49:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "07:38 Great Northern LET-KGX",
+   "leave": "07:12:43",
+   "arrive": "08:34:30",
+   "missed": true,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "bad: Leave time passed: 13 min short at walking pace, run or bike",
+    "bad: Usually standing room only"
+   ],
+   "legs": [
+    "07:12:43 Leave Cartref · walk 22 min",
+    "07:38:00 07:38 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:07",
+    "08:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "08:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "08:34:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "07:50 Thameslink LET-ZFD",
+   "leave": "07:24:43",
+   "arrive": "08:56:30",
+   "missed": true,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 07:50:00 leave 07:24:43 missed"
+   ],
+   "flags": [
+    "bad: Leave time passed: 1 min short at walking pace, run or bike"
+   ],
+   "legs": [
+    "07:24:43 Leave Cartref · walk 22 min",
+    "07:50:00 07:50 Thameslink from Letchworth · platform 2",
+    "- Calls at · Letchworth 07:50 · Hitchin 07:55 · Stevenage 08:00 · Finsbury Park 08:22 · St Pancras 08:29 · Farringdon 08:34",
+    "08:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "08:41:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "08:56:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "08:00 Great Northern LET-KGX",
+   "leave": "07:34:43",
+   "arrive": "09:19:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "07:34:43 Leave Cartref · walk 22 min",
+    "08:00:00 08:00 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:00 · Hitchin 08:06 · Stevenage 08:16 · Finsbury Park 08:44 · King's Cross 08:52",
+    "08:52:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "09:01:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:19:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "08:08 Great Northern LET-KGX",
+   "leave": "07:42:43",
+   "arrive": "09:04:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 1,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "07:42:43 Leave Cartref · walk 22 min",
+    "08:08:00 08:08 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:08 · Hitchin 08:12 · Stevenage 08:17 · Finsbury Park 08:31 · King's Cross 08:37",
+    "08:37:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "08:46:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:04:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "08:20 Thameslink LET-ZFD",
+   "leave": "07:54:43",
+   "arrive": "09:26:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 08:20:00 leave 07:54:43"
+   ],
+   "flags": [],
+   "legs": [
+    "07:54:43 Leave Cartref · walk 22 min",
+    "08:20:00 08:20 Thameslink from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:20 · Hitchin 08:25 · Stevenage 08:30 · Finsbury Park 08:52 · St Pancras 08:59 · Farringdon 09:04",
+    "09:04:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "09:11:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "09:26:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "08:30 Great Northern LET-KGX",
+   "leave": "08:04:43",
+   "arrive": "09:49:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "08:04:43 Leave Cartref · walk 22 min",
+    "08:30:00 08:30 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:30 · Hitchin 08:36 · Stevenage 08:46 · Finsbury Park 09:14 · King's Cross 09:22",
+    "09:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "09:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:49:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "08:38 Great Northern LET-KGX",
+   "leave": "08:12:43",
+   "arrive": "09:34:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "08:12:43 Leave Cartref · walk 22 min",
+    "08:38:00 08:38 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:38 · Hitchin 08:42 · Stevenage 08:47 · Finsbury Park 09:01 · King's Cross 09:07",
+    "09:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "09:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:34:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "08:50 Thameslink LET-ZFD",
+   "leave": "08:24:43",
+   "arrive": "09:56:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 08:50:00 leave 08:24:43"
+   ],
+   "flags": [],
+   "legs": [
+    "08:24:43 Leave Cartref · walk 22 min",
+    "08:50:00 08:50 Thameslink from Letchworth · platform 2",
+    "- Calls at · Letchworth 08:50 · Hitchin 08:55 · Stevenage 09:00 · Finsbury Park 09:22 · St Pancras 09:29 · Farringdon 09:34",
+    "09:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "09:41:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "09:56:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "09:00 Great Northern LET-KGX",
+   "leave": "08:34:43",
+   "arrive": "10:19:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [
+    "warn: Stopping train"
+   ],
+   "legs": [
+    "08:34:43 Leave Cartref · walk 22 min",
+    "09:00:00 09:00 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 09:00 · Hitchin 09:06 · Stevenage 09:16 · Finsbury Park 09:44 · King's Cross 09:52",
+    "09:52:00 Arrive King's Cross · 52 min on the train, change 6 min",
+    "10:01:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "10:19:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "KGX",
+   "train": "09:08 Great Northern LET-KGX",
+   "leave": "08:42:43",
+   "arrive": "10:04:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [],
+   "flags": [],
+   "legs": [
+    "08:42:43 Leave Cartref · walk 22 min",
+    "09:08:00 09:08 Great Northern from Letchworth · platform 2",
+    "- Calls at · Letchworth 09:08 · Hitchin 09:12 · Stevenage 09:17 · Finsbury Park 09:31 · King's Cross 09:37",
+    "09:37:00 Arrive King's Cross · 29 min on the train, change 6 min",
+    "09:46:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "10:04:30 Arrive office · walk 7 min"
+   ]
+  },
+  {
+   "hub": "ZFD",
+   "train": "09:20 Thameslink LET-ZFD",
+   "leave": "08:54:43",
+   "arrive": "10:26:30",
+   "missed": false,
+   "uncertain": false,
+   "recommended": 0,
+   "alts": [
+    "STP 09:20:00 leave 08:54:43"
+   ],
+   "flags": [],
+   "legs": [
+    "08:54:43 Leave Cartref · walk 22 min",
+    "09:20:00 09:20 Thameslink from Letchworth · platform 2",
+    "- Calls at · Letchworth 09:20 · Hitchin 09:25 · Stevenage 09:30 · Finsbury Park 09:52 · St Pancras 09:59 · Farringdon 10:04",
+    "10:04:00 Arrive Farringdon · 44 min on the train, change 4 min",
+    "10:11:00 Circle or Met to Aldgate · ~7 min, allows 3 min wait",
+    "10:26:30 Arrive office · walk 7 min"
+   ]
+  }
+ ],
+ "requests": [
+  "https://api.tfl.gov.uk/Line/Mode/national-rail/Status?app_key=K",
+  "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status?app_key=K",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=KGX&filterType=to&timeWindow=120",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=KGX&filterType=to&timeWindow=120&timeOffset=-40",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=STP&filterType=to&timeWindow=120",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=STP&filterType=to&timeWindow=120&timeOffset=-40",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=ZFD&filterType=to&timeWindow=120",
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=ZFD&filterType=to&timeWindow=120&timeOffset=-40",
+  "https://darwin.test/SD/LDBWS/api/20220120/GetServiceDetails/20261103GreatNorthern0708fromLET",
+  "https://darwin.test/SD/LDBWS/api/20220120/GetServiceDetails/20261103Thameslink0720fromLET"
+ ],
+ "errors": []
+}

@@ -94,7 +94,10 @@ test("golden: morning near Letchworth, live, with a delay and the standing-room 
     steps: [["arriveBy0830", view("by", DAY, "08:30")], ["leaveAround0740", view("at", DAY, "07:40")]] }));
 test("golden: Circle and Met closed: Aldgate East fallback", () => scenario("office-aldgate-closed",
   { now: T(DAY, "07:00"), geo: PLACES.nearLetchworth, settings: { provider: "tfl", tflKey: "k" }, tubeClosed: true }));
-test("golden: on the train near Knebworth", () => scenario("office-on-train-live",
+test("golden: on the train near Knebworth (the 07:08 is reported passing; the 07:20 hasn't left)", () => scenario("office-on-train-live",
+  { now: T(DAY, "07:19"), geo: PLACES.knebworth, settings: RDM, saved: { dirMode: "office" },
+    disrupt: { "Thameslink 07:20 from LET": { late: 3, reason: "This train has been delayed by a late running train in front" } } }));
+test("golden: on the train, no train fits where National Rail reports them: asks which train", () => scenario("office-on-train-no-fit",
   { now: T(DAY, "07:25"), geo: PLACES.knebworth, settings: RDM, saved: { dirMode: "office" },
     disrupt: { "Thameslink 07:20 from LET": { late: 3, reason: "This train has been delayed by a late running train in front" } } }));
 test("golden: at King's Cross in the morning: which tube", () => scenario("office-at-kings-cross",

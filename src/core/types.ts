@@ -75,5 +75,6 @@ export interface Profile {
   mergeHubs: StationCode[];                           // hubs one train can call at in turn (same train, two stops)
   operatorByHub: Record<StationCode, string>;         // default operator when the source doesn't say
   busy: BusyRule;
-  topWindowMin?: number;                              // top card: alternative only if this close to the best (default 20)
+  topWindowMin?: number;
+  stationGeo?: Record<StationCode, LatLon>;          // stations along the line, to place a train from where it was reported                              // top card: alternative only if this close to the best (default 20)
 }
