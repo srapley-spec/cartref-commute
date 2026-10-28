@@ -103,6 +103,8 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .row.gone{opacity:.5}
 .row.late .leave .t,.row.late .arrive .t{color:var(--muted)}
+.hero .alt{border-top:1px solid color-mix(in srgb,var(--paper) 25%,transparent);padding-top:10px;font-size:14px;opacity:.95}
+.hero .alt [data-cd]{opacity:.75;font-size:13px}
 .hero .slack.bad{background:var(--bad);color:var(--paper)}
 
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
@@ -197,7 +199,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
   <section class="hero" id="hero" aria-live="polite"></section>
 
-  <h2 id="listTitle">Next 5 by arrival</h2>
+  <h2 id="listTitle">Next trains, in leaving order</h2>
   <div class="list" id="list"></div>
   <p class="note" id="modelNote"></p>
 
@@ -205,7 +207,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 06:37 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 06:41 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -715,12 +717,25 @@ function keepEveryRoute(sorted, n){
   }
   return out.sort((x,y)=>sorted.indexOf(x)-sorted.indexOf(y));
 }
+// Leave now: the next trains you can still catch, in leaving order, at least one per route. The first is the
+// one you'd catch by setting off now (slow or fast); the earliest arrival is always kept and marked "Fastest".
 function ranked(now){
   const t0=now+30e3;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   const all=build(direction(), now).filter(j=>j.leave>=t0);
-  all.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave);
-  return keepEveryRoute(all,5);
+  if(!all.length) return [];
+  const byLeave=all.slice().sort((a,b)=>a.leave-b.leave || a.arrive-b.arrive);
+  const fastest=all.reduce((a,b)=> b.arrive<a.arrive || (b.arrive===a.arrive && b.leave>a.leave) ? b : a);
+  let list=keepEveryRoute(byLeave,5);
+  if(!list.includes(fastest)){
+    let i=list.length-1; while(i>0 && list.filter(o=>o.hub===list[i].hub).length<2) i--;
+    list.splice(Math.max(i,1),1); list.push(fastest);
+    list.sort((a,b)=>byLeave.indexOf(a)-byLeave.indexOf(b));
+  }
+  list[0].first=true;
+  fastest.fastest=true;
+  if(fastest!==list[0]) fastest.flags.unshift({lvl:"ok",txt:"Fastest"});
+  return list;
 }
 
 // ---------- Rendering ----------
@@ -746,15 +761,18 @@ function renderHero(list, now){
     h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.loading?"Loading live trains…":(missingCreds()?"Add your National Rail key in Settings to see live trains, or pick Example data to preview.":"No train data yet.")}</div>`;
     return;
   }
-  const j=list[0];
+  const j=list[0], fast=list.find(o=>o.fastest);
   if(!j){ h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">No catchable trains in the next two hours.</div>`; return; }
   const t0=now+30e3, spare=j.leave-t0, dest=j.dest||(dir==="office"?"office":"home");
+  // When a later, faster train gets you there sooner, say so under the leave-now answer.
+  const alt = fast && fast!==j ? `<div class="alt">Or leave at <span class="t">${hhmm(fast.leave)}</span> for the <span class="t">${esc(fast.train.std)}</span> ${esc(fast.train.operator)}: ${esc(dest)} <span class="t">${hhmm(fast.arrive)}</span>, ${mins(j.arrive-fast.arrive)} min sooner (${dur(fast.train.arr-fast.train.dep)} train) · <span data-cd="${fast.leave}"></span></div>` : "";
   h.innerHTML = `
     <div class="lbl">If you leave now · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""}</div>
-    <div class="big"><span class="arr t">${hhmm(j.arrive)}</span><span class="arrlbl">at ${esc(dest)} · ${dur(j.arrive-t0)}</span></div>
+    <div class="big"><span class="arr t">${hhmm(j.arrive)}</span><span class="arrlbl">at ${esc(dest)} · ${dur(j.arrive-t0)} · ${dur(j.train.arr-j.train.dep)} train</span></div>
     <div>${spare>=60e3?`<span class="slack">${mins(spare)} min spare</span> <span style="opacity:.8;font-size:13px">latest leave <span class="t">${hhmm(j.leave)}</span> · <span data-cd="${j.leave}"></span></span>`:`<span class="slack">Leave now</span>`}</div>
     <ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>
-    <div class="flags">${chips(j)} ${pills(j.flags,false)}</div>`;
+    <div class="flags">${chips(j)} ${pills(j.flags,false)}</div>
+    ${alt}`;
 }
 function renderList(list, now, opts){
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
@@ -986,7 +1004,7 @@ function render(){
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
   } else {
     const list=state.boards?ranked(now):[];
-    renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next 5 by arrival";
+    renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
   }
   renderStatus(); tick();
   const rc=requestCounts();

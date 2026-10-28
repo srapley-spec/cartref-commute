@@ -115,14 +115,17 @@ test("Leisure to London ends at the station and uses leisure pace", () => {
   assert.equal(j.leave, dep - (60 + 120 * 1.15 + 1337 * 1.15) * 1000);
 });
 
-test("ranked() orders by arrival and drops trains you can no longer catch", () => {
+test("ranked() lists catchable trains in leaving order and marks the fastest", () => {
   const now = at("2026-11-03", "07:00");
   const mk = (d, a) => svc({ from: "LET", to: "KGX", dep: at("2026-11-03", d), arr: at("2026-11-03", a) });
   useBoards({ "LET-KGX": { msgs: [], services: [mk("07:10", "07:40"), mk("07:30", "08:20"), mk("07:40", "08:10")] }, "LET-ZFD": { msgs: [], services: [] } });
   const realNow = Date.now; Date.now = () => now;
   try {
     const list = c.ranked(now);
-    assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:40", "07:30"], "07:10 is too soon; 07:40 fast beats 07:30 stopper");
+    assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:30", "07:40"], "07:10 is too soon; then leaving order");
+    assert.equal(list[0].first, true, "07:30 stopper is the one you'd catch by leaving now");
+    assert.equal(list[1].fastest, true, "07:40 fast gets there first");
+    assert.ok(list[1].flags.some((f) => f.txt === "Fastest"));
   } finally { Date.now = realNow; }
 });
 
@@ -190,4 +193,15 @@ test("TfL timetable: only direct trains between Letchworth and a London station 
   assert.equal(x.svc.operator, "Thameslink");
   assert.equal(c.trainFromJourney({ legs: [leg("Letchworth Garden City Rail Station", "Hitchin Rail Station", "2026-11-03T08:00:00", "2026-11-03T08:05:00"), leg("Hitchin Rail Station", "London Kings Cross Rail Station", "2026-11-03T08:10:00", "2026-11-03T08:40:00")] }), null);
   assert.equal(c.trainFromJourney({ legs: [leg("Cambridge Rail Station", "London Kings Cross Rail Station", "2026-11-03T08:00:00", "2026-11-03T08:50:00")] }), null);
+});
+
+test("Leave now card: the train you'd catch now, plus the faster one if it's worth waiting for", () => {
+  const now = Date.now(), m = 60e3;
+  const mk = (d, mins) => svc({ from: "LET", to: "KGX", dep: now + d * m, arr: now + (d + mins) * m });
+  useBoards({ "LET-KGX": { msgs: [], services: [mk(30, 52), mk(39, 29)] }, "LET-ZFD": { msgs: [], services: [] } });
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /52 min train/, "big answer is the stopper you'd catch by leaving now");
+  assert.match(hero, /Or leave at \d\d:\d\d for the \d\d:\d\d Great Northern: office \d\d:\d\d, 14 min sooner \(29 min train\)/);
+  assert.match(app.text("#listTitle"), /in leaving order/);
 });
