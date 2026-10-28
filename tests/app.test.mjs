@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { createApp, sleep, hang, json, parseJourneyUrl, tflJourney, tflTimetable, NEAR_LETCHWORTH, IN_LONDON, hm, closeAll } from "./harness.mjs";
 
 after(closeAll);
+const tomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+
 
 const pairsFetched = (calls) => [...new Set(calls.map(parseJourneyUrl).filter(Boolean).map((q) => `${q.from}-${q.to}`))].sort();
 
@@ -122,6 +124,8 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
     return { journeys: pick.map((x) => tflJourney(q.from, q.to, x.dep, x.arr)) };
   };
   const app = await createApp({ journeys, saved: { mode: "leisure" }, settings: { provider: "tfl", tflKey: "test-key" } });
+  const p = (n) => String(n).padStart(2, "0");
+  app.d.querySelector("#byDate").value = `${day.getFullYear()}-${p(day.getMonth() + 1)}-${p(day.getDate())}`;
   app.d.querySelector("#byTime").value = "08:16";
   app.d.querySelector('[data-view="by"]').click();
   await sleep(500);
@@ -205,5 +209,78 @@ test("With a TfL key, the key is sent and the timetable covers more trains", asy
   const journeyCalls = app.calls.filter((u) => parseJourneyUrl(u));
   assert.ok(journeyCalls.every((u) => /app_key=abc123/.test(u)));
   assert.ok(journeyCalls.length > 2);
+  app.close();
+});
+
+// ---------- Both routes, every time ----------
+// A realistic weekday morning: Great Northern to King's Cross (fast ~29–33 min, stopping ~52 min) and
+// Thameslink to Farringdon (~44 min). TfL "Arriving" returns the last three arriving by the time;
+// "Departing" the next three.
+function morning(day) {
+  const T = (hm) => new Date(`${day}T${hm}:00`).getTime();
+  const kgx = [["06:38", 52], ["06:47", 29], ["07:00", 52], ["07:08", 29], ["07:30", 33], ["07:38", 29], ["08:00", 52]];
+  const zfd = [["06:50", 44], ["07:20", 44], ["07:50", 44], ["08:20", 44]];
+  const list = { KGX: kgx, ZFD: zfd, STP: zfd };
+  return (q) => {
+    const trains = (list[q.to] || []).map(([d, m]) => ({ dep: T(d), arr: T(d) + m * 60e3 }));
+    const pick = q.timeIs === "Departing" ? trains.filter((x) => x.dep >= q.t).slice(0, 3) : trains.filter((x) => x.arr <= q.t).slice(-3);
+    return { journeys: pick.map((x) => tflJourney(q.from, q.to, x.dep, x.arr)) };
+  };
+}
+
+async function arriveBy(app, time, day = tomorrow()) {
+  app.d.querySelector("#byDate").value = day;
+  app.d.querySelector("#byTime").value = time;
+  app.d.querySelector('[data-view="by"]').click();
+  await sleep(500);
+}
+
+test("Arrive by 08:30 offers both the King's Cross and the Farringdon train (no TfL key)", async () => {
+  // Sam's settings: 5-minute change at King's Cross, which makes the 07:30 (arr 08:03) work for 08:30.
+  const app = await createApp({ journeys: morning(tomorrow()), settings: { provider: "tfl", kxInterchange: 300 } });
+  await arriveBy(app, "08:30");
+  const rows = app.rows();
+  assert.ok(rows.some((r) => /via King's Cross.*07:30 Great Northern/.test(r)), rows.join("\n"));
+  assert.ok(rows.some((r) => /via Farringdon.*07:20 Thameslink · 44 min train/.test(r)), "the 44-minute Thameslink is found:\n" + rows.join("\n"));
+  assert.doesNotMatch(app.banners().join(" "), /not loaded/);
+  app.close();
+});
+
+test("A TfL refusal after the first searches still leaves both routes in Arrive by", async () => {
+  let journeyCalls = 0;
+  const app = await createApp({ journeys: morning(tomorrow()), settle: 600,
+    route: (u) => { if (!parseJourneyUrl(u)) return undefined; journeyCalls++; return journeyCalls > 2 ? json({}, 429) : undefined; } });
+  journeyCalls = 0; // count only the Arrive by searches
+  await arriveBy(app, "08:30");
+  const rows = app.rows();
+  assert.ok(rows.some((r) => /via King's Cross/.test(r)) && rows.some((r) => /via Farringdon/.test(r)), rows.join("\n"));
+  assert.doesNotMatch(app.banners().join(" "), /not loaded/, "a route with data isn't reported missing");
+  app.close();
+});
+
+test("If a route can't load, the app says so and names what is shown", async () => {
+  // Opens on Arrive by; TfL refuses Farringdon searches for tomorrow only.
+  const day = tomorrow();
+  const app = await createApp({ journeys: morning(day), saved: { view: "by" },
+    route: (u) => { const q = parseJourneyUrl(u); return q && q.to === "ZFD" && new Date(q.t).getDate() === new Date(`${day}T12:00:00`).getDate() ? json({}, 429) : undefined; } });
+  await arriveBy(app, "08:30");
+  const text = app.banners().join(" ");
+  assert.match(text, /Farringdon trains not loaded.*Only King's Cross options are shown/);
+  assert.match(text, /Trying again at \d\d:\d\d/);
+  app.close();
+});
+
+test("Leave now keeps at least one option per route even when one route dominates", async () => {
+  const app = await createApp({ settings: { provider: "demo" } });
+  const c = app.c, now = Date.now(), m = 60e3;
+  const svc = (from, to, d, mins, op) => ({ from, to, std: hm(now + d * m), dep: now + d * m, arr: now + (d + mins) * m, depLate: 0, arrLate: 0,
+    depUnknown: false, arrUnknown: false, platform: null, operator: op, cancelled: false, reason: "", origin: "" });
+  c.state.saved.dirMode = "office";
+  c.state.boards = { "LET-KGX": { msgs: [], services: [40, 45, 50, 55, 60, 65].map((d) => svc("LET", "KGX", d, 29, "Great Northern")) },
+                     "LET-ZFD": { msgs: [], services: [svc("LET", "ZFD", 42, 44, "Thameslink")] } };
+  const list = c.ranked(now);
+  assert.equal(list.length, 5);
+  assert.ok(list.some((j) => j.hub === "ZFD"), "Farringdon option kept");
+  assert.equal(list.filter((j) => j.hub === "KGX").length, 4);
   app.close();
 });
