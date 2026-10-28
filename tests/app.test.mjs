@@ -593,5 +593,8 @@ test("Leave around: where the live board stops short, later trains come from the
   assert.match(app.text("#hero"), new RegExp(`live to ${hm(now + 100 * m)}, timetable after`));
   const rows = app.rows().join("\n");
   assert.ok(rows.includes(hm(now + 100 * m)) && rows.includes(hm(later)), rows);
+  const rowList = app.rows();
+  assert.match(rowList.find((r) => r.includes(hm(later))), /Timetable only: not live-checked/);
+  assert.doesNotMatch(rowList.find((r) => r.includes(hm(now + 100 * m))), /Timetable only/);
   app.close();
 });

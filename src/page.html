@@ -321,6 +321,8 @@ async function fetchLiveAhead(offsetMin){
 // whatever the start time). Latest live departure across the boards:
 const liveHorizon = boards => Math.max(0, ...Object.values(boards).flatMap(b=>b&&b.services?b.services.map(x=>x.dep):[]));
 // Timetable trains after the live horizon, added to the live boards (live wins where both exist).
+// In a mixed live + timetable list, say which trains haven't been checked against live running.
+function markTimetable(js){ js.forEach(j=>{ if(j.train.timetable) j.flags.push({lvl:"info",txt:"Timetable only: not live-checked"}); }); }
 function mergeBeyond(live, tt, hz){
   for(const [k,B] of Object.entries(tt)){ if(!B) continue;
     const L=live[k]=live[k]||{services:[],msgs:[]};
@@ -1251,6 +1253,7 @@ function atOptions(){
   js=js.filter(j=>j.leave>=a.T-15*60e3 && j.train.dep>=Date.now());
   js.forEach(j=>{ j.uncertain=!plannable(j.train);
     if(j.leave<a.T) j.flags.unshift({lvl:"warn",txt:`Leave ${Math.max(1,Math.round((a.T-j.leave)/60e3))} min before ${hhmm(a.T)}`}); });
+  if(a.liveTo) markTimetable(js);
   js=mergeSameTrain(js);
   // "Around" = leaving up to 10 minutes before your time, or any time after.
   topPicks(js.filter(j=>j.leave>=a.T-10*60e3),"now").forEach(j=>{ j.recommended=true; });
@@ -1334,6 +1337,7 @@ function byOptions(){
   // Only plan from where you are when the target is within the next 3 hours.
   let js=build(direction(), Date.now(), {here: b.T-Date.now()<=3*3600e3}); state.boards=keep;
   js=liveAdjust(js, Date.now());
+  if(b.liveTo) markTimetable(js);
   // Every loaded train is listed: the ones that get you there in time and the ones that would make you late.
   js=mergeSameTrain(js);
   const onTime=js.filter(j=>j.arrive<=b.T), late=js.filter(j=>j.arrive>b.T);
