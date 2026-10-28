@@ -494,7 +494,7 @@ test("Trains from St Pancras are kept on the King's Cross route; dropped journey
   assert.ok(rows.some((r) => /via (St Pancras or Farringdon|Farringdon or St Pancras).*Thameslink.*Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/.test(r)), "merged Thameslink:\n" + rows.join("\n"));
   assert.ok(rows.some((r) => /via King's Cross.*Great Northern/.test(r)));
   const diag = app.text("#diagBody");
-  assert.match(diag, /King's Cross → Letchworth: 1 search; TfL returned 3 journeys; 2 direct trains kept; 1 with a change of train/);
+  assert.match(diag, /King's Cross → Letchworth, timetable: 1 search; TfL returned 3 journeys; 2 direct trains kept \(\d\d:\d\d St Pancras, \d\d:\d\d King's Cross\); 1 with a change of train/);
   app.close();
 });
 
@@ -596,5 +596,10 @@ test("Leave around: where the live board stops short, later trains come from the
   const rowList = app.rows();
   assert.match(rowList.find((r) => r.includes(hm(later))), /Timetable only: not live-checked/);
   assert.doesNotMatch(rowList.find((r) => r.includes(hm(now + 100 * m))), /Timetable only/);
+  assert.equal(app.d.querySelector("#diag").hidden, false, "Why these trains? is shown for a mixed plan");
+  const diag = app.text("#diagBody");
+  assert.match(diag, new RegExp(`King's Cross → Letchworth, live board: 1 train: ${hm(now + 100 * m)}`));
+  assert.match(diag, /later trains come from TfL's timetable/);
+  assert.match(diag, new RegExp(`King's Cross → Letchworth, timetable: .*${hm(later)} King's Cross`));
   app.close();
 });

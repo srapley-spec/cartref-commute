@@ -501,11 +501,11 @@ function routeCount(k, all){
 // Why a journey from TfL isn't a direct train between Letchworth and a London station.
 function addJourneys(boards, js, key){
   let last=0;
-  const d = key ? (state.diag[key]=state.diag[key]||{searches:0,returned:0,kept:0,dropped:{}}) : null;
+  const d = key ? (state.diag[key]=state.diag[key]||{searches:0,returned:0,kept:0,dropped:{},trains:[]}) : null;
   if(d) d.searches++;
   js.forEach(j=>{ const x=trainFromJourney(j);
     if(d){ d.returned++; if(x) d.kept++; else { const r=dropReason(j); d.dropped[r]=(d.dropped[r]||0)+1; } }
-    if(!x) return; const B=boards[x.key]=boards[x.key]||{services:[],msgs:[]};
+    if(!x) return; if(d) d.trains.push(`${x.svc.std} ${STATIONS[x.svc.from]}`); const B=boards[x.key]=boards[x.key]||{services:[],msgs:[]};
     if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); });
   return last;
 }
@@ -1103,15 +1103,30 @@ function renderList(list, now, opts){
     </div>`).join("");
 }
 // What TfL returned for each route search and what was kept, so a short list can be explained.
+// "Why these trains?": what each source returned for the plan on screen, so a short or odd list can be explained.
 function renderDiag(){
   const el=$("#diag"), d=state.diag||{}, keys=Object.keys(d);
-  if(!keys.length || state.railSource!=="tfl"){ el.hidden=true; return; }
+  const v=state.saved.view, plan=v==="at"?state.at:v==="by"?state.by:null;
+  const liveBoards = plan ? (plan.live?plan.boards:null) : (state.railSource==="darwin"?state.boards:null);
+  const liveTo = plan && plan.liveTo;
+  const uniq=a=>[...new Set(a)];
+  const parts=[];
+  if(liveBoards) Object.entries(liveBoards).forEach(([k,B])=>{ if(!B) return; const [a,b]=k.split("-");
+    const live=B.services.filter(t=>!t.timetable);
+    if(live.length || livePairs().some(p=>p.join("-")===k))
+      parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, live board:</b> ${live.length} train${live.length===1?"":"s"}${live.length?`: ${live.map(t=>`${esc(t.std)}${t.cancelled?" (cancelled)":""}`).join(", ")}`:""}.</p>`); });
+  if(liveTo) parts.push(`<p>The live board reached ${hhmm(liveTo)}; later trains come from TfL's timetable:</p>`);
+  const showTt = keys.length && (state.railSource==="tfl" || (plan && (!plan.live || liveTo)));
+  if(showTt){
+    const why={"change of train":"with a change of train (not shown yet, see the Hitchin/Stevenage backlog item)","other station":"to or from a station the app doesn't plan (not shown)","no train":"with no train (not shown)"};
+    keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
+      const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
+      parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
+    parts.push(`<p>${tflKeyed()?"With a TfL key the app searches further ahead.":"Without a TfL key each route gets one or two searches, so only the next few trains are found. A free TfL key in Settings widens this."}</p>`);
+  }
+  if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
-  const why={"change of train":"with a change of train (not shown yet, see the Hitchin/Stevenage backlog item)","other station":"to or from a station the app doesn't plan (not shown)","no train":"with no train (not shown)"};
-  $("#diagBody").innerHTML = keys.map(k=>{ const x=d[k], [a,b]=k.split("-");
-    const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
-    return `<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${dropped?`; ${esc(dropped)}`:""}.</p>`; }).join("")
-    + `<p>${tflKeyed()?"With a TfL key the app searches further ahead.":"Without a TfL key each route gets one or two searches, so only the next few trains are found. A free TfL key in Settings widens this."}</p>`;
+  $("#diagBody").innerHTML=parts.join("");
 }
 function renderStatus(){
   const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
