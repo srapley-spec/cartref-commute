@@ -42,8 +42,13 @@ export function topPicks<T extends Option>(options: T[], view: "by" | "now"): T[
 export function mergeSameTrain<T extends Option>(js: T[], dir: Direction, profile: Profile): T[] {
   const out: T[] = [], used = new Set<T>();
   const mergeable = (h: string) => profile.mergeHubs.includes(h);
+  // Same train: one's stops include the other's station at that station's time; or (no stops known) the same
+  // operator and the same home-station time.
+  const callsAt = (x: T, y: T) => (x.train.calls || []).some(c => c.code === y.hub && c.t != null &&
+    Math.abs(c.t - (dir === "office" ? (y.train.arr ?? 0) : y.train.dep)) <= 60e3);
   const sameRun = (a: T, b: T) => a !== b && a.train.operator === b.train.operator && a.hub !== b.hub && mergeable(a.hub) && mergeable(b.hub) &&
-    Math.abs(dir === "office" ? a.train.dep - b.train.dep : (a.train.arr ?? 0) - (b.train.arr ?? 0)) <= 60e3;
+    (callsAt(a, b) || callsAt(b, a) ||
+     Math.abs(dir === "office" ? a.train.dep - b.train.dep : (a.train.arr ?? 0) - (b.train.arr ?? 0)) <= 60e3);
   for (const j of js) {
     if (used.has(j)) continue;
     const group = [j, ...js.filter(o => !used.has(o) && sameRun(j, o))];

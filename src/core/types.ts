@@ -3,6 +3,9 @@
 export type LatLon = [number, number];
 export type StationCode = string;            // e.g. "LET", "KGX", "STP", "ZFD"
 
+/** A station a train calls at. `t` is the time there when known (timetabled or live). */
+export interface Call { name: string; code?: string | null; t?: number | null; }
+
 /** One train between two stations as the app uses it. */
 export interface Train {
   from: StationCode;
@@ -20,6 +23,7 @@ export interface Train {
   reason: string;
   origin?: string;         // where the train started (Darwin only)
   timetable?: boolean;     // from the timetable, not live
+  calls?: Call[];          // every stop from `from` to `to`, in order, both ends included
 }
 
 export interface Board { services: Train[]; msgs: string[]; }

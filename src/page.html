@@ -810,17 +810,16 @@ function ranked(now){
 }
 
 // ---------- Rendering ----------
-// "Same train from St Pancras: leave 17:34, departs 18:01" (or, to work, where you'd get off instead).
+// One train, two London stations, said on the card without expanding:
+// home "Board at Farringdon 17:56 or St Pancras 18:01"; to work "Get off at Farringdon 07:58 or St Pancras 08:03".
 function altLines(j){
   if(!j.alts || !j.alts.length) return "";
   return `<div class="altstop">${altText(j)}</div>`;
 }
-// "Same train from St Pancras: departs 18:01" (home) / "Same train at St Pancras: arrives 08:03" (to work).
 function altText(j){
-  const home=direction()!=="office";
-  return (j.alts||[]).map(a=> home
-    ? `Same train from <b>${esc(HUB_NAME[a.hub])}</b>: departs <span class="t">${hhmm(a.train.dep)}</span>`
-    : `Same train at <b>${esc(HUB_NAME[a.hub])}</b>: arrives <span class="t">${hhmm(a.train.arr)}</span>`).join(" · ");
+  const home=direction()!=="office", at=x=>home?x.train.dep:x.train.arr;
+  const all=[j,...(j.alts||[])].sort((a,b)=>at(a)-at(b));
+  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> <span class="t">${hhmm(at(x))}</span>`).join(" or ");
 }
 function chips(j){
   if(j.leisure){
@@ -852,7 +851,7 @@ function optionBlock(j, opt){
     <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
-    <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
+    <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
 function renderOnTrain(now, m){
@@ -874,7 +873,7 @@ function renderOnTrain(now, m){
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}</span></div>
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> projected · timetable <span class="t">${hhmm(t.arr)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
-    ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
+    ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
     <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;

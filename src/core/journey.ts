@@ -23,7 +23,12 @@ export interface Route {
   extra?: Record<string, unknown>;   // carried onto each option (screen-specific data)
 }
 
-export interface Leg { t: number; d: string; note?: string; tube?: boolean; train?: boolean; }
+export interface Leg { t: number | null; d: string; note?: string; tube?: boolean; train?: boolean; calls?: boolean; }
+
+/** "Farringdon 17:56 · St Pancras 18:01 · Finsbury Park · … · Letchworth 18:39" */
+export function callsText(t: Train): string {
+  return (t.calls || []).map(c => c.t != null ? `${c.name} ${hhmm(c.t)}` : c.name).join(" · ");
+}
 
 const total = (segs: Segment[]): number => segs.reduce((s, x) => s + x.secs, 0) * 1000;
 /** Time from leaving to standing on the platform (ms). */
@@ -67,6 +72,7 @@ export function buildOptions(routes: Route[], boards: Record<string, Board | und
       walkSteps(r.before, leave, legs);
       const depNote = [r.depNotePrefix || "", t.platform ? `platform ${t.platform}` : (r.noPlatform || "")].filter(Boolean).join(", ");
       legs.push({ t: t.dep, d: `${t.std}${t.depLate ? ` (exp ${hhmm(t.dep)})` : ""} ${t.operator || "train"} from ${r.fromName}`, note: depNote, train: true });
+      if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t), calls: true });
       legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
       walkSteps(r.after, t.arr, legs);
       out.push({ ...(r.extra || {}), hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile) } as Option);

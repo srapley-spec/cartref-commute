@@ -316,8 +316,8 @@ test("The same Thameslink from Farringdon and St Pancras is one option with both
   c.render();
   const hero = app.text("#hero");
   assert.match(hero, /via (St Pancras or Farringdon|Farringdon or St Pancras)/);
-  assert.match(hero, /Same train from (St Pancras|Farringdon): departs \d\d:\d\d/);
+  assert.match(hero, /Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/);
   assert.doesNotMatch(hero, /: leave \d\d:\d\d, departs/);
   assert.equal(app.d.querySelectorAll("#hero .opt").length, 2, "card shows Thameslink once plus King's Cross");
-  assert.match(app.rows().join(" "), /Same train from (St Pancras|Farringdon): departs \d\d:\d\d/);
+  assert.match(app.rows().join(" "), /Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/);
 });

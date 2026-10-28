@@ -1,5 +1,5 @@
 // TfL Journey Planner journeys → direct trains between the home station and a London station.
-import type { Profile, StationCode, Train } from "../types";
+import type { Call, Profile, StationCode, Train } from "../types";
 import { hhmm, mins } from "../time";
 
 type Leg = any;
@@ -10,6 +10,12 @@ export function stationOf(name: string | null | undefined, profile: Profile): St
   const n = String(name || "");
   for (const [code, re] of Object.entries(profile.stationPatterns)) if (new RegExp(re, "i").test(n)) return code;
   return null;
+}
+
+/** A TfL station name as people say it: profile short name when known, else without "Rail Station" etc. */
+export function stationLabel(name: string | null | undefined, profile: Profile): string {
+  const code = stationOf(name, profile); if (code && profile.stationNames[code]) return profile.stationNames[code];
+  return String(name || "").replace(/\s+(Rail|Railway|Underground|DLR)?\s*Station$/i, "").replace(/^London\s+(?=\S)/, "").trim();
 }
 
 const railLegs = (j: Journey): Leg[] => (j.legs || []).filter(l => l.mode && l.mode.id === "national-rail");
@@ -28,10 +34,15 @@ export function trainFromTflJourney(j: Journey, profile: Profile, toText: (h: st
   const hub = a === profile.home ? b : a;
   const operator = /thameslink/i.test(text) ? "Thameslink" : /great northern/i.test(text) ? "Great Northern" : (profile.operatorByHub[hub] || "");
   const msgs = (l.disruptions || []).map((d: any) => toText(d.description)).filter(Boolean);
+  // Every stop: TfL lists them on the leg's path (no times at intermediate stops).
+  const label = (n: string) => stationLabel(n, profile);
+  const first = label(l.departurePoint && l.departurePoint.commonName), last = label(l.arrivalPoint && l.arrivalPoint.commonName);
+  const mid = ((l.path && l.path.stopPoints) || []).map((sp: any) => label(sp.name || sp.commonName)).filter((n: string) => n && n !== first && n !== last);
+  const calls: Call[] = [{ name: first, code: a, t: dep }, ...mid.map((n: string) => ({ name: n, code: stationOf(n, profile), t: null })), { name: last, code: b, t: arr }];
   return {
     key: `${a}-${b}`, msgs,
     svc: { from: a, to: b, std: hhmm(isFinite(sched) ? sched : dep), dep, depLate: isFinite(sched) ? Math.max(0, mins(dep - sched)) : 0, depUnknown: false,
-      arr, arrLate: 0, platform: null, operator, cancelled: false, reason: "", timetable: true },
+      arr, arrLate: 0, platform: null, operator, cancelled: false, reason: "", timetable: true, calls },
   };
 }
 
