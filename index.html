@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 15:26 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 15:40 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -834,7 +834,7 @@ function mergeBeyond(live, tt, hz){
 }
 // The timetable search may find a train at one London station but not the same train at the other.
 // Look for it: one extra search per missing station, near when it should be. The result decides; nothing is assumed.
-async function completePairs(boards){
+async function completePairs(boards, diag){
   if(!tflKeyed()) return 0;
   const dir=direction(), hubs=PROFILE.mergeHubs, key=h=>dir==="office"?`LET-${h}`:`${h}-LET`;
   const same=(a,b)=>a.operator===b.operator && a.arr!=null && b.arr!=null && Math.abs(dir==="office"?a.dep-b.dep:a.arr-b.arr)<=60e3;
@@ -847,7 +847,7 @@ async function completePairs(boards){
   let n=0;
   for(const q of asks.slice(0,6)){
     const [a,b]=q.k.split("-");
-    try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.k); n++; }
+    try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.k, diag); n++; }
     catch(e){ break; }
   }
   Object.values(boards).forEach(B=>{ if(B&&B.services) B.services.sort((x,y)=>x.dep-y.dep); });
@@ -1001,9 +1001,9 @@ function routeCount(k, all){
   return ((all[k]||{services:[]}).services.length) + (twin&&all[twin]?all[twin].services.length:0);
 }
 // Why a journey from TfL isn't a direct train between Letchworth and a London station.
-function addJourneys(boards, js, key){
+function addJourneys(boards, js, key, diag){
   let last=0;
-  const d = key ? (state.diag[key]=state.diag[key]||{searches:0,returned:0,kept:0,dropped:{},trains:[]}) : null;
+  const d = key && diag ? (diag[key]=diag[key]||{searches:0,returned:0,kept:0,dropped:{},trains:[]}) : null;
   if(d) d.searches++;
   js.forEach(j=>{ const x=trainFromJourney(j);
     if(d){ d.returned++; if(x) d.kept++; else { const r=dropReason(j); d.dropped[r]=(d.dropped[r]||0)+1; } }
@@ -1015,20 +1015,20 @@ function addJourneys(boards, js, key){
 // TfL refusal. Returns which routes got no data at all, with the reason.
 async function searchRoutes(keys, rounds){
   const boards={}, ok={}, why={}; keys.forEach(k=>{ boards[k]={services:[],msgs:[]}; });
-  state.diag={};
+  const diag={};   // per search run, so two runs at once can't mix their explanations
   let stopped=null;
   for(const round of rounds){
     for(const k of keys){
       if(stopped){ why[k]=why[k]||stopped; continue; }
       const q=round(k, boards[k], boards); if(!q) continue;
       const [a,b]=k.split("-");
-      try{ addJourneys(boards, await tflJourneys(a,b,q.t,q.timeIs), k); ok[k]=true; }
+      try{ addJourneys(boards, await tflJourneys(a,b,q.t,q.timeIs), k, diag); ok[k]=true; }
       catch(e){ why[k]=e.message; if(e.rateLimited||e.timeout||e.network) stopped=e.message; }
     }
   }
   Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
   const failed={}; keys.forEach(k=>{ if(!ok[k]) failed[k]=why[k]||"No trains found."; });
-  return {boards, failed};
+  return {boards, failed, diag};
 }
 function scheduleRouteRetry(){
   clearTimeout(state.retryTimer);
@@ -1056,10 +1056,10 @@ async function fetchTflBoards(){
     (k,B,all)=> !tflKeyed() && routeCount(k,all)<2 && !state.onLine ? {t:start(k)+30*60e3, timeIs:"Departing"} : null ];
   if(tflKeyed()) for(let i=0;i<2;i++) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0;
     return last && last<now+2*3600e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
-  const {boards, failed}=await searchRoutes(keys, rounds);
-  await completePairs(boards);
+  const {boards, failed, diag}=await searchRoutes(keys, rounds);
+  await completePairs(boards, diag);
   if(Object.keys(failed).length===keys.length) throw new Error(Object.values(failed)[0]);
-  return {boards, failed};
+  return {boards, failed, diag};
 }
 
 function missingCreds(){
@@ -1607,8 +1607,9 @@ function renderList(list, now, opts){
 // What TfL returned for each route search and what was kept, so a short list can be explained.
 // "Why these trains?": what each source returned for the plan on screen, so a short or odd list can be explained.
 function renderDiag(){
-  const el=$("#diag"), d=state.diag||{}, keys=Object.keys(d);
-  const v=state.saved.view, plan=v==="at"?state.at:v==="by"?state.by:null;
+  const el=$("#diag"), v=state.saved.view, plan=v==="at"?state.at:v==="by"?state.by:null;
+  // The explanation belongs to what's on screen: this plan's own searches, or Leave now's.
+  const d=(plan ? plan.diag : (state.railSource==="tfl" ? state.nowDiag : null))||{}, keys=Object.keys(d);
   const liveBoards = plan ? (plan.live?plan.boards:null) : (state.railSource==="darwin"?state.boards:null);
   const liveTo = plan && plan.liveTo;
   const uniq=a=>[...new Set(a)];
@@ -1618,13 +1619,13 @@ function renderDiag(){
     if(live.length || livePairs().some(p=>p.join("-")===k))
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, live board:</b> ${live.length} train${live.length===1?"":"s"}${live.length?`: ${live.map(t=>`${esc(t.std)}${t.cancelled?" (cancelled)":""}`).join(", ")}`:""}.</p>`); });
   if(liveTo) parts.push(`<p>The live board reached ${hhmm(liveTo)}; later trains come from TfL's timetable:</p>`);
-  const showTt = keys.length && (state.railSource==="tfl" || (plan && (!plan.live || liveTo)));
+  const showTt = keys.length>0;
   if(showTt){
     const why={"change of train":"with a change of train (not shown yet, see the Hitchin/Stevenage backlog item)","other station":"to or from a station the app doesn't plan (not shown)","no train":"with no train (not shown)"};
     keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
       const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
-    parts.push(`<p>${tflKeyed()?"With a TfL key the app searches further ahead.":"Without a TfL key each route gets one or two searches, so only the next few trains are found. A free TfL key in Settings widens this."}</p>`);
+    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. A free TfL key in Settings widens this.</p>`);
   }
   if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
@@ -1735,7 +1736,7 @@ async function planAt(){
   if(!isFinite(T)){ state.at={err:"Pick a day and time."}; render(); return; }
   const key=`at|${T}|${state.saved.mode}|${direction()}`; state.atCache=state.atCache||{};
   const hit=state.atCache[key];
-  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live,liveTo:hit.liveTo}; render(); return; }
+  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live,liveTo:hit.liveTo,diag:hit.diag}; render(); return; }
   state.at={T,loading:true}; render();
   // Same searches as Leave now, as if it were that time: from the first train you could catch, then the next ones.
   const start = k => T+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
@@ -1751,12 +1752,12 @@ async function planAt(){
       if(r){ const hz=liveHorizon(r.boards);
         if(hz < T+100*60e3){
           const tt=await searchRoutes(boardKeys(), [k=>({t:Math.max(hz,T)+60e3, timeIs:"Departing"}), ...rounds.slice(1)]);
-          await completePairs(tt.boards); mergeBeyond(r.boards, tt.boards, hz); r.liveTo=hz; } }
+          await completePairs(tt.boards, tt.diag); mergeBeyond(r.boards, tt.boards, hz); r.liveTo=hz; r.diag=tt.diag; } }
     }
-    if(!r){ r=await searchRoutes(boardKeys(), rounds); await completePairs(r.boards); }
+    if(!r){ r=await searchRoutes(boardKeys(), rounds); await completePairs(r.boards, r.diag); }
     if(state.atToken!==token) return;
-    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live,liveTo:r.liveTo};
-    state.at={T,boards:r.boards,failed:r.failed,live:!!r.live,liveTo:r.liveTo};
+    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live,liveTo:r.liveTo,diag:r.diag};
+    state.at={T,boards:r.boards,failed:r.failed,live:!!r.live,liveTo:r.liveTo,diag:r.diag};
     if(Object.keys(r.failed).length) scheduleRouteRetry();
   }catch(e){ if(state.atToken!==token) return; state.at={T,err:e.message}; }
   render();
@@ -1808,7 +1809,7 @@ async function fetchTflArriving(T, keys){
     const deps=B.services.map(s=>s.dep).filter(d=>d<latest(k)); const last=deps.length?Math.max(...deps):0;
     return last && last<latest(k)-20*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
   const r=await searchRoutes(keys||boardKeys(), rounds);
-  await completePairs(r.boards);
+  await completePairs(r.boards, r.diag);
   return r;
 }
 async function planBy(opts){
@@ -1821,18 +1822,19 @@ async function planBy(opts){
   if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
   if(canLiveAhead() && T-120*60e3-Date.now()<=119*60e3){
     const lkey=`live|${T}|${direction()}`; state.byCache=state.byCache||{}; const h=state.byCache[lkey];
-    if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true,liveTo:h.liveTo}; render(); return; }
+    if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true,liveTo:h.liveTo,diag:h.diag}; render(); return; }
     try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(state.byToken!==token) return;
       // Live board stops short of your arrival time: fill the rest from the timetable.
       const hz=liveHorizon(r.boards); let liveTo=null;
-      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; }
-      state.byCache[lkey]={boards:r.boards,at:Date.now(),liveTo}; state.by={T,boards:r.boards,failed:{},live:true,liveTo}; render(); return; }
+      let diag=null;
+      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; diag=tt.diag; }
+      state.byCache[lkey]={boards:r.boards,at:Date.now(),liveTo,diag}; state.by={T,boards:r.boards,failed:{},live:true,liveTo,diag}; render(); return; }
     catch(e){ /* fall through to the timetable */ }
   }
   const key=`${T}|${state.saved.mode}|${direction()}`; state.byCache=state.byCache||{};
   const hit=state.byCache[key];
   // Reuse a complete result for 10 minutes; an incomplete one only fills in its missing routes.
-  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<10*60e3){ state.by={T,boards:hit.boards,failed:{},live:false}; render(); return; }
+  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<10*60e3){ state.by={T,boards:hit.boards,failed:{},live:false,diag:hit.diag}; render(); return; }
   const fetchKeys = hit && Object.keys(hit.failed).length ? Object.keys(hit.failed) : null;
   if(!missingOnly || !hit) { state.by={T,loading:!hit,boards:hit&&hit.boards,failed:hit?hit.failed:{},live:false}; render(); }
   try{
@@ -1841,8 +1843,8 @@ async function planBy(opts){
     const boards=Object.assign({}, hit?hit.boards:{}, ...Object.keys(r.boards).filter(k=>!r.failed[k]).map(k=>({[k]:r.boards[k]})));
     boardKeys().forEach(k=>{ boards[k]=boards[k]||{services:[],msgs:[]}; });
     const failed=fetchKeys ? Object.fromEntries(fetchKeys.filter(k=>r.failed[k]).map(k=>[k,r.failed[k]])) : r.failed;
-    state.byCache[key]={boards,failed,at:Date.now()};
-    state.by={T,boards,failed,live:false};
+    state.byCache[key]={boards,failed,at:Date.now(),diag:r.diag};
+    state.by={T,boards,failed,live:false,diag:r.diag};
     if(Object.keys(failed).length) scheduleRouteRetry();
   }catch(e){ if(state.byToken!==token) return; state.by={T,err:e.message}; }
   render();
@@ -1961,7 +1963,7 @@ function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); state.boardsSo
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
   try{
-    const {boards,failed}=await fetchTflBoards();
+    const {boards,failed,diag}=await fetchTflBoards(); state.nowDiag=diag;
     // A route that failed keeps its last good trains if they are for the same direction.
     Object.keys(failed).forEach(k=>{ if(prev && prev[k] && prev[k].services.length) boards[k]=prev[k]; });
     setBoards(boards); state.routeFailed=failed;

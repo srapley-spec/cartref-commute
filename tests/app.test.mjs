@@ -376,7 +376,11 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · \d\d:\d\d/);
   assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
-  assert.match(hero, /Tube from King's Cross to Farringdon|Farringdon/);
+  // Farringdon trains are planned with the tube hop from King's Cross (whether or not one makes the card).
+  const zfd = app.c.buildJourneys("home", Date.now(), { here: true }).find((j) => j.hub === "ZFD");
+  assert.ok(zfd, "a Farringdon option exists");
+  assert.match(zfd.legs.map((l) => l.d).join(" | "), /Farringdon/);
+  assert.ok(app.rows().some((r) => /Farringdon/.test(r)), app.rows().join("\n"));
   assert.doesNotMatch(hero, /Leave office/);
   app.close();
 });
