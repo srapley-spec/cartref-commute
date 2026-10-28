@@ -283,6 +283,55 @@ const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
 const HUB_GEO = { KGX:[51.5308,-0.1238], ZFD:[51.5203,-0.1053] };
 const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
 const AT_HUB_KM = 0.4;
+// Approximate line from Letchworth to each London station, through the stations on the way (lat, lon).
+const LINE_NORTH=[[51.9799,-0.2290],[51.9533,-0.2635],[51.9017,-0.2071],[51.8667,-0.1876],[51.8233,-0.1920],[51.8010,-0.2040],
+  [51.7638,-0.2156],[51.6973,-0.1925],[51.6141,-0.1431],[51.5983,-0.1201],[51.5646,-0.1063]];
+const LINE={ KGX:[...LINE_NORTH,[51.5308,-0.1238]], STP:[...LINE_NORTH,[51.5307,-0.1257]], ZFD:[...LINE_NORTH,[51.5307,-0.1257],[51.5203,-0.1053]] };
+// How far along the line (0 = Letchworth, 1 = London station) a point is, and how far off the line.
+function lineProgress(pt, hub){
+  const L=LINE[hub], c=Math.cos(pt[0]*Math.PI/180), xy=q=>[(q[1])*111.32*c, q[0]*110.57];
+  const P=xy(pt); let total=0, best={off:1e9,at:0}; const seg=[];
+  for(let i=0;i<L.length-1;i++){ const d=km(L[i],L[i+1]); seg.push(d); total+=d; }
+  let run=0;
+  for(let i=0;i<L.length-1;i++){
+    const A=xy(L[i]), B=xy(L[i+1]), dx=B[0]-A[0], dy=B[1]-A[1], len2=dx*dx+dy*dy;
+    const t=Math.max(0,Math.min(1,((P[0]-A[0])*dx+(P[1]-A[1])*dy)/(len2||1)));
+    const off=Math.hypot(P[0]-(A[0]+t*dx), P[1]-(A[1]+t*dy));
+    if(off<best.off) best={off, at:run+t*seg[i]};
+    run+=seg[i];
+  }
+  return { frac: best.at/total, offKm: best.off };
+}
+// On the line between Letchworth and London (not at either end)?
+function onLine(){
+  if(!state.here || !(state.locAcc<=500) || state.atHub) return false;
+  // Only past Hitchin (so home, Letchworth and the Hitchin Road area never count) and close to the line.
+  const p=lineProgress(state.here,"KGX"); return p.offKm<1.0 && p.frac>0.1 && p.frac<0.97;
+}
+// Which train you are probably on: compare how far along the line you are with how far each train that has
+// left should be by now (straight-line timing between its departure and arrival).
+function whichTrain(now){
+  if(!state.onLine || !state.boards) return null;
+  const dir=direction(), cands=[];
+  for(const [k,B] of Object.entries(state.boards)){
+    for(const t of B.services||[]){
+      if(t.cancelled || t.dep==null || t.arr==null) continue;
+      const toLondon = t.from==="LET", hub = toLondon ? t.to : t.from;
+      if((dir==="office")!==toLondon || !LINE[hub]) continue;
+      if(t.dep>now+60e3 || t.arr<now-120e3) continue;
+      const len=t.arr-t.dep, pr=lineProgress(state.here,hub);
+      const mine = toLondon ? pr.frac : 1-pr.frac;           // how far along you are, from where the train started
+      const expected = Math.max(0,Math.min(1,(now-t.dep)/len));
+      cands.push({ t, hub, mine, offMin: Math.abs(expected-mine)*len/60e3, projected: now+(1-mine)*len });
+    }
+  }
+  cands.sort((a,b)=>a.offMin-b.offMin);
+  if(!cands.length || cands[0].offMin>10) return { none:true };
+  const best=cands[0], next=cands.find(c=>c.t!==best.t);
+  best.sure = !next || next.offMin-best.offMin>=4;
+  best.other = best.sure ? null : next;
+  return best;
+}
 function hubHere(){ if(!state.here || !(state.locAcc<=250)) return null;
   for(const h of Object.keys(HUB_GEO)) if(km(state.here,HUB_GEO[h])<=AT_HUB_KM) return h; return null; }
 // All durations in seconds.
@@ -468,7 +517,8 @@ function earliestCatch(hub){
 async function fetchTflBoards(){
   const now=Date.now(), keys=boardKeys();
   // Each route starts at the first train you could still catch, so one search per route covers the next few.
-  const start = k => now+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
+  // On a train: start ~35 min back, so the train you're on is included.
+  const start = k => state.onLine ? now-35*60e3 : now+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
   const rounds=[ k=>({t:start(k), timeIs:"Departing"}) ];
   if(tflKeyed()) for(let i=0;i<2;i++) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0;
     return last && last<now+2*3600e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
@@ -858,6 +908,29 @@ function optionBlock(j, opt){
     <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
+function renderOnTrain(now, m){
+  const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
+  const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location</div>`;
+  if(!m || m.none){
+    $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>`;
+    return false;
+  }
+  const t=m.t, delay=Math.round((m.projected-t.arr)/60e3);
+  // Onward journey: the same plan as for this train, shifted by how early or late it is running.
+  const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
+  const j=js.find(x=>x.train===t); const shift=m.projected-t.arr;
+  const arrive = j ? j.arrive+shift : m.projected;
+  const where = dir==="office" ? STATIONS[m.hub] : "Letchworth";
+  const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
+  $("#hero").innerHTML=`${head}
+    <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
+    <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
+      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}</span></div>
+    <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> projected · timetable <span class="t">${hhmm(t.arr)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
+    ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
+    <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
+  return true;
+}
 function renderAtHub(now){
   const s=S(), hub=state.atHub, k=state.saved.pace==="fast"?s.fastFactor:1;
   const ic=(hub==="KGX"?s.kxInterchange:s.farInterchange)*k*1000, ride=(hub==="KGX"?s.rideKxAld:s.rideFarAld)*1000;
@@ -1148,6 +1221,10 @@ function render(){
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
   } else if(atHubToOffice()){
     renderAtHub(now);
+  } else if(state.onLine){
+    const m=whichTrain(now); renderOnTrain(now, m);
+    $("#listTitle").textContent="On the train";
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.</div><div></div></div>`;
   } else {
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
@@ -1202,7 +1279,7 @@ async function refresh(opts){
     else if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
     else if(state.railSource==="tfl"){
       // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
-      const reuse = !force && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
+      const reuse = !force && !state.onLine && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
       // Arrive by runs its own searches, so the Leave now trains aren't loaded while it's on screen.
       railP = (awaitingLocation()||reuse||state.saved.view==="by") ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
     }
@@ -1255,6 +1332,7 @@ function onPosition(p){
   else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
   else state.autoDir = dLet<=dAld ? "office" : "home";
   state.atHub=hubHere();
+  const wasOnLine=state.onLine; state.onLine=onLine();
   const where = state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
@@ -1263,7 +1341,7 @@ function onPosition(p){
   // trigger requests.
   const dirChanged = prev!==state.autoDir;
   // Arriving at (or leaving) a London station changes what is needed: reload once.
-  if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub) refresh({force:true});
+  if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub || wasOnLine!==state.onLine) refresh({force:true});
   render(); if(dirChanged) planBy();
 }
 function onPositionError(e){
@@ -1331,6 +1409,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

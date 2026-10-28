@@ -251,3 +251,36 @@ test("On the way to the station, the walk is worked out from where you are", () 
     assert.equal(c.walkFromHere(), null);
   } finally { c.state.here = null; }
 });
+
+test("On the train: works out which train from your position and projects arrival", () => {
+  const now = Date.now(), m = 60e3;
+  const knebworth = [51.8667, -0.1876];
+  const frac = c.lineProgress(knebworth, "KGX").frac;
+  assert.ok(frac > 0.2 && frac < 0.35, `Knebworth is about a quarter of the way: ${frac}`);
+  const fastDep = now - frac * 29 * m;                       // the fast train should be at Knebworth now
+  const fast = svc({ from: "LET", to: "KGX", dep: fastDep, arr: fastDep + 29 * m });
+  const stopper = svc({ from: "LET", to: "KGX", dep: now - 20 * m, arr: now + 32 * m });
+  useBoards({ "LET-KGX": { msgs: [], services: [stopper, fast] }, "LET-ZFD": { msgs: [], services: [] } });
+  c.state.autoDir = "office"; c.state.here = knebworth; c.state.locAcc = 20; c.state.atHub = null;
+  c.state.onLine = c.onLine();
+  try {
+    assert.equal(c.state.onLine, true);
+    const w = c.whichTrain(now);
+    assert.equal(w.t, fast); assert.equal(w.sure, true);
+    assert.ok(Math.abs(w.projected - fast.arr) < 60e3, "on time: projected arrival ≈ timetable");
+    c.render();
+    const hero = app.text("#hero");
+    assert.match(hero, new RegExp(`On the train · .*You're on the ${hm(fast.dep)} Great Northern`));
+    assert.match(hero, /projected at office/);
+    assert.match(hero, /King's Cross \d\d:\d\d projected · timetable \d\d:\d\d · on time/);
+    // Same place 5 minutes later than expected: the fast train is running about 5 min late.
+    const late = c.whichTrain(now + 5 * m);
+    assert.equal(late.t, fast);
+    assert.ok(Math.round((late.projected - fast.arr) / m) >= 4);
+    // Between Letchworth and Hitchin (where home is): never counted as on a train.
+    c.state.here = [51.9650, -0.2480]; assert.equal(c.onLine(), false);
+    c.state.here = [51.9790, -0.2300]; assert.equal(c.onLine(), false, "at Letchworth station");
+    // Away from the line (e.g. in Stevenage town, 2 km off): not on a train.
+    c.state.here = [51.9050, -0.1750]; assert.equal(c.onLine(), false);
+  } finally { c.state.here = null; c.state.onLine = false; }
+});
