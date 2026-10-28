@@ -1139,6 +1139,11 @@ function renderStatus(){
 }
 // Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
 const CORRIDOR=/\b(baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\.? pancras|farringdon)\b/i;
+// Station facilities (toilets, lifts, escalators, ticket office…) don't affect trains: always grey, unless the
+// notice also talks about trains or services being disrupted.
+const FACILITY=/\b(toilets?|lavator(y|ies)|escalators?|lifts?|elevators?|ticket (office|machines?|barriers?|gates?)|car ?park|parking|wi-?fi|waiting rooms?|caf[eé]s?|shops?|help points?|customer information|footbridge|entrances?|exits?|step[- ]free|baby chang\w*|accessib\w*|cycle (racks?|parking)|taxi rank)\b/i;
+const SERVICE=/\b(delay\w*|cancel\w*|disrupt\w*|suspend\w*|reduced service|special service|amended|alter\w* (service|timetable)|trains? (are|is|will|may|run|running|not)|services? (are|is|will|may|between)|line(s)? (is|are) (closed|blocked)|bus(es)? replace\w*|replacement bus\w*|engineering|signal\w*|track|power|strike|industrial action)\b/i;
+const facilityOnly = m => FACILITY.test(m) && !SERVICE.test(m);
 const NETWORK_WIDE=/\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
 function boardKeys(){
   const dir=direction(), leisure=state.saved.mode==="leisure";
@@ -1159,13 +1164,14 @@ function railWarnings(){
   const cancelled=svcs.filter(t=>t.cancelled);
   const affected=svcs.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
   const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
-  const onRoute=msgs.filter(m=>CORRIDOR.test(m)||NETWORK_WIDE.test(m));
-  const other=msgs.filter(m=>!onRoute.includes(m));
+  const facilities=msgs.filter(facilityOnly);
+  const onRoute=msgs.filter(m=>!facilityOnly(m) && (CORRIDOR.test(m)||NETWORK_WIDE.test(m)));
+  const other=msgs.filter(m=>!facilityOnly(m) && !onRoute.includes(m));
   const uncertain=svcs.filter(t=>!t.cancelled && (t.depUnknown||t.arrUnknown) && t.dep>=now-5*60e3);
   // How badly your own trains are hit: red = cancelled, no estimate or 15+ min late; amber = 5–14 min late.
   const late=Math.max(0,...svcs.filter(t=>!t.cancelled).map(t=>Math.max(t.depLate||0,t.arrLate||0)));
   const level = cancelled.length||uncertain.length||late>=15 ? "red" : late>=5 ? "amber" : "none";
-  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other, level, late };
+  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other, facilities, level, late };
 }
 function renderBanners(){
   const out=[];
@@ -1186,7 +1192,7 @@ function renderBanners(){
   const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
   if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
-  const elsewhere=[];
+  const elsewhere=[], facilities=[];
   if(state.boards){
     const tiers=railWarnings(), nowNote=planIsLater()?`<span class="msg">This is about trains running now (${hhmm(Date.now())}), not your ${esc(planLabel())} plan.</span>`:"";
     // Graded by what's happening to your own trains (red / amber); notices about your route with no impact on
@@ -1200,7 +1206,9 @@ function renderBanners(){
     (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(l.name)}"><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`));
     // Everything else: grey, folded.
     elsewhere.push(...tiers.other);
+    if(tiers.facilities.length) facilities.push(...tiers.facilities);
   }
+  if(facilities.length) out.push(`<div class="banner info"><details data-key="facilities"><summary>${facilities.length} station facility notice${facilities.length>1?"s":""} (toilets, lifts, escalators…)</summary>${facilities.map(m=>`<span class="msg">${linkify(m)}</span>`).join("")}</details></div>`);
   if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} notice${elsewhere.length>1?"s":""} elsewhere on the network</summary>${elsewhere.map(m=>`<span class="msg">${linkify(m)}</span>`).join("")}</details></div>`);
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
 }

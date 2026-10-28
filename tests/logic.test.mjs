@@ -376,3 +376,21 @@ test("On the train: the same train at two London stations is one candidate, so t
     if (w.other) assert.notEqual(w.other.t.operator, "Thameslink", "runner-up is not the same Thameslink at the other station");
   } finally { Date.now = realNow; c.state.here = null; c.state.onLine = false; }
 });
+
+test("Station facility notices (toilets, escalators, lifts) are grey even when trains are disrupted; a facility notice that also mentions train disruption is graded", () => {
+  const now = Date.now();
+  const mk = (m, extra) => svc(Object.assign({ from: "LET", to: "KGX", dep: now + m * MIN, arr: now + (m + 30) * MIN }, extra));
+  const msgs = ["The toilets on platform B at London St Pancras International are out of order.",
+    "The escalator between the concourse and platforms at Finsbury Park is unavailable. Please use the stairs or the lift.",
+    "Lifts at Stevenage are out of use. Step-free access is not available.",
+    "Due to a lift fault at Hitchin, trains are not stopping at platform 4 and services may be delayed.",
+    "Signal fault between Hitchin and Stevenage."];
+  useBoards({ "LET-KGX": { msgs, services: [mk(20, { depLate: 16 }), mk(50, { depLate: 9 })] }, "LET-ZFD": { msgs: [], services: [] } });
+  const w = c.railWarnings();
+  assert.equal(w.facilities.length, 3);
+  assert.deepEqual(plain(w.onRoute), [msgs[3], msgs[4]]);
+  c.render();
+  const b = [...app.d.querySelectorAll("#banners .banner")].map((x) => `${x.className.replace("banner ", "")}: ${x.querySelector("summary,b")?.textContent.trim()}`).filter((x) => !/Example trains/.test(x));
+  assert.deepEqual(b, ["bad: Your line is disrupted", "bad: Due to a lift fault at Hitchin, trains are not stopping at platform 4 and services may…",
+    "bad: Signal fault between Hitchin and Stevenage", "info: 3 station facility notices (toilets, lifts, escalators…)"]);
+});
