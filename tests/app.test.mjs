@@ -315,3 +315,59 @@ test("If no train arrives in time, the earliest late one is recommended and says
   assert.match(app.rows().join(" "), /No King's Cross or Farringdon train gets you there by 07:40/);
   app.close();
 });
+
+// ---------- At a London station ----------
+const AT_KINGS_CROSS = { coords: { latitude: 51.5309, longitude: -0.1236, accuracy: 15 } };
+async function moveTo(app, pos) {
+  app.w.navigator.geolocation.watchPosition = (ok) => { setTimeout(() => ok(pos), 5); return 9; };
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(500);
+}
+function tubeArrivals(now) {
+  const a = (lineId, platformName, dest, mins) => ({ lineId, platformName, destinationName: dest, expectedArrival: new Date(now + mins * 60e3).toISOString(), timeToStation: mins * 60 });
+  return [
+    a("hammersmith-city", "Eastbound - Platform 2", "Barking Underground Station", 3),
+    a("metropolitan", "Westbound - Platform 1", "Uxbridge Underground Station", 4),
+    a("circle", "Eastbound - Platform 2", "Edgware Road (Circle Line) Underground Station", 2),
+    a("metropolitan", "Eastbound - Platform 2", "Aldgate Underground Station", 8),
+    a("circle", "Eastbound - Platform 2", "Edgware Road (Circle Line) Underground Station", 12),
+  ];
+}
+
+test("Morning at King's Cross: which tube to get on and when you'll be at the office", async () => {
+  const app = await createApp({ geo: NEAR_LETCHWORTH,
+    route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(Date.now())) : undefined) });
+  assert.match(app.text("#dirNote"), /Heading to the office/);
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#dirNote"), /Heading to the office · you're at King's Cross/, "still heading to work, not flipped to home");
+  const hero = app.text("#hero");
+  assert.match(hero, /You're at King's Cross · \d\d:\d\d · live tube times/);
+  // Default 6 min to the platform: the Circle in 2 min is too soon, so the Met in 8 min is the one.
+  assert.match(hero, /Get on the Met to Aldgate eastbound, due \d\d:\d\d/);
+  const due = Date.now() + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
+  assert.match(hero, new RegExp(`${hm(office)} ?at the office`));
+  const rows = app.rows();
+  assert.equal(rows.length, 2, "Met in 8 and Circle in 12; not the H&C, westbound, or too-soon trains");
+  assert.match(app.text("#listTitle"), /Next Circle and Met trains to Aldgate/);
+  assert.ok(!app.calls.some((u, i) => parseJourneyUrl(u) && i > app.calls.findIndex((x) => /Arrivals/.test(x))), "no Letchworth train searches while at King's Cross");
+  app.close();
+});
+
+test("At King's Cross without live tube times: says so and estimates", async () => {
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/Arrivals/.test(u) ? json({}, 500) : undefined) });
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#hero"), /at the office · estimate.*Get on the next Circle or Met eastbound to Aldgate.*Live tube times unavailable/);
+  app.close();
+});
+
+test("Evening at King's Cross: trains home planned from the station, no walk from the office", async () => {
+  const app = await createApp({ geo: IN_LONDON });
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
+  const hero = app.text("#hero");
+  assert.match(hero, /You're at King's Cross · \d\d:\d\d/);
+  assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
+  assert.match(hero, /Tube from King's Cross to Farringdon|Farringdon/);
+  assert.doesNotMatch(hero, /Leave office/);
+  app.close();
+});

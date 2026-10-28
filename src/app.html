@@ -279,6 +279,12 @@ const STATIONS = { LET:"Letchworth", KGX:"King's Cross", STP:"St Pancras", ZFD:"
 const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
 const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
+// London stations where the journey changes between rail and tube; "at" a station = within 400 m.
+const HUB_GEO = { KGX:[51.5308,-0.1238], ZFD:[51.5203,-0.1053] };
+const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
+const AT_HUB_KM = 0.4;
+function hubHere(){ if(!state.here || !(state.locAcc<=250)) return null;
+  for(const h of Object.keys(HUB_GEO)) if(km(state.here,HUB_GEO[h])<=AT_HUB_KM) return h; return null; }
 // All durations in seconds.
 const DEFAULTS = {
   provider:"rdm",
@@ -526,6 +532,18 @@ function demoBoards(now){
 
 // ---------- TfL ----------
 const BAD_SEV=new Set([1,2,3,4,5,16,20]); // closed / suspended / part closure
+// Live Circle and Metropolitan departures eastbound (towards Aldgate) from King's Cross or Farringdon.
+async function fetchTubeArrivals(hub){
+  const r=await fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${TUBE_STOP[hub]}/Arrivals`);
+  if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
+  const now=Date.now();
+  return (await r.json())
+    .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /eastbound/i.test(a.platformName||""))
+    .map(a=>({ line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
+      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
+    .filter(a=>isFinite(a.t))
+    .sort((a,b)=>a.t-b.t);
+}
 async function fetchTfl(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
   if(!r.ok) throw new Error(`TfL status error (HTTP ${r.status}).`);
@@ -730,10 +748,29 @@ function walkFromHere(){
   const fromHome = leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg);
   return est<fromHome ? est : null;
 }
+const atHubToOffice = () => !!state.atHub && direction()==="office";
+// On the way home and at a London station: plan from that station. Trains from it need only the walk to the
+// platform; trains from the other station need the tube between them (King's Cross ⇄ Farringdon ~4 min).
+const PLATFORM_WALK={KGX:180, STP:300, ZFD:120}, HUB_HOP=240;
+function fromHubAdjust(js){
+  const at=state.atHub; if(!at || direction()!=="home") return;
+  const s=S(), k=state.saved.mode==="leisure"?s.leisureFactor:(state.saved.pace==="fast"?s.fastFactor:1);
+  const ic={KGX:s.kxInterchange, STP:s.stpInterchange, ZFD:s.farInterchange};
+  js.forEach(j=>{
+    const same = (at==="KGX" && (j.hub==="KGX"||j.hub==="STP")) || j.hub===at;
+    const need = same ? s.catchMargin + PLATFORM_WALK[j.hub]*k : s.catchMargin + ic[j.hub]*k + s.tubeWait + HUB_HOP + 120*k;
+    j.leave = j.train.dep - need*1000; j.fromHere=true;
+    const first = same ? {t:j.leave, d:`You're at ${HUB_NAME[at]}: go to the ${STATIONS[j.hub]} platform`, note:`about ${dur(PLATFORM_WALK[j.hub]*k*1000)}`}
+                       : {t:j.leave, d:`Tube from ${HUB_NAME[at]} to ${HUB_NAME[j.hub]}`, note:`about ${dur(HUB_HOP*1000)} ride, allows ${dur(s.tubeWait*1000)} wait and the change`};
+    const i=j.legs.findIndex(l=>l.tube);
+    j.legs = [first, ...j.legs.slice(i>=0?i+1:1)];
+  });
+}
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
 function liveAdjust(js, now){
   const s=S(), leisure=state.saved.mode==="leisure", k=leisure?s.leisureFactor:(state.saved.pace==="fast"?s.fastFactor:1);
+  fromHubAdjust(js);
   const hw=walkFromHere();
   if(hw!=null) js.forEach(j=>{
     j.leave = j.train.dep - (s.catchMargin + s.letEntry*k + hw)*1000; j.fromHere=true;
@@ -821,6 +858,47 @@ function optionBlock(j, opt){
     <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
+function renderAtHub(now){
+  const s=S(), hub=state.atHub, k=state.saved.pace==="fast"?s.fastFactor:1;
+  const ic=(hub==="KGX"?s.kxInterchange:s.farInterchange)*k*1000, ride=(hub==="KGX"?s.rideKxAld:s.rideFarAld)*1000;
+  const tail=(s.aldPlatform+s.aldWalk)*k*1000;
+  const tube=state.tube&&state.tube.hub===hub?state.tube:null;
+  const ready=now+ic;                                     // when you can be on the platform
+  const lineIssues=(state.status||[]).filter(l=>/^(circle|metropolitan)$/.test(l.id) && !lineOk(l)).map(l=>`${l.name}: ${worst(l).desc}`);
+  const issues=lineIssues.length?`<div class="flags">${lineIssues.map(t=>`<span class="pill warn">${esc(t)}</span>`).join(" ")}</div>`:"";
+  const head=`<div class="lbl">You're at ${esc(HUB_NAME[hub])} · ${hhmm(now)}${tube&&tube.arrivals?" · live tube times":""}</div>`;
+  let hero, rows=[];
+  if(tube && tube.arrivals && tube.arrivals.some(a=>a.t>=ready)){
+    const next=tube.arrivals.filter(a=>a.t>=ready).slice(0,6).map(a=>({...a, ald:a.t+ride, office:a.t+ride+tail}));
+    const n=next[0];
+    hero=`${head}
+      <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
+      <div><span class="slack">Get on the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span></span></div>
+      <ol class="legs">
+        <li class="t">${hhmm(now)}</li><li class="d">Walk to the Circle/Met eastbound platform <small>· about ${dur(ic)}</small></li>
+        <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
+        <li class="t">${hhmm(n.ald)}</li><li class="d">Aldgate <small>· about ${dur(ride)} ride</small></li>
+        <li class="t">${hhmm(n.office)}</li><li class="d">Arrive office <small>· walk ${dur(tail)}</small></li>
+      </ol>${issues}`;
+    rows=next;
+  } else {
+    const office=ready+s.tubeWait*1000+ride+tail;
+    const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle or Met trains listed." : "Loading live tube times…";
+    hero=`${head}
+      <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office · estimate</span></div>
+      <div><span class="slack">Get on the next Circle or Met eastbound to Aldgate</span></div>
+      <div class="note" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
+  }
+  $("#hero").innerHTML=hero;
+  $("#listTitle").textContent="Next Circle and Met trains to Aldgate";
+  $("#list").innerHTML = rows.length ? rows.map((a,i)=>`
+    <div class="row${i===0?" best":""}">
+      <div class="leave"><small>Train</small><span class="t">${hhmm(a.t)}</span></div>
+      <div class="mid"><div class="route"><span class="chip ${a.lineId==="circle"?"circle":"met"}">${esc(a.line)}</span> <span class="meta">to ${esc(a.dest||"Aldgate")}</span></div>
+        <div class="meta">Aldgate <span class="t">${hhmm(a.ald)}</span> · <span data-tube="${a.t}"></span></div></div>
+      <div class="arrive"><small>Office</small><span class="t">${hhmm(a.office)}</span></div>
+    </div>`).join("") : `<div class="row"><div></div><div class="mid meta">Live tube times will appear here.</div><div></div></div>`;
+}
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
   if(leisure && dir==="home" && !state.london){
@@ -840,7 +918,7 @@ function renderHero(list, now){
   const now1 = first && !picks.includes(first) ? `<div class="alt">Leaving right now? The <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)} (${dur(first.train.arr-first.train.dep)} train) gets you to ${esc(dest)} at <span class="t">${hhmm(first.arrive)}</span>, total ${dur(first.arrive-first.leave)}.</div>` : "";
   const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
   h.innerHTML = `
-    <div class="lbl">If you leave now · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best per route, by arrival</div>
+    <div class="lbl">${state.atHub&&dir==="home"?`You're at ${esc(HUB_NAME[state.atHub])}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best per route, by arrival</div>
     ${picks.map(j=>optionBlock(j,{timing:spare(j)})).join("")}
     ${now1}${hurry}`;
 }
@@ -1068,6 +1146,8 @@ function render(){
     if(b.boards && !b.loading && none.length && opts.length) $("#list").insertAdjacentHTML("beforeend", `<div class="row"><div></div><div class="mid meta">No ${esc(none.join(" or "))} train gets you there by ${hhmm(b.T)}.</div><div></div></div>`);
     $("#listTitle").textContent = isFinite(b.T) ? `Trains around ${hhmm(b.T)}, in leaving order` : "Options";
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
+  } else if(atHubToOffice()){
+    renderAtHub(now);
   } else {
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
@@ -1079,6 +1159,7 @@ function render(){
 function tick(){
   const now=Date.now();
   document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"leave time passed"; });
+  document.querySelectorAll("[data-tube]").forEach(e=>{ const ms=+e.dataset.tube-now; e.textContent = ms>30e3?`in ${countdown(ms)}`:"due now"; });
   document.querySelectorAll("[data-dep]").forEach(e=>{ const ms=+e.dataset.dep-now; e.textContent = ms>0?`train departs in ${countdown(ms)}`:"train has departed"; });
 }
 
@@ -1113,7 +1194,12 @@ async function refresh(opts){
     const nrP = () => (statusFresh || !tflKeyed()) ? Promise.resolve() : fetchNrStatus().then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
-    if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
+    if(atHubToOffice()){
+      const hub=state.atHub;
+      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; })
+        .catch(e=>{ state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
+    }
+    else if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
     else if(state.railSource==="tfl"){
       // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
       const reuse = !force && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
@@ -1160,16 +1246,24 @@ function onPosition(p){
   const here=[p.coords.latitude,p.coords.longitude], acc=Math.round(p.coords.accuracy||0);
   const moved=!state.here || km(state.here,here)>0.2;
   state.here=here; state.locAcc=acc; state.locStatus="ok";
-  const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir;
-  state.autoDir = dLet<=dAld ? "office" : "home";
-  const where = dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
+  const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir, prevHub=state.atHub;
+  // Direction: near Letchworth you're heading to work, near the office you're heading home. In between (e.g.
+  // at King's Cross) keep the direction of the journey you started, for up to 3 hours.
+  const trip=state.saved.trip;
+  if(dLet<3){ state.autoDir="office"; state.saved.trip={dir:"office",at:Date.now()}; save(); }
+  else if(dAld<1){ state.autoDir="home"; state.saved.trip={dir:"home",at:Date.now()}; save(); }
+  else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
+  else state.autoDir = dLet<=dAld ? "office" : "home";
+  state.atHub=hubHere();
+  const where = state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
   if(moved && state.saved.mode==="leisure" && !state.origin && (!state.londonAt || Date.now()-state.londonAt>60e3)){ state.londonAt=Date.now(); refreshLondon().then(render); }
   // Only a change of direction needs new trains; ordinary position updates (every few seconds) must not
   // trigger requests.
   const dirChanged = prev!==state.autoDir;
-  if(state.saved.dirMode==="auto" && dirChanged) refresh({force:true});
+  // Arriving at (or leaving) a London station changes what is needed: reload once.
+  if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub) refresh({force:true});
   render(); if(dirChanged) planBy();
 }
 function onPositionError(e){
@@ -1232,10 +1326,11 @@ if(!state.saved.settings.provider && !load().settings){ state.saved.settings={pr
 locate(); render(); refresh({force:true}).then(planBy);
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
+setInterval(()=>{ if(!document.hidden && atHubToOffice()) refresh(); },30e3);
 setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
