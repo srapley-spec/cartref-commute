@@ -41,7 +41,7 @@ See the architecture decision in the Commuter App project. In short:
 - Edit `src/core/**` or `src/page.html`, then `npm run build` and commit `index.html`. CI fails if it is stale.
 - Tests:
   - `tests/core/` — engine unit tests, run against Sam's profile **and a made-up corridor** (proves reuse), plus
-    randomised checks of rules that must always hold (never hide a train, one pick per route, ordered by arrival).
+    randomised checks of rules that must always hold (never hide a train, the card's alternative is never strictly worse and is within 20 minutes).
   - `tests/fixtures/` — Darwin and TfL response shapes. These are the contract a future native engine must also pass.
   - `tests/*.test.mjs` — end-to-end tests of the whole page with mocked network and location.
 
@@ -58,12 +58,16 @@ See the architecture decision in the Commuter App project. In short:
 - **Never hide a train.** Every train loaded for the routes is listed, in leaving order, with flags:
   Stopping train, Usually standing room only, Cutting it fine, Late by N min, delays, Cancelled, and
   Delayed with no estimate. Only trains already out of reach (you'd have to have left already) are left out.
-- **Top card:** the best option per route, ordered by arrival. Arrive by: the latest train on each route that
-  gets you there in time. Leave now: the earliest arrival on each route, plus the train you'd catch by
-  setting off this minute if it's a different one. Cancelled and "Delayed, no estimate" trains are listed but
-  never recommended.
+- **Top card:** the best train and the next best alternative, on any route (every route is weighed; none is
+  shown just because it's a different route). Leave now / Leave around: best = earliest arrival; next best =
+  the best of the trains that leave later (the one to fall back on), only if it arrives within 20 minutes of
+  the best (`topWindowMin` in the profile). Arrive by: best = the latest train that gets you there in time;
+  next best = an earlier train with more margin, leaving no more than 20 minutes before it. A train that leaves
+  earlier and arrives later than the best is never the alternative. If nothing qualifies, the card shows the
+  best alone; the list always has every train. Leave now also says which train you'd catch by setting off this
+  minute if it's a different one. Cancelled and "Delayed, no estimate" trains are listed but never recommended.
 - Each option shows leave time, arrival, route, train length and total door-to-door time.
-- **Leave around:** pick a time (default 17:40); the card shows the best option per route for leaving within
+- **Leave around:** pick a time (default 17:40); the card shows the best train (and the next best, as above) for leaving within
   10 minutes before that time or any time after; the list shows every train around then.
 - **Direction:** near Letchworth you're heading to work; once you've been at the office today, anywhere else
   counts as heading home for the rest of the day.

@@ -135,7 +135,7 @@ test("ranked() lists catchable trains in leaving order and marks the fastest", (
     assert.ok(!list[0].recommended);
     assert.equal(list[1].first, true, "07:30 stopper is the one you'd catch by leaving now");
     assert.equal(list[2].fastest, true, "07:40 fast gets there first");
-    assert.equal(list[2].recommended, true, "07:40 is King's Cross's best option for the top card");
+    assert.equal(list[2].recommended, 1, "07:40 is the best option for the top card");
   } finally { Date.now = realNow; }
 });
 
@@ -205,16 +205,17 @@ test("TfL timetable: only direct trains between Letchworth and a London station 
   assert.equal(c.trainFromJourney({ legs: [leg("Cambridge Rail Station", "London Kings Cross Rail Station", "2026-11-03T08:00:00", "2026-11-03T08:50:00")] }), null);
 });
 
-test("Leave now card: best per route by arrival, total time, and the train you'd catch right now", () => {
+test("Leave now card: best train, then the next best (same route allowed), total time, and the train you'd catch right now", () => {
   const now = Date.now(), m = 60e3;
   const mk = (to, d, mins, op) => svc({ from: "LET", to, dep: now + d * m, arr: now + (d + mins) * m, operator: op });
-  useBoards({ "LET-KGX": { msgs: [], services: [mk("KGX", 30, 52, "Great Northern"), mk("KGX", 39, 29, "Great Northern")] },
+  // Farringdon's 33 leaves earlier and arrives later than the King's Cross 39 fast: strictly worse, not shown on the card.
+  useBoards({ "LET-KGX": { msgs: [], services: [mk("KGX", 30, 52, "Great Northern"), mk("KGX", 39, 29, "Great Northern"), mk("KGX", 55, 29, "Great Northern")] },
               "LET-ZFD": { msgs: [], services: [mk("ZFD", 33, 44, "Thameslink")] } });
   c.render();
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
-  assert.equal(opts.length, 2, "one option per route");
-  assert.match(opts[0], /Great Northern · 29 min train · total \d+h \d\dm/, "King's Cross fast arrives first");
-  assert.match(opts[1], /Thameslink · 44 min train · total/, "then Farringdon");
+  assert.equal(opts.length, 2);
+  assert.match(opts[0], new RegExp(`${hm(now + 39 * m)} Great Northern · 29 min train · total \\d+h \\d\\dm`), "best: the fast one");
+  assert.match(opts[1], new RegExp(`${hm(now + 55 * m)} Great Northern · 29 min train`), "next best: the next fast one, same route");
   assert.match(app.text("#hero"), /Leaving right now\? The \d\d:\d\d Great Northern \(52 min train\)/);
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
 });

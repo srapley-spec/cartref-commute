@@ -280,7 +280,7 @@ test("If a route can't load, the app says so and names what is shown", async () 
   app.close();
 });
 
-test("Leave now lists every catchable train and puts each route's best on the card", async () => {
+test("Leave now lists every catchable train; the card has the best and the next best, here on the same route", async () => {
   const app = await createApp({ settings: { provider: "demo" } });
   const c = app.c, now = Date.now(), m = 60e3;
   const svc = (from, to, d, mins, op) => ({ from, to, std: hm(now + d * m), dep: now + d * m, arr: now + (d + mins) * m, depLate: 0, arrLate: 0,
@@ -290,7 +290,8 @@ test("Leave now lists every catchable train and puts each route's best on the ca
                      "LET-ZFD": { msgs: [], services: [svc("LET", "ZFD", 42, 44, "Thameslink")] } };
   const list = c.ranked(now);
   assert.equal(list.length, 7, "nothing hidden");
-  assert.deepEqual(JSON.parse(JSON.stringify(list.filter((j) => j.recommended).map((j) => j.hub).sort())), ["KGX", "ZFD"], "one pick per route");
+  assert.deepEqual(JSON.parse(JSON.stringify(list.filter((j) => j.recommended).map((j) => j.hub).sort())), ["KGX", "KGX"], "Farringdon arrives over 20 min later: not on the card");
+  assert.deepEqual(JSON.parse(JSON.stringify(list.filter((j) => j.recommended).sort((x, y) => x.recommended - y.recommended).map((j) => hm(j.train.dep)))), [hm(now + 40 * m), hm(now + 45 * m)]);
   app.close();
 });
 
@@ -305,11 +306,11 @@ test("Arrive by lists trains either side of the recommended one, including late 
   assert.ok(kx708 >= 0 && tl720 > kx708 && kx730 > tl720, "earlier options in leaving order:\n" + rows.join("\n"));
   assert.ok(kx738 > kx730 && tl750 > kx738, "late options after, labelled:\n" + rows.join("\n"));
   const best = [...app.d.querySelectorAll("#list .row.best")].map((r) => r.textContent.replace(/\s+/g, " "));
-  assert.equal(best.length, 2, "one recommended option per route");
+  assert.equal(best.length, 2, "the best and the next best");
   assert.ok(best.some((r) => /07:20 Thameslink/.test(r)) && best.some((r) => /07:30 Great Northern/.test(r)), best.join("\n"));
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
-  assert.match(opts[0], /07:20 Thameslink · 44 min train · total 1h \d\dm/, "Thameslink arrives first, so it's first on the card");
-  assert.match(opts[1], /07:30 Great Northern · 33 min train/);
+  assert.match(opts[0], /07:30 Great Northern · 33 min train/, "best: the latest train that gets you there");
+  assert.match(opts[1], /07:20 Thameslink · 44 min train · total 1h \d\dm/, "next best: an earlier train with more margin");
   assert.match(app.text("#hero"), /Arrive office ?08:\d\d.* · (\d+ min early|just in time)/);
   app.close();
 });
@@ -390,7 +391,7 @@ test("Live cards say the status of every line on the journey, including good ser
       st("hammersmith-city", "Hammersmith & City", 10, "Good Service")]);
     if (/national-rail\/Status/.test(u)) return json([st("great-northern", "Great Northern", 10, "Good Service"), st("thameslink", "Thameslink", 10, "Good Service")]);
     return undefined; } });
-  assert.match(app.text("#hero"), /Your lines: all good service.*Great Northern: Good Service.*Circle: Good Service.*Met: Good Service/);
+  assert.match(app.text("#hero"), /Your lines: all good service.*(Great Northern|Thameslink): Good Service.*Circle: Good Service.*Met: Good Service/);
   await moveTo(app, AT_KINGS_CROSS);
   assert.match(app.text("#hero"), /Your lines: all good service.*Circle: Good Service.*Met: Good Service/);
   metSev = 9;
@@ -498,7 +499,7 @@ test("Trains from St Pancras are kept on the King's Cross route; dropped journey
   app.close();
 });
 
-test("Leave around 17:40: best per route and every train around then, in leaving order", async () => {
+test("Leave around 17:40: the best train (alone when nothing else is close) and every train around then, in leaving order", async () => {
   const day = tomorrow(), T = (h) => new Date(`${day}T${h}:00`).getTime(), m = 60e3;
   const kgx = [["17:38", 52], ["17:52", 34], ["18:06", 29], ["18:22", 52]], zfd = [["17:56", 44], ["18:26", 44]];
   const journeys = (q) => {
@@ -514,12 +515,12 @@ test("Leave around 17:40: best per route and every train around then, in leaving
   app.d.querySelector("#byDate").dispatchEvent(new app.w.Event("change"));
   await sleep(500);
   const hero = app.text("#hero");
-  assert.match(hero, /^Leaving around 17:40 tomorrow · timetable · best per route, by arrival/);
+  assert.match(hero, /^Leaving around 17:40 tomorrow · timetable · best, and the next best/);
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
-  assert.equal(opts.length, 2);
-  // 18:06 fast needs leaving at 17:37 (3 min before) and gets home first; Farringdon's 17:56 needs 17:32.
+  // 18:06 fast needs leaving at 17:37 (3 min before) and gets home first. Every later train gets home over 20 min after it,
+  // and Farringdon's 17:56 leaves earlier and gets home later, so the card shows the 18:06 alone; the list has the rest.
+  assert.equal(opts.length, 1);
   assert.match(opts[0], /18:06 Great Northern · 29 min train · total 1h \d\dm · leave 3 min before 17:40/);
-  assert.match(opts[1], /17:56 Thameslink · 44 min train · total 1h \d\dm · leave 8 min before 17:40/);
   const rows = app.rows();
   assert.ok(rows.length >= 4, rows.join("\n"));
   assert.match(app.text("#listTitle"), /Trains around 17:40, in leaving order/);

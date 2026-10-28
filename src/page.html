@@ -852,7 +852,7 @@ function ranked(now){
     usable[0].first=true;
     usable.reduce((a,b)=> b.arrive<a.arrive || (b.arrive===a.arrive && b.leave>a.leave) ? b : a).fastest=true;
   }
-  topPicks(list,"now").forEach(j=>{ j.recommended=true; });
+  topPicks(list,"now",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
   return list;
 }
 
@@ -1070,7 +1070,7 @@ function renderHero(list, now){
     h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.loading?"Loading live trains…":(missingCreds()?"Add your National Rail key in Settings to see live trains, or pick Example data to preview.":"No train data yet.")}</div>`;
     return;
   }
-  const picks=list.filter(o=>o.recommended).sort((a,b)=>a.arrive-b.arrive), first=list.find(o=>o.first);
+  const picks=list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended), first=list.find(o=>o.first);
   const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
   if(!picks.length){ const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
@@ -1079,7 +1079,7 @@ function renderHero(list, now){
   const now1 = first && !picks.includes(first) ? `<div class="alt">Leaving right now? The <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)} (${dur(first.train.arr-first.train.dep)} train) gets you to ${esc(dest)} at <span class="t">${hhmm(first.arrive)}</span>, total ${dur(first.arrive-first.leave)}.</div>` : "";
   const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
   h.innerHTML = `
-    <div class="lbl">${state.atHub&&dir==="home"?`You're at ${esc(HUB_NAME[state.atHub])}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best per route, by arrival</div>
+    <div class="lbl">${state.atHub&&dir==="home"?`You're at ${esc(HUB_NAME[state.atHub])}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:spare(j)})).join("")}
     ${now1}${hurry}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
@@ -1271,15 +1271,15 @@ function atOptions(){
   if(a.liveTo) markTimetable(js);
   js=mergeSameTrain(js);
   // "Around" = leaving up to 10 minutes before your time, or any time after.
-  topPicks(js.filter(j=>j.leave>=a.T-10*60e3),"now").forEach(j=>{ j.recommended=true; });
+  topPicks(js.filter(j=>j.leave>=a.T-10*60e3),"now",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
   return js.sort((x,y)=>x.leave-y.leave || x.arrive-y.arrive);
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
-  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)}${a.live?(a.liveTo?` · live to ${hhmm(a.liveTo)}, timetable after`:" · live"):" · timetable"} · best per route, by arrival`:"Leave around";
+  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)}${a.live?(a.liveTo?` · live to ${hhmm(a.liveTo)}, timetable after`:" · live"):" · timetable"} · best, and the next best`:"Leave around";
   if(a.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(a.err)}</div>`; return; }
   if(a.loading||!a.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
-  const picks=opts.filter(o=>o.recommended).sort((x,y)=>x.arrive-y.arrive);
+  const picks=opts.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended);
   if(!picks.length){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No trains found for that time.</div>`; return; }
   const timing=j=>{ const before=Math.round((a.T-j.leave)/60e3), after=Math.round((j.leave-a.T)/60e3);
     return j.leave<a.T ? (before?`leave ${before} min before ${hhmm(a.T)}`:`leave at ${hhmm(a.T)}`) : (after?`leave ${after} min after ${hhmm(a.T)}`:`leave at ${hhmm(a.T)}`); };
@@ -1358,7 +1358,7 @@ function byOptions(){
   const onTime=js.filter(j=>j.arrive<=b.T), late=js.filter(j=>j.arrive>b.T);
   onTime.forEach(j=>{ if(b.T-j.arrive<5*60e3) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
   late.forEach(j=>{ j.late=true; j.flags.unshift({lvl:"bad",txt:`Late by ${Math.max(1,Math.round((j.arrive-b.T)/60e3))} min`}); });
-  topPicks([...onTime,...late],"by").forEach(j=>{ j.recommended=true; });
+  topPicks([...onTime,...late],"by",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
   // Shown in the order you would leave.
   return [...onTime, ...late].sort((x,y)=>x.leave-y.leave || x.arrive-y.arrive);
 }
@@ -1377,11 +1377,11 @@ function renderByHero(opts){
   if(b.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(b.err)}</div>`; return; }
   if(b.loading||!b.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
   if(leisure && dir==="home" && !state.london){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Need your location or a postcode to plan the London leg.</div>`; return; }
-  const picks=opts.filter(o=>o.recommended).sort((a,b)=>a.arrive-b.arrive);
+  const picks=opts.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended);
   if(!picks.length){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No direct train gets you there by then. Try a later time.</div>`; return; }
   const timing=j=>{ const early=b.T-j.arrive; return j.late ? `${Math.max(1,Math.round(-early/60e3))} min late, no train gets you there in time` : early>=60e3 ? `${mins(early)} min early` : "just in time"; };
   h.innerHTML=`
-    <div class="lbl">${esc(lbl)} · best per route, by arrival</div>
+    <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
     ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"))).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;

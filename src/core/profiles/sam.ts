@@ -21,6 +21,7 @@ export const samCommute: Profile = {
   },
   maxTrainMin: { KGX: 55, STP: 55, ZFD: 60 },
   stoppingMin: { KGX: 45, STP: 45, ZFD: 52 },
+  topWindowMin: 20,
   mergeHubs: ["ZFD", "STP"],
   operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
   // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,

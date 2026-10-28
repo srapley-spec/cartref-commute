@@ -68,14 +68,28 @@ test("Stopping threshold comes from the profile", () => {
 });
 
 // ---------- Ranking ----------
-test("topPicks: one per route, by arrival, never missed or uncertain", () => {
+test("topPicks: best, then the next best on any route; strictly worse options are never the alternative", () => {
   const T = at("2026-11-03", "17:00");
   const o = (hub, leave, arrive, extra) => option({ hub, leave: T + leave * MIN, arrive: T + arrive * MIN, train: train({ dep: T, arr: T }), ...extra });
+  // CEN 10→45 is best. MKT 2→60 and CEN 5→50 leave earlier and arrive later: never the alternative.
   const opts = [o("CEN", 5, 50), o("CEN", 10, 45), o("MKT", 2, 60), o("MKT", 20, 55, { missed: true }), o("CEN", 0, 40, { uncertain: true })];
-  const now = core.topPicks(opts, "now");
-  assert.deepEqual(now.map((j) => [j.hub, (j.arrive - T) / MIN]), [["CEN", 45], ["MKT", 60]]);
-  const by = core.topPicks(opts.map((j) => ({ ...j, late: (j.arrive - T) / MIN > 50 })), "by");
-  assert.deepEqual(by.map((j) => j.hub), ["CEN"], "Market Street only has a late train, Central has on-time ones");
+  assert.deepEqual(core.topPicks(opts, "now").map((j) => [j.hub, (j.arrive - T) / MIN]), [["CEN", 45]], "only one worth recommending");
+  // Add later departures: the alternative is the best of those, even on the same route.
+  const more = [...opts, o("MKT", 25, 80), o("CEN", 30, 62), o("MKT", 40, 70)];
+  assert.deepEqual(core.topPicks(more, "now").map((j) => [j.hub, (j.arrive - T) / MIN]), [["CEN", 45], ["CEN", 62]]);
+  // Outside the 20-minute window: the best alone.
+  assert.deepEqual(core.topPicks([...opts, o("MKT", 40, 70)], "now").length, 1);
+  // Arrive by 17:52: latest leave that's in time, then an earlier one that arrives sooner.
+  const by = core.topPicks(more.map((j) => ({ ...j, late: (j.arrive - T) / MIN > 52 })), "by");
+  assert.deepEqual(by.map((j) => (j.leave - T) / MIN), [10]);
+  const by2 = core.topPicks([...more, o("MKT", 8, 42)].map((j) => ({ ...j, late: (j.arrive - T) / MIN > 52 })), "by");
+  assert.deepEqual(by2.map((j) => [j.hub, (j.leave - T) / MIN]), [["CEN", 10], ["MKT", 8]]);
+  // Nothing in time: earliest late arrival, then the best later leave.
+  const late = core.topPicks(more.map((j) => ({ ...j, late: true })), "by");
+  assert.deepEqual(late.map((j) => (j.arrive - T) / MIN), [45, 62]);
+  // Arrive by: an earlier train more than 20 minutes before the best isn't offered as the alternative.
+  const early = core.topPicks([o("CEN", 10, 45), o("MKT", -15, 30)].map((j) => ({ ...j, late: false })), "by");
+  assert.equal(early.length, 1);
 });
 
 test("mergeSameTrain: same run across stations is one option; different operators never merge", () => {
@@ -110,15 +124,17 @@ test("Never hide: merging keeps every train (main + same-train alternatives)", (
     }
   }
 });
-test("Picks are always from the options, at most two, one per route, ordered by arrival", () => {
+test("Picks: from the options, never missed or uncertain, best first, alternative never strictly worse", () => {
   for (let seed = 1; seed <= 200; seed++) {
     const opts = randomOptions(seed, 10);
-    for (const view of ["now", "by"]) {
-      const p = core.topPicks(opts, view);
-      assert.ok(p.length <= 2 && p.every((j) => opts.includes(j) && !j.missed && !j.uncertain));
-      assert.equal(new Set(p.map((j) => j.hub)).size, p.length);
-      for (let i = 1; i < p.length; i++) assert.ok(p[i - 1].arrive <= p[i].arrive);
-    }
+    const usable = opts.filter((j) => !j.missed && !j.uncertain);
+    const p = core.topPicks(opts, "now");
+    assert.ok(p.length <= 2 && p.every((j) => opts.includes(j) && !j.missed && !j.uncertain));
+    if (usable.length) assert.equal(p[0].arrive, Math.min(...usable.map((j) => j.arrive)), `seed ${seed}: best arrives first`);
+    if (p[1]) assert.ok(p[1].leave > p[0].leave && p[1].arrive >= p[0].arrive && p[1].arrive - p[0].arrive <= 20 * MIN, `seed ${seed}: alternative leaves later, arrives within 20 min`);
+    const by = core.topPicks(opts, "by");
+    assert.ok(by.length <= 2 && by.every((j) => opts.includes(j) && !j.missed && !j.uncertain));
+    if (by[1]) assert.ok(by[1].arrive < by[0].arrive && by[1].leave < by[0].leave && by[0].leave - by[1].leave <= 20 * MIN, `seed ${seed}: by alternative is an earlier, safer train`);
   }
 });
 test("keepEveryRoute keeps a subset with every route when there is room", () => {
