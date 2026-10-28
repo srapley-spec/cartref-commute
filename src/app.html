@@ -89,6 +89,7 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .row .meta b{color:var(--ink);font-weight:800}
 .row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .row.gone{opacity:.5}
+.row.missed .leave .t{text-decoration:line-through;color:var(--bad)}
 .row.late .leave .t,.row.late .arrive .t{color:var(--muted)}
 .hero .alt{border-top:1px solid color-mix(in srgb,var(--paper) 25%,transparent);padding-top:10px;font-size:14px;opacity:.95}
 .hero .alt [data-cd]{opacity:.75;font-size:13px}
@@ -461,7 +462,7 @@ function earliestCatch(hub){
 async function fetchTflBoards(){
   const now=Date.now(), keys=boardKeys();
   // Each route starts at the first train you could still catch, so one search per route covers the next few.
-  const start = k => now+earliestCatch(hubOfKey(k));
+  const start = k => now+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
   const rounds=[ k=>({t:start(k), timeIs:"Departing"}) ];
   if(tflKeyed()) for(let i=0;i<2;i++) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0;
     return last && last<now+2*3600e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
@@ -716,11 +717,43 @@ function keepEveryRoute(sorted, n){
   }
   return out.sort((x,y)=>sorted.indexOf(x)-sorted.indexOf(y));
 }
+// ---------- Where you are now ----------
+// Heading to Letchworth station with a good location fix: work the walk out from where you are when that is
+// shorter than the walk from home (you're on your way). Straight-line distance × 1.3 for streets, at
+// 5 km/h average, 6 km/h fast, 4.3 km/h leisure.
+const STREET_FACTOR=1.3, WALK_KMH={avg:5.0, fast:6.0, leisure:4.3};
+function walkFromHere(){
+  if(direction()!=="office" || !state.here || !(state.locAcc<=200)) return null;
+  const d=km(state.here,GEO.LET); if(d>3) return null;
+  const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
+  const est = d*STREET_FACTOR/(leisure?WALK_KMH.leisure:fast?WALK_KMH.fast:WALK_KMH.avg)*3600;
+  const fromHome = leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg);
+  return est<fromHome ? est : null;
+}
+// Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
+// has passed (you'd need to run or bike) instead of dropping them.
+function liveAdjust(js, now){
+  const s=S(), leisure=state.saved.mode==="leisure", k=leisure?s.leisureFactor:(state.saved.pace==="fast"?s.fastFactor:1);
+  const hw=walkFromHere();
+  if(hw!=null) js.forEach(j=>{
+    j.leave = j.train.dep - (s.catchMargin + s.letEntry*k + hw)*1000; j.fromHere=true;
+    j.legs[0]={t:j.leave, d:"Set off from where you are", note:`about ${dur(hw*1000)} walk to Letchworth station`};
+  });
+  const t0=now+30e3;
+  const keep=js.filter(j=>j.train.dep>=now);
+  keep.forEach(j=>{
+    j.uncertain=!plannable(j.train);
+    j.missed = j.leave<t0;
+    if(j.missed) j.flags.unshift({lvl:"bad",txt:`Leave time passed: ${Math.max(1,Math.round((t0-j.leave)/60e3))} min short at walking pace, run or bike`});
+  });
+  return keep;
+}
+
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
 // Shown ordered by arrival. Warnings (standing room, cutting it fine, delays) are shown, never used to hide a train.
 function topPicks(options, view){
-  options=options.filter(j=>!j.uncertain);
+  options=options.filter(j=>!j.uncertain && !j.missed);
   const hubs=[...new Set(options.map(j=>j.hub))], picks=[];
   for(const h of hubs){
     const mine=options.filter(j=>j.hub===h);
@@ -742,12 +775,11 @@ function topPicks(options, view){
 function ranked(now){
   const t0=now+30e3;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
-  // Every train you can still get to is listed (trains already out of reach are the only ones left out).
-  const all=build(direction(), now).filter(j=>j.leave>=t0);
-  all.forEach(j=>{ j.uncertain=!plannable(j.train); });
+  // Every train that hasn't left yet is listed; ones you'd have to hurry for are flagged.
+  const all=liveAdjust(build(direction(), now), now);
   if(!all.length) return [];
   const list=all.sort((a,b)=>a.leave-b.leave || a.arrive-b.arrive);
-  const usable=list.filter(j=>!j.uncertain);
+  const usable=list.filter(j=>!j.uncertain && !j.missed);
   if(usable.length){
     usable[0].first=true;
     usable.reduce((a,b)=> b.arrive<a.arrive || (b.arrive===a.arrive && b.leave>a.leave) ? b : a).fastest=true;
@@ -769,6 +801,11 @@ function chips(j){
 function pills(flags, short){
   return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
 }
+// A train you could still make if you hurry.
+function hurryLine(j, dest){
+  const from = j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
+  return `<div class="alt hurry">Still possible if you hurry: the <span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span>; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, total ${dur(j.arrive-j.leave)}. At walking pace you're ${Math.max(1,Math.round((Date.now()+30e3-j.leave)/60e3))} min short.</div>`;
+}
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
@@ -779,7 +816,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>
-    <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · <span data-cd="${j.leave}"></span></div>
+    <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
     <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
@@ -795,15 +832,17 @@ function renderHero(list, now){
     return;
   }
   const picks=list.filter(o=>o.recommended).sort((a,b)=>a.arrive-b.arrive), first=list.find(o=>o.first);
-  if(!picks.length){ h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">No catchable trains in the next two hours.</div>`; return; }
-  const t0=now+30e3, dest=picks[0].dest||(dir==="office"?"office":"home");
+  const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
+  if(!picks.length){ const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
+    h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
   const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3); return m>=1?`leave within ${m} min`:"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">Leaving right now? The <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)} (${dur(first.train.arr-first.train.dep)} train) gets you to ${esc(dest)} at <span class="t">${hhmm(first.arrive)}</span>, total ${dur(first.arrive-first.leave)}.</div>` : "";
+  const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest)).join("");
   h.innerHTML = `
     <div class="lbl">If you leave now · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best per route, by arrival</div>
     ${picks.map(j=>optionBlock(j,{timing:spare(j)})).join("")}
-    ${now1}`;
+    ${now1}${hurry}`;
 }
 function renderList(list, now, opts){
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
@@ -812,11 +851,11 @@ function renderList(list, now, opts){
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}">
+    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}${j.missed?" missed":""}">
       <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · <span data-cd="${j.leave}"></span></div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
@@ -970,9 +1009,7 @@ function byOptions(){
   const keep=state.boards; state.boards=b.boards;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   let js=build(direction(), Date.now()); state.boards=keep;
-  js=js.filter(j=>j.leave>=Date.now());
-  // On time: the latest-leaving five, at least one per route. Late: the three that arrive soonest after.
-  js.forEach(j=>{ j.uncertain=!plannable(j.train); });
+  js=liveAdjust(js, Date.now());
   // Every loaded train is listed: the ones that get you there in time and the ones that would make you late.
   const onTime=js.filter(j=>j.arrive<=b.T), late=js.filter(j=>j.arrive>b.T);
   onTime.forEach(j=>{ if(b.T-j.arrive<5*60e3) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
@@ -1001,7 +1038,8 @@ function renderByHero(opts){
   const timing=j=>{ const early=b.T-j.arrive; return j.late ? `${Math.max(1,Math.round(-early/60e3))} min late, no train gets you there in time` : early>=60e3 ? `${mins(early)} min early` : "just in time"; };
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best per route, by arrival</div>
-    ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}`;
+    ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
+    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"))).join("")}`;
 }
 
 function render(){
@@ -1040,7 +1078,8 @@ function render(){
 }
 function tick(){
   const now=Date.now();
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"missed"; });
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"leave time passed"; });
+  document.querySelectorAll("[data-dep]").forEach(e=>{ const ms=+e.dataset.dep-now; e.textContent = ms>0?`train departs in ${countdown(ms)}`:"train has departed"; });
 }
 
 // ---------- Data refresh ----------
@@ -1197,6 +1236,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

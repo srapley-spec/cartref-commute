@@ -129,10 +129,13 @@ test("ranked() lists catchable trains in leaving order and marks the fastest", (
   const realNow = Date.now; Date.now = () => now;
   try {
     const list = c.ranked(now);
-    assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:30", "07:40"], "07:10 is too soon; then leaving order");
-    assert.equal(list[0].first, true, "07:30 stopper is the one you'd catch by leaving now");
-    assert.equal(list[1].fastest, true, "07:40 fast gets there first");
-    assert.equal(list[1].recommended, true, "07:40 is King's Cross's best option for the top card");
+    assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:10", "07:30", "07:40"], "leaving order; nothing hidden");
+    assert.equal(list[0].missed, true, "07:10 is kept, flagged as needing a run or bike");
+    assert.match(list[0].flags[0].txt, /Leave time passed: \d+ min short at walking pace, run or bike/);
+    assert.ok(!list[0].recommended);
+    assert.equal(list[1].first, true, "07:30 stopper is the one you'd catch by leaving now");
+    assert.equal(list[2].fastest, true, "07:40 fast gets there first");
+    assert.equal(list[2].recommended, true, "07:40 is King's Cross's best option for the top card");
   } finally { Date.now = realNow; }
 });
 
@@ -214,4 +217,37 @@ test("Leave now card: best per route by arrival, total time, and the train you'd
   assert.match(opts[1], /Thameslink · 44 min train · total/, "then Farringdon");
   assert.match(app.text("#hero"), /Leaving right now\? The \d\d:\d\d Great Northern \(52 min train\)/);
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
+});
+
+test("A train you'd have to hurry for stays on the list and the card, with a departure countdown", () => {
+  const now = Date.now(), m = 60e3;
+  const mk = (to, d, mins, op) => svc({ from: "LET", to, dep: now + d * m, arr: now + (d + mins) * m, operator: op });
+  useBoards({ "LET-KGX": { msgs: [], services: [mk("KGX", 40, 29, "Great Northern")] },
+              "LET-ZFD": { msgs: [], services: [mk("ZFD", 12, 44, "Thameslink")] } });
+  c.state.here = null;
+  c.render();
+  const rows = app.rows();
+  assert.ok(rows.some((r) => /Thameslink.*Leave time passed.*run or bike.*|Leave time passed.*Thameslink/.test(r)), rows.join("\n"));
+  assert.match(app.text("#hero"), /Still possible if you hurry: the \d\d:\d\d Thameslink leaves Letchworth, train departs in \d+m/);
+  assert.ok(app.d.querySelector("#list .row.missed"));
+});
+
+test("On the way to the station, the walk is worked out from where you are", () => {
+  const now = Date.now(), m = 60e3;
+  const mk = (to, d, mins, op) => svc({ from: "LET", to, dep: now + d * m, arr: now + (d + mins) * m, operator: op });
+  useBoards({ "LET-KGX": { msgs: [], services: [mk("KGX", 40, 29, "Great Northern")] },
+              "LET-ZFD": { msgs: [], services: [mk("ZFD", 12, 44, "Thameslink")] } });
+  c.state.here = [51.9772, -0.2290]; c.state.locAcc = 10;    // about 300 m south of the station
+  c.state.autoDir = "office";
+  try {
+    const walk = c.walkFromHere();
+    assert.ok(walk > 200 && walk < 400, `about 5 min walk, got ${walk}s`);
+    c.render();
+    const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
+    assert.ok(opts.some((o) => /Thameslink/.test(o)), "the 12-minute Thameslink is catchable from here:\n" + opts.join("\n"));
+    assert.match(app.text("#hero"), /Set off from where you are · about \d+ min walk to Letchworth station/);
+    // At home (further than the measured walk), the measured walk is used.
+    c.state.here = [51.9600, -0.2500];
+    assert.equal(c.walkFromHere(), null);
+  } finally { c.state.here = null; }
 });
