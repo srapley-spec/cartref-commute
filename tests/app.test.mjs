@@ -614,3 +614,19 @@ test("Leave around: where the live board stops short, later trains come from the
   assert.match(diag, new RegExp(`King's Cross → Letchworth, timetable: .*${hm(later)} King's Cross`));
   app.close();
 });
+
+// ---------- Location permission ----------
+test("Coming back to the app doesn't restart location (which can make Safari ask again) when positions still arrive", async () => {
+  let push, starts = 0;
+  const app = await createApp({ geo: null, settle: 50, relocateMs: 200 });
+  app.w.navigator.geolocation.watchPosition = (ok) => { starts++; push = ok; return 5; };
+  app.w.navigator.geolocation.clearWatch = () => {};
+  app.c.state.watchId = 1; app.c.state.locStatus = "ok";
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(250);
+  assert.equal(starts, 1, "no position since coming back: restarted once");
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(20); push(NEAR_LETCHWORTH); await sleep(300);
+  assert.equal(starts, 1, "a position arrived: not restarted");
+  app.close();
+});
