@@ -215,6 +215,14 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     </div>
   </form>
 
+  <form class="origin" id="destRow" hidden>
+    <label for="destInput">Where to? A postcode or a place, e.g. Science Museum.</label>
+    <div class="originbar">
+      <input id="destInput" type="text" spellcheck="false" placeholder="e.g. Science Museum">
+      <button type="submit" class="primary">Plan</button>
+    </div>
+  </form>
+
   <div id="banners" class="wrap" style="gap:8px"></div>
 
   <div class="controls">
@@ -241,7 +249,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 23:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 23:52 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -305,6 +313,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Home</legend>
       <p class="hint" id="homeNote">Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.</p>
       <button type="button" class="ghost" id="setHomeBtn">Home is where I am now</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Experimental</legend>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
+      <p class="hint">Off: the app works exactly as before.</p>
     </fieldset>
 
     <div class="actions">
@@ -409,6 +423,7 @@ var CommuteCore = (() => {
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
     tflDropReason: () => tflDropReason,
+    tflPickPlaces: () => tflPickPlaces,
     timeFromTrain: () => timeFromTrain,
     timeToTrain: () => timeToTrain,
     topPicks: () => topPicks,
@@ -652,6 +667,15 @@ var CommuteCore = (() => {
     if (rail.length === 0) return "no train";
     if (rail.length > 1) return "change of train";
     return "other station";
+  }
+  function tflPickPlaces(json) {
+    const j = json || {};
+    const pick2 = (d) => {
+      const opts = (d == null ? void 0 : d.disambiguationOptions) || [];
+      const best = opts.filter((o) => o && o.parameterValue).sort((a, b) => (b.matchQuality || 0) - (a.matchQuality || 0))[0];
+      return best ? { value: best.parameterValue, name: best.place && best.place.commonName || best.parameterValue } : null;
+    };
+    return { from: pick2(j.fromLocationDisambiguation), to: pick2(j.toLocationDisambiguation) };
   }
 
   // src/core/rules.ts
@@ -1412,6 +1436,21 @@ var CommuteCore = (() => {
           extra: { tube }
         });
       }
+    } else if (dir === "office" && i.dest) {
+      const walk = s.walkHomeStationAvg * k, dest = i.dest;
+      for (const hub of ["KGX", "STP", "ZFD"]) {
+        const leg = dest.legs ? hub === "ZFD" ? dest.legs.FAR : dest.legs.KXSP : null;
+        routes.push({
+          hub,
+          board: `LET-${hub}`,
+          fromName: "Letchworth",
+          before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+          after: [seg("change", ic[hub] * k), seg("planned", leg ? leg.dur / 1e3 : 0, leg ? { at: "end", d: `Arrive ${dest.name}`, note: `${leg.summary} (${dur(leg.dur)})` } : null)],
+          arriveLabel: `Arrive ${NAMES[hub]}`,
+          arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
+          extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true }
+        });
+      }
     } else if (dir === "office") {
       const walk = s.walkHomeStationAvg * k;
       for (const hub of ["KGX", "STP"]) routes.push({
@@ -1782,10 +1821,13 @@ function legLabel(l){
   const name=(l.routeOptions&&l.routeOptions[0]&&l.routeOptions[0].name)||(l.mode&&l.mode.name)||m;
   return `${m==="bus"?"Bus ":""}${name} ${d}m`;
 }
+// Feature toggle (Settings → Experimental): any start and end point. Off = the app as before.
+const anyPlace = () => !!S().anyPlace;
 async function fetchLondon(from){
   const go=async to=>{
     let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
     catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner."); }
+    if(r.status===300 && anyPlace()){ const m=C.tflPickPlaces(await r.json()).from; if(m && m.value!==from) return (await fetchLondon(m.value))[to===TFL_HUBS.FAR?"FAR":"KXSP"]; }
     if(r.status===300) throw new Error("TfL couldn't pin down that place. Try a full postcode.");
     if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
     const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey from there.");
@@ -1796,6 +1838,29 @@ async function fetchLondon(from){
   const [kx,far]=await Promise.allSettled([go(TFL_HUBS.KXSP),go(TFL_HUBS.FAR)]);
   if(kx.status==="rejected" && far.status==="rejected") throw kx.reason;
   return { KXSP:kx.status==="fulfilled"?kx.value:null, FAR:far.status==="fulfilled"?far.value:null };
+}
+// Any start and end point: TfL legs from King's Cross St Pancras and Farringdon to a London place.
+// A place name TfL can't pin down exactly is matched to its best guess, and the name shown says which.
+async function fetchLondonTo(dest){
+  let place=dest, name=dest;
+  const go=async from=>{
+    for(let attempt=0; attempt<2; attempt++){
+      let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${from}/to/${encodeURIComponent(place)}?walkingSpeed=slow&journeyPreference=leasttime`); }
+      catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner."); }
+      if(r.status===300){ const m=C.tflPickPlaces(await r.json()).to; if(!m || attempt) throw new Error("TfL couldn't find that place. Try a postcode."); place=m.value; name=m.name; continue; }
+      if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
+      const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey to there.");
+      const best=js.reduce((a,b)=>new Date(a.arrivalDateTime)<=new Date(b.arrivalDateTime)?a:b);
+      return { dur:(best.duration||0)*60e3, summary:(best.legs||[]).map(legLabel).join(" → "),
+        disruptions:[...new Set((best.legs||[]).filter(l=>l.isDisrupted).flatMap(l=>(l.disruptions||[]).map(d=>stripHtml(d.description))).filter(Boolean))] };
+    }
+  };
+  // One at a time, so a place matched on the first search is reused for the second.
+  let kx=null, far=null, err=null;
+  try{ kx=await go(TFL_HUBS.KXSP); }catch(e){ err=e; if(e.rateLimited) throw e; }
+  try{ far=await go(TFL_HUBS.FAR); }catch(e){ err=err||e; }
+  if(!kx && !far) throw err;
+  return { name, KXSP:kx, FAR:far };
 }
 function demoLondon(){
   return { KXSP:{dur:18*60e3,summary:"Walk 5m → Northern 9m → Walk 4m",disruptions:[]},
@@ -1814,8 +1879,12 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 // timings from these. Nothing else in the page encodes journey timings.
 function routesFor(dir, mode, opts){
   return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
-    london:state.london||null, here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null } : null });
+    london:state.london||null, dest:outTo(dir, mode),
+    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null } : null });
 }
+// Any start and end point, going out: the place, and TfL's legs to it once planned.
+const outTo = (dir, mode) => anyPlace() && mode==="leisure" && dir==="office" && (state.saved.dest||"").trim()
+  ? { name:(state.londonTo&&state.londonTo.name)||state.saved.dest.trim(), legs:state.londonTo||null } : null;
 const currentMode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 const routeFor = hub => routesFor(direction(), currentMode()).find(r=>r.hub===hub);
 function buildJourneys(dir, now, o){
@@ -1835,7 +1904,7 @@ function buildJourneys(dir, now, o){
 const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:"Via Aldgate East: Circle and Met closed" });
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
-  const routes=routesFor(dir,"leisure",o).filter(r=>dir==="office" || r.extra.planned);
+  const routes=routesFor(dir,"leisure",o).filter(r=>(dir==="office" && !r.extra.outTo) || r.extra.planned);
   const opts=C.buildOptions(routes, C.addCallingAlternatives(state.boards||{}, dir, PROFILE), PROFILE);
   opts.forEach(o=>{ if(o.london && o.london.disruptions.length) o.flags.push({lvl:"warn",txt:o.london.disruptions[0],long:true}); });
   return opts;
@@ -2179,6 +2248,11 @@ function verdictHtml(arrive, T){
 }
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
+  const out=leisure && outTo(dir,"leisure");
+  if(out && !state.londonTo){
+    h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.londonToErr?esc(state.londonToErr):`Planning the way from the station to ${esc(out.name)}…`}</div>`;
+    return;
+  }
   if(leisure && dir==="home" && !state.london){
     h.innerHTML = `<div class="lbl">If you leave now</div><div class="empty">${state.londonErr?esc(state.londonErr):(londonOrigin()?"Planning your route to the station…":"Waiting for your location. If it doesn't come through, enter a postcode above.")}</div>`;
     return;
@@ -2263,6 +2337,7 @@ function renderStatus(){
 const facilityOnly = C.facilityOnly;
 function boardKeys(){
   const dir=direction(), leisure=state.saved.mode==="leisure";
+  if(leisure && outTo(dir,"leisure")) return ["LET-KGX","LET-STP","LET-ZFD"];
   return dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
 }
 // Leave around / Arrive by for a time beyond the live board: rail warnings describe now, not that plan.
@@ -2333,16 +2408,20 @@ function renderControls(){
   $("#paceSeg").hidden=leisure;
   $("#dirOutBtn").textContent = leisure ? "To London" : "To office";
   const dir=direction();
+  const out=leisure && outTo(dir,"leisure");
   $("#routeLabel").textContent = leisure
-    ? (dir==="office" ? "Cartref → King's Cross or St Pancras" : "Wherever you are → Cartref")
+    ? (dir==="office" ? (out ? `Cartref → ${out.name}` : "Cartref → King's Cross or St Pancras") : "Wherever you are → Cartref")
     : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
   const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
   $("#dirNote").textContent = state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
-  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin);
+  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
+  if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
+  $("#destRow").hidden = !(anyPlace() && leisure && dir==="office");
+  if(!$("#destRow").hidden && document.activeElement!==$("#destInput")) $("#destInput").value=state.saved.dest||"";
   const s=S(); const fast=state.saved.pace==="fast";
   $("#modelNote").textContent = leisure
-    ? `${trainsNote()} ${dir==="home"?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
+    ? `${trainsNote()} ${dir==="home"||out?"The London leg comes from TfL's journey planner at a slow walking pace. ":""}Walks use leisure pace (${s.leisureFactor}× your average).`
     : `${trainsNote()} Tube legs are estimates: a ${mins(s.tubeWait*1000)} min wait allowance plus typical ride time, editable in Settings. Times assume ${fast?"fast":"average"} walking pace.`;
 }
 // ---------- Arrive by ----------
@@ -2470,6 +2549,7 @@ function renderByHero(opts){
   if(b.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(b.err)}</div>`; return; }
   if(b.loading||!b.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
   if(leisure && dir==="home" && !state.london){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Need your location or a postcode to plan the London leg.</div>`; return; }
+  if(leisure && outTo(dir,"leisure") && !state.londonTo){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${state.londonToErr?esc(state.londonToErr):"Planning the way from the station…"}</div>`; return; }
   const picks=opts.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended);
   if(!picks.length){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No direct train gets you there by then. Try a later time.</div>`; return; }
   const timing=j=>{ const early=b.T-j.arrive; return j.late ? `${Math.max(1,Math.round(-early/60e3))} min late, no train gets you there in time` : early>=60e3 ? `${mins(early)} min early` : "just in time"; };
@@ -2639,6 +2719,15 @@ async function refresh(opts){
   if(state.again){ const f=state.again==="force"; state.again=false; refresh({force:f}); }
 }
 async function refreshLondon(){
+  if(anyPlace() && state.saved.mode==="leisure" && direction()==="office"){
+    const to=(state.saved.dest||"").trim();
+    if(!to){ state.londonTo=null; state.londonToErr=""; return; }
+    if(state.londonTo && state.londonTo.query===to && Date.now()-state.londonTo.at<5*60e3) return;
+    if(S().provider==="demo"){ state.londonTo={query:to, at:Date.now(), name:to, ...demoLondon()}; state.londonToErr=""; return; }
+    try{ state.londonTo={query:to, at:Date.now(), ...await fetchLondonTo(to)}; state.londonToErr=""; }
+    catch(e){ state.londonTo=null; state.londonToErr=e.message||"Couldn't plan the London leg."; }
+    return;
+  }
   if(state.saved.mode!=="leisure" || direction()!=="home") return;
   if(S().provider==="demo"){ state.london=demoLondon(); state.londonErr=""; return; }
   const from=londonOrigin(); if(!from) return;
@@ -2702,7 +2791,7 @@ function fillSettings(){
   const s=S();
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
 }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
@@ -2711,6 +2800,7 @@ function readSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
+  if($("#s_anyPlace").checked) o.anyPlace=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -2738,6 +2828,7 @@ $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planView(); });
 { const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
+$("#destRow").addEventListener("submit",e=>{ e.preventDefault(); state.saved.dest=$("#destInput").value.trim(); save(); state.londonTo=null; state.londonToErr=""; state.byCache={}; state.atCache={}; render(); refresh({force:true}); planView(); });
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
 $("#refreshBtn").addEventListener("click",()=>refresh({force:true,manual:true}));

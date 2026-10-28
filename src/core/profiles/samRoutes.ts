@@ -21,6 +21,8 @@ export interface RouteInput {
   tubeFallback?: boolean;                                   // Circle and Met closed: H&C to Aldgate East
   london?: { KXSP: LondonLeg; FAR: LondonLeg } | null;      // leisure going home
   here?: { walkToStation: number | null; atHub: StationCode | null } | null;   // plan from where you are
+  /** Any start and end point (feature toggle): going out to a London place — TfL legs from each station group to it. */
+  dest?: { name: string; legs: { KXSP: LondonLeg | null; FAR: LondonLeg | null } | null } | null;
 }
 
 const NAMES: Record<string, string> = { KGX: "King's Cross", STP: "St Pancras", ZFD: "Farringdon" };
@@ -59,6 +61,17 @@ function baseRoutes(i: RouteInput): Route[] {
           seg("ride", tube.ride[hub], { at: "start", ...tubeStep }), seg("change", ic[hub] * k), seg("margin", s.catchMargin)],
         after: [seg("station", s.letExit * k), seg("walk", walkBack, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walkBack))}` })],
         arriveLabel: "Arrive Letchworth", noPlatform: "platform not yet shown", extra: { tube } });
+    }
+  } else if (dir === "office" && i.dest) {
+    // Out to a London place: train to any of the three stations, then TfL's leg from there.
+    const walk = s.walkHomeStationAvg * k, dest = i.dest;
+    for (const hub of ["KGX", "STP", "ZFD"]) {
+      const leg = dest.legs ? (hub === "ZFD" ? dest.legs.FAR : dest.legs.KXSP) : null;
+      routes.push({ hub, board: `LET-${hub}`, fromName: "Letchworth",
+        before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+        after: [seg("change", ic[hub] * k), seg("planned", leg ? leg.dur / 1000 : 0, leg ? { at: "end", d: `Arrive ${dest.name}`, note: `${leg.summary} (${dur(leg.dur)})` } : null)],
+        arriveLabel: `Arrive ${NAMES[hub]}`, arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
+        extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true } });
     }
   } else if (dir === "office") {
     const walk = s.walkHomeStationAvg * k;

@@ -94,6 +94,10 @@ test("Going home by tube: noted at Aldgate; on a tube once one has left and you'
   assert.equal(core.onTubeHome(v, "home", "leisure", T("17:03"), fix(ALD, 20, T("17:00")), false, null, sam), false);
   const w = core.whichTubeHome(v, T("17:03"));
   assert.equal(w.best.line, "Met"); assert.equal(w.other, undefined);
+  const two = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:03") }, { line: "Met", t: T("17:05") }] };
+  assert.equal(core.whichTubeHome(two, T("17:10")).other.line, "Circle", "2 min apart: or");
+  const apart = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:05") }] };
+  assert.equal(core.whichTubeHome(apart, T("17:10")).other, undefined, "4 min apart: not or");
 });
 
 test("Nearly home, walks, in London to the office, the remembered train", () => {
@@ -101,6 +105,7 @@ test("Nearly home, walks, in London to the office, the remembered train", () => 
   assert.equal(core.nearlyHome("home", "commute", [51.97, -0.23], true, sam), false);
   assert.equal(core.nearlyHome("office", "commute", [51.97, -0.23], false, sam), false);
   assert.equal(core.nearlyHome("home", "commute", [50.1, -1.1], false, testville), true);
+  assert.equal(core.nearlyHome("home", "commute", [51.9533, -0.2635], false, sam), false, "Hitchin, 3.8 km out: not yet");
   const s = core.walkSecs([51.9799, -0.2290], [51.9752, -0.2402], "avg", sam), d = core.km([51.9799, -0.2290], [51.9752, -0.2402]);
   assert.ok(Math.abs(s - d * 1.3 / 5 * 3600) < 1e-6);
   assert.equal(core.inLondonToOffice("office", fix([51.52, -0.09]), null, false, false, sam), true);

@@ -53,3 +53,19 @@ export function tflDropReason(j: Journey): "no train" | "change of train" | "oth
   if (rail.length > 1) return "change of train";
   return "other station";
 }
+
+/** A place TfL matched for a journey search: what to search with, and its name. */
+export interface PlaceMatch { value: string; name: string; }
+/**
+ * TfL's "which place did you mean?" reply (HTTP 300): the best match for each end that needs one (highest match
+ * quality). Null for an end TfL already identified.
+ */
+export function tflPickPlaces(json: unknown): { from: PlaceMatch | null; to: PlaceMatch | null } {
+  const j = (json || {}) as Record<string, unknown>;
+  const pick = (d: unknown): PlaceMatch | null => {
+    const opts = ((d as { disambiguationOptions?: unknown[] } | null)?.disambiguationOptions || []) as { parameterValue?: string; matchQuality?: number; place?: { commonName?: string } }[];
+    const best = opts.filter(o => o && o.parameterValue).sort((a, b) => (b.matchQuality || 0) - (a.matchQuality || 0))[0];
+    return best ? { value: best.parameterValue as string, name: (best.place && best.place.commonName) || (best.parameterValue as string) } : null;
+  };
+  return { from: pick(j.fromLocationDisambiguation), to: pick(j.toLocationDisambiguation) };
+}

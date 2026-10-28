@@ -59,4 +59,24 @@ test("rankNow: leaving order; first catchable; fastest; card picks within the wi
   assert.equal(list[2].recommended, 1); assert.equal(list.filter(j => j.recommended).length <= 2, true);
   assert.equal(list[3].recommended, undefined);
   assert.deepEqual(core.rankNow([], "office", testville), []);
+  const tie = core.rankNow([o(10, 70, "A"), o(20, 70, "B")], "office", testville);
+  assert.equal(tie.find(j => j.fastest).train.operator, "B", "same arrival: the later leave is the fastest");
+});
+
+test("Any start and end point: going out to a place, the leg from each station; no leg yet = not planned", () => {
+  const legs = { KXSP: { dur: 18 * MIN, summary: "Walk 5m → Piccadilly 9m", disruptions: [] }, FAR: { dur: 25 * MIN, summary: "Elizabeth 10m", disruptions: [] } };
+  const rs = R({ mode: "leisure", dest: { name: "Science Museum", legs } });
+  assert.deepEqual(rs.map(r => r.board), ["LET-KGX", "LET-STP", "LET-ZFD"]);
+  assert.equal(secs(rs[2].after), 240 * 1.15 + 25 * 60); assert.equal(rs[0].after[1].step.d, "Arrive Science Museum");
+  assert.equal(rs[0].extra.outTo, true); assert.equal(rs[0].extra.planned, true);
+  assert.equal(R({ mode: "leisure", dest: { name: "X", legs: null } })[0].extra.planned, false);
+  assert.deepEqual(R({ mode: "leisure" }).map(r => r.hub), ["KGX", "STP"], "no destination: as before");
+});
+
+test("tflPickPlaces: TfL's best match for each end that needs one", () => {
+  const j = { toLocationDisambiguation: { matchStatus: "list", disambiguationOptions: [
+    { parameterValue: "1001", matchQuality: 500, place: { commonName: "Science Museum Library" } },
+    { parameterValue: "51.497,-0.174", matchQuality: 900, place: { commonName: "Science Museum" } }] }, fromLocationDisambiguation: { matchStatus: "identified" } };
+  assert.deepEqual(core.tflPickPlaces(j), { from: null, to: { value: "51.497,-0.174", name: "Science Museum" } });
+  assert.deepEqual(core.tflPickPlaces({}), { from: null, to: null });
 });

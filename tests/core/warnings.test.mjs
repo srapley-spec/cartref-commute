@@ -39,6 +39,7 @@ test("noticeTitle: first sentence, at most 90 characters, cut at a word", () => 
 test("Line status: worst, ok, level, the H&C fallback, and tube flags", () => {
   const L = (id, ...sevs) => ({ id, name: id, statuses: sevs.map(sev => ({ sev, desc: `sev ${sev}` })) });
   assert.equal(core.lineOk(L("circle", 10)), true);
+  assert.equal(core.lineOk(L("circle", 18)), true, "no issues"); assert.equal(core.lineOk(L("circle", 19)), true, "information");
   assert.equal(core.lineOk(L("circle", 9)), false);
   assert.equal(core.lineLevel(L("circle", 9)), "warn");
   assert.equal(core.lineLevel(L("circle", 9, 20)), "bad");
