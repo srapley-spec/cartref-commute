@@ -58,6 +58,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
 .banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
 .slowtxt{color:var(--warn)}
+.pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.pick small{width:100%;opacity:.8}
+.pickbtn{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -398,13 +401,17 @@ function whichTrain(now){
   // behind its timetable) unless you're clearly somewhere else: over 12 min off, or another train fits 6+ min better.
   const lock=state.trainLock;
   const locked = lock && cands.find(c=>c.t.operator===lock.operator && c.t.std===lock.std && c.t.from===lock.from);
+  // Others you could be on, for "On a different train?" (one per train, nearest first).
+  const others = c0 => cands.filter((c,i)=>!same(c,c0) && cands.findIndex(x=>same(x,c))===i).slice(0,3);
+  if(locked && lock.picked){ locked.sure=true; locked.other=null; locked.locked=true; locked.picked=true; locked.others=others(locked); return locked; }
   if(locked && locked.offMin<=12 && !(cands[0]!==locked && !same(cands[0],locked) && locked.offMin-cands[0].offMin>=6)){
-    locked.sure=true; locked.other=null; locked.locked=true; return locked;
+    locked.sure=true; locked.other=null; locked.locked=true; locked.others=others(locked); return locked;
   }
   if(!cands.length || cands[0].offMin>10) return { none:true };
   const best=cands[0], next=cands.find(c=>!same(c,best));
   best.sure = !next || next.offMin-best.offMin>=4;
   best.other = best.sure ? null : next;
+  best.others = others(best);
   if(best.sure) state.trainLock={ operator:best.t.operator, std:best.t.std, from:best.t.from };
   return best;
 }
@@ -962,7 +969,8 @@ function renderOnTrain(now, m){
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
-      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}</span></div>
+      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}${m.picked?" · you picked this":""}</span></div>
+    ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
@@ -1460,6 +1468,9 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){ renderInner(); restoreOpen(); }
+// "Which train are you on?": your pick is kept until you're off the line.
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
+  const [operator,std,from]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true}; render(); });
 function renderInner(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.

@@ -456,3 +456,24 @@ test("On the train home: a train that hasn't left can't be yours; once sure, it 
     c.state.trainLock = null;
   } finally { Date.now = realNow; c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
 });
+
+test("On the train: when unsure it asks which train you're on; your pick is kept until you're off the line", () => {
+  const now = Date.now(), m = 60e3;
+  const pt = [51.80, -0.20], f = c.lineProgress(pt, "KGX").frac, len = 30 * m;
+  const at2 = (offMin, op, std) => { const dep = now - f * len + offMin * m; return svc({ from: "LET", to: "KGX", std, dep, arr: dep + len, operator: op }); };
+  const a = at2(0.5, "Great Northern", "A1"), b = at2(-1.5, "Thameslink", "B2");
+  useBoards({ "LET-KGX": { msgs: [], services: [a, b] }, "LET-ZFD": { msgs: [], services: [] } }, { dirMode: "office", view: "now" });
+  c.state.here = pt; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
+  try {
+    c.render();
+    let hero = app.text("#hero");
+    assert.match(hero, /Probably the A1 Great Northern or the B2 Thameslink/);
+    assert.match(hero, /Which train are you on\?A1 Great NorthernB2 Thameslink/);
+    app.d.querySelector('[data-pick="Thameslink|B2|LET"]').click();
+    hero = app.text("#hero");
+    assert.match(hero, /You're on the B2 Thameslink · you picked this/);
+    assert.match(hero, /On a different train\?A1 Great Northern/);
+    const w = c.whichTrain(now + 8 * m);
+    assert.equal(w.t, b, "kept even when the position fits less well");
+  } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
+});

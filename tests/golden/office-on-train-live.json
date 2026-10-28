@@ -2,7 +2,7 @@
  "load": {
   "dirNote": "",
   "banners": [],
-  "hero": "On the train · 07:25 · worked out from your location 08:27projected at office Probably the 07:20 Thameslink or the 07:08 Great Northern St Pancras 07:59 expected (live) · timetable 07:59 · on time 07:59Arrive St Pancras · 39 min on the train, change 7 min08:09Circle or Met to Aldgate · ~10 min, allows 3 min wait08:27Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Circle: Good Service Met: Good Service Arrival: National Rail's live expected time for this train. Your location says which train you're on.",
+  "hero": "On the train · 07:25 · worked out from your location 08:27projected at office Probably the 07:20 Thameslink or the 07:08 Great Northern Which train are you on?07:20 Thameslink07:08 Great Northern07:00 Great Northern06:50 Thameslink St Pancras 07:59 expected (live) · timetable 07:59 · on time 07:59Arrive St Pancras · 39 min on the train, change 7 min08:09Circle or Met to Aldgate · ~10 min, allows 3 min wait08:27Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Circle: Good Service Met: Good Service Arrival: National Rail's live expected time for this train. Your location says which train you're on.",
   "rows": [
    "At St Pancras the app switches to the onward tube and live departures."
   ],
