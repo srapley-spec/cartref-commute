@@ -1474,7 +1474,7 @@ function renderInner(){
   if(onWay){
     const arr = inLondonToOffice(now) ? renderInLondon(now) : onTube(now) ? renderOnTube(now) : state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
     if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
-    if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At the London station the app switches to the onward tube and live departures.</div><div></div></div>`; }
+    if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?"At the London station the app switches to the onward tube and live departures.":"The rest of the way home: Letchworth, then the walk."}</div><div></div></div>`; }
   } else if(atView && !(state.onLine||atHubToOffice()||onTube(now)||inLondonToOffice(now))){
     const opts=atOptions(); renderAtHero(opts);
     const a=state.at||{};
@@ -1497,7 +1497,7 @@ function renderInner(){
   } else if(state.onLine){
     const m=whichTrain(now); renderOnTrain(now, m);
     $("#listTitle").textContent="On the train";
-    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.</div><div></div></div>`;
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?`At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.`:"The rest of the way home: Letchworth, then the walk."}</div><div></div></div>`;
   } else {
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";

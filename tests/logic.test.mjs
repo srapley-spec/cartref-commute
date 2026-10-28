@@ -414,3 +414,11 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.equal(soon.missed, true); assert.equal(soon.flags[0].txt, "Leaving in under a minute");
   } finally { c.state.atHub = null; c.state.here = null; c.state.saved.view = "now"; }
 });
+
+test("On the train home, the list doesn't talk about the onward tube", () => {
+  const now = Date.now(), m = 60e3;
+  useBoards({ "KGX-LET": { msgs: [], services: [svc({ from: "KGX", to: "LET", dep: now - 5 * m, arr: now + 23 * m })] }, "ZFD-LET": { msgs: [], services: [] } }, { dirMode: "home", view: "now" });
+  c.state.here = [51.70, -0.18]; c.state.locAcc = 20; c.state.onLine = true;
+  try { c.render(); assert.match(app.text("#list"), /The rest of the way home/); assert.doesNotMatch(app.text("#list"), /onward tube/); }
+  finally { c.state.onLine = false; c.state.here = null; }
+});
