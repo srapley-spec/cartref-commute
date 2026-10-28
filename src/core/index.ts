@@ -8,6 +8,9 @@ export { stationOf, stationLabel, trainFromTflJourney, tflDropReason } from "./a
 export { busyDay, standingRoomOnly, isStopping, plannable } from "./rules";
 export { keepEveryRoute, topPicks, mergeSameTrain } from "./rank";
 export { addCallingAlternatives } from "./alternatives";
+export { FACILITY, SERVICE, NETWORK_WIDE, facilityOnly, railWarnings, noticeTitle, BAD_SEV, worstStatus, lineOk, lineLevel, tubeFallbackNeeded, tubeFlags } from "./warnings";
+export type { RailWarnings, ImpactLevel, LineStatus } from "./warnings";
+export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { hubHere, onLine, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs } from "./situation";
 export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep } from "./situation";
 export { bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";

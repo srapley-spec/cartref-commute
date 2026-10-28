@@ -29,6 +29,7 @@ export const samCommute: Profile = {
     HDW: [51.6685, -0.1762], NBA: [51.6486, -0.1730], OKL: [51.6378, -0.1663], NSG: [51.6141, -0.1431], AAP: [51.5983, -0.1201],
     HGY: [51.5865, -0.1119], HRY: [51.5772, -0.1050], FPK: [51.5646, -0.1063], KGX: [51.5308, -0.1238], STP: [51.5307, -0.1257], ZFD: [51.5203, -0.1053],
   },
+  corridorPattern: "baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\\.? pancras|farringdon",
   places: {
     homeStation: [51.9799, -0.2290],
     office: [51.5139, -0.0710],                 // 20 Mansfield Street, E1 (about a 7-minute walk from Aldgate)

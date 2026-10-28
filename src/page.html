@@ -324,7 +324,7 @@ const livePairs = () => PAIRS.filter(([a,b]) => direction()==="office" ? a==="LE
 // Live boards from a later time (Rail Data Marketplace allows starting up to 119 min ahead, 120 min window).
 const canLiveAhead = () => state.railSource==="darwin" && S().provider==="rdm";
 async function fetchLiveAhead(offsetMin){
-  const off=Math.max(-120, Math.min(119, Math.round(offsetMin))), pairs=livePairs();
+  const off=C.clampOffset(offsetMin), pairs=livePairs();
   const rs=await Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,off)));
   const boards={}, failed={};
   rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else failed[k]=r.reason.message; });
@@ -333,33 +333,16 @@ async function fetchLiveAhead(offsetMin){
 }
 // The live board may stop short of the time you're planning for (it seems to reach about 2 hours from now,
 // whatever the start time). Latest live departure across the boards:
-const liveHorizon = boards => Math.max(0, ...Object.values(boards).flatMap(b=>b&&b.services?b.services.map(x=>x.dep):[]));
-// Timetable trains after the live horizon, added to the live boards (live wins where both exist).
-// In a mixed live + timetable list, say which trains haven't been checked against live running.
-function markTimetable(js){ js.forEach(j=>{ if(j.train.timetable) j.flags.push({lvl:"info",txt:"Timetable only: not live-checked"}); }); }
-function mergeBeyond(live, tt, hz){
-  for(const [k,B] of Object.entries(tt)){ if(!B) continue;
-    const L=live[k]=live[k]||{services:[],msgs:[]};
-    B.services.filter(x=>x.dep>hz+60e3).forEach(x=>L.services.push(x));
-    L.services.sort((a,b)=>a.dep-b.dep); }
-  return live;
-}
+const { liveHorizon, mergeBeyond } = C;
+const markTimetable = js => { C.markTimetable(js); };
 // The timetable search may find a train at one London station but not the same train at the other.
 // Look for it: one extra search per missing station, near when it should be. The result decides; nothing is assumed.
 async function completePairs(boards, diag){
   if(!tflKeyed()) return 0;
-  const dir=direction(), hubs=PROFILE.mergeHubs, key=h=>dir==="office"?`LET-${h}`:`${h}-LET`;
-  const same=(a,b)=>a.operator===b.operator && a.arr!=null && b.arr!=null && Math.abs(dir==="office"?a.dep-b.dep:a.arr-b.arr)<=60e3;
-  const asks=[];
-  for(const h of hubs) for(const t of (boards[key(h)]||{services:[]}).services) for(const o of hubs){
-    if(o===h || (boards[key(o)]||{services:[]}).services.some(x=>same(x,t))) continue;
-    const at = dir==="office" ? t.dep-60e3 : t.dep-15*60e3;
-    if(!asks.some(q=>q.k===key(o) && Math.abs(q.at-at)<10*60e3)) asks.push({k:key(o), at});
-  }
   let n=0;
-  for(const q of asks.slice(0,6)){
-    const [a,b]=q.k.split("-");
-    try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.k, diag); n++; }
+  for(const q of C.missingPairSearches(boards, direction(), PROFILE)){
+    const [a,b]=q.key.split("-");
+    try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.key, diag); n++; }
     catch(e){ break; }
   }
   Object.values(boards).forEach(B=>{ if(B&&B.services) B.services.sort((x,y)=>x.dep-y.dep); });
@@ -607,7 +590,6 @@ function demoBoards(now){
 }
 
 // ---------- TfL ----------
-const BAD_SEV=new Set([1,2,3,4,5,16,20]); // closed / suspended / part closure
 // Live Circle and Metropolitan departures eastbound (towards Aldgate) from King's Cross or Farringdon.
 async function fetchTubeArrivals(hub){
   const r=await fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${TUBE_STOP[hub]}/Arrivals`);
@@ -677,14 +659,8 @@ function demoLondon(){
 }
 function londonOrigin(){ return state.origin || (state.here ? `${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}` : ""); }
 
-const worst = l => l && l.statuses.length ? l.statuses.reduce((a,b)=>a.sev<=b.sev?a:b) : null;
-const lineOk = l => { const w=worst(l); return !w || w.sev===10 || w.sev===18 || w.sev===19; };
-function aldgateUnusable(){
-  if(!state.status) return false;
-  const c=state.status.find(l=>l.id==="circle"), m=state.status.find(l=>l.id==="metropolitan");
-  const bad=l=>l && l.statuses.some(s=>BAD_SEV.has(s.sev));
-  return bad(c) && bad(m);
-}
+const worst = C.worstStatus, lineOk = C.lineOk;
+const aldgateUnusable = () => C.tubeFallbackNeeded(state.status||null, ["circle","metropolitan"]);
 
 // ---------- Journey model ----------
 function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"office") : state.saved.dirMode; }
@@ -782,18 +758,7 @@ function buildJourneys(dir, now, o){
 // Never hide a train: every train is listed with its flags. Only trains with known times (not cancelled, not
 // "Delayed" without an estimate) can be recommended on the top card.
 // Tube line status flags for a commute option (train flags come from the engine).
-function tubeFlags(tube){
-  const f=[];
-  if(tube && state.status){
-    const ids=tube.fallback?["hammersmith-city"]:["circle","metropolitan"];
-    const ls=ids.map(id=>state.status.find(l=>l.id===id)).filter(Boolean);
-    const notOk=ls.filter(l=>!lineOk(l));
-    if(notOk.length===ls.length && ls.length) f.push({lvl:"bad",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
-    else if(notOk.length) f.push({lvl:"warn",txt:notOk.map(l=>`${l.name}: ${worst(l).desc}`).join(" · ")});
-  }
-  if(tube && tube.fallback) f.push({lvl:"warn",txt:"Via Aldgate East: Circle and Met closed"});
-  return f;
-}
+const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:"Via Aldgate East: Circle and Met closed" });
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>dir==="office" || r.extra.planned);
@@ -1141,12 +1106,12 @@ function linesStatus(ids){
     if(id==="Great Northern"||id==="Thameslink"){
       const l=(state.nrStatus||[]).find(x=>new RegExp(id.replace(" ","[- ]?"),"i").test(x.name+" "+x.id));
       if(!l){ out.push({name:id, lvl:"info", desc: state.nrStatus ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name:id, lvl:lineOk(l)?"ok":(l.statuses.some(x=>BAD_SEV.has(x.sev))?"bad":"warn"), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name:id, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     } else {
       const l=(state.status||[]).find(x=>x.id===id);
       const name={circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[id]||id;
       if(!l){ out.push({name, lvl:"info", desc: state.status ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name, lvl:lineOk(l)?"ok":(l.statuses.some(x=>BAD_SEV.has(x.sev))?"bad":"warn"), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     }
   }
   return out;
@@ -1244,17 +1209,13 @@ function renderStatus(){
   const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
   if(!lines.length){ el.innerHTML=`<div class="st"><div class="s note">${state.status===null?"Loading…":"Unavailable"}</div></div>`; return; }
   const col={circle:"var(--circle)",metropolitan:"var(--met)","hammersmith-city":"var(--hc)"};
-  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=ok?"ok":(l.statuses.some(s=>BAD_SEV.has(s.sev))?"bad":"warn");
+  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=C.lineLevel(l);
     return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
 }
 // Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
-const CORRIDOR=/\b(baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\.? pancras|farringdon)\b/i;
 // Station facilities (toilets, lifts, escalators, ticket office…) don't affect trains: always grey, unless the
 // notice also talks about trains or services being disrupted.
-const FACILITY=/\b(toilets?|lavator(y|ies)|escalators?|lifts?|elevators?|ticket (office|machines?|barriers?|gates?)|car ?park|parking|wi-?fi|waiting rooms?|caf[eé]s?|shops?|help points?|customer information|footbridge|entrances?|exits?|step[- ]free|baby chang\w*|accessib\w*|cycle (racks?|parking)|taxi rank)\b/i;
-const SERVICE=/\b(delay\w*|cancel\w*|disrupt\w*|suspend\w*|reduced service|special service|amended|alter\w* (service|timetable)|trains? (are|is|will|may|run|running|not)|services? (are|is|will|may|between)|line(s)? (is|are) (closed|blocked)|bus(es)? replace\w*|replacement bus\w*|engineering|signal\w*|track|power|strike|industrial action)\b/i;
-const facilityOnly = m => FACILITY.test(m) && !SERVICE.test(m);
-const NETWORK_WIDE=/\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
+const facilityOnly = C.facilityOnly;
 function boardKeys(){
   const dir=direction(), leisure=state.saved.mode==="leisure";
   return dir==="office" ? (leisure?["LET-KGX","LET-STP"]:["LET-KGX","LET-ZFD"]) : (leisure?["KGX-LET","STP-LET","ZFD-LET"]:["KGX-LET","ZFD-LET"]);
@@ -1267,22 +1228,8 @@ function planIsLater(){
   return false;
 }
 function planLabel(){ const v=state.saved.view, T=v==="at"?state.at&&state.at.T:state.by&&state.by.T; return T?hhmm(T):""; }
-function railWarnings(){
-  // Every board loaded for this direction (live: all three London stations), so the counts agree with each other.
-  const keys=state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), now=Date.now();
-  const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]).filter(t=>t.dep>=now-5*60e3);
-  const cancelled=svcs.filter(t=>t.cancelled);
-  const affected=svcs.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
-  const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
-  const facilities=msgs.filter(facilityOnly);
-  const onRoute=msgs.filter(m=>!facilityOnly(m) && (CORRIDOR.test(m)||NETWORK_WIDE.test(m)));
-  const other=msgs.filter(m=>!facilityOnly(m) && !onRoute.includes(m));
-  const uncertain=svcs.filter(t=>!t.cancelled && (t.depUnknown||t.arrUnknown) && t.dep>=now-5*60e3);
-  // How badly your own trains are hit: red = cancelled, no estimate or 15+ min late; amber = 5–14 min late.
-  const late=Math.max(0,...svcs.filter(t=>!t.cancelled).map(t=>Math.max(t.depLate||0,t.arrLate||0)));
-  const level = cancelled.length||uncertain.length||late>=15 ? "red" : late>=5 ? "amber" : "none";
-  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other, facilities, level, late };
-}
+// Every board loaded for this direction (live: all three London stations), so the counts agree with each other.
+const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), Date.now(), PROFILE);
 function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
@@ -1323,7 +1270,7 @@ function renderBanners(){
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
 }
 // A notice's title: its first sentence, shortened.
-function noticeTitle(m){ const t=String(m).replace(/\s+/g," ").trim(), first=(t.match(/^.*?[.!?](\s|$)/)||[t])[0].trim(); return first.length>90?first.slice(0,87).replace(/\s+\S*$/,"")+"…":first.replace(/\.$/,""); }
+const noticeTitle = C.noticeTitle;
 // Notices often carry a link (sometimes without https://, sometimes followed by a full stop): make it tappable.
 function linkify(t){
   return esc(t).replace(/\b(?:https?:\/\/|www\.)[^\s<]+|\bnationalrail\.co\.uk[^\s<]*/gi, m=>{
