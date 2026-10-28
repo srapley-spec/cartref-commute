@@ -67,7 +67,7 @@ test("parseBoard() reads departures, calling points, cancellations and unknown d
   assert.deepEqual(plain(board.msgs), ["Engineering works at Hitchin"]);
 });
 
-test("Trains without dependable times are never planned", () => {
+test("Trains without dependable times are listed and flagged but never recommended", () => {
   const dep = at("2026-11-03", "07:40");
   const good = svc({ from: "LET", to: "KGX", dep, arr: dep + 30 * MIN });
   useBoards({ "LET-KGX": { msgs: [], services: [
@@ -78,8 +78,15 @@ test("Trains without dependable times are never planned", () => {
     svc({ from: "LET", to: "KGX", dep: dep + 40 * MIN, arr: null }),
   ] }, "LET-ZFD": { msgs: [], services: [] } });
   const js = c.buildJourneys("office", dep - 2 * 3600e3);
-  assert.equal(js.length, 1);
-  assert.equal(js[0].train, good);
+  assert.equal(js.length, 4, "cancelled and delayed trains are listed; only the one with no arrival time is left out");
+  assert.ok(js.find((j) => j.train.cancelled).flags.some((f) => f.txt === "Cancelled"));
+  assert.ok(js.filter((j) => j.train.depUnknown || j.train.arrUnknown).every((j) => j.flags.some((f) => /no estimate/.test(f.txt))));
+  const realNow = Date.now; Date.now = () => dep - 2 * 3600e3;
+  try {
+    const list = c.ranked(dep - 2 * 3600e3);
+    assert.equal(list.length, 4);
+    assert.deepEqual(plain(list.filter((j) => j.recommended).map((j) => hm(j.train.dep))), ["07:40"], "only the dependable train is recommended");
+  } finally { Date.now = realNow; }
 });
 
 // ---------- Door-to-door maths (defaults: walk 22:17 / 22:12, LET 2m+1m, KX 6m, tube 3m wait + 10m, Aldgate 1.5m + 7m) ----------
@@ -125,7 +132,7 @@ test("ranked() lists catchable trains in leaving order and marks the fastest", (
     assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:30", "07:40"], "07:10 is too soon; then leaving order");
     assert.equal(list[0].first, true, "07:30 stopper is the one you'd catch by leaving now");
     assert.equal(list[1].fastest, true, "07:40 fast gets there first");
-    assert.ok(list[1].flags.some((f) => f.txt === "Fastest"));
+    assert.equal(list[1].recommended, true, "07:40 is King's Cross's best option for the top card");
   } finally { Date.now = realNow; }
 });
 
@@ -174,7 +181,7 @@ test("Delayed-without-estimate trains are listed as not used for planning", () =
   const now = Date.now();
   useBoards({ "LET-KGX": { msgs: [], services: [svc({ from: "LET", to: "KGX", dep: now + 20 * MIN, arr: now + 50 * MIN, depUnknown: true })] }, "LET-ZFD": { msgs: [], services: [] } });
   c.render();
-  assert.match(app.banners().join(" "), /1 train delayed with no estimate, not used for planning/);
+  assert.match(app.banners().join(" "), /1 train delayed with no estimate: listed, not recommended/);
 });
 
 // ---------- Security ----------
@@ -195,13 +202,16 @@ test("TfL timetable: only direct trains between Letchworth and a London station 
   assert.equal(c.trainFromJourney({ legs: [leg("Cambridge Rail Station", "London Kings Cross Rail Station", "2026-11-03T08:00:00", "2026-11-03T08:50:00")] }), null);
 });
 
-test("Leave now card: the train you'd catch now, plus the faster one if it's worth waiting for", () => {
+test("Leave now card: best per route by arrival, total time, and the train you'd catch right now", () => {
   const now = Date.now(), m = 60e3;
-  const mk = (d, mins) => svc({ from: "LET", to: "KGX", dep: now + d * m, arr: now + (d + mins) * m });
-  useBoards({ "LET-KGX": { msgs: [], services: [mk(30, 52), mk(39, 29)] }, "LET-ZFD": { msgs: [], services: [] } });
+  const mk = (to, d, mins, op) => svc({ from: "LET", to, dep: now + d * m, arr: now + (d + mins) * m, operator: op });
+  useBoards({ "LET-KGX": { msgs: [], services: [mk("KGX", 30, 52, "Great Northern"), mk("KGX", 39, 29, "Great Northern")] },
+              "LET-ZFD": { msgs: [], services: [mk("ZFD", 33, 44, "Thameslink")] } });
   c.render();
-  const hero = app.text("#hero");
-  assert.match(hero, /52 min train/, "big answer is the stopper you'd catch by leaving now");
-  assert.match(hero, /Or leave at \d\d:\d\d for the \d\d:\d\d Great Northern: office \d\d:\d\d, 14 min sooner \(29 min train\)/);
-  assert.match(app.text("#listTitle"), /in leaving order/);
+  const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
+  assert.equal(opts.length, 2, "one option per route");
+  assert.match(opts[0], /Great Northern · 29 min train · total \d+h \d\dm/, "King's Cross fast arrives first");
+  assert.match(opts[1], /Thameslink · 44 min train · total/, "then Farringdon");
+  assert.match(app.text("#hero"), /Leaving right now\? The \d\d:\d\d Great Northern \(52 min train\)/);
+  assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
 });

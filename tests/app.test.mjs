@@ -17,7 +17,7 @@ test("Near Letchworth: waits for location, then plans to the office", async () =
   await sleep(500);
   assert.match(app.text("#dirNote"), /Heading to the office · you're near Letchworth \(±12 m\)/);
   assert.deepEqual(pairsFetched(app.calls), ["LET-KGX", "LET-ZFD"]);
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   assert.deepEqual(app.errors, []);
   app.close();
 });
@@ -26,7 +26,7 @@ test("In London: plans home", async () => {
   const app = await createApp({ geo: IN_LONDON });
   assert.match(app.text("#dirNote"), /Heading home · you're in London/);
   assert.deepEqual(pairsFetched(app.calls), ["KGX-LET", "ZFD-LET"]);
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   app.close();
 });
 
@@ -37,7 +37,7 @@ test("Location denied: says so and offers manual choice; manual choice works", a
   app.d.querySelector('[data-dir="home"]').click();
   await sleep(400);
   assert.deepEqual(pairsFetched(app.calls), ["KGX-LET", "ZFD-LET"]);
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   app.close();
 });
 
@@ -67,7 +67,7 @@ test("A hung request times out; the app recovers and refreshes again", async () 
   assert.match(app.banners().join(" "), /didn't respond in time/);
   hangNow = false;
   await app.c.refresh({ force: true });
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   assert.doesNotMatch(app.banners().join(" "), /didn't respond/);
   app.close();
 });
@@ -75,10 +75,10 @@ test("A hung request times out; the app recovers and refreshes again", async () 
 test("TfL rate limiting backs off and keeps the last good times, then flags them as stale", async () => {
   let limited = false;
   const app = await createApp({ route: (u) => (limited && parseJourneyUrl(u) ? json({}, 429) : undefined) });
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   limited = true;
   await app.c.refresh({ force: true });
-  assert.equal(app.rows().length, 5, "previous trains kept");
+  assert.equal(app.rows().length, 6, "previous trains kept");
   assert.match(app.banners().join(" "), /rate-limiting|limits requests/);
   const n = app.calls.length;
   await app.c.refresh({ force: true });
@@ -109,7 +109,7 @@ test("Darwin partial failure keeps the boards that loaded; total failure falls b
   await app.c.refresh({ force: true });
   assert.equal(app.c.state.railSource, "tfl");
   assert.match(app.banners().join(" "), /live National Rail feed failed/);
-  assert.equal(app.rows().length, 5);
+  assert.equal(app.rows().length, 6);
   app.close();
 });
 
@@ -131,7 +131,7 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
   await sleep(500);
   assert.match(app.text("#hero"), /^To arrive by 08:16 tomorrow · timetable/);
   const rows = app.rows();
-  const best = app.d.querySelector("#list .row.best").textContent.replace(/\s+/g, " ");
+  const best = [...app.d.querySelectorAll("#list .row.best")].map((r) => r.textContent).join(" ").replace(/\s+/g, " ");
   assert.match(best, /07:45 Great Northern · 29 min train/, "latest train that arrives in time is recommended");
   assert.match(best, /Cutting it fine/, "arrives 08:14, two minutes before the target");
   assert.match(app.text("#hero"), /07:45 Great Northern/);
@@ -202,7 +202,7 @@ test("Without a TfL key, a load stays within a handful of requests, one at a tim
   const tfl = app.calls.filter((u) => /api\.tfl\.gov\.uk/.test(u));
   assert.ok(tfl.length <= 3, `keyless first load made ${tfl.length} TfL requests`);
   assert.ok(!tfl.some((u) => /app_key=/.test(u)));
-  assert.equal(app.rows().length, 5, "still enough trains for the next 5");
+  assert.equal(app.rows().length, 6, "every loaded train is listed (3 per route)");
   app.close();
 });
 
@@ -272,7 +272,7 @@ test("If a route can't load, the app says so and names what is shown", async () 
   app.close();
 });
 
-test("Leave now keeps at least one option per route even when one route dominates", async () => {
+test("Leave now lists every catchable train and puts each route's best on the card", async () => {
   const app = await createApp({ settings: { provider: "demo" } });
   const c = app.c, now = Date.now(), m = 60e3;
   const svc = (from, to, d, mins, op) => ({ from, to, std: hm(now + d * m), dep: now + d * m, arr: now + (d + mins) * m, depLate: 0, arrLate: 0,
@@ -281,9 +281,8 @@ test("Leave now keeps at least one option per route even when one route dominate
   c.state.boards = { "LET-KGX": { msgs: [], services: [40, 45, 50, 55, 60, 65].map((d) => svc("LET", "KGX", d, 29, "Great Northern")) },
                      "LET-ZFD": { msgs: [], services: [svc("LET", "ZFD", 42, 44, "Thameslink")] } };
   const list = c.ranked(now);
-  assert.equal(list.length, 5);
-  assert.ok(list.some((j) => j.hub === "ZFD"), "Farringdon option kept");
-  assert.equal(list.filter((j) => j.hub === "KGX").length, 4);
+  assert.equal(list.length, 7, "nothing hidden");
+  assert.deepEqual(JSON.parse(JSON.stringify(list.filter((j) => j.recommended).map((j) => j.hub).sort())), ["KGX", "ZFD"], "one pick per route");
   app.close();
 });
 
@@ -297,9 +296,13 @@ test("Arrive by lists trains either side of the recommended one, including late 
   const kx738 = at(/07:38 Great Northern.*Late by/), tl750 = at(/07:50 Thameslink.*Late by/);
   assert.ok(kx708 >= 0 && tl720 > kx708 && kx730 > tl720, "earlier options in leaving order:\n" + rows.join("\n"));
   assert.ok(kx738 > kx730 && tl750 > kx738, "late options after, labelled:\n" + rows.join("\n"));
-  const best = app.d.querySelector("#list .row.best").textContent;
-  assert.match(best, /07:30 Great Northern/, "recommended = latest leave that arrives in time");
-  assert.match(app.text("#hero"), /Arrive 08:\d\d · (\d+ min early|just in time)/);
+  const best = [...app.d.querySelectorAll("#list .row.best")].map((r) => r.textContent.replace(/\s+/g, " "));
+  assert.equal(best.length, 2, "one recommended option per route");
+  assert.ok(best.some((r) => /07:20 Thameslink/.test(r)) && best.some((r) => /07:30 Great Northern/.test(r)), best.join("\n"));
+  const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
+  assert.match(opts[0], /07:20 Thameslink · 44 min train · total 1h \d\dm/, "Thameslink arrives first, so it's first on the card");
+  assert.match(opts[1], /07:30 Great Northern · 33 min train/);
+  assert.match(app.text("#hero"), /Arrive office ?08:\d\d.* · (\d+ min early|just in time)/);
   app.close();
 });
 

@@ -41,3 +41,13 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 - Notice text from National Rail and TfL is parsed in an inert document and reduced to plain text.
 - Keys typed into Settings live in this browser's storage. The proxy keeps the National Rail key off the phone;
   it only answers origins listed in `ALLOW_ORIGIN`.
+
+## Display rules
+- **Never hide a train.** Every train loaded for the routes is listed, in leaving order, with flags:
+  Stopping train, Usually standing room only, Cutting it fine, Late by N min, delays, Cancelled, and
+  Delayed with no estimate. Only trains already out of reach (you'd have to have left already) are left out.
+- **Top card:** the best option per route, ordered by arrival. Arrive by: the latest train on each route that
+  gets you there in time. Leave now: the earliest arrival on each route, plus the train you'd catch by
+  setting off this minute if it's a different one. Cancelled and "Delayed, no estimate" trains are listed but
+  never recommended.
+- Each option shows leave time, arrival, route, train length and total door-to-door time.
