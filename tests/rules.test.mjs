@@ -387,3 +387,36 @@ test("Requests time out after 12 s by default", async () => {
   assert.match(src, /const FETCH_TIMEOUT = \(\) => \(window\.COMMUTE_FETCH_TIMEOUT_MS \|\| 12000\);/);
   app.close();
 });
+
+test("Arrive by without a key: the third search per route starts early enough for that route's slowest train (+15 min)", async () => {
+  const now = T("06:00"), app = await open({ now, geo: NEAR_LETCHWORTH, settings: { provider: "tfl" }, saved: { dirMode: "office" } });
+  const n = app.calls.length;
+  await app.plan("by", DAY, "08:30");   // also the view's default, so one plan
+  const q = journeyCalls(app.since(n));
+  for (const [to, slowest] of [["KGX", 55], ["ZFD", 60]]) {
+    const mine = q.filter((x) => x.to === to);
+    const arriving = mine.find((x) => x.timeIs === "Arriving"), early = mine.filter((x) => x.timeIs === "Departing").sort((a, b) => a.t - b.t)[0];
+    assert.ok(arriving && early, JSON.stringify(mine));
+    assert.equal((arriving.t - early.t) / MIN, slowest + 15, `${to}: ${JSON.stringify(mine)}`);
+  }
+  app.close();
+});
+
+test("Leisure home: no trains are offered until the London leg is planned", async () => {
+  const now = T("15:00");
+  const app = await open({ now, geo: { coords: { latitude: 51.513, longitude: -0.135, accuracy: 20 } }, saved: { mode: "leisure", dirMode: "home" },
+    extra: (u) => (/JourneyResults\/[^/]+\/to\/940GZZLU/.test(u) ? json({}, 500) : undefined) });
+  assert.equal(app.c.state.london, null);
+  assert.equal(app.c.buildLeisure("home", now, {}).length, 0);
+  assert.ok(!app.rows().some((r) => /^Leave/.test(r)), app.rows().join("\n"));
+  app.close();
+});
+
+test("Live board start offset is kept within what the feed allows (-120 to 119 min)", async () => {
+  const now = T("16:30"), app = await open({ now, settings: RDM });
+  let n = app.calls.length;
+  await app.c.fetchLiveAhead(-200); assert.ok(darwinCalls(app.since(n)).every((u) => /timeOffset=-120\b/.test(u)) && darwinCalls(app.since(n)).length === 3);
+  n = app.calls.length;
+  await app.c.fetchLiveAhead(300); assert.ok(darwinCalls(app.since(n)).every((u) => /timeOffset=119\b/.test(u)));
+  app.close();
+});
