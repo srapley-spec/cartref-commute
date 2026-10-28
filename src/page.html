@@ -826,10 +826,14 @@ const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(D
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
 function liveAdjust(js, now){
-  const t0=now+30e3;
+  const t0=now+30e3, here=atStation();
   const keep=js.filter(j=>j.train.dep>=now);
   keep.forEach(j=>{
     j.uncertain=!plannable(j.train);
+    // At the station, for trains from that station: the walk to the platform is a guess (GPS can't tell the
+    // concourse from the platform), so a train stays catchable until a minute before it leaves.
+    if(here && depStation(j)===here){ j.missed = j.train.dep<now+60e3;
+      if(j.missed) j.flags.unshift({lvl:"bad",txt:"Leaving in under a minute"}); return; }
     j.missed = j.leave<t0;
     if(j.missed) j.flags.unshift({lvl:"bad",txt:`Leave time passed: ${Math.max(1,Math.round((t0-j.leave)/60e3))} min short at walking pace, run or bike`});
   });

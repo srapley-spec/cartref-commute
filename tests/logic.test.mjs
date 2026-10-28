@@ -394,3 +394,23 @@ test("Station facility notices (toilets, escalators, lifts) are grey even when t
   assert.deepEqual(b, ["bad: Your line is disrupted", "bad: Due to a lift fault at Hitchin, trains are not stopping at platform 4 and services may…",
     "bad: Signal fault between Hitchin and Stevenage", "info: 3 station facility notices (toilets, lifts, escalators…)"]);
 });
+
+test("At King's Cross: a train from King's Cross stays on the card until a minute before it leaves; St Pancras trains keep the walk", () => {
+  const now = Date.now(), m = 60e3;
+  const gn = (d, mins) => svc({ from: "KGX", to: "LET", dep: now + d * m, arr: now + (d + mins) * m });
+  const tl = svc({ from: "STP", to: "LET", dep: now + 3 * m, arr: now + 41 * m, operator: "Thameslink" });
+  useBoards({ "KGX-LET": { msgs: [], services: [gn(2, 28), gn(8, 35)] }, "STP-LET": { msgs: [], services: [tl] }, "ZFD-LET": { msgs: [], services: [] } }, { dirMode: "home", view: "now" });
+  c.state.atHub = "KGX"; c.state.here = [51.5308, -0.1238]; c.state.locAcc = 15;
+  try {
+    const list = c.ranked(now);
+    const in2 = list.find((j) => j.train.dep === now + 2 * m), stp = list.find((j) => j.train.from === "STP");
+    assert.equal(in2.missed, false, "2 min to go: still catchable from the concourse");
+    assert.equal(in2.recommended, 1, "and it's the best");
+    assert.equal(stp.missed, true, "St Pancras in 3 min: the walk there is real");
+    c.render();
+    assert.match(app.text("#hero"), new RegExp(`Departs ?${hm(now + 2 * m)} → Arrive home.*go to the platform now`));
+    c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
+    const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
+    assert.equal(soon.missed, true); assert.equal(soon.flags[0].txt, "Leaving in under a minute");
+  } finally { c.state.atHub = null; c.state.here = null; c.state.saved.view = "now"; }
+});
