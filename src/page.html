@@ -904,7 +904,7 @@ function optionBlock(j, opt){
     <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
-    <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
+    <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
 function renderOnTrain(now, m){
@@ -1048,8 +1048,6 @@ function statusStrip(ids, extra){
   const ls=linesStatus([...new Set(ids)]);
   const notices=state.boards ? railWarnings().onRoute.length : 0;
   const allOk = ls.every(l=>l.lvl==="ok") && !notices;
-  // Reasons sometimes arrive as a bare National Rail link: make links tappable.
-  const linkify = t => esc(t).replace(/https?:\/\/[^\s<]+/g, u=>`<a href="${u}" target="_blank" rel="noopener">${/nationalrail\.co\.uk/.test(u)?"National Rail details":"details"}</a>`);
   const reasons = ls.filter(l=>l.lvl!=="ok"&&l.reason).map(l=>`<div class="sreason"><b>${esc(l.name)}:</b> ${linkify(l.reason)}</div>`).join("");
   return `<div class="strip"><div class="striphead">${allOk?"Your lines: all good service":"Your lines"}</div>
     <div class="flags">${ls.map(l=>`<span class="pill ${l.lvl}">${esc(l.name)}: ${esc(l.desc)}</span>`).join(" ")}${notices?` <span class="pill warn">${notices} notice${notices>1?"s":""} on your line, see above</span>`:""}${extra||""}</div>${reasons}</div>`;
@@ -1181,7 +1179,7 @@ function renderBanners(){
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
   if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
-  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${esc(w(l).reason||"No details given.")}</span></details></div>`;
+  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
   if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
   const elsewhere=[];
@@ -1192,13 +1190,21 @@ function renderBanners(){
     if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
     if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span>${nowNote}</div>`);
     // Tier 2: notices naming your corridor.
-    tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details><summary>On your line</summary><span class="msg">${esc(m)}</span></details></div>`));
+    tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details data-key="notice|${esc(m)}"><summary>On your line</summary><span class="msg">${linkify(m)}</span></details></div>`));
     // Tier 3: everything else, promoted only when your trains are being hit.
-    if(tiers.hit){ tiers.other.forEach(m=>out.push(`<div class="banner warn"><details><summary>Elsewhere on the network</summary><span class="msg">${esc(m)}</span></details></div>`)); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(lineBanner(l))); }
+    if(tiers.hit){ tiers.other.forEach(m=>out.push(`<div class="banner warn"><details data-key="notice|${esc(m)}"><summary>Elsewhere on the network</summary><span class="msg">${linkify(m)}</span></details></div>`)); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(lineBanner(l))); }
     else { elsewhere.push(...tiers.other); (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>elsewhere.push(`${l.name}: ${w(l).desc}. ${w(l).reason||""}`.trim())); }
   }
-  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${esc(m)}</span>`).join("")}</details></div>`);
+  if(elsewhere.length) out.push(`<div class="banner info"><details><summary>${elsewhere.length} other network notice${elsewhere.length>1?"s":""} (not affecting your trains right now)</summary>${elsewhere.map(m=>`<span class="msg">${linkify(m)}</span>`).join("")}</details></div>`);
   $("#banners").innerHTML=out.join(""); $("#banners").hidden=!out.length;
+}
+// Notices often carry a link (sometimes without https://, sometimes followed by a full stop): make it tappable.
+function linkify(t){
+  return esc(t).replace(/\b(?:https?:\/\/|www\.)[^\s<]+|\bnationalrail\.co\.uk[^\s<]*/gi, m=>{
+    let u=m, tail=""; while(/[.,;:)\]!?]$/.test(u)){ tail=u.slice(-1)+tail; u=u.slice(0,-1); }
+    const href=/^https?:/i.test(u)?u:`https://${u}`;
+    return `<a href="${href}" target="_blank" rel="noopener">${/nationalrail\.co\.uk/i.test(u)?"National Rail details":"details"}</a>${tail}`;
+  });
 }
 function trainsNote(){ const r=state.railSource||source(); return r==="tfl"?"Train times are TfL timetable, not live.":r==="demo"?"Train times are examples.":"Trains are live from National Rail."; }
 function renderControls(){
@@ -1392,7 +1398,13 @@ function renderByHero(opts){
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
-function render(){
+// Expanded sections (notices, Journey steps) stay open when the screen is redrawn every few seconds.
+const openKeys=new Set();
+const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d.querySelector("summary")||{}).textContent||""}`;
+document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
+function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
+function render(){ renderInner(); restoreOpen(); }
+function renderInner(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }

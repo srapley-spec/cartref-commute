@@ -420,3 +420,27 @@ test("Live board start offset is kept within what the feed allows (-120 to 119 m
   await app.c.fetchLiveAhead(300); assert.ok(darwinCalls(app.since(n)).every((u) => /timeOffset=119\b/.test(u)));
   app.close();
 });
+
+// ---------- Notices ----------
+test("Notices: links are tappable (with or without https://, full stop left outside); an opened notice stays open when the screen refreshes", async () => {
+  const now = T("17:30"), app = await open({ now, settings: RDM }), c = app.c;
+  c.state.boards["KGX-LET"].msgs = ["Disruption between Hitchin and Stevenage. See nationalrail.co.uk/status/gn for details.",
+    "Engineering at Finsbury Park: https://www.nationalrail.co.uk/travel-updates/engineering?x=1&y=2."];
+  c.render();
+  const banner = [...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent));
+  assert.equal(banner.length, 2);
+  const links = [...app.d.querySelectorAll("#banners a")].map((a) => a.getAttribute("href"));
+  assert.deepEqual(links, ["https://nationalrail.co.uk/status/gn", "https://www.nationalrail.co.uk/travel-updates/engineering?x=1&y=2"]);
+  assert.match(banner[0].textContent, /National Rail details for details\./);
+  // Open the second notice and a card's Journey steps, then redraw twice.
+  banner[1].open = true; banner[1].dispatchEvent(new app.w.Event("toggle"));
+  const steps = app.d.querySelector("#hero details.steps"); steps.open = true; steps.dispatchEvent(new app.w.Event("toggle"));
+  c.render(); app.at(now + 20e3); c.render();
+  const after = [...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent));
+  assert.deepEqual(after.map((d) => d.open), [false, true], "the one you opened is still open, the other still closed");
+  assert.equal(app.d.querySelector("#hero details.steps").open, true);
+  // Closing it sticks too.
+  after[1].open = false; after[1].dispatchEvent(new app.w.Event("toggle")); c.render();
+  assert.equal([...app.d.querySelectorAll("#banners details")].filter((d) => /On your line/.test(d.textContent))[1].open, false);
+  app.close();
+});
