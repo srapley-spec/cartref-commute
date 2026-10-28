@@ -241,7 +241,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 22:52 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 22:59 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2524,7 +2524,14 @@ document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>{ state.saved.pace=b.dataset.pace; save(); render(); }));
 $("#refreshBtn").addEventListener("click",()=>refresh({force:true,manual:true}));
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ locate(); if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
+// Back in the app: the location watch usually carries on. Restarting it can make Safari ask for permission again,
+// so restart only if no position has arrived a few seconds after coming back (or there was never a watch).
+const RELOCATE_MS = () => (window.COMMUTE_RELOCATE_MS ?? 5000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
+  const back=Date.now();
+  if(state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable") locate();
+  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixAt>=back)) locate(); }, RELOCATE_MS());
+  if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.

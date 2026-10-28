@@ -65,7 +65,7 @@ const open = [];
 export const closeAll = () => { while (open.length) open.pop().close(); };
 
 export async function createApp({ settings = { provider: "tfl" }, saved = {}, geo = NEAR_LETCHWORTH, geoDelay = 20,
-  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null } = {}) {
+  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null, relocateMs = 0 } = {}) {
   const calls = [];
   const clock = { t: now };
   let pendingGeo = null;   // frozen clock; tests move it with app.setNow()
@@ -74,6 +74,7 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
     runScripts: "dangerously", pretendToBeVisual: true, url: "https://srapley-spec.github.io/cartref-commute/",
     beforeParse(w) {
       w.COMMUTE_FETCH_TIMEOUT_MS = timeoutMs;
+      if (relocateMs != null) w.COMMUTE_RELOCATE_MS = relocateMs;   // tests swap the location source and expect a restart
       // Frozen clock (golden tests): every Date in the page reads `now`, so output is the same on every run.
       if (now != null) {
         const D = w.Date;
