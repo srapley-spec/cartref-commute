@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 14:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 14:22 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -616,7 +616,8 @@ var CommuteCore = (() => {
         out.push(j);
         continue;
       }
-      group.sort((a, b) => a.arrive - b.arrive || b.leave - a.leave || (a.hub === profile.mergeHubs[0] ? -1 : 1));
+      const bad = (o) => o.missed || o.uncertain ? 1 : 0;
+      group.sort((a, b) => bad(a) - bad(b) || a.arrive - b.arrive || b.leave - a.leave || (a.hub === profile.mergeHubs[0] ? -1 : 1));
       const main = group[0];
       main.alts = group.slice(1);
       out.push(main);
@@ -805,6 +806,39 @@ const isStopping = t => C.isStopping(t, PROFILE);
 const mergeSameTrain = js => C.mergeSameTrain(js, direction(), PROFILE);
 // ---------- Config ----------
 const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
+// Live boards for the direction you're going: all three London stations, so the same train is known at each.
+const livePairs = () => PAIRS.filter(([a,b]) => direction()==="office" ? a==="LET" : b==="LET");
+// Live boards from a later time (Rail Data Marketplace allows starting up to 119 min ahead, 120 min window).
+const canLiveAhead = () => state.railSource==="darwin" && S().provider==="rdm";
+async function fetchLiveAhead(offsetMin){
+  const off=Math.max(-120, Math.min(119, Math.round(offsetMin))), pairs=livePairs();
+  const rs=await Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,off)));
+  const boards={}, failed={};
+  rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else failed[k]=r.reason.message; });
+  if(!Object.keys(boards).length) throw new Error(Object.values(failed)[0]||"National Rail feed failed.");
+  return {boards, failed};
+}
+// The timetable search may find a train at one London station but not the same train at the other.
+// Look for it: one extra search per missing station, near when it should be. The result decides; nothing is assumed.
+async function completePairs(boards){
+  if(!tflKeyed()) return 0;
+  const dir=direction(), hubs=PROFILE.mergeHubs, key=h=>dir==="office"?`LET-${h}`:`${h}-LET`;
+  const same=(a,b)=>a.operator===b.operator && a.arr!=null && b.arr!=null && Math.abs(dir==="office"?a.dep-b.dep:a.arr-b.arr)<=60e3;
+  const asks=[];
+  for(const h of hubs) for(const t of (boards[key(h)]||{services:[]}).services) for(const o of hubs){
+    if(o===h || (boards[key(o)]||{services:[]}).services.some(x=>same(x,t))) continue;
+    const at = dir==="office" ? t.dep-60e3 : t.dep-15*60e3;
+    if(!asks.some(q=>q.k===key(o) && Math.abs(q.at-at)<10*60e3)) asks.push({k:key(o), at});
+  }
+  let n=0;
+  for(const q of asks.slice(0,6)){
+    const [a,b]=q.k.split("-");
+    try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.k); n++; }
+    catch(e){ break; }
+  }
+  Object.values(boards).forEach(B=>{ if(B&&B.services) B.services.sort((x,y)=>x.dep-y.dep); });
+  return n;
+}
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
 const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
 // 20 Mansfield Street, E1 (approximate; about a 7-minute walk from Aldgate).
@@ -921,9 +955,9 @@ const stripHtml = h => {
 // Scheduled + estimate -> {t, late (min), unknownDelay, cancelled}
 
 // ---------- Darwin ----------
-function boardUrl(from,to){
+function boardUrl(from,to,offsetMin){
   const s=S(), trim=u=>String(u||"").trim().replace(/\/+$/,"");
-  if(s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120`, headers:{"x-apikey":s.rdmKey} };
+  if(s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${offsetMin?`&timeOffset=${offsetMin}`:""}`, headers:{"x-apikey":s.rdmKey} };
   if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
   return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
 }
@@ -1009,6 +1043,7 @@ async function fetchTflBoards(){
   if(tflKeyed()) for(let i=0;i<2;i++) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0;
     return last && last<now+2*3600e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
   const {boards, failed}=await searchRoutes(keys, rounds);
+  await completePairs(boards);
   if(Object.keys(failed).length===keys.length) throw new Error(Object.values(failed)[0]);
   return {boards, failed};
 }
@@ -1020,8 +1055,8 @@ function missingCreds(){
   if(s.provider==="huxley") return !s.huxleyToken;
   return false;
 }
-async function fetchBoard(from,to){
-  const {url,headers}=boardUrl(from,to);
+async function fetchBoard(from,to,offsetMin){
+  const {url,headers}=boardUrl(from,to,offsetMin);
   let r;
   try{ r=await fetchT(url,{headers}); }
   catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
@@ -1319,7 +1354,8 @@ function altLines(j){
 function altText(j){
   const home=direction()!=="office", at=x=>home?x.train.dep:x.train.arr;
   const all=[j,...(j.alts||[])].sort((a,b)=>at(a)-at(b));
-  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> ${x.train.estimated?"about ":""}<span class="t">${hhmm(at(x))}</span>${home?platTag(x.train):""}`).join(" or ");
+  const anyOk=all.some(x=>!x.missed);
+  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> ${x.train.estimated?"about ":""}<span class="t">${hhmm(at(x))}</span>${home?platTag(x.train):""}${x.missed&&anyOk?` <span class="latetxt">(too late to reach from here)</span>`:""}`).join(" or ");
 }
 // Platform on the card itself. Going home from a train with two boarding stations, each station's platform is in the "Board at" line instead.
 function platTag(t){ return t.platform?` <b class="plat">platform ${esc(t.platform)}</b>`:""; }
@@ -1582,7 +1618,7 @@ function boardKeys(){
 // Leave around / Arrive by for a time beyond the live board: rail warnings describe now, not that plan.
 function planIsLater(){
   const v=state.saved.view;
-  if(v==="at") return !!(state.at && state.at.T && state.at.T-Date.now()>100*60e3);
+  if(v==="at") return !!(state.at && state.at.T && !state.at.live);
   if(v==="by") return !!(state.by && state.by.T && !state.by.live);
   return false;
 }
@@ -1671,7 +1707,7 @@ async function planAt(){
   if(!isFinite(T)){ state.at={err:"Pick a day and time."}; render(); return; }
   const key=`at|${T}|${state.saved.mode}|${direction()}`; state.atCache=state.atCache||{};
   const hit=state.atCache[key];
-  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<10*60e3){ state.at={T,boards:hit.boards,failed:{}}; render(); return; }
+  if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live}; render(); return; }
   state.at={T,loading:true}; render();
   // Same searches as Leave now, as if it were that time: from the first train you could catch, then the next ones.
   const start = k => T+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
@@ -1679,10 +1715,15 @@ async function planAt(){
     (k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0; return (tflKeyed()||B.services.length<3) && last && last<T+100*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; } ];
   if(tflKeyed()) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0; return last && last<T+100*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
   try{
-    const r=await searchRoutes(boardKeys(), rounds);
+    let r;
+    // Within reach of the live board: live times (every stop timed). Otherwise the timetable.
+    if(canLiveAhead() && T-15*60e3-Date.now()<=119*60e3){
+      try{ r=await fetchLiveAhead((T-Date.now())/60e3-15); r.live=true; }catch(e){ r=null; }
+    }
+    if(!r){ r=await searchRoutes(boardKeys(), rounds); await completePairs(r.boards); }
     if(state.atToken!==token) return;
-    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now()};
-    state.at={T,boards:r.boards,failed:r.failed};
+    state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live};
+    state.at={T,boards:r.boards,failed:r.failed,live:!!r.live};
     if(Object.keys(r.failed).length) scheduleRouteRetry();
   }catch(e){ if(state.atToken!==token) return; state.at={T,err:e.message}; }
   render();
@@ -1703,7 +1744,7 @@ function atOptions(){
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
-  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)} · timetable · best per route, by arrival`:"Leave around";
+  const lbl=isFinite(a.T)?`Leaving around ${hhmm(a.T)} ${dayLabel(a.T)}${a.live?" · live":" · timetable"} · best per route, by arrival`:"Leave around";
   if(a.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(a.err)}</div>`; return; }
   if(a.loading||!a.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
   const picks=opts.filter(o=>o.recommended).sort((x,y)=>x.arrive-y.arrive);
@@ -1732,7 +1773,9 @@ async function fetchTflArriving(T, keys){
   if(tflKeyed()) for(let i=0;i<4;i++) rounds.push((k,B)=>{
     const deps=B.services.map(s=>s.dep).filter(d=>d<latest(k)); const last=deps.length?Math.max(...deps):0;
     return last && last<latest(k)-20*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
-  return searchRoutes(keys||boardKeys(), rounds);
+  const r=await searchRoutes(keys||boardKeys(), rounds);
+  await completePairs(r.boards);
+  return r;
 }
 async function planBy(opts){
   if(state.saved.view!=="by" || awaitingLocation()) return;
@@ -1742,6 +1785,13 @@ async function planBy(opts){
   if(T<Date.now()){ state.by={err:"That time has already passed."}; render(); return; }
   // Within the live window with Darwin running: use the live boards already loaded.
   if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
+  if(canLiveAhead() && T-120*60e3-Date.now()<=119*60e3){
+    const lkey=`live|${T}|${direction()}`; state.byCache=state.byCache||{}; const h=state.byCache[lkey];
+    if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true}; render(); return; }
+    try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(state.byToken!==token) return;
+      state.byCache[lkey]={boards:r.boards,at:Date.now()}; state.by={T,boards:r.boards,failed:{},live:true}; render(); return; }
+    catch(e){ /* fall through to the timetable */ }
+  }
   const key=`${T}|${state.saved.mode}|${direction()}`; state.byCache=state.byCache||{};
   const hit=state.byCache[key];
   // Reuse a complete result for 10 minutes; an incomplete one only fills in its missing routes.
@@ -1805,6 +1855,8 @@ function render(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
+  // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
+  else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
   if(awaitingLocation()){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
@@ -1867,7 +1919,7 @@ function tick(){
 
 // ---------- Data refresh ----------
 // Successful train data is stamped; when a later load fails the last good data stays on screen, marked stale.
-function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; }
+function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); }
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
   try{
@@ -1919,8 +1971,9 @@ async function refresh(opts){
       railP = (awaitingLocation()||reuse||((state.saved.view==="by"||state.saved.view==="at")&&!state.onLine)) ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
     }
     else {
-      const pairs=PAIRS;
-      railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
+      const pairs=livePairs();
+      // Live boards are for one direction: wait until location says which.
+      railP=awaitingLocation() ? Promise.resolve() : Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b))).then(async rs=>{
         const boards={}; let firstErr=null;
         rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
         if(Object.keys(boards).length){
@@ -2026,7 +2079,7 @@ dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
-const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl") refresh({force:true}); else refreshLondon().then(render); planView(); };
+const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && state.boardsDir!==direction())) refresh({force:true}); else refreshLondon().then(render); planView(); };
 const planView = () => state.saved.view==="at" ? planAt() : planBy();
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view; save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }

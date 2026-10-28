@@ -525,3 +525,52 @@ test("Leave around 17:40: best per route and every train around then, in leaving
   assert.match(app.text("#listTitle"), /Trains around 17:40, in leaving order/);
   app.close();
 });
+
+test("Live boards: only the direction you're going; Leave around within reach uses the live board from that time", async () => {
+  const now = Date.now(), m = 60e3;
+  const board = () => ({ locationName: "x", trainServices: [{ std: hm(now + 70 * m), etd: "On time", operator: "Great Northern", platform: "9",
+    subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", locationName: "Letchworth Garden City", st: hm(now + 105 * m), et: "On time" }] }] }], nrccMessages: [] });
+  const app = await createApp({ geo: AT_OFFICE, settings: { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120" },
+    route: (u) => (/darwin\.test/.test(u) ? json(board()) : undefined) });
+  const dar = app.calls.filter((u) => /darwin\.test/.test(u));
+  assert.ok(dar.length >= 3, dar.join("\n"));
+  assert.ok(dar.every((u) => /GetDepBoardWithDetails\/(KGX|STP|ZFD)\?.*filterCrs=LET/.test(u)), "home boards only:\n" + dar.join("\n"));
+  const t = new Date(now + 60 * m), p = (n) => String(n).padStart(2, "0");
+  app.d.querySelector('[data-view="at"]').click();
+  await sleep(300);
+  const before = app.calls.length;
+  app.d.querySelector("#byDate").value = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
+  app.d.querySelector("#byTime").value = `${p(t.getHours())}:${p(t.getMinutes())}`;
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
+  await sleep(300);
+  const later = app.calls.slice(before);
+  assert.ok(later.some((u) => /darwin\.test.*timeOffset=4[45]/.test(u)), later.join("\n"));
+  assert.ok(!later.some((u) => /JourneyResults/.test(u)), "no timetable searches when the live board reaches");
+  assert.match(app.text("#hero"), /Leaving around \d\d:\d\d \S+ · live · best per route/);
+  app.close();
+});
+
+test("Timetable: a Thameslink found at one London station is looked for at the other, and merged from real results", async () => {
+  const day = tomorrow(), T = (h) => new Date(`${day}T${h}:00`).getTime(), m = 60e3;
+  const lists = { ZFD: [["18:56", "19:40"], ["19:26", "20:09"]], STP: [["19:01", "19:40"], ["19:31", "20:09"]], KGX: [["18:48", "19:16"], ["19:18", "19:46"]] };
+  const journeys = (q) => {
+    if (q.to !== "LET") return { journeys: [] };
+    // Farringdon and St Pancras searches only reach 20 minutes ahead; King's Cross also returns the St Pancras 19:31.
+    const span = q.from === "KGX" ? 60 : 20;
+    const mk = (from, [d, a]) => ({ from, dep: T(d), arr: T(a) });
+    const pool = q.from === "KGX" ? [...lists.KGX.map((x) => mk("KGX", x)), mk("STP", lists.STP[1])] : lists[q.from].map((x) => mk(q.from, x));
+    return { journeys: pool.filter((x) => x.dep >= q.t && x.dep <= q.t + span * m).map((x) => tflJourney(x.from, "LET", x.dep, x.arr)) };
+  };
+  const app = await createApp({ geo: AT_OFFICE, journeys, settings: { provider: "tfl", tflKey: "k" } });
+  app.d.querySelector('[data-view="at"]').click();
+  app.d.querySelector("#byDate").value = day;
+  app.d.querySelector("#byTime").value = "18:40";
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
+  await sleep(600);
+  const rows = app.rows().join("\n");
+  assert.match(rows, /Board at Farringdon 18:56 or St Pancras 19:01/, rows);
+  assert.match(rows, /Board at Farringdon 19:26 or St Pancras 19:31/, rows);
+  assert.doesNotMatch(rows, /about/);
+  assert.ok(app.calls.some((u) => /JourneyResults\/51\.53062,-0\.12594/.test(u)), "searched St Pancras directly");
+  app.close();
+});

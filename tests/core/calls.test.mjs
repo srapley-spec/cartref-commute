@@ -95,3 +95,11 @@ test("To work: getting off at the earlier station is derived the same way", () =
   const stp = out["LET-STP"].services[0];
   assert.equal(stp.arr, s); assert.equal(stp.dep, d); assert.equal(stp.platform, "1", "Letchworth platform kept");
 });
+
+test("Same train: a boarding point you can still make is the main one, even if the other gets you there sooner", () => {
+  const T = (h) => at("2026-11-03", h), mk = (hub, dep, leave, missed) => ({ hub, leave: T(leave), arrive: T("19:59"), flags: [], missed,
+    train: { operator: "Thameslink", dep: T(dep), arr: T("19:40"), calls: [] } });
+  const zfd = mk("ZFD", "18:56", "18:34", true), stp = mk("STP", "19:01", "18:36", false);
+  const [main] = core.mergeSameTrain([zfd, stp], "home", sam);
+  assert.equal(main.hub, "STP"); assert.equal(main.alts[0].hub, "ZFD");
+});

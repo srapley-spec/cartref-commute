@@ -54,7 +54,9 @@ export function mergeSameTrain<T extends Option>(js: T[], dir: Direction, profil
     const group = [j, ...js.filter(o => !used.has(o) && sameRun(j, o))];
     group.forEach(g => used.add(g));
     if (group.length === 1) { out.push(j); continue; }
-    group.sort((a, b) => a.arrive - b.arrive || b.leave - a.leave || (a.hub === profile.mergeHubs[0] ? -1 : 1));
+    // A boarding point you can still make comes before one you can't; then soonest arrival, then latest leave.
+    const bad = (o: T) => (o.missed || o.uncertain ? 1 : 0);
+    group.sort((a, b) => bad(a) - bad(b) || a.arrive - b.arrive || b.leave - a.leave || (a.hub === profile.mergeHubs[0] ? -1 : 1));
     const main = group[0]; main.alts = group.slice(1);
     out.push(main);
   }
