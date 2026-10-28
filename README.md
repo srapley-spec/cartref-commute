@@ -79,7 +79,28 @@ See the architecture decision in the Commuter App project. In short:
 - Each option shows leave time, arrival, route, train length and total door-to-door time.
 - **Leave around:** pick a time (default 17:40); the card shows the best train (and the next best, as above) for leaving within
   10 minutes before that time or any time after; the list shows every train around then.
-- **Direction:** near Letchworth you're heading to work; once you've been at the office today, anywhere else
-  counts as heading home for the rest of the day.
+- **Direction:** near Letchworth you're heading to work, unless you've been heading home in the last 3 hours
+  (then you're arriving: "Nearly home"); once you've been at the office today, anywhere else counts as heading home.
 - **St Pancras:** Thameslink trains from St Pancras are part of the King's Cross route (same tube station).
-- **Why these trains?** Under the list: what TfL returned for each route search and what was dropped and why.
+- **Same train, two stations:** "Board at Farringdon 16:56 platform 4 or St Pancras 17:01 platform B" on the card;
+  a station you can no longer make says "(too late to reach from here)"; ties go to the earlier stop.
+- **Slow trains** in "Leaving right now?", "Next train" and "Still possible if you hurry" are named ("stopping
+  train, 54 min") with how their arrival compares with the best option.
+- **Warnings** are graded by what's happening to your own trains: red = cancelled, no estimate or 15+ min late;
+  amber = 5-14 min late; yellow = a notice about your route (or your operator's status) with no impact yet; grey =
+  elsewhere on the network, and station facility notices (toilets, lifts, escalators...), folded. Opened notices
+  stay open across refreshes; links in notices are tappable.
+- **At the station** (a London station going home, Letchworth station going to work), Leave now is a departure
+  board: the big time is the departure, the countdown is to the departure, "walk to the platform by" is small
+  print. A train from that station stays catchable until a minute before it leaves.
+- **On the train:** only trains that have departed count; where National Rail last reported each train (Service
+  Details) settles which one you're on, and a train reported more than 6 min from you is ruled out; once sure it
+  stays with your train; when unsure you pick ("Which train are you on?") and the pick is kept until you're off the
+  line. Arrival comes from the train's live expected time; the card shows the last reported stop.
+- **Tube going home:** near the office, the next westbound tubes from Aldgate you can make, each with its train and
+  when to leave; underground after Aldgate, which tube you're probably on and where to get off (Farringdon or King's
+  Cross) for the earliest home time.
+- **Nearly home:** home time from your train's expected Letchworth time, or the walk from where you are once your
+  home is set in Settings ("Home is where I am now"); "You're home" within 100 m.
+- **Why these trains?** Under the list: what each source returned for the plan on screen (live boards and
+  timetable searches) and what was dropped and why.
