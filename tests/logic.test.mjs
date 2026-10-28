@@ -284,3 +284,20 @@ test("On the train: works out which train from your position and projects arriva
     c.state.here = [51.9050, -0.1750]; assert.equal(c.onLine(), false);
   } finally { c.state.here = null; c.state.onLine = false; }
 });
+
+test("Arrive by on the train: says whether this train gets you there on time", () => {
+  const now = Date.now(), m = 60e3, knebworth = [51.8667, -0.1876];
+  const frac = c.lineProgress(knebworth, "KGX").frac, dep = now - frac * 29 * m;
+  const fast = svc({ from: "LET", to: "KGX", dep, arr: dep + 29 * m });
+  useBoards({ "LET-KGX": { msgs: [], services: [fast] }, "LET-ZFD": { msgs: [], services: [] } }, { view: "by" });
+  c.state.autoDir = "office"; c.state.here = knebworth; c.state.locAcc = 20; c.state.atHub = null; c.state.onLine = c.onLine();
+  const setTarget = (t) => { const d = new Date(t), p = (n) => String(n).padStart(2, "0");
+    app.d.querySelector("#byDate").value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; app.d.querySelector("#byTime").value = `${p(d.getHours())}:${p(d.getMinutes())}`; };
+  try {
+    const office = c.whichTrain(now).projected + (360 + 180 + 600 + 90 + 420) * 1000;   // King's Cross → office, defaults
+    setTarget(office + 20 * m); c.render();
+    assert.match(app.text("#hero"), /^On time for \d\d:\d\d · (19|20|21) min to spare.*On the train.*You're on the/);
+    setTarget(office - 10 * m); c.render();
+    assert.match(app.text("#hero"), /^Late for \d\d:\d\d by about (9|10|11) min/);
+  } finally { c.state.here = null; c.state.onLine = false; c.state.saved.view = "now"; }
+});

@@ -118,6 +118,9 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .latetxt{color:var(--accent);font-weight:800}
 .hero .steps summary{cursor:pointer;font-size:13px;opacity:.8;font-weight:600}
 .hero .steps .legs{margin-top:6px}
+.verdict{border-radius:8px;padding:8px 10px;font-weight:800;font-size:16px}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad)}
 .hero .slack.bad{background:var(--bad);color:var(--paper)}
 
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
@@ -220,7 +223,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 07:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 07:27 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -928,7 +931,7 @@ function renderOnTrain(now, m){
   const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location</div>`;
   if(!m || m.none){
     $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>`;
-    return false;
+    return null;
   }
   const t=m.t, delay=Math.round((m.projected-t.arr)/60e3);
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
@@ -944,7 +947,7 @@ function renderOnTrain(now, m){
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> projected · timetable <span class="t">${hhmm(t.arr)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
-  return true;
+  return arrive;
 }
 function renderAtHub(now){
   const s=S(), hub=state.atHub, k=state.saved.pace==="fast"?s.fastFactor:1;
@@ -955,10 +958,10 @@ function renderAtHub(now){
   const lineIssues=(state.status||[]).filter(l=>/^(circle|metropolitan)$/.test(l.id) && !lineOk(l)).map(l=>`${l.name}: ${worst(l).desc}`);
   const issues=lineIssues.length?`<div class="flags">${lineIssues.map(t=>`<span class="pill warn">${esc(t)}</span>`).join(" ")}</div>`:"";
   const head=`<div class="lbl">You're at ${esc(HUB_NAME[hub])} · ${hhmm(now)}${tube&&tube.arrivals?" · live tube times":""}</div>`;
-  let hero, rows=[];
+  let hero, rows=[], officeAt=null;
   if(tube && tube.arrivals && tube.arrivals.some(a=>a.t>=ready)){
     const next=tube.arrivals.filter(a=>a.t>=ready).slice(0,6).map(a=>({...a, ald:a.t+ride, office:a.t+ride+tail}));
-    const n=next[0];
+    const n=next[0]; officeAt=n.office;
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
       <div><span class="slack">Get on the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span></span></div>
@@ -970,7 +973,7 @@ function renderAtHub(now){
       </ol>${issues}`;
     rows=next;
   } else {
-    const office=ready+s.tubeWait*1000+ride+tail;
+    const office=ready+s.tubeWait*1000+ride+tail; officeAt=office;
     const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle or Met trains listed." : "Loading live tube times…";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office · estimate</span></div>
@@ -986,6 +989,14 @@ function renderAtHub(now){
         <div class="meta">Aldgate <span class="t">${hhmm(a.ald)}</span> · <span data-tube="${a.t}"></span></div></div>
       <div class="arrive"><small>Office</small><span class="t">${hhmm(a.office)}</span></div>
     </div>`).join("") : `<div class="row"><div></div><div class="mid meta">Live tube times will appear here.</div><div></div></div>`;
+  return officeAt;
+}
+// Arrive by, once you're on your way: will you make it?
+function verdictHtml(arrive, T){
+  const d=Math.round((T-arrive)/60e3), dest=direction()==="office"?"the office":"home";
+  return d>=0
+    ? `<div class="verdict ok">On time for ${hhmm(T)} · ${d>=1?`${d} min to spare`:"just in time"}</div>`
+    : `<div class="verdict bad">Late for ${hhmm(T)} by about ${-d} min · ${esc(dest)} ${hhmm(arrive)}</div>`;
 }
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
@@ -1226,7 +1237,13 @@ function render(){
   document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
   $("#byForm").hidden=!byView;
   renderControls(); renderBanners();
-  if(byView){
+  const T=byView?byTarget():NaN;
+  const onWay = byView && (state.onLine || atHubToOffice()) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
+  if(onWay){
+    const arr = state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
+    if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
+    if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At the London station the app switches to the onward tube and live departures.</div><div></div></div>`; }
+  } else if(byView){
     const opts=byOptions(); renderByHero(opts);
     const b=state.by||{}, none=byRoutesWithoutOnTime(opts);
     renderList(opts, now, { loaded: !!b.boards && !b.loading, noBest:true,
@@ -1296,7 +1313,7 @@ async function refresh(opts){
       // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
       const reuse = !force && !state.onLine && boardsFit(prev) && state.boardsAt && now-state.boardsAt<TIMETABLE_REUSE && state.boardsSource==="tfl";
       // Arrive by runs its own searches, so the Leave now trains aren't loaded while it's on screen.
-      railP = (awaitingLocation()||reuse||state.saved.view==="by") ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
+      railP = (awaitingLocation()||reuse||(state.saved.view==="by"&&!state.onLine)) ? Promise.resolve() : loadTflTimetable(prev);   // load once we know the direction
     }
     else {
       const pairs=PAIRS;
