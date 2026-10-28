@@ -819,8 +819,11 @@ function altLines(j){
 function altText(j){
   const home=direction()!=="office", at=x=>home?x.train.dep:x.train.arr;
   const all=[j,...(j.alts||[])].sort((a,b)=>at(a)-at(b));
-  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> <span class="t">${hhmm(at(x))}</span>`).join(" or ");
+  return (home?"Board at ":"Get off at ")+all.map(x=>`<b>${esc(HUB_NAME[x.hub])}</b> <span class="t">${hhmm(at(x))}</span>${home?platTag(x.train):""}`).join(" or ");
 }
+// Platform on the card itself. Going home from a train with two boarding stations, each station's platform is in the "Board at" line instead.
+function platTag(t){ return t.platform?` <b class="plat">platform ${esc(t.platform)}</b>`:""; }
+function platMeta(j){ return (j.alts&&j.alts.length&&direction()!=="office") ? "" : (j.train.platform?` · <b class="plat">platform ${esc(j.train.platform)}</b>`:""); }
 function chips(j){
   if(j.leisure){
     const rail=`<span class="chip rail">${direction()==="office"?"to ":"from "}${esc(STATIONS[j.hub])}</span>`;
@@ -848,7 +851,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>
-    <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta"><span class="t">${esc(j.train.std)}</span> ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
     <details class="steps"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -1044,7 +1047,7 @@ function renderList(list, now, opts){
       <div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>

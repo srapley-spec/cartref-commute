@@ -321,3 +321,18 @@ test("The same Thameslink from Farringdon and St Pancras is one option with both
   assert.equal(app.d.querySelectorAll("#hero .opt").length, 2, "card shows Thameslink once plus King's Cross");
   assert.match(app.rows().join(" "), /Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/);
 });
+
+test("Platform is on the card and the list without expanding; with two boarding stations, each has its own", () => {
+  const now = Date.now(), m = 60e3, arr = now + 160 * m;
+  const zfd = svc({ from: "ZFD", to: "LET", dep: now + 116 * m, arr, operator: "Thameslink", platform: "4" });
+  const stp = svc({ from: "STP", to: "LET", dep: now + 121 * m, arr, operator: "Thameslink", platform: "B" });
+  const gn = svc({ from: "KGX", to: "LET", dep: now + 114 * m, arr: now + 149 * m, platform: "9" });
+  useBoards({ "KGX-LET": { msgs: [], services: [gn] }, "STP-LET": { msgs: [], services: [stp] }, "ZFD-LET": { msgs: [], services: [zfd] } }, { dirMode: "home" });
+  c.render();
+  const hero = app.text("#hero"), rows = app.rows().join(" ");
+  for (const s of [hero, rows]) {
+    assert.match(s, /Great Northern · platform 9/);
+    assert.match(s, /Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
+    assert.doesNotMatch(s, /Thameslink · platform/);
+  }
+});
