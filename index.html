@@ -121,6 +121,7 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .strip{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--paper) 22%,transparent)}
 .striphead{font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.75;font-weight:700}
 .sreason{font-size:13px;opacity:.9}
+.sreason a{color:inherit;text-decoration:underline}
 .hero .pill.ok{background:color-mix(in srgb,var(--ok) 28%,transparent);color:var(--paper)}
 .verdict{border-radius:8px;padding:8px 10px;font-weight:800;font-size:16px}
 .verdict.ok{background:var(--ok-bg);color:var(--ok)}
@@ -227,7 +228,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 08:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 08:12 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1105,7 +1106,9 @@ function statusStrip(ids, extra){
   const ls=linesStatus([...new Set(ids)]);
   const notices=state.boards ? railWarnings().onRoute.length : 0;
   const allOk = ls.every(l=>l.lvl==="ok") && !notices;
-  const reasons = ls.filter(l=>l.lvl!=="ok"&&l.reason).map(l=>`<div class="sreason"><b>${esc(l.name)}:</b> ${esc(l.reason)}</div>`).join("");
+  // Reasons sometimes arrive as a bare National Rail link: make links tappable.
+  const linkify = t => esc(t).replace(/https?:\/\/[^\s<]+/g, u=>`<a href="${u}" target="_blank" rel="noopener">${/nationalrail\.co\.uk/.test(u)?"National Rail details":"details"}</a>`);
+  const reasons = ls.filter(l=>l.lvl!=="ok"&&l.reason).map(l=>`<div class="sreason"><b>${esc(l.name)}:</b> ${linkify(l.reason)}</div>`).join("");
   return `<div class="strip"><div class="striphead">${allOk?"Your lines: all good service":"Your lines"}</div>
     <div class="flags">${ls.map(l=>`<span class="pill ${l.lvl}">${esc(l.name)}: ${esc(l.desc)}</span>`).join(" ")}${notices?` <span class="pill warn">${notices} notice${notices>1?"s":""} on your line, see above</span>`:""}${extra||""}</div>${reasons}</div>`;
 }
