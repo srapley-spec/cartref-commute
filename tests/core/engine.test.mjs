@@ -129,3 +129,36 @@ test("keepEveryRoute keeps a subset with every route when there is room", () => 
     for (const h of new Set(opts.map((j) => j.hub))) assert.ok(out.some((j) => j.hub === h), `seed ${seed}`);
   }
 });
+
+// ---------- Journeys: one route description, every time computed from it ----------
+test("buildOptions: leave, arrive and steps all come from the route's segments (any corridor)", () => {
+  const T = at("2026-11-03", "07:00");
+  const route = {
+    hub: "CEN", board: "RVS-CEN", fromName: "Riverside",
+    before: [ { kind: "walk", secs: 900, step: { at: "start", d: "Leave home", note: "walk 15 min" } },
+              { kind: "stop", secs: 1200, step: { at: "start", d: "Nursery drop-off", note: "20 min" } },
+              { kind: "walk", secs: 300 }, { kind: "margin", secs: 60 } ],
+    after: [ { kind: "walk", secs: 600, step: { at: "end", d: "Arrive work", note: "walk 10 min" } } ],
+    arriveLabel: "Arrive Central", extra: { custom: "kept" },
+  };
+  const t = train({ from: "RVS", to: "CEN", std: "07:45", dep: T + 45 * MIN, arr: T + 70 * MIN });
+  const [o] = core.buildOptions([route], { "RVS-CEN": { services: [t], msgs: [] } }, testville);
+  assert.equal(o.leave, t.dep - (900 + 1200 + 300 + 60) * 1000);
+  assert.equal(o.arrive, t.arr + 600 * 1000);
+  assert.deepEqual(o.legs.map((l) => l.d), ["Leave home", "Nursery drop-off", "07:45 Express Rail from Riverside", "Arrive Central", "Arrive work"]);
+  assert.equal(o.legs[1].t, o.leave + 900 * 1000, "a stop starts after the walk before it");
+  assert.equal(o.legs[3].note, "25 min on the train");
+  assert.equal(o.custom, "kept");
+  assert.equal(core.timeToTrain(route), (900 + 1200 + 300 + 60) * 1000);
+  assert.equal(core.minTimeToTrain({ ...route, before: [...route.before, { kind: "wait", secs: 180 }] }), core.timeToTrain(route), "waits don't count towards the earliest catch");
+});
+
+test("trainFlags: cancelled, standing room, stopping, delays, unknown — from the profile's rules", () => {
+  const T = at("2026-11-03", "06:55");
+  const flags = (o) => core.trainFlags(train({ from: "RVS", to: "CEN", dep: T, arr: T + 17 * MIN, ...o }), testville).map((f) => f.txt);
+  assert.deepEqual(flags({}), ["Usually standing room only"]);
+  assert.deepEqual(flags({ cancelled: true, reason: "crew" }), ["Cancelled", "Usually standing room only", "crew"]);
+  assert.deepEqual(flags({ arr: T + 31 * MIN }), ["Stopping train"]);
+  assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "+12 min"]);
+  assert.deepEqual(flags({ depUnknown: true }), ["Usually standing room only", "Delayed, no estimate: times unknown"]);
+});
