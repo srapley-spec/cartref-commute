@@ -518,3 +518,86 @@ test("Tube going home: at Aldgate the next tube is noted; underground the card s
   assert.match(hero, /or get off at King's Cross 16:51 → .* \(\d+ min later\)/);
   app.close();
 });
+
+// ---------- Gaps found by deliberately breaking tonight's code ----------
+const trn = (o) => Object.assign({ depLate: 0, arrLate: 0, depUnknown: false, platform: null, operator: "Great Northern", cancelled: false, reason: "" }, o);
+
+test("At Letchworth station going to work, Leave now is a departure board too", async () => {
+  const app = await open({ now: T("07:00"), geo: { coords: { latitude: 51.9800, longitude: -0.2292, accuracy: 15 } }, settings: RDM, saved: { dirMode: "office" } });
+  assert.match(app.text("#hero"), /^You're at Letchworth · departures · 07:00/);
+  assert.match(app.text("#hero"), /Departs ?07:\d\d → Arrive office/);
+  app.close();
+});
+
+test("On the train: a train that hasn't left is never yours, even if it fits best by timetable", async () => {
+  const now = T("20:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c, m = 60e3;
+  // You're ~2.5 km out of King's Cross. The 20:01 hasn't left; the 19:48 is well behind its timetable.
+  c.state.boards = { "KGX-LET": { msgs: [], services: [trn({ from: "KGX", to: "LET", std: "20:01", dep: T("20:01"), arr: T("20:29") }), trn({ from: "KGX", to: "LET", std: "19:48", dep: T("19:48"), arr: T("20:16") })] }, "STP-LET": { msgs: [], services: [] }, "ZFD-LET": { msgs: [], services: [] } };
+  c.state.here = [51.5530, -0.1120]; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
+  const w = c.whichTrain(now);
+  assert.ok(w.none || w.t.std === "19:48", JSON.stringify(w.t && w.t.std));
+  assert.notEqual(w.t && w.t.std, "20:01");
+  c.state.onLine = false; c.state.here = null; app.close();
+});
+
+test("On the train: once sure it stays with your train, but lets go when you're more than 12 min from it", async () => {
+  const now = T("19:50"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c, m = 60e3;
+  const pt = [51.80, -0.20], f = c.lineProgress(pt, "KGX").frac, len = 30 * m;
+  const at = (offMin, std, op) => { const dep = now - f * len + offMin * m; return trn({ from: "LET", to: "KGX", std, dep, arr: dep + len, operator: op }); };
+  c.state.boards = { "LET-KGX": { msgs: [], services: [at(0, "A", "Great Northern"), at(-14, "B", "Thameslink")] }, "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
+  c.state.here = pt; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = { operator: "Great Northern", std: "A", from: "LET" };
+  assert.equal(c.whichTrain(now).t.std, "A");
+  c.state.boards["LET-KGX"].services = [at(-15, "A", "Great Northern"), at(-0.5, "B", "Thameslink")];
+  assert.equal(c.whichTrain(now).t.std, "B", "15 min off: let go");
+  c.state.trainLock = { operator: "Great Northern", std: "A", from: "LET" };
+  c.state.boards["LET-KGX"].services = [at(-15, "A", "Great Northern"), at(-9.5, "B", "Thameslink")];
+  assert.equal(c.whichTrain(now).t.std, "B", "15 min off lets go even when nothing is 6 min nearer");
+  c.state.trainLock = { operator: "Great Northern", std: "A", from: "LET" };
+  c.state.boards["LET-KGX"].services = [at(-11, "A", "Great Northern"), at(-6, "B", "Thameslink")];
+  assert.equal(c.whichTrain(now).t.std, "A", "11 min off, nothing 6 min nearer: kept");
+  c.state.onLine = false; c.state.here = null; c.state.trainLock = null; app.close();
+});
+
+test("On the train card: arrival from Service Details; 'timetable' is the scheduled time", async () => {
+  const now = T("20:03"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c, P = app.w.CommuteCore;
+  const t = trn({ from: "KGX", to: "LET", std: "19:48", dep: T("19:50"), arr: T("20:18"), depLate: 2, arrLate: 2, serviceId: "S1" });
+  c.state.boards = { "KGX-LET": { msgs: [], services: [t] }, "STP-LET": { msgs: [], services: [] }, "ZFD-LET": { msgs: [], services: [] } };
+  c.state.here = [51.7638, -0.2156]; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = { operator: "Great Northern", std: "19:48", from: "KGX", picked: true };
+  c.state.progressById = { S1: { at: now, data: P.parseServiceDetails({ crs: "KGX", std: "19:48", atd: "19:50", subsequentCallingPoints: [{ callingPoint: [
+    { crs: "HAT", locationName: "Hatfield", st: "19:59", at: "20:02" }, { crs: "LET", locationName: "Letchworth Garden City", st: "20:16", et: "20:21" }] }] }, now) } };
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /Letchworth 20:21 expected \(live\) · timetable 20:16 · about 5 min late/);
+  assert.match(hero, /Last reported: Hatfield 20:02 · 3 min late · next Letchworth Garden City 20:21/);
+  c.state.onLine = false; c.state.here = null; c.state.trainLock = null; c.state.progressById = {}; app.close();
+});
+
+test("Nearly home: the walk counts streets (straight line × 1.3)", async () => {
+  const now = T("20:25"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home", home: [51.9752, -0.2402] } }), c = app.c;
+  await app.moveTo(51.9799, -0.2290, 10);
+  const d = c.km([51.9799, -0.2290], [51.9752, -0.2402]), mins = Math.round(d * 1.3 / 5 * 60);
+  assert.match(app.text("#hero"), new RegExp(`About ${mins} min walk from where you are`));
+  app.close();
+});
+
+test("Tube going home: Aldgate is noted only within 150 m; at Aldgate with a fresh fix you're not on a tube; no tube has left yet means not on one; a second tube within 3 min is 'or'", async () => {
+  const now = T("16:40"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c, m = 60e3;
+  c.state.aldDeps = { at: now, list: [{ line: "Met", t: T("16:41") }, { line: "Circle", t: T("16:43") }, { line: "Met", t: T("16:50") }] };
+  await app.moveTo(51.5142 + 0.0045, -0.0755, 10);     // 500 m from Aldgate
+  assert.equal(c.state.saved.aldHome, undefined);
+  await app.moveTo(51.5142, -0.0755, 10);              // at Aldgate
+  assert.equal(c.state.saved.aldHome.seen, now);
+  c.state.saved.aldHome.deps = [{ line: "Met", t: T("16:41") }, { line: "Circle", t: T("16:43") }, { line: "Met", t: T("16:50") }];
+  app.at(now + 30e3); c.state.lastFixAt = now + 20e3;
+  assert.equal(c.onTubeHome(now + 30e3), false, "still at Aldgate, fix fresh");
+  assert.equal(c.onTubeHome(now + 30e3 - 2 * m), false, "no tube has left yet");
+  c.state.lastFixAt = now - 5 * m;
+  assert.equal(c.onTubeHome(now + 30e3), false, "fix stale but no tube has left yet");
+  app.at(T("16:44")); c.state.lastFixAt = now;
+  assert.equal(c.onTubeHome(T("16:44")), true, "no fix for 4 min after the 16:41 left");
+  const w = c.whichTubeHome(T("16:44"));
+  assert.equal(w.best.line, "Met"); assert.equal(w.other.line, "Circle");
+  c.state.saved.aldHome.deps = [{ line: "Met", t: T("16:41") }, { line: "Met", t: T("16:50") }];
+  assert.equal(c.whichTubeHome(T("16:44")).other, undefined);
+  app.close();
+});

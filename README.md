@@ -44,16 +44,19 @@ See the architecture decision in the Commuter App project. In short:
     randomised checks of rules that must always hold (never hide a train, the card's alternative is never strictly worse and is within 20 minutes).
   - `tests/fixtures/` — Darwin and TfL response shapes. These are the contract a future native engine must also pass.
   - `tests/*.test.mjs` — end-to-end tests of the whole page with mocked network and location.
-  - `tests/golden.test.mjs` — characterisation tests: 18 fixed situations on a made-up but realistic railway
+  - `tests/golden.test.mjs` — characterisation tests: 20 fixed situations on a made-up but realistic railway
     (`tests/golden/feeds.mjs`, with stops, delays and cancellations) at a frozen clock. Each records exactly what the
     app requests and shows (banners, card, every row, every option's steps and flags, "Why these trains?") in
     `tests/golden/*.json` and fails on any difference. After an intentional change: `UPDATE_GOLDEN=1 npm test`,
     then read the diff of the JSON files before committing.
   - `tests/rules.test.mjs` — each threshold, window, cache and inference rule pinned at its boundary.
   - `tests/proxy.test.mjs` — the Cloudflare Worker proxy.
-  - Tests run with `TZ=Europe/London`. The harness can freeze and move the clock (`now`, `app.setNow`) and hold
-    location until `app.giveLocation()`.
-  - Checked by mutation testing on 28 Oct: 60 deliberate one-line breakages of planning logic in the page, all caught.
+  - Tests run with `TZ=Europe/London` on a virtual clock (`tests/clock.mjs`: Tue 3 Nov 2026 10:00, ticking), so
+    results don't depend on when you run them. The harness can freeze and move the page clock (`now`, `app.setNow`)
+    and hold location until `app.giveLocation()`.
+  - Checked by mutation testing on 28 Oct: 60 deliberate one-line breakages of planning logic, all caught; then 46
+    more over the evening's on-train, tube-home and nearly-home code, all caught (one rule that could never change
+    the result was removed).
 
 ## Reliability and security
 - Every request times out after 12 s; the app never stays stuck loading.

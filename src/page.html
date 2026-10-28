@@ -895,9 +895,7 @@ function onTubeHome(now){
   const a=state.saved.aldHome; if(!a || direction()!=="home" || state.saved.mode==="leisure" || now-a.seen>25*60e3 || state.onLine || state.atHub) return false;
   if(!(a.deps||[]).some(d=>d.t>=a.seen-60e3 && d.t<=now)) return false;
   const stale = !state.lastFixAt || now-state.lastFixAt>90e3;
-  const atAld = state.here && km(state.here,GEO.ALD)<0.15;
-  if(atAld && !stale) return false;
-  return stale || !nearOffice();
+  return stale || !nearOffice();   // at Aldgate with a fresh fix counts as near the office
 }
 // Which tube: the first to leave after you were last seen at Aldgate; another within 3 min is "or".
 function whichTubeHome(now){
@@ -1901,6 +1899,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

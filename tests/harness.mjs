@@ -79,6 +79,11 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
         const D = w.Date;
         class FrozenDate extends D { constructor(...a) { if (a.length) super(...a); else super(clock.t); } static now() { return clock.t; } }
         w.Date = FrozenDate;
+      } else {
+        // Otherwise the page follows the test run's virtual clock (tests/clock.mjs).
+        const D = w.Date;
+        class VirtualDate extends D { constructor(...a) { if (a.length) super(...a); else super(globalThis.Date.now()); } static now() { return globalThis.Date.now(); } }
+        w.Date = VirtualDate;
       }
       w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings }, saved)));
       w.addEventListener("error", (e) => errors.push(e.message));
