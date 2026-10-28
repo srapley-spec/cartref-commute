@@ -11,6 +11,8 @@ export { addCallingAlternatives } from "./alternatives";
 export { FACILITY, SERVICE, NETWORK_WIDE, facilityOnly, railWarnings, noticeTitle, BAD_SEV, worstStatus, lineOk, lineLevel, tubeFallbackNeeded, tubeFlags } from "./warnings";
 export type { RailWarnings, ImpactLevel, LineStatus } from "./warnings";
 export { liveAdjust, rankNow } from "./plan";
+export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRounds, arriveByRounds, liveCovers, aroundOptions, arriveByOptions } from "./search";
+export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { hubHere, onLine, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs } from "./situation";
 export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep } from "./situation";

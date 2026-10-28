@@ -72,7 +72,8 @@ export interface Profile {
   lines: Record<StationCode, LatLon[]>;               // approximate line from home station to each hub
   maxTrainMin: Record<StationCode, number>;           // slowest train per hub (search windows)
   stoppingMin: Record<StationCode, number>;           // at or above this many minutes = stopping train
-  mergeHubs: StationCode[];                           // hubs one train can call at in turn (same train, two stops)
+  mergeHubs: StationCode[];
+  sharesTubeWith?: Record<StationCode, StationCode>;  // a station using another's tube stop (St Pancras → King's Cross)                           // hubs one train can call at in turn (same train, two stops)
   operatorByHub: Record<StationCode, string>;         // default operator when the source doesn't say
   busy: BusyRule;
   topWindowMin?: number;                              // top card: alternative only if this close to the best (default 20)

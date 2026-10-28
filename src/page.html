@@ -462,43 +462,12 @@ async function tflJourneys(from,to,t,timeIs){
 // Every journey has one London station per route (King's Cross, St Pancras, Farringdon). Each route is
 // searched separately, and both routes always get their first search before either gets a second, so a
 // TfL refusal can never silently leave one route out.
-const hubOfKey = k => { const [a,b]=k.split("-"); return a==="LET"?b:a; };
-// Longest Letchworth ⇄ London train on each route (stopping services), used to size search windows.
-// Trains found for a route, counting St Pancras trains towards King's Cross (same tube station).
-function routeCount(k, all){
-  const twin={"KGX-LET":"STP-LET","LET-KGX":"LET-STP"}[k];
-  return ((all[k]||{services:[]}).services.length) + (twin&&all[twin]?all[twin].services.length:0);
-}
-// Why a journey from TfL isn't a direct train between Letchworth and a London station.
-function addJourneys(boards, js, key, diag){
-  let last=0;
-  const d = key && diag ? (diag[key]=diag[key]||{searches:0,returned:0,kept:0,dropped:{},trains:[]}) : null;
-  if(d) d.searches++;
-  js.forEach(j=>{ const x=trainFromJourney(j);
-    if(d){ d.returned++; if(x) d.kept++; else { const r=dropReason(j); d.dropped[r]=(d.dropped[r]||0)+1; } }
-    if(!x) return; if(d) d.trains.push(`${x.svc.std} ${STATIONS[x.svc.from]}`); const B=boards[x.key]=boards[x.key]||{services:[],msgs:[]};
-    if(!B.services.some(s=>s.dep===x.svc.dep&&s.from===x.svc.from)) B.services.push(x.svc); B.msgs.push(...x.msgs); last=Math.max(last,x.svc.dep); });
-  return last;
-}
-// Run searches in rounds: round 1 = one search per route, then further rounds. Stops making requests after a
-// TfL refusal. Returns which routes got no data at all, with the reason.
-async function searchRoutes(keys, rounds){
-  const boards={}, ok={}, why={}; keys.forEach(k=>{ boards[k]={services:[],msgs:[]}; });
-  const diag={};   // per search run, so two runs at once can't mix their explanations
-  let stopped=null;
-  for(const round of rounds){
-    for(const k of keys){
-      if(stopped){ why[k]=why[k]||stopped; continue; }
-      const q=round(k, boards[k], boards); if(!q) continue;
-      const [a,b]=k.split("-");
-      try{ addJourneys(boards, await tflJourneys(a,b,q.t,q.timeIs), k, diag); ok[k]=true; }
-      catch(e){ why[k]=e.message; if(e.rateLimited||e.timeout||e.network) stopped=e.message; }
-    }
-  }
-  Object.values(boards).forEach(B=>{ B.services.sort((x,y)=>x.dep-y.dep); B.msgs=[...new Set(B.msgs)]; });
-  const failed={}; keys.forEach(k=>{ if(!ok[k]) failed[k]=why[k]||"No trains found."; });
-  return {boards, failed, diag};
-}
+const hubOfKey = k => C.hubOfKey(k, PROFILE);
+// Searches run by the engine (src/core/search.ts) against TfL's journey planner.
+const CONVERT = { train: trainFromJourney, dropReason };
+const addJourneys = (boards, js, key, diag) => C.addJourneys(boards, js, key, diag, CONVERT, PROFILE);
+const searchRoutes = (keys, rounds) => C.searchRoutes(keys, rounds, tflJourneys, CONVERT, PROFILE);
+const roundOpts = () => ({ keyed:tflKeyed(), earliestCatch, p:PROFILE });
 function scheduleRouteRetry(){
   clearTimeout(state.retryTimer);
   const wait=Math.max(5e3,(state.tflBackoffUntil||0)-Date.now()+2e3);
@@ -519,13 +488,7 @@ async function fetchTflBoards(){
   const now=Date.now(), keys=boardKeys();
   // Each route starts at the first train you could still catch, so one search per route covers the next few.
   // On a train: start ~35 min back, so the train you're on is included.
-  const start = k => state.onLine ? now-35*60e3 : now+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
-  const rounds=[ k=>({t:start(k), timeIs:"Departing"}),
-    // A route that came back with fewer than 2 trains gets one more search, 30 minutes later.
-    (k,B,all)=> !tflKeyed() && routeCount(k,all)<2 && !state.onLine ? {t:start(k)+30*60e3, timeIs:"Departing"} : null ];
-  if(tflKeyed()) for(let i=0;i<2;i++) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0;
-    return last && last<now+2*3600e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
-  const {boards, failed, diag}=await searchRoutes(keys, rounds);
+  const {boards, failed, diag}=await searchRoutes(keys, C.nowRounds(now, !!state.onLine, roundOpts()));
   await completePairs(boards, diag);
   if(Object.keys(failed).length===keys.length) throw new Error(Object.values(failed)[0]);
   return {boards, failed, diag};
@@ -1225,14 +1188,11 @@ async function planAt(){
   if(hit && !Object.keys(hit.failed).length && Date.now()-hit.at<(hit.live?2:10)*60e3){ state.at={T,boards:hit.boards,failed:{},live:hit.live,liveTo:hit.liveTo,diag:hit.diag}; render(); return; }
   state.at={T,loading:true}; render();
   // Same searches as Leave now, as if it were that time: from the first train you could catch, then the next ones.
-  const start = k => T+Math.max(0, earliestCatch(hubOfKey(k))-15*60e3);
-  const rounds=[ k=>({t:start(k), timeIs:"Departing"}),
-    (k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0; return (tflKeyed()||B.services.length<3) && last && last<T+100*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; } ];
-  if(tflKeyed()) rounds.push((k,B)=>{ const last=B.services.length?B.services[B.services.length-1].dep:0; return last && last<T+100*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
+  const rounds=C.aroundRounds(T, roundOpts());
   try{
     let r;
     // Within reach of the live board: live times (every stop timed). Otherwise the timetable.
-    if(canLiveAhead() && T-15*60e3-Date.now()<=119*60e3){
+    if(canLiveAhead() && C.liveCovers("at", T, Date.now())){
       try{ r=await fetchLiveAhead((T-Date.now())/60e3-15); r.live=true; }catch(e){ r=null; }
       // Live board doesn't reach far enough after your time: fill the rest from the timetable.
       if(r){ const hz=liveHorizon(r.boards);
@@ -1252,16 +1212,8 @@ function atOptions(){
   const a=state.at; if(!a||!a.boards) return [];
   const keep=state.boards; state.boards=a.boards;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
-  let js=build(direction(), a.T); state.boards=keep;
-  // Trains you could take leaving from 15 minutes before your time; earlier leaves are flagged.
-  js=js.filter(j=>j.leave>=a.T-15*60e3 && j.train.dep>=Date.now());
-  js.forEach(j=>{ j.uncertain=!plannable(j.train);
-    if(j.leave<a.T) j.flags.unshift({lvl:"warn",txt:`Leave ${Math.max(1,Math.round((a.T-j.leave)/60e3))} min before ${hhmm(a.T)}`}); });
-  if(a.liveTo) markTimetable(js);
-  js=mergeSameTrain(js);
-  // "Around" = leaving up to 10 minutes before your time, or any time after.
-  topPicks(js.filter(j=>j.leave>=a.T-10*60e3),"now",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
-  return js.sort((x,y)=>x.leave-y.leave || x.arrive-y.arrive);
+  const js=build(direction(), a.T); state.boards=keep;
+  return C.aroundOptions(js, a.T, Date.now(), !!a.liveTo, direction(), PROFILE);
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
@@ -1279,25 +1231,9 @@ function renderAtHero(opts){
 // Time from the train's arrival to the destination, per London hub, under the current mode and pace.
 // Time from the train's arrival to the destination, per route (from the route description).
 function postTrain(hub){ const r=routeFor(hub); return r ? C.timeFromTrain(r) : 0; }
-async function fetchTflArriving(T, keys){
-  const latest = k => T-postTrain(hubOfKey(k));
-  const rounds=[
-    // 1: the last trains that still get you there in time.
-    k=>({t:latest(k), timeIs:"Arriving"}),
-    // 2: the next departures after those, so you can see the trains that would get you in late.
-    (k,B)=>{ const deps=B.services.filter(s=>s.arr<=latest(k)).map(s=>s.dep);
-      return {t:(deps.length?Math.max(...deps):latest(k)-35*60e3)+60e3, timeIs:"Departing"}; },
-    // 3: departures from early enough that even the slowest train on the route is included.
-    // (With a key the later rounds walk forward from here, so start further back to include more options.)
-    k=>({t:latest(k)-(tflKeyed()?100:MAX_TRAIN_MIN[hubOfKey(k)]+15)*60e3, timeIs:"Departing"}),
-  ];
-  if(tflKeyed()) for(let i=0;i<4;i++) rounds.push((k,B)=>{
-    const deps=B.services.map(s=>s.dep).filter(d=>d<latest(k)); const last=deps.length?Math.max(...deps):0;
-    return last && last<latest(k)-20*60e3 ? {t:last+60e3, timeIs:"Departing"} : null; });
-  // Pair completion is the caller's job, on the full set of boards (a retry of one route mustn't search again
-  // for trains the other routes already found).
-  return searchRoutes(keys||boardKeys(), rounds);
-}
+// Pair completion is the caller's job, on the full set of boards (a retry of one route mustn't search again
+// for trains the other routes already found).
+const fetchTflArriving = (T, keys) => searchRoutes(keys||boardKeys(), C.arriveByRounds(T, hub=>postTrain(hub), roundOpts()));
 async function planBy(opts){
   if(state.saved.view!=="by" || awaitingLocation()) return;
   const missingOnly=!!(opts&&opts.missingOnly);
@@ -1306,7 +1242,7 @@ async function planBy(opts){
   if(T<Date.now()){ state.by={err:"That time has already passed."}; render(); return; }
   // Within the live window with Darwin running: use the live boards already loaded.
   if(state.railSource==="darwin" && state.boards && T-Date.now()<100*60e3){ state.by={T,boards:state.boards,live:true}; render(); return; }
-  if(canLiveAhead() && T-120*60e3-Date.now()<=119*60e3){
+  if(canLiveAhead() && C.liveCovers("by", T, Date.now())){
     const lkey=`live|${T}|${direction()}`; state.byCache=state.byCache||{}; const h=state.byCache[lkey];
     if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true,liveTo:h.liveTo,diag:h.diag}; render(); return; }
     try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(state.byToken!==token) return;
@@ -1341,17 +1277,8 @@ function byOptions(){
   const keep=state.boards; state.boards=b.boards;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Only plan from where you are when the target is within the next 3 hours.
-  let js=build(direction(), Date.now(), {here: b.T-Date.now()<=3*3600e3}); state.boards=keep;
-  js=liveAdjust(js, Date.now());
-  if(b.liveTo) markTimetable(js);
-  // Every loaded train is listed: the ones that get you there in time and the ones that would make you late.
-  js=mergeSameTrain(js);
-  const onTime=js.filter(j=>j.arrive<=b.T), late=js.filter(j=>j.arrive>b.T);
-  onTime.forEach(j=>{ if(b.T-j.arrive<5*60e3) j.flags.unshift({lvl:"warn",txt:"Cutting it fine",fine:true}); });
-  late.forEach(j=>{ j.late=true; j.flags.unshift({lvl:"bad",txt:`Late by ${Math.max(1,Math.round((j.arrive-b.T)/60e3))} min`}); });
-  topPicks([...onTime,...late],"by",PROFILE.topWindowMin).forEach((j,i)=>{ j.recommended=i+1; });
-  // Shown in the order you would leave.
-  return [...onTime, ...late].sort((x,y)=>x.leave-y.leave || x.arrive-y.arrive);
+  const js=build(direction(), Date.now(), {here: b.T-Date.now()<=3*3600e3}); state.boards=keep;
+  return C.arriveByOptions(liveAdjust(js, Date.now()), b.T, !!b.liveTo, direction(), PROFILE);
 }
 // Routes that loaded but have no train getting you there in time (said out loud rather than left blank).
 function byRoutesWithoutOnTime(opts){

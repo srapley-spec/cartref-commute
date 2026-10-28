@@ -40,6 +40,7 @@ export const samCommute: Profile = {
   // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
   walking: { streetFactor: 1.3, kmh: { avg: 5.0, fast: 6.0, leisure: 4.3 } },
   mergeHubs: ["ZFD", "STP"],
+  sharesTubeWith: { STP: "KGX" },
   operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
   // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
   // Tue–Thu, Hertfordshire school term time (holidays from hertfordshire.gov.uk; after Sep 2028 all term).
