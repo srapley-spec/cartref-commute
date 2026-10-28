@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 14:27 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 15:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1635,17 +1635,16 @@ function planIsLater(){
 }
 function planLabel(){ const v=state.saved.view, T=v==="at"?state.at&&state.at.T:state.by&&state.by.T; return T?hhmm(T):""; }
 function railWarnings(){
-  const keys=boardKeys(), now=Date.now();
-  const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]);
+  // Every board loaded for this direction (live: all three London stations), so the counts agree with each other.
+  const keys=state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), now=Date.now();
+  const svcs=keys.flatMap(k=>state.boards[k]?state.boards[k].services:[]).filter(t=>t.dep>=now-5*60e3);
   const cancelled=svcs.filter(t=>t.cancelled);
-  // "Your trains" = the next 90 minutes of departures on your boards.
-  const soon=svcs.filter(t=>t.dep>=now-5*60e3 && t.dep<=now+90*60e3);
-  const affected=soon.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
+  const affected=svcs.filter(t=>t.cancelled||t.depUnknown||t.depLate>=5||t.arrLate>=5).length;
   const msgs=[...new Set(keys.flatMap(k=>state.boards[k]?state.boards[k].msgs:[]))];
   const onRoute=msgs.filter(m=>CORRIDOR.test(m)||NETWORK_WIDE.test(m));
   const other=msgs.filter(m=>!onRoute.includes(m));
   const uncertain=svcs.filter(t=>!t.cancelled && (t.depUnknown||t.arrUnknown) && t.dep>=now-5*60e3);
-  return { cancelled, uncertain, affected, hit:affected>=2, onRoute, other };
+  return { cancelled, uncertain, affected, total:svcs.length, hit:affected>=2, onRoute, other };
 }
 function renderBanners(){
   const out=[];
@@ -1672,7 +1671,7 @@ function renderBanners(){
     // Tier 1: your own trains.
     if(tiers.uncertain.length) out.push(`<div class="banner warn"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
     if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of your next trains are delayed or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span>${nowNote}</div>`);
+    if(tiers.hit) out.push(`<div class="banner warn"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled. Notices from elsewhere on the network are shown below because they may be the cause.</span>${nowNote}</div>`);
     // Tier 2: notices naming your corridor.
     tiers.onRoute.forEach(m=>out.push(`<div class="banner warn"><details><summary>On your line</summary><span class="msg">${esc(m)}</span></details></div>`));
     // Tier 3: everything else, promoted only when your trains are being hit.
