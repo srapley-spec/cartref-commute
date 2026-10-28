@@ -21,6 +21,9 @@ export const testville = {
   maxTrainMin: { CEN: 40, MKT: 45 }, stoppingMin: { CEN: 30, MKT: 35 },
   mergeHubs: ["MKT", "CEN"], operatorByHub: { CEN: "Express Rail", MKT: "Metro Rail" },
   busy: { from: "RVS", to: "CEN", operator: "express", arrFrom: "07:00", arrTo: "07:30", days: [1, 2, 3, 4, 5], maxMins: 20, origins: "faraway", holidays: [] },
+  stationGeo: { RVS: [50.1, -1.1], MID: [50.05, -1.05], CEN: [50.0, -1.0], MKT: [50.01, -1.01] },
+  places: { homeStation: [50.1, -1.1], office: [49.99, -0.99], officeTube: [49.992, -0.992], hubGeo: { CEN: [50.0, -1.0] }, atHubKm: 0.4 },
+  walking: { streetFactor: 1.3, kmh: { avg: 5.0, fast: 6.0, leisure: 4.3 } },
 };
 
 let n = 0;

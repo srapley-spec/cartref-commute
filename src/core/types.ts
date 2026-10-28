@@ -26,7 +26,7 @@ export interface Train {
   calls?: Call[];
   serviceId?: string;      // National Rail service ID (live data), for Service Details
   derived?: boolean;       // worked out from another station's train (same train, other stop)
-  estimated?: boolean;     // derived time is an estimate (timetable has no time at that stop)          // every stop from `from` to `to`, in order, both ends included
+  estimated?: boolean;     // derived time is an estimate (timetable has no time at that stop)
 }
 
 export interface Board { services: Train[]; msgs: string[]; }
@@ -75,6 +75,17 @@ export interface Profile {
   mergeHubs: StationCode[];                           // hubs one train can call at in turn (same train, two stops)
   operatorByHub: Record<StationCode, string>;         // default operator when the source doesn't say
   busy: BusyRule;
-  topWindowMin?: number;
-  stationGeo?: Record<StationCode, LatLon>;          // stations along the line, to place a train from where it was reported                              // top card: alternative only if this close to the best (default 20)
+  topWindowMin?: number;                              // top card: alternative only if this close to the best (default 20)
+  stationGeo?: Record<StationCode, LatLon>;           // stations along the line, to place a train from where it was reported
+  places: Places;                                     // where things are, for working out what you're doing
+  walking: { streetFactor: number; kmh: { avg: number; fast: number; leisure: number } };
+}
+
+/** Places the app reasons about from your location. */
+export interface Places {
+  homeStation: LatLon;                                // e.g. Letchworth station
+  office: LatLon;
+  officeTube: LatLon;                                 // the tube station by the office (Aldgate)
+  hubGeo: Record<StationCode, LatLon>;                // London stations where rail meets tube ("at" = within atHubKm)
+  atHubKm: number;
 }

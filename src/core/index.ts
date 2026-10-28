@@ -8,6 +8,8 @@ export { stationOf, stationLabel, trainFromTflJourney, tflDropReason } from "./a
 export { busyDay, standingRoomOnly, isStopping, plannable } from "./rules";
 export { keepEveryRoute, topPicks, mergeSameTrain } from "./rank";
 export { addCallingAlternatives } from "./alternatives";
+export { hubHere, onLine, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs } from "./situation";
+export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep } from "./situation";
 export { bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";
 import { samCommute } from "./profiles/sam";

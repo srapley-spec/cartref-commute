@@ -1,0 +1,190 @@
+// What you're doing right now, worked out from where you are, where you've been and the trains loaded:
+// which way you're heading, at a London station, on the train (and which one), on a tube, nearly home.
+// Pure functions: the screen passes in what it knows and stores what comes back.
+import type { Board, Direction, LatLon, Profile, StationCode, Train } from "./types";
+import { km, lineProgress, reportedFrac } from "./geo";
+
+export type Mode = "commute" | "leisure";
+export type Pace = "avg" | "fast";
+/** A tube due at (or leaving) a station. */
+export interface TubeDep { line?: string; t: number; [k: string]: unknown; }
+/** The last London station you were seen at, and the tubes due there then. */
+export interface HubVisit { hub: StationCode; seen: number; arrivals: TubeDep[] | null; }
+/** The last time you were seen at the office's tube station going home, and the tubes due then. */
+export interface TubeStopVisit { seen: number; deps: TubeDep[]; }
+/** The train you're on, once sure (or picked). */
+export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; }
+/** Where National Rail last reported a train (Service Details, parsed). */
+export interface Progress {
+  last: { code: string | null; t: number } | null;
+  next: { code: string | null; t: number | null } | null;
+  at(code: string): number | null;
+}
+
+/** Your position from the phone. `acc` in metres. */
+export interface Fix { here: LatLon | null; acc: number | null; at: number | null; }
+
+// As the page always has: a missing accuracy compares as 0 (JavaScript's null <= n), an undefined one fails.
+const pos = (f: Fix, maxAcc: number) => (f.here && (f.acc as number) <= maxAcc ? f.here : null);
+
+/** At a London station (within `atHubKm`, with a fix good to 250 m)? */
+export function hubHere(f: Fix, p: Profile): StationCode | null {
+  const here = pos(f, 250); if (!here) return null;
+  for (const h of Object.keys(p.places.hubGeo)) if (km(here, p.places.hubGeo[h]) <= p.places.atHubKm) return h;
+  return null;
+}
+
+/** On the line between the home station and London: past the first tenth (home and its area never count),
+ *  short of the London end, within 1 km of the line, with a fix good to 500 m, and not at a London station. */
+export function onLine(f: Fix, atHub: StationCode | null, line: LatLon[]): boolean {
+  const here = pos(f, 500); if (!here || atHub) return false;
+  const pr = lineProgress(here, line); return pr.offKm < 1.0 && pr.frac > 0.1 && pr.frac < 0.97;
+}
+
+export const nearOffice = (here: LatLon | null, p: Profile) =>
+  !!here && (km(here, p.places.office) < 1.2 || km(here, p.places.officeTube) < 1.0);
+
+/** What the screen remembers between position updates for working out direction. */
+export interface DirectionMemory { trip?: { dir: Direction; at: number } | null; officeVisit?: string | null; }
+
+/**
+ * Which way you're heading, from where you are. Near the home station you're setting off for work, unless you've
+ * been heading home in the last 3 hours (arriving). Once at the office today, anywhere else is heading home.
+ * In between, the direction of the journey you started (for 3 hours), else towards whichever end is further.
+ * Returns the direction and the memory to keep.
+ */
+export function inferDirection(here: LatLon, now: number, today: string, mem: DirectionMemory, p: Profile): { dir: Direction; mem: DirectionMemory } {
+  const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
+  const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null };
+  if (km(here, p.places.office) < 0.25 && out.officeVisit !== today) out.officeVisit = today;
+  const trip = out.trip, recent = !!trip && now - trip.at < 3 * 3600e3;
+  let dir: Direction;
+  if (dHome < 3 && recent && trip!.dir === "home") dir = "home";
+  else if (dHome < 3) { dir = "office"; out.trip = { dir: "office", at: now }; }
+  else if (out.officeVisit === today) dir = "home";
+  else if (recent) dir = trip!.dir;
+  else dir = dHome <= dTube ? "office" : "home";
+  // Heading home away from the home station: remember it, so arriving there isn't taken as setting off.
+  if (dir === "home" && dHome >= 3) out.trip = { dir: "home", at: now };
+  return { dir, mem: out };
+}
+
+/** A candidate train you might be on. */
+export interface TrainFit {
+  t: Train; hub: StationCode; mine: number; offMin: number; projected: number; live: boolean; reported: boolean; ruledOut: boolean;
+  sure?: boolean; other?: TrainFit | null; others?: TrainFit[]; locked?: boolean; picked?: boolean;
+}
+export type WhichTrain = TrainFit | { none: true; others: TrainFit[] };
+
+/**
+ * Which train you're probably on: how far along the line you are against how far each departed train should be
+ * (where National Rail last reported it when known, else its timing). Once sure it stays with that train unless
+ * you're over 12 min from it or another fits 6+ min better; a train you picked always wins. Returns the answer
+ * and the lock to keep.
+ */
+export function whichTrain(boards: Record<string, Board | null | undefined>, here: LatLon, dir: Direction, now: number,
+    lock: TrainLock | null, progress: (serviceId?: string) => Progress | null, p: Profile): { result: WhichTrain; lock: TrainLock | null } {
+  const cands: TrainFit[] = [];
+  for (const B of Object.values(boards)) {
+    for (const t of (B && B.services) || []) {
+      if (t.cancelled || t.dep == null || t.arr == null) continue;
+      const toLondon = t.from === p.home, hub = toLondon ? t.to : t.from;
+      if ((dir === "office") !== toLondon || !p.lines[hub]) continue;
+      if (t.dep > now + 60e3 || t.arr < now - 120e3) continue;
+      const len = t.arr - t.dep, pr = lineProgress(here, p.lines[hub]);
+      const mine = toLondon ? pr.frac : 1 - pr.frac;          // how far along you are, from where the train started
+      // You can't be on a train that hasn't left: clear of the station (about 1.5 km), only departed trains count.
+      if (mine > 0.03 && t.dep > now) continue;
+      let expected = Math.max(0, Math.min(1, (now - t.dep) / len)), reported = false;
+      const pg = progress(t.serviceId);
+      if (pg) { const rf = reportedFrac(pg.last, pg.next, t.from, now, p.lines[hub], p.stationGeo || {});
+        if (rf != null) { expected = toLondon ? rf : 1 - rf; reported = true; } }
+      // Arrival: the live expected time when the train is live; otherwise from your position.
+      const projected = t.timetable ? now + (1 - mine) * len : t.arr;
+      const offMin = Math.abs(expected - mine) * len / 60e3;
+      // A reported position is good to a few minutes: more than 6 min from you rules the train out (still pickable).
+      cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: reported && offMin > 6 });
+    }
+  }
+  cands.sort((a, b) => a.offMin - b.offMin);
+  // The same train appears once per London station it calls at: the runner-up must be a different train.
+  const same = (a: TrainFit, b: TrainFit) => a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : (a.t.arr as number) - (b.t.arr as number)) <= 60e3;
+  const locked = lock ? cands.find(c => c.t.operator === lock.operator && c.t.std === lock.std && c.t.from === lock.from) : undefined;
+  const others = (c0: TrainFit) => cands.filter((c, i) => !same(c, c0) && cands.findIndex(x => same(x, c)) === i).slice(0, 3);
+  if (locked && lock!.picked) { Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked) }); return { result: locked, lock }; }
+  if (locked && !locked.ruledOut && locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)) {
+    Object.assign(locked, { sure: true, other: null, locked: true, others: others(locked) }); return { result: locked, lock };
+  }
+  const fits = cands.filter(c => !c.ruledOut);
+  if (!fits.length || fits[0].offMin > 10) {
+    const nobody = { t: { operator: "", arr: -1, dep: -1 } } as unknown as TrainFit;
+    return { result: { none: true, others: others(nobody) }, lock };
+  }
+  const best = fits[0], next = fits.find(c => !same(c, best));
+  best.sure = !next || next.offMin - best.offMin >= 4;
+  best.other = best.sure ? null : next;
+  best.others = others(best);
+  return { result: best, lock: best.sure ? { operator: best.t.operator, std: best.t.std, from: best.t.from } : lock };
+}
+
+/** The remembered train, from the loaded boards. */
+export function lockedTrain(boards: Record<string, Board | null | undefined> | null, lock: TrainLock | null): Train | null {
+  if (!lock || !boards) return null;
+  return Object.values(boards).flatMap(b => (b ? b.services : [])).find(x => x.operator === lock.operator && x.std === lock.std && x.from === lock.from) || null;
+}
+
+const stale = (f: Fix, now: number) => !f.at || now - f.at > 90e3;
+
+/** On the tube to work: at a London station in the last 25 min, a tube has left since, and you've left the station
+ *  (or your location stopped updating underground for over 90 s). Never near the office's tube station. */
+export function onTube(lastHub: HubVisit | null, dir: Direction, now: number, f: Fix, onTheLine: boolean, atHub: StationCode | null, p: Profile): boolean {
+  if (!lastHub || dir !== "office" || now - lastHub.seen > 25 * 60e3 || onTheLine) return false;
+  if (f.here && km(f.here, p.places.officeTube) < 0.3) return false;
+  if (atHub && !stale(f, now)) return false;
+  return (lastHub.arrivals || []).some(a => a.t <= now);
+}
+
+/** Which tube you probably took: the one leaving closest to when you were last seen; another within 3 min is "or". */
+export function whichTube(lastHub: HubVisit, now: number): { best: TubeDep; other?: TubeDep } | null {
+  const gone = (lastHub.arrivals || []).filter(a => a.t <= now + 30e3);
+  if (!gone.length) return null;
+  gone.sort((a, b) => Math.abs(a.t - lastHub.seen) - Math.abs(b.t - lastHub.seen));
+  const best = gone[0], other = gone.find(a => a !== best && Math.abs(a.t - lastHub.seen) - Math.abs(best.t - lastHub.seen) < 3 * 60e3);
+  return { best, other };
+}
+
+/** On the way to work, somewhere in London (not at a station, on the train or a tube): plan from where you are. */
+export function inLondonToOffice(dir: Direction, f: Fix, atHub: StationCode | null, onTheLine: boolean, onATube: boolean, p: Profile): boolean {
+  const here = pos(f, 300); if (dir !== "office" || !here) return false;
+  if (atHub || onTheLine || onATube) return false;
+  return km(here, p.places.homeStation) > 15 && km(here, p.places.office) < 25;
+}
+
+/** Going home and at the office's tube station (within 150 m, fix good to 150 m): worth remembering. */
+export const atOfficeTube = (dir: Direction, f: Fix, p: Profile) => {
+  const here = pos(f, 150); return dir === "home" && !!here && km(here, p.places.officeTube) <= 0.15;
+};
+
+/** On the tube going home: at the office's tube station in the last 25 min, a tube has left since, and you've left
+ *  (or the fix is stale). At the station with a fresh fix counts as near the office. */
+export function onTubeHome(visit: TubeStopVisit | null, dir: Direction, mode: Mode, now: number, f: Fix, onTheLine: boolean, atHub: StationCode | null, p: Profile): boolean {
+  if (!visit || dir !== "home" || mode === "leisure" || now - visit.seen > 25 * 60e3 || onTheLine || atHub) return false;
+  if (!(visit.deps || []).some(d => d.t >= visit.seen - 60e3 && d.t <= now)) return false;
+  return stale(f, now) || !nearOffice(f.here, p);
+}
+
+/** Which tube home: the first to leave after you were last seen at the station; another within 3 min is "or". */
+export function whichTubeHome(visit: TubeStopVisit, now: number): { best: TubeDep; other?: TubeDep } | null {
+  const gone = (visit.deps || []).filter(d => d.t >= visit.seen - 60e3 && d.t <= now + 30e3).sort((x, y) => x.t - y.t);
+  if (!gone.length) return null;
+  const best = gone[0], other = gone.find(d => d !== best && d.t - best.t < 3 * 60e3);
+  return { best, other };
+}
+
+/** Nearly home: heading home (commute) within 3 km of the home station and not on the line. */
+export const nearlyHome = (dir: Direction, mode: Mode, here: LatLon | null, onTheLine: boolean, p: Profile) =>
+  dir === "home" && mode !== "leisure" && !!here && !onTheLine && km(here, p.places.homeStation) < 3;
+
+/** A walk worked out from a straight line (streets factor, walking speed), in seconds. */
+export const walkSecs = (from: LatLon, to: LatLon, pace: Pace | "leisure", p: Profile) =>
+  km(from, to) * p.walking.streetFactor / p.walking.kmh[pace] * 3600;

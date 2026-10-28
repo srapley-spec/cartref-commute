@@ -241,7 +241,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 22:07 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 22:52 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -340,6 +340,7 @@ var CommuteCore = (() => {
   __export(core_exports, {
     ENGINE_VERSION: () => ENGINE_VERSION,
     addCallingAlternatives: () => addCallingAlternatives,
+    atOfficeTube: () => atOfficeTube,
     bestConnections: () => bestConnections,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
@@ -348,14 +349,23 @@ var CommuteCore = (() => {
     countdown: () => countdown,
     dur: () => dur,
     hhmm: () => hhmm,
+    hubHere: () => hubHere,
+    inLondonToOffice: () => inLondonToOffice,
+    inferDirection: () => inferDirection,
     isStopping: () => isStopping,
     isoDay: () => isoDay,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
     lineProgress: () => lineProgress,
+    lockedTrain: () => lockedTrain,
     mergeSameTrain: () => mergeSameTrain,
     minTimeToTrain: () => minTimeToTrain,
     mins: () => mins,
+    nearOffice: () => nearOffice,
+    nearlyHome: () => nearlyHome,
+    onLine: () => onLine,
+    onTube: () => onTube,
+    onTubeHome: () => onTubeHome,
     pad: () => pad,
     parseDarwinBoard: () => parseDarwinBoard,
     parseServiceDetails: () => parseServiceDetails,
@@ -371,7 +381,11 @@ var CommuteCore = (() => {
     timeToTrain: () => timeToTrain,
     topPicks: () => topPicks,
     trainFlags: () => trainFlags,
-    trainFromTflJourney: () => trainFromTflJourney
+    trainFromTflJourney: () => trainFromTflJourney,
+    walkSecs: () => walkSecs,
+    whichTrain: () => whichTrain,
+    whichTube: () => whichTube,
+    whichTubeHome: () => whichTubeHome
   });
 
   // src/core/time.ts
@@ -735,6 +749,127 @@ var CommuteCore = (() => {
     return out;
   }
 
+  // src/core/situation.ts
+  var pos = (f, maxAcc) => f.here && f.acc <= maxAcc ? f.here : null;
+  function hubHere(f, p) {
+    const here = pos(f, 250);
+    if (!here) return null;
+    for (const h of Object.keys(p.places.hubGeo)) if (km(here, p.places.hubGeo[h]) <= p.places.atHubKm) return h;
+    return null;
+  }
+  function onLine(f, atHub, line) {
+    const here = pos(f, 500);
+    if (!here || atHub) return false;
+    const pr = lineProgress(here, line);
+    return pr.offKm < 1 && pr.frac > 0.1 && pr.frac < 0.97;
+  }
+  var nearOffice = (here, p) => !!here && (km(here, p.places.office) < 1.2 || km(here, p.places.officeTube) < 1);
+  function inferDirection(here, now, today, mem, p) {
+    const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
+    const out = { trip: mem.trip || null, officeVisit: mem.officeVisit || null };
+    if (km(here, p.places.office) < 0.25 && out.officeVisit !== today) out.officeVisit = today;
+    const trip = out.trip, recent = !!trip && now - trip.at < 3 * 36e5;
+    let dir;
+    if (dHome < 3 && recent && trip.dir === "home") dir = "home";
+    else if (dHome < 3) {
+      dir = "office";
+      out.trip = { dir: "office", at: now };
+    } else if (out.officeVisit === today) dir = "home";
+    else if (recent) dir = trip.dir;
+    else dir = dHome <= dTube ? "office" : "home";
+    if (dir === "home" && dHome >= 3) out.trip = { dir: "home", at: now };
+    return { dir, mem: out };
+  }
+  function whichTrain(boards, here, dir, now, lock, progress, p) {
+    const cands = [];
+    for (const B of Object.values(boards)) {
+      for (const t of B && B.services || []) {
+        if (t.cancelled || t.dep == null || t.arr == null) continue;
+        const toLondon = t.from === p.home, hub = toLondon ? t.to : t.from;
+        if (dir === "office" !== toLondon || !p.lines[hub]) continue;
+        if (t.dep > now + 6e4 || t.arr < now - 12e4) continue;
+        const len = t.arr - t.dep, pr = lineProgress(here, p.lines[hub]);
+        const mine = toLondon ? pr.frac : 1 - pr.frac;
+        if (mine > 0.03 && t.dep > now) continue;
+        let expected = Math.max(0, Math.min(1, (now - t.dep) / len)), reported = false;
+        const pg = progress(t.serviceId);
+        if (pg) {
+          const rf = reportedFrac(pg.last, pg.next, t.from, now, p.lines[hub], p.stationGeo || {});
+          if (rf != null) {
+            expected = toLondon ? rf : 1 - rf;
+            reported = true;
+          }
+        }
+        const projected = t.timetable ? now + (1 - mine) * len : t.arr;
+        const offMin = Math.abs(expected - mine) * len / 6e4;
+        cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: reported && offMin > 6 });
+      }
+    }
+    cands.sort((a, b) => a.offMin - b.offMin);
+    const same = (a, b) => a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : a.t.arr - b.t.arr) <= 6e4;
+    const locked = lock ? cands.find((c) => c.t.operator === lock.operator && c.t.std === lock.std && c.t.from === lock.from) : void 0;
+    const others = (c0) => cands.filter((c, i) => !same(c, c0) && cands.findIndex((x) => same(x, c)) === i).slice(0, 3);
+    if (locked && lock.picked) {
+      Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked) });
+      return { result: locked, lock };
+    }
+    if (locked && !locked.ruledOut && locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)) {
+      Object.assign(locked, { sure: true, other: null, locked: true, others: others(locked) });
+      return { result: locked, lock };
+    }
+    const fits = cands.filter((c) => !c.ruledOut);
+    if (!fits.length || fits[0].offMin > 10) {
+      const nobody = { t: { operator: "", arr: -1, dep: -1 } };
+      return { result: { none: true, others: others(nobody) }, lock };
+    }
+    const best = fits[0], next = fits.find((c) => !same(c, best));
+    best.sure = !next || next.offMin - best.offMin >= 4;
+    best.other = best.sure ? null : next;
+    best.others = others(best);
+    return { result: best, lock: best.sure ? { operator: best.t.operator, std: best.t.std, from: best.t.from } : lock };
+  }
+  function lockedTrain(boards, lock) {
+    if (!lock || !boards) return null;
+    return Object.values(boards).flatMap((b) => b ? b.services : []).find((x) => x.operator === lock.operator && x.std === lock.std && x.from === lock.from) || null;
+  }
+  var stale = (f, now) => !f.at || now - f.at > 9e4;
+  function onTube(lastHub, dir, now, f, onTheLine, atHub, p) {
+    if (!lastHub || dir !== "office" || now - lastHub.seen > 25 * 6e4 || onTheLine) return false;
+    if (f.here && km(f.here, p.places.officeTube) < 0.3) return false;
+    if (atHub && !stale(f, now)) return false;
+    return (lastHub.arrivals || []).some((a) => a.t <= now);
+  }
+  function whichTube(lastHub, now) {
+    const gone = (lastHub.arrivals || []).filter((a) => a.t <= now + 3e4);
+    if (!gone.length) return null;
+    gone.sort((a, b) => Math.abs(a.t - lastHub.seen) - Math.abs(b.t - lastHub.seen));
+    const best = gone[0], other = gone.find((a) => a !== best && Math.abs(a.t - lastHub.seen) - Math.abs(best.t - lastHub.seen) < 3 * 6e4);
+    return { best, other };
+  }
+  function inLondonToOffice(dir, f, atHub, onTheLine, onATube, p) {
+    const here = pos(f, 300);
+    if (dir !== "office" || !here) return false;
+    if (atHub || onTheLine || onATube) return false;
+    return km(here, p.places.homeStation) > 15 && km(here, p.places.office) < 25;
+  }
+  var atOfficeTube = (dir, f, p) => {
+    const here = pos(f, 150);
+    return dir === "home" && !!here && km(here, p.places.officeTube) <= 0.15;
+  };
+  function onTubeHome(visit, dir, mode, now, f, onTheLine, atHub, p) {
+    if (!visit || dir !== "home" || mode === "leisure" || now - visit.seen > 25 * 6e4 || onTheLine || atHub) return false;
+    if (!(visit.deps || []).some((d) => d.t >= visit.seen - 6e4 && d.t <= now)) return false;
+    return stale(f, now) || !nearOffice(f.here, p);
+  }
+  function whichTubeHome(visit, now) {
+    const gone = (visit.deps || []).filter((d) => d.t >= visit.seen - 6e4 && d.t <= now + 3e4).sort((x, y) => x.t - y.t);
+    if (!gone.length) return null;
+    const best = gone[0], other = gone.find((d) => d !== best && d.t - best.t < 3 * 6e4);
+    return { best, other };
+  }
+  var nearlyHome = (dir, mode, here, onTheLine, p) => dir === "home" && mode !== "leisure" && !!here && !onTheLine && km(here, p.places.homeStation) < 3;
+  var walkSecs = (from, to, pace, p) => km(from, to) * p.walking.streetFactor / p.walking.kmh[pace] * 3600;
+
   // src/core/journey.ts
   function callsText(t, profile) {
     const name = (c) => profile && c.code && profile.stationNames[c.code] || c.name;
@@ -848,6 +983,17 @@ var CommuteCore = (() => {
       STP: [51.5307, -0.1257],
       ZFD: [51.5203, -0.1053]
     },
+    places: {
+      homeStation: [51.9799, -0.229],
+      office: [51.5139, -0.071],
+      // 20 Mansfield Street, E1 (about a 7-minute walk from Aldgate)
+      officeTube: [51.5142, -0.0755],
+      // Aldgate
+      hubGeo: { KGX: [51.5308, -0.1238], ZFD: [51.5203, -0.1053] },
+      atHubKm: 0.4
+    },
+    // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
+    walking: { streetFactor: 1.3, kmh: { avg: 5, fast: 6, leisure: 4.3 } },
     mergeHubs: ["ZFD", "STP"],
     operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
     // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
@@ -951,73 +1097,20 @@ async function completePairs(boards, diag){
   return n;
 }
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
-const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
-// 20 Mansfield Street, E1 (approximate; about a 7-minute walk from Aldgate).
-const OFFICE=[51.5139,-0.0710];
-// London stations where the journey changes between rail and tube; "at" a station = within 400 m.
-const HUB_GEO = { KGX:[51.5308,-0.1238], ZFD:[51.5203,-0.1053] };
+// Places (profile): Letchworth station, Aldgate, the office.
+const GEO = { LET:PROFILE.places.homeStation, ALD:PROFILE.places.officeTube }, OFFICE=PROFILE.places.office;
 const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
-const AT_HUB_KM = 0.4;
-// Approximate line from Letchworth to each London station, through the stations on the way (lat, lon).
-// How far along the line (0 = Letchworth, 1 = London station) a point is, and how far off the line.
-// On the line between Letchworth and London (not at either end)?
-function onLine(){
-  if(!state.here || !(state.locAcc<=500) || state.atHub) return false;
-  // Only past Hitchin (so home, Letchworth and the Hitchin Road area never count) and close to the line.
-  const p=lineProgress(state.here,"KGX"); return p.offKm<1.0 && p.frac>0.1 && p.frac<0.97;
-}
-// Which train you are probably on: compare how far along the line you are with how far each train that has
-// left should be by now (straight-line timing between its departure and arrival).
+// What you're doing (on the line, at a station, which train…) is worked out by the engine (src/core/situation.ts).
+const fix = () => ({ here:state.here, acc:state.locAcc, at:state.lastFixAt });
+const onLine = () => C.onLine(fix(), state.atHub, LINE.KGX);
+const progressData = id => { const p=progressFor(id); return p && p.data || null; };
+// Which train you're probably on; remembers it once sure (state.trainLock).
 function whichTrain(now){
   if(!state.onLine || !state.boards) return null;
-  const dir=direction(), cands=[];
-  for(const [k,B] of Object.entries(state.boards)){
-    for(const t of B.services||[]){
-      if(t.cancelled || t.dep==null || t.arr==null) continue;
-      const toLondon = t.from==="LET", hub = toLondon ? t.to : t.from;
-      if((dir==="office")!==toLondon || !LINE[hub]) continue;
-      if(t.dep>now+60e3 || t.arr<now-120e3) continue;
-      const len=t.arr-t.dep, pr=lineProgress(state.here,hub);
-      const mine = toLondon ? pr.frac : 1-pr.frac;           // how far along you are, from where the train started
-      // You can't be on a train that hasn't left: once you're clear of the station (about 1.5 km), only
-      // trains that have departed count.
-      if(mine>0.03 && t.dep>now) continue;
-      let expected = Math.max(0,Math.min(1,(now-t.dep)/len)), reported=false;
-      // Where National Rail last reported the train (Service Details), when known: better than its timetable.
-      const pg = progressFor(t.serviceId);
-      if(pg && pg.data){ const rf=C.reportedFrac(pg.data.last, pg.data.next, t.from, now, LINE[hub], PROFILE.stationGeo||{});
-        if(rf!=null){ expected = toLondon ? rf : 1-rf; reported=true; } }
-      // Arrival: National Rail's live expected time when the train is live; otherwise from your position.
-      const projected = t.timetable ? now+(1-mine)*len : t.arr;
-      const offMin=Math.abs(expected-mine)*len/60e3;
-      // A reported position is accurate to a few minutes: more than 6 min from you rules the train out (still pickable).
-      cands.push({ t, hub, mine, offMin, projected, live:!t.timetable, reported, ruledOut: reported && offMin>6 });
-    }
-  }
-  cands.sort((a,b)=>a.offMin-b.offMin);
-  // The same train appears once per London station it calls at: the runner-up must be a different train.
-  const same=(a,b)=>a.t.operator===b.t.operator && Math.abs(dir==="office" ? a.t.dep-b.t.dep : a.t.arr-b.t.arr)<=60e3;
-  // Once it's sure which train you're on, it stays with that train (a stop or a slow section puts a train
-  // behind its timetable) unless you're clearly somewhere else: over 12 min off, or another train fits 6+ min better.
-  const lock=state.trainLock;
-  const locked = lock && cands.find(c=>c.t.operator===lock.operator && c.t.std===lock.std && c.t.from===lock.from);
-  // Others you could be on, for "On a different train?" (one per train, nearest first).
-  const others = c0 => cands.filter((c,i)=>!same(c,c0) && cands.findIndex(x=>same(x,c))===i).slice(0,3);
-  if(locked && lock.picked){ locked.sure=true; locked.other=null; locked.locked=true; locked.picked=true; locked.others=others(locked); return locked; }
-  if(locked && !locked.ruledOut && locked.offMin<=12 && !(cands[0]!==locked && !same(cands[0],locked) && locked.offMin-cands[0].offMin>=6)){
-    locked.sure=true; locked.other=null; locked.locked=true; locked.others=others(locked); return locked;
-  }
-  const fits=cands.filter(c=>!c.ruledOut);
-  if(!fits.length || fits[0].offMin>10) return { none:true, others: others({t:{operator:"",arr:-1,dep:-1}}) };
-  const best=fits[0], next=fits.find(c=>!same(c,best));
-  best.sure = !next || next.offMin-best.offMin>=4;
-  best.other = best.sure ? null : next;
-  best.others = others(best);
-  if(best.sure) state.trainLock={ operator:best.t.operator, std:best.t.std, from:best.t.from };
-  return best;
+  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE);
+  state.trainLock=r.lock; return r.result;
 }
-function hubHere(){ if(!state.here || !(state.locAcc<=250)) return null;
-  for(const h of Object.keys(HUB_GEO)) if(km(state.here,HUB_GEO[h])<=AT_HUB_KM) return h; return null; }
+const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
   provider:"rdm",
@@ -1444,51 +1537,25 @@ function buildLeisure(dir, now, o){
 // Heading to Letchworth station with a good location fix: work the walk out from where you are when that is
 // shorter than the walk from home (you're on your way). Straight-line distance × 1.3 for streets, at
 // 5 km/h average, 6 km/h fast, 4.3 km/h leisure.
-const STREET_FACTOR=1.3, WALK_KMH={avg:5.0, fast:6.0, leisure:4.3};
 function walkFromHere(){
   if(direction()!=="office" || !state.here || !(state.locAcc<=200)) return null;
   const d=km(state.here,GEO.LET); if(d>3) return null;
   const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
-  const est = d*STREET_FACTOR/(leisure?WALK_KMH.leisure:fast?WALK_KMH.fast:WALK_KMH.avg)*3600;
+  const est = C.walkSecs(state.here, GEO.LET, leisure?"leisure":fast?"fast":"avg", PROFILE);
   const fromHome = leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg);
   return est<fromHome ? est : null;
 }
-// On the tube: you were at King's Cross/Farringdon in the last 25 min on the way to work, and you've left it
-// (or your location has stopped updating underground for over 90 s after a tube left).
-function onTube(now){
-  const lh=state.lastHub; if(!lh || direction()!=="office" || now-lh.seen>25*60e3 || state.onLine) return false;
-  if(state.here && km(state.here,GEO.ALD)<0.3) return false;
-  const stale = !state.lastFixAt || now-state.lastFixAt>90e3;
-  if(state.atHub && !stale) return false;
-  return !!(lh.arrivals||[]).some(a=>a.t<=now);
-}
-// On the way to work and somewhere in London (not at King's Cross/Farringdon, not on the train or a tube):
-// plan from where you are, never from Cartref.
-function inLondonToOffice(now){
-  if(direction()!=="office" || !state.here || !(state.locAcc<=300)) return false;
-  if(state.atHub || state.onLine || onTube(now||Date.now())) return false;
-  return km(state.here,GEO.LET)>15 && km(state.here,OFFICE)<25;
-}
+const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
+const onTube = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE);
+const inLondonToOffice = now => C.inLondonToOffice(direction(), fix(), state.atHub, !!state.onLine, onTube(now||Date.now()), PROFILE);
 // Going home: the last time you were at Aldgate (within 150 m) and the tubes due then, kept across reopening.
 function noteAldgate(){
-  if(direction()!=="home" || !state.here || !(state.locAcc<=150) || km(state.here,GEO.ALD)>0.15) return;
+  if(!C.atOfficeTube(direction(), fix(), PROFILE)) return;
   const deps = state.aldDeps && state.aldDeps.list || (state.saved.aldHome && state.saved.aldHome.deps) || [];
   state.saved.aldHome={ seen:Date.now(), deps }; save();
 }
-// On the tube going home: at Aldgate in the last 25 min, a tube has left since, and you've left (or the fix is stale).
-function onTubeHome(now){
-  const a=state.saved.aldHome; if(!a || direction()!=="home" || state.saved.mode==="leisure" || now-a.seen>25*60e3 || state.onLine || state.atHub) return false;
-  if(!(a.deps||[]).some(d=>d.t>=a.seen-60e3 && d.t<=now)) return false;
-  const stale = !state.lastFixAt || now-state.lastFixAt>90e3;
-  return stale || !nearOffice();   // at Aldgate with a fresh fix counts as near the office
-}
-// Which tube: the first to leave after you were last seen at Aldgate; another within 3 min is "or".
-function whichTubeHome(now){
-  const a=state.saved.aldHome; const gone=(a.deps||[]).filter(d=>d.t>=a.seen-60e3 && d.t<=now+30e3).sort((x,y)=>x.t-y.t);
-  if(!gone.length) return null;
-  const best=gone[0], other=gone.find(d=>d!==best && d.t-best.t<3*60e3);
-  return { best, other };
-}
+const onTubeHome = now => C.onTubeHome(state.saved.aldHome||null, direction(), mode(), now, fix(), !!state.onLine, state.atHub, PROFILE);
+const whichTubeHome = now => C.whichTubeHome(state.saved.aldHome, now);
 // Off a tube from Aldgate that leaves at `t`: when you reach Farringdon and King's Cross St Pancras, and the
 // best train from each (engine), from the same route timings as everywhere else.
 function tubeConnections(t, now){
@@ -1498,15 +1565,8 @@ function tubeConnections(t, now){
   const opts=buildJourneys("home", now, {}).filter(o=>plannable(o.train));
   return C.bestConnections(reach, ready, opts).map(o=>({ o, at:reach[o.hub] }));
 }
-const nearOffice = () => !!state.here && (km(state.here,OFFICE)<1.2 || km(state.here,GEO.ALD)<1.0);
-// Which tube you probably took: the one that left closest to when you were last seen at the station.
-function whichTube(now){
-  const lh=state.lastHub; const gone=(lh.arrivals||[]).filter(a=>a.t<=now+30e3);
-  if(!gone.length) return null;
-  gone.sort((a,b)=>Math.abs(a.t-lh.seen)-Math.abs(b.t-lh.seen));
-  const best=gone[0], other=gone.find(a=>a!==best && Math.abs(a.t-lh.seen)-Math.abs(best.t-lh.seen)<3*60e3);
-  return {best, other};
-}
+const nearOffice = () => C.nearOffice(state.here, PROFILE);
+const whichTube = now => C.whichTube(state.lastHub, now);
 const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
@@ -1652,9 +1712,9 @@ function renderOnTrain(now, m){
   return arrive;
 }
 // The train you're on (as remembered), from the loaded boards.
-function lockedTrain(){ const lock=state.trainLock; return lock && state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]).find(x=>x.operator===lock.operator && x.std===lock.std && x.from===lock.from) || null : null; }
+const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
-const nearlyHome = () => direction()==="home" && state.saved.mode!=="leisure" && !!state.here && !state.onLine && km(state.here,GEO.LET)<3;
+const nearlyHome = () => C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
   const lock=state.trainLock;
@@ -1674,7 +1734,7 @@ function renderNearlyHome(now){
     const d=km(state.here,home);
     if(d<0.1){ $("#hero").innerHTML=`${head}<div class="big"><span class="arrlbl">You're home.</span></div>`; return; }
     // Walking: straight line × 1.3 for streets, at your walking pace.
-    const secs=d*STREET_FACTOR/(fast?WALK_KMH.fast:WALK_KMH.avg)*3600;
+    const secs=C.walkSecs(state.here, home, fast?"fast":"avg", PROFILE);
     $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(now+secs*1000)}</span><span class="arrlbl">at home</span></div>
       <div style="font-size:14px">About ${dur(secs*1000)} walk from where you are.</div>`;
     return;
@@ -1750,7 +1810,7 @@ function renderInLondon(now){
     $("#listTitle").textContent="Arrived"; $("#list").innerHTML=""; return now;
   }
   if(nearOffice()){
-    const walk=dOff*STREET_FACTOR/(fast?WALK_KMH.fast:WALK_KMH.avg)*3600e3, arrive=now+walk;
+    const walk=C.walkSecs(state.here, OFFICE, fast?"fast":"avg", PROFILE)*1000, arrive=now+walk;
     $("#hero").innerHTML=`<div class="lbl">Walking to the office · ${hhmm(now)} · from your location</div>
       <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">at the office · about ${dur(walk)} walk</span></div>
       <div style="font-size:14px">${Math.round(dOff*1000)} m to 20 Mansfield Street in a straight line.</div>`;
@@ -2380,19 +2440,12 @@ function onPosition(p){
   const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir, prevHub=state.atHub;
   // Direction: near Letchworth you're heading to work, near the office you're heading home. In between (e.g.
   // at King's Cross) keep the direction of the journey you started, for up to 3 hours.
-  const trip=state.saved.trip;
-  // Once you've been at the office today, anywhere away from Letchworth counts as heading home.
+  // (engine: near Letchworth setting off unless arriving home; at the office today → home; else the trip you started.)
   const today=new Date().toDateString();
-  if(km(here,OFFICE)<0.25 && state.saved.officeVisit!==today){ state.saved.officeVisit=today; save(); }
-  // Near Letchworth you're setting off for work, unless you've been heading home in the last 3 hours (arriving).
-  const comingHome = trip && trip.dir==="home" && Date.now()-trip.at<3*3600e3;
-  if(dLet<3 && comingHome){ state.autoDir="home"; }
-  else if(dLet<3){ state.autoDir="office"; state.saved.trip={dir:"office",at:Date.now()}; save(); }
-  else if(state.saved.officeVisit===today){ state.autoDir="home"; }
-  else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
-  else state.autoDir = dLet<=dAld ? "office" : "home";
-  // Heading home, away from Letchworth: remember it, so arriving near Letchworth isn't taken as setting off.
-  if(state.autoDir==="home" && dLet>=3){ state.saved.trip={dir:"home",at:Date.now()}; save(); }
+  const d=C.inferDirection(here, Date.now(), today, {trip:state.saved.trip, officeVisit:state.saved.officeVisit}, PROFILE);
+  state.autoDir=d.dir;
+  if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null)){
+    state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; save(); }
   noteAldgate();
   state.atHub=hubHere(); state.lastFixAt=Date.now();
   if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
