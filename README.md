@@ -26,12 +26,24 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 - Aldgate East (H&C) is used only when Circle and Met are both closed or suspended.
 - "Fast pace" uses your measured fast walks for Cartref ⇄ Letchworth and a multiplier (0.82, from your data) for London walks.
 
+## Architecture
+See the architecture decision in the Commuter App project. In short:
+- `src/core/` — the **engine** (TypeScript, pure functions: no screen, no network, no hard-coded places).
+  - `types.ts` trains, options, flags, profiles · `time.ts` · `geo.ts`
+  - `adapters/` Darwin and TfL responses → trains
+  - `rules.ts` standing room, stopping trains, plannable · `rank.ts` top picks, every route, same-train merging
+  - `profiles/sam.ts` Sam's commute as data (stations, lines, thresholds, standing-room rule, term dates)
+- `src/page.html` — the **screen**: location, fetching, live-journey states, rendering. Uses the engine through `window.CommuteCore`.
+- `tools/build.mjs` — type-free bundle of the engine (esbuild) inlined into the page → `index.html` (hosted) and `dist/preview.html`.
+
 ## Development
-- Edit `src/app.html`, then run `npm run build` to regenerate `index.html` (the hosted page). CI fails if they differ.
-- `npm install && npm test` runs the suite in `tests/` against the built page in jsdom, with mocked network and location:
-  time boundaries, delays and cancellations, door-to-door maths, direction from location, timeouts, rate limiting,
-  partial failures, Arrive by, warnings and the standing-room rule.
-- Fixtures follow the documented Darwin and TfL formats; replacing them with captured real responses is tracked in #9.
+- `npm install` once; `npm test` builds and runs everything; `npm run typecheck` checks the engine's types.
+- Edit `src/core/**` or `src/page.html`, then `npm run build` and commit `index.html`. CI fails if it is stale.
+- Tests:
+  - `tests/core/` — engine unit tests, run against Sam's profile **and a made-up corridor** (proves reuse), plus
+    randomised checks of rules that must always hold (never hide a train, one pick per route, ordered by arrival).
+  - `tests/fixtures/` — Darwin and TfL response shapes. These are the contract a future native engine must also pass.
+  - `tests/*.test.mjs` — end-to-end tests of the whole page with mocked network and location.
 
 ## Reliability and security
 - Every request times out after 12 s; the app never stays stuck loading.

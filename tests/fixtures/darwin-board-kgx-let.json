@@ -1,0 +1,15 @@
+{
+  "_about": "Darwin LDBWS GetDepBoardWithDetails shape (King's Cross, filtered to Letchworth). Hand-built from the documented format; replace with a captured response (issue #9).",
+  "_now": "17:30",
+  "trainServices": [
+    { "std": "17:42", "etd": "17:46", "platform": "9", "operator": "Great Northern", "origin": [{ "locationName": "London Kings Cross" }],
+      "subsequentCallingPoints": [{ "callingPoint": [{ "crs": "FPK", "st": "17:48", "et": "17:52" }, { "crs": "LET", "st": "18:12", "et": "18:16" }] }] },
+    { "std": "17:52", "etd": "Cancelled", "isCancelled": true, "cancelReason": "a shortage of train crew", "operator": "Great Northern",
+      "subsequentCallingPoints": [{ "callingPoint": [{ "crs": "LET", "st": "18:22", "et": "Cancelled" }] }] },
+    { "std": "18:02", "etd": "Delayed", "operator": "Great Northern",
+      "subsequentCallingPoints": [{ "callingPoint": [{ "crs": "LET", "st": "18:32", "et": "Delayed" }] }] },
+    { "std": "18:22", "etd": "On time", "operator": "Great Northern",
+      "subsequentCallingPoints": [{ "callingPoint": [{ "crs": "HIT", "st": "18:50" }] }] }
+  ],
+  "nrccMessages": [{ "Value": "<p>Engineering <b>works</b> at Hitchin</p>" }]
+}

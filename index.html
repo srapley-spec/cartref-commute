@@ -234,7 +234,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 11:42 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 12:41 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -300,11 +300,384 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </form>
 </dialog>
 
+<script>/* engine (src/core) */
+"use strict";
+var CommuteCore = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+  // src/core/index.ts
+  var core_exports = {};
+  __export(core_exports, {
+    ENGINE_VERSION: () => ENGINE_VERSION,
+    busyDay: () => busyDay,
+    clock: () => clock,
+    countdown: () => countdown,
+    dur: () => dur,
+    hhmm: () => hhmm,
+    isStopping: () => isStopping,
+    isoDay: () => isoDay,
+    keepEveryRoute: () => keepEveryRoute,
+    km: () => km,
+    lineProgress: () => lineProgress,
+    mergeSameTrain: () => mergeSameTrain,
+    mins: () => mins,
+    pad: () => pad,
+    parseDarwinBoard: () => parseDarwinBoard,
+    plannable: () => plannable,
+    profiles: () => profiles,
+    resolve: () => resolve,
+    standingRoomOnly: () => standingRoomOnly,
+    stationOf: () => stationOf,
+    tflDropReason: () => tflDropReason,
+    topPicks: () => topPicks,
+    trainFromTflJourney: () => trainFromTflJourney
+  });
+
+  // src/core/time.ts
+  var pad = (n) => String(n).padStart(2, "0");
+  var hhmm = (t) => {
+    const d = new Date(t);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes());
+  };
+  var mins = (ms) => Math.round(ms / 6e4);
+  var isoDay = (t) => {
+    const d = new Date(t);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  function dur(ms) {
+    const m = Math.round(ms / 6e4);
+    return m >= 60 ? `${Math.floor(m / 60)}h ${pad(m % 60)}m` : `${m} min`;
+  }
+  function countdown(ms) {
+    if (ms <= 0) return "now";
+    const s = Math.floor(ms / 1e3), m = Math.floor(s / 60);
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m ${pad(s % 60)}s`;
+  }
+  function clock(str, now) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(str || "");
+    if (!m) return null;
+    const d = new Date(now);
+    d.setHours(+m[1], +m[2], 0, 0);
+    let t = d.getTime();
+    if (t - now < -6 * 36e5) t += 864e5;
+    else if (t - now > 18 * 36e5) t -= 864e5;
+    return t;
+  }
+  function resolve(sched, est, now) {
+    const base = clock(sched, now);
+    if (base == null) return null;
+    const e = String(est || "");
+    if (/cancel/i.test(e)) return { t: base, late: 0, cancelled: true };
+    if (/delay/i.test(e)) return { t: base, late: 0, unknownDelay: true };
+    const et = clock(e, now);
+    if (et != null) return { t: et, late: Math.max(0, mins(et - base)) };
+    return { t: base, late: 0 };
+  }
+
+  // src/core/geo.ts
+  function km(a, b) {
+    const R = 6371, r = (x) => x * Math.PI / 180;
+    const dl = r(b[0] - a[0]), dn = r(b[1] - a[1]);
+    const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dn / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function lineProgress(pt, line) {
+    const c = Math.cos(pt[0] * Math.PI / 180), xy = (q) => [q[1] * 111.32 * c, q[0] * 110.57];
+    const P = xy(pt);
+    let total = 0;
+    let best = { off: 1e9, at: 0 };
+    const seg = [];
+    for (let i = 0; i < line.length - 1; i++) {
+      const d = km(line[i], line[i + 1]);
+      seg.push(d);
+      total += d;
+    }
+    let run = 0;
+    for (let i = 0; i < line.length - 1; i++) {
+      const A = xy(line[i]), B = xy(line[i + 1]), dx = B[0] - A[0], dy = B[1] - A[1], len2 = dx * dx + dy * dy;
+      const t = Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / (len2 || 1)));
+      const off = Math.hypot(P[0] - (A[0] + t * dx), P[1] - (A[1] + t * dy));
+      if (off < best.off) best = { off, at: run + t * seg[i] };
+      run += seg[i];
+    }
+    return { frac: total ? best.at / total : 0, offKm: best.off };
+  }
+
+  // src/core/adapters/darwin.ts
+  var pick = (o, ...ks) => {
+    for (const k of ks) {
+      if (o && o[k] != null) return o[k];
+    }
+    return void 0;
+  };
+  function callingPoints(list) {
+    const out = [];
+    (list || []).forEach((g) => {
+      const cp = pick(g, "callingPoint", "CallingPoint");
+      if (Array.isArray(cp)) out.push(...cp);
+      else if (g && g.crs) out.push(g);
+    });
+    return out;
+  }
+  function parseDarwinBoard(json, from, to, now, toText) {
+    const svcs = pick(json, "trainServices", "TrainServices") || [];
+    const msgs = (pick(json, "nrccMessages", "NrccMessages") || []).map((m) => toText(typeof m === "string" ? m : pick(m, "value", "Value", "xhtmlMessage"))).filter(Boolean);
+    const services = svcs.map((s) => {
+      var _a;
+      const dep = resolve(pick(s, "std"), pick(s, "etd"), now);
+      const cp = callingPoints(pick(s, "subsequentCallingPoints")).find((c) => String(pick(c, "crs") || "").toUpperCase() === to);
+      const arr = cp ? resolve(pick(cp, "st"), pick(cp, "et"), now) : null;
+      const cancelled = pick(s, "isCancelled") === true || !!(dep && dep.cancelled) || !!(cp && (pick(cp, "isCancelled") === true || arr && arr.cancelled));
+      return {
+        from,
+        to,
+        std: pick(s, "std"),
+        dep: dep ? dep.t : null,
+        depLate: dep ? dep.late : 0,
+        depUnknown: !!(dep && dep.unknownDelay),
+        arr: arr ? arr.t : null,
+        arrLate: arr ? arr.late : 0,
+        arrUnknown: !!(arr && arr.unknownDelay),
+        platform: (_a = pick(s, "platform")) != null ? _a : null,
+        operator: pick(s, "operator") || "",
+        cancelled,
+        reason: pick(s, "cancelReason") || pick(s, "delayReason") || "",
+        origin: ((pick(s, "origin") || [])[0] || {}).locationName || ""
+      };
+    }).filter((x) => x.dep != null);
+    return { services, msgs };
+  }
+
+  // src/core/adapters/tfl.ts
+  function stationOf(name, profile) {
+    const n = String(name || "");
+    for (const [code, re] of Object.entries(profile.stationPatterns)) if (new RegExp(re, "i").test(n)) return code;
+    return null;
+  }
+  var railLegs = (j) => (j.legs || []).filter((l) => l.mode && l.mode.id === "national-rail");
+  function trainFromTflJourney(j, profile, toText) {
+    const rail = railLegs(j);
+    if (rail.length !== 1) return null;
+    const l = rail[0];
+    const a = stationOf(l.departurePoint && l.departurePoint.commonName, profile), b = stationOf(l.arrivalPoint && l.arrivalPoint.commonName, profile);
+    if (!a || !b || a === b || a !== profile.home && b !== profile.home) return null;
+    const dep = new Date(l.departureTime).getTime(), arr = new Date(l.arrivalTime).getTime();
+    if (!isFinite(dep) || !isFinite(arr)) return null;
+    const sched = l.scheduledDepartureTime ? new Date(l.scheduledDepartureTime).getTime() : dep;
+    const text = [
+      l.instruction && l.instruction.summary,
+      l.instruction && l.instruction.detailed,
+      ...(l.routeOptions || []).map((o) => `${o.name || ""} ${(o.directions || []).join(" ")}`)
+    ].join(" ");
+    const hub = a === profile.home ? b : a;
+    const operator = /thameslink/i.test(text) ? "Thameslink" : /great northern/i.test(text) ? "Great Northern" : profile.operatorByHub[hub] || "";
+    const msgs = (l.disruptions || []).map((d) => toText(d.description)).filter(Boolean);
+    return {
+      key: `${a}-${b}`,
+      msgs,
+      svc: {
+        from: a,
+        to: b,
+        std: hhmm(isFinite(sched) ? sched : dep),
+        dep,
+        depLate: isFinite(sched) ? Math.max(0, mins(dep - sched)) : 0,
+        depUnknown: false,
+        arr,
+        arrLate: 0,
+        platform: null,
+        operator,
+        cancelled: false,
+        reason: "",
+        timetable: true
+      }
+    };
+  }
+  function tflDropReason(j) {
+    const rail = railLegs(j);
+    if (rail.length === 0) return "no train";
+    if (rail.length > 1) return "change of train";
+    return "other station";
+  }
+
+  // src/core/rules.ts
+  function busyDay(t, rule) {
+    const d = new Date(t), day = isoDay(t);
+    return rule.days.includes(d.getDay()) && !rule.holidays.some(([a, b]) => day >= a && day <= b);
+  }
+  function standingRoomOnly(t, rule) {
+    if (t.from !== rule.from || t.to !== rule.to || !new RegExp(rule.operator, "i").test(t.operator || "")) return false;
+    if (t.arr == null || t.arr - t.dep > rule.maxMins * 6e4) return false;
+    if (t.origin && !new RegExp(rule.origins, "i").test(t.origin)) return false;
+    const a = hhmm(t.arr);
+    if (a < rule.arrFrom || a > rule.arrTo) return false;
+    return busyDay(t.arr, rule);
+  }
+  function isStopping(t, profile) {
+    if (t.arr == null || t.dep == null) return false;
+    const london = t.from === profile.home ? t.to : t.from;
+    const limit = profile.stoppingMin[london];
+    if (!limit) return false;
+    return t.arr - t.dep >= limit * 6e4;
+  }
+  var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
+
+  // src/core/rank.ts
+  function keepEveryRoute(sorted, n) {
+    const out = sorted.slice(0, n);
+    for (const j of sorted) {
+      if (out.some((o) => o.hub === j.hub)) continue;
+      for (let i = out.length - 1; i >= 0; i--) {
+        const h = out[i].hub;
+        if (out.filter((o) => o.hub === h).length > 1) {
+          out.splice(i, 1);
+          break;
+        }
+      }
+      if (out.length < n) out.push(j);
+    }
+    return out.sort((x, y) => sorted.indexOf(x) - sorted.indexOf(y));
+  }
+  function topPicks(options, view) {
+    const usable = options.filter((j) => !j.uncertain && !j.missed);
+    const hubs = [...new Set(usable.map((j) => j.hub))], picks = [];
+    for (const h of hubs) {
+      const mine = usable.filter((j) => j.hub === h);
+      if (view === "by") {
+        const pick2 = mine.filter((j) => !j.late).sort((a, b) => b.leave - a.leave)[0];
+        if (pick2) picks.push(pick2);
+      } else {
+        picks.push(mine.reduce((a, b) => b.arrive < a.arrive || b.arrive === a.arrive && b.leave > a.leave ? b : a));
+      }
+    }
+    if (view === "by" && !picks.length) hubs.forEach((h) => {
+      const late = usable.filter((j) => j.hub === h).sort((a, b) => a.arrive - b.arrive)[0];
+      if (late) picks.push(late);
+    });
+    return picks.sort((a, b) => a.arrive - b.arrive || b.leave - a.leave).slice(0, 2);
+  }
+  function mergeSameTrain(js, dir, profile) {
+    const out = [], used = /* @__PURE__ */ new Set();
+    const mergeable = (h) => profile.mergeHubs.includes(h);
+    const sameRun = (a, b) => {
+      var _a, _b;
+      return a !== b && a.train.operator === b.train.operator && a.hub !== b.hub && mergeable(a.hub) && mergeable(b.hub) && Math.abs(dir === "office" ? a.train.dep - b.train.dep : ((_a = a.train.arr) != null ? _a : 0) - ((_b = b.train.arr) != null ? _b : 0)) <= 6e4;
+    };
+    for (const j of js) {
+      if (used.has(j)) continue;
+      const group = [j, ...js.filter((o) => !used.has(o) && sameRun(j, o))];
+      group.forEach((g) => used.add(g));
+      if (group.length === 1) {
+        out.push(j);
+        continue;
+      }
+      group.sort((a, b) => a.arrive - b.arrive || b.leave - a.leave || (a.hub === profile.mergeHubs[0] ? -1 : 1));
+      const main = group[0];
+      main.alts = group.slice(1);
+      out.push(main);
+    }
+    return out;
+  }
+
+  // src/core/profiles/sam.ts
+  var LINE_NORTH = [
+    [51.9799, -0.229],
+    [51.9533, -0.2635],
+    [51.9017, -0.2071],
+    [51.8667, -0.1876],
+    [51.8233, -0.192],
+    [51.801, -0.204],
+    [51.7638, -0.2156],
+    [51.6973, -0.1925],
+    [51.6141, -0.1431],
+    [51.5983, -0.1201],
+    [51.5646, -0.1063]
+  ];
+  var samCommute = {
+    id: "sam-commute",
+    name: "Sam: Cartref \u21C4 20 Mansfield Street",
+    home: "LET",
+    stationNames: { LET: "Letchworth", KGX: "King's Cross", STP: "St Pancras", ZFD: "Farringdon" },
+    hubNames: { KGX: "King's Cross", STP: "St Pancras", ZFD: "Farringdon" },
+    stationPatterns: { LET: "letchworth", STP: "st\\.? ?pancras", KGX: "king'?s cross", ZFD: "farringdon" },
+    coords: { LET: "51.98002,-0.22909", KGX: "51.53197,-0.12341", STP: "51.53062,-0.12594", ZFD: "51.52036,-0.10514" },
+    lines: {
+      KGX: [...LINE_NORTH, [51.5308, -0.1238]],
+      STP: [...LINE_NORTH, [51.5307, -0.1257]],
+      ZFD: [...LINE_NORTH, [51.5307, -0.1257], [51.5203, -0.1053]]
+    },
+    maxTrainMin: { KGX: 55, STP: 55, ZFD: 60 },
+    stoppingMin: { KGX: 45, STP: 45, ZFD: 52 },
+    mergeHubs: ["ZFD", "STP"],
+    operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
+    // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
+    // Tue–Thu, Hertfordshire school term time (holidays from hertfordshire.gov.uk; after Sep 2028 all term).
+    busy: {
+      from: "LET",
+      to: "KGX",
+      operator: "great northern",
+      arrFrom: "08:00",
+      arrTo: "08:30",
+      days: [2, 3, 4],
+      maxMins: 32,
+      origins: "cambridge|ely|king'?s lynn",
+      holidays: [
+        ["2026-10-26", "2026-10-30"],
+        ["2026-12-21", "2027-01-01"],
+        ["2027-02-15", "2027-02-19"],
+        ["2027-03-26", "2027-04-09"],
+        ["2027-05-31", "2027-06-04"],
+        ["2027-07-23", "2027-08-31"],
+        ["2027-10-25", "2027-10-29"],
+        ["2027-12-20", "2028-01-03"],
+        ["2028-02-14", "2028-02-18"],
+        ["2028-04-03", "2028-04-17"],
+        ["2028-05-29", "2028-06-02"],
+        ["2028-07-25", "2028-09-01"]
+      ]
+    }
+  };
+
+  // src/core/index.ts
+  var profiles = { samCommute };
+  var ENGINE_VERSION = "1";
+  return __toCommonJS(core_exports);
+})();
+</script>
 <script>
 (() => {
 "use strict";
+// ---------- Engine ----------
+// Planning logic lives in the engine (src/core, TypeScript), loaded just before this script.
+// This page supplies the profile, the safe HTML-to-text parser, and the screen.
+const C = window.CommuteCore, PROFILE = C.profiles.samCommute;
+const { pad, hhmm, mins, dur, countdown, km, clock, resolve, plannable, keepEveryRoute, topPicks } = C;
+const STATIONS = PROFILE.stationNames, HUB_NAME = PROFILE.hubNames, COORDS = PROFILE.coords;
+const LINE = PROFILE.lines, MAX_TRAIN_MIN = PROFILE.maxTrainMin;
+const parseBoard = (json, from, to, now) => C.parseDarwinBoard(json, from, to, now, stripHtml);
+const trainFromJourney = j => C.trainFromTflJourney(j, PROFILE, stripHtml);
+const dropReason = C.tflDropReason;
+const lineProgress = (pt, hub) => C.lineProgress(pt, LINE[hub]);
+const busyDay = t => C.busyDay(t, PROFILE.busy);
+const standingRoomOnly = t => C.standingRoomOnly(t, PROFILE.busy);
+const isStopping = t => C.isStopping(t, PROFILE);
+const mergeSameTrain = js => C.mergeSameTrain(js, direction(), PROFILE);
 // ---------- Config ----------
-const STATIONS = { LET:"Letchworth", KGX:"King's Cross", STP:"St Pancras", ZFD:"Farringdon" };
 const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
 const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
@@ -315,24 +688,7 @@ const HUB_GEO = { KGX:[51.5308,-0.1238], ZFD:[51.5203,-0.1053] };
 const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
 const AT_HUB_KM = 0.4;
 // Approximate line from Letchworth to each London station, through the stations on the way (lat, lon).
-const LINE_NORTH=[[51.9799,-0.2290],[51.9533,-0.2635],[51.9017,-0.2071],[51.8667,-0.1876],[51.8233,-0.1920],[51.8010,-0.2040],
-  [51.7638,-0.2156],[51.6973,-0.1925],[51.6141,-0.1431],[51.5983,-0.1201],[51.5646,-0.1063]];
-const LINE={ KGX:[...LINE_NORTH,[51.5308,-0.1238]], STP:[...LINE_NORTH,[51.5307,-0.1257]], ZFD:[...LINE_NORTH,[51.5307,-0.1257],[51.5203,-0.1053]] };
 // How far along the line (0 = Letchworth, 1 = London station) a point is, and how far off the line.
-function lineProgress(pt, hub){
-  const L=LINE[hub], c=Math.cos(pt[0]*Math.PI/180), xy=q=>[(q[1])*111.32*c, q[0]*110.57];
-  const P=xy(pt); let total=0, best={off:1e9,at:0}; const seg=[];
-  for(let i=0;i<L.length-1;i++){ const d=km(L[i],L[i+1]); seg.push(d); total+=d; }
-  let run=0;
-  for(let i=0;i<L.length-1;i++){
-    const A=xy(L[i]), B=xy(L[i+1]), dx=B[0]-A[0], dy=B[1]-A[1], len2=dx*dx+dy*dy;
-    const t=Math.max(0,Math.min(1,((P[0]-A[0])*dx+(P[1]-A[1])*dy)/(len2||1)));
-    const off=Math.hypot(P[0]-(A[0]+t*dx), P[1]-(A[1]+t*dy));
-    if(off<best.off) best={off, at:run+t*seg[i]};
-    run+=seg[i];
-  }
-  return { frac: best.at/total, offKm: best.off };
-}
 // On the line between Letchworth and London (not at either end)?
 function onLine(){
   if(!state.here || !(state.locAcc<=500) || state.atHub) return false;
@@ -426,7 +782,6 @@ async function fetchTfl_(u){
 // ---------- Helpers ----------
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const pick = (o,...ks) => { for(const k of ks){ if(o && o[k]!=null) return o[k]; } return undefined; };
 // Notice text arrives as HTML from third parties. Parse it in an inert document (no scripts run, no images load)
 // and keep only the text.
 const stripHtml = h => {
@@ -435,28 +790,9 @@ const stripHtml = h => {
     return (doc.body&&doc.body.textContent||"").replace(/\s+/g," ").trim(); }
   catch(e){ return src.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim(); }
 };
-const hhmm = t => { const d=new Date(t); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
-const mins = ms => Math.round(ms/60000);
-function dur(ms){ const m=Math.round(ms/60000); return m>=60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m` : `${m} min`; }
-function countdown(ms){ if(ms<=0) return "now"; const s=Math.floor(ms/1000), m=Math.floor(s/60); return m>=60?`${Math.floor(m/60)}h ${m%60}m`:`${m}m ${String(s%60).padStart(2,"0")}s`; }
-function km(a,b){ const R=6371,r=x=>x*Math.PI/180; const dl=r(b[0]-a[0]), dn=r(b[1]-a[1]);
-  const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
 
 // "HH:MM" -> epoch ms nearest to now (handles midnight).
-function clock(str, now){
-  const m=/^(\d{1,2}):(\d{2})/.exec(str||""); if(!m) return null;
-  const d=new Date(now); d.setHours(+m[1], +m[2], 0, 0); let t=d.getTime();
-  if(t-now < -6*3600e3) t+=86400e3; else if(t-now > 18*3600e3) t-=86400e3; return t;
-}
 // Scheduled + estimate -> {t, late (min), unknownDelay, cancelled}
-function resolve(sched, est, now){
-  const base=clock(sched, now); if(base==null) return null;
-  const e=String(est||"");
-  if(/cancel/i.test(e)) return {t:base,late:0,cancelled:true};
-  if(/delay/i.test(e)) return {t:base,late:0,unknownDelay:true};
-  const et=clock(e, now); if(et!=null) return {t:et,late:Math.max(0,mins(et-base))};
-  return {t:base,late:0};
-}
 
 // ---------- Darwin ----------
 function boardUrl(from,to){
@@ -469,10 +805,6 @@ function boardUrl(from,to){
 function source(){ const p=S().provider; if(p==="demo"||p==="tfl") return p; return missingCreds()?"tfl":"darwin"; }
 
 // ---------- TfL timetable source (no key; not live) ----------
-const COORDS={ LET:"51.98002,-0.22909", KGX:"51.53197,-0.12341", STP:"51.53062,-0.12594", ZFD:"51.52036,-0.10514" };
-function hubOf(name){ const n=String(name||"");
-  if(/letchworth/i.test(n)) return "LET"; if(/st\.? ?pancras/i.test(n)) return "STP"; if(/king'?s cross/i.test(n)) return "KGX"; if(/farringdon/i.test(n)) return "ZFD"; return null; }
-const pad=n=>String(n).padStart(2,"0");
 async function tflJourneys(from,to,t,timeIs){
   const d=new Date(t);
   const url=`https://api.tfl.gov.uk/Journey/JourneyResults/${COORDS[from]}/to/${COORDS[to]}?mode=national-rail&timeIs=${timeIs||"Departing"}&date=${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}&time=${pad(d.getHours())}${pad(d.getMinutes())}&journeyPreference=leasttime`;
@@ -482,39 +814,19 @@ async function tflJourneys(from,to,t,timeIs){
   return (await r.json()).journeys||[];
 }
 // Keep only journeys that are a single direct train between Letchworth and a London hub.
-function trainFromJourney(j){
-  const rail=(j.legs||[]).filter(l=>l.mode&&l.mode.id==="national-rail"); if(rail.length!==1) return null;
-  const l=rail[0], a=hubOf(l.departurePoint&&l.departurePoint.commonName), b=hubOf(l.arrivalPoint&&l.arrivalPoint.commonName);
-  if(!a||!b||a===b||(a!=="LET"&&b!=="LET")) return null;
-  const dep=new Date(l.departureTime).getTime(), arr=new Date(l.arrivalTime).getTime(); if(!isFinite(dep)||!isFinite(arr)) return null;
-  const sched=l.scheduledDepartureTime?new Date(l.scheduledDepartureTime).getTime():dep;
-  const text=[l.instruction&&l.instruction.summary,l.instruction&&l.instruction.detailed,...(l.routeOptions||[]).map(o=>`${o.name||""} ${(o.directions||[]).join(" ")}`)].join(" ");
-  const operator=/thameslink/i.test(text)?"Thameslink":/great northern/i.test(text)?"Great Northern":((a==="KGX"||b==="KGX")?"Great Northern":"Thameslink");
-  const msgs=(l.disruptions||[]).map(d=>stripHtml(d.description)).filter(Boolean);
-  return { key:`${a}-${b}`, msgs, svc:{ from:a,to:b,std:hhmm(isFinite(sched)?sched:dep),dep,depLate:isFinite(sched)?Math.max(0,mins(dep-sched)):0,depUnknown:false,
-    arr,arrLate:0,platform:null,operator,cancelled:false,reason:"",timetable:true } };
-}
 // Shortest possible time from leaving to standing on the platform, per London hub (fast pace, no tube wait).
 // ---------- Routes ----------
 // Every journey has one London station per route (King's Cross, St Pancras, Farringdon). Each route is
 // searched separately, and both routes always get their first search before either gets a second, so a
 // TfL refusal can never silently leave one route out.
-const HUB_NAME={KGX:"King's Cross",STP:"St Pancras",ZFD:"Farringdon"};
 const hubOfKey = k => { const [a,b]=k.split("-"); return a==="LET"?b:a; };
 // Longest Letchworth ⇄ London train on each route (stopping services), used to size search windows.
-const MAX_TRAIN_MIN={KGX:55,STP:55,ZFD:60};
 // Trains found for a route, counting St Pancras trains towards King's Cross (same tube station).
 function routeCount(k, all){
   const twin={"KGX-LET":"STP-LET","LET-KGX":"LET-STP"}[k];
   return ((all[k]||{services:[]}).services.length) + (twin&&all[twin]?all[twin].services.length:0);
 }
 // Why a journey from TfL isn't a direct train between Letchworth and a London station.
-function dropReason(j){
-  const rail=(j.legs||[]).filter(l=>l.mode&&l.mode.id==="national-rail");
-  if(rail.length===0) return "no train";
-  if(rail.length>1) return "change of train";
-  return "other station";
-}
 function addJourneys(boards, js, key){
   let last=0;
   const d = key ? (state.diag[key]=state.diag[key]||{searches:0,returned:0,kept:0,dropped:{}}) : null;
@@ -598,24 +910,6 @@ async function fetchBoard(from,to){
   if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
   if(!r.ok) throw new Error(`National Rail feed error (HTTP ${r.status}).`);
   return parseBoard(await r.json(), from, to, Date.now());
-}
-function callingPoints(list){
-  const out=[]; (list||[]).forEach(g=>{ const cp=pick(g,"callingPoint","CallingPoint"); if(Array.isArray(cp)) out.push(...cp); else if(g && g.crs) out.push(g); }); return out;
-}
-function parseBoard(json, from, to, now){
-  const svcs=pick(json,"trainServices","TrainServices")||[];
-  const msgs=(pick(json,"nrccMessages","NrccMessages")||[]).map(m=>stripHtml(typeof m==="string"?m:pick(m,"value","Value","xhtmlMessage"))).filter(Boolean);
-  const services=svcs.map(s=>{
-    const dep=resolve(pick(s,"std"),pick(s,"etd"),now);
-    const cp=callingPoints(pick(s,"subsequentCallingPoints")).find(c=>String(pick(c,"crs")||"").toUpperCase()===to);
-    const arr=cp?resolve(pick(cp,"st"),pick(cp,"et"),now):null;
-    const cancelled=pick(s,"isCancelled")===true || (dep&&dep.cancelled) || (cp&&(pick(cp,"isCancelled")===true||(arr&&arr.cancelled)));
-    return { from,to, std:pick(s,"std"), dep:dep&&dep.t, depLate:dep?dep.late:0, depUnknown:!!(dep&&dep.unknownDelay),
-      arr:arr&&arr.t, arrLate:arr?arr.late:0, arrUnknown:!!(arr&&arr.unknownDelay), platform:pick(s,"platform"), operator:pick(s,"operator")||"",
-      cancelled:!!cancelled, reason:pick(s,"cancelReason")||pick(s,"delayReason")||"",
-      origin:((pick(s,"origin")||[])[0]||{}).locationName||"" };
-  }).filter(x=>x.dep!=null);
-  return {services,msgs};
 }
 
 // Example boards, clearly marked in the UI.
@@ -755,30 +1049,11 @@ function buildJourneys(dir, now){
 // ---------- Standing-room warning ----------
 // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
 // on Tue–Thu in Hertfordshire school term time. Replace the rule with a list of specific trains when known.
-const BUSY = { arrFrom:"08:00", arrTo:"08:30", days:[2,3,4], maxMins:32, origins:/cambridge|ely|king'?s lynn/i };
 // Hertfordshire community school holidays, inclusive (hertfordshire.gov.uk). After Sep 2028 every day counts as term.
-const HOLIDAYS = [
-  ["2026-10-26","2026-10-30"],["2026-12-21","2027-01-01"],["2027-02-15","2027-02-19"],["2027-03-26","2027-04-09"],
-  ["2027-05-31","2027-06-04"],["2027-07-23","2027-08-31"],["2027-10-25","2027-10-29"],["2027-12-20","2028-01-03"],
-  ["2028-02-14","2028-02-18"],["2028-04-03","2028-04-17"],["2028-05-29","2028-06-02"],["2028-07-25","2028-09-01"]
-];
-const isoDay = t => { const d=new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-function busyDay(t){ const d=new Date(t), day=isoDay(t);
-  return BUSY.days.includes(d.getDay()) && !HOLIDAYS.some(([a,b])=>day>=a && day<=b); }
-function standingRoomOnly(t){
-  if(t.from!=="LET" || t.to!=="KGX" || !/great northern/i.test(t.operator||"")) return false;
-  if(t.arr-t.dep > BUSY.maxMins*60e3) return false;
-  if(t.origin && !BUSY.origins.test(t.origin)) return false;       // Darwin gives the origin; the timetable source doesn't
-  const a=hhmm(t.arr); if(a<BUSY.arrFrom || a>BUSY.arrTo) return false;
-  return busyDay(t.arr);
-}
 
 // Slower trains calling at most stations: Letchworth ⇄ King's Cross/St Pancras 45+ min, Farringdon 52+ min.
-function isStopping(t){ if(t.arr==null||t.dep==null) return false;
-  const london=t.from==="LET"?t.to:t.from; return (t.arr-t.dep) >= (london==="ZFD"?52:45)*60e3; }
 // Never hide a train: every train is listed with its flags. Only trains with known times (not cancelled, not
 // "Delayed" without an estimate) can be recommended on the top card.
-const plannable = t => !t.cancelled && t.arr!=null && t.dep!=null && !t.depUnknown && !t.arrUnknown;
 function flagsFor(t,hub,tube){
   const f=[];
   if(t.cancelled) f.push({lvl:"bad",txt:"Cancelled"});
@@ -839,15 +1114,6 @@ function buildLeisure(dir, now){
   return out;
 }
 // Keep at least one option per route in a list, dropping the lowest-ranked extra option of another route.
-function keepEveryRoute(sorted, n){
-  const out=sorted.slice(0,n);
-  for(const j of sorted){
-    if(out.some(o=>o.hub===j.hub)) continue;
-    for(let i=out.length-1;i>=0;i--){ const h=out[i].hub; if(out.filter(o=>o.hub===h).length>1){ out.splice(i,1); break; } }
-    if(out.length<n) out.push(j);
-  }
-  return out.sort((x,y)=>sorted.indexOf(x)-sorted.indexOf(y));
-}
 // ---------- Where you are now ----------
 // Heading to Letchworth station with a good location fix: work the walk out from where you are when that is
 // shorter than the walk from home (you're on your way). Straight-line distance × 1.3 for streets, at
@@ -928,44 +1194,11 @@ function liveAdjust(js, now, opts){
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
 // Shown ordered by arrival. Warnings (standing room, cutting it fine, delays) are shown, never used to hide a train.
-function topPicks(options, view){
-  options=options.filter(j=>!j.uncertain && !j.missed);
-  const hubs=[...new Set(options.map(j=>j.hub))], picks=[];
-  for(const h of hubs){
-    const mine=options.filter(j=>j.hub===h);
-    if(view==="by"){
-      // Standing-room-only trains are never skipped: they are often the fastest. They carry a warning instead.
-      const pick=mine.filter(j=>!j.late).sort((a,b)=>b.leave-a.leave)[0];
-      if(pick) picks.push(pick);
-    } else {
-      picks.push(mine.reduce((a,b)=> b.arrive<a.arrive || (b.arrive===a.arrive && b.leave>a.leave) ? b : a));
-    }
-  }
-  // Nothing on time on any route: the earliest late train per route.
-  if(view==="by" && !picks.length) hubs.forEach(h=>{ const late=options.filter(j=>j.hub===h).sort((a,b)=>a.arrive-b.arrive)[0]; if(late) picks.push(late); });
-  return picks.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave).slice(0,2);
-}
 
 // Leave now: the next trains you can still catch, in leaving order, at least one per route. The first is the
 // one you'd catch by setting off now (slow or fast); the earliest arrival is always kept and marked "Fastest".
 // The same Thameslink train calls at both Farringdon and St Pancras. Show it once, with both places you
 // can get on (home) or off (to work). Main option: soonest arrival, then latest leave.
-function mergeSameTrain(js){
-  const dir=direction(), out=[], used=new Set();
-  const sameRun=(a,b)=> a!==b && a.train.operator===b.train.operator && a.hub!==b.hub &&
-    ["STP","ZFD"].includes(a.hub) && ["STP","ZFD"].includes(b.hub) &&
-    Math.abs((dir==="office"?a.train.dep-b.train.dep:a.train.arr-b.train.arr))<=60e3;
-  for(const j of js){
-    if(used.has(j)) continue;
-    const group=[j, ...js.filter(o=>!used.has(o) && sameRun(j,o))];
-    group.forEach(g=>used.add(g));
-    if(group.length===1){ out.push(j); continue; }
-    group.sort((a,b)=>a.arrive-b.arrive || b.leave-a.leave || (a.hub==="ZFD"?-1:1));
-    const main=group[0]; main.alts=group.slice(1);
-    out.push(main);
-  }
-  return out;
-}
 function ranked(now){
   const t0=now+30e3;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;

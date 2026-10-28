@@ -1,0 +1,19 @@
+{
+  "_about": "TfL Journey Planner shape (King's Cross coordinates → Letchworth coordinates, mode=national-rail). Hand-built; replace with a captured response (issue #9).",
+  "journeys": [
+    { "legs": [
+      { "mode": { "id": "walking" }, "departurePoint": { "commonName": "King's Cross" }, "arrivalPoint": { "commonName": "London St Pancras International Rail Station" } },
+      { "mode": { "id": "national-rail" }, "departureTime": "2026-11-03T18:01:00", "scheduledDepartureTime": "2026-11-03T18:01:00", "arrivalTime": "2026-11-03T18:39:00",
+        "departurePoint": { "commonName": "London St Pancras International Rail Station" }, "arrivalPoint": { "commonName": "Letchworth Garden City Rail Station" },
+        "instruction": { "summary": "Thameslink to Cambridge" } } ] },
+    { "legs": [
+      { "mode": { "id": "national-rail" }, "departureTime": "2026-11-03T18:09:00", "scheduledDepartureTime": "2026-11-03T18:06:00", "arrivalTime": "2026-11-03T18:38:00",
+        "departurePoint": { "commonName": "London Kings Cross Rail Station" }, "arrivalPoint": { "commonName": "Letchworth Garden City Rail Station" },
+        "instruction": { "summary": "Great Northern to Cambridge" }, "disruptions": [{ "description": "<p>Signal fault between Hitchin and Stevenage</p>" }] } ] },
+    { "legs": [
+      { "mode": { "id": "national-rail" }, "departureTime": "2026-11-03T18:15:00", "arrivalTime": "2026-11-03T18:40:00",
+        "departurePoint": { "commonName": "London Kings Cross Rail Station" }, "arrivalPoint": { "commonName": "Stevenage Rail Station" } },
+      { "mode": { "id": "national-rail" }, "departureTime": "2026-11-03T18:45:00", "arrivalTime": "2026-11-03T18:58:00",
+        "departurePoint": { "commonName": "Stevenage Rail Station" }, "arrivalPoint": { "commonName": "Letchworth Garden City Rail Station" } } ] }
+  ]
+}

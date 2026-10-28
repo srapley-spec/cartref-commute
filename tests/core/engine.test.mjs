@@ -1,0 +1,131 @@
+// Engine tests: pure functions, no page. Run against Sam's profile and a made-up corridor.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { core, fixture, at, text, MIN, testville, train, option } from "./helpers.mjs";
+
+const sam = core.profiles.samCommute;
+
+// ---------- Time ----------
+test("clock/resolve: midnight both ways, late, delayed, cancelled", () => {
+  assert.equal(core.clock("00:10", at("2026-11-03", "23:50")), at("2026-11-04", "00:10"));
+  assert.equal(core.clock("23:50", at("2026-11-04", "00:10")), at("2026-11-03", "23:50"));
+  const now = at("2026-11-03", "23:40");
+  assert.equal(core.resolve("23:58", "00:03", now).late, 5);
+  assert.equal(core.resolve("23:45", "Delayed", now).unknownDelay, true);
+  assert.equal(core.resolve("23:45", "Cancelled", now).cancelled, true);
+  assert.equal(core.dur(83 * MIN), "1h 23m");
+  assert.equal(core.dur(9 * MIN), "9 min");
+});
+
+// ---------- Adapters (fixtures are the contract a native engine must also pass) ----------
+test("Darwin board fixture → trains", () => {
+  const f = fixture("darwin-board-kgx-let.json");
+  const b = core.parseDarwinBoard(f, "KGX", "LET", at("2026-11-03", f._now), text);
+  assert.equal(b.services.length, 4);
+  const [a, c, d, e] = b.services;
+  assert.equal(a.depLate, 4); assert.equal(a.arr, at("2026-11-03", "18:16")); assert.equal(a.platform, "9"); assert.equal(a.origin, "London Kings Cross");
+  assert.equal(c.cancelled, true); assert.equal(c.reason, "a shortage of train crew");
+  assert.equal(d.depUnknown, true); assert.equal(d.arrUnknown, true);
+  assert.equal(e.arr, null, "doesn't call at Letchworth");
+  assert.deepEqual(b.msgs, ["Engineering works at Hitchin"]);
+});
+
+test("TfL journeys fixture → direct trains; changes are reported, not used", () => {
+  const f = fixture("tfl-journeys-kgx-let.json");
+  const out = f.journeys.map((j) => core.trainFromTflJourney(j, sam, text));
+  assert.equal(out[0].key, "STP-LET"); assert.equal(out[0].svc.operator, "Thameslink");
+  assert.equal(out[1].key, "KGX-LET"); assert.equal(out[1].svc.depLate, 3); assert.equal(out[1].svc.std, "18:06");
+  assert.deepEqual(out[1].msgs, ["Signal fault between Hitchin and Stevenage"]);
+  assert.equal(out[2], null);
+  assert.equal(core.tflDropReason(f.journeys[2]), "change of train");
+});
+
+test("TfL adapter works for another corridor (no Letchworth assumptions)", () => {
+  const leg = { mode: { id: "national-rail" }, departureTime: "2026-11-03T07:05:00", arrivalTime: "2026-11-03T07:22:00",
+    departurePoint: { commonName: "Riverside Rail Station" }, arrivalPoint: { commonName: "Central Rail Station" }, instruction: { summary: "to Central" } };
+  const x = core.trainFromTflJourney({ legs: [leg] }, testville, text);
+  assert.equal(x.key, "RVS-CEN"); assert.equal(x.svc.operator, "Express Rail", "default operator from the profile");
+  assert.equal(core.trainFromTflJourney({ legs: [leg] }, sam, text), null, "Sam's profile doesn't know these stations");
+});
+
+// ---------- Rules ----------
+test("Standing-room rule is the profile's, for any corridor", () => {
+  const fast = train({ from: "RVS", to: "CEN", dep: at("2026-11-03", "06:55"), arr: at("2026-11-03", "07:12") });
+  assert.equal(core.standingRoomOnly(fast, testville.busy), true);
+  assert.equal(core.standingRoomOnly({ ...fast, origin: "Nearby" }, testville.busy), false, "origin rule");
+  assert.equal(core.standingRoomOnly({ ...fast, dep: at("2026-11-07", "06:55"), arr: at("2026-11-07", "07:12") }, testville.busy), false, "Saturday");
+  const samFast = train({ from: "LET", to: "KGX", operator: "Great Northern", dep: at("2026-11-03", "07:42"), arr: at("2026-11-03", "08:10") });
+  assert.equal(core.standingRoomOnly(samFast, sam.busy), true);
+  assert.equal(core.standingRoomOnly({ ...samFast, dep: at("2026-10-28", "07:42"), arr: at("2026-10-28", "08:10") }, sam.busy), false, "half term");
+});
+
+test("Stopping threshold comes from the profile", () => {
+  const t = (to, m) => train({ from: "RVS", to, dep: 0, arr: m * MIN });
+  assert.equal(core.isStopping(t("CEN", 29), testville), false);
+  assert.equal(core.isStopping(t("CEN", 30), testville), true);
+  assert.equal(core.isStopping(t("MKT", 34), testville), false);
+  assert.equal(core.isStopping(train({ from: "LET", to: "ZFD", dep: 0, arr: 52 * MIN }), sam), true);
+});
+
+// ---------- Ranking ----------
+test("topPicks: one per route, by arrival, never missed or uncertain", () => {
+  const T = at("2026-11-03", "17:00");
+  const o = (hub, leave, arrive, extra) => option({ hub, leave: T + leave * MIN, arrive: T + arrive * MIN, train: train({ dep: T, arr: T }), ...extra });
+  const opts = [o("CEN", 5, 50), o("CEN", 10, 45), o("MKT", 2, 60), o("MKT", 20, 55, { missed: true }), o("CEN", 0, 40, { uncertain: true })];
+  const now = core.topPicks(opts, "now");
+  assert.deepEqual(now.map((j) => [j.hub, (j.arrive - T) / MIN]), [["CEN", 45], ["MKT", 60]]);
+  const by = core.topPicks(opts.map((j) => ({ ...j, late: (j.arrive - T) / MIN > 50 })), "by");
+  assert.deepEqual(by.map((j) => j.hub), ["CEN"], "Market Street only has a late train, Central has on-time ones");
+});
+
+test("mergeSameTrain: same run across stations is one option; different operators never merge", () => {
+  const T = at("2026-11-03", "17:00");
+  const a = option({ hub: "MKT", leave: T, arrive: T + 60 * MIN, train: train({ operator: "Metro Rail", dep: T + 20 * MIN, arr: T + 55 * MIN }) });
+  const b = option({ hub: "CEN", leave: T - MIN, arrive: T + 60 * MIN, train: train({ operator: "Metro Rail", dep: T + 25 * MIN, arr: T + 55 * MIN }) });
+  const c = option({ hub: "CEN", leave: T, arrive: T + 58 * MIN, train: train({ operator: "Express Rail", dep: T + 22 * MIN, arr: T + 55 * MIN }) });
+  const out = core.mergeSameTrain([a, b, c], "home", testville);
+  assert.equal(out.length, 2);
+  const merged = out.find((j) => j.alts);
+  assert.equal(merged, a, "same arrival: latest leave is the main option");
+  assert.deepEqual(merged.alts, [b]);
+});
+
+// ---------- Rules that must always hold (randomised) ----------
+function randomOptions(seed, n) {
+  let x = seed; const rnd = () => (x = (x * 16807) % 2147483647) / 2147483647;
+  const T = at("2026-11-03", "17:00"), hubs = ["CEN", "MKT"], ops = ["Express Rail", "Metro Rail"];
+  return Array.from({ length: n }, () => {
+    const leave = T + Math.floor(rnd() * 90) * MIN, dep = leave + 20 * MIN, len = (20 + Math.floor(rnd() * 30)) * MIN;
+    return option({ hub: hubs[Math.floor(rnd() * 2)], leave, arrive: dep + len + 15 * MIN, missed: rnd() < 0.1, uncertain: rnd() < 0.1,
+      train: train({ operator: ops[Math.floor(rnd() * 2)], dep, arr: dep + len }) });
+  });
+}
+test("Never hide: merging keeps every train (main + same-train alternatives)", () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    const opts = randomOptions(seed, 12);
+    for (const dir of ["home", "office"]) {
+      const out = core.mergeSameTrain(opts.map((o) => ({ ...o })), dir, testville);
+      const count = out.reduce((s, j) => s + 1 + (j.alts ? j.alts.length : 0), 0);
+      assert.equal(count, opts.length, `seed ${seed} ${dir}`);
+    }
+  }
+});
+test("Picks are always from the options, at most two, one per route, ordered by arrival", () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    const opts = randomOptions(seed, 10);
+    for (const view of ["now", "by"]) {
+      const p = core.topPicks(opts, view);
+      assert.ok(p.length <= 2 && p.every((j) => opts.includes(j) && !j.missed && !j.uncertain));
+      assert.equal(new Set(p.map((j) => j.hub)).size, p.length);
+      for (let i = 1; i < p.length; i++) assert.ok(p[i - 1].arrive <= p[i].arrive);
+    }
+  }
+});
+test("keepEveryRoute keeps a subset with every route when there is room", () => {
+  for (let seed = 1; seed <= 200; seed++) {
+    const opts = randomOptions(seed, 9).sort((a, b) => a.arrive - b.arrive);
+    const out = core.keepEveryRoute(opts, 5);
+    assert.ok(out.every((j) => opts.includes(j)) && out.length === Math.min(5, opts.length));
+    for (const h of new Set(opts.map((j) => j.hub))) assert.ok(out.some((j) => j.hub === h), `seed ${seed}`);
+  }
+});
