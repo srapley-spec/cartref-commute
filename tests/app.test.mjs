@@ -324,7 +324,7 @@ async function moveTo(app, pos) {
   await sleep(500);
 }
 function tubeArrivals(now) {
-  const a = (lineId, platformName, dest, mins) => ({ lineId, platformName, destinationName: dest, expectedArrival: new Date(now + mins * 60e3).toISOString(), timeToStation: mins * 60 });
+  const a = (lineId, platformName, dest, mins) => ({ vehicleId: `${lineId[0]}${mins}`, lineId, platformName, destinationName: dest, expectedArrival: new Date(now + mins * 60e3).toISOString(), timeToStation: mins * 60 });
   return [
     a("hammersmith-city", "Eastbound - Platform 2", "Barking Underground Station", 3),
     a("metropolitan", "Westbound - Platform 1", "Uxbridge Underground Station", 4),
@@ -390,5 +390,30 @@ test("Live cards say the status of every line on the journey, including good ser
   const hero = app.text("#hero");
   assert.match(hero, /Your lines Circle: Good Service Met: Minor Delays/);
   assert.match(hero, /Met: Minor delays due to an earlier faulty train/);
+  app.close();
+});
+
+test("On the tube: works out which one from when you left King's Cross and follows it to Aldgate", async () => {
+  const t0 = Date.now();
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => {
+    if (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u)) return json(tubeArrivals(t0));
+    // Aldgate: the Met that left King's Cross at t0+8 is due at t0+19 (one minute slower than the usual 10).
+    if (/StopPoint\/940GZZLUALD\/Arrivals/.test(u)) return json([{ vehicleId: "m8", lineId: "metropolitan", expectedArrival: new Date(t0 + 19 * 60e3).toISOString(), timeToStation: 0 }]);
+    return undefined; } });
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#hero"), /You're at King's Cross/);
+  // Pretend 10 minutes pass, you were last seen at King's Cross just as the Met left, and GPS went quiet.
+  const realNow = Date.now; const later = t0 + 10 * 60e3; app.w.Date.now = () => later;
+  try {
+    app.c.state.lastHub.seen = t0 + 8 * 60e3; app.c.state.lastFixAt = t0 + 8 * 60e3;
+    assert.equal(app.c.onTube(later), true);
+    await app.c.refresh({ force: true });
+    const hero = app.text("#hero");
+    assert.match(hero, /On the tube · .*worked out from when you left King's Cross/);
+    assert.match(hero, /Probably the \d\d:\d\d Met/);
+    const office = t0 + 19 * 60e3 + (90 + 420) * 1000;
+    assert.match(hero, new RegExp(`${hm(office)} ?at the office`), "uses the live Aldgate time for that train");
+    assert.match(hero, /live arrival time for this train/);
+  } finally { app.w.Date.now = realNow; }
   app.close();
 });

@@ -227,7 +227,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 07:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 07:48 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -611,10 +611,17 @@ async function fetchTubeArrivals(hub){
   const now=Date.now();
   return (await r.json())
     .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /eastbound/i.test(a.platformName||""))
-    .map(a=>({ line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
+    .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
     .filter(a=>isFinite(a.t))
     .sort((a,b)=>a.t-b.t);
+}
+// Live arrivals at Aldgate, to follow the tube you're on by its vehicle id.
+async function fetchAldgateArrivals(){
+  const r=await fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
+  if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
+  return (await r.json()).filter(a=>/^(circle|metropolitan)$/.test(a.lineId))
+    .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId, t:a.expectedArrival?new Date(a.expectedArrival).getTime():Date.now()+(a.timeToStation||0)*1000 }));
 }
 async function fetchTfl(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
@@ -820,7 +827,25 @@ function walkFromHere(){
   const fromHome = leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg);
   return est<fromHome ? est : null;
 }
-const atHubToOffice = () => !!state.atHub && direction()==="office";
+// On the tube: you were at King's Cross/Farringdon in the last 25 min on the way to work, and you've left it
+// (or your location has stopped updating underground for over 90 s after a tube left).
+function onTube(now){
+  const lh=state.lastHub; if(!lh || direction()!=="office" || now-lh.seen>25*60e3 || state.onLine) return false;
+  if(state.here && km(state.here,GEO.ALD)<0.3) return false;
+  const stale = !state.lastFixAt || now-state.lastFixAt>90e3;
+  if(state.atHub && !stale) return false;
+  return !!(lh.arrivals||[]).some(a=>a.t<=now);
+}
+const atAldgate = () => direction()==="office" && !!state.here && km(state.here,GEO.ALD)<0.3 && !!state.lastHub && Date.now()-state.lastHub.seen<45*60e3;
+// Which tube you probably took: the one that left closest to when you were last seen at the station.
+function whichTube(now){
+  const lh=state.lastHub; const gone=(lh.arrivals||[]).filter(a=>a.t<=now+30e3);
+  if(!gone.length) return null;
+  gone.sort((a,b)=>Math.abs(a.t-lh.seen)-Math.abs(b.t-lh.seen));
+  const best=gone[0], other=gone.find(a=>a!==best && Math.abs(a.t-lh.seen)-Math.abs(best.t-lh.seen)<3*60e3);
+  return {best, other};
+}
+const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // On the way home and at a London station: plan from that station. Trains from it need only the walk to the
 // platform; trains from the other station need the tube between them (King's Cross ⇄ Farringdon ~4 min).
 const PLATFORM_WALK={KGX:180, STP:300, ZFD:120}, HUB_HOP=240;
@@ -953,6 +978,33 @@ function renderOnTrain(now, m){
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
     <div class="note" style="color:inherit;opacity:.75">Projection: where you are now and the train's timetabled journey time. ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
+}
+function renderOnTube(now){
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, lh=state.lastHub, tail=(s.aldPlatform+s.aldWalk)*k*1000;
+  const ride=(lh.hub==="KGX"?s.rideKxAld:s.rideFarAld)*1000, w=whichTube(now);
+  const head=`<div class="lbl">On the tube · ${hhmm(now)} · worked out from when you left ${esc(HUB_NAME[lh.hub])}</div>`;
+  if(!w){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return null; }
+  const live=(state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle);
+  const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
+  $("#hero").innerHTML=`${head}
+    <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
+    <div><span class="slack">Probably the ${hhmm(w.best.t)} ${esc(w.best.line)}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${hhmm(w.other.t)} ${esc(w.other.line)}</span>`:""}</div>
+    <ol class="legs">
+      <li class="t">${hhmm(aldT)}</li><li class="d">Aldgate <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[lh.hub])}`}</small></li>
+      <li class="t">${hhmm(office)}</li><li class="d">Arrive office <small>· walk ${dur(tail)}</small></li>
+    </ol>
+    ${statusStrip(["circle","metropolitan"])}`;
+  $("#listTitle").textContent="On the tube";
+  $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At Aldgate the app shows the walk to the office.</div><div></div></div>`;
+  return office;
+}
+function renderAtAldgate(now){
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, walk=s.aldWalk*k*1000, office=now+walk;
+  $("#hero").innerHTML=`<div class="lbl">You're at Aldgate · ${hhmm(now)}</div>
+    <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office · ${dur(walk)} walk</span></div>`;
+  $("#listTitle").textContent="Nearly there";
+  $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Walk to 20 Mansfield Street.</div><div></div></div>`;
+  return office;
 }
 function renderAtHub(now){
   const s=S(), hub=state.atHub, k=state.saved.pace==="fast"?s.fastFactor:1;
@@ -1272,9 +1324,9 @@ function render(){
   $("#byForm").hidden=!byView;
   renderControls(); renderBanners();
   const T=byView?byTarget():NaN;
-  const onWay = byView && (state.onLine || atHubToOffice()) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
+  const onWay = byView && (state.onLine || atHubToOffice() || onTube(now) || atAldgate()) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
   if(onWay){
-    const arr = state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
+    const arr = atAldgate() ? renderAtAldgate(now) : onTube(now) ? renderOnTube(now) : state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
     if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
     if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At the London station the app switches to the onward tube and live departures.</div><div></div></div>`; }
   } else if(byView){
@@ -1285,6 +1337,10 @@ function render(){
     if(b.boards && !b.loading && none.length && opts.length) $("#list").insertAdjacentHTML("beforeend", `<div class="row"><div></div><div class="mid meta">No ${esc(none.join(" or "))} train gets you there by ${hhmm(b.T)}.</div><div></div></div>`);
     $("#listTitle").textContent = isFinite(b.T) ? `Trains around ${hhmm(b.T)}, in leaving order` : "Options";
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
+  } else if(atAldgate()){
+    renderAtAldgate(now);
+  } else if(onTube(now)){
+    renderOnTube(now);
   } else if(atHubToOffice()){
     renderAtHub(now);
   } else if(state.onLine){
@@ -1338,9 +1394,12 @@ async function refresh(opts){
     const nrP = () => nrFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
-    if(atHubToOffice()){
+    if(onTube(now)){
+      railP=fetchAldgateArrivals().then(a=>{ state.ald={at:Date.now(),arrivals:a,err:null}; }).catch(e=>{ state.ald={at:Date.now(),arrivals:null,err:e.message}; });
+    }
+    else if(atHubToOffice()){
       const hub=state.atHub;
-      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; })
+      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; state.lastHub={hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}; })
         .catch(e=>{ state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
     }
     else if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
@@ -1398,7 +1457,9 @@ function onPosition(p){
   else if(dAld<1){ state.autoDir="home"; state.saved.trip={dir:"home",at:Date.now()}; save(); }
   else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
   else state.autoDir = dLet<=dAld ? "office" : "home";
-  state.atHub=hubHere();
+  state.atHub=hubHere(); state.lastFixAt=Date.now();
+  if(state.atHub && state.tube && state.tube.hub===state.atHub) state.lastHub={hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals};
+  else if(state.atHub) state.lastHub={hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null};
   const wasOnLine=state.onLine; state.onLine=onLine();
   const where = state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
@@ -1471,12 +1532,12 @@ if(!state.saved.settings.provider && !load().settings){ state.saved.settings={pr
 locate(); render(); refresh({force:true}).then(planBy);
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
-setInterval(()=>{ if(!document.hidden && atHubToOffice()) refresh(); },30e3);
+setInterval(()=>{ if(!document.hidden && (atHubToOffice()||onTube(Date.now()))) refresh(); },30e3);
 setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={onTube,whichTube,atAldgate,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
