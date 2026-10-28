@@ -51,3 +51,9 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
   setting off this minute if it's a different one. Cancelled and "Delayed, no estimate" trains are listed but
   never recommended.
 - Each option shows leave time, arrival, route, train length and total door-to-door time.
+- **Leave around:** pick a time (default 17:40); the card shows the best option per route for leaving within
+  10 minutes before that time or any time after; the list shows every train around then.
+- **Direction:** near Letchworth you're heading to work; once you've been at the office today, anywhere else
+  counts as heading home for the rest of the day.
+- **St Pancras:** Thameslink trains from St Pancras are part of the King's Cross route (same tube station).
+- **Why these trains?** Under the list: what TfL returned for each route search and what was dropped and why.

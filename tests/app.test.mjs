@@ -1,7 +1,7 @@
 // End-to-end behaviour with mocked network and location: direction, failures, timeouts, rate limits, Arrive by.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, sleep, hang, json, parseJourneyUrl, tflJourney, tflTimetable, NEAR_LETCHWORTH, IN_LONDON, hm, closeAll } from "./harness.mjs";
+import { createApp, sleep, hang, json, parseJourneyUrl, tflJourney, tflTimetable, NEAR_LETCHWORTH, IN_LONDON, hm, iso, STATION_NAME, closeAll } from "./harness.mjs";
 
 after(closeAll);
 const tomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
@@ -41,14 +41,15 @@ test("Location denied: says so and offers manual choice; manual choice works", a
   app.close();
 });
 
-test("Moving from Letchworth to London switches direction and reloads trains", async () => {
+test("Reaching the office switches direction to home and reloads trains", async () => {
   const app = await createApp({ geo: NEAR_LETCHWORTH });
   assert.deepEqual(pairsFetched(app.calls), ["LET-KGX", "LET-ZFD"]);
   app.calls.length = 0;
   // the phone reports a new position
   app.w.navigator.geolocation; // watch callbacks are internal; simulate by re-running locate via visibility
   const watch = app.w.navigator.geolocation.watchPosition;
-  app.w.navigator.geolocation.watchPosition = (ok) => { setTimeout(() => ok(IN_LONDON), 10); return 2; };
+  // Reaching the office is what turns the journey round (being near it isn't enough).
+  app.w.navigator.geolocation.watchPosition = (ok) => { setTimeout(() => ok({ coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } }), 10); return 2; };
   app.d.dispatchEvent(new app.w.Event("visibilitychange"));
   await sleep(500);
   app.w.navigator.geolocation.watchPosition = watch;
@@ -125,9 +126,10 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
   };
   const app = await createApp({ journeys, saved: { mode: "leisure" }, settings: { provider: "tfl", tflKey: "test-key" } });
   const p = (n) => String(n).padStart(2, "0");
+  app.d.querySelector('[data-view="by"]').click();
   app.d.querySelector("#byDate").value = `${day.getFullYear()}-${p(day.getMonth() + 1)}-${p(day.getDate())}`;
   app.d.querySelector("#byTime").value = "08:16";
-  app.d.querySelector('[data-view="by"]').click();
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
   await sleep(500);
   assert.match(app.text("#hero"), /^To arrive by 08:16 tomorrow · timetable/);
   const rows = app.rows();
@@ -231,9 +233,10 @@ function morning(day) {
 }
 
 async function arriveBy(app, time, day = tomorrow()) {
+  app.d.querySelector('[data-view="by"]').click();
   app.d.querySelector("#byDate").value = day;
   app.d.querySelector("#byTime").value = time;
-  app.d.querySelector('[data-view="by"]').click();
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
   await sleep(500);
 }
 
@@ -249,11 +252,16 @@ test("Arrive by 08:30 offers both the King's Cross and the Farringdon train (no 
 });
 
 test("A TfL refusal after the first searches still leaves both routes in Arrive by", async () => {
-  let journeyCalls = 0;
-  const app = await createApp({ journeys: morning(tomorrow()), settle: 600,
-    route: (u) => { if (!parseJourneyUrl(u)) return undefined; journeyCalls++; return journeyCalls > 2 ? json({}, 429) : undefined; } });
-  journeyCalls = 0; // count only the Arrive by searches
-  await arriveBy(app, "08:30");
+  // TfL answers the first two searches for tomorrow morning, then refuses.
+  const day = tomorrow(); let calls = 0;
+  const app = await createApp({ journeys: morning(day), saved: { view: "by", byTime: "08:30" }, settle: 50,
+    route: (u) => { const q = parseJourneyUrl(u); if (!q) return undefined;
+      if (new Date(q.t).toDateString() !== new Date(`${day}T08:00:00`).toDateString()) return undefined;
+      calls++; return calls > 2 ? json({}, 429) : undefined; } });
+  app.d.querySelector("#byDate").value = day;
+  app.d.querySelector("#byTime").value = "08:30";
+  app.d.querySelector("#byTime").dispatchEvent(new app.w.Event("change"));
+  await sleep(700);
   const rows = app.rows();
   assert.ok(rows.some((r) => /via King's Cross/.test(r)) && rows.some((r) => /via Farringdon/.test(r)), rows.join("\n"));
   assert.doesNotMatch(app.banners().join(" "), /not loaded/, "a route with data isn't reported missing");
@@ -449,5 +457,71 @@ test("The last London station you were seen at survives reopening the app", asyn
   const seen = Date.now() - 5 * 60e3;
   const app = await createApp({ saved: { lastHub: { hub: "KGX", seen, arrivals: [] } } });
   assert.equal(app.c.state.lastHub.hub, "KGX");
+  app.close();
+});
+
+// ---------- Office visit, St Pancras trains, diagnostics, Leave around ----------
+const AT_OFFICE = { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } };
+
+test("After the office, King's Cross means heading home (not back to the office)", async () => {
+  const app = await createApp({ geo: NEAR_LETCHWORTH });
+  await moveTo(app, AT_OFFICE);
+  assert.match(app.text("#dirNote"), /Heading home · you're at the office/);
+  // Hours later the morning trip has expired; the office visit still counts for today.
+  app.c.state.saved.trip = { dir: "office", at: Date.now() - 5 * 3600e3 };
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
+  assert.match(app.text("#hero"), /You're at King's Cross/);
+  assert.doesNotMatch(app.text("#hero"), /Get on the .* to Aldgate/);
+  app.close();
+});
+
+test("Trains from St Pancras are kept on the King's Cross route; dropped journeys are explained", async () => {
+  const now = Date.now(), m = 60e3;
+  const change = (dep) => ({ legs: [
+    { mode: { id: "national-rail" }, departureTime: iso(dep), arrivalTime: iso(dep + 20 * m), departurePoint: { commonName: STATION_NAME.KGX }, arrivalPoint: { commonName: "Stevenage Rail Station" } },
+    { mode: { id: "national-rail" }, departureTime: iso(dep + 25 * m), arrivalTime: iso(dep + 40 * m), departurePoint: { commonName: "Stevenage Rail Station" }, arrivalPoint: { commonName: STATION_NAME.LET } } ] });
+  const journeys = (q) => {
+    if (q.from === "KGX") return { journeys: [
+      tflJourney("STP", "LET", now + 35 * m, now + 77 * m, "Thameslink to Cambridge"),
+      tflJourney("KGX", "LET", now + 40 * m, now + 74 * m, "Great Northern to Cambridge"),
+      change(now + 45 * m) ] };
+    return { journeys: [tflJourney("ZFD", "LET", now + 30 * m, now + 77 * m, "Thameslink to Cambridge")] };
+  };
+  const app = await createApp({ geo: IN_LONDON, journeys });
+  const rows = app.rows();
+  assert.ok(rows.some((r) => /via St Pancras.*Thameslink/.test(r)), "St Pancras Thameslink shown:\n" + rows.join("\n"));
+  assert.ok(rows.some((r) => /via King's Cross.*Great Northern/.test(r)));
+  assert.ok(rows.some((r) => /via Farringdon/.test(r)));
+  const diag = app.text("#diagBody");
+  assert.match(diag, /King's Cross → Letchworth: 1 search; TfL returned 3 journeys; 2 direct trains kept; 1 with a change of train/);
+  app.close();
+});
+
+test("Leave around 17:40: best per route and every train around then, in leaving order", async () => {
+  const day = tomorrow(), T = (h) => new Date(`${day}T${h}:00`).getTime(), m = 60e3;
+  const kgx = [["17:38", 52], ["17:52", 34], ["18:06", 29], ["18:22", 52]], zfd = [["17:56", 44], ["18:26", 44]];
+  const journeys = (q) => {
+    const list = (q.from === "KGX" ? kgx : q.from === "ZFD" ? zfd : []).map(([d, mm]) => ({ dep: T(d), arr: T(d) + mm * m }));
+    return { journeys: list.filter((x) => x.dep >= q.t).slice(0, 3).map((x) => tflJourney(q.from, q.to, x.dep, x.arr)) };
+  };
+  const app = await createApp({ geo: AT_OFFICE, journeys });
+  app.d.querySelector('[data-view="at"]').click();
+  await sleep(50);
+  assert.equal(app.d.querySelector("#byTime").value, "17:40", "defaults to 17:40");
+  assert.equal(app.text("#byLabel"), "Leave around");
+  app.d.querySelector("#byDate").value = day;
+  app.d.querySelector("#byDate").dispatchEvent(new app.w.Event("change"));
+  await sleep(500);
+  const hero = app.text("#hero");
+  assert.match(hero, /^Leaving around 17:40 tomorrow · timetable · best per route, by arrival/);
+  const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
+  assert.equal(opts.length, 2);
+  // 18:06 fast needs leaving at 17:37 (3 min before) and gets home first; Farringdon's 17:56 needs 17:32.
+  assert.match(opts[0], /18:06 Great Northern · 29 min train · total 1h \d\dm · leave 3 min before 17:40/);
+  assert.match(opts[1], /17:56 Thameslink · 44 min train · total 1h \d\dm · leave 8 min before 17:40/);
+  const rows = app.rows();
+  assert.ok(rows.length >= 4, rows.join("\n"));
+  assert.match(app.text("#listTitle"), /Trains around 17:40, in leaving order/);
   app.close();
 });
