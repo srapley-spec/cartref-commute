@@ -227,7 +227,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 07:48 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 08:03 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -301,6 +301,8 @@ const STATIONS = { LET:"Letchworth", KGX:"King's Cross", STP:"St Pancras", ZFD:"
 const PAIRS = [["LET","KGX"],["LET","ZFD"],["LET","STP"],["KGX","LET"],["ZFD","LET"],["STP","LET"]];
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
 const GEO = { LET:[51.9799,-0.2290], ALD:[51.5142,-0.0755] };
+// 20 Mansfield Street, E1 (approximate; about a 7-minute walk from Aldgate).
+const OFFICE=[51.5139,-0.0710];
 // London stations where the journey changes between rail and tube; "at" a station = within 400 m.
 const HUB_GEO = { KGX:[51.5308,-0.1238], ZFD:[51.5203,-0.1053] };
 const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
@@ -376,9 +378,13 @@ const LS = "cartrefCommute.v1";
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
 const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
+  lastHub:null,
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
   here:null, origin:"", london:null, londonErr:"" };
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
+// The last London station you were seen at survives reopening the app (for 25 minutes).
+try{ const lh=state.saved.lastHub; if(lh && Date.now()-lh.seen<25*60e3) state.lastHub=lh; }catch(e){}
+function setLastHub(v){ state.lastHub=v; state.saved.lastHub=v; save(); }
 
 // ---------- Network ----------
 // Every request has a timeout so a hung connection can never leave the app stuck loading.
@@ -836,7 +842,14 @@ function onTube(now){
   if(state.atHub && !stale) return false;
   return !!(lh.arrivals||[]).some(a=>a.t<=now);
 }
-const atAldgate = () => direction()==="office" && !!state.here && km(state.here,GEO.ALD)<0.3 && !!state.lastHub && Date.now()-state.lastHub.seen<45*60e3;
+// On the way to work and somewhere in London (not at King's Cross/Farringdon, not on the train or a tube):
+// plan from where you are, never from Cartref.
+function inLondonToOffice(now){
+  if(direction()!=="office" || !state.here || !(state.locAcc<=300)) return false;
+  if(state.atHub || state.onLine || onTube(now||Date.now())) return false;
+  return km(state.here,GEO.LET)>15 && km(state.here,OFFICE)<25;
+}
+const nearOffice = () => !!state.here && (km(state.here,OFFICE)<1.2 || km(state.here,GEO.ALD)<1.0);
 // Which tube you probably took: the one that left closest to when you were last seen at the station.
 function whichTube(now){
   const lh=state.lastHub; const gone=(lh.arrivals||[]).filter(a=>a.t<=now+30e3);
@@ -998,13 +1011,35 @@ function renderOnTube(now){
   $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At Aldgate the app shows the walk to the office.</div><div></div></div>`;
   return office;
 }
-function renderAtAldgate(now){
-  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, walk=s.aldWalk*k*1000, office=now+walk;
-  $("#hero").innerHTML=`<div class="lbl">You're at Aldgate · ${hhmm(now)}</div>
-    <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office · ${dur(walk)} walk</span></div>`;
-  $("#listTitle").textContent="Nearly there";
-  $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Walk to 20 Mansfield Street.</div><div></div></div>`;
-  return office;
+// From where you are in London to the office: walk if close, otherwise TfL's journey planner.
+async function fetchToOffice(){
+  const from=`${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}`, to=`${OFFICE[0]},${OFFICE[1]}`;
+  const r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${from}/to/${to}?journeyPreference=leasttime`);
+  if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
+  const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey to the office from here.");
+  const best=js.reduce((a,b)=>new Date(a.arrivalDateTime)<=new Date(b.arrivalDateTime)?a:b);
+  return { arrive:new Date(best.arrivalDateTime).getTime(), summary:(best.legs||[]).map(legLabel).join(" → "), at:Date.now(), from:state.here.slice() };
+}
+function renderInLondon(now){
+  const s=S(), fast=state.saved.pace==="fast", dOff=km(state.here,OFFICE);
+  if(dOff<0.08){
+    $("#hero").innerHTML=`<div class="lbl">At the office · ${hhmm(now)}</div><div class="big"><span class="arr t">${hhmm(now)}</span><span class="arrlbl">you've arrived</span></div>`;
+    $("#listTitle").textContent="Arrived"; $("#list").innerHTML=""; return now;
+  }
+  if(nearOffice()){
+    const walk=dOff*STREET_FACTOR/(fast?WALK_KMH.fast:WALK_KMH.avg)*3600e3, arrive=now+walk;
+    $("#hero").innerHTML=`<div class="lbl">Walking to the office · ${hhmm(now)} · from your location</div>
+      <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">at the office · about ${dur(walk)} walk</span></div>
+      <div style="font-size:14px">${Math.round(dOff*1000)} m to 20 Mansfield Street in a straight line.</div>`;
+    $("#listTitle").textContent="Nearly there"; $("#list").innerHTML=""; return arrive;
+  }
+  const p=state.toOffice;
+  const head=`<div class="lbl">In London · ${hhmm(now)} · from your location</div>`;
+  if(!p){ $("#hero").innerHTML=`${head}<div class="empty">${state.toOfficeErr?esc(state.toOfficeErr):"Planning your route to the office…"}</div>`; $("#listTitle").textContent="To the office"; $("#list").innerHTML=""; return null; }
+  $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(p.arrive)}</span><span class="arrlbl">at the office · TfL journey planner</span></div>
+    <div style="font-size:14px">${esc(p.summary)}</div>${statusStrip(["circle","metropolitan"])}`;
+  $("#listTitle").textContent="To the office"; $("#list").innerHTML="";
+  return p.arrive;
 }
 function renderAtHub(now){
   const s=S(), hub=state.atHub, k=state.saved.pace==="fast"?s.fastFactor:1;
@@ -1324,9 +1359,9 @@ function render(){
   $("#byForm").hidden=!byView;
   renderControls(); renderBanners();
   const T=byView?byTarget():NaN;
-  const onWay = byView && (state.onLine || atHubToOffice() || onTube(now) || atAldgate()) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
+  const onWay = byView && (state.onLine || atHubToOffice() || onTube(now) || inLondonToOffice(now)) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
   if(onWay){
-    const arr = atAldgate() ? renderAtAldgate(now) : onTube(now) ? renderOnTube(now) : state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
+    const arr = inLondonToOffice(now) ? renderInLondon(now) : onTube(now) ? renderOnTube(now) : state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
     if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
     if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At the London station the app switches to the onward tube and live departures.</div><div></div></div>`; }
   } else if(byView){
@@ -1337,8 +1372,8 @@ function render(){
     if(b.boards && !b.loading && none.length && opts.length) $("#list").insertAdjacentHTML("beforeend", `<div class="row"><div></div><div class="mid meta">No ${esc(none.join(" or "))} train gets you there by ${hhmm(b.T)}.</div><div></div></div>`);
     $("#listTitle").textContent = isFinite(b.T) ? `Trains around ${hhmm(b.T)}, in leaving order` : "Options";
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
-  } else if(atAldgate()){
-    renderAtAldgate(now);
+  } else if(inLondonToOffice(now)){
+    renderInLondon(now);
   } else if(onTube(now)){
     renderOnTube(now);
   } else if(atHubToOffice()){
@@ -1394,12 +1429,18 @@ async function refresh(opts){
     const nrP = () => nrFresh ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP;
     state.railSource=source(); state.darwinFailed=false;
-    if(onTube(now)){
+    if(inLondonToOffice(now)){
+      const p=state.toOffice;
+      if(!nearOffice() && (!p || now-p.at>120e3 || km(p.from,state.here)>0.3))
+        railP=fetchToOffice().then(v=>{ state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{ state.toOfficeErr=e.message; });
+      else railP=Promise.resolve();
+    }
+    else if(onTube(now)){
       railP=fetchAldgateArrivals().then(a=>{ state.ald={at:Date.now(),arrivals:a,err:null}; }).catch(e=>{ state.ald={at:Date.now(),arrivals:null,err:e.message}; });
     }
     else if(atHubToOffice()){
       const hub=state.atHub;
-      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; state.lastHub={hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}; })
+      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; setLastHub({hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}); })
         .catch(e=>{ state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
     }
     else if(state.railSource==="demo"){ setBoards(demoBoards(now)); railP=Promise.resolve(); }
@@ -1458,9 +1499,10 @@ function onPosition(p){
   else if(trip && Date.now()-trip.at<3*3600e3) state.autoDir=trip.dir;
   else state.autoDir = dLet<=dAld ? "office" : "home";
   state.atHub=hubHere(); state.lastFixAt=Date.now();
-  if(state.atHub && state.tube && state.tube.hub===state.atHub) state.lastHub={hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals};
-  else if(state.atHub) state.lastHub={hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null};
+  if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
+  else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
   const wasOnLine=state.onLine; state.onLine=onLine();
+  const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
@@ -1469,7 +1511,7 @@ function onPosition(p){
   // trigger requests.
   const dirChanged = prev!==state.autoDir;
   // Arriving at (or leaving) a London station changes what is needed: reload once.
-  if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub || wasOnLine!==state.onLine) refresh({force:true});
+  if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub || wasOnLine!==state.onLine || wasInLondon!==state.inLondon) refresh({force:true});
   render(); if(dirChanged) planBy();
 }
 function onPositionError(e){
@@ -1537,7 +1579,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={onTube,whichTube,atAldgate,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,fromHubAdjust,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,flagsFor,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

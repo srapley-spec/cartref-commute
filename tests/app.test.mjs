@@ -417,3 +417,37 @@ test("On the tube: works out which one from when you left King's Cross and follo
   } finally { app.w.Date.now = realNow; }
   app.close();
 });
+
+test("Walking from Aldgate to the office: plans from where you are, never from Cartref", async () => {
+  const app = await createApp({ geo: NEAR_LETCHWORTH });
+  app.c.state.saved.dirMode = "office";
+  await moveTo(app, { coords: { latitude: 51.5141, longitude: -0.0745, accuracy: 20 } });   // just east of Aldgate station
+  const hero = app.text("#hero");
+  assert.match(hero, /Walking to the office · \d\d:\d\d · from your location/);
+  assert.match(hero, /at the office · about \d+ min walk/);
+  assert.doesNotMatch(hero, /Cartref/);
+  await moveTo(app, { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } });
+  assert.match(app.text("#hero"), /you've arrived/);
+  app.close();
+});
+
+test("Elsewhere in London on the way to work: one TfL plan from where you are", async () => {
+  const t0 = Date.now();
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => {
+    if (/JourneyResults\/51\.5\d+,-0\.1\d+\/to\/51\.5139,-0\.071/.test(u))
+      return json({ journeys: [{ arrivalDateTime: new Date(t0 + 25 * 60e3).toISOString(), legs: [{ mode: { id: "walking" }, duration: 5 }, { mode: { id: "tube" }, duration: 15, routeOptions: [{ name: "Central" }] }] }] });
+    return undefined; } });
+  app.c.state.saved.dirMode = "office";
+  await moveTo(app, { coords: { latitude: 51.5154, longitude: -0.1410, accuracy: 20 } });   // Oxford Circus
+  const hero = app.text("#hero");
+  assert.match(hero, new RegExp(`In London · .*${hm(t0 + 25 * 60e3)} ?at the office · TfL journey planner`));
+  assert.match(hero, /Walk 5m → Central 15m/);
+  app.close();
+});
+
+test("The last London station you were seen at survives reopening the app", async () => {
+  const seen = Date.now() - 5 * 60e3;
+  const app = await createApp({ saved: { lastHub: { hub: "KGX", seen, arrivals: [] } } });
+  assert.equal(app.c.state.lastHub.hub, "KGX");
+  app.close();
+});
