@@ -2,6 +2,7 @@
 export * from "./types";
 export { pad, hhmm, mins, isoDay, dur, countdown, clock, resolve } from "./time";
 export { km, lineProgress } from "./geo";
+export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
 export { stationOf, stationLabel, trainFromTflJourney, tflDropReason } from "./adapters/tfl";
 export { busyDay, standingRoomOnly, isStopping, plannable } from "./rules";

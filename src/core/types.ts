@@ -4,7 +4,7 @@ export type LatLon = [number, number];
 export type StationCode = string;            // e.g. "LET", "KGX", "STP", "ZFD"
 
 /** A station a train calls at. `t` is the time there when known (timetabled or live). */
-export interface Call { name: string; code?: string | null; t?: number | null; }
+export interface Call { name: string; code?: string | null; t?: number | null; actual?: boolean; }   // actual: the train was reported there
 
 /** One train between two stations as the app uses it. */
 export interface Train {
@@ -24,6 +24,7 @@ export interface Train {
   origin?: string;         // where the train started (Darwin only)
   timetable?: boolean;     // from the timetable, not live
   calls?: Call[];
+  serviceId?: string;      // National Rail service ID (live data), for Service Details
   derived?: boolean;       // worked out from another station's train (same train, other stop)
   estimated?: boolean;     // derived time is an estimate (timetable has no time at that stop)          // every stop from `from` to `to`, in order, both ends included
 }

@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp, json, sleep, closeAll, parseJourneyUrl, NEAR_LETCHWORTH } from "./harness.mjs";
-import { services, tflResponder, darwinResponder } from "./golden/feeds.mjs";
+import { services, tflResponder, darwinResponder, serviceDetailsResponder } from "./golden/feeds.mjs";
 
 after(closeAll);
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "golden");
@@ -26,7 +26,7 @@ const PLACES = {
   aldgateEast: { coords: { latitude: 51.5141, longitude: -0.0745, accuracy: 20 } },
   knebworth: { coords: { latitude: 51.8667, longitude: -0.1876, accuracy: 30 } },
 };
-const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k" };
+const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", rdmSdBase: "https://darwin.test/SD/LDBWS/api/20220120", tflKey: "k" };
 
 const status = (id, name, sev = 10, desc = "Good Service", reason) => ({ id, name, lineStatuses: [{ statusSeverity: sev, statusSeverityDescription: desc, reason }] });
 function tubeArrivals(now) {
@@ -37,9 +37,10 @@ function tubeArrivals(now) {
 
 async function scenario(name, { now, geo, settings, saved = {}, disrupt = {}, tubeClosed = false, extra, steps = [] }) {
   const svcs = [...services(PREV, disrupt), ...services(DAY, disrupt), ...services(NEXT, disrupt)];
-  const tfl = tflResponder(svcs), darwin = darwinResponder(svcs, () => now);
+  const tfl = tflResponder(svcs), darwin = darwinResponder(svcs, () => now), details = serviceDetailsResponder(svcs, () => now);
   const route = (u) => {
     const x = extra && extra(u, now); if (x !== undefined) return x;
+    if (/darwin\.test\/SD\//.test(u)) { const d = details(u); return d ? json(d) : json({}, 404); }
     if (/darwin\.test/.test(u)) { const b = darwin(u); return b ? json(b) : json({}, 404); }
     if (/Line\/circle/.test(u)) return json(tubeClosed
       ? [status("circle", "Circle", 20, "Service Closed"), status("metropolitan", "Metropolitan", 20, "Service Closed"), status("hammersmith-city", "Hammersmith & City")]
@@ -94,7 +95,8 @@ test("golden: morning near Letchworth, live, with a delay and the standing-room 
 test("golden: Circle and Met closed: Aldgate East fallback", () => scenario("office-aldgate-closed",
   { now: T(DAY, "07:00"), geo: PLACES.nearLetchworth, settings: { provider: "tfl", tflKey: "k" }, tubeClosed: true }));
 test("golden: on the train near Knebworth", () => scenario("office-on-train-live",
-  { now: T(DAY, "07:25"), geo: PLACES.knebworth, settings: RDM, saved: { dirMode: "office" } }));
+  { now: T(DAY, "07:25"), geo: PLACES.knebworth, settings: RDM, saved: { dirMode: "office" },
+    disrupt: { "Thameslink 07:20 from LET": { late: 3, reason: "This train has been delayed by a late running train in front" } } }));
 test("golden: at King's Cross in the morning: which tube", () => scenario("office-at-kings-cross",
   { now: T(DAY, "08:05"), geo: PLACES.kingsCross, settings: RDM, saved: { trip: { dir: "office", at: T(DAY, "07:20") } } }));
 test("golden: walking from Aldgate East to the office", () => scenario("office-walking",

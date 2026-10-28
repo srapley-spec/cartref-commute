@@ -239,7 +239,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 28 Oct 20:18 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -261,6 +261,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       </label>
       <label class="f wide" data-p="rdm"><span>API key (x-apikey)</span><input id="s_rdmKey" type="password" autocomplete="off" spellcheck="false"></label>
       <label class="f wide" data-p="rdm"><span>Endpoint base URL, from the product page (ends …/LDBWS/api/20220120)</span><input id="s_rdmBase" type="url" spellcheck="false"></label>
+      <label class="f wide" data-p="rdm"><span>Service Details key (only if different from the key above)</span><input id="s_rdmSdKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <label class="f wide" data-p="rdm"><span>Service Details endpoint base URL</span><input id="s_rdmSdBase" type="url" spellcheck="false"></label>
       <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
       <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
       <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
@@ -348,6 +350,7 @@ var CommuteCore = (() => {
     mins: () => mins,
     pad: () => pad,
     parseDarwinBoard: () => parseDarwinBoard,
+    parseServiceDetails: () => parseServiceDetails,
     plannable: () => plannable,
     profiles: () => profiles,
     resolve: () => resolve,
@@ -460,7 +463,9 @@ var CommuteCore = (() => {
       const calls = [{ name: pick(json, "locationName") || from, code: from, t: dep ? dep.t : null }];
       for (const c of after) {
         const code = String(pick(c, "crs") || "").toUpperCase(), r = resolve(pick(c, "st"), pick(c, "et") || pick(c, "at"), now);
-        calls.push({ name: pick(c, "locationName") || code, code: code || null, t: r ? r.t : null });
+        const atv = pick(c, "at");
+        const actual = !!(atv && /^\d\d:\d\d$/.test(String(atv)));
+        calls.push({ name: pick(c, "locationName") || code, code: code || null, t: r ? r.t : null, ...actual ? { actual: true } : {} });
         if (code === to) break;
       }
       const cancelled = pick(s, "isCancelled") === true || !!(dep && dep.cancelled) || !!(cp && (pick(cp, "isCancelled") === true || arr && arr.cancelled));
@@ -479,10 +484,43 @@ var CommuteCore = (() => {
         cancelled,
         reason: pick(s, "cancelReason") || pick(s, "delayReason") || "",
         origin: ((pick(s, "origin") || [])[0] || {}).locationName || "",
+        serviceId: pick(s, "serviceID", "serviceId") || void 0,
         calls: cp ? calls : void 0
       };
     }).filter((x) => x.dep != null);
     return { services, msgs };
+  }
+  function parseServiceDetails(json, now) {
+    const prev = callingPoints(pick(json, "previousCallingPoints")), next = callingPoints(pick(json, "subsequentCallingPoints"));
+    const here = { locationName: pick(json, "locationName"), crs: pick(json, "crs"), st: pick(json, "std", "sta"), at: pick(json, "atd", "ata"), et: pick(json, "etd", "eta") };
+    const points = [...prev, here, ...next].filter((c) => c && pick(c, "crs"));
+    let last = null, nextUp = null;
+    const times = {};
+    for (const c of points) {
+      const code = String(pick(c, "crs")).toUpperCase(), st = pick(c, "st"), atv = pick(c, "at"), etv = pick(c, "et");
+      const reported = atv && (/^\d\d:\d\d$/.test(String(atv)) || /^on time$/i.test(String(atv)));
+      if (reported) {
+        const r = resolve(st, /^on time$/i.test(String(atv)) ? "On time" : atv, now);
+        if (r) {
+          last = { name: pick(c, "locationName") || code, code, t: r.t, late: r.late };
+          times[code] = r.t;
+        }
+      } else {
+        const r = resolve(st, etv, now);
+        times[code] = r ? r.t : null;
+        if (!nextUp) nextUp = { name: pick(c, "locationName") || code, code, t: r ? r.t : null };
+      }
+    }
+    return {
+      last,
+      next: nextUp,
+      at: (code) => {
+        var _a;
+        return (_a = times[code]) != null ? _a : null;
+      },
+      cancelled: pick(json, "isCancelled") === true,
+      reason: pick(json, "cancelReason") || pick(json, "delayReason") || ""
+    };
   }
 
   // src/core/adapters/tfl.ts
@@ -923,7 +961,8 @@ function hubHere(){ if(!state.here || !(state.locAcc<=250)) return null;
 const DEFAULTS = {
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
-  rdmKey:"", tflKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
+  rdmKey:"", tflKey:"",
+  rdmSdBase:"https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120", rdmSdKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
   walkHomeStationAvg:1337, walkHomeStationFast:1086, walkStationHomeAvg:1332, walkStationHomeFast:1111,
   letEntry:120, letExit:90, catchMargin:60,
   kxInterchange:360, farInterchange:240, tubeWait:180,
@@ -1104,6 +1143,23 @@ async function fetchBoard(from,to,offsetMin){
   return parseBoard(await r.json(), from, to, Date.now());
 }
 
+// Service Details for the train you're on: where it was last reported, and its expected times ahead.
+async function fetchServiceDetails(id){
+  const s=S(), base=String(s.rdmSdBase||DEFAULTS.rdmSdBase).trim().replace(/\/+$/,""), key=s.rdmSdKey||s.rdmKey;
+  let r; try{ r=await fetchT(`${base}/GetServiceDetails/${encodeURIComponent(id)}`, {headers:{"x-apikey":key}}); }
+  catch(e){ throw new Error(e.timeout?"Service Details didn't respond in time.":"Couldn't reach Service Details."); }
+  if(r.status===401||r.status===403) throw new Error(`Service Details refused the key (HTTP ${r.status}). Check you're subscribed, or add its own key in Settings.`);
+  if(!r.ok) throw new Error(`Service Details error (HTTP ${r.status}).`);
+  return C.parseServiceDetails(await r.json(), Date.now());
+}
+// On the train with live data: follow the train you're on (once per refresh, about once a minute).
+async function refreshTrainProgress(){
+  if(!state.onLine || state.railSource!=="darwin" || S().provider!=="rdm") { state.progress=null; return; }
+  const m=whichTrain(Date.now()); if(!m || m.none || !m.t.serviceId) return;
+  const id=m.t.serviceId;
+  try{ state.progress={ id, at:Date.now(), data:await fetchServiceDetails(id), err:null }; }
+  catch(e){ state.progress={ id, at:Date.now(), data:null, err:e.message }; }
+}
 // Example boards, clearly marked in the UI.
 function demoBoards(now){
   const mk=(from,to,offsets,travel,op)=>{ const out=[]; const base=new Date(now); base.setMinutes(0,0,0);
@@ -1461,7 +1517,14 @@ function renderOnTrain(now, m){
     $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>`;
     return null;
   }
-  const t=m.t, sched=t.arr-(t.arrLate||0)*60e3, delay=Math.round((m.projected-sched)/60e3);
+  const t=m.t, sched=t.arr-(t.arrLate||0)*60e3;
+  // Service Details for this train, if fresh: its expected time at your stop is the best estimate there is.
+  const pg = state.progress && state.progress.id===t.serviceId && Date.now()-state.progress.at<3*60e3 ? state.progress : null;
+  const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
+  if(pgAt) { m.projected = pgAt; m.live = true; }
+  const delay=Math.round((m.projected-sched)/60e3);
+  const lastLine = pg && pg.data && pg.data.last ? `<div style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span>${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+    : pg && pg.err ? `<div class="note">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
   const j=js.find(x=>x.train===t); const shift=m.projected-t.arr;
@@ -1474,9 +1537,10 @@ function renderOnTrain(now, m){
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}${m.picked?" · you picked this":""}</span></div>
     ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
+    ${lastLine}
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
-    <div class="note" style="color:inherit;opacity:.75">${m.live?"Arrival: National Rail's live expected time for this train. Your location says which train you're on.":"Projection: where you are now and the train's timetabled journey time."} ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
+    <div class="note" style="color:inherit;opacity:.75">${pg&&pg.data?"Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.":m.live?"Arrival: National Rail's live expected time for this train. Your location says which train you're on.":"Projection: where you are now and the train's timetabled journey time."} ${state.railSource==="tfl"?"Timetable data: delays before this train left aren't known.":""}</div>`;
   return arrive;
 }
 // From a London station to the office, split as the live cards need it (from the route description):
@@ -2111,6 +2175,7 @@ async function refresh(opts){
     }
     // Trains first, then line status, so a tight TfL limit is spent on the trains.
     await Promise.all([railP,refreshLondon()]);
+    await refreshTrainProgress();
     await Promise.all([statusP(),nrP()]);
   } catch(e){
     state.errors.push("Something went wrong loading times. Pull to refresh or tap Refresh.");
@@ -2182,14 +2247,14 @@ const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
-  ["provider","rdmBase","rdmKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
+  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
 }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
   const o={};
-  ["provider","rdmBase","rdmKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
+  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;

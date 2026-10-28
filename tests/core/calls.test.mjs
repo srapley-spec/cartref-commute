@@ -103,3 +103,28 @@ test("Same train: a boarding point you can still make is the main one, even if t
   const [main] = core.mergeSameTrain([zfd, stp], "home", sam);
   assert.equal(main.hub, "STP"); assert.equal(main.alts[0].hub, "ZFD");
 });
+
+test("Service Details: last stop reported (actual time, delay), next stop, expected time at your stop", () => {
+  const now = at("2026-10-28", "19:58");
+  const d = core.parseServiceDetails({ locationName: "London Kings Cross", crs: "KGX", std: "19:48", atd: "19:50",
+    previousCallingPoints: [], subsequentCallingPoints: [{ callingPoint: [
+      { locationName: "Finsbury Park", crs: "FPK", st: "19:54", at: "19:57" },
+      { locationName: "Stevenage", crs: "SVG", st: "20:08", et: "20:10" },
+      { locationName: "Hitchin", crs: "HIT", st: "20:12", et: "20:14" },
+      { locationName: "Letchworth Garden City", crs: "LET", st: "20:16", et: "20:18" } ] }] }, now);
+  assert.equal(d.last.name, "Finsbury Park"); assert.equal(d.last.t, at("2026-10-28", "19:57")); assert.equal(d.last.late, 3);
+  assert.equal(d.next.code, "SVG"); assert.equal(d.next.t, at("2026-10-28", "20:10"));
+  assert.equal(d.at("LET"), at("2026-10-28", "20:18"));
+  const onTime = core.parseServiceDetails({ crs: "KGX", std: "19:48", atd: "On time", subsequentCallingPoints: [{ callingPoint: [{ crs: "FPK", st: "19:54", at: "On time" }, { crs: "LET", st: "20:16", et: "On time" }] }] }, now);
+  assert.equal(onTime.last.code, "FPK"); assert.equal(onTime.last.late, 0); assert.equal(onTime.at("LET"), at("2026-10-28", "20:16"));
+  const none = core.parseServiceDetails({ crs: "KGX", std: "19:48", etd: "On time", subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", st: "20:16", et: "On time" }] }] }, now);
+  assert.equal(none.last, null, "not left yet: nothing reported");
+});
+
+test("Darwin board: service ID kept; stops already passed are marked actual", () => {
+  const board = { locationName: "London Kings Cross", trainServices: [{ serviceID: "abc123", std: "19:48", etd: "19:50", operator: "Great Northern",
+    subsequentCallingPoints: [{ callingPoint: [{ locationName: "Finsbury Park", crs: "FPK", st: "19:54", at: "19:57" }, { locationName: "Letchworth Garden City", crs: "LET", st: "20:16", et: "20:18" }] }] }] };
+  const t = core.parseDarwinBoard(board, "KGX", "LET", at("2026-10-28", "19:58"), text).services[0];
+  assert.equal(t.serviceId, "abc123");
+  assert.deepEqual(t.calls.map((c) => [c.code, !!c.actual]), [["KGX", false], ["FPK", true], ["LET", false]]);
+});

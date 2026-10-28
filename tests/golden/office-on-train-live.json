@@ -2,7 +2,7 @@
  "load": {
   "dirNote": "",
   "banners": [],
-  "hero": "On the train · 07:25 · worked out from your location 08:27projected at office Probably the 07:20 Thameslink or the 07:08 Great Northern Which train are you on?07:20 Thameslink07:08 Great Northern07:00 Great Northern06:50 Thameslink St Pancras 07:59 expected (live) · timetable 07:59 · on time 07:59Arrive St Pancras · 39 min on the train, change 7 min08:09Circle or Met to Aldgate · ~10 min, allows 3 min wait08:27Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Circle: Good Service Met: Good Service Arrival: National Rail's live expected time for this train. Your location says which train you're on.",
+  "hero": "On the train · 07:25 · worked out from your location 08:30projected at office Probably the 07:20 Thameslink or the 07:08 Great Northern Which train are you on?07:20 Thameslink07:08 Great Northern07:00 Great Northern06:50 Thameslink St Pancras 08:02 expected (live) · timetable 07:59 · about 3 min late Last reported: Letchworth Garden City 07:23 · 3 min late · next Hitchin 07:28 08:02Arrive St Pancras · 39 min on the train, change 7 min08:12Circle or Met to Aldgate · ~10 min, allows 3 min wait08:30Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Circle: Good Service Met: Good Service Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.",
   "rows": [
    "At St Pancras the app switches to the onward tube and live departures."
   ],
@@ -268,7 +268,8 @@
   "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=STP&filterType=to&timeWindow=120",
   "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=STP&filterType=to&timeWindow=120&timeOffset=-40",
   "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=ZFD&filterType=to&timeWindow=120",
-  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=ZFD&filterType=to&timeWindow=120&timeOffset=-40"
+  "https://darwin.test/LDBWS/api/20220120/GetDepBoardWithDetails/LET?numRows=10&filterCrs=ZFD&filterType=to&timeWindow=120&timeOffset=-40",
+  "https://darwin.test/SD/LDBWS/api/20220120/GetServiceDetails/20261103Thameslink0720fromLET"
  ],
  "errors": []
 }

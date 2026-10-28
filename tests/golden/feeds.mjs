@@ -27,7 +27,7 @@ export function services(day, disrupt = {}) {
   for (const p of PATTERNS) for (let h = 5; h <= 23; h++) for (const m of p.mins) {
     const dep = base + (h * 60 + m) * 60e3;
     const key = `${p.op} ${pad(h)}:${pad(m)} from ${p.stops[0][0]}`;
-    out.push({ op: p.op, origin: p.origin, key, calls: p.stops.map(([crs, d]) => ({ crs, t: dep + d * 60e3 })), ...(disrupt[key] || {}) });
+    out.push({ op: p.op, origin: p.origin, key, day, calls: p.stops.map(([crs, d]) => ({ crs, t: dep + d * 60e3 })), ...(disrupt[key] || {}) });
   }
   return out.sort((a, b) => a.calls[0].t - b.calls[0].t);
 }
@@ -70,10 +70,28 @@ export function darwinResponder(svcs, nowFn) {
     const list = svcs.filter((s) => runs(s, from, to) && s.calls[idx(s, from)].t >= lo && s.calls[idx(s, from)].t <= hi).slice(0, 10);
     return { locationName: NAME[from], nrccMessages: [], trainServices: list.map((s) => {
       const i = idx(s, from), late = s.late || 0, et = (t) => (s.cancelled ? "Cancelled" : late ? hm(t + late * 60e3) : "On time");
-      return { std: hm(s.calls[i].t), etd: et(s.calls[i].t), platform: s.platform?.[from] ?? (from === "ZFD" ? "4" : from === "STP" ? "B" : from === "LET" ? "2" : "9"),
+      return { serviceID: serviceId(s), std: hm(s.calls[i].t), etd: et(s.calls[i].t), platform: s.platform?.[from] ?? (from === "ZFD" ? "4" : from === "STP" ? "B" : from === "LET" ? "2" : "9"),
         operator: s.op, origin: [{ locationName: s.origin }], isCancelled: !!s.cancelled, cancelReason: s.cancelled ? s.reason : undefined,
         delayReason: !s.cancelled && late ? s.reason : undefined,
         subsequentCallingPoints: [{ callingPoint: s.calls.slice(i + 1).map((c) => ({ locationName: NAME[c.crs], crs: c.crs, st: hm(c.t), et: et(c.t) })) }] };
     }) };
+  };
+}
+
+const serviceId = (s) => (s.day + s.key).replace(/[^A-Za-z0-9]/g, "");   // unique per day, like real service IDs
+
+/** Darwin GetServiceDetails: stops already passed are reported (actual times, with any delay); the rest expected. */
+export function serviceDetailsResponder(svcs, nowFn) {
+  return (u) => {
+    const m = /GetServiceDetails\/([A-Za-z0-9]+)/.exec(u); if (!m) return null;
+    const s = svcs.find((x) => serviceId(x) === m[1]); if (!s) return null;
+    const now = nowFn(), late = s.late || 0;
+    const pt = (c) => {
+      const t = c.t + late * 60e3, passed = t <= now;
+      return { locationName: NAME[c.crs], crs: c.crs, st: hm(c.t), ...(passed ? { at: late ? hm(t) : "On time" } : { et: late ? hm(t) : "On time" }) };
+    };
+    const pts = s.calls.map(pt);
+    return { locationName: pts[0].locationName, crs: pts[0].crs, operator: s.op, isCancelled: !!s.cancelled, delayReason: late ? s.reason : undefined,
+      previousCallingPoints: [], subsequentCallingPoints: [{ callingPoint: pts.slice(1) }], std: pts[0].st, ...(pts[0].at ? { atd: pts[0].at } : { etd: pts[0].et }) };
   };
 }
