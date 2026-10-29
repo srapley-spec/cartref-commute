@@ -71,7 +71,10 @@ export const nearOffice = (here: LatLon | null, p: Profile) =>
   !!here && (km(here, p.places.office) < 1.2 || km(here, p.places.officeTube) < 1.0);
 
 /** What the screen remembers between position updates for working out direction. */
-export interface DirectionMemory { trip?: { dir: Direction; at: number } | null; officeVisit?: string | null; }
+export interface DirectionMemory { trip?: { dir: Direction; at: number } | null; officeVisit?: string | null; officeSince?: number | null; }
+/** At the office: within 150 m (indoor GPS is often ±15–50 m). Counted as having been there (so anywhere else is
+ *  heading home) only after 5 minutes there; arriving, or passing by, doesn't turn the journey round. */
+export const AT_OFFICE_KM = 0.15, OFFICE_DWELL_MS = 5 * 60e3;
 
 /**
  * Which way you're heading, from where you are. Near the home station you're setting off for work, unless you've
@@ -81,8 +84,11 @@ export interface DirectionMemory { trip?: { dir: Direction; at: number } | null;
  */
 export function inferDirection(here: LatLon, now: number, today: string, mem: DirectionMemory, p: Profile): { dir: Direction; mem: DirectionMemory } {
   const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
-  const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null };
-  if (km(here, p.places.office) < 0.25 && out.officeVisit !== today) out.officeVisit = today;
+  const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null };
+  if (km(here, p.places.office) < AT_OFFICE_KM) {
+    out.officeSince = out.officeSince || now;
+    if (out.officeVisit !== today && now - out.officeSince >= OFFICE_DWELL_MS) out.officeVisit = today;
+  } else out.officeSince = null;
   const trip = out.trip, recent = !!trip && now - trip.at < 3 * 3600e3;
   let dir: Direction;
   if (dHome < 3 && recent && trip!.dir === "home") dir = "home";
@@ -259,4 +265,24 @@ export function nearlyHomeEta(now: number, here: LatLon, stationAt: number | nul
     return { kind: "walk", at: now + secs * 1000, secs };
   }
   return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
+}
+
+/** A tube ride to work: the station you left, the tube (when it left), and how we know (picked, or worked out). */
+export interface TubeRide { hub: StationCode; t: number; line?: string; vehicle?: string; picked?: boolean; confirmed?: boolean; }
+/**
+ * On a tube ride: from when the tube leaves until you're near the office's tube station, or the ride time plus
+ * 10 minutes has passed. While riding, a fix at a London station on the way (or a stray one at the station you
+ * left) doesn't mean you've stopped there.
+ */
+export function tubeRideActive(ride: TubeRide | null, now: number, rideMs: number, f: Fix, p: Profile): boolean {
+  if (!ride || now < ride.t - 30e3 || now > ride.t + rideMs + 10 * 60e3) return false;
+  return !(f.here && km(f.here, p.places.officeTube) < 0.3);
+}
+/** Worth asking "did you get it?": a good (50 m), fresh (1 min) fix still at the station you left, 3+ min after
+ *  the tube left, and you haven't already said yes. */
+export function tubeRideDoubtful(ride: TubeRide | null, now: number, f: Fix, p: Profile): boolean {
+  if (!ride || ride.confirmed || now < ride.t + 3 * 60e3) return false;
+  const here = pos(f, 50), at = p.places.hubGeo[ride.hub];
+  if (!here || !at || f.at == null || now - f.at > 60e3) return false;
+  return km(here, at) <= p.places.atHubKm;
 }

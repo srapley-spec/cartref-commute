@@ -27,10 +27,19 @@ test("inferDirection: setting off, arriving home, after the office, mid-journey,
   const LET = [51.9799, -0.2290], OFF = [51.5139, -0.0710], KGX = [51.5308, -0.1238], now = T("08:00");
   let r = core.inferDirection(LET, now, D, {}, sam);
   assert.equal(r.dir, "office"); assert.deepEqual(r.mem.trip, { dir: "office", at: now });
-  r = core.inferDirection(OFF, now, D, {}, sam);
-  assert.equal(r.dir, "home"); assert.equal(r.mem.officeVisit, D); assert.deepEqual(r.mem.trip, { dir: "home", at: now });
-  assert.equal(core.inferDirection([51.5139 + 0.009, -0.0710], now, D, {}, sam).mem.officeVisit, null, "1 km from the office isn't being there");
-  assert.equal(core.inferDirection([51.5139 + 0.002, -0.0710], now, D, {}, sam).mem.officeVisit, D, "220 m is");
+  // Arriving at the office on the way to work: still heading to the office until you've been there 5 min.
+  const morning = { trip: { dir: "office", at: now - 3600e3 } };
+  r = core.inferDirection(OFF, now, D, morning, sam);
+  assert.equal(r.dir, "office"); assert.equal(r.mem.officeVisit, null); assert.equal(r.mem.officeSince, now);
+  r = core.inferDirection(OFF, now + 4 * MIN, D, r.mem, sam);
+  assert.equal(r.dir, "office", "4 min there: not yet");
+  r = core.inferDirection(OFF, now + 5 * MIN, D, r.mem, sam);
+  assert.equal(r.dir, "home"); assert.equal(r.mem.officeVisit, D); assert.deepEqual(r.mem.trip, { dir: "home", at: now + 5 * MIN });
+  // Passing by doesn't count: leaving resets the clock.
+  const away = core.inferDirection([51.5139 + 0.009, -0.0710], now + MIN, D, { ...morning, officeSince: now }, sam);
+  assert.equal(away.mem.officeSince, null); assert.equal(away.mem.officeVisit, null, "1 km from the office isn't being there");
+  assert.equal(core.inferDirection([51.5139 + 0.002, -0.0710], now, D, {}, sam).mem.officeSince, null, "220 m isn't at the office");
+  assert.equal(core.inferDirection([51.5139 + 0.001, -0.0710], now, D, {}, sam).mem.officeSince, now, "110 m is"); 
   assert.equal(core.inferDirection(KGX, now, D, { officeVisit: D }, sam).dir, "home");
   assert.equal(core.inferDirection(KGX, now, D, { trip: { dir: "office", at: now - 2 * 3600e3 } }, sam).dir, "office");
   assert.equal(core.inferDirection([51.69, -0.18], now, D, { trip: { dir: "office", at: now - 4 * 3600e3 } }, sam).dir, "home");     // Potters Bar: nearer Aldgate

@@ -133,7 +133,8 @@ test("Direction change while planning Arrive by plans again for the new directio
   const now = T("17:00"), app = await open({ now, geo: NEAR_LETCHWORTH });
   await app.plan("by", DAY, "18:30");
   const n = app.calls.length;
-  await app.moveTo(51.5139, -0.0710, 10);    // at the office: heading home
+  app.c.state.saved.officeSince = now - 6 * 60e3;
+  await app.moveTo(51.5139, -0.0710, 10);    // at the office for 5+ min: heading home
   await sleep(300);
   const q = journeyCalls(app.since(n));
   assert.ok(q.some((x) => x.to === "LET" && x.timeIs === "Arriving"), "arriving searches towards Letchworth:\n" + JSON.stringify(q));
@@ -154,13 +155,13 @@ test("On the tube: within 25 min of the station, a tube has left, and either you
   const lh = (seenAgo) => ({ hub: "KGX", seen: now - seenAgo * MIN, arrivals: [{ t: now - (seenAgo - 1) * MIN, line: "Met", lineId: "metropolitan", vehicle: "m1" }] });
   try {
     c.state.atHub = null; c.state.here = [51.52, -0.10]; c.state.lastFixAt = now;
-    c.state.lastHub = lh(10); assert.equal(c.onTube(now), true);
-    c.state.lastHub = lh(26); assert.equal(c.onTube(now), false, "26 min ago: no longer assumed");
-    c.state.lastHub = { ...lh(10), arrivals: [{ t: now + 2 * MIN }] }; assert.equal(c.onTube(now), false, "no tube has left yet");
+    c.state.lastHub = lh(10); assert.equal(c.onTubeAuto(now), true);
+    c.state.lastHub = lh(26); assert.equal(c.onTubeAuto(now), false, "26 min ago: no longer assumed");
+    c.state.lastHub = { ...lh(10), arrivals: [{ t: now + 2 * MIN }] }; assert.equal(c.onTubeAuto(now), false, "no tube has left yet");
     c.state.lastHub = lh(10); c.state.atHub = "KGX";
-    c.state.lastFixAt = now - 30e3; assert.equal(c.onTube(now), false, "still at the station with a fresh fix");
-    c.state.lastFixAt = now - 120e3; assert.equal(c.onTube(now), true, "no fix for 2 min underground");
-    c.state.atHub = null; c.state.here = [51.5142, -0.0755]; assert.equal(c.onTube(now), false, "at Aldgate: off the tube");
+    c.state.lastFixAt = now - 30e3; assert.equal(c.onTubeAuto(now), false, "still at the station with a fresh fix");
+    c.state.lastFixAt = now - 120e3; assert.equal(c.onTubeAuto(now), true, "no fix for 2 min underground");
+    c.state.atHub = null; c.state.here = [51.5142, -0.0755]; assert.equal(c.onTubeAuto(now), false, "at Aldgate: off the tube");
   } finally { c.state.lastHub = null; c.state.atHub = null; }
   app.close();
 });
@@ -660,5 +661,51 @@ test("At King's Cross: the walk to the tube counts from when you arrived; tubes 
   assert.match(hero, /Walk to the Circle\/Met eastbound platform · about \d min, from when you arrived \(07:42\)/);
   assert.match(app.text("#list"), /07:46.*If you're near the platform/);
   assert.doesNotMatch(app.text("#list"), /07:44/, "a tube leaving within 30 s isn't listed");
+  app.close();
+});
+
+test("Tube ride: pick your tube at King's Cross; once it leaves you're on it, passing Farringdon or a stray fix doesn't undo it; asked if you're clearly still there", async () => {
+  const now = T("07:44"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c, m = 60e3;
+  await app.moveTo(51.5309, -0.1236, 15);                            // at King's Cross
+  const tube = (min, line, v) => ({ t: now + min * m, line, lineId: line === "Circle" ? "circle" : "metropolitan", dest: "Aldgate", platform: "Eastbound - Platform 2", vehicle: v });
+  c.state.tube = { hub: "KGX", at: now, arrivals: [tube(6, "Circle", "c6"), tube(12, "Met", "m12")], err: null };
+  c.render();
+  assert.match(app.text("#hero"), /Which one are you getting\?/);
+  app.d.querySelector('[data-tubepick^="KGX|' + (now + 12 * m) + '|Met"]').click();
+  assert.match(app.text("#hero"), /You're getting the Met to Aldgate/);
+  assert.match(app.text("#hero"), /Getting a different one\?/);
+  // The Met leaves at 07:56: on the tube from then.
+  app.at(now + 12.5 * m); c.state.lastFixAt = now + 12.5 * m; c.render();
+  assert.match(app.text("#hero"), /^On the tube · 07:56 · the tube you picked/);
+  assert.match(app.text("#hero"), /You're on the 07:56 Met · you picked this/);
+  // A fix at Farringdon on the way: still on the tube, not "you're at Farringdon".
+  app.at(now + 15 * m); await app.moveTo(51.5203, -0.1053, 20);
+  assert.match(app.text("#hero"), /^On the tube/);
+  // A stray, rough fix back at King's Cross: still on the tube, no question.
+  app.at(now + 16 * m); await app.moveTo(51.5309, -0.1236, 80);
+  assert.match(app.text("#hero"), /^On the tube/); assert.doesNotMatch(app.text("#hero"), /Did you get/);
+  // A good, fresh fix at King's Cross 4 min after your tube left: asked.
+  app.at(now + 16.5 * m); await app.moveTo(51.5309, -0.1236, 15);
+  assert.match(app.text("#hero"), /Still at King's Cross\? Did you get the 07:56 Met\?/);
+  app.d.querySelector('[data-ride="no"]').click();
+  assert.match(app.text("#hero"), /^You're at King's Cross/);
+  // Near Aldgate the ride is over.
+  c.state.saved.tubeRide = { hub: "KGX", t: now + 12 * m, line: "Met", picked: true };
+  app.at(now + 22 * m); await app.moveTo(51.5142, -0.0755, 15);
+  assert.equal(c.currentRide(now + 22 * m), null);
+  app.close();
+});
+
+test("Arriving at the office: 'you've arrived', and still the morning journey until you've been there 5 minutes", async () => {
+  const now = T("08:04"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("07:00") } } }), c = app.c;
+  await app.moveTo(51.5139 + 0.003, -0.0710, 15);                    // 330 m away: walking to the office
+  assert.match(app.text("#hero"), /^Walking to the office/);
+  await app.moveTo(51.5139 + 0.0005, -0.0710, 14);                   // at the door (55 m)
+  assert.match(app.text("#dirNote"), /^Heading to the office · you're at the office/);
+  assert.match(app.text("#hero"), /At the office · 08:04.*you've arrived/);
+  app.at(T("08:08")); await app.moveTo(51.5139, -0.0710, 30);
+  assert.match(app.text("#dirNote"), /^Heading to the office/, "4 min: still arriving");
+  app.at(T("08:10")); await app.moveTo(51.5139, -0.0711, 30);
+  assert.match(app.text("#dirNote"), /^Heading home · you're at the office/, "6 min there: the journey turns round");
   app.close();
 });

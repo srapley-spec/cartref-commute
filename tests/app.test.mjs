@@ -49,7 +49,8 @@ test("Reaching the office switches direction to home and reloads trains", async 
   // the phone reports a new position
   app.w.navigator.geolocation; // watch callbacks are internal; simulate by re-running locate via visibility
   const watch = app.w.navigator.geolocation.watchPosition;
-  // Reaching the office is what turns the journey round (being near it isn't enough).
+  // Being at the office (5+ min there) is what turns the journey round (being near it isn't enough).
+  app.c.state.saved.officeSince = Date.now() - 6 * 60e3;
   app.w.navigator.geolocation.watchPosition = (ok) => { setTimeout(() => ok({ coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } }), 10); return 2; };
   app.d.dispatchEvent(new app.w.Event("visibilitychange"));
   await sleep(500);
@@ -477,6 +478,7 @@ const AT_OFFICE = { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 1
 
 test("After the office, King's Cross means heading home (not back to the office)", async () => {
   const app = await createApp({ geo: NEAR_LETCHWORTH });
+  app.c.state.saved.officeSince = Date.now() - 6 * 60e3;          // at the office for 5+ min
   await moveTo(app, AT_OFFICE);
   assert.match(app.text("#dirNote"), /Heading home · you're at the office/);
   // Hours later the morning trip has expired; the office visit still counts for today.
