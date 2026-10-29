@@ -63,7 +63,7 @@ See the architecture decision in the Commuter App project. In short:
     and hold location until `app.giveLocation()`.
   - Checked by mutation testing on 28 Oct: 60 deliberate one-line breakages of planning logic, all caught; then 46
     more over the evening's on-train, tube-home and nearly-home code, all caught (one rule that could never change
-    the result was removed).
+    the result was removed); then 37 over the new engine modules after the re-architecture, all caught.
 
 ## Reliability and security
 - Every request times out after 12 s; the app never stays stuck loading.
@@ -112,5 +112,8 @@ See the architecture decision in the Commuter App project. In short:
   Cross) for the earliest home time.
 - **Nearly home:** home time from your train's expected Letchworth time, or the walk from where you are once your
   home is set in Settings ("Home is where I am now"); "You're home" within 100 m.
+- **Any start and end point** (Settings → Experimental, off by default): in Leisure, "Where to?" plans the train to
+  King's Cross, St Pancras or Farringdon and TfL's leg from there to any London place (a place name is matched to
+  TfL's best guess, and the card names it); going home, "Where from?" is always offered. Off: the app as before.
 - **Why these trains?** Under the list: what each source returned for the plan on screen (live boards and
   timetable searches) and what was dropped and why.
