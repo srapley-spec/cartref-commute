@@ -1028,3 +1028,45 @@ test("Going home: your picked tube follows a delay (by vehicle)", async () => {
   assert.match(app.text("#hero"), /Circle 16:48 →.*you're getting this one/);
   app.close();
 });
+
+test("Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:38"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  app.at(T("16:43")); c.render();
+  const r = c.homeRide(T("16:43"));
+  assert.equal(r.stop, "Farringdon", "the 16:41 Met: Farringdon for the 16:56 Thameslink is the soonest home");
+  assert.equal(c.currentRide(T("16:43")), null, "an evening ride is never a morning one");
+  c.state.saved.dirMode = "office";
+  assert.equal(c.currentRide(T("16:43")), null, "even if you switch to 'To office'");
+  c.state.saved.dirMode = "home";
+  await app.fix(51.5203, -0.1053, 20, T("16:48"));                   // at Farringdon: the ride is over
+  assert.equal(c.homeRide(T("16:48")), null);
+  c.state.saved.tubeRide = r;                                         // and one that runs past its time
+  assert.equal(c.homeRide(r.t + r.rideMs + 11 * MIN), null);
+  // A pick at Aldgate is never treated as a morning pick.
+  c.state.saved.tubeRide = null; c.state.saved.tubePick = { hub: "ALD", t: T("16:52"), line: "Met" }; c.state.saved.dirMode = "office";
+  assert.equal(c.currentRide(T("16:53")), null);
+  app.close();
+});
+
+test("Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:44"));                             // at Aldgate at 16:44
+  app.at(T("16:48")); c.render();                                    // underground since: worked out as the 16:46
+  assert.match(app.text("#hero"), /Probably the Circle that left Aldgate at 16:46/);
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
+  assert.equal(c.state.saved.tubeRide.from, "ALD");
+  assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:41/);
+  app.close();
+  // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; then underground as the 16:46 leaves.
+  const h = await homeApp(T("16:30"));
+  await h.app.fix(...ALD, 15, T("16:38"));
+  h.app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  await h.app.fix(...ALD, 15, T("16:45"));
+  h.app.d.querySelector('[data-ride="no"]').click();
+  h.app.at(T("16:48")); h.c.render();
+  const r = h.c.homeRide(T("16:48"));
+  assert.ok(r && r.t === T("16:46"), "the 16:46 Circle, not the 16:41 you missed: " + JSON.stringify(r && r.t));
+  h.app.close();
+});
