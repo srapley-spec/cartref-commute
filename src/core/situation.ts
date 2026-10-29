@@ -52,7 +52,9 @@ const lineKm = (line: LatLon[]) => line.slice(1).reduce((t, q, i) => t + km(line
  * platform or near the line doesn't. Returns whether you're on a train and the track to keep for next time.
  */
 export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, atHub: StationCode | null, line: LatLon[], keep = false): { onLine: boolean; track: LineTrack | null } {
-  const here = pos(f, 500); if (!here || atHub) return { onLine: false, track: null };
+  if (atHub) return { onLine: false, track: null };
+  // A fix too rough to place you (worse than 500 m) changes nothing: keep what we knew.
+  const here = pos(f, 500); if (!here) return prev ? { onLine: prev.moving, track: prev } : { onLine: false, track: null };
   const pr = lineProgress(here, line);
   // The first tenth of the line (Letchworth to just past Hitchin, where home is) counts only right by the track
   // (300 m) and at train speed (12 m/s, about 43 km/h); beyond it, within 1 km at walking-plus speed.
@@ -86,6 +88,8 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
   const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
   const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null };
   if (km(here, p.places.office) < AT_OFFICE_KM) {
+    // An arrival time from another day (no fix since you left): start again.
+    if (out.officeSince && new Date(out.officeSince).toDateString() !== new Date(now).toDateString()) out.officeSince = null;
     out.officeSince = out.officeSince || now;
     if (out.officeVisit !== today && now - out.officeSince >= OFFICE_DWELL_MS) out.officeVisit = today;
   } else out.officeSince = null;
