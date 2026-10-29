@@ -38,6 +38,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Late trains say so](late-trains.md) · Done (test gap)
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done
+- [Presentation model: the engine decides what comes first](presentation-model.md) · Done (status line not yet drawn)
 - [Live and timetable data](live-and-timetable.md) · Done
 - [Reliability when feeds fail](reliability.md) · Done
 

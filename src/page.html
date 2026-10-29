@@ -811,6 +811,17 @@ const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(D
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
 const liveAdjust = (js, now) => C.liveAdjust(js, now, atStation(), depStation);
+// ---------- Presentation model ----------
+// The engine decides which view is on screen, what the big number means and the order of the blocks
+// (src/core/present.ts). The page only draws them. Nothing below re-decides priority.
+function situation(now){
+  const T = state.saved.view==="by" ? byTarget() : NaN;
+  return { plan: state.saved.view==="by" ? "by" : state.saved.view==="at" ? "at" : "now", awaitingLocation: awaitingLocation(),
+    byTargetToday: isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString(),
+    onLine: !!state.onLine, atHubToOffice: atHubToOffice(), onTube: onTube(now), inLondonToOffice: inLondonToOffice(now),
+    onTubeHome: onTubeHome(now), nearlyHome: nearlyHome() };
+}
+const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation(), onWay: !!onWay() })==="departs";
 
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
@@ -1181,12 +1192,15 @@ function renderHero(list, now){
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":way?"Next one you can make: the":"Leaving right now? The"} ${stdExp(first.train)} ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=hurryOpts.map(o=>hurryLine(o,dest,picks[0])).join("");
   const tubes=tubesFromAldgate(now);
-  h.innerHTML = `
-    <div class="lbl">${board?`You're at ${esc(board)} · departures`:way?"On your way to Letchworth":"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
-    ${way?`<div class="slack" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:""}
-    ${picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?"Letchworth":null)})).join("")}
-    ${now1}${hurry}${tubes}
-    ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
+  // Each block's HTML; the model says the order (the headline is the first option's big numbers).
+  const blocks = {
+    label: `<div class="lbl">${board?`You're at ${esc(board)} · departures`:way?"On your way to Letchworth":"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>`,
+    way: way?`<div class="slack" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:"",
+    options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?"Letchworth":null)})).join(""),
+    "right-now": now1, hurry, "tubes-home": tubes,
+    lines: statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])]),
+  };
+  h.innerHTML = C.BLOCKS["plan-now"].map(b=>blocks[b]||"").join("\n    ");
 }
 function renderList(list, now, opts){
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
@@ -1196,10 +1210,10 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
     <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}${j.missed?" missed":""}">
-      ${atStation()||onWay() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
+      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||atStation()||onWay()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
@@ -1500,7 +1514,8 @@ function renderInner(){
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
-  if(awaitingLocation()){
+  const shown = C.chooseView(situation(now)), view = shown.view;
+  if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
     renderControls(); renderBanners(); renderStatus();
@@ -1516,17 +1531,16 @@ function renderInner(){
   $("#byLabel").textContent = atView ? "Leave around" : "Be there by";
   renderControls(); renderBanners();
   const T=byView?byTarget():NaN;
-  const onWay = byView && (state.onLine || atHubToOffice() || onTube(now) || inLondonToOffice(now)) && isFinite(T) && new Date(T).toDateString()===new Date(now).toDateString();
-  if(onWay){
-    const arr = inLondonToOffice(now) ? renderInLondon(now) : onTube(now) ? renderOnTube(now) : state.onLine ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
+  if(shown.underWay){
+    const arr = view==="in-london" ? renderInLondon(now) : view==="on-tube" ? renderOnTube(now) : view==="on-train" ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
     if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
-    if(state.onLine){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?"At the London station the app switches to the onward tube and live departures.":"The rest of the way home: Letchworth, then the walk."}</div><div></div></div>`; }
-  } else if(atView && !(state.onLine||atHubToOffice()||onTube(now)||inLondonToOffice(now))){
+    if(view==="on-train"){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?"At the London station the app switches to the onward tube and live departures.":"The rest of the way home: Letchworth, then the walk."}</div><div></div></div>`; }
+  } else if(view==="plan-at"){
     const opts=atOptions(); renderAtHero(opts);
     const a=state.at||{};
     renderList(opts, now, { loaded: !!a.boards && !a.loading, noBest:false, empty: a.loading ? "Finding trains…" : "No trains found around that time." });
     $("#listTitle").textContent = isFinite(a.T) ? `Trains around ${hhmm(a.T)}, in leaving order` : "Options";
-  } else if(byView){
+  } else if(view==="plan-by"){
     const opts=byOptions(); renderByHero(opts);
     const b=state.by||{}, none=byRoutesWithoutOnTime(opts);
     renderList(opts, now, { loaded: !!b.boards && !b.loading, noBest:true,
@@ -1534,20 +1548,20 @@ function renderInner(){
     if(b.boards && !b.loading && none.length && opts.length) $("#list").insertAdjacentHTML("beforeend", `<div class="row"><div></div><div class="mid meta">No ${esc(none.join(" or "))} train gets you there by ${hhmm(b.T)}.</div><div></div></div>`);
     $("#listTitle").textContent = isFinite(b.T) ? `Trains around ${hhmm(b.T)}, in leaving order` : "Options";
     if(state.by && state.by.boards && !state.by.live) $("#modelNote").textContent += " Times further ahead than about 2 hours always come from the timetable; check the Leave now view on the day for live times.";
-  } else if(inLondonToOffice(now)){
+  } else if(view==="in-london"){
     renderInLondon(now);
-  } else if(onTube(now)){
+  } else if(view==="on-tube"){
     renderOnTube(now);
-  } else if(atHubToOffice()){
+  } else if(view==="at-hub"){
     renderAtHub(now);
-  } else if(onTubeHome(now)){
+  } else if(view==="on-tube-home"){
     renderOnTubeHome(now);
     const list=state.boards?ranked(now):[]; renderList(list, now); $("#listTitle").textContent="Trains home";
-  } else if(nearlyHome()){
+  } else if(view==="nearly-home"){
     renderNearlyHome(now);
     $("#listTitle").textContent="Nearly home";
     $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Heading home. Tomorrow's trains appear once you set off for work.</div><div></div></div>`;
-  } else if(state.onLine){
+  } else if(view==="on-train"){
     const m=whichTrain(now); renderOnTrain(now, m);
     $("#listTitle").textContent="On the train";
     $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?`At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.`:"The rest of the way home: Letchworth, then the walk."}</div><div></div></div>`;
