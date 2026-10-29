@@ -10,7 +10,8 @@ export interface Departure { t: number; line: string; lineId?: string; dest?: st
 /** Where a departure takes you on this journey: the stop you get off at, how long the ride is, and from that stop
  *  to where you're going (walk etc.), in ms. */
 export interface ConnectionLeg { stop: string; rideMs: number; tailMs: number; stopGeo?: LatLon; }
-export type Timed<D> = D & { leg: ConnectionLeg; stopAt: number; arrive: number; early?: boolean };
+/** A departure with the leg to take: the best of its possible stops (earliest arrival), and the others. */
+export type Timed<D> = D & { leg: ConnectionLeg; stopAt: number; arrive: number; early?: boolean; others: (ConnectionLeg & { stopAt: number; arrive: number })[] };
 
 export interface ConnectionInput<D extends Departure> {
   now: number;
@@ -19,8 +20,9 @@ export interface ConnectionInput<D extends Departure> {
   arrivedAt: number | null;
   /** From arriving to standing on the platform (ms). */
   walkMs: number;
-  /** The leg for each departure (different lines can mean different stops, rides and walks). Null = not useful. */
-  leg: (d: D) => ConnectionLeg | null;
+  /** The leg for each departure (different lines can mean different stops, rides and walks), or several stops
+   *  you could get off at (the earliest arrival is chosen). Null or none = not useful. */
+  leg: (d: D) => ConnectionLeg | ConnectionLeg[] | null;
   /** A departure you said you're getting. Matched by vehicle when both have one, else the same line's departure
    *  nearest to the time you picked (within 3 min): live times move by seconds between refreshes. */
   pick?: { t: number; line: string; vehicle?: string } | null;
@@ -52,8 +54,13 @@ export function planConnection<D extends Departure>(i: ConnectionInput<D>): Conn
   const ready = Math.max(i.now + 60e3, since + i.walkMs);
   const timed: Timed<D>[] = [];
   for (const d of [...i.departures].sort((a, b) => a.t - b.t)) {
-    const leg = i.leg(d); if (!leg || !isFinite(d.t)) continue;
-    timed.push({ ...d, leg, stopAt: d.t + leg.rideMs, arrive: d.t + leg.rideMs + leg.tailMs });
+    if (!isFinite(d.t)) continue;
+    const got = i.leg(d), legs = (Array.isArray(got) ? got : got ? [got] : [])
+      .map(l => ({ ...l, stopAt: d.t + l.rideMs, arrive: d.t + l.rideMs + l.tailMs }))
+      .sort((a, b) => a.arrive - b.arrive || a.stopAt - b.stopAt);     // ties: the earlier stop
+    if (!legs.length) continue;
+    const [best, ...others] = legs, { stopAt, arrive, ...leg } = best;
+    timed.push({ ...d, leg, stopAt, arrive, others });
   }
   const next = timed.filter(d => d.t >= ready).slice(0, i.max ?? 6);
   const early = timed.filter(d => d.t < ready && d.t >= i.now + 30e3).map(d => ({ ...d, early: true }));

@@ -958,3 +958,73 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
   assert.match(hero, /H&C: /); assert.doesNotMatch(hero, /Circle: |Met: /);
   app.close();
 });
+
+// ---------- Going home: the tube from Aldgate on the generic connection model ----------
+const ALD = [51.5142, -0.0755], OFFICE_PT = [51.5139, -0.0710];
+// TfL's live Aldgate arrivals, as the feed sends them (westbound Circle and Met). `late` moves a vehicle later.
+function aldgateFeed(late = {}) {
+  const a = (hhmm, lineId, v) => ({ vehicleId: v, lineId, platformName: "Westbound - Platform 1", destinationName: "Edgware Road (Circle Line) Underground Station",
+    expectedArrival: new Date(T(hhmm) + (late[v] || 0) * MIN).toISOString(), timeToStation: 60 });
+  return [a("16:41", "metropolitan", "m41"), a("16:46", "circle", "c46"), a("16:52", "metropolitan", "m52")];
+}
+async function homeApp(t0, late = {}) {
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed(late)) : undefined) }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  return { app, c };
+}
+
+test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  let hero = app.text("#hero");
+  assert.match(hero, /Tubes from Aldgate \(live\)Met 16:41 → Farringdon 16:48: 16:56 Thameslink/);
+  assert.match(hero, /Which one are you getting\?/);
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  assert.match(app.text("#hero"), /Circle 16:46 → King's Cross 16:56.*you're getting this one/);
+  // At Aldgate, then the tube leaves and you're gone (no fix underground for 2+ min).
+  await app.fix(...ALD, 15, T("16:44"));
+  app.at(T("16:49")); c.render();
+  hero = app.text("#hero");
+  assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
+  assert.match(hero, /You're on the Circle that left Aldgate at 16:46 · you picked this/);
+  assert.match(hero, /Get off at King's Cross 16:56/);
+  app.close();
+});
+
+test("Going home: passing Farringdon doesn't end the ride to King's Cross; 'Got off at Farringdon' does", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:44"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  app.at(T("16:49")); c.render();
+  assert.equal(c.homeRide(T("16:49")).stop, "King's Cross");
+  await app.fix(51.5203, -0.1053, 20, T("16:53"));                   // at Farringdon, passing through
+  assert.match(app.text("#hero"), /^On the tube/);
+  app.d.querySelector('[data-ride="off"]').click();
+  assert.equal(c.state.saved.tubeRide, null);
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.close();
+});
+
+test("Going home: still at Aldgate with a good fix 4 min after your tube left — asked; No keeps you at Aldgate", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:38"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  await app.fix(...ALD, 15, T("16:45"));
+  assert.match(app.text("#hero"), /Still at Aldgate\? Did you get the 16:41 Met\?/);
+  app.d.querySelector('[data-ride="no"]').click();
+  assert.equal(c.homeRide(T("16:45")), null);
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.close();
+});
+
+test("Going home: your picked tube follows a delay (by vehicle)", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  c.state.aldDeps = { ...c.state.aldDeps, list: c.state.aldDeps.list.map((d) => (d.vehicle === "c46" ? { ...d, t: T("16:48") } : d)) };   // next refresh: 2 min late
+  c.render();
+  assert.equal(c.state.saved.tubePick.t, T("16:48"));
+  assert.match(app.text("#hero"), /Circle 16:48 →.*you're getting this one/);
+  app.close();
+});

@@ -250,7 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 13:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 14:24 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -901,9 +901,11 @@ var CommuteCore = (() => {
     const ready = Math.max(i.now + 6e4, since + i.walkMs);
     const timed = [];
     for (const d of [...i.departures].sort((a, b) => a.t - b.t)) {
-      const leg = i.leg(d);
-      if (!leg || !isFinite(d.t)) continue;
-      timed.push({ ...d, leg, stopAt: d.t + leg.rideMs, arrive: d.t + leg.rideMs + leg.tailMs });
+      if (!isFinite(d.t)) continue;
+      const got = i.leg(d), legs = (Array.isArray(got) ? got : got ? [got] : []).map((l) => ({ ...l, stopAt: d.t + l.rideMs, arrive: d.t + l.rideMs + l.tailMs })).sort((a, b) => a.arrive - b.arrive || a.stopAt - b.stopAt);
+      if (!legs.length) continue;
+      const [best2, ...others] = legs, { stopAt, arrive, ...leg } = best2;
+      timed.push({ ...d, leg, stopAt, arrive, others });
     }
     const next = timed.filter((d) => d.t >= ready).slice(0, (_a = i.max) != null ? _a : 6);
     const early = timed.filter((d) => d.t < ready && d.t >= i.now + 3e4).map((d) => ({ ...d, early: true }));
@@ -2056,9 +2058,9 @@ const rideFor = (hub, d, extra) => { const leg=officeLeg(hub, d.lineId||lineIdOf
 function currentRide(now){
   if(direction()!=="office" || state.saved.mode==="leisure") return null;
   const active = r => r && C.rideActive(r.rideMs ? r : rideFor(r.hub, r, r), now, fix()) ? (r.rideMs ? r : rideFor(r.hub, r, r)) : null;
-  let r=active(state.saved.tubeRide);
+  let r=state.saved.tubeRide && state.saved.tubeRide.from!=="ALD" ? active(state.saved.tubeRide) : null;
   if(r) return r;
-  const pk=state.saved.tubePick;
+  const pk=state.saved.tubePick && state.saved.tubePick.hub!=="ALD" ? state.saved.tubePick : null;
   if(pk && pk.t<=now+30e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }   // (an old pick: rideActive says it's over)
   else if(onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
   if(r){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); }
@@ -2072,8 +2074,31 @@ function noteAldgate(){
   const deps = state.aldDeps && state.aldDeps.list || (state.saved.aldHome && state.saved.aldHome.deps) || [];
   state.saved.aldHome={ seen:Date.now(), deps }; save();
 }
-const onTubeHome = now => C.onTubeHome(state.saved.aldHome||null, direction(), mode(), now, fix(), !!state.onLine, state.atHub, PROFILE);
+const onTubeHomeAuto = now => C.onTubeHome(state.saved.aldHome||null, direction(), mode(), now, fix(), !!state.onLine, state.atHub, PROFILE);
 const whichTubeHome = now => C.whichTubeHome(state.saved.aldHome, now);
+// Going home the tube is a connection like any other (engine planConnection / Ride): from Aldgate you can get off at
+// Farringdon or King's Cross, whichever gets you home soonest with the trains loaded.
+const hubLabel = h => HUB_NAME[h==="STP"?"KGX":h];
+function homeLegs(t, now){
+  return tubeConnections(t, now).map(c=>({ stop:hubLabel(c.o.hub), stopGeo:PROFILE.places.hubGeo[c.o.hub==="STP"?"KGX":c.o.hub]||null,
+    rideMs:c.at-t, tailMs:c.o.arrive-c.at, o:c.o }));
+}
+const homeRideFor = (d, now, extra) => { const legs=homeLegs(d.t, now).sort((a,b)=>(a.rideMs+a.tailMs)-(b.rideMs+b.tailMs)), l=legs[0];
+  return { hub:"ALD", from:"ALD", t:d.t, line:d.line, vehicle:d.vehicle, rideMs:l?l.rideMs:7*60e3, stop:l?l.stop:null, stopGeo:l?l.stopGeo:null, ...extra }; };
+// On the tube home: a ride starts when a tube you picked at Aldgate leaves, or when the app works out you left on one;
+// it lasts until the stop the app suggested (passing Farringdon on the way to King's Cross doesn't end it), or until
+// you say you got off, or the ride time is clearly over.
+function homeRide(now){
+  if(direction()!=="home" || state.saved.mode==="leisure") return null;
+  const r0=state.saved.tubeRide;
+  if(r0 && r0.from==="ALD") return C.rideActive(r0, now, fix()) ? r0 : null;
+  let r=null; const pk=state.saved.tubePick;
+  if(pk && pk.hub==="ALD" && pk.t<=now+30e3) r=homeRideFor(pk, now, {picked:true});
+  else if(onTubeHomeAuto(now)){ const w=whichTubeHome(now); if(w) r=homeRideFor(w.best, now, {}); }
+  if(r && C.rideActive(r, now, fix())){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); return r; }
+  return null;
+}
+const onTubeHome = now => !!homeRide(now);
 // Off a tube from Aldgate that leaves at `t`: when you reach Farringdon and King's Cross St Pancras, and the
 // best train from each (engine), from the same route timings as everywhere else.
 function tubeConnections(t, now){
@@ -2239,26 +2264,40 @@ function tubesFromAldgate(now){
   const d=state.aldDeps;
   if(direction()!=="home" || state.saved.mode==="leisure" || !nearOffice() || !d || !d.list || Date.now()-d.at>3*60e3) return "";
   const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=state.here && km(state.here,GEO.ALD)<0.15;
-  const toPlatform=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
-  const rows=d.list.filter(t=>t.t-toPlatform>=now-30e3).slice(0,3).map(t=>{
-    const c=tubeConnections(t.t, now)[0]; if(!c) return "";
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(HUB_NAME[c.o.hub==="STP"?"KGX":c.o.hub])} <span class="t">${hhmm(c.at)}</span>: <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}, ${esc(c.o.dest||"home")} <span class="t">${hhmm(c.o.arrive)}</span> · leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-toPlatform)}</span></div>`;
-  }).filter(Boolean);
-  return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}</div>` : "";
+  const walkMs=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
+  const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
+  // Engine planConnection: what you can catch from here (the office, or Aldgate), getting off where you're home soonest.
+  const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
+  if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{})}; save(); }
+  const row=(t,mark)=>{ const o=t.leg.o;
+    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
+  const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
+  const btns=[...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)).slice(0,4)
+    .map(t=>`<button type="button" class="pickbtn" data-tubepick="ALD|${t.t}|${esc(t.line)}|${esc(t.vehicle||"")}">${hhmm(t.t)} ${esc(t.line)}</button>`).join("");
+  return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
 function renderOnTubeHome(now){
-  const w=whichTubeHome(now), head=`<div class="lbl">On the tube · ${hhmm(now)} · worked out from when you left Aldgate</div>`;
-  if(!w){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return; }
-  const conns=tubeConnections(w.best.t, now);
-  if(!conns.length){ $("#hero").innerHTML=`${head}<div class="empty">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
-  const name=h=>HUB_NAME[h==="STP"?"KGX":h], [best,...rest]=conns;
-  const line=(c,first)=>`<div style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(name(c.o.hub))}${first?"</b>":""} <span class="t">${hhmm(c.at)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.o.arrive)}</span>${first?"":` (${Math.round((c.o.arrive-best.o.arrive)/60e3)} min later)`}</div>`;
+  const r=homeRide(now);
+  const head=`<div class="lbl">On the tube · ${hhmm(now)} · ${r&&r.picked?"the tube you picked":"worked out from when you left Aldgate"}</div>`;
+  if(!r){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return; }
+  const legs=homeLegs(r.t, now).map(l=>({...l, stopAt:r.t+l.rideMs, arrive:r.t+l.rideMs+l.tailMs})).sort((a,b)=>a.arrive-b.arrive || a.stopAt-b.stopAt);
+  if(!legs.length){ $("#hero").innerHTML=`${head}<div class="empty">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
+  const best=legs[0], alt=legs.find(l=>l.stop!==best.stop);
+  const line=(c,first)=>`<div style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
+  const a=state.saved.aldHome, auto=!r.picked && a ? whichTubeHome(now) : null;
+  const other=auto && auto.other && auto.other.t!==r.t ? auto.other : null;
+  // Still at Aldgate with a good, fresh fix well after your tube left: ask.
+  const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
+    <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
+  const others = a ? (a.deps||[]).filter(d=>d.t<=now+30e3 && d.t!==r.t && Math.abs(d.t-r.t)<6*60e3).slice(0,3) : [];
+  const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(d=>`<button type="button" class="pickbtn" data-tubepick="ALD|${d.t}|${esc(d.line)}|${esc(d.vehicle||"")}">${hhmm(d.t)} ${esc(d.line)}</button>`).join("")}</div>` : "";
+  const off = `<div class="pick"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
-    <div class="big"><span class="arr t">${hhmm(best.o.arrive)}</span><span class="arrlbl">at home</span></div>
-    <div><span class="slack">Probably the ${esc(w.best.line)} that left Aldgate at ${hhmm(w.best.t)}</span><span style="opacity:.85;font-size:13px">${w.other?` or the ${esc(w.other.line)} at ${hhmm(w.other.t)}`:""}</span></div>
-    ${line(best,true)}${rest.filter(c=>name(c.o.hub)!==name(best.o.hub)).slice(0,1).map(c=>line(c,false)).join("")}
-    ${statusStrip([...opLines(best.o), "circle", "metropolitan"])}
+    <div class="big"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
+    <div><span class="slack">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
+    ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
     <div class="note" style="color:inherit;opacity:.75">Tube times: live departures from Aldgate plus typical ride times (Settings).</div>`;
 }
 // From a London station to the office, split as the live cards need it (from the route description):
@@ -2741,12 +2780,14 @@ function render(){ renderInner(); restoreOpen(); }
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
   const [hub,t,line,vehicle]=b.dataset.tubepick.split("|"), pick={hub, t:+t, line, ...(vehicle?{vehicle}:{})};
-  if(+t<=Date.now()+30e3){ state.saved.tubeRide={...pick, picked:true, confirmed:true}; state.saved.tubePick=null; }
+  if(+t<=Date.now()+30e3){ state.saved.tubeRide = hub==="ALD" ? homeRideFor(pick, Date.now(), {picked:true, confirmed:true}) : {...pick, picked:true, confirmed:true}; state.saved.tubePick=null; }
   else { state.saved.tubePick=pick; state.saved.tubeRide=null; }
   save(); render(); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-ride]"); if(!b) return;
   const r=state.saved.tubeRide; if(!r) return;
   if(b.dataset.ride==="yes") state.saved.tubeRide={...r, confirmed:true};
+  else if(b.dataset.ride==="off"){ state.saved.tubeRide=null; state.saved.tubePick=null; state.saved.aldHome=null; }
+  else if(r.from==="ALD"){ state.saved.tubeRide=null; state.saved.tubePick=null; state.saved.aldHome={ seen:Date.now(), deps:(state.aldDeps&&state.aldDeps.list)||[] }; }
   else { state.saved.tubeRide=null; state.saved.tubePick=null; state.lastHub=null; state.saved.lastHub=null;
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
     state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
@@ -3048,7 +3089,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

@@ -87,3 +87,12 @@ test("A pick without a vehicle: the same line's departure nearest to the picked 
   const q = plan({ departures: [dep(7.5, "Blue", "z")], pick: { t: now + 6 * m, line: "Blue" } });
   assert.equal(q.chosen, true, "90 s later is still your pick");
 });
+
+test("Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept", () => {
+  const legs = () => [{ stop: "Far", rideMs: 9 * m, tailMs: 30 * m }, { stop: "Near", rideMs: 6 * m, tailMs: 33 * m }, { stop: "Mid", rideMs: 7 * m, tailMs: 40 * m }];
+  const p = core.planConnection({ now, leg: legs, walkMs: 2 * m, arrivedAt: null, departures: [dep(5, "Blue")] });
+  assert.equal(p.best.leg.stop, "Near", "both arrive at +44: the earlier stop wins");
+  assert.equal(p.best.arrive, now + 44 * m);
+  assert.deepEqual(p.best.others.map((o) => o.stop), ["Far", "Mid"]);
+  assert.equal(core.planConnection({ now, leg: () => [], walkMs: 2 * m, arrivedAt: null, departures: [dep(5, "Blue")] }).best, null, "no stop is any use");
+});
