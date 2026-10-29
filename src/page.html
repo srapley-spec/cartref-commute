@@ -715,6 +715,10 @@ function walkFromHere(){
   if(direction()!=="office" || !state.here || !(state.locAcc<=200)) return null;
   const d=km(state.here,GEO.LET); if(d>3) return null;
   const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
+  // With your home saved: your measured walk, scaled by how much of the way is left (more accurate than a
+  // straight-line estimate). Otherwise the straight line × 1.3 at your walking speed.
+  const home=state.saved.home, dh=home?km(home,GEO.LET):0;
+  if(home && dh>0.2){ const r=d/dh; return r<1 ? homeWalk()*r : null; }
   const est = C.walkSecs(state.here, GEO.LET, leisure?"leisure":fast?"fast":"avg", PROFILE);
   return est<homeWalk() ? est : null;
 }
@@ -988,7 +992,7 @@ function renderOnTube(now){
       <li class="t">${hhmm(aldT)}</li><li class="d">${esc(leg.stop)} <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
       <li class="t">${hhmm(office)}</li><li class="d">Arrive office <small>· walk ${dur(tail)}</small></li>
     </ol>${swap}
-    ${statusStrip(["circle","metropolitan"])}`;
+    ${statusStrip([lineIdOf(r.line)])}`;
   $("#listTitle").textContent="On the tube";
   $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At ${esc(leg.stop)} the app shows the walk to the office.</div><div></div></div>`;
   return office;
@@ -1035,10 +1039,12 @@ function renderAtHub(now){
   const lineIssues=(state.status||[]).filter(l=>/^(circle|metropolitan|hammersmith-city)$/.test(l.id) && !lineOk(l)).map(l=>`${l.name}: ${worst(l).desc}`);
   const issues=lineIssues.length?`<div class="flags">${lineIssues.map(t=>`<span class="pill warn">${esc(t)}</span>`).join(" ")}</div>`:"";
   const head=`<div class="lbl">You're at ${esc(HUB_NAME[hub])} · ${hhmm(now)}${tube&&tube.arrivals?" · live tube times":""}</div>`;
-  let hero, rows=[], officeAt=null;
+  let hero, rows=[], officeAt=null, bestKey=null;
   if(plan.best){
     const asRow=a=>({...a, ald:a.stopAt, office:a.arrive});
-    const next=plan.next.map(asRow), early=plan.early.map(asRow), n=asRow(plan.best), chosen=plan.chosen; officeAt=n.office;
+    const next=plan.next.map(asRow), early=plan.early.map(asRow), n=asRow(plan.best), chosen=plan.chosen; officeAt=n.office; bestKey=`${n.t}|${n.line}`;
+    // TfL's times move by seconds between refreshes: keep your pick on the departure it matched.
+    if(chosen && pk && (pk.t!==n.t || pk.vehicle!==n.vehicle)){ state.saved.tubePick={...pk, t:n.t, ...(n.vehicle?{vehicle:n.vehicle}:{})}; save(); }
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
     const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)).slice(0,4).map(a=>`<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>`;
@@ -1064,7 +1070,7 @@ function renderAtHub(now){
   $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan","hammersmith-city"]);
   $("#listTitle").textContent="Next tubes to Aldgate and Aldgate East";
   $("#list").innerHTML = rows.length ? rows.map((a,i)=>`
-    <div class="row${a===rows.find(x=>!x.early)?" best":""}">
+    <div class="row${`${a.t}|${a.line}`===bestKey?" best":""}">
       <div class="leave"><small>Train</small><span class="t">${hhmm(a.t)}</span></div>
       <div class="mid"><div class="route"><span class="chip ${{circle:"circle",metropolitan:"met","hammersmith-city":"hc"}[a.lineId]||"met"}">${esc(a.line)}</span> <span class="meta">to ${esc(a.dest||"Aldgate")}</span>${a.early?` <span class="pill warn">If you're near the platform</span>`:""}</div>
         <div class="meta">${esc(a.leg.stop)} <span class="t">${hhmm(a.ald)}</span> · <span data-tube="${a.t}"></span></div></div>
@@ -1421,7 +1427,7 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
+    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
@@ -1631,11 +1637,12 @@ function onPosition(p){
   if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null) || (d.mem.officeSince||null)!==(state.saved.officeSince||null)){
     state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; state.saved.officeSince=d.mem.officeSince||undefined; save(); }
   noteAldgate();
-  // When the phone took the fix (it may hand over one up to 30 s old), never in the future.
+  // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
+  // anything below reads it: an old time with a new position would look like being underground.
+  state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now()}; state.saved.hubSince=state.hubSince; save(); }
-  state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now());
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
@@ -1724,7 +1731,8 @@ const RELOCATE_MS = () => (window.COMMUTE_RELOCATE_MS ?? 5000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
   const back=Date.now();
   if(state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable") locate();
-  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixAt>=back)) locate(); }, RELOCATE_MS());
+  // (When a position arrived, not when it was taken: iOS often hands over a cached one up to 30 s old.)
+  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
   if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
@@ -1734,11 +1742,12 @@ locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
 // Every 30 s when minutes matter: at a London station, on the tube, at Letchworth station or on your way there.
-setInterval(()=>{ if(!document.hidden && (atHubToOffice()||onTube(Date.now())||atStation()||onWay())) refresh(); },30e3);
+const fastRefresh = () => !!(atHubToOffice()||onTube(Date.now())||atStation()||onWay());
+setInterval(()=>{ if(!document.hidden && fastRefresh()) refresh(); },30e3);
 setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

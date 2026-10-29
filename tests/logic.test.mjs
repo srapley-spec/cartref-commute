@@ -252,6 +252,7 @@ test("On the way to the station, the walk is worked out from where you are", () 
               "LET-ZFD": { msgs: [], services: [mk("ZFD", 12, 44, "Thameslink")] } });
   c.state.here = [51.9772, -0.2290]; c.state.locAcc = 10;    // about 300 m south of the station
   c.state.autoDir = "office";
+  const savedHome = c.state.saved.home; c.state.saved.home = null;   // no home saved: straight line × 1.3
   try {
     const walk = c.walkFromHere();
     assert.ok(walk > 200 && walk < 400, `about 5 min walk, got ${walk}s`);
@@ -262,7 +263,11 @@ test("On the way to the station, the walk is worked out from where you are", () 
     // At home (further than the measured walk), the measured walk is used.
     c.state.here = [51.9600, -0.2500];
     assert.equal(c.walkFromHere(), null);
-  } finally { c.state.here = null; }
+    // Home saved 1.6 km out: your measured walk, scaled by how much of the way is left.
+    c.state.saved.home = [51.9690, -0.2440]; c.state.here = [51.9745, -0.2365];
+    const r = c.km([51.9745, -0.2365], [51.9799, -0.2290]) / c.km([51.9690, -0.2440], [51.9799, -0.2290]);
+    assert.ok(Math.abs(c.walkFromHere() - c.S().walkHomeStationAvg * r) < 1, "measured walk × the share of the way left");
+  } finally { c.state.here = null; c.state.saved.home = savedHome; }
 });
 
 test("On the train: works out which train from your position and projects arrival", () => {
@@ -304,11 +309,11 @@ test("On the train: works out which train from your position and projects arriva
     assert.equal(old.t, fast); assert.equal(old.stale, true); assert.equal(old.fixAgeMin, 5); assert.equal(old.confidence, "low");
     assert.ok(Math.abs(old.projected - fast.arr) < 60e3, "no delay inferred from an old position");
     assert.equal(c.state.trainLock, null, "an old position doesn't settle which train");
-    // Between Letchworth and Hitchin (where home is): never counted as on a train.
-    c.state.here = [51.9650, -0.2480]; assert.equal(c.onLine(), false);
-    c.state.here = [51.9790, -0.2300]; assert.equal(c.onLine(), false, "at Letchworth station");
-    // Away from the line (e.g. in Stevenage town, 2 km off): not on a train.
-    c.state.here = [51.9050, -0.1750]; assert.equal(c.onLine(), false);
+    // On a train is decided by trackLine (position along the line and movement), as the app uses it:
+    const P = app.w.CommuteCore, L = P.profiles.samCommute.lines.KGX, f = (here) => ({ here, acc: 20, at: now });
+    assert.equal(P.trackLine(null, f([51.9650, -0.2480]), 0, null, L).onLine, false, "near home, standing still");
+    assert.equal(P.trackLine(null, f([51.9790, -0.2300]), 25, null, L).onLine, false, "at Letchworth station");
+    assert.equal(P.trackLine(null, f([51.9050, -0.1750]), 25, null, L).onLine, false, "Stevenage town, 2 km off the line");
   } finally { c.state.here = null; c.state.onLine = false; }
 });
 

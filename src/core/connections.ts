@@ -21,8 +21,9 @@ export interface ConnectionInput<D extends Departure> {
   walkMs: number;
   /** The leg for each departure (different lines can mean different stops, rides and walks). Null = not useful. */
   leg: (d: D) => ConnectionLeg | null;
-  /** A departure you said you're getting. */
-  pick?: { t: number; line: string } | null;
+  /** A departure you said you're getting. Matched by vehicle when both have one, else the same line's departure
+   *  nearest to the time you picked (within 3 min): live times move by seconds between refreshes. */
+  pick?: { t: number; line: string; vehicle?: string } | null;
   max?: number;
 }
 export interface ConnectionPlan<D> {
@@ -56,7 +57,7 @@ export function planConnection<D extends Departure>(i: ConnectionInput<D>): Conn
   }
   const next = timed.filter(d => d.t >= ready).slice(0, i.max ?? 6);
   const early = timed.filter(d => d.t < ready && d.t >= i.now + 30e3).map(d => ({ ...d, early: true }));
-  const picked = i.pick ? [...early, ...next].find(d => d.t === i.pick!.t && d.line === i.pick!.line) || null : null;
+  const picked = i.pick ? matchPick([...early, ...next], i.pick) : null;
   const fastest = next.reduce<Timed<D> | null>((b, d) => (!b || d.arrive < b.arrive ? d : b), null);
   const best = picked || fastest;
   return {
@@ -64,6 +65,12 @@ export function planConnection<D extends Departure>(i: ConnectionInput<D>): Conn
     tight: !!picked && picked.t < ready - 60e3,
     spareMin: best ? Math.max(0, Math.floor((best.t - ready) / 60e3)) : 0,
   };
+}
+
+function matchPick<D extends Departure>(ds: D[], pk: { t: number; line: string; vehicle?: string }): D | null {
+  if (pk.vehicle) { const v = ds.find(d => d.vehicle && d.vehicle === pk.vehicle); if (v) return v; }
+  const same = ds.filter(d => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 60e3).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
+  return same[0] || null;
 }
 
 /** A ride on a connection: where from, the departure (when it left), how long the ride is, and where it ends. */
