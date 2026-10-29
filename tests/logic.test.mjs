@@ -474,7 +474,7 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
   const now = Date.now(), m = 60e3;
   const pt = [51.80, -0.20], f = c.lineProgress(pt, "KGX").frac, len = 30 * m;
   const at2 = (offMin, op, std) => { const dep = now - f * len + offMin * m; return svc({ from: "LET", to: "KGX", std, dep, arr: dep + len, operator: op }); };
-  const a = at2(0.5, "Great Northern", "A1"), b = at2(-1.5, "Thameslink", "B2");
+  const a = at2(0.5, "Great Northern", "A1"), b = Object.assign(at2(-1.5, "Thameslink", "B2"), { serviceId: "SID-B2" });
   useBoards({ "LET-KGX": { msgs: [], services: [a, b] }, "LET-ZFD": { msgs: [], services: [] } }, { dirMode: "office", view: "now" });
   c.state.here = pt; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
   try {
@@ -482,7 +482,8 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
     let hero = app.text("#hero");
     assert.match(hero, /Probably the A1 Great Northern or the B2 Thameslink/);
     assert.match(hero, /Which train are you on\?A1 Great NorthernB2 Thameslink/);
-    app.d.querySelector('[data-pick="Thameslink|B2|LET|"]').click();
+    app.d.querySelector('[data-pick="Thameslink|B2|LET|SID-B2"]').click();
+    assert.equal(c.state.trainLock.serviceId, "SID-B2", "your pick is remembered by service ID");
     hero = app.text("#hero");
     assert.match(hero, /You're on the B2 Thameslink · you picked this/);
     assert.match(hero, /On a different train\?A1 Great Northern/);

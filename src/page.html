@@ -759,7 +759,7 @@ function currentRide(now){
   let r=active(state.saved.tubeRide);
   if(r) return r;
   const pk=state.saved.tubePick;
-  if(pk && pk.t<=now+30e3 && now-pk.t<25*60e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }
+  if(pk && pk.t<=now+30e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }   // (an old pick: rideActive says it's over)
   else if(onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
   if(r){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); }
   return r;

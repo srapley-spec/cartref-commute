@@ -211,8 +211,17 @@ test("trackLine near home without phone speed: 500 m+ at 40+ km/h by the track",
   assert.equal(fast.onLine, true, "about 57 km/h by the track");
   const slow = core.trackLine(first.track, { here: c, acc: 15, at: t0 + 150e3 }, null, null, L);   // ~23 km/h
   assert.equal(slow.onLine, false, "cycling speed near home doesn't count");
-  const short = core.trackLine(first.track, { here: b, acc: 15, at: t0 + 30e3 }, null, null, L);   // ~0.6 km? only if ≥ 0.5
-  assert.equal(short.onLine, core.km(a, b) >= 0.5 && core.km(a, b) / (30 / 3600) >= 40);
+  // 400 m at train speed: enough away from home (300 m), not near home (500 m). Points between real stations.
+  const along = (p, q, km) => { const f = km / core.km(p, q); return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]; };
+  const LET = [51.9799, -0.2290], HIT = [51.9533, -0.2635], HAT = [51.7638, -0.2156], WMG = [51.7363, -0.2104];
+  const a2 = along(LET, HIT, 1.2), b2 = along(LET, HIT, 1.6);
+  const near0 = core.trackLine(null, { here: a2, acc: 15, at: t0 }, null, null, L);
+  assert.equal(core.trackLine(near0.track, { here: b2, acc: 15, at: t0 + 20e3 }, null, null, L).onLine, false, "400 m near home: not yet");
+  const c2 = along(LET, HIT, 1.8);
+  assert.equal(core.trackLine(near0.track, { here: c2, acc: 15, at: t0 + 30e3 }, null, null, L).onLine, true, "600 m near home at 72 km/h: yes");
+  const h1 = along(HAT, WMG, 0.5), h2 = along(HAT, WMG, 0.9);
+  const far0 = core.trackLine(null, { here: h1, acc: 15, at: t0 }, null, null, L);
+  assert.equal(core.trackLine(far0.track, { here: h2, acc: 15, at: t0 + 20e3 }, null, null, L).onLine, true, "400 m away from home: yes");
 });
 
 test("whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten", () => {
@@ -227,4 +236,23 @@ test("whichTrain: a stale fix keeps the remembered train even when it no longer 
   const OFF = [51.5139, -0.0710], today = T("08:30"), mem = { trip: { dir: "office", at: today - 3600e3 }, officeSince: today - (14 * 60 + 35) * MIN };
   const r = core.inferDirection(OFF, today, D, mem, sam);
   assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, today); assert.equal(r.mem.officeVisit, null);
+});
+
+test("Remembered train: falls back to the fields when the ID isn't on the board; same ID at two stations prefers yours; stale lock is low confidence; departed is judged at fix time", () => {
+  const now = T("08:00"), here = [50.05, -1.05];
+  const a = toCity("07:50", now - 10 * MIN, 20, "Express Rail");                      // no service ID on this board
+  const r1 = core.whichTrain({ x: { msgs: [], services: [a] } }, here, "office", now, { operator: "Express Rail", std: "07:50", from: "RVS", serviceId: "GONE", picked: true }, () => null, testville, now);
+  assert.equal(r1.result.t, a, "ID not found: operator, time and station");
+  assert.equal(r1.result.picked, true, "found as your remembered pick, not just as the nearest fit");
+  const atR = train({ from: "RVS", to: "CEN", std: "07:50", dep: now - 10 * MIN, arr: now + 10 * MIN, serviceId: "S" });
+  const atM = train({ from: "MKT", to: "RVS", std: "07:55", dep: now - 5 * MIN, arr: now + 15 * MIN, serviceId: "S" });
+  assert.equal(core.lockedTrain({ x: { msgs: [], services: [atM, atR] } }, { operator: "Express Rail", std: "x", from: "RVS", serviceId: "S" }), atR, "same service, your station");
+  // Remembered train, stale fix: kept, low confidence.
+  const far = toCity("07:20", now - 40 * MIN, 45);
+  const st = core.whichTrain({ x: { msgs: [], services: [far] } }, here, "office", now, { operator: "Express Rail", std: "07:20", from: "RVS" }, () => null, testville, now - 4 * MIN);
+  assert.equal(st.result.confidence, "low");
+  // Fix taken at 07:59; a train that left at 08:00 can't be the one you were on then.
+  const left = toCity("08:00", now, 20);
+  const r2 = core.whichTrain({ x: { msgs: [], services: [left] } }, here, "office", now + MIN, null, () => null, testville, now - MIN);
+  assert.ok(r2.result.none, "departed after the fix was taken: not yours");
 });

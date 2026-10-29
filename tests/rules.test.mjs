@@ -886,3 +886,32 @@ test("Review: a picked train keeps its National Rail service ID", async () => {
   assert.ok(c.state.trainLock.picked); assert.ok(c.state.trainLock.serviceId, "pick carries the service ID");
   app.close();
 });
+
+test("Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0, null, t0 - 20e3);
+  assert.equal(c.state.lastFixAt, t0 - 20e3, "when the phone took it");
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 3, "Met", "m3"), tubeAt(t0, 9, "Circle", "c9")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 3 * MIN) + '|Met"]').click();
+  const since = c.state.hubSince.at;
+  await app.fix(51.5260, -0.1110, 30, t0 + 4 * MIN);                // on the tube
+  assert.equal(c.state.saved.tubePick, null, "the ride replaces the pick");
+  await app.fix(...ZFD, 20, t0 + 6 * MIN);                          // passing Farringdon
+  assert.equal(c.state.lastHub.hub, "KGX", "passing Farringdon doesn't make it your station");
+  assert.equal(c.state.hubSince.hub, "KGX"); assert.equal(c.state.hubSince.at, since);
+  app.close();
+  // A train you picked: on the train even standing still at a station on the line.
+  const n2 = T("07:30"), app2 = await open({ now: n2, geo: null, settings: RDM, saved: { dirMode: "office" } });
+  app2.c.state.trainLock = { operator: "Great Northern", std: "07:08", from: "LET", picked: true };
+  await app2.fix(51.9017, -0.2071, 15, n2, 0);                       // Stevenage platform, stopped
+  assert.equal(app2.c.state.onLine, true);
+  app2.close();
+});
+
+test("Review 2: 200 m from the office isn't 'you're at the office'", async () => {
+  const now = T("08:04"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("07:00") } } });
+  await app.fix(51.5139 + 0.0018, -0.0710, 15, now);
+  assert.doesNotMatch(app.text("#dirNote"), /you're at the office/);
+  app.close();
+});

@@ -67,3 +67,9 @@ test("Rides end 10 min after the ride time (not before); 'did you get it?' only 
   assert.equal(core.rideDoubtful(r, now + 4 * m, fx(near, 50, now + 4 * m), from, 0.45), true, "50 m accuracy counts");
   assert.equal(core.rideDoubtful(r, now + 3 * m - 1e3, fx(near, 20, now + 3 * m), from, 0.45), false, "under 3 min");
 });
+
+test("A ride ends only within 300 m of your stop", () => {
+  const r = { from: "X", t: now, rideMs: 10 * m, stopGeo: [50.2, -1.2] }, fx = (h) => ({ here: h, acc: 20, at: now + 9 * m });
+  assert.equal(core.rideActive(r, now + 9 * m, fx([50.2 + 0.0018, -1.2])), false, "200 m from the stop: off");
+  assert.equal(core.rideActive(r, now + 9 * m, fx([50.2 + 0.0036, -1.2])), true, "400 m: still riding");
+});
