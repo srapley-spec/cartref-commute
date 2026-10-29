@@ -1635,7 +1635,7 @@ function onPosition(p){
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now()}; state.saved.hubSince=state.hubSince; save(); }
-  state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now());
+  state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
@@ -1724,7 +1724,8 @@ const RELOCATE_MS = () => (window.COMMUTE_RELOCATE_MS ?? 5000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
   const back=Date.now();
   if(state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable") locate();
-  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixAt>=back)) locate(); }, RELOCATE_MS());
+  // (When a position arrived, not when it was taken: iOS often hands over a cached one up to 30 s old.)
+  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
   if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
