@@ -256,3 +256,12 @@ test("Remembered train: falls back to the fields when the ID isn't on the board;
   const r2 = core.whichTrain({ x: { msgs: [], services: [left] } }, here, "office", now + MIN, null, () => null, testville, now - MIN);
   assert.ok(r2.result.none, "departed after the fix was taken: not yours");
 });
+
+test("Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten", () => {
+  const L = sam.lines.KGX, t0 = T("07:30"), hat = [51.7638, -0.2156];
+  const standing = core.trackLine(null, { here: hat, acc: 15, at: t0 }, 0, null, L);
+  assert.equal(core.trackLine(standing.track, { here: hat, acc: 900, at: t0 + 30e3 }, null, null, L).onLine, false);
+  const OFF = [51.5139, -0.0710], today = T("08:15"), mem = { trip: { dir: "office", at: today - 3600e3 }, officeSince: today - (11 * 60 + 30) * MIN };   // 20:45 yesterday
+  const r = core.inferDirection(OFF, today, D, mem, sam);
+  assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, today);
+});

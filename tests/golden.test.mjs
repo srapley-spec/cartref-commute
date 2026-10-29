@@ -151,3 +151,5 @@ test("golden: leisure, home from Soho via the TfL journey planner", () => scenar
           isDisrupted: !far, disruptions: far ? [] : [{ description: "Northern line: minor delays." }] }, { mode: { id: "walking" }, duration: 4 }] }] });
     } }));
 test("golden: demo trains", () => scenario("demo", { now: T(DAY, "07:00"), geo: PLACES.nearLetchworth, settings: { provider: "demo" } }));
+test("golden: on your way to Letchworth (home saved 1.6 km out, 550 m from the station), live", () => scenario("on-your-way-live",
+  { now: T(DAY, "07:10"), geo: { coords: { latitude: 51.9760, longitude: -0.2340, accuracy: 10 } }, settings: RDM, saved: { dirMode: "office", home: [51.9690, -0.2440] } }));

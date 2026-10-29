@@ -88,8 +88,8 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
   const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
   const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null };
   if (km(here, p.places.office) < AT_OFFICE_KM) {
-    // An arrival time over 12 hours old is from another day (no fix since you left): start again.
-    if (out.officeSince && now - out.officeSince > 12 * 3600e3) out.officeSince = null;
+    // An arrival time from another day (no fix since you left): start again.
+    if (out.officeSince && new Date(out.officeSince).toDateString() !== new Date(now).toDateString()) out.officeSince = null;
     out.officeSince = out.officeSince || now;
     if (out.officeVisit !== today && now - out.officeSince >= OFFICE_DWELL_MS) out.officeVisit = today;
   } else out.officeSince = null;

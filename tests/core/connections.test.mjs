@@ -73,3 +73,10 @@ test("A ride ends only within 300 m of your stop", () => {
   assert.equal(core.rideActive(r, now + 9 * m, fx([50.2 + 0.0018, -1.2])), false, "200 m from the stop: off");
   assert.equal(core.rideActive(r, now + 9 * m, fx([50.2 + 0.0036, -1.2])), true, "400 m: still riding");
 });
+
+test("A pick with a known train never switches to a different known train", () => {
+  const p = plan({ departures: [dep(6.5, "Blue", "other")], pick: { t: now + 6 * m, line: "Blue", vehicle: "mine" } });
+  assert.equal(p.chosen, false, "your train left the feed: not silently replaced by the next one");
+  const q = plan({ departures: [dep(6.5, "Blue")], pick: { t: now + 6 * m, line: "Blue", vehicle: "mine" } });
+  assert.equal(q.chosen, true, "a departure with no vehicle on the same line nearby can still be it");
+});

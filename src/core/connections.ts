@@ -69,7 +69,8 @@ export function planConnection<D extends Departure>(i: ConnectionInput<D>): Conn
 
 function matchPick<D extends Departure>(ds: D[], pk: { t: number; line: string; vehicle?: string }): D | null {
   if (pk.vehicle) { const v = ds.find(d => d.vehicle && d.vehicle === pk.vehicle); if (v) return v; }
-  const same = ds.filter(d => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 60e3).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
+  // Not found by vehicle: the same line near the picked time, but never a different known train.
+  const same = ds.filter(d => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 60e3 && !(pk.vehicle && d.vehicle && d.vehicle !== pk.vehicle)).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
   return same[0] || null;
 }
 

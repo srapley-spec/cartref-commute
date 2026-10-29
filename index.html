@@ -250,7 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 12:55 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 13:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -925,7 +925,7 @@ var CommuteCore = (() => {
       const v = ds.find((d) => d.vehicle && d.vehicle === pk.vehicle);
       if (v) return v;
     }
-    const same = ds.filter((d) => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 6e4).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
+    const same = ds.filter((d) => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 6e4 && !(pk.vehicle && d.vehicle && d.vehicle !== pk.vehicle)).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
     return same[0] || null;
   }
   function rideActive(r, now, f) {
@@ -1178,7 +1178,7 @@ var CommuteCore = (() => {
     const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
     const out = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null };
     if (km(here, p.places.office) < AT_OFFICE_KM) {
-      if (out.officeSince && now - out.officeSince > 12 * 36e5) out.officeSince = null;
+      if (out.officeSince && new Date(out.officeSince).toDateString() !== new Date(now).toDateString()) out.officeSince = null;
       out.officeSince = out.officeSince || now;
       if (out.officeVisit !== today && now - out.officeSince >= OFFICE_DWELL_MS) out.officeVisit = today;
     } else out.officeSince = null;
@@ -2031,7 +2031,8 @@ function onWay(){
   if((state.saved.view||"now")!=="now" || atStation()) return null;
   const w=walkFromHere(); if(w==null) return null;
   const home=state.saved.home;
-  if(home ? km(state.here,home)<0.1 : w>homeWalk()-180) return null;
+  // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
+  if(home ? km(state.here,home)<0.1+(state.locAcc||0)/1000 : w>homeWalk()-180) return null;
   return { walk:w };
 }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";

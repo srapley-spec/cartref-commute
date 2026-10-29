@@ -732,7 +732,8 @@ function onWay(){
   if((state.saved.view||"now")!=="now" || atStation()) return null;
   const w=walkFromHere(); if(w==null) return null;
   const home=state.saved.home;
-  if(home ? km(state.here,home)<0.1 : w>homeWalk()-180) return null;
+  // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
+  if(home ? km(state.here,home)<0.1+(state.locAcc||0)/1000 : w>homeWalk()-180) return null;
   return { walk:w };
 }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
