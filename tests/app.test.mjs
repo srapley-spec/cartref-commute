@@ -358,9 +358,10 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   const due = Date.now() + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
   assert.match(hero, new RegExp(`${hm(office)} ?at the office`));
   const rows = app.rows();
-  assert.equal(rows.length, 3, "Met in 8 and Circle in 12, plus the Circle in 2 for if you're near the platform; not the H&C or westbound");
+  assert.equal(rows.length, 4, "Met in 8 and Circle in 12, plus the Circle in 2 and the H&C in 3 if you're near the platform; not westbound");
   assert.match(rows[0], /If you're near the platform/);
-  assert.match(app.text("#listTitle"), /Next Circle and Met trains to Aldgate/);
+  assert.match(rows[1], /H&C.*to Barking.*Aldgate East/, "the H&C goes to Aldgate East, also by the office");
+  assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
   assert.ok(!app.calls.some((u, i) => parseJourneyUrl(u) && i > app.calls.findIndex((x) => /Arrivals/.test(x))), "no Letchworth train searches while at King's Cross");
   app.close();
 });

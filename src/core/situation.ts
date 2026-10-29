@@ -267,22 +267,3 @@ export function nearlyHomeEta(now: number, here: LatLon, stationAt: number | nul
   return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
 }
 
-/** A tube ride to work: the station you left, the tube (when it left), and how we know (picked, or worked out). */
-export interface TubeRide { hub: StationCode; t: number; line?: string; vehicle?: string; picked?: boolean; confirmed?: boolean; }
-/**
- * On a tube ride: from when the tube leaves until you're near the office's tube station, or the ride time plus
- * 10 minutes has passed. While riding, a fix at a London station on the way (or a stray one at the station you
- * left) doesn't mean you've stopped there.
- */
-export function tubeRideActive(ride: TubeRide | null, now: number, rideMs: number, f: Fix, p: Profile): boolean {
-  if (!ride || now < ride.t - 30e3 || now > ride.t + rideMs + 10 * 60e3) return false;
-  return !(f.here && km(f.here, p.places.officeTube) < 0.3);
-}
-/** Worth asking "did you get it?": a good (50 m), fresh (1 min) fix still at the station you left, 3+ min after
- *  the tube left, and you haven't already said yes. */
-export function tubeRideDoubtful(ride: TubeRide | null, now: number, f: Fix, p: Profile): boolean {
-  if (!ride || ride.confirmed || now < ride.t + 3 * 60e3) return false;
-  const here = pos(f, 50), at = p.places.hubGeo[ride.hub];
-  if (!here || !at || f.at == null || now - f.at > 60e3) return false;
-  return km(here, at) <= p.places.atHubKm;
-}

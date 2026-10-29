@@ -576,8 +576,8 @@ async function fetchTubeArrivals(hub){
   if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
   const now=Date.now();
   return (await r.json())
-    .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /eastbound/i.test(a.platformName||""))
-    .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
+    .filter(a=>/^(circle|metropolitan|hammersmith-city)$/.test(a.lineId) && /eastbound/i.test(a.platformName||""))
+    .map(a=>({ vehicle:a.vehicleId||"", line:{circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[a.lineId], lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
     .filter(a=>isFinite(a.t))
     .sort((a,b)=>a.t-b.t);
@@ -733,18 +733,30 @@ function onWay(){
 }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
-// station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine tubeRideActive):
+// station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
 // passing Farringdon, or a stray fix at the station you left, doesn't end it.
 const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE);
-const rideMs = hub => onwardParts(hub).ride;
+// The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
+function officeLeg(hub, lineId){
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, kx=hub!=="ZFD";
+  const stop=(PROFILE.places.officeStops||[]).find(x=>x.lines.includes(lineId)); if(!stop) return null;
+  const east=stop.id==="ADE";
+  return { stop:stop.name, stopGeo:stop.geo,
+    rideMs:(east?(kx?s.rideKxAde:s.rideFarAde):(kx?s.rideKxAld:s.rideFarAld))*1000,
+    tailMs:(east?s.adePlatform+s.adeWalk:s.aldPlatform+s.aldWalk)*k*1000 };
+}
+const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
+// A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
+const rideFor = (hub, d, extra) => { const leg=officeLeg(hub, d.lineId||lineIdOf(d.line))||officeLeg(hub,"circle");
+  return { hub, from:hub, t:d.t, line:d.line, vehicle:d.vehicle, rideMs:leg.rideMs, stop:leg.stop, stopGeo:leg.stopGeo, ...extra }; };
 function currentRide(now){
   if(direction()!=="office" || state.saved.mode==="leisure") return null;
-  const active = r => r && C.tubeRideActive(r, now, rideMs(r.hub), fix(), PROFILE) ? r : null;
+  const active = r => r && C.rideActive(r.rideMs ? r : rideFor(r.hub, r, r), now, fix()) ? (r.rideMs ? r : rideFor(r.hub, r, r)) : null;
   let r=active(state.saved.tubeRide);
   if(r) return r;
   const pk=state.saved.tubePick;
-  if(pk && pk.t<=now+30e3 && now-pk.t<25*60e3){ r=active({hub:pk.hub, t:pk.t, line:pk.line, vehicle:pk.vehicle, picked:true}); }
-  else if(onTubeAuto(now)){ const w=whichTube(now); if(w) r=active({hub:state.lastHub.hub, t:w.best.t, line:w.best.line, vehicle:w.best.vehicle}); }
+  if(pk && pk.t<=now+30e3 && now-pk.t<25*60e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }
+  else if(onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
   if(r){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); }
   return r;
 }
@@ -954,30 +966,31 @@ function onwardParts(hub){
 }
 function renderOnTube(now){
   const r=currentRide(now); if(!r) return null;
-  const { ride, tail } = onwardParts(r.hub);
+  const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
   const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle }, other: auto && auto.other && auto.other.t!==r.t ? auto.other : null };
   const head=`<div class="lbl">On the tube · ${hhmm(now)} · ${r.picked?"the tube you picked":`worked out from when you left ${esc(HUB_NAME[r.hub])}`}</div>`;
   // Still at the station you left, well after your tube went (a good, fresh fix): ask rather than guess.
-  const ask = C.tubeRideDoubtful(r, now, fix(), PROFILE) ? `<div class="alt"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
+  const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
   const others = lh ? (lh.arrivals||[]).filter(a=>a.t<=now+30e3 && a.t!==r.t && Math.abs(a.t-r.t)<6*60e3).slice(0,3) : [];
   const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(a=>`<button type="button" class="pickbtn" data-tubepick="${r.hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>` : "";
-  const live=(state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle);
+  // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
+  const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;
   const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
     <div><span class="slack">${r.picked||r.confirmed?"You're on":"Probably"} the ${hhmm(w.best.t)} ${esc(w.best.line||"tube")}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${hhmm(w.other.t)} ${esc(w.other.line)}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
     ${ask}
     <ol class="legs">
-      <li class="t">${hhmm(aldT)}</li><li class="d">Aldgate <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
+      <li class="t">${hhmm(aldT)}</li><li class="d">${esc(leg.stop)} <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
       <li class="t">${hhmm(office)}</li><li class="d">Arrive office <small>· walk ${dur(tail)}</small></li>
     </ol>${swap}
     ${statusStrip(["circle","metropolitan"])}`;
   $("#listTitle").textContent="On the tube";
-  $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At Aldgate the app shows the walk to the office.</div><div></div></div>`;
+  $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">At ${esc(leg.stop)} the app shows the walk to the office.</div><div></div></div>`;
   return office;
 }
 // From where you are in London to the office: walk if close, otherwise TfL's journey planner.
@@ -1013,52 +1026,48 @@ function renderInLondon(now){
 function renderAtHub(now){
   const s=S(), hub=state.atHub, { ic, ride, tail } = onwardParts(hub);
   const tube=state.tube&&state.tube.hub===hub?state.tube:null;
-  // When you can be on the platform: the walk counts from when you arrived at the station (you're usually already
-  // walking when you look), never sooner than a minute from now. Tubes before that are still listed, marked
-  // "if you're near the platform" (GPS can't tell the concourse from the platform).
-  const since = state.hubSince && state.hubSince.hub===hub ? state.hubSince.at : now;
-  const ready=Math.max(now+60e3, since+ic);
-  const lineIssues=(state.status||[]).filter(l=>/^(circle|metropolitan)$/.test(l.id) && !lineOk(l)).map(l=>`${l.name}: ${worst(l).desc}`);
+  const since = state.hubSince && state.hubSince.hub===hub ? state.hubSince.at : null;
+  // What you can catch (engine planConnection): the walk to the platform counts from when you arrived; tubes before
+  // you can reach it are still offered "if you're near the platform" (GPS can't tell concourse from platform).
+  const pk=state.saved.tubePick && state.saved.tubePick.hub===hub ? state.saved.tubePick : null;
+  const plan=C.planConnection({ now, departures:(tube&&tube.arrivals)||[], arrivedAt:since, walkMs:ic, leg:d=>officeLeg(hub, d.lineId), pick:pk });
+  const ready=plan.ready;
+  const lineIssues=(state.status||[]).filter(l=>/^(circle|metropolitan|hammersmith-city)$/.test(l.id) && !lineOk(l)).map(l=>`${l.name}: ${worst(l).desc}`);
   const issues=lineIssues.length?`<div class="flags">${lineIssues.map(t=>`<span class="pill warn">${esc(t)}</span>`).join(" ")}</div>`:"";
   const head=`<div class="lbl">You're at ${esc(HUB_NAME[hub])} · ${hhmm(now)}${tube&&tube.arrivals?" · live tube times":""}</div>`;
   let hero, rows=[], officeAt=null;
-  if(tube && tube.arrivals && tube.arrivals.some(a=>a.t>=ready)){
-    const withTimes=a=>({...a, ald:a.t+ride, office:a.t+ride+tail});
-    const next=tube.arrivals.filter(a=>a.t>=ready).slice(0,6).map(withTimes);
-    const early=tube.arrivals.filter(a=>a.t<ready && a.t>=now+30e3).map(a=>({...withTimes(a), early:true}));
-    // The tube you said you're getting, if it's still to come; otherwise the first you can make.
-    const pk=state.saved.tubePick && state.saved.tubePick.hub===hub ? state.saved.tubePick : null;
-    const n=(pk && [...early, ...next].find(a=>a.t===pk.t && a.line===pk.line)) || next[0]; officeAt=n.office;
-    const chosen = !!(pk && n.t===pk.t);
+  if(plan.best){
+    const asRow=a=>({...a, ald:a.stopAt, office:a.arrive});
+    const next=plan.next.map(asRow), early=plan.early.map(asRow), n=asRow(plan.best), chosen=plan.chosen; officeAt=n.office;
     // Your pick and the estimate disagree: say so, don't overrule you.
-    const tight = chosen && n.t<ready-60e3 ? `<div class="note" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
-    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a===n)).slice(0,4).map(a=>`<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>`;
+    const tight = plan.tight ? `<div class="note" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
+    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)).slice(0,4).map(a=>`<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>`;
     const nearly = early.length ? `<div class="alt">Near the platform already? The ${early.map(e=>`<span class="t">${hhmm(e.t)}</span> ${esc(e.line)} (office <span class="t">${hhmm(e.office)}</span>)`).join(" or the ")}.</div>` : "";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
-      <div><span class="slack">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${Math.floor((n.t-ready)/60e3)>=1?` · about ${Math.floor((n.t-ready)/60e3)} min to spare on the platform`:""}</span></div>
+      <div><span class="slack">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs">
-        <li class="t">${hhmm(Math.max(now,since))}</li><li class="d">Walk to the Circle/Met eastbound platform <small>· about ${dur(ic)}${since<now-60e3?`, from when you arrived (${hhmm(since)})`:""}</small></li>
+        <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when you arrived (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
-        <li class="t">${hhmm(n.ald)}</li><li class="d">Aldgate <small>· about ${dur(ride)} ride</small></li>
-        <li class="t">${hhmm(n.office)}</li><li class="d">Arrive office <small>· walk ${dur(tail)}</small></li>
+        <li class="t">${hhmm(n.ald)}</li><li class="d">${esc(n.leg.stop)} <small>· about ${dur(n.leg.rideMs)} ride</small></li>
+        <li class="t">${hhmm(n.office)}</li><li class="d">Arrive office <small>· walk ${dur(n.leg.tailMs)}</small></li>
       </ol>${tight}${chosen?"":nearly}${pickBtns}${issues}`;
     rows=[...early, ...next];
   } else {
     const office=ready+s.tubeWait*1000+ride+tail; officeAt=office;
-    const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle or Met trains listed." : "Loading live tube times…";
+    const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle, Met or H&C trains listed." : "Loading live tube times…";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office · estimate</span></div>
       <div><span class="slack">Get on the next Circle or Met eastbound to Aldgate</span></div>
       <div class="note" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
   }
-  $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan"]);
-  $("#listTitle").textContent="Next Circle and Met trains to Aldgate";
+  $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan","hammersmith-city"]);
+  $("#listTitle").textContent="Next tubes to Aldgate and Aldgate East";
   $("#list").innerHTML = rows.length ? rows.map((a,i)=>`
     <div class="row${a===rows.find(x=>!x.early)?" best":""}">
       <div class="leave"><small>Train</small><span class="t">${hhmm(a.t)}</span></div>
-      <div class="mid"><div class="route"><span class="chip ${a.lineId==="circle"?"circle":"met"}">${esc(a.line)}</span> <span class="meta">to ${esc(a.dest||"Aldgate")}</span>${a.early?` <span class="pill warn">If you're near the platform</span>`:""}</div>
-        <div class="meta">Aldgate <span class="t">${hhmm(a.ald)}</span> · <span data-tube="${a.t}"></span></div></div>
+      <div class="mid"><div class="route"><span class="chip ${{circle:"circle",metropolitan:"met","hammersmith-city":"hc"}[a.lineId]||"met"}">${esc(a.line)}</span> <span class="meta">to ${esc(a.dest||"Aldgate")}</span>${a.early?` <span class="pill warn">If you're near the platform</span>`:""}</div>
+        <div class="meta">${esc(a.leg.stop)} <span class="t">${hhmm(a.ald)}</span> · <span data-tube="${a.t}"></span></div></div>
       <div class="arrive"><small>Office</small><span class="t">${hhmm(a.office)}</span></div>
     </div>`).join("") : `<div class="row"><div></div><div class="mid meta">Live tube times will appear here.</div><div></div></div>`;
   return officeAt;

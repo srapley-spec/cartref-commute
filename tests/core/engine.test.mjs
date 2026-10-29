@@ -190,3 +190,41 @@ test("bestConnections: per station, the earliest arrival you can still make; tie
   assert.deepEqual(tie.map((x) => x.hub), ["CEN", "MKT"], "same arrival: the train that leaves first (earlier stop)");
   assert.deepEqual(core.bestConnections({ CEN: T + 30 * MIN }, { CEN: 0 }, opts).map((x) => (x.train.dep - T) / MIN), [], "nothing left to catch");
 });
+
+// ---------- Connections (generic: any station, any frequent service) ----------
+test("planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time", () => {
+  const now = at("2026-11-03", "09:00"), m = MIN;
+  const dep = (min, line) => ({ t: now + min * m, line });
+  // A made-up interchange: the Blue line takes 10 min + 5 walk; the Green line goes to a nearer stop, 12 min + 1 walk.
+  const leg = (d) => (d.line === "Blue" ? { stop: "Market", rideMs: 10 * m, tailMs: 5 * m } : d.line === "Green" ? { stop: "Quay", rideMs: 12 * m, tailMs: 1 * m } : null);
+  const deps = [dep(0.2, "Blue"), dep(2, "Blue"), dep(5, "Blue"), dep(6, "Green"), dep(9, "Red")];
+  let p = core.planConnection({ now, departures: deps, arrivedAt: now - 2 * m, walkMs: 5 * m, leg });
+  assert.equal(p.ready, now + 3 * m, "arrived 2 min ago, 5 min walk");
+  assert.deepEqual(p.early.map((d) => d.t), [now + 2 * m], "within 30 s isn't offered; before you can reach the platform is 'near the platform'");
+  assert.deepEqual(p.next.map((d) => d.line), ["Blue", "Green"], "a line that doesn't take you there is left out");
+  assert.equal(p.best.line, "Green", "a later departure that arrives sooner wins (6+12+1 < 5+10+5)");
+  assert.equal(p.spareMin, 3); assert.equal(p.chosen, false);
+  p = core.planConnection({ now, departures: deps, arrivedAt: null, walkMs: 5 * m, leg });
+  assert.equal(p.ready, now + 5 * m, "arrival unknown: from now");
+  p = core.planConnection({ now, departures: deps, arrivedAt: now - 2 * m, walkMs: 5 * m, leg, pick: { t: now + 2 * m, line: "Blue" } });
+  assert.equal(p.best.t, now + 2 * m); assert.equal(p.chosen, true); assert.equal(p.tight, false, "1 min early isn't flagged");
+  p = core.planConnection({ now, departures: [dep(1.5, "Blue"), dep(6, "Blue")], arrivedAt: null, walkMs: 5 * m, leg, pick: { t: now + 1.5 * m, line: "Blue" } });
+  assert.equal(p.tight, true, "picked well before you could reach the platform: said, not overruled"); assert.equal(p.best.t, now + 1.5 * m);
+  p = core.planConnection({ now, departures: [], arrivedAt: null, walkMs: 5 * m, leg });
+  assert.equal(p.best, null);
+});
+
+test("Rides: last until your stop or the ride time is over; asked only on a good, fresh fix back where you started", () => {
+  const t = at("2026-11-03", "09:00"), m = MIN, from = [50.0, -1.0], stop = [50.02, -1.05];
+  const r = { from: "X", t, rideMs: 10 * m, stopGeo: stop };
+  const fx = (here, acc, ago, now) => ({ here, acc, at: now - ago });
+  assert.equal(core.rideActive(r, t - 60e3, fx(from, 10, 0, t - 60e3)), false, "not left yet");
+  assert.equal(core.rideActive(r, t + 5 * m, fx([50.01, -1.02], 30, 0, t + 5 * m)), true);
+  assert.equal(core.rideActive(r, t + 9 * m, fx(stop, 15, 0, t + 9 * m)), false, "at your stop");
+  assert.equal(core.rideActive(r, t + 21 * m, fx([50.01, -1.02], 30, 0, t + 21 * m)), false, "ride time + 10 min over");
+  assert.equal(core.rideDoubtful(r, t + 2 * m, fx(from, 10, 0, t + 2 * m), from, 0.4), false, "too soon to ask");
+  assert.equal(core.rideDoubtful(r, t + 4 * m, fx(from, 10, 0, t + 4 * m), from, 0.4), true);
+  assert.equal(core.rideDoubtful(r, t + 4 * m, fx(from, 80, 0, t + 4 * m), from, 0.4), false, "rough fix");
+  assert.equal(core.rideDoubtful(r, t + 4 * m, fx(from, 10, 2 * m, t + 4 * m), from, 0.4), false, "old fix");
+  assert.equal(core.rideDoubtful({ ...r, confirmed: true }, t + 4 * m, fx(from, 10, 0, t + 4 * m), from, 0.4), false, "you said yes");
+});

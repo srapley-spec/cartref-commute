@@ -89,5 +89,8 @@ export interface Places {
   office: LatLon;
   officeTube: LatLon;                                 // the tube station by the office (Aldgate)
   hubGeo: Record<StationCode, LatLon>;                // London stations where rail meets tube ("at" = within atHubKm)
+  /** Stops by the office and the lines that reach them from the London stations (e.g. Aldgate: Circle and Met;
+   *  Aldgate East: H&C). `fallback`: used going home only when the main lines are closed. */
+  officeStops?: { id: string; name: string; geo: LatLon; lines: string[] }[];
   atHubKm: number;
 }

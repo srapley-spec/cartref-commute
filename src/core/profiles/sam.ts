@@ -36,6 +36,10 @@ export const samCommute: Profile = {
     officeTube: [51.5142, -0.0755],             // Aldgate
     hubGeo: { KGX: [51.5308, -0.1238], ZFD: [51.5203, -0.1053] },
     atHubKm: 0.4,
+    officeStops: [
+      { id: "ALD", name: "Aldgate", geo: [51.5142, -0.0755], lines: ["circle", "metropolitan"] },
+      { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"] },
+    ],
   },
   // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
   walking: { streetFactor: 1.3, kmh: { avg: 5.0, fast: 6.0, leisure: 4.3 } },

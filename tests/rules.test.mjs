@@ -658,7 +658,7 @@ test("At King's Cross: the walk to the tube counts from when you arrived; tubes 
   assert.match(hero, /Get on the Met/);
   assert.match(hero, /about 3 min to spare on the platform/);
   assert.match(hero, /Near the platform already\? The 07:45 Met \(office 08:01\) or the 07:46 Circle/);
-  assert.match(hero, /Walk to the Circle\/Met eastbound platform · about \d min, from when you arrived \(07:42\)/);
+  assert.match(hero, /Walk to the eastbound platform · about \d min, from when you arrived \(07:42\)/);
   assert.match(app.text("#list"), /07:46.*If you're near the platform/);
   assert.doesNotMatch(app.text("#list"), /07:44/, "a tube leaving within 30 s isn't listed");
   app.close();
@@ -707,5 +707,19 @@ test("Arriving at the office: 'you've arrived', and still the morning journey un
   assert.match(app.text("#dirNote"), /^Heading to the office/, "4 min: still arriving");
   app.at(T("08:10")); await app.moveTo(51.5139, -0.0711, 30);
   assert.match(app.text("#dirNote"), /^Heading home · you're at the office/, "6 min there: the journey turns round");
+  app.close();
+});
+
+test("At King's Cross: an H&C to Aldgate East is the pick when it gets you to the office sooner", async () => {
+  const now = T("08:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c, m = 60e3;
+  await app.moveTo(51.5309, -0.1236, 15);
+  const tube = (min, line, lineId, dest) => ({ t: now + min * m, line, lineId, dest, platform: "Eastbound - Platform 2", vehicle: line + min });
+  // Default timings: Circle/Met to Aldgate 10 min + 1.5 + 7 walk; H&C to Aldgate East 11 min + 1.5 + 6 walk.
+  c.state.tube = { hub: "KGX", at: now, arrivals: [tube(8, "H&C", "hammersmith-city", "Barking"), tube(9, "Met", "metropolitan", "Aldgate")], err: null };
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /Get on the H&C to Barking/);
+  assert.match(hero, /Aldgate East · about 11 min ride/);
+  assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
   app.close();
 });
