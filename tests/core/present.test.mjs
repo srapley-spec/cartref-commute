@@ -93,3 +93,45 @@ test("statusLine: 5–14 min is amber, a route notice with no impact is yellow, 
   assert.equal(line({ demo: true }).text, "Example trains");
   assert.match(line({ tiers: tiers([tr({ depLate: 7 })]), planLater: true }).text, /trains now, not your plan/);
 });
+
+// ---------- Review (29 Oct evening): edges the first tests didn't pin ----------
+test("chooseView under way (Arrive by today): in London beats on the tube beats on the train beats at the station", () => {
+  const by = (o) => core.chooseView(S({ plan: "by", byTargetToday: true, ...o }));
+  assert.equal(by({ inLondonToOffice: true }).view, "in-london", "walking from the tube is under way too");
+  assert.equal(by({ inLondonToOffice: true }).underWay, true);
+  assert.equal(by({ inLondonToOffice: true, onTube: true }).view, "in-london");
+  assert.equal(by({ onTube: true, onLine: true }).view, "on-tube");
+  assert.equal(by({ onLine: true, atHubToOffice: true }).view, "on-train");
+  assert.equal(by({ atHubToOffice: true }).view, "at-hub");
+  assert.equal(view({ plan: "at", inLondonToOffice: true }), "in-london", "Leave around gives way to walking to the office");
+});
+
+test("headlineKind: Leave around is 'leave' too", () => {
+  assert.equal(core.headlineKind("plan-at", { atStation: true, onWay: true }), "leave");
+});
+
+test("statusLine edges: exactly 5 min late is amber; under 5 isn't counted; a cancellation beats the Aldgate East fallback", () => {
+  const five = line({ tiers: tiers([tr({ depLate: 5 })]) });
+  assert.equal(five.level, "warn"); assert.match(five.text, /5 min/); assert.ok(five.detail.includes("worst delay 5 min"));
+  const four = line({ tiers: tiers([tr({ depLate: 4 })]) });
+  assert.equal(four.level, "ok"); assert.ok(!four.detail.some(d => /worst delay/.test(d)), "under 5 min isn't a delay worth a line");
+  const both = line({ tiers: tiers([tr({ cancelled: true })]), tubeFallback: true });
+  assert.match(both.text, /cancelled/, "a cancelled train is worse than the Aldgate East fallback");
+});
+
+test("statusLine edges: a tube line's delays beat an operator's; example data beats timetable; the worst of a line's statuses", () => {
+  const r = line({ tubeLines: [L("Circle", 6, "Severe Delays")], operators: [L("Thameslink", 9, "Minor Delays")] });
+  assert.equal(r.level, "warn"); assert.equal(r.text, "Circle: Severe Delays");
+  assert.ok(r.detail.includes("Thameslink: Minor Delays"), "the operator is still in the detail");
+  assert.equal(line({ demo: true, timetableOnly: true }).text, "Example trains");
+  const mixed = { id: "Circle", name: "Circle", statuses: [{ sev: 10, desc: "Good Service" }, { sev: 6, desc: "Severe Delays" }, { sev: 9, desc: "Minor Delays" }] };
+  assert.equal(line({ tubeLines: [mixed] }).text, "Circle: Severe Delays");
+});
+
+test("statusLine edges: a later plan says the warning is about trains now, for every train tier", () => {
+  for (const svc of [{ cancelled: true }, { depUnknown: true }, { depLate: 20 }]) {
+    assert.match(line({ tiers: tiers([tr(svc)]), planLater: true }).text, /\(trains now, not your plan\)$/, JSON.stringify(svc));
+  }
+  const s = line({ tiers: tiers([tr({ depUnknown: true })]), stale: true });
+  assert.ok(s.detail.includes("1 train delayed with no estimate"), "no-estimate trains are counted in the detail");
+});

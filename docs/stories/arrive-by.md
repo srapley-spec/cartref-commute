@@ -20,6 +20,10 @@ include earlier trains (#14).
   2 min.
 - Without a key, the third search per route starts early enough for that route's slowest train (+15 min).
 - A direction change while planning Arrive by plans again for the new direction.
+- Under way (on the train, at a London station, on the tube or walking to the office) with an Arrive by deadline
+  today: the live view with "On time for hh:mm · N min to spare" or "Late for hh:mm by about N min" first, and the
+  list shows the rest of the journey. A deadline on another day stays a plan: no verdict (view choice:
+  [presentation-model](presentation-model.md)).
 
 ## Tests
 - tests/core/search.test.mjs: "Arrive by: on time, cutting it fine, late by N min; the latest on-time train is the pick"
@@ -33,7 +37,7 @@ include earlier trains (#14).
 - tests/rules.test.mjs: "Arrive by with live data: under 100 min reuses the loaded boards; further ahead asks the board from 2 h before, cached 2 min"
 - tests/rules.test.mjs: "Arrive by without a key: the third search per route starts early enough for that route's slowest train (+15 min)"
 - tests/rules.test.mjs: "Direction change while planning Arrive by plans again for the new direction"
-- tests/logic.test.mjs: "Arrive by on the train: says whether this train gets you there on time"
+- tests/logic.test.mjs: "Arrive by on the train: says whether this train gets you there on time; a deadline on another day is a plan, not a verdict"
 
 ## Not yet / open questions
 - #14: guarantee earlier trains (setting "show trains from N min before", default 60) vs rely on the TfL key.

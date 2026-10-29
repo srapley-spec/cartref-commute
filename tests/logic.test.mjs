@@ -317,7 +317,7 @@ test("On the train: works out which train from your position and projects arriva
   } finally { c.state.here = null; c.state.onLine = false; }
 });
 
-test("Arrive by on the train: says whether this train gets you there on time", () => {
+test("Arrive by on the train: says whether this train gets you there on time; a deadline on another day is a plan, not a verdict", () => {
   const now = Date.now(), m = 60e3, knebworth = [51.8667, -0.1876];
   const frac = c.lineProgress(knebworth, "KGX").frac, dep = now - frac * 29 * m;
   const fast = svc({ from: "LET", to: "KGX", dep, arr: dep + 29 * m });
@@ -331,6 +331,11 @@ test("Arrive by on the train: says whether this train gets you there on time", (
     assert.match(app.text("#hero"), /^On time for \d\d:\d\d · (19|20|21) min to spare.*On the train.*You're on the/);
     setTarget(office - 10 * m); c.render();
     assert.match(app.text("#hero"), /^Late for \d\d:\d\d by about (9|10|11) min/);
+    assert.equal(app.text("#listTitle"), "On the train", "under way, the list is the rest of the journey, not a board");
+    // The same deadline tomorrow isn't this journey: the plan for tomorrow, no verdict.
+    setTarget(office + 24 * 60 * m); c.render();
+    assert.doesNotMatch(app.text("#hero"), /^(On time|Late) for/);
+    assert.notEqual(app.text("#listTitle"), "On the train");
   } finally { c.state.here = null; c.state.onLine = false; c.state.saved.view = "now"; }
 });
 

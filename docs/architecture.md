@@ -134,7 +134,7 @@ fetches, caches and draws.
   closing 5 gaps (29 Oct). 29 Oct afternoon, independent review by a separate agent that hadn't written the code:
   76 breakages over the day's changes, then a second round of 59 after fixes; all caught except agreed equivalents
   (P22, P31, N10, H15: changes that can't alter any result). Probes found 3 bugs and 4 smaller defects, all fixed
-  with tests. The going-home refactor: 15 breakages, 14 caught, 1 equivalent. 237 tests (29 Oct, incl. 3 for the docs check).
+  with tests. The going-home refactor: 15 breakages, 14 caught, 1 equivalent. 249 tests (29 Oct evening, incl. 3 for the docs check). Presentation model (#29) reviewed after merging: 47 breakages, 18 unnoticed at first; 15 now caught, 2 equivalent, 1 not yet drawn.
 - Test cases kept as data files are the contract any future native (Swift) engine must also pass.
 - Stories link the tests that prove them; CI checks the links exist.
 

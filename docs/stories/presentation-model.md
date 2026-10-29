@@ -13,6 +13,10 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
 **priority** (which view, what the headline means, how bad things are, which block first) belongs to the engine;
 **geometry** (pixels, cards, where controls sit) belongs to the shell.
 
+Reviewed after merging (29 Oct evening): 47 deliberate one-line breakages of `present.ts` and its page wiring; 18
+went unnoticed at first, all now caught by tests except two that can't change any output and the undrawn live-view
+orders (below).
+
 ## Acceptance criteria
 - `src/core/present.ts` is pure (no DOM, no sizes) and exports: `chooseView(situation)`, `headlineKind(view, ctx)`,
   `statusLine(input)`, `BLOCKS[view]`.
@@ -42,6 +46,12 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
 - tests/core/present.test.mjs: "statusLine: all good says so; a cancellation on your route is red whatever the operator's status says"
 - tests/core/present.test.mjs: "statusLine: data you can't trust comes before anything about trains"
 - tests/core/present.test.mjs: "statusLine: 5–14 min is amber, a route notice with no impact is yellow, timetable and example data are info"
+- tests/core/present.test.mjs: "chooseView under way (Arrive by today): in London beats on the tube beats on the train beats at the station"
+- tests/core/present.test.mjs: "headlineKind: Leave around is 'leave' too"
+- tests/core/present.test.mjs: "statusLine edges: exactly 5 min late is amber; under 5 isn't counted; a cancellation beats the Aldgate East fallback"
+- tests/core/present.test.mjs: "statusLine edges: a tube line's delays beat an operator's; example data beats timetable; the worst of a line's statuses"
+- tests/core/present.test.mjs: "statusLine edges: a later plan says the warning is about trains now, for every train tier"
+- tests/logic.test.mjs: "Arrive by on the train: says whether this train gets you there on time; a deadline on another day is a plan, not a verdict"
 - tests/golden.test.mjs: every golden recording (what is shown is unchanged by the extraction)
 
 ## Not yet / open questions
@@ -49,7 +59,9 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
   replaces it with the one-line summary (the banners' own order is the same precedence, by hand, in `renderBanners`).
 - Only the Leave now card is assembled from `BLOCKS`; the live cards (on train, at hub, on tube, tube home, nearly
   home) still compose their own HTML in the model's order by inspection, not by iteration. Move them when the chosen
-  design is implemented.
+  design is implemented. Until then the live views' `BLOCKS` orders are a specification only:
+  no test checks that the page draws them in that order (a reorder of `on-train`'s blocks went unnoticed in the
+  29 Oct review).
 - The manual Planner/Live override and its lifetime are agreed (Sam, 29 Oct, with Signal: see
   [signal-design-system](signal-design-system.md)) but not built. It goes in as an input to `chooseView`, with its
   lifecycle (until Return to Auto or a new journey; deferred while editing) tested here.
