@@ -43,6 +43,9 @@ export const samCommute: Profile = {
   },
   // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
   walking: { streetFactor: 1.3, kmh: { avg: 5.0, fast: 6.0, leisure: 4.3 } },
+  // Effort levels (29 Oct): Sam runs at about 1.8× his walk for about a quarter of a mile; car from home to the
+  // station entrance about 4 min (6 min to the platform with the entry allowance); a cab takes 10 min to get.
+  effort: { runFactor: 1.8, runKm: 0.4, walkKmh: 5.0, carFromHomeSecs: 240, cabWaitSecs: 600, cabKmh: 20, stickMs: 30e3 },
   mergeHubs: ["ZFD", "STP"],
   sharesTubeWith: { STP: "KGX" },
   operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },

@@ -1,6 +1,6 @@
 // Journeys: getting to the station → the train → getting from the station.
 // A route is described once, as segments with durations; every time on screen is computed from it.
-import type { Board, Flag, Option, Profile, StationCode, Train } from "./types";
+import type { Access, Board, Flag, Option, Profile, StationCode, Train } from "./types";
 import { dur, hhmm } from "./time";
 import { standingRoomOnly, isStopping } from "./rules";
 
@@ -8,7 +8,9 @@ import { standingRoomOnly, isStopping } from "./rules";
 export interface Step { at: "start" | "end"; d: string; note?: string; tube?: boolean; }
 export type SegmentKind = "walk" | "station" | "margin" | "change" | "wait" | "ride" | "stop" | "planned";
 /** Part of getting to or from the train. `secs` is final (pace already applied). */
-export interface Segment { kind: SegmentKind; secs: number; step?: Step | null; }
+export interface Segment { kind: SegmentKind; secs: number; step?: Step | null;
+  /** Walks: the same walk at your average and fast pace (s), for effort levels. Default: `secs`. */
+  avg?: number; fast?: number; }
 
 export interface Route {
   hub: StationCode;            // the station that identifies the route (e.g. King's Cross)
@@ -21,6 +23,7 @@ export interface Route {
   depNotePrefix?: string;      // e.g. "allow 6 min to reach the platform"
   noPlatform?: string;         // shown when no platform is known
   extra?: Record<string, unknown>;   // carried onto each option (screen-specific data)
+  startsAtHome?: boolean;      // the route starts at your home (effort levels: your car is there)
 }
 
 export interface Leg { t: number | null; d: string; note?: string; tube?: boolean; train?: boolean; calls?: boolean; }
@@ -61,6 +64,13 @@ function walkSteps(segs: Segment[], from: number, legs: Leg[]): number {
   return cur;
 }
 
+/** What the time before the train is made of: walking (at the plan's, average and fast pace) and the rest. */
+export function accessOf(r: Route): Access {
+  const walks = r.before.filter(s => s.kind === "walk"), sum = (f: (s: Segment) => number, xs: Segment[]) => xs.reduce((t, s) => t + f(s), 0);
+  return { walk: sum(s => s.secs, walks), walkAvg: sum(s => s.avg ?? s.secs, walks), walkFast: sum(s => s.fast ?? s.secs, walks),
+    fixed: sum(s => s.secs, r.before.filter(s => s.kind !== "walk")), home: !!r.startsAtHome };
+}
+
 /** Every train on every route, as a door-to-door option. Trains without a time at either end are skipped. */
 export function buildOptions(routes: Route[], boards: Record<string, Board | undefined>, profile: Profile): Option[] {
   const out: Option[] = [];
@@ -76,7 +86,7 @@ export function buildOptions(routes: Route[], boards: Record<string, Board | und
       if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t, profile), calls: true });
       legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
       walkSteps(r.after, t.arr, legs);
-      out.push({ ...(r.extra || {}), hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile) } as Option);
+      out.push({ ...(r.extra || {}), hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile), access: accessOf(r) } as Option);
     }
   }
   return out;

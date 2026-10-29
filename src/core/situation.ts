@@ -271,3 +271,11 @@ export function nearlyHomeEta(now: number, here: LatLon, stationAt: number | nul
   return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
 }
 
+
+/**
+ * You've left home: more than 100 m from your saved home allowing for the fix's accuracy (GPS drift at home isn't
+ * leaving); without a saved home, the walk from here is at least 3 minutes shorter than the walk from home.
+ */
+export function leftHome(here: LatLon, accM: number, home: LatLon | null, walkHereSecs: number, homeWalkSecs: number): boolean {
+  return home ? km(here, home) >= 0.1 + (accM || 0) / 1000 : walkHereSecs <= homeWalkSecs - 180;
+}

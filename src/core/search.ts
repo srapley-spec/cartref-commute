@@ -4,6 +4,7 @@ import type { Board, Direction, Option, Profile, StationCode, Train } from "./ty
 import { hhmm } from "./time";
 import { plannable } from "./rules";
 import { mergeSameTrain, topPicks } from "./rank";
+import { markArrivesFirst, markLatestFor, effortOffers } from "./effort";
 
 /** What one search run returned and kept, per route, for "Why these trains?". */
 export interface SearchDiag { searches: number; returned: number; kept: number; dropped: Record<string, number>; trains: string[]; }
@@ -112,13 +113,15 @@ export const liveCovers = (view: "at" | "by", T: number, now: number) => T - (vi
  * Leave around T: trains leaving from 15 min before T (earlier leaves flagged) that haven't left; the card picks
  * from those leaving up to 10 min before T or later. In leaving order.
  */
-export function aroundOptions<T extends Option>(opts: T[], T: number, now: number, mixed: boolean, dir: Direction, p: Profile): T[] {
+export function aroundOptions<T extends Option>(opts: T[], T: number, now: number, mixed: boolean, dir: Direction, p: Profile, effort = false): T[] {
   let js = opts.filter(j => j.leave >= T - 15 * 60e3 && j.train.dep >= now);
   js.forEach(j => { j.uncertain = !plannable(j.train);
     if (j.leave < T) j.flags.unshift({ lvl: "warn", txt: `Leave ${Math.max(1, Math.round((T - j.leave) / 60e3))} min before ${hhmm(T)}` }); });
   if (mixed) js.forEach(o => { if (o.train.timetable) o.flags.push({ lvl: "info", txt: "Timetable only: not live-checked" }); });
   js = mergeSameTrain(js, dir, p);
-  topPicks(js.filter(j => j.leave >= T - 10 * 60e3), "now", p.topWindowMin).forEach((j, i) => { (j as Option).recommended = i + 1; });
+  const window = js.filter(j => j.leave >= T - 10 * 60e3);
+  topPicks(window, "now", p.topWindowMin).forEach((j, i) => { (j as Option).recommended = i + 1; });
+  if (effort) markArrivesFirst(js, window);     // the card's window: the lozenge and the card agree
   return js.sort((x, y) => x.leave - y.leave || x.arrive - y.arrive);
 }
 
@@ -126,12 +129,17 @@ export function aroundOptions<T extends Option>(opts: T[], T: number, now: numbe
  * Arrive by T (options already re-timed from now): every train listed; on time ones under 5 min early are
  * "Cutting it fine", late ones say by how much; the card picks; in leaving order.
  */
-export function arriveByOptions<T extends Option>(opts: T[], T: number, mixed: boolean, dir: Direction, p: Profile): T[] {
+export function arriveByOptions<T extends Option>(opts: T[], T: number, mixed: boolean, dir: Direction, p: Profile, effort = false): T[] {
   if (mixed) opts.forEach(o => { if (o.train.timetable) o.flags.push({ lvl: "info", txt: "Timetable only: not live-checked" }); });
   const js = mergeSameTrain(opts, dir, p);
   const onTime = js.filter(j => j.arrive <= T), late = js.filter(j => j.arrive > T);
   onTime.forEach(j => { if (T - j.arrive < 5 * 60e3) j.flags.unshift({ lvl: "warn", txt: "Cutting it fine", fine: true }); });
   late.forEach(j => { j.late = true; j.flags.unshift({ lvl: "bad", txt: `Late by ${Math.max(1, Math.round((j.arrive - T) / 60e3))} min` }); });
-  topPicks([...onTime, ...late], "by", p.topWindowMin).forEach((j, i) => { (j as Option).recommended = i + 1; });
+  const picks = topPicks([...onTime, ...late], "by", p.topWindowMin);
+  picks.forEach((j, i) => { (j as Option).recommended = i + 1; });
+  if (effort) {
+    markLatestFor(picks[0], T);
+    effortOffers(markArrivesFirst([...onTime, ...late]), picks[0]).forEach(j => { (j as Option).offer = true; });
+  }
   return [...onTime, ...late].sort((x, y) => x.leave - y.leave || x.arrive - y.arrive);
 }

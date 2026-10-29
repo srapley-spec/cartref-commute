@@ -2,6 +2,8 @@
 import type { Option, Profile } from "./types";
 import { plannable } from "./rules";
 import { mergeSameTrain, topPicks } from "./rank";
+import { gradeEffort, markArrivesFirst, effortOffers, type EffortProfile } from "./effort";
+import type { Effort } from "./types";
 import type { Direction } from "./types";
 
 /**
@@ -9,7 +11,10 @@ import type { Direction } from "./types";
  * At a station, for trains from that station, the walk to the platform is a guess (GPS can't tell concourse from
  * platform), so a train stays catchable until a minute before it leaves.
  */
-export function liveAdjust<T extends Option>(opts: T[], now: number, atStation: string | null, depStation: (o: T) => string): T[] {
+export function liveAdjust<T extends Option>(opts: T[], now: number, atStation: string | null, depStation: (o: T) => string,
+  effort?: { ep: EffortProfile; prev?: Record<string, Effort> } | null): T[] {
+  // Effort levels (toggle): each train graded by what it takes to catch it, instead of "leave time passed".
+  if (effort) return gradeEffort(opts, now, effort.ep, atStation, depStation, j => plannable(j.train), effort.prev);
   const t0 = now + 30e3;
   const keep = opts.filter(j => j.train.dep >= now);
   keep.forEach(j => {
@@ -26,7 +31,7 @@ export function liveAdjust<T extends Option>(opts: T[], now: number, atStation: 
  * The Leave now list: the same train at two stations merged, in leaving order. Marks the first train you can catch,
  * the fastest (earliest arrival, then latest leave), and the card's picks (`recommended` 1 and 2).
  */
-export function rankNow<T extends Option>(opts: T[], dir: Direction, p: Profile): T[] {
+export function rankNow<T extends Option>(opts: T[], dir: Direction, p: Profile, effort = false): T[] {
   if (!opts.length) return [];
   const list = (mergeSameTrain(opts, dir, p) as T[]).sort((a, b) => a.leave - b.leave || a.arrive - b.arrive);
   const usable = list.filter(j => !j.uncertain && !j.missed);
@@ -34,6 +39,9 @@ export function rankNow<T extends Option>(opts: T[], dir: Direction, p: Profile)
     (usable[0] as Option).first = true;
     (usable.reduce((a, b) => (b.arrive < a.arrive || (b.arrive === a.arrive && b.leave > a.leave) ? b : a)) as Option).fastest = true;
   }
-  topPicks(list, "now", p.topWindowMin).forEach((j, i) => { (j as Option).recommended = i + 1; });
+  const picks = topPicks(list, "now", p.topWindowMin);
+  picks.forEach((j, i) => { (j as Option).recommended = i + 1; });
+  // Effort levels (toggle): "Arrives first" per level, and the run / car trains the card mentions.
+  if (effort) effortOffers(markArrivesFirst(list), picks[0]).forEach(j => { (j as Option).offer = true; });
   return list;
 }

@@ -250,7 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 17:16 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 22:35 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -319,6 +319,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <fieldset>
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_effort" style="margin-top:3px"><span>Effort levels: each train says what it would take to catch it (fast walk, run, car needed, can't make it), and which one arrives first at each level; Arrive by's pick says "Latest for" your time.</span></label>
+      <label class="f"><span>Running speed (× your average walk)</span><input id="s_runFactor" type="number" step="any" min="1" max="4"></label>
+      <label class="f"><span>How far you can run (m)</span><input id="s_runM" type="number" step="any" min="0" max="5000"></label>
+      <label class="f"><span>Car: home to the station entrance, incl. parking (min)</span><input id="s_carFromHome" type="number" step="any" min="0"></label>
+      <label class="f"><span>Cab: time to get one (min)</span><input id="s_cabWait" type="number" step="any" min="0"></label>
       <p class="hint">Off: the app works exactly as before.</p>
     </fieldset>
 
@@ -356,12 +361,14 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
     FACILITY: () => FACILITY,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
+    accessOf: () => accessOf,
     addCallingAlternatives: () => addCallingAlternatives,
     addJourneys: () => addJourneys,
     aroundOptions: () => aroundOptions,
@@ -379,7 +386,12 @@ var CommuteCore = (() => {
     compareWithBest: () => compareWithBest,
     countdown: () => countdown,
     dur: () => dur,
+    effortFor: () => effortFor,
+    effortKey: () => effortKey,
+    effortNeeds: () => effortNeeds,
+    effortOffers: () => effortOffers,
     facilityOnly: () => facilityOnly,
+    gradeEffort: () => gradeEffort,
     headlineKind: () => headlineKind,
     hhmm: () => hhmm,
     hubHere: () => hubHere,
@@ -390,6 +402,8 @@ var CommuteCore = (() => {
     isoDay: () => isoDay,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
+    leaveBy: () => leaveBy,
+    leftHome: () => leftHome,
     lineLevel: () => lineLevel,
     lineOk: () => lineOk,
     lineProgress: () => lineProgress,
@@ -398,6 +412,8 @@ var CommuteCore = (() => {
     liveHorizon: () => liveHorizon,
     lockOf: () => lockOf,
     lockedTrain: () => lockedTrain,
+    markArrivesFirst: () => markArrivesFirst,
+    markLatestFor: () => markLatestFor,
     markTimetable: () => markTimetable,
     mergeBeyond: () => mergeBeyond,
     mergeSameTrain: () => mergeSameTrain,
@@ -868,8 +884,102 @@ var CommuteCore = (() => {
     return f;
   }
 
+  // src/core/effort.ts
+  var EFFORTS = ["walk", "fast", "run", "car", "none"];
+  var rank = (e) => EFFORTS.indexOf(e);
+  function effortNeeds(a, ep) {
+    const fixed = a.fixed, W = a.walkAvg, F = a.walkFast;
+    const runBudget = ep.runKm / ep.walkKmh * 3600;
+    const p = Math.min(runBudget, W), fastRatio = W > 0 ? F / W : 1;
+    const run = Math.min(F, F - p * fastRatio + p / ep.runFactor);
+    const km2 = W / 3600 * ep.walkKmh;
+    const car = W <= 0 ? Infinity : a.home ? ep.carFromHomeSecs : ep.cabWaitSecs + km2 / ep.cabKmh * 3600;
+    const ms = (secs) => isFinite(secs) ? Math.round(secs * 1e3) : Infinity;
+    return {
+      walk: ms(fixed + a.walk),
+      fast: ms(fixed + Math.min(a.walk, F)),
+      run: ms(fixed + Math.min(a.walk, run)),
+      car: Math.min(ms(fixed + a.walk), ms(fixed + car))
+    };
+  }
+  function effortFor(o, now, ep, atItsStation, prev) {
+    const dep = o.train.dep;
+    if (atItsStation) return dep >= now + 6e4 ? "walk" : "none";
+    const a = o.access;
+    if (!a) return o.leave >= now + 3e4 ? "walk" : "none";
+    const avail = dep - (now + 3e4), need = effortNeeds(a, ep);
+    for (const e of ["walk", "fast", "run", "car"]) {
+      const slack = prev && rank(e) < rank(prev) ? ep.stickMs : 0;
+      if (need[e] <= avail - slack) return e;
+    }
+    return "none";
+  }
+  function leaveBy(o, e, ep) {
+    if (e !== "fast" || !o.access) return o.leave;
+    return o.train.dep - effortNeeds(o.access, ep).fast;
+  }
+  var LOZENGE = {
+    walk: null,
+    fast: { lvl: "warn", txt: "Fast walk" },
+    run: { lvl: "warn", txt: "Run" },
+    car: { lvl: "warn", txt: "Car needed" },
+    none: { lvl: "bad", txt: "Can't make it" }
+  };
+  var effortKey = (o) => o.train.serviceId || `${o.train.from}|${o.train.std}|${o.train.operator || ""}`;
+  function gradeEffort(opts, now, ep, atStation, depStation, plannable2, prev = {}) {
+    const keep = opts.filter((j) => j.train.dep >= now);
+    for (const j of keep) {
+      j.uncertain = !plannable2(j);
+      const e = effortFor(j, now, ep, !!atStation && depStation(j) === atStation, prev[effortKey(j)]);
+      j.effort = e;
+      j.missed = rank(e) > rank("fast");
+      j.leaveBy = leaveBy(j, e, ep);
+      const z = LOZENGE[e];
+      if (z && !j.uncertain) j.flags.unshift({ ...z });
+    }
+    return keep;
+  }
+  var FIRST_TXT = {
+    walk: "Arrives first",
+    fast: "Arrives first \xB7 fast walk",
+    run: "Arrives first \xB7 if you run",
+    car: "Arrives first \xB7 by car"
+  };
+  function markArrivesFirst(list, among = list) {
+    const ok = among.filter((j) => !j.uncertain && j.effort !== "none");
+    const out = [];
+    let bestSoFar = null;
+    for (const e of ["walk", "fast", "run", "car"]) {
+      const can = ok.filter((j) => rank(j.effort || "walk") <= rank(e));
+      const w = can.reduce((b, j) => !b || j.arrive < b.arrive || j.arrive === b.arrive && j.train.dep > b.train.dep ? j : b, null);
+      if (!w || bestSoFar && !(w.arrive < bestSoFar.arrive)) continue;
+      if (w === bestSoFar) continue;
+      w.firstAt = e;
+      if (e !== "walk") {
+        const z = LOZENGE[e];
+        w.flags = w.flags.filter((f) => !(z && f.txt === z.txt));
+      }
+      w.flags.unshift({ lvl: e === "walk" ? "ok" : "warn", txt: FIRST_TXT[e] });
+      out.push(w);
+      bestSoFar = w;
+    }
+    if (out.length > 1 && out[0].firstAt === "walk") {
+      const f = out[0].flags.find((z) => z.txt === FIRST_TXT.walk);
+      if (f) f.txt = "Arrives first \xB7 walking";
+    }
+    return out;
+  }
+  function markLatestFor(best, T) {
+    if (!best) return;
+    best.flags.unshift(best.late ? { lvl: "warn", txt: `Least late for ${hhmm(T)}` } : { lvl: "ok", txt: `Latest for ${hhmm(T)}` });
+  }
+  function effortOffers(firsts, best) {
+    return firsts.filter((j) => (j.firstAt === "run" || j.firstAt === "car") && (!best || j.arrive < best.arrive)).sort((a, b) => a.arrive - b.arrive);
+  }
+
   // src/core/plan.ts
-  function liveAdjust(opts, now, atStation, depStation) {
+  function liveAdjust(opts, now, atStation, depStation, effort) {
+    if (effort) return gradeEffort(opts, now, effort.ep, atStation, depStation, (j) => plannable(j.train), effort.prev);
     const t0 = now + 3e4;
     const keep = opts.filter((j) => j.train.dep >= now);
     keep.forEach((j) => {
@@ -884,7 +994,7 @@ var CommuteCore = (() => {
     });
     return keep;
   }
-  function rankNow(opts, dir, p) {
+  function rankNow(opts, dir, p, effort = false) {
     if (!opts.length) return [];
     const list = mergeSameTrain(opts, dir, p).sort((a, b) => a.leave - b.leave || a.arrive - b.arrive);
     const usable = list.filter((j) => !j.uncertain && !j.missed);
@@ -892,10 +1002,93 @@ var CommuteCore = (() => {
       usable[0].first = true;
       usable.reduce((a, b) => b.arrive < a.arrive || b.arrive === a.arrive && b.leave > a.leave ? b : a).fastest = true;
     }
-    topPicks(list, "now", p.topWindowMin).forEach((j, i) => {
+    const picks = topPicks(list, "now", p.topWindowMin);
+    picks.forEach((j, i) => {
       j.recommended = i + 1;
     });
+    if (effort) effortOffers(markArrivesFirst(list), picks[0]).forEach((j) => {
+      j.offer = true;
+    });
     return list;
+  }
+
+  // src/core/journey.ts
+  function callsText(t, profile) {
+    const name = (c) => profile && c.code && profile.stationNames[c.code] || c.name;
+    return (t.calls || []).map((c) => c.t != null ? `${name(c)} ${hhmm(c.t)}` : name(c)).join(" \xB7 ");
+  }
+  var total = (segs) => segs.reduce((s, x) => s + x.secs, 0) * 1e3;
+  var timeToTrain = (r) => total(r.before);
+  var timeFromTrain = (r) => total(r.after);
+  var minTimeToTrain = (r) => total(r.before.filter((s) => s.kind !== "wait"));
+  function trainFlags(t, profile) {
+    const f = [];
+    if (t.cancelled) f.push({ lvl: "bad", txt: "Cancelled" });
+    if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
+    if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
+    if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
+    else if (t.depLate >= 1 || t.arrLate >= 1) f.push({ lvl: t.arrLate >= 10 || t.depLate >= 10 ? "bad" : "warn", txt: `+${Math.max(t.depLate, t.arrLate)} min` });
+    if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
+    return f;
+  }
+  function walkSteps(segs, from, legs) {
+    let cur = from;
+    for (const s of segs) {
+      if (s.step && s.step.at === "start") legs.push({ t: cur, d: s.step.d, note: s.step.note, tube: s.step.tube });
+      cur += s.secs * 1e3;
+      if (s.step && s.step.at === "end") legs.push({ t: cur, d: s.step.d, note: s.step.note, tube: s.step.tube });
+    }
+    return cur;
+  }
+  function accessOf(r) {
+    const walks = r.before.filter((s) => s.kind === "walk"), sum = (f, xs) => xs.reduce((t, s) => t + f(s), 0);
+    return {
+      walk: sum((s) => s.secs, walks),
+      walkAvg: sum((s) => {
+        var _a;
+        return (_a = s.avg) != null ? _a : s.secs;
+      }, walks),
+      walkFast: sum((s) => {
+        var _a;
+        return (_a = s.fast) != null ? _a : s.secs;
+      }, walks),
+      fixed: sum((s) => s.secs, r.before.filter((s) => s.kind !== "walk")),
+      home: !!r.startsAtHome
+    };
+  }
+  function buildOptions(routes, boards, profile) {
+    const out = [];
+    for (const r of routes) {
+      const b = boards[r.board];
+      if (!b) continue;
+      for (const t of b.services) {
+        if (t.arr == null || t.dep == null) continue;
+        const leave = t.dep - timeToTrain(r), arrive = t.arr + timeFromTrain(r);
+        const legs = [];
+        walkSteps(r.before, leave, legs);
+        const depNote = [r.depNotePrefix || "", t.platform ? `platform ${t.platform}` : r.noPlatform || ""].filter(Boolean).join(", ");
+        legs.push({ t: t.dep, d: `${t.std}${t.depLate ? ` (exp ${hhmm(t.dep)})` : ""} ${t.operator || "train"} from ${r.fromName}`, note: depNote, train: true });
+        if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t, profile), calls: true });
+        legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
+        walkSteps(r.after, t.arr, legs);
+        out.push({ ...r.extra || {}, hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile), access: accessOf(r) });
+      }
+    }
+    return out;
+  }
+  function bestConnections(reach, ready, options) {
+    const per = {};
+    for (const o of options) {
+      const r = reach[o.hub];
+      if (r == null || o.uncertain || o.train.cancelled || o.train.depUnknown) continue;
+      if (o.train.dep < r + (ready[o.hub] || 0)) continue;
+      if (!per[o.hub] || o.arrive < per[o.hub].arrive || o.arrive === per[o.hub].arrive && o.train.dep < per[o.hub].train.dep) per[o.hub] = o;
+    }
+    return Object.values(per).sort((a, b) => a.arrive - b.arrive || a.train.dep - b.train.dep);
+  }
+  function compareWithBest(o, best, profile) {
+    const t = o.train;
+    return { stopping: isStopping(t, profile), trainMs: t.arr - t.dep, deltaMin: !best || best === o ? null : Math.round((o.arrive - best.arrive) / 6e4) };
   }
 
   // src/core/connections.ts
@@ -1082,7 +1275,7 @@ var CommuteCore = (() => {
     return rounds;
   }
   var liveCovers = (view, T, now) => T - (view === "at" ? 15 : 120) * 6e4 - now <= 119 * 6e4;
-  function aroundOptions(opts, T, now, mixed, dir, p) {
+  function aroundOptions(opts, T, now, mixed, dir, p, effort = false) {
     let js = opts.filter((j) => j.leave >= T - 15 * 6e4 && j.train.dep >= now);
     js.forEach((j) => {
       j.uncertain = !plannable(j.train);
@@ -1092,12 +1285,14 @@ var CommuteCore = (() => {
       if (o.train.timetable) o.flags.push({ lvl: "info", txt: "Timetable only: not live-checked" });
     });
     js = mergeSameTrain(js, dir, p);
-    topPicks(js.filter((j) => j.leave >= T - 10 * 6e4), "now", p.topWindowMin).forEach((j, i) => {
+    const window = js.filter((j) => j.leave >= T - 10 * 6e4);
+    topPicks(window, "now", p.topWindowMin).forEach((j, i) => {
       j.recommended = i + 1;
     });
+    if (effort) markArrivesFirst(js, window);
     return js.sort((x, y) => x.leave - y.leave || x.arrive - y.arrive);
   }
-  function arriveByOptions(opts, T, mixed, dir, p) {
+  function arriveByOptions(opts, T, mixed, dir, p, effort = false) {
     if (mixed) opts.forEach((o) => {
       if (o.train.timetable) o.flags.push({ lvl: "info", txt: "Timetable only: not live-checked" });
     });
@@ -1110,9 +1305,16 @@ var CommuteCore = (() => {
       j.late = true;
       j.flags.unshift({ lvl: "bad", txt: `Late by ${Math.max(1, Math.round((j.arrive - T) / 6e4))} min` });
     });
-    topPicks([...onTime, ...late], "by", p.topWindowMin).forEach((j, i) => {
+    const picks = topPicks([...onTime, ...late], "by", p.topWindowMin);
+    picks.forEach((j, i) => {
       j.recommended = i + 1;
     });
+    if (effort) {
+      markLatestFor(picks[0], T);
+      effortOffers(markArrivesFirst([...onTime, ...late]), picks[0]).forEach((j) => {
+        j.offer = true;
+      });
+    }
     return [...onTime, ...late].sort((x, y) => x.leave - y.leave || x.arrive - y.arrive);
   }
 
@@ -1315,6 +1517,9 @@ var CommuteCore = (() => {
     }
     return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
   }
+  function leftHome(here, accM, home, walkHereSecs, homeWalkSecs) {
+    return home ? km(here, home) >= 0.1 + (accM || 0) / 1e3 : walkHereSecs <= homeWalkSecs - 180;
+  }
 
   // src/core/present.ts
   function chooseView(s) {
@@ -1382,69 +1587,6 @@ var CommuteCore = (() => {
     return { level: "ok", text: "Good service on your lines", detail };
   }
   var worstDesc = (l) => l.statuses.reduce((a, b) => a.sev <= b.sev ? a : b).desc;
-
-  // src/core/journey.ts
-  function callsText(t, profile) {
-    const name = (c) => profile && c.code && profile.stationNames[c.code] || c.name;
-    return (t.calls || []).map((c) => c.t != null ? `${name(c)} ${hhmm(c.t)}` : name(c)).join(" \xB7 ");
-  }
-  var total = (segs) => segs.reduce((s, x) => s + x.secs, 0) * 1e3;
-  var timeToTrain = (r) => total(r.before);
-  var timeFromTrain = (r) => total(r.after);
-  var minTimeToTrain = (r) => total(r.before.filter((s) => s.kind !== "wait"));
-  function trainFlags(t, profile) {
-    const f = [];
-    if (t.cancelled) f.push({ lvl: "bad", txt: "Cancelled" });
-    if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
-    if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
-    if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-    else if (t.depLate >= 1 || t.arrLate >= 1) f.push({ lvl: t.arrLate >= 10 || t.depLate >= 10 ? "bad" : "warn", txt: `+${Math.max(t.depLate, t.arrLate)} min` });
-    if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
-    return f;
-  }
-  function walkSteps(segs, from, legs) {
-    let cur = from;
-    for (const s of segs) {
-      if (s.step && s.step.at === "start") legs.push({ t: cur, d: s.step.d, note: s.step.note, tube: s.step.tube });
-      cur += s.secs * 1e3;
-      if (s.step && s.step.at === "end") legs.push({ t: cur, d: s.step.d, note: s.step.note, tube: s.step.tube });
-    }
-    return cur;
-  }
-  function buildOptions(routes, boards, profile) {
-    const out = [];
-    for (const r of routes) {
-      const b = boards[r.board];
-      if (!b) continue;
-      for (const t of b.services) {
-        if (t.arr == null || t.dep == null) continue;
-        const leave = t.dep - timeToTrain(r), arrive = t.arr + timeFromTrain(r);
-        const legs = [];
-        walkSteps(r.before, leave, legs);
-        const depNote = [r.depNotePrefix || "", t.platform ? `platform ${t.platform}` : r.noPlatform || ""].filter(Boolean).join(", ");
-        legs.push({ t: t.dep, d: `${t.std}${t.depLate ? ` (exp ${hhmm(t.dep)})` : ""} ${t.operator || "train"} from ${r.fromName}`, note: depNote, train: true });
-        if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t, profile), calls: true });
-        legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
-        walkSteps(r.after, t.arr, legs);
-        out.push({ ...r.extra || {}, hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile) });
-      }
-    }
-    return out;
-  }
-  function bestConnections(reach, ready, options) {
-    const per = {};
-    for (const o of options) {
-      const r = reach[o.hub];
-      if (r == null || o.uncertain || o.train.cancelled || o.train.depUnknown) continue;
-      if (o.train.dep < r + (ready[o.hub] || 0)) continue;
-      if (!per[o.hub] || o.arrive < per[o.hub].arrive || o.arrive === per[o.hub].arrive && o.train.dep < per[o.hub].train.dep) per[o.hub] = o;
-    }
-    return Object.values(per).sort((a, b) => a.arrive - b.arrive || a.train.dep - b.train.dep);
-  }
-  function compareWithBest(o, best, profile) {
-    const t = o.train;
-    return { stopping: isStopping(t, profile), trainMs: t.arr - t.dep, deltaMin: !best || best === o ? null : Math.round((o.arrive - best.arrive) / 6e4) };
-  }
 
   // src/core/profiles/sam.ts
   var LINE_NORTH = [
@@ -1516,6 +1658,9 @@ var CommuteCore = (() => {
     },
     // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
     walking: { streetFactor: 1.3, kmh: { avg: 5, fast: 6, leisure: 4.3 } },
+    // Effort levels (29 Oct): Sam runs at about 1.8× his walk for about a quarter of a mile; car from home to the
+    // station entrance about 4 min (6 min to the platform with the entry allowance); a cab takes 10 min to get.
+    effort: { runFactor: 1.8, runKm: 0.4, walkKmh: 5, carFromHomeSecs: 240, cabWaitSecs: 600, cabKmh: 20, stickMs: 3e4 },
     mergeHubs: ["ZFD", "STP"],
     sharesTubeWith: { STP: "KGX" },
     operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
@@ -1552,6 +1697,7 @@ var CommuteCore = (() => {
   var PLATFORM_WALK = { KGX: 180, STP: 300, ZFD: 120 };
   var HUB_HOP = 240;
   var seg = (kind, secs, step) => ({ kind, secs, step: step || null });
+  var walkSeg = (secs, avg, fast, step) => ({ kind: "walk", secs, step: step || null, avg, fast });
   var sec = (x) => x * 1e3;
   var paceFactor = (i) => i.mode === "leisure" ? i.timings.leisureFactor : i.pace === "fast" ? i.timings.fastFactor : 1;
   function samRoutes(i) {
@@ -1573,7 +1719,7 @@ var CommuteCore = (() => {
           hub,
           board: `LET-${hub}`,
           fromName: "Letchworth",
-          before: [seg("walk", walkOut, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walkOut))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+          before: [walkSeg(walkOut, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walkOut))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
           after: [
             seg("change", ic[hub] * k),
             seg("wait", s.tubeWait, { at: "end", ...tubeStep }),
@@ -1583,14 +1729,15 @@ var CommuteCore = (() => {
           ],
           arriveLabel: `Arrive ${NAMES[hub]}`,
           arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
-          extra: { tube }
+          extra: { tube },
+          startsAtHome: true
         });
         else routes.push({
           hub,
           board: `${hub}-LET`,
           fromName: NAMES[hub],
           before: [
-            seg("walk", tube.walk * k, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }),
+            walkSeg(tube.walk * k, tube.walk, tube.walk * s.fastFactor, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }),
             seg("station", tube.plat * k),
             seg("wait", s.tubeWait),
             seg("ride", tube.ride[hub], { at: "start", ...tubeStep }),
@@ -1611,11 +1758,12 @@ var CommuteCore = (() => {
           hub,
           board: `LET-${hub}`,
           fromName: "Letchworth",
-          before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+          before: [walkSeg(walk, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
           after: [seg("change", ic[hub] * k), seg("planned", leg ? leg.dur / 1e3 : 0, leg ? { at: "end", d: `Arrive ${dest.name}`, note: `${leg.summary} (${dur(leg.dur)})` } : null)],
           arriveLabel: `Arrive ${NAMES[hub]}`,
           arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
-          extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true }
+          extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true },
+          startsAtHome: true
         });
       }
     } else if (dir === "office") {
@@ -1624,10 +1772,11 @@ var CommuteCore = (() => {
         hub,
         board: `LET-${hub}`,
         fromName: "Letchworth",
-        before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+        before: [walkSeg(walk, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
         after: [],
         arriveLabel: `Arrive ${NAMES[hub]}`,
-        extra: { dest: NAMES[hub], leisure: true }
+        extra: { dest: NAMES[hub], leisure: true },
+        startsAtHome: true
       });
     } else {
       const walkBack = s.walkStationHomeAvg * k;
@@ -1657,11 +1806,13 @@ var CommuteCore = (() => {
     const ic = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
     for (const r of routes) {
       if (dir === "office" && hw != null) {
-        r.before[0] = seg("walk", hw, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to Letchworth station` });
+        const chosen = r.before[0].secs, share = chosen > 0 ? hw / chosen : 1;
+        r.before[0] = walkSeg(hw, s.walkHomeStationAvg * share, s.walkHomeStationFast * share, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to Letchworth station` });
         r.extra = { ...r.extra, fromHere: true };
+        r.startsAtHome = !!i.here.atHome;
       } else if (dir === "home" && at) {
         const same = at === "KGX" && (r.hub === "KGX" || r.hub === "STP") || r.hub === at;
-        r.before = same ? [seg("walk", PLATFORM_WALK[r.hub] * k, { at: "start", d: `You're at ${NAMES[at]}: go to the ${NAMES[r.hub]} platform`, note: `about ${dur(sec(PLATFORM_WALK[r.hub] * k))}` }), seg("margin", s.catchMargin)] : [
+        r.before = same ? [walkSeg(PLATFORM_WALK[r.hub] * k, PLATFORM_WALK[r.hub], PLATFORM_WALK[r.hub] * s.fastFactor, { at: "start", d: `You're at ${NAMES[at]}: go to the ${NAMES[r.hub]} platform`, note: `about ${dur(sec(PLATFORM_WALK[r.hub] * k))}` }), seg("margin", s.catchMargin)] : [
           seg("station", 120 * k, { at: "start", d: `Tube from ${NAMES[at]} to ${NAMES[r.hub]}`, note: `about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change` }),
           seg("wait", s.tubeWait),
           seg("ride", HUB_HOP),
@@ -1762,9 +1913,11 @@ const DEFAULTS = {
   rideKxAld:600, rideFarAld:420, aldPlatform:90, aldWalk:420,
   rideKxAde:660, rideFarAde:480, adePlatform:90, adeWalk:360,
   stpInterchange:420,
-  fastFactor:0.82, leisureFactor:1.15
+  fastFactor:0.82, leisureFactor:1.15,
+  // Effort levels (Experimental): car and cab are times (s); running speed and distance below.
+  carFromHome:240, cabWait:600, runFactor:1.8, runM:400
 };
-const FACTOR_KEYS = ["fastFactor","leisureFactor"];
+const FACTOR_KEYS = ["fastFactor","leisureFactor","runFactor","runM"];
 const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
 const LS = "cartrefCommute.v1";
 
@@ -2049,7 +2202,7 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 function routesFor(dir, mode, opts){
   return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
     london:state.london||null, dest:outTo(dir, mode),
-    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null } : null });
+    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome() } : null });
 }
 // Any start and end point, going out: the place, and TfL's legs to it once planned.
 const outTo = (dir, mode) => anyPlace() && mode==="leisure" && dir==="office" && (state.saved.dest||"").trim()
@@ -2103,11 +2256,12 @@ function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!le
 function onWay(){
   if((state.saved.view||"now")!=="now" || atStation()) return null;
   const w=walkFromHere(); if(w==null) return null;
-  const home=state.saved.home;
   // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
-  if(home ? km(state.here,home)<0.1+(state.locAcc||0)/1000 : w>homeWalk()-180) return null;
+  if(!C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk())) return null;
   return { walk:w };
 }
+// Still at home (for effort levels: your car is there). Without a usable fix the plan starts at home anyway.
+function atHome(){ const w=walkFromHere(); return w==null || !C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk()); }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
@@ -2182,7 +2336,16 @@ const whichTube = now => C.whichTube(state.lastHub, now);
 const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
-const liveAdjust = (js, now) => C.liveAdjust(js, now, atStation(), depStation);
+// Feature toggle (Settings → Experimental): effort levels. Off = the app as before. The engine grades every train
+// (effort.ts); the page only remembers last time's grades (so labels don't flicker) and draws them.
+const effortOn = () => !!S().effort;
+const effortProfile = () => { const s=S(); return { ...PROFILE.effort, runFactor:s.runFactor, runKm:s.runM/1000, carFromHomeSecs:s.carFromHome, cabWaitSecs:s.cabWait }; };
+const liveAdjust = (js, now) => {
+  if(!effortOn()) return C.liveAdjust(js, now, atStation(), depStation);
+  const out=C.liveAdjust(js, now, atStation(), depStation, { ep:effortProfile(), prev:state.effortPrev||{} });
+  state.effortPrev=Object.assign({}, state.effortPrev, Object.fromEntries(out.map(j=>[C.effortKey(j), j.effort])));
+  return out;
+};
 // ---------- Presentation model ----------
 // The engine decides which view is on screen, what the big number means and the order of the blocks
 // (src/core/present.ts). The page only draws them. Nothing below re-decides priority.
@@ -2206,7 +2369,7 @@ const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation()
 function ranked(now){
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Every train that hasn't left yet is listed; ones you'd have to hurry for are flagged.
-  return C.rankNow(liveAdjust(build(direction(), now, {here:true}), now), direction(), PROFILE);
+  return C.rankNow(liveAdjust(build(direction(), now, {here:true}), now), direction(), PROFILE, effortOn());
 }
 
 // ---------- Rendering ----------
@@ -2259,6 +2422,13 @@ function vsBest(j, best, dest){
 }
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
 const stdExp = t => `<span class="t">${esc(t.std)}</span>${t.depLate>=1?` exp <span class="t">${hhmm(t.dep)}</span>`:""}`;
+// The latest you can set off for this train at the effort it needs (engine: a fast walk leaves later than a walk).
+const leaveAt = j => j.leaveBy ?? j.leave;
+// Effort levels: a train that needs a run or a car and arrives sooner than the card's best (engine marks it).
+function effortLine(j, dest, best){
+  const from = j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
+  return `<div class="alt hurry">Arrives first ${j.firstAt==="run"?"if you run":"by car"}: the ${stdExp(j.train)} ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}.</div>`;
+}
 function hurryLine(j, dest, best){
   const from = j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
   return `<div class="alt hurry">Still possible if you hurry: the ${stdExp(j.train)} ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}. At walking pace you're ${Math.max(1,Math.round((Date.now()+30e3-j.leave)/60e3))} min short.</div>`;
@@ -2268,12 +2438,12 @@ function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
     <div class="optrow">
-      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>`}
+      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(leaveAt(j))}</span></div>`}
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>
-    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${leaveAt(j)}"></span>`}</div>
     ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -2550,19 +2720,21 @@ function renderHero(list, now){
   const picks=list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended), first=list.find(o=>o.first);
   const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
   // "If you hurry" trains, the one you're nearest to making first (latest leave time = smallest shortfall).
-  const hurryOpts=list.filter(o=>o.missed && !o.uncertain).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive);
-  if(!picks.length){ const hurry=hurryOpts.map(o=>hurryLine(o,dest)).join("");
+  // Effort levels on: only the run / car trains that arrive sooner than the card's best (engine: offer).
+  const hurryOpts=effortOn() ? list.filter(o=>o.offer) : list.filter(o=>o.missed && !o.uncertain).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive);
+  const hurryHtml=(o,best)=>(effortOn()?effortLine:hurryLine)(o,dest,best);
+  if(!picks.length){ const hurry=hurryOpts.map(o=>hurryHtml(o)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
   const board=atStation(), way=!board && onWay();
-  const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
+  const spare=j=>{ const m=Math.floor((leaveAt(j)-t0)/60e3);
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
     // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
-    if(way){ const k=Math.floor((j.leave-now)/60e3); return k>=1?`on track · ${k} min to spare`:"on track · keep going"; }
+    if(way){ const k=Math.floor((leaveAt(j)-now)/60e3); return k>=1?`on track · ${k} min to spare`:"on track · keep going"; }
     // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
     return m>=1?"":"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":way?"Next one you can make: the":"Leaving right now? The"} ${stdExp(first.train)} ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
-  const hurry=hurryOpts.map(o=>hurryLine(o,dest,picks[0])).join("");
+  const hurry=hurryOpts.map(o=>hurryHtml(o,picks[0])).join("");
   const tubes=tubesFromAldgate(now);
   // Each block's HTML; the model says the order (the headline is the first option's big numbers).
   const blocks = {
@@ -2581,11 +2753,11 @@ function renderList(list, now, opts){
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}${j.missed?" missed":""}">
-      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
+    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
+      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(leaveAt(j))}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${leaveAt(j)}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
@@ -2762,7 +2934,7 @@ function atOptions(){
   const keep=state.boards; state.boards=a.boards;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   const js=build(direction(), a.T); state.boards=keep;
-  return C.aroundOptions(js, a.T, Date.now(), !!a.liveTo, direction(), PROFILE);
+  return C.aroundOptions(js, a.T, Date.now(), !!a.liveTo, direction(), PROFILE, effortOn());
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
@@ -2827,7 +2999,7 @@ function byOptions(){
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Only plan from where you are when the target is within the next 3 hours.
   const js=build(direction(), Date.now(), {here: b.T-Date.now()<=3*3600e3}); state.boards=keep;
-  return C.arriveByOptions(liveAdjust(js, Date.now()), b.T, !!b.liveTo, direction(), PROFILE);
+  return C.arriveByOptions(liveAdjust(js, Date.now()), b.T, !!b.liveTo, direction(), PROFILE, effortOn());
 }
 // Routes that loaded but have no train getting you there in time (said out loud rather than left blank).
 function byRoutesWithoutOnTime(opts){
@@ -2851,7 +3023,8 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.missed && !o.uncertain && !o.late).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
+    ${effortOn() ? opts.filter(o=>o.offer).map(o=>effortLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")
+      : opts.filter(o=>o.missed && !o.uncertain && !o.late).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive).map(o=>hurryLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
@@ -3110,7 +3283,7 @@ function fillSettings(){
   const s=S();
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; $("#s_effort").checked=!!s.effort; showProviderFields();
 }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
@@ -3119,7 +3292,10 @@ function readSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
+  const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
+  const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_effort").checked) o.effort=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -3174,7 +3350,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={effortProfile,effortOn,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

@@ -153,3 +153,10 @@ test("golden: leisure, home from Soho via the TfL journey planner", () => scenar
 test("golden: demo trains", () => scenario("demo", { now: T(DAY, "07:00"), geo: PLACES.nearLetchworth, settings: { provider: "demo" } }));
 test("golden: on your way to Letchworth (home saved 1.6 km out, 550 m from the station), live", () => scenario("on-your-way-live",
   { now: T(DAY, "07:10"), geo: { coords: { latitude: 51.9760, longitude: -0.2340, accuracy: 10 } }, settings: RDM, saved: { dirMode: "office", home: [51.9690, -0.2440] } }));
+// Effort levels (Settings → Experimental) on: running late at home, every train graded; Arrive by and Leave around.
+test("golden: effort levels on: at home and late for the 07:38, live; Arrive by 08:30 and Leave around 07:40", () => scenario("effort-levels-live",
+  { now: T(DAY, "07:20"), geo: PLACES.nearLetchworth, settings: { ...RDM, effort: true }, saved: { dirMode: "office" },
+    disrupt: { "Great Northern 07:38 from LET": { late: 4, reason: "This train has been delayed by a signalling problem" } },
+    steps: [["arriveBy0830", view("by", DAY, "08:30")], ["leaveAround0740", view("at", DAY, "07:40")]] }));
+test("golden: effort levels on: on your way to Letchworth, live", () => scenario("effort-levels-on-your-way",
+  { now: T(DAY, "07:14"), geo: { coords: { latitude: 51.9760, longitude: -0.2340, accuracy: 10 } }, settings: { ...RDM, effort: true }, saved: { dirMode: "office", home: [51.9690, -0.2440] } }));

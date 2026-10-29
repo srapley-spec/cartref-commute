@@ -114,14 +114,15 @@ is not evidence that production background tracking, alert delivery or interacti
 
 ## Code layout (29 Oct)
 Engine (`src/core`): `situation.ts` (direction, at a station, on the line incl. movement, which train, on a tube,
-tube home, nearly home, office arrival), `connections.ts` (generic connection at any station: planConnection,
-Ride), `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave
-around / Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing),
-`warnings.ts` (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the
-status line's precedence, block order per view), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`,
-`time.ts`, `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route
-stations) and `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`)
-fetches, caches and draws.
+tube home, nearly home, office arrival), `connections.ts` (generic connection at any station: planConnection, Ride),
+`effort.ts` (what it takes to catch each train: walk, fast walk, run, car, can't; "Arrives first" per level),
+`plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave around /
+Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing), `warnings.ts`
+(grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the status line's
+precedence, block order per view), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
+`adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route stations) and
+`profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`) fetches, caches and
+draws.
 
 ## Testing
 - Engine unit tests incl. a made-up corridor and made-up interchanges (proves reuse) and randomised rule checks.
@@ -169,7 +170,8 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
 - **29 Oct evening** Trains you'd hurry for are graded by effort (walk, fast walk, run, car, can't make it);
-  "Arrives first" per effort level; Arrive by's pick says "Latest for 08:30". Agreed, not built.
+  "Arrives first" per effort level; Arrive by's pick says "Latest for 08:30". Built in the engine (`effort.ts`), behind
+  an Experimental toggle.
   → [effort-levels](stories/effort-levels.md)
 - **29 Oct** Sam selects Signal, iPhone first, dynamic appearance and automatic Planner/Live switching with manual override. Sam also approves override lifetime, interaction deferral and ongoing tracking/alerts while Planner is pinned. → [design system](design-system.md)
 - **29 Oct** The engine decides priority, the shell decides geometry: a presentation model (`present.ts`) owns view

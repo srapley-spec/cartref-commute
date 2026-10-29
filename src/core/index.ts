@@ -12,6 +12,9 @@ export { addCallingAlternatives } from "./alternatives";
 export { FACILITY, SERVICE, NETWORK_WIDE, facilityOnly, railWarnings, noticeTitle, BAD_SEV, worstStatus, lineOk, lineLevel, tubeFallbackNeeded, tubeFlags } from "./warnings";
 export type { RailWarnings, ImpactLevel, LineStatus } from "./warnings";
 export { liveAdjust, rankNow } from "./plan";
+export { effortNeeds, effortFor, leaveBy, gradeEffort, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
+export type { EffortProfile } from "./effort";
+export { accessOf } from "./journey";
 export { planConnection, rideActive, rideDoubtful } from "./connections";
 export type { Departure, ConnectionLeg, Timed, ConnectionInput, ConnectionPlan, Ride } from "./connections";
 export { refreshPlan, refreshDue, REUSE } from "./refresh";
@@ -20,7 +23,7 @@ export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRound
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
-export { hubHere, onLine, trackLine, lockOf, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta } from "./situation";
+export { hubHere, onLine, trackLine, lockOf, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { chooseView, headlineKind, statusLine, BLOCKS } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";

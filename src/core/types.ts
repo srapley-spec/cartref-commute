@@ -45,10 +45,43 @@ export interface Option {
   missed?: boolean;
   uncertain?: boolean;
   alts?: Option[];         // same train at other stations
+  /** Effort levels (Settings → Experimental): what it takes to catch it, and "Arrives first" per level. */
+  effort?: Effort;
+  firstAt?: Exclude<Effort, "none">;
+  leaveBy?: number;        // latest set-off at its level (walk: = leave)
+  offer?: boolean;         // the card says it: needs a run or a car, and arrives sooner than the card's best
+  access?: Access;         // what the time before the train is made of (from the route's segments)
   [extra: string]: unknown;
 }
 
 export type Direction = "office" | "home";
+
+/** What it takes to catch a train, easiest first; "none" = can't make it. (effort.ts) */
+export type Effort = "walk" | "fast" | "run" | "car" | "none";
+/** How fast you can go. All personal; Settings override the profile's defaults. */
+export interface EffortProfile {
+  /** Running pace as a multiple of your average walking pace (1.8 = 1.8× as fast). */
+  runFactor: number;
+  /** How far you can keep that up (km). */
+  runKm: number;
+  /** Your average walking speed (km/h): turns a walk's time into a distance. */
+  walkKmh: number;
+  /** Your own car from home: door to the station entrance, parking included (s). Station allowances are added. */
+  carFromHomeSecs: number;
+  /** Elsewhere, a cab: time to get one (s), then driving at `cabKmh` over the walking distance. */
+  cabWaitSecs: number;
+  cabKmh: number;
+  /** A train moves to an easier level only when it's this far inside the boundary (ms): no flicker. */
+  stickMs: number;
+}
+/** What an option needs before the train, from its route's segments (seconds). */
+export interface Access {
+  walk: number;            // walking at the pace the plan uses (what `leave` is based on)
+  walkAvg: number;         // the same walking at your average pace
+  walkFast: number;        // … and at your fast pace
+  fixed: number;           // everything else before the train: allowances, tube rides, waits, the margin
+  home: boolean;           // the route starts at your home (your car is there)
+}
 
 /** Standing-room rule: busy trains, on which days, outside which holidays. */
 export interface BusyRule {
@@ -81,6 +114,7 @@ export interface Profile {
   corridorPattern: string;                            // regex source: station names on your route (notices naming them are about you)
   places: Places;                                     // where things are, for working out what you're doing
   walking: { streetFactor: number; kmh: { avg: number; fast: number; leisure: number } };
+  effort?: EffortProfile;                             // how fast you can go when you're late (effort levels)
 }
 
 /** Places the app reasons about from your location. */

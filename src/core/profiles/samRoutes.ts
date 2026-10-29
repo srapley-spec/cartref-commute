@@ -20,7 +20,7 @@ export interface RouteInput {
   dir: Direction; mode: "commute" | "leisure"; pace: "avg" | "fast"; timings: Timings;
   tubeFallback?: boolean;                                   // Circle and Met closed: H&C to Aldgate East
   london?: { KXSP: LondonLeg; FAR: LondonLeg } | null;      // leisure going home
-  here?: { walkToStation: number | null; atHub: StationCode | null } | null;   // plan from where you are
+  here?: { walkToStation: number | null; atHub: StationCode | null; atHome?: boolean } | null;   // plan from where you are
   /** Any start and end point (feature toggle): going out to a London place — TfL legs from each station group to it. */
   dest?: { name: string; legs: { KXSP: LondonLeg | null; FAR: LondonLeg | null } | null } | null;
 }
@@ -29,6 +29,8 @@ const NAMES: Record<string, string> = { KGX: "King's Cross", STP: "St Pancras", 
 // At a London station going home: the walk to each platform; between King's Cross and Farringdon by tube.
 const PLATFORM_WALK: Record<string, number> = { KGX: 180, STP: 300, ZFD: 120 }, HUB_HOP = 240;
 const seg = (kind: Segment["kind"], secs: number, step?: Step | null): Segment => ({ kind, secs, step: step || null });
+/** A walk, with the same walk at average and fast pace (for effort levels). */
+const walkSeg = (secs: number, avg: number, fast: number, step?: Step | null): Segment => ({ kind: "walk", secs, step: step || null, avg, fast });
 const sec = (x: number) => x * 1000;
 const paceFactor = (i: RouteInput) => (i.mode === "leisure" ? i.timings.leisureFactor : i.pace === "fast" ? i.timings.fastFactor : 1);
 
@@ -52,12 +54,12 @@ function baseRoutes(i: RouteInput): Route[] {
     for (const hub of ["KGX", "STP", "ZFD"]) {
       const tubeStep = { d: `${tubeName} to ${dir === "office" ? tube.stop : NAMES[hub]}`, note: `~${dur(sec(tube.ride[hub]))}, allows ${dur(sec(s.tubeWait))} wait`, tube: true };
       if (dir === "office") routes.push({ hub, board: `LET-${hub}`, fromName: "Letchworth",
-        before: [seg("walk", walkOut, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walkOut))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+        before: [walkSeg(walkOut, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walkOut))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
         after: [seg("change", ic[hub] * k), seg("wait", s.tubeWait, { at: "end", ...tubeStep }), seg("ride", tube.ride[hub]), seg("station", tube.plat * k),
           seg("walk", tube.walk * k, { at: "end", d: "Arrive office", note: `walk ${dur(sec(tube.walk * k))}` })],
-        arriveLabel: `Arrive ${NAMES[hub]}`, arriveExtra: `, change ${dur(sec(ic[hub] * k))}`, extra: { tube } });
+        arriveLabel: `Arrive ${NAMES[hub]}`, arriveExtra: `, change ${dur(sec(ic[hub] * k))}`, extra: { tube }, startsAtHome: true });
       else routes.push({ hub, board: `${hub}-LET`, fromName: NAMES[hub],
-        before: [seg("walk", tube.walk * k, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }), seg("station", tube.plat * k), seg("wait", s.tubeWait),
+        before: [walkSeg(tube.walk * k, tube.walk, tube.walk * s.fastFactor, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }), seg("station", tube.plat * k), seg("wait", s.tubeWait),
           seg("ride", tube.ride[hub], { at: "start", ...tubeStep }), seg("change", ic[hub] * k), seg("margin", s.catchMargin)],
         after: [seg("station", s.letExit * k), seg("walk", walkBack, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walkBack))}` })],
         arriveLabel: "Arrive Letchworth", noPlatform: "platform not yet shown", extra: { tube } });
@@ -68,16 +70,16 @@ function baseRoutes(i: RouteInput): Route[] {
     for (const hub of ["KGX", "STP", "ZFD"]) {
       const leg = dest.legs ? (hub === "ZFD" ? dest.legs.FAR : dest.legs.KXSP) : null;
       routes.push({ hub, board: `LET-${hub}`, fromName: "Letchworth",
-        before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+        before: [walkSeg(walk, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
         after: [seg("change", ic[hub] * k), seg("planned", leg ? leg.dur / 1000 : 0, leg ? { at: "end", d: `Arrive ${dest.name}`, note: `${leg.summary} (${dur(leg.dur)})` } : null)],
         arriveLabel: `Arrive ${NAMES[hub]}`, arriveExtra: `, change ${dur(sec(ic[hub] * k))}`,
-        extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true } });
+        extra: { dest: dest.name, leisure: true, london: leg, planned: !!leg, outTo: true }, startsAtHome: true });
     }
   } else if (dir === "office") {
     const walk = s.walkHomeStationAvg * k;
     for (const hub of ["KGX", "STP"]) routes.push({ hub, board: `LET-${hub}`, fromName: "Letchworth",
-      before: [seg("walk", walk, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
-      after: [], arriveLabel: `Arrive ${NAMES[hub]}`, extra: { dest: NAMES[hub], leisure: true } });
+      before: [walkSeg(walk, s.walkHomeStationAvg, s.walkHomeStationFast, { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` }), seg("station", s.letEntry * k), seg("margin", s.catchMargin)],
+      after: [], arriveLabel: `Arrive ${NAMES[hub]}`, extra: { dest: NAMES[hub], leisure: true }, startsAtHome: true });
   } else {
     const walkBack = s.walkStationHomeAvg * k;
     for (const hub of ["KGX", "STP", "ZFD"]) {
@@ -101,12 +103,15 @@ function fromHere(routes: Route[], i: RouteInput) {
   const ic: Record<string, number> = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
   for (const r of routes) {
     if (dir === "office" && hw != null) {
-      r.before[0] = seg("walk", hw, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to Letchworth station` });
+      // The same share of your measured walk at average and fast pace.
+      const chosen = r.before[0].secs, share = chosen > 0 ? hw / chosen : 1;
+      r.before[0] = walkSeg(hw, s.walkHomeStationAvg * share, s.walkHomeStationFast * share, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to Letchworth station` });
       r.extra = { ...r.extra, fromHere: true };
+      r.startsAtHome = !!i.here!.atHome;
     } else if (dir === "home" && at) {
       const same = (at === "KGX" && (r.hub === "KGX" || r.hub === "STP")) || r.hub === at;
       r.before = same
-        ? [seg("walk", PLATFORM_WALK[r.hub] * k, { at: "start", d: `You're at ${NAMES[at]}: go to the ${NAMES[r.hub]} platform`, note: `about ${dur(sec(PLATFORM_WALK[r.hub] * k))}` }), seg("margin", s.catchMargin)]
+        ? [walkSeg(PLATFORM_WALK[r.hub] * k, PLATFORM_WALK[r.hub], PLATFORM_WALK[r.hub] * s.fastFactor, { at: "start", d: `You're at ${NAMES[at]}: go to the ${NAMES[r.hub]} platform`, note: `about ${dur(sec(PLATFORM_WALK[r.hub] * k))}` }), seg("margin", s.catchMargin)]
         : [seg("station", 120 * k, { at: "start", d: `Tube from ${NAMES[at]} to ${NAMES[r.hub]}`, note: `about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change` }),
           seg("wait", s.tubeWait), seg("ride", HUB_HOP), seg("change", ic[r.hub] * k), seg("margin", s.catchMargin)];
       r.extra = { ...r.extra, fromHere: true, planned: true };
