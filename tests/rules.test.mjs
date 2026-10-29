@@ -641,3 +641,24 @@ test("This morning: at Letchworth station, then on the 07:08 passing Hitchin —
   assert.equal(c.state.onLine, true);
   app.close();
 });
+
+test("At King's Cross: the walk to the tube counts from when you arrived; tubes you might just make are listed, marked", async () => {
+  const app = await open({ now: T("07:42"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c, m = 60e3;
+  await app.moveTo(51.5309, -0.1236, 15);                            // off the train at King's Cross, 07:42
+  assert.equal(c.state.hubSince.at, T("07:42"));
+  app.at(T("07:44")); c.state.lastFixAt = T("07:44");
+  await app.moveTo(51.5310, -0.1235, 15);                            // two minutes later, still in the station
+  assert.equal(c.state.hubSince.at, T("07:42"), "arrival time kept");
+  const tube = (min, line) => ({ t: T("07:44") + min * m, line, lineId: line === "Circle" ? "circle" : "metropolitan", dest: "Aldgate", platform: "Eastbound - Platform 2" });
+  c.state.tube = { hub: "KGX", at: T("07:44"), arrivals: [tube(0.3, "Circle"), tube(1, "Met"), tube(2.5, "Circle"), tube(6, "Met")], err: null };
+  c.render();
+  // Fast pace: about 5 min to the platform from 07:42 → ready about 07:47: the 07:46:30 Circle is "near the platform", the 07:50 Met is the pick.
+  const hero = app.text("#hero");
+  assert.match(hero, /Get on the Met/);
+  assert.match(hero, /about 3 min to spare on the platform/);
+  assert.match(hero, /Near the platform already\? The 07:45 Met \(office 08:01\) or the 07:46 Circle/);
+  assert.match(hero, /Walk to the Circle\/Met eastbound platform · about \d min, from when you arrived \(07:42\)/);
+  assert.match(app.text("#list"), /07:46.*If you're near the platform/);
+  assert.doesNotMatch(app.text("#list"), /07:44/, "a tube leaving within 30 s isn't listed");
+  app.close();
+});
