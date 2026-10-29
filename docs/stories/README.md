@@ -35,7 +35,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Arrive by](arrive-by.md) · Done (earlier trains: #14)
 - [Same train from several stations](same-train.md) · Done
 - [Slow trains say so](slow-trains.md) · Done
-- [Late trains say so](late-trains.md) · Done (test gap)
+- [Late trains say so](late-trains.md) · Done
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done
 - [Presentation model: the engine decides what comes first](presentation-model.md) · Done (status line not yet drawn)
@@ -48,7 +48,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [At the station: departure board](at-the-station.md) · Done
 - [Which train you're on](which-train.md) · Done
 - [Connections at any station](connections.md) · Done
-- [Tube home decides the train](tube-home.md) · Done, still bespoke (2b-iv)
+- [Tube home decides the train](tube-home.md) · Done (generic connection model)
 - [Elsewhere in London](elsewhere-in-london.md) · Done
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari

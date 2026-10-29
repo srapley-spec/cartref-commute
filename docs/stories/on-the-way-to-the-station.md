@@ -10,8 +10,13 @@ and whether I'm on track, so that I know whether to hurry and for which train.
 needed its own view rather than "leave now".
 
 ## Acceptance criteria
-- Within 3 km of Letchworth with a good fix and closer than home, the walk is worked out from where you are
-  (straight line × 1.3 for streets, at your pace).
+- Within 3 km of Letchworth with a good fix and closer than home, the walk is worked out from where you are. With
+  a saved home: your measured walk × the share of the distance still to go. Without: straight line × 1.3 for
+  streets, at your pace. (29 Oct afternoon: with a saved home ~1.6 km out, the straight-line estimate exceeded the
+  measured walk, so "on your way" never started.)
+- "On your way" starts once you're more than 100 m plus the fix's accuracy from your saved home (GPS drift at home
+  isn't leaving).
+- "On track · N min to spare" is whole minutes in hand for that train.
 - Shows departures, when you'll reach the station, and "on track" or minutes behind for each.
 - "If you hurry" trains are listed nearest-to-making first, with a departure countdown; they stay on the list and
   card until they leave.
@@ -23,3 +28,10 @@ needed its own view rather than "leave now".
 - tests/logic.test.mjs: "On the way to the station, the walk is worked out from where you are"
 - tests/logic.test.mjs: "A train you'd have to hurry for stays on the list and the card, with a departure countdown"
 - tests/core/plan.test.mjs: "Routes home; from where you are (walk to Letchworth, or already at King's Cross); leisure"
+- tests/rules.test.mjs: "Review: on your way — exact minutes to spare, and 'on your way' starts 100 m from your saved home"
+- tests/rules.test.mjs: "Review 3: a picked tube that's delayed starts your ride at its new time; GPS drift at home isn't leaving"
+- tests/golden.test.mjs: "golden: on your way to Letchworth (home saved 1.6 km out, 550 m from the station), live"
+
+## Not yet / open questions
+- Test data: the default test home is 550 m from the station but uses a 22-minute measured walk. Make it
+  consistent (~1.6 km) next time the goldens are regenerated.

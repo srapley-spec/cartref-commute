@@ -20,8 +20,14 @@ to ask; Service Details needed its own key. Non-stop runs only report their two 
   can still pick.
 - On the line counts only when moving along it; near home (just past Letchworth to just past Hitchin) only when by
   the track at train speed; stays on while stopped at a station.
-- Trains are compared with where you were when the phone took the fix; a stale fix can't switch trains.
-- The train is remembered by National Rail service ID when known, else operator, time and station.
+- Trains are compared with where you were when the phone took the fix (the phone's own timestamp); "departed" means
+  departed by then. A fix over 2 minutes old can't switch or settle the train but keeps the remembered one, at low
+  confidence.
+- Without phone speed, frequent fixes add up: 300 m+ at 15+ km/h away from home; 500 m+ at 40+ km/h by the track
+  near home. A train you picked counts as moving, even stopped at a station. One fix too rough to place you (worse
+  than 500 m) changes nothing.
+- The train is remembered by National Rail service ID when known (a pick carries it), preferring your station when
+  the same service is on two boards; if the ID isn't on the board, by operator, time and station.
 - Arrival comes from Service Details' expected time at your stop; "timetable" is the scheduled time; the card shows
   the last reported stop. Service Details about once a minute.
 - On the train home, the list doesn't talk about the onward tube.
@@ -48,6 +54,13 @@ to ask; Service Details needed its own key. Non-stop runs only report their two 
 - tests/logic.test.mjs: "On the train home, the list doesn't talk about the onward tube"
 - tests/golden.test.mjs: "golden: on the train near Knebworth (the 07:08 is reported passing; the 07:20 hasn't left)"
 - tests/golden.test.mjs: "golden: on the train, no train fits where National Rail reports them: asks which train"
+- tests/core/situation.test.mjs: "trackLine without phone speed: frequent fixes accumulate; a picked train counts; one rough fix changes nothing"
+- tests/core/situation.test.mjs: "trackLine near home without phone speed: 500 m+ at 40+ km/h by the track"
+- tests/core/situation.test.mjs: "whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten"
+- tests/core/situation.test.mjs: "Remembered train: falls back to the fields when the ID isn't on the board; same ID at two stations prefers yours; stale lock is low confidence; departed is judged at fix time"
+- tests/core/situation.test.mjs: "Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten"
+- tests/rules.test.mjs: "Review: a picked train keeps its National Rail service ID"
+- tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
 
 ## Not yet / open questions
 - #23: passing points (Darwin real-time) for non-stop runs; needs a server.

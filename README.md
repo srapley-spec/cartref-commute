@@ -30,7 +30,8 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 - Train source: Darwin (live) when a key is set; otherwise TfL journey planner timetable (not live), also used as a backup if Darwin fails.
 - Rail legs: live departures and calling-point estimates from Darwin; cancelled trains are excluded and listed.
 - Tube legs: modelled as interchange walk + wait allowance + typical ride time. All editable in Settings.
-- Aldgate East (H&C) is used only when Circle and Met are both closed or suspended.
+- Aldgate East (H&C): planned from home only when Circle and Met are both closed or suspended; at King's Cross or
+  Farringdon with live tubes it competes on arrival time; going home from Aldgate it stays a fallback.
 - "Fast pace" uses your measured fast walks for Cartref ⇄ Letchworth and a multiplier (0.82, from your data) for London walks.
 
 ## Architecture
@@ -116,7 +117,7 @@ See [`docs/architecture.md`](docs/architecture.md). In short:
   line. Arrival comes from the train's live expected time; the card shows the last reported stop.
 - **Tube going home:** near the office, the next westbound tubes from Aldgate you can make, each with its train and
   when to leave; underground after Aldgate, which tube you're probably on and where to get off (Farringdon or King's
-  Cross) for the earliest home time.
+  Cross) for the earliest home time. Same model as the morning tube: pick your tube, ride, "Did you get it?".
 - **Nearly home:** home time from your train's expected Letchworth time, or the walk from where you are once your
   home is set in Settings ("Home is where I am now"); "You're home" within 100 m.
 - **Any start and end point** (Settings → Experimental, off by default): in Leisure, "Where to?" plans the train to
