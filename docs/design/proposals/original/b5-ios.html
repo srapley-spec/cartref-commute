@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B5 iOS Live Activity and widget — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+body{margin:0;background:#F4F1EA;color:#1B1A17;font-family:"Public Sans",system-ui,sans-serif;font-size:14px;line-height:1.4}
+a{color:#1B1A17}a:hover{color:#1F4FBF}
+.t{font-family:"Archivo",system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B665C}
+.chip{display:inline-flex;align-items:center;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;line-height:1.5}
+.chip.circle{background:#FFD329;color:#1A1A1A}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.warn{background:#F7E8C8;color:#7A4A00}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1180px;box-sizing:border-box;background:#F4F1EA;padding:54px 20px 40px;display:flex;flex-direction:column;gap:28px">
+  <div style="display:flex;flex-direction:column;gap:4px;border-bottom:3px solid #1B1A17;padding-bottom:12px">
+    <span class="lbl">Cartref Commute</span>
+    <h1 class="t" style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em">On iOS, later</h1>
+    <p style="margin:0;font-size:13px;color:#6B665C">Native-only surfaces fed by the same engine output. Live Activities render in the system's dark surface; the widget uses the app's light palette.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span class="lbl">Live Activity · lock screen</span>
+    <div style="background:#1B1A17;color:#fff;border-radius:22px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;opacity:.8">Cartref Commute</span><span class="pill" style="background:#4A3A10;color:#FFD57A"><span class="t">+3 min</span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+        <div style="display:flex;flex-direction:column"><span class="lbl" style="font-size:10px;color:#B9B3A6">King's Cross</span><span class="t" style="font-size:30px;font-weight:800;line-height:1">07:47</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:5px;padding-bottom:4px">
+          <div style="position:relative;height:4px;background:#3A3832;border-radius:2px"><div style="position:absolute;left:0;top:0;bottom:0;width:58%;background:#fff;border-radius:2px"></div><div style="position:absolute;left:58%;top:-6px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#FFD329"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#B9B3A6"><span>LET</span><span>Stevenage · now</span><span>KGX</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end"><span class="lbl" style="font-size:10px;color:#B9B3A6">Office</span><span class="t" style="font-size:30px;font-weight:800;line-height:1">08:15</span></div>
+      </div>
+      <div style="font-size:12px;color:#B9B3A6">Then Circle or Met to Aldgate · about <span class="t">07:56</span> (estimate until you're there)</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span class="lbl">Dynamic Island · compact and expanded</span>
+    <div style="display:flex;justify-content:center"><div style="background:#000;color:#fff;border-radius:999px;padding:8px 16px;display:flex;align-items:center;gap:14px;min-width:200px;justify-content:space-between"><span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700"><span style="width:8px;height:8px;border-radius:50%;background:#FFD329"></span>KGX <span class="t">07:47</span></span><span class="t" style="font-size:12px;font-weight:700;color:#FFD57A">+3</span></div></div>
+    <div style="display:flex;justify-content:center"><div style="background:#000;color:#fff;border-radius:28px;padding:14px 18px;width:340px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;opacity:.8">07:08 Great Northern</span><span class="pill" style="background:#4A3A10;color:#FFD57A"><span class="t">+3 min</span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end"><span class="t" style="font-size:26px;font-weight:800;line-height:1">07:47 <span style="font-size:11px;opacity:.7;font-family:'Public Sans'">KGX</span></span><span style="font-size:12px;opacity:.8">last report Stevenage +3</span><span class="t" style="font-size:26px;font-weight:800;line-height:1">08:15 <span style="font-size:11px;opacity:.7;font-family:'Public Sans'">office</span></span></div>
+      <div style="position:relative;height:4px;background:#3A3832;border-radius:2px"><div style="position:absolute;left:0;top:0;bottom:0;width:58%;background:#fff;border-radius:2px"></div></div>
+    </div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span class="lbl">Home-screen widget · medium · "Leave now"</span>
+    <div style="background:#fff;border:1px solid #DDD7CB;border-top:4px solid #1B1A17;border-radius:22px;padding:14px 16px;width:338px;height:158px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="lbl">To the office</span><span class="t" style="font-size:11px;color:#6B665C">06:41</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div style="display:flex;flex-direction:column"><span class="lbl" style="font-size:10px">Leave</span><span class="t" style="font-size:38px;font-weight:800;line-height:1;letter-spacing:-.04em">06:47</span></div>
+        <span class="t" style="font-size:14px;font-weight:700;color:#1F4FBF;margin-bottom:6px">in 5:42</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end"><span class="lbl" style="font-size:10px">Office</span><span class="t" style="font-size:38px;font-weight:800;line-height:1;letter-spacing:-.04em">08:12</span></div>
+      </div>
+      <div style="font-size:12px;color:#5E5A52"><span class="t" style="font-weight:700">07:08</span> Great Northern · platform 2 · next best <span class="t">06:52</span></div>
+    </div>
+  </div>
+
+  <p style="margin:0;font-size:12px;color:#6B665C">Live Activities need push updates from a server or the native app, which the GitHub Pages web app cannot provide; native-only. Same engine output as the Now screen: projected arrival, delay vs timetable, last report, next stop, onward leg. No new data; the native shell shows it in more places.</p>
+</div>
+</body>
+</html>

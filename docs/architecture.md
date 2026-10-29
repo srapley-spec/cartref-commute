@@ -124,13 +124,16 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Later: a design system. Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Later: a design system; proposals being compared in [`design/`](design/README.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
 - **29 Oct** The engine decides priority, the shell decides geometry: a presentation model (`present.ts`) owns view
   choice, headline kind, status-line precedence and block order; `page.html` draws in that order. Design proposals
   are judged on how they draw the blocks. → [presentation-model](stories/presentation-model.md)
+- **29 Oct** A design system before more features. Several proposals, all held to one brief and one inventory of the
+  current screen (no silent regression), compared in `docs/design/`. Claude's first proposal ("original") set aside as
+  too close to today's layout; its second ("womble") is a draft for feedback. → [design](design/README.md)
 - **29 Oct afternoon** Going-home tubes moved onto the generic connection model (2b-iv), after the independent
   review was satisfied. → [tube-home](stories/tube-home.md)
 - **29 Oct afternoon** Independent test review before further refactoring (Sam). Fixes: phantom tube ride after a

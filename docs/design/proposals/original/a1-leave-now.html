@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A1 Leave now — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#0B0E13;color:#F2F4F7;font-family:"Inter Tight",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F2F4F7;text-decoration:none}a:hover{color:#FFB020}
+.t{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.5}
+.chip.rail{border:1px solid #3A414D;color:#D6DBE3;background:#141820}
+.chip.circle{background:#FFD329;color:#1A1A1A}
+.chip.met{background:#9B0058;color:#fff}
+.chip.hc{background:#F4A9BE;color:#1A1A1A}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.ok{background:#12301F;color:#5EE09B}
+.pill.warn{background:#352A0E;color:#FFC44D}
+.pill.bad{background:#3B1512;color:#FF8A7A}
+.pill.info{border:1px solid #3A414D;color:#AEB6C2}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding:8px 0 4px;font-size:11px;font-weight:600;color:#7C8696;min-height:44px}
+.tab.on{color:#FFB020}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1180px;box-sizing:border-box;background:#0B0E13;display:flex;flex-direction:column">
+
+  <!-- Top bar: context replaces three rows of segmented controls -->
+  <div style="padding:54px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <button type="button" aria-label="Change journey, mode or direction" style="display:flex;align-items:center;gap:8px;background:#141820;border:1px solid #232A35;border-radius:999px;padding:8px 12px 8px 10px;color:#F2F4F7;font:inherit;font-weight:600;min-height:44px;cursor:pointer">
+      <span class="dot" style="background:#FFB020"></span>
+      <span>To the office</span>
+      <span style="color:#7C8696;font-weight:500">· Auto, from your location</span>
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C8696" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button type="button" aria-pressed="false" style="display:flex;align-items:center;gap:6px;background:transparent;border:1px solid #232A35;border-radius:999px;padding:8px 12px;color:#AEB6C2;font:inherit;font-size:12px;font-weight:700;min-height:44px;cursor:pointer">
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+      Fast
+    </button>
+  </div>
+
+  <!-- Status line: one row, replaces the stack of banners -->
+  <a href="a4-lines.html" style="margin:0 16px;display:flex;align-items:center;gap:10px;background:#141820;border:1px solid #232A35;border-radius:12px;padding:10px 12px;min-height:44px">
+    <span class="dot" style="background:#FFC44D;flex:none"></span>
+    <span style="flex:1;font-size:13px;min-width:0"><b>Great Northern: minor delays</b> <span style="color:#AEB6C2">· no train delayed 5+ min · 2 notices</span></span>
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C8696" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+
+  <!-- Plan selector -->
+  <div role="group" aria-label="Plan" style="margin:14px 16px 0;display:flex;background:#141820;border:1px solid #232A35;border-radius:12px;padding:3px">
+    <button type="button" aria-pressed="true" style="flex:1;border:0;border-radius:9px;padding:9px 0;background:#F2F4F7;color:#0B0E13;font:inherit;font-size:13px;font-weight:700;min-height:44px">Leave now</button>
+    <button type="button" aria-pressed="false" style="flex:1;border:0;border-radius:9px;padding:9px 0;background:transparent;color:#AEB6C2;font:inherit;font-size:13px;font-weight:600;min-height:44px">Arrive by</button>
+    <button type="button" aria-pressed="false" style="flex:1;border:0;border-radius:9px;padding:9px 0;background:transparent;color:#AEB6C2;font:inherit;font-size:13px;font-weight:600;min-height:44px">Leave around</button>
+  </div>
+
+  <!-- Top card -->
+  <section aria-live="polite" style="margin:14px 16px 0;background:#141820;border:1px solid #232A35;border-radius:16px;overflow:hidden">
+    <div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">If you leave now</span>
+      <span class="t" style="font-size:11px;color:#7C8696">06:41 · live</span>
+    </div>
+
+    <!-- Best -->
+    <div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div style="display:flex;flex-direction:column">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Leave</span>
+          <span class="t" style="font-size:44px;font-weight:700;line-height:1;letter-spacing:-.03em">06:47</span>
+        </div>
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3A414D" stroke-width="2.5" style="margin-bottom:10px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <div style="display:flex;flex-direction:column;align-items:flex-end">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Office</span>
+          <span class="t" style="font-size:44px;font-weight:700;line-height:1;letter-spacing:-.03em">08:12</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip rail">via King's Cross</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <span class="pill" style="background:#FFB020;color:#1A1200;font-size:12px"><span class="t">leave in 5:42</span></span>
+      </div>
+      <div style="font-size:13px;color:#D6DBE3"><span class="t" style="font-weight:600">07:08</span> Great Northern · <b>platform 2</b> · 36 min train · total 1 h 27</div>
+      <details style="font-size:13px;color:#AEB6C2"><summary style="cursor:pointer;font-weight:600;min-height:28px;display:flex;align-items:center">Journey steps</summary>
+        <ol style="list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:5px">
+          <li class="t">06:47</li><li>Leave home · 22 min walk, average pace</li>
+          <li class="t">07:08</li><li>Letchworth platform 2 · 07:08 Great Northern</li>
+          <li class="t">07:44</li><li>King's Cross · 6 min to the Circle/Met</li>
+          <li class="t">07:53</li><li>Eastbound Circle or Met · 3 min wait, 10 min ride</li>
+          <li class="t">08:03</li><li>Aldgate · 2 min to street, 7 min walk</li>
+          <li class="t">08:12</li><li>20 Mansfield Street</li>
+        </ol>
+      </details>
+    </div>
+
+    <!-- Next best -->
+    <div style="border-top:1px solid #232A35;padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div style="display:flex;flex-direction:column">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Next best · Leave</span>
+          <span class="t" style="font-size:30px;font-weight:700;line-height:1;letter-spacing:-.03em">06:52</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Office</span>
+          <span class="t" style="font-size:30px;font-weight:700;line-height:1;letter-spacing:-.03em">08:30</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip rail">via Farringdon or St Pancras</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <span class="pill info"><span class="t">leave in 10:42</span></span>
+      </div>
+      <div style="font-size:13px;color:#D6DBE3"><span class="t" style="font-weight:600">07:14</span> <span style="color:#FFC44D">exp <span class="t">07:17</span></span> Thameslink · 51 min train · total 1 h 38</div>
+      <div style="font-size:13px;color:#D6DBE3;padding-left:10px;border-left:2px solid #3A414D">Get off at <b>Farringdon</b> <span class="t">08:08</span> or <b>St Pancras</b> <span class="t">08:04</span> <span style="color:#7C8696">(both exp, +3)</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill warn">+3 min</span><span class="pill warn">Stopping train</span></div>
+    </div>
+
+    <!-- Right now / hurry -->
+    <div style="border-top:1px solid #232A35;padding:12px 16px;font-size:13px;color:#D6DBE3;display:flex;flex-direction:column;gap:8px">
+      <div><b style="color:#F2F4F7">Leaving right now?</b> The <span class="t">07:00</span> <span style="color:#FFC44D">exp <span class="t">07:03</span></span> Thameslink — <span style="color:#FFC44D;font-weight:700">stopping train, 54 min</span>; office <span class="t">08:19</span>, 7 min later than the <span class="t">07:08</span>.</div>
+    </div>
+
+    <!-- Your lines -->
+    <div style="border-top:1px solid #232A35;padding:10px 16px 12px;display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Your lines</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill warn">Great Northern: minor delays</span><span class="pill ok">Thameslink: good service</span><span class="pill ok">Circle: good service</span><span class="pill ok">Met: good service</span></div>
+    </div>
+  </section>
+
+  <!-- List -->
+  <h2 style="margin:18px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Next trains, in leaving order</h2>
+  <div style="margin:0 16px;display:flex;flex-direction:column;background:#141820;border:1px solid #232A35;border-radius:14px;overflow:hidden">
+
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;background:#0F1218">
+      <div class="t" style="font-size:17px;font-weight:700;color:#FF8A7A;text-decoration:line-through">06:38</div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip rail">via King's Cross</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <div style="font-size:12px;color:#AEB6C2"><span class="t">07:00</span> exp <span class="t">07:03</span> Thameslink · 54 min · <span class="t">departs in 21:30</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="pill bad">Leave time passed: 3 min short</span><span class="pill warn">Stopping train</span></div>
+      </div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:19</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35;background:#1A2130;box-shadow:inset 3px 0 0 #FFB020">
+      <div class="t" style="font-size:17px;font-weight:700">06:47</div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip rail">via King's Cross</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <div style="font-size:12px;color:#AEB6C2"><span class="t">07:08</span> Great Northern · platform 2 · 36 min · <span class="t">leave in 5:42</span></div>
+      </div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:12</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35">
+      <div class="t" style="font-size:17px;font-weight:700">06:52</div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip rail">via Farringdon or St Pancras</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <div style="font-size:12px;color:#AEB6C2"><span class="t">07:14</span> exp <span class="t">07:17</span> Thameslink · 51 min · <span class="t">leave in 10:42</span></div>
+        <div style="font-size:12px;color:#AEB6C2">Get off at <b>Farringdon</b> <span class="t">08:08</span> or <b>St Pancras</b> <span class="t">08:04</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="pill warn">+3 min</span><span class="pill warn">Stopping train</span></div>
+      </div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:30</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35">
+      <div class="t" style="font-size:17px;font-weight:700">07:04</div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip rail">via King's Cross</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <div style="font-size:12px;color:#AEB6C2"><span class="t">07:25</span> Great Northern · platform 1 · 38 min · <span class="t">leave in 22:42</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="pill bad">Usually standing room only</span></div>
+      </div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:29</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35;background:#0F1218">
+      <div class="t" style="font-size:17px;font-weight:700;color:#AEB6C2">07:16</div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip rail">via King's Cross</span><span class="chip circle">Circle</span><span class="chip met">Met</span></div>
+        <div style="font-size:12px;color:#AEB6C2"><span class="t">07:37</span> Great Northern · 36 min</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="pill bad">Delayed, no estimate: times unknown</span></div>
+      </div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right;color:#AEB6C2">—</div>
+    </div>
+  </div>
+
+  <details style="margin:10px 16px 0;font-size:13px;color:#7C8696"><summary style="cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center">Why these trains? · about the times</summary>
+    <p style="margin:6px 0">Letchworth → King's Cross, live board: 4 trains: 07:08, 07:25, 07:37, 07:52. Letchworth → Farringdon: 3 trains. Tube legs are estimates: 3 min wait allowance plus typical ride time (Settings). Times assume average walking pace.</p>
+  </details>
+
+  <div style="flex:1"></div>
+  <div style="margin:16px 16px 6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7C8696"><span>Updated <span class="t">06:41</span> · live from National Rail</span><button type="button" style="background:transparent;border:1px solid #232A35;border-radius:999px;padding:6px 12px;color:#AEB6C2;font:inherit;font-size:11px;font-weight:700;min-height:32px">Refresh</button></div>
+
+  <!-- Tab bar -->
+  <nav aria-label="Sections" style="display:flex;border-top:1px solid #232A35;background:#0E1218;padding:0 8px 22px">
+    <a href="a1-leave-now.html" class="tab on"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now</a>
+    <a href="A-ArriveBy.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Plan</a>
+    <a href="a4-lines.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Lines</a>
+    <a href="a1-leave-now.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</a>
+  </nav>
+</div>
+</body>
+</html>
