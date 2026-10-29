@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B4 Lines and notices — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+body{margin:0;background:#F4F1EA;color:#1B1A17;font-family:"Public Sans",system-ui,sans-serif;font-size:14px;line-height:1.4}
+a{color:#1B1A17;text-decoration:none}a:hover{color:#1F4FBF}
+.t{font-family:"Archivo",system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.ok{background:#DFF0E4;color:#1B6B3F}
+.pill.warn{background:#F7E8C8;color:#7A4A00}
+.pill.bad{background:#F9DEDA;color:#9E2318}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B665C}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.notice{border-top:1px solid #DDD7CB;padding:10px 0}
+.notice summary{cursor:pointer;font-weight:600;font-size:13px;display:flex;gap:10px;align-items:flex-start;min-height:44px;padding-top:6px}
+.notice p{margin:6px 0 0 20px;font-size:12px;color:#5E5A52}
+.notice a{text-decoration:underline;color:#1F4FBF}
+.line{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid #DDD7CB;font-size:14px;font-weight:700}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1180px;box-sizing:border-box;background:#F4F1EA;display:flex;flex-direction:column;padding:0 20px">
+  <div style="padding:54px 0 12px;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:3px solid #1B1A17">
+    <div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">Cartref Commute</span><h1 class="t" style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em">Lines &amp; notices</h1><span style="font-size:12px;color:#6B665C">updated <span class="t">06:41</span></span></div>
+    <a href="b1-leave-now.html" style="display:inline-flex;align-items:center;background:#fff;border:1px solid #CFC9BC;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700;min-height:40px">‹ Now</a>
+  </div>
+
+  <h2 class="lbl" style="margin:18px 0 6px">Your trains · live to 08:41</h2>
+  <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#9A6200"></span><span><b>No train</b> delayed 5+ min · <span class="t">07:14</span> Thameslink running 3 min late</span></div>
+    <div style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#CFC9BC"></span><span style="color:#5E5A52">No cancellations · no train without an estimate</span></div>
+  </div>
+  <details class="notice" open><summary><span class="dot" style="background:#9A6200;margin-top:5px"></span><span>Great Northern: minor delays between Hitchin and Stevenage</span></summary><p>A speed restriction between Hitchin and Stevenage means trains may be delayed by up to 10 minutes. <a href="https://www.nationalrail.co.uk">National Rail details</a></p></details>
+  <details class="notice"><summary><span class="dot" style="background:#8A7A00;margin-top:5px"></span><span>Engineering work at Welwyn this weekend: buses replace trains Sat/Sun</span></summary><p>No effect on today's trains.</p></details>
+
+  <h2 class="lbl" style="margin:22px 0 2px">Your lines</h2>
+  <div class="line"><span style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#1F4FBF"></span>Great Northern</span><span class="pill warn">Minor delays</span></div>
+  <div class="line"><span style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#E64B8B"></span>Thameslink</span><span class="pill ok">Good service</span></div>
+  <div class="line"><span style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#FFD329"></span>Circle</span><span class="pill ok">Good service</span></div>
+  <div class="line"><span style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#9B0058"></span>Metropolitan</span><span class="pill ok">Good service</span></div>
+  <div class="line" style="border-bottom:1px solid #DDD7CB"><span style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:#F4A9BE"></span>Hammersmith &amp; City</span><span class="pill ok">Good service</span></div>
+
+  <h2 class="lbl" style="margin:22px 0 2px">Data</h2>
+  <div style="display:flex;flex-direction:column;font-size:13px">
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB"><span style="color:#6B665C">Trains</span><span>Live from National Rail · <span class="t">06:41</span></span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB"><span style="color:#6B665C">Beyond 2 h</span><span>TfL timetable, labelled on each train</span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB"><span style="color:#6B665C">Tube</span><span>Live arrivals · line status <span class="t">06:40</span></span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB"><span style="color:#6B665C">Farringdon board</span><span style="color:#9E2318">not loaded · trying again <span class="t">06:43</span></span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB"><span style="color:#6B665C">Requests, last minute</span><span class="t">TfL 4 · National Rail 3</span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #DDD7CB;border-bottom:1px solid #DDD7CB"><span style="color:#6B665C">Build</span><span class="t">a1f3c9</span></div>
+  </div>
+
+  <div style="margin-top:22px">
+    <details class="notice"><summary><span class="dot" style="background:#CFC9BC;margin-top:5px"></span><span style="color:#5E5A52">3 station facility notices (toilets, lifts, escalators…)</span></summary><p>King's Cross: lift to platforms 9–11 out of use. Farringdon: escalator maintenance. Stevenage: toilets closed.</p></details>
+    <details class="notice" style="border-bottom:1px solid #DDD7CB"><summary><span class="dot" style="background:#CFC9BC;margin-top:5px"></span><span style="color:#5E5A52">5 notices elsewhere on the network</span></summary><p>Not on your route today.</p></details>
+  </div>
+  <div style="flex:1"></div>
+</div>
+</body>
+</html>

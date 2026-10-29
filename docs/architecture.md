@@ -114,10 +114,13 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Later: a design system. Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Later: a design system; proposals being compared in [`design/`](design/README.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **29 Oct** A design system before more features. Several proposals, all held to one brief and one inventory of the
+  current screen (no silent regression), compared in `docs/design/`. Claude's first proposal ("original") set aside as
+  too close to today's layout; its second ("womble") is a draft for feedback. → [design](design/README.md)
 - **29 Oct** Project context moves into this repo (`CLAUDE.md`, `docs/`); CI enforces docs touched with behaviour
   changes. Build work moves to Claude Code; the claude.ai Project stays for trip debriefs, and anything decided
   there is written here.

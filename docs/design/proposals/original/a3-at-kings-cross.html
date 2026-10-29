@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A3 At King's Cross — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#0B0E13;color:#F2F4F7;font-family:"Inter Tight",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F2F4F7;text-decoration:none}a:hover{color:#FFB020}
+.t{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.5}
+.chip.circle{background:#FFD329;color:#1A1A1A}
+.chip.met{background:#9B0058;color:#fff}
+.chip.hc{background:#F4A9BE;color:#1A1A1A}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.ok{background:#12301F;color:#5EE09B}
+.pill.warn{background:#352A0E;color:#FFC44D}
+.pill.bad{background:#3B1512;color:#FF8A7A}
+.pill.info{border:1px solid #3A414D;color:#AEB6C2}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding:8px 0 4px;font-size:11px;font-weight:600;color:#7C8696;min-height:44px}
+.tab.on{color:#FFB020}
+.pick{background:#1A2130;border:1px solid #3A414D;border-radius:10px;padding:9px 12px;color:#F2F4F7;font:inherit;font-size:13px;font-weight:700;min-height:44px}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1180px;box-sizing:border-box;background:#0B0E13;display:flex;flex-direction:column">
+
+  <div style="padding:54px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <button type="button" aria-label="Change journey, mode or direction" style="display:flex;align-items:center;gap:8px;background:#141820;border:1px solid #232A35;border-radius:999px;padding:8px 12px 8px 10px;color:#F2F4F7;font:inherit;font-weight:600;min-height:44px;cursor:pointer">
+      <span class="dot" style="background:#5EE09B"></span><span>To the office</span><span style="color:#7C8696;font-weight:500">· at King's Cross</span>
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C8696" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <span class="t" style="font-size:12px;color:#7C8696">07:49</span>
+  </div>
+
+  <section aria-live="polite" style="margin:0 16px;background:#141820;border:1px solid #232A35;border-radius:16px;overflow:hidden">
+    <div style="padding:14px 16px 0;display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Office · live tube times</span>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <span class="t" style="font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em">08:15</span>
+        <span style="font-size:13px;color:#AEB6C2;padding-bottom:8px">in 26 min</span>
+      </div>
+    </div>
+
+    <!-- The instruction -->
+    <div style="margin:12px 16px 0;background:#FFB020;color:#1A1200;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-size:16px;font-weight:800">Get on the Circle to Aldgate</span>
+        <span class="t" style="font-size:16px;font-weight:800">in 2:10</span>
+      </div>
+      <span style="font-size:12px;font-weight:600;opacity:.85">Eastbound · due <span class="t">07:56</span> · about 2 min to spare on the platform</span>
+    </div>
+
+    <div style="padding:14px 16px 4px;display:grid;grid-template-columns:52px 1fr;gap:6px 12px;font-size:13px">
+      <span class="t" style="color:#AEB6C2">07:49</span><span>Walk to the eastbound platform <span style="color:#7C8696">· about 6 min, from when you arrived (07:47)</span></span>
+      <span class="t" style="color:#AEB6C2">07:56</span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip circle">Circle</span> towards Hammersmith <span style="color:#7C8696">· platform 1</span></span>
+      <span class="t" style="color:#AEB6C2">08:06</span><span>Aldgate <span style="color:#7C8696">· about 10 min ride</span></span>
+      <span class="t" style="font-weight:700">08:15</span><span style="font-weight:700">20 Mansfield Street <span style="color:#7C8696;font-weight:500">· 2 min to street, 7 min walk</span></span>
+    </div>
+
+    <div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:12px;color:#AEB6C2">Near the platform already? The <span class="t">07:53</span> Met gets you there <span class="t">08:12</span>.</span>
+      <span style="font-size:12px;color:#AEB6C2">Which one are you getting?</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="pick"><span class="t">07:53</span> Met</button>
+        <button type="button" class="pick"><span class="t">07:56</span> Circle</button>
+        <button type="button" class="pick"><span class="t">07:59</span> H&amp;C</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #232A35;padding:10px 16px 12px;display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Your lines</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ok">Circle: good service</span><span class="pill ok">Met: good service</span><span class="pill ok">H&amp;C: good service</span></div>
+    </div>
+  </section>
+
+  <h2 style="margin:18px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Next eastbound tubes</h2>
+  <div style="margin:0 16px;display:flex;flex-direction:column;background:#141820;border:1px solid #232A35;border-radius:14px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center">
+      <div class="t" style="font-size:17px;font-weight:700">07:53</div>
+      <div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip met">Met</span><span style="font-size:12px;color:#AEB6C2">to Aldgate</span><span class="pill warn">If you're near the platform</span></div><div style="font-size:12px;color:#AEB6C2">Aldgate <span class="t">08:03</span> · <span class="t">due now</span></div></div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:12</div>
+    </div>
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35;background:#1A2130;box-shadow:inset 3px 0 0 #FFB020">
+      <div class="t" style="font-size:17px;font-weight:700">07:56</div>
+      <div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip circle">Circle</span><span style="font-size:12px;color:#AEB6C2">to Aldgate</span></div><div style="font-size:12px;color:#AEB6C2">Aldgate <span class="t">08:06</span> · <span class="t">in 2:10</span></div></div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:15</div>
+    </div>
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35">
+      <div class="t" style="font-size:17px;font-weight:700">07:59</div>
+      <div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip hc">H&amp;C</span><span style="font-size:12px;color:#AEB6C2">to Aldgate East</span></div><div style="font-size:12px;color:#AEB6C2">Aldgate East <span class="t">08:10</span> · <span class="t">in 5:10</span></div></div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:18</div>
+    </div>
+    <div style="display:grid;grid-template-columns:52px 1fr 52px;gap:10px;padding:11px 14px;align-items:center;border-top:1px solid #232A35">
+      <div class="t" style="font-size:17px;font-weight:700">08:02</div>
+      <div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip met">Met</span><span style="font-size:12px;color:#AEB6C2">to Aldgate</span></div><div style="font-size:12px;color:#AEB6C2">Aldgate <span class="t">08:12</span> · <span class="t">in 8:10</span></div></div>
+      <div class="t" style="font-size:17px;font-weight:700;text-align:right">08:21</div>
+    </div>
+  </div>
+
+  <!-- Going-home variant of the same component, for review -->
+  <h2 style="margin:22px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Evening variant · at King's Cross going home (departure board)</h2>
+  <section style="margin:0 16px;background:#141820;border:1px solid #232A35;border-radius:16px;overflow:hidden">
+    <div style="padding:12px 16px 0;display:flex;justify-content:space-between"><span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">You're at King's Cross · departures</span><span class="t" style="font-size:11px;color:#7C8696">17:52</span></div>
+    <div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div style="display:flex;flex-direction:column"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Departs</span><span class="t" style="font-size:44px;font-weight:700;line-height:1;letter-spacing:-.03em">18:06</span></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Home</span><span class="t" style="font-size:44px;font-weight:700;line-height:1;letter-spacing:-.03em">19:12</span></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;color:#D6DBE3"><span class="t" style="font-weight:600">18:06</span> Thameslink from St Pancras · <b style="color:#F2F4F7;font-size:15px">platform A</b> · 43 min train</span>
+        <span class="pill" style="background:#FFB020;color:#1A1200;font-size:12px"><span class="t">departs in 13:40</span></span>
+      </div>
+      <div style="font-size:12px;color:#AEB6C2">Walk to St Pancras by <span class="t">17:58</span> · 7 min</div>
+      <div style="font-size:13px;color:#D6DBE3;padding-left:10px;border-left:2px solid #3A414D">Board at <b>St Pancras</b> <span class="t">18:06</span> platform A <span style="color:#7C8696">or</span> <b>Farringdon</b> <span class="t">17:58</span> <span style="color:#FF8A7A">(too late to reach from here)</span></div>
+    </div>
+  </section>
+
+  <div style="flex:1"></div>
+  <div style="margin:16px 16px 6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7C8696"><span>Updated <span class="t">07:49</span> · tube arrivals live</span><button type="button" style="background:transparent;border:1px solid #232A35;border-radius:999px;padding:6px 12px;color:#AEB6C2;font:inherit;font-size:11px;font-weight:700;min-height:32px">Refresh</button></div>
+  <nav aria-label="Sections" style="display:flex;border-top:1px solid #232A35;background:#0E1218;padding:0 8px 22px">
+    <a href="a1-leave-now.html" class="tab on"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now</a>
+    <a href="A-ArriveBy.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Plan</a>
+    <a href="a4-lines.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Lines</a>
+    <a href="a1-leave-now.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>Settings</a>
+  </nav>
+</div>
+</body>
+</html>

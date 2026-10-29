@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A2 On the train — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#0B0E13;color:#F2F4F7;font-family:"Inter Tight",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F2F4F7;text-decoration:none}a:hover{color:#FFB020}
+.t{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.5}
+.chip.rail{border:1px solid #3A414D;color:#D6DBE3;background:#141820}
+.chip.circle{background:#FFD329;color:#1A1A1A}
+.chip.met{background:#9B0058;color:#fff}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.ok{background:#12301F;color:#5EE09B}
+.pill.warn{background:#352A0E;color:#FFC44D}
+.pill.bad{background:#3B1512;color:#FF8A7A}
+.pill.info{border:1px solid #3A414D;color:#AEB6C2}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.stop{display:grid;grid-template-columns:52px 28px 1fr auto;gap:0 8px;align-items:center;min-height:34px}
+.stop .n{position:relative;height:34px;display:flex;align-items:center;justify-content:center}
+.stop .n::before{content:"";position:absolute;left:13px;top:0;bottom:0;width:2px;background:#2F3642}
+.stop .m{width:10px;height:10px;border-radius:50%;background:#2F3642;position:relative;z-index:1;border:2px solid #141820}
+.stop.done .n::before{background:#5EE09B}
+.stop.done .m{background:#5EE09B}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding:8px 0 4px;font-size:11px;font-weight:600;color:#7C8696;min-height:44px}
+.tab.on{color:#FFB020}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1180px;box-sizing:border-box;background:#0B0E13;display:flex;flex-direction:column">
+
+  <div style="padding:54px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <button type="button" aria-label="Change journey, mode or direction" style="display:flex;align-items:center;gap:8px;background:#141820;border:1px solid #232A35;border-radius:999px;padding:8px 12px 8px 10px;color:#F2F4F7;font:inherit;font-weight:600;min-height:44px;cursor:pointer">
+      <span class="dot" style="background:#5EE09B"></span><span>To the office</span><span style="color:#7C8696;font-weight:500">· on the train</span>
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C8696" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <span class="t" style="font-size:12px;color:#7C8696">07:23</span>
+  </div>
+
+  <!-- Arrive-by verdict (only when an Arrive by plan is set) -->
+  <div style="margin:0 16px;display:flex;align-items:center;gap:10px;background:#12301F;border-radius:12px;padding:10px 12px;min-height:44px">
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5EE09B" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+    <span style="font-size:13px;color:#5EE09B"><b>On time for 08:30</b> · 15 min to spare</span>
+  </div>
+
+  <!-- Live journey card -->
+  <section aria-live="polite" style="margin:14px 16px 0;background:#141820;border:1px solid #232A35;border-radius:16px;overflow:hidden">
+    <div style="padding:14px 16px 0;display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Office · projected</span>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <span class="t" style="font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em">08:15</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-bottom:6px">
+          <span class="pill warn" style="font-size:13px"><span class="t">+3 min</span></span>
+          <span style="font-size:11px;color:#7C8696">vs timetable <span class="t">08:12</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Which train, with escape hatch -->
+    <div style="margin:12px 16px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1A2130;border-radius:10px;padding:10px 12px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:14px;font-weight:700">You're on the <span class="t">07:08</span> Great Northern <span style="color:#7C8696;font-weight:500">· you picked this</span></span>
+        <span style="font-size:12px;color:#AEB6C2">to King's Cross · worked out from your location · <b style="color:#FFC44D">location last updated 4 min ago</b></span>
+      </div>
+      <button type="button" style="background:transparent;border:1px solid #3A414D;border-radius:999px;padding:9px 12px;color:#AEB6C2;font:inherit;font-size:12px;font-weight:700;min-height:44px;white-space:nowrap">Not this one?</button>
+    </div>
+
+    <!-- Stop rail: Flighty-style progress, from Service Details reports -->
+    <div style="padding:14px 16px 6px;display:flex;flex-direction:column">
+      <div class="stop done"><span class="t" style="font-size:13px;color:#AEB6C2;text-align:right">07:08</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#AEB6C2">Letchworth Garden City</span><span style="font-size:11px;color:#7C8696">on time</span></div>
+      <div class="stop done"><span class="t" style="font-size:13px;color:#AEB6C2;text-align:right">07:16</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#AEB6C2">Hitchin</span><span class="pill warn" style="font-size:10px">+2</span></div>
+      <div class="stop done"><span class="t" style="font-size:13px;color:#AEB6C2;text-align:right">07:23</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#AEB6C2">Stevenage <span style="color:#7C8696">· last reported</span></span><span class="pill warn" style="font-size:10px">+3</span></div>
+      <!-- the train marker -->
+      <div class="stop" style="min-height:40px"><span></span><span class="n" style="height:40px"><span style="position:relative;z-index:2;width:22px;height:22px;border-radius:50%;background:#FFB020;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px rgba(255,176,32,.18)"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="#1A1200"><path d="M12 2c-4 0-8 .5-8 4v10a3 3 0 003 3l-2 2v1h2l2-2h6l2 2h2v-1l-2-2a3 3 0 003-3V6c0-3.5-4-4-8-4zM7 16a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm10 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm1-5H6V6h12v5z"/></svg></span></span><span style="font-size:13px;font-weight:700;color:#FFB020">About here · between Stevenage and King's Cross</span><span class="t" style="font-size:11px;color:#7C8696">now</span></div>
+            <div class="stop"><span class="t" style="font-size:13px;text-align:right;font-weight:700">07:47</span><span class="n"><span class="m" style="background:#F2F4F7"></span></span><span style="font-size:13px;font-weight:700">King's Cross <span style="color:#7C8696;font-weight:500">· get off</span></span><span style="font-size:11px;color:#FFC44D">expected · tt 07:44</span></div>
+    </div>
+
+    <!-- Onward -->
+    <div style="border-top:1px solid #232A35;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Then</span>
+      <div style="display:grid;grid-template-columns:52px 1fr;gap:5px 12px;font-size:13px">
+        <span class="t" style="color:#AEB6C2">07:53</span><span>Walk to the eastbound Circle/Met <span style="color:#7C8696">· 6 min</span></span>
+        <span class="t" style="color:#AEB6C2">07:56</span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip circle">Circle</span><span class="chip met">Met</span> to Aldgate <span style="color:#7C8696">· 3 min wait, 10 min ride</span></span>
+        <span class="t" style="color:#AEB6C2">08:06</span><span>Aldgate <span style="color:#7C8696">· 2 min to street, 7 min walk</span></span>
+        <span class="t" style="font-weight:700">08:15</span><span style="font-weight:700">20 Mansfield Street</span>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #232A35;padding:10px 16px 12px;display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7C8696">Your lines</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill warn">Great Northern: minor delays</span><span class="pill ok">Circle: good service</span><span class="pill ok">Met: good service</span></div>
+    </div>
+  </section>
+
+  <p style="margin:10px 16px 0;font-size:12px;color:#AEB6C2"><b style="color:#F2F4F7">Why late:</b> speed restriction between Hitchin and Stevenage (National Rail). Delay steady over the last 3 reports.</p>
+  <p style="margin:6px 16px 0;font-size:11px;color:#7C8696">Arrival and reports: National Rail Service Details for this train, refreshed about once a minute. Your location says which train you're on; last fix <span class="t">07:22</span>.</p>
+
+  <!-- Share ETA -->
+  <button type="button" style="margin:14px 16px 0;display:flex;align-items:center;justify-content:center;gap:8px;background:#141820;border:1px solid #232A35;border-radius:12px;padding:12px;color:#F2F4F7;font:inherit;font-weight:700;min-height:44px">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 3v13M7 8l5-5 5 5"/></svg>
+    Share "Office 08:15"
+  </button>
+
+  <!-- Example of the unsure state, shown as a second card for review -->
+  <h2 style="margin:22px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">When it isn't sure (state variant)</h2>
+  <section style="margin:0 16px;background:#141820;border:1px solid #232A35;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696">Office · projected</span>
+      <span class="t" style="font-size:40px;font-weight:700;line-height:1;letter-spacing:-.03em">08:15 <span style="font-size:14px;color:#7C8696;font-weight:600;letter-spacing:0">or 08:19</span></span>
+    </div>
+    <div style="font-size:12px;color:#AEB6C2">Reason from National Rail: a speed restriction between Hitchin and Stevenage.</div>
+    <div style="font-size:14px;font-weight:700">Probably the <span class="t">07:08</span> Great Northern <span style="color:#AEB6C2;font-weight:500">or the <span class="t">07:00</span> Thameslink</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:12px;color:#AEB6C2">Which train are you on?</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" style="background:#1A2130;border:1px solid #3A414D;border-radius:10px;padding:9px 12px;color:#F2F4F7;font:inherit;font-size:13px;font-weight:700;min-height:44px"><span class="t">07:08</span> Great Northern</button>
+        <button type="button" style="background:#1A2130;border:1px solid #3A414D;border-radius:10px;padding:9px 12px;color:#F2F4F7;font:inherit;font-size:13px;font-weight:700;min-height:44px"><span class="t">07:00</span> Thameslink</button>
+      </div>
+    </div>
+  </section>
+
+  <div style="flex:1"></div>
+  <div style="margin:16px 16px 6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7C8696"><span>Updated <span class="t">07:23</span> · Service Details <span class="t">07:23</span></span><button type="button" style="background:transparent;border:1px solid #232A35;border-radius:999px;padding:6px 12px;color:#AEB6C2;font:inherit;font-size:11px;font-weight:700;min-height:32px">Refresh</button></div>
+  <nav aria-label="Sections" style="display:flex;border-top:1px solid #232A35;background:#0E1218;padding:0 8px 22px">
+    <a href="a1-leave-now.html" class="tab on"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now</a>
+    <a href="A-ArriveBy.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Plan</a>
+    <a href="a4-lines.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Lines</a>
+    <a href="a1-leave-now.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>Settings</a>
+  </nav>
+</div>
+</body>
+</html>

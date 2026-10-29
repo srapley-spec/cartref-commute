@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B Journeys home — Cartref Commute design proposal: womble</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#15171C;color:#F5F6F8;font-family:"Manrope",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F5F6F8;text-decoration:none}a:hover{color:#4ADE80}
+.t{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lbl{font-size:12px;font-weight:700;color:#9AA3AE}
+.card{background:#22262E;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.pl{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;border-radius:8px;background:#F5F6F8;color:#15171C;font-weight:800;font-size:16px;padding:0 6px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+.ok{background:#143024;color:#4ADE80}.warn{background:#3A2E0E;color:#FBBF24}.bad{background:#3B1A1A;color:#F87171}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1000px;box-sizing:border-box;background:#15171C;display:flex;flex-direction:column;padding:0 16px">
+
+  <div style="padding:58px 0 12px;display:flex;align-items:center;justify-content:space-between">
+    <h1 style="margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em">Trains</h1>
+    <a href="b1-journeys.html" aria-label="Settings" style="width:44px;height:44px;border-radius:50%;background:#22262E;display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA3AE" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></a>
+  </div>
+
+  <!-- Search, Commutative-style; any-place lives here -->
+  <div class="card" style="gap:0;padding:0">
+    <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #2E333C;min-height:48px"><span class="lbl" style="width:38px">From</span><input type="text" value="Cartref (home)" style="flex:1;background:transparent;border:0;color:#F5F6F8;font:inherit;font-weight:700;min-width:0"></label>
+    <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;min-height:48px"><span class="lbl" style="width:38px">To</span><input type="text" value="20 Mansfield Street" style="flex:1;background:transparent;border:0;color:#F5F6F8;font:inherit;font-weight:700;min-width:0"><button type="button" style="background:#4ADE80;color:#0B1F14;border:0;border-radius:999px;padding:0 14px;font:inherit;font-weight:800;min-height:36px">Go</button></label>
+  </div>
+  <p style="margin:8px 0 0;font-size:12px;color:#9AA3AE">Any place in London once the "Any start and end point" toggle is on; otherwise home and the office.</p>
+
+  <!-- Favourites: the commute, auto-ordered by where you are -->
+  <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">Favourites</span><span style="font-size:11px;color:#9AA3AE">Auto · from your location · hold to reorder</span></div>
+
+  <a href="b2-trains.html" class="card" style="margin-top:8px;border:1px solid #4ADE80">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px;font-weight:800">Cartref → Office</span><span class="pill ok">Heading to the office</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="pl">2</span>
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800"><span class="t">07:08</span> Great Northern <span style="color:#9AA3AE;font-weight:600">· King's Cross <span class="t">07:44</span></span></div><div style="font-size:12px;color:#9AA3AE">Leave home <span class="t">06:47</span> · in <span class="t">5:42</span> · office <span class="t">08:12</span></div></div>
+    </div>
+    <div style="height:3px;border-radius:2px;background:#2E333C;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:21%;background:#4ADE80;border-radius:2px"></div></div>
+    <div style="font-size:11px;color:#9AA3AE">then <span class="t">07:17</span> TL +3 · <span class="t">07:25</span> GN · <span class="t">07:37</span> GN (no estimate)</div>
+  </a>
+
+  <a href="b2-trains.html" class="card" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px;font-weight:800">Office → Cartref</span><span style="font-size:11px;color:#9AA3AE">later today</span></div>
+    <div style="font-size:12px;color:#9AA3AE">From Farringdon, King's Cross or St Pancras · next tubes from Aldgate shown when you're near the office</div>
+  </a>
+
+  <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">Recent</span></div>
+  <a href="b2-trains.html" class="card" style="margin-top:8px;flex-direction:row;align-items:center;justify-content:space-between"><span style="font-weight:700">Cartref → Science Museum</span><span style="font-size:12px;color:#9AA3AE">day out · Sat</span></a>
+  <a href="b2-trains.html" class="card" style="margin-top:8px;flex-direction:row;align-items:center;justify-content:space-between"><span style="font-weight:700">Laura: Cartref → Hitchin</span><span style="font-size:12px;color:#9AA3AE">people &amp; trips · later</span></a>
+
+  <div style="margin-top:28px;display:flex;flex-direction:column;gap:8px">
+    <span class="lbl">Where the old controls went</span>
+    <div style="font-size:13px;color:#C3C9D2;display:grid;grid-template-columns:auto 1fr;gap:6px 14px">
+      <span style="color:#9AA3AE">Mode · direction</span><span>a favourite; Auto puts the right one first and labels it</span>
+      <span style="color:#9AA3AE">Pace · plan</span><span>on the results screen</span>
+      <span style="color:#9AA3AE">Banners</span><span>a status pill per favourite; every notice on the results screen's Lines sheet</span>
+      <span style="color:#9AA3AE">Postcode / place</span><span>the From / To box</span>
+    </div>
+  </div>
+
+  <div style="flex:1"></div>
+  <!-- Tracked train pinned to the bottom (Commutative) -->
+  <a href="b3-tracking.html" style="margin:24px -16px 0;background:#22262E;border-top:1px solid #2E333C;padding:12px 16px 30px;display:flex;align-items:center;gap:12px">
+    <span class="pl" style="background:#4ADE80;color:#0B1F14">2</span>
+    <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800">Tracking <span class="t">07:08</span> Great Northern</div><div style="font-size:12px;color:#9AA3AE">On time · departs in <span class="t">27:00</span> · Live Activity on</div></div>
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9AA3AE" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+</div>
+</body>
+</html>

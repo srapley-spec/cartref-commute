@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A To the office, leave now — Cartref Commute design proposal: womble</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#07090D;color:#F2F4F7;font-family:"Inter Tight",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F2F4F7;text-decoration:none}a:hover{color:#FFB020}
+.t{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696}
+.chip{display:inline-flex;align-items:center;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;line-height:1.5}
+.chip.rail{border:1px solid #3A414D;color:#D6DBE3}
+.chip.circle{background:#FFD329;color:#1A1A1A}.chip.met{background:#9B0058;color:#fff}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.pill.ok{background:#12301F;color:#5EE09B}.pill.warn{background:#352A0E;color:#FFC44D}.pill.bad{background:#3B1512;color:#FF8A7A}.pill.info{border:1px solid #3A414D;color:#AEB6C2}
+.mk{position:absolute;top:0;display:flex;flex-direction:column;align-items:center;gap:4px;transform:translateX(-50%)}
+.mk .d{width:12px;height:12px;border-radius:50%;background:#AEB6C2;border:2px solid #07090D}
+.mk .l{font-size:10px;font-weight:700;color:#AEB6C2;white-space:nowrap}
+.row{display:grid;grid-template-columns:24px 56px 1fr 56px;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #1F2530}
+.sico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1300px;box-sizing:border-box;background:#07090D;display:flex;flex-direction:column">
+
+  <!-- ===== Top: the "map" area (time axis of departures) ===== -->
+  <div style="padding:54px 16px 0;display:flex;align-items:center;justify-content:space-between">
+    <a href="a1-journeys.html" style="display:flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:700;color:#AEB6C2"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg>Journeys</a>
+    <div style="display:flex;gap:8px">
+      <button type="button" aria-pressed="false" style="display:flex;align-items:center;gap:6px;background:transparent;border:1px solid #2A303A;border-radius:999px;padding:0 12px;color:#AEB6C2;font:inherit;font-size:12px;font-weight:700;min-height:40px;cursor:pointer"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Fast</button>
+      <button type="button" aria-label="Share" style="width:40px;height:40px;border-radius:50%;background:transparent;border:1px solid #2A303A;display:flex;align-items:center;justify-content:center;color:#AEB6C2"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 3v13M7 8l5-5 5 5"/></svg></button>
+    </div>
+  </div>
+
+  <div style="padding:10px 16px 0">
+    <div style="font-size:26px;font-weight:900;letter-spacing:-.03em">To the office</div>
+    <div style="font-size:13px;color:#7C8696">Cartref → 20 Mansfield Street · Auto, from your location · live · <span class="t">06:41</span></div>
+  </div>
+
+  <!-- Departures from Letchworth, on a time axis -->
+  <div style="margin:18px 16px 0;position:relative;height:150px">
+    <div class="lbl" style="position:absolute;top:0;left:0">Departures from Letchworth · next hour</div>
+    <!-- axis -->
+    <div style="position:absolute;left:0;right:0;top:64px;height:2px;background:#2A303A"></div>
+    <div style="position:absolute;left:0;right:0;top:80px;display:flex;justify-content:space-between;font-size:10px;color:#5A6472" class="t"><span>06:40</span><span>07:00</span><span>07:20</span><span>07:40</span></div>
+    <!-- you marker: at the station 07:03 if you leave now -->
+    <div style="position:absolute;left:38%;top:28px;height:52px;width:2px;background:#FFB020;opacity:.9"></div>
+    <div style="position:absolute;left:38%;top:100px;transform:translateX(-50%);text-align:center;font-size:10px;font-weight:700;color:#FFB020;white-space:nowrap">you, leaving now<br><span class="t" style="color:#AEB6C2">at the station 07:03</span></div>
+    <!-- markers -->
+    <div class="mk" style="left:33%;top:58px"><span class="d" style="background:#3B1512;border-color:#FF8A7A;border-width:2px"></span><span class="l" style="color:#FF8A7A;text-decoration:line-through">07:00</span></div>
+    <div class="mk" style="left:46.7%;top:52px"><span class="d" style="width:22px;height:22px;background:#FFB020;box-shadow:0 0 0 6px rgba(255,176,32,.18);margin-top:-5px"></span><span class="l" style="color:#FFB020;font-size:12px">07:08 GN</span></div>
+    <div class="mk" style="left:61.7%;top:58px"><span class="d" style="background:#352A0E;border-color:#FFC44D"></span><span class="l" style="color:#FFC44D">07:17 TL <span style="color:#7C8696">(tt 07:14)</span></span></div>
+    <div class="mk" style="left:75%;top:58px"><span class="d"></span><span class="l">07:25 GN</span></div>
+    <div class="mk" style="left:95%;top:58px"><span class="d" style="background:transparent;border:2px dashed #7C8696"></span><span class="l" style="color:#7C8696">07:37 ?</span></div>
+  </div>
+
+  <!-- ===== Sheet ===== -->
+  <div style="margin-top:22px;flex:1;background:#12161D;border-radius:28px 28px 0 0;border-top:1px solid #1F2530;display:flex;flex-direction:column;padding:10px 16px 0">
+    <div aria-hidden="true" style="width:40px;height:4px;border-radius:2px;background:#3A414D;align-self:center"></div>
+
+    <!-- Plan selector lives in the sheet -->
+    <div role="group" aria-label="Plan" style="margin-top:14px;display:flex;gap:16px">
+      <button type="button" aria-pressed="true" style="background:transparent;border:0;border-bottom:2px solid #FFB020;padding:10px 0 8px;color:#F2F4F7;font:inherit;font-size:14px;font-weight:800;min-height:44px">Leave now</button>
+      <button type="button" aria-pressed="false" style="background:transparent;border:0;padding:10px 0 8px;color:#7C8696;font:inherit;font-size:14px;font-weight:700;min-height:44px">Arrive by</button>
+      <button type="button" aria-pressed="false" style="background:transparent;border:0;padding:10px 0 8px;color:#7C8696;font:inherit;font-size:14px;font-weight:700;min-height:44px">Leave around</button>
+    </div>
+
+    <!-- Status word first (Flighty) -->
+    <section aria-live="polite" style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#FFB020;display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#FFB020"></span>Leave in <span class="t" style="font-size:15px">5:42</span></span>
+        <span style="font-size:12px;color:#AEB6C2">for the <span class="t" style="font-weight:700">07:08</span> Great Northern · <b style="color:#F2F4F7">Pl 2</b></span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div><div class="lbl">Leave</div><div class="t" style="font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em">06:47</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding-bottom:10px"><span style="font-size:11px;color:#7C8696">1 h 25</span><div style="width:100%;height:2px;background:#3A414D;position:relative"><span style="position:absolute;right:-1px;top:-4px;border-left:7px solid #3A414D;border-top:5px solid transparent;border-bottom:5px solid transparent"></span></div><span style="display:flex;gap:4px"><span class="chip rail">KGX</span><span class="chip circle">Circle</span><span class="chip met">Met</span></span></div>
+        <div style="text-align:right"><div class="lbl">Office</div><div class="t" style="font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em">08:12</div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#AEB6C2">36 min train · total 1 h 25 · <span class="pill ok">Great Northern: good service</span><span class="pill ok">Circle · Met: good service</span></div>
+      <details style="font-size:13px;color:#AEB6C2"><summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;gap:8px">Journey steps <span style="color:#7C8696;font-weight:500">· 22 min walk · 6 min change at King's Cross · 10 min tube · 7 min walk</span></summary>
+        <ol style="list-style:none;margin:0 0 8px;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:5px">
+          <li class="t">06:47</li><li>Leave home · 22 min walk, average pace</li>
+          <li class="t">07:08</li><li>Letchworth platform 2 · 07:08 Great Northern</li>
+          <li class="t">07:44</li><li>King's Cross · 6 min to the Circle/Met</li>
+          <li class="t">07:53</li><li>Eastbound Circle or Met · 3 min wait, 10 min ride</li>
+          <li class="t">08:03</li><li>Aldgate · 2 min to street, 7 min walk</li>
+          <li class="t">08:12</li><li>20 Mansfield Street</li>
+        </ol>
+      </details>
+      <button type="button" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#FFB020;border:0;border-radius:14px;padding:14px;color:#1A1200;font:inherit;font-size:15px;font-weight:800;min-height:48px">Track the 07:08 <span style="font-weight:600;opacity:.75">· Live Activity, lock screen, Watch</span></button>
+    </section>
+
+    <!-- Context lines: next best / right now / hurry / notices, as a short feed -->
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:#D6DBE3">
+      <div style="display:flex;gap:10px"><span class="sico" style="background:#1F2530;flex:none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#AEB6C2" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span><b>Next best</b> leave <span class="t">06:52</span> for the <span class="t">07:14</span> <span style="color:#FFC44D">exp 07:17</span> Thameslink — office <span class="t">08:30</span>, 18 min later. Get off at <b>Farringdon</b> <span class="t">08:08</span> or <b>St Pancras</b> <span class="t">08:04</span>.</span></div>
+      <div style="display:flex;gap:10px"><span class="sico" style="background:#1F2530;flex:none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#AEB6C2" stroke-width="3"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span><b>Leaving right now?</b> The <span class="t">07:00</span> <span style="color:#FFC44D">exp 07:03</span> Thameslink — <span style="color:#FFC44D;font-weight:700">stopping train, 54 min</span>; office <span class="t">08:19</span>, 7 min later than the 07:08.</span></div>
+      <div style="display:flex;gap:10px"><span class="sico" style="background:#3B1512;flex:none"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF8A7A" stroke-width="3"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><span><b>Still possible if you hurry:</b> the <span class="t">06:58</span> Great Northern leaves Letchworth, <span class="t">departs in 16:40</span> — 35 min train; office <span class="t">08:02</span>, 10 min sooner. At walking pace you're 2 min short.</span></div>
+      <a href="a1-journeys.html" style="display:flex;gap:10px;min-height:44px;align-items:center"><span class="sico" style="background:#352A0E;flex:none"><span style="width:8px;height:8px;border-radius:50%;background:#FFC44D"></span></span><span><b>Great Northern notice</b> · speed restriction Hitchin–Stevenage, no train affected yet · <span style="color:#FFB020;font-weight:700">Details ›</span></span></a>
+    </div>
+
+    <!-- Every train (never hide) -->
+    <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:baseline"><h2 class="lbl" style="margin:0">Every train, in leaving order</h2><span style="font-size:11px;color:#7C8696">leave · arrive</span></div>
+    <div style="display:flex;flex-direction:column;margin-top:4px">
+      <div class="row" style="border-top:0;color:#7C8696"><span class="sico" style="background:#3B1512"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF8A7A" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span class="t" style="font-size:17px;font-weight:700;text-decoration:line-through;color:#FF8A7A">06:38</span><span style="font-size:12px"><span class="t">07:00</span> exp 07:03 TL · stopping · <span class="pill bad">3 min short at walking pace</span></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">08:19</span></div>
+      <div class="row" style="color:#7C8696"><span class="sico" style="background:#3B1512"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF8A7A" stroke-width="3"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><span class="t" style="font-size:17px;font-weight:700;text-decoration:line-through;color:#FF8A7A">06:39</span><span style="font-size:12px"><span class="t">06:58</span> GN · Pl 1 · <span class="pill bad">2 min short · run or bike</span></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">08:02</span></div>
+      <div class="row" style="background:#1A2130;margin:0 -16px;padding:12px 16px;box-shadow:inset 3px 0 0 #FFB020"><span class="sico" style="background:#FFB020"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1A1200" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t" style="font-size:17px;font-weight:700">06:47</span><span style="font-size:12px;color:#AEB6C2"><span class="t">07:08</span> GN · Pl 2 · 36 min · <b style="color:#FFB020">leave in 5:42</b></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">08:12</span></div>
+      <div class="row"><span class="sico" style="background:#352A0E"><span class="t" style="font-size:9px;font-weight:700;color:#FFC44D">+3</span></span><span class="t" style="font-size:17px;font-weight:700">06:52</span><span style="font-size:12px;color:#AEB6C2"><span class="t">07:14</span> exp 07:17 TL · Farringdon or St Pancras · <span class="pill warn">Stopping</span></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">08:30</span></div>
+      <div class="row"><span class="sico" style="background:#3B1512"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FF8A7A" stroke-width="3"><path d="M8 20v-6M12 20V8M16 20v-3"/></svg></span><span class="t" style="font-size:17px;font-weight:700">07:04</span><span style="font-size:12px;color:#AEB6C2"><span class="t">07:25</span> GN · Pl 1 · <span class="pill bad">Usually standing room only</span></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">08:29</span></div>
+      <div class="row" style="color:#7C8696;border-bottom:1px solid #1F2530"><span class="sico" style="border:1px dashed #7C8696"><span style="font-size:11px;font-weight:800;color:#7C8696">?</span></span><span class="t" style="font-size:17px;font-weight:700">07:16</span><span style="font-size:12px"><span class="t">07:37</span> GN · <span class="pill bad">Delayed, no estimate</span></span><span class="t" style="font-size:17px;font-weight:700;text-align:right">—</span></div>
+    </div>
+    <details style="margin:8px 0 0;font-size:13px;color:#7C8696"><summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Why these trains? · about the times</summary><p style="margin:0 0 8px">Letchworth → King's Cross, live board: 5 trains. Letchworth → Farringdon: 3 trains. Tube legs are estimates: 3 min wait plus typical ride time (Settings). Average walking pace. Updated <span class="t">06:41</span> · live from National Rail.</p></details>
+    <div style="flex:1"></div>
+    <div style="padding:8px 0 32px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7C8696"><span>Updated <span class="t">06:41</span></span><button type="button" style="background:transparent;border:1px solid #2A303A;border-radius:999px;padding:0 14px;color:#AEB6C2;font:inherit;font-size:12px;font-weight:700;min-height:40px">Refresh</button></div>
+  </div>
+</div>
+</body>
+</html>

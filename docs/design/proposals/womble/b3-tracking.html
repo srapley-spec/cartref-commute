@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B Tracking the 07:08 — Cartref Commute design proposal: womble</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#15171C;color:#F5F6F8;font-family:"Manrope",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F5F6F8;text-decoration:none}a:hover{color:#4ADE80}
+.t{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lbl{font-size:12px;font-weight:700;color:#9AA3AE}
+.card{background:#22262E;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.pl{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;height:64px;border-radius:14px;background:#F5F6F8;color:#15171C;font-weight:800;padding:0 8px;flex:none}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+.ok{background:#143024;color:#4ADE80}.warn{background:#3A2E0E;color:#FBBF24}.bad{background:#3B1A1A;color:#F87171}.info{background:#2E333C;color:#C3C9D2}
+.stop{display:grid;grid-template-columns:52px 22px 1fr auto;gap:0 8px;align-items:center;min-height:34px}
+.stop .n{position:relative;height:34px;display:flex;align-items:center;justify-content:center}
+.stop .n::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:#3A4049}
+.stop .m{width:10px;height:10px;border-radius:50%;background:#3A4049;position:relative;z-index:1}
+.stop.done .n::before,.stop.done .m{background:#4ADE80}
+.coach{display:flex;gap:3px}.coach span{width:26px;height:12px;border-radius:3px;background:#4B5563;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#15171C}.coach span.busy{background:#FBBF24}
+.chip{display:inline-flex;align-items:center;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:800}
+.circle{background:#FFD329;color:#1A1A1A}.met{background:#9B0058;color:#fff}
+.log{display:grid;grid-template-columns:48px 1fr;gap:4px 10px;font-size:12px;color:#C3C9D2;padding:7px 0;border-top:1px solid #2E333C}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1300px;box-sizing:border-box;background:#15171C;display:flex;flex-direction:column;padding:0 16px">
+
+  <div style="padding:54px 0 0;display:flex;align-items:center;justify-content:space-between">
+    <a href="b2-trains.html" style="display:flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:700;color:#9AA3AE"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg>Trains</a>
+    <button type="button" style="display:flex;align-items:center;gap:8px;background:#22262E;border:0;border-radius:999px;padding:0 14px;color:#F5F6F8;font:inherit;font-size:12px;font-weight:800;min-height:44px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 3v13M7 8l5-5 5 5"/></svg>Share ETA</button>
+  </div>
+
+  <!-- Arrive-by verdict when set -->
+  <div style="margin-top:8px;display:flex;align-items:center;gap:10px;background:#143024;border-radius:12px;padding:0 12px;min-height:44px;font-size:13px;color:#4ADE80"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><b>On time for 08:30</b> · 15 min to spare</div>
+
+  <!-- Train header: platform tile, predicted time (Commutative) -->
+  <div class="card" style="margin-top:10px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="pl"><span style="font-size:10px;letter-spacing:.08em">PLAT</span><span style="font-size:26px;line-height:1">6</span></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:20px;font-weight:800"><span class="t">07:08</span> Great Northern</div>
+        <div style="font-size:13px;color:#9AA3AE">Letchworth → King's Cross · 8 coaches · class 387</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill warn">+3 min · steady</span><span class="pill ok">Tracking · Live Activity</span></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #2E333C;padding-top:10px">
+      <div><div class="lbl">King's Cross · predicted</div><div class="t" style="font-size:40px;font-weight:600;line-height:1;letter-spacing:-.02em">07:47</div><div style="font-size:12px;color:#9AA3AE;margin-top:4px">in <span class="t">24 min</span> · timetable <span class="t">07:44</span> · platform 6 predicted early</div></div>
+      <div style="text-align:right"><div class="lbl">Office</div><div class="t" style="font-size:32px;font-weight:600;line-height:1">08:15</div><div style="font-size:12px;color:#9AA3AE;margin-top:4px">tt <span class="t">08:12</span></div></div>
+    </div>
+    <div style="font-size:13px;color:#C3C9D2"><b>Why:</b> speed restriction between Hitchin and Stevenage (National Rail).</div>
+  </div>
+
+  <!-- You're on it -->
+  <div class="card" style="margin-top:10px;flex-direction:row;align-items:center;justify-content:space-between;gap:10px">
+    <div><div style="font-size:14px;font-weight:800">You're on this train</div><div style="font-size:12px;color:#9AA3AE">from your location · you picked it · last fix <span class="t">07:22</span></div></div>
+    <button type="button" style="background:#3A4049;border:0;border-radius:999px;padding:0 12px;color:#F5F6F8;font:inherit;font-size:12px;font-weight:700;min-height:44px;white-space:nowrap">Not this one?</button>
+  </div>
+
+  <!-- Where it is + stops -->
+  <div class="card" style="margin-top:10px;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">Where it is</span><span style="font-size:11px;color:#9AA3AE">reported · expected</span></div>
+    <div style="font-size:13px;margin-bottom:6px"><b style="color:#4ADE80">Between Stevenage and King's Cross</b> <span style="color:#9AA3AE">· last reported Stevenage <span class="t">07:23</span> · placed by time since · non-stop from here</span></div>
+    <div class="stop done"><span class="t" style="font-size:13px;color:#9AA3AE;text-align:right">07:08</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#9AA3AE">Letchworth Garden City</span><span style="font-size:11px;color:#9AA3AE">on time</span></div>
+    <div class="stop done"><span class="t" style="font-size:13px;color:#9AA3AE;text-align:right">07:16</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#9AA3AE">Hitchin</span><span class="pill warn" style="padding:1px 7px">+2</span></div>
+    <div class="stop done"><span class="t" style="font-size:13px;color:#9AA3AE;text-align:right">07:23</span><span class="n"><span class="m"></span></span><span style="font-size:13px;color:#9AA3AE">Stevenage · last reported</span><span class="pill warn" style="padding:1px 7px">+3</span></div>
+    <div class="stop" style="min-height:40px"><span></span><span class="n" style="height:40px"><span style="position:relative;z-index:2;width:20px;height:20px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 6px rgba(74,222,128,.18)"></span></span><span style="font-size:13px;font-weight:800;color:#4ADE80">About here</span><span class="t" style="font-size:11px;color:#9AA3AE">07:31</span></div>
+    <div class="stop"><span class="t" style="font-size:13px;text-align:right;font-weight:700">07:47</span><span class="n"><span class="m" style="background:#F5F6F8"></span></span><span style="font-size:13px;font-weight:800">King's Cross · get off</span><span style="font-size:11px;color:#FBBF24">expected</span></div>
+  </div>
+
+  <!-- Coaches (Commutative) -->
+  <div class="card" style="margin-top:10px;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">Coaches · front at King's Cross is on the right</span><span style="font-size:11px;color:#9AA3AE">loading: later (#21)</span></div>
+    <div class="coach" aria-label="8 coaches; coaches 1 to 2 usually busiest"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span class="busy">2</span><span class="busy">1</span></div>
+    <div style="font-size:12px;color:#9AA3AE">Exit at King's Cross is at the front; for the Circle/Met, rear coaches are nearer the stairs. Shading is the standing-room rule until loading data exists.</div>
+  </div>
+
+  <!-- Then -->
+  <div class="card" style="margin-top:10px;gap:6px">
+    <span class="lbl">Then</span>
+    <div style="display:grid;grid-template-columns:56px 1fr;gap:5px 10px;font-size:13px">
+      <span class="t" style="color:#9AA3AE">07:53</span><span>Eastbound Circle/Met platform <span style="color:#9AA3AE">· 6 min change</span></span>
+      <span class="t" style="color:#9AA3AE">07:56</span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip circle">Circle</span><span class="chip met">Met</span> to Aldgate <span style="color:#9AA3AE">· about; live tubes once you're there</span></span>
+      <span class="t" style="color:#9AA3AE">08:06</span><span>Aldgate <span style="color:#9AA3AE">· 2 min to street, 7 min walk</span></span>
+      <span class="t" style="font-weight:800">08:15</span><span style="font-weight:800">20 Mansfield Street</span>
+    </div>
+  </div>
+
+  <!-- Changes -->
+  <div class="card" style="margin-top:10px;gap:0">
+    <span class="lbl" style="margin-bottom:4px">Changes to this train</span>
+    <div class="log"><span class="t">07:23</span><span>Stevenage reported +3. Office now <span class="t">08:15</span>.</span></div>
+    <div class="log"><span class="t">07:16</span><span>Hitchin reported +2. Reason: speed restriction.</span></div>
+    <div class="log"><span class="t">07:09</span><span>You're on the 07:08 (picked; the 07:00 was 4 min away).</span></div>
+    <div class="log"><span class="t">06:40</span><span>Platform 2 at Letchworth predicted, confirmed 07:02.</span></div>
+  </div>
+
+  <div class="card" style="margin-top:10px;gap:6px"><span class="lbl">Your lines</span><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill warn">Great Northern: minor delays</span><span class="pill ok">Circle: good service</span><span class="pill ok">Met: good service</span></div></div>
+  <p style="margin:10px 0 0;font-size:11px;color:#9AA3AE">Arrival and reports: National Rail Service Details for this train, about once a minute. Your location says which train you're on.</p>
+
+  <div style="flex:1"></div>
+  <div style="padding:8px 0 32px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#9AA3AE"><span>Updated <span class="t">07:23</span></span><div style="display:flex;gap:8px"><button type="button" style="background:#22262E;border:0;border-radius:999px;padding:0 14px;color:#C3C9D2;font:inherit;font-size:12px;font-weight:700;min-height:44px">Stop tracking</button><button type="button" style="background:#22262E;border:0;border-radius:999px;padding:0 14px;color:#C3C9D2;font:inherit;font-size:12px;font-weight:700;min-height:44px">Refresh</button></div></div>
+</div>
+</body>
+</html>

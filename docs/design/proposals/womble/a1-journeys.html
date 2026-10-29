@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Journeys home — Cartref Commute design proposal: womble</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#07090D;color:#F2F4F7;font-family:"Inter Tight",system-ui,sans-serif;font-size:14px;line-height:1.35}
+a{color:#F2F4F7;text-decoration:none}a:hover{color:#FFB020}
+.t{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7C8696}
+.status{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+.card{display:flex;flex-direction:column;gap:10px;background:#12161D;border:1px solid #1F2530;border-radius:20px;padding:16px}
+.ico{width:10px;height:10px;border-radius:50%}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:390px;min-height:1000px;box-sizing:border-box;background:#07090D;display:flex;flex-direction:column;padding:0 16px">
+
+  <div style="padding:58px 0 14px;display:flex;align-items:center;justify-content:space-between">
+    <h1 style="margin:0;font-size:28px;font-weight:900;letter-spacing:-.03em">Journeys</h1>
+    <a href="a1-journeys.html" aria-label="Settings" style="width:44px;height:44px;border-radius:50%;background:#12161D;border:1px solid #1F2530;display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AEB6C2" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></a>
+  </div>
+  <p style="margin:0 0 14px;font-size:13px;color:#7C8696">Mode and direction are journeys, not toggles. The one that fits where you are comes first. <span style="color:#AEB6C2">Auto · from your location.</span></p>
+
+  <!-- Active journey (auto-picked) -->
+  <a href="a2-now.html" class="card" style="border-color:#FFB020;box-shadow:0 0 0 1px #FFB020 inset">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="status" style="color:#FFB020"><span class="ico" style="background:#FFB020"></span>Leave in <span class="t">5:42</span></span>
+      <span style="font-size:11px;color:#7C8696">now · <span class="t">06:41</span></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">To the office</div><div style="font-size:13px;color:#AEB6C2">Cartref → 20 Mansfield Street</div></div>
+      <div style="text-align:right"><div class="lbl">Office</div><div class="t" style="font-size:34px;font-weight:700;line-height:1;letter-spacing:-.03em">08:12</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1F2530;padding-top:10px;font-size:13px">
+      <span><span class="t" style="font-weight:700">07:08</span> Great Northern · <b>Pl 2</b> · via King's Cross</span>
+      <span style="color:#7C8696">next best <span class="t">06:52</span></span>
+    </div>
+  </a>
+
+  <!-- The other journeys -->
+  <a href="a2-now.html" class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="status" style="color:#AEB6C2"><span class="ico" style="background:#3A414D"></span>Later today</span>
+      <span style="font-size:11px;color:#7C8696">Thameslink: good service</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Home</div><div style="font-size:13px;color:#AEB6C2">20 Mansfield Street → Cartref · via Farringdon or King's Cross</div></div>
+    </div>
+  </a>
+
+  <a href="a2-now.html" class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="status" style="color:#AEB6C2"><span class="ico" style="background:#3A414D"></span>Plan</span>
+      <span style="font-size:11px;color:#7C8696">Leisure pace</span>
+    </div>
+    <div><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">A day out</div><div style="font-size:13px;color:#AEB6C2">Cartref → anywhere in London · Experimental: any start and end point</div></div>
+  </a>
+
+  <button type="button" style="margin-top:12px;display:flex;align-items:center;gap:10px;background:transparent;border:1px dashed #2A303A;border-radius:20px;padding:16px;color:#AEB6C2;font:inherit;font-weight:700;min-height:56px;cursor:pointer">
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add a journey <span style="font-weight:500;color:#7C8696">· Laura's commute, nursery drop-off</span>
+  </button>
+
+  <!-- Where the global controls went -->
+  <div style="margin-top:28px;display:flex;flex-direction:column;gap:8px">
+    <span class="lbl">Where the old controls went</span>
+    <div style="font-size:13px;color:#AEB6C2;display:grid;grid-template-columns:auto 1fr;gap:6px 14px">
+      <span style="color:#7C8696">Mode</span><span>a journey (commute vs day out)</span>
+      <span style="color:#7C8696">Direction</span><span>a journey; Auto chooses which is first and marks it</span>
+      <span style="color:#7C8696">Pace</span><span>on the journey screen, one toggle</span>
+      <span style="color:#7C8696">Plan</span><span>on the journey screen: Leave now · Arrive by · Leave around</span>
+      <span style="color:#7C8696">Banners</span><span>status word on each card; detail on the journey screen</span>
+      <span style="color:#7C8696">Line status grid</span><span>Settings › Lines (every line, as today)</span>
+    </div>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <!-- Pinned tracked train, as Commutative pins it -->
+  <div style="margin:24px -16px 0;background:#12161D;border-top:1px solid #1F2530;padding:12px 16px 30px;display:flex;align-items:center;gap:12px">
+    <span style="width:8px;height:8px;border-radius:50%;background:#5EE09B;flex:none"></span>
+    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">Tracking the <span class="t">07:08</span> Great Northern</div><div style="font-size:12px;color:#AEB6C2">Pl 2 · departs in <span class="t">27:00</span> · on time</div></div>
+    <a href="a3-on-train.html" style="font-size:12px;font-weight:700;color:#FFB020;min-height:44px;display:inline-flex;align-items:center">Open ›</a>
+  </div>
+</div>
+</body>
+</html>

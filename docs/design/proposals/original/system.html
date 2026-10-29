@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shared design system — Cartref Commute design proposal: original</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Archivo:wght@700;800&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+body{margin:0;background:#FFFFFF;color:#1B1A17;font-family:"Public Sans",system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#1F4FBF}a:hover{color:#163A8C}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px}
+h2{margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B665C}
+h3{margin:12px 0 6px;font-size:13px;font-weight:700}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sw{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;font-size:12px}
+.sw i{display:block;width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12)}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;line-height:1.5}
+.chip{display:inline-flex;align-items:center;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;line-height:1.5}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{text-align:left;padding:5px 8px;border-top:1px solid #E6E1D5;vertical-align:top}
+th{font-weight:700;color:#6B665C;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.box{border:1px solid #DDD7CB;border-radius:8px;padding:12px}
+</style>
+<style>html{background:#000}</style>
+</head>
+<body>
+<!-- Static mockup. Sample data only; see ../../README.md for the brief and ../../inventory.md for what each screen must carry. -->
+<div style="width:2270px;height:1180px;box-sizing:border-box;background:#fff;padding:32px 36px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px;overflow:hidden">
+
+  <!-- 1. Tokens -->
+  <div class="col">
+    <h2>1 · Tokens (one set, two themes per direction)</h2>
+    <div class="box">
+      <h3 style="margin-top:0">Semantic colour roles</h3>
+      <table>
+        <tr><th>Role</th><th>A · Signal (dark)</th><th>B · Board (light)</th></tr>
+        <tr><td>ground</td><td class="mono">#0B0E13</td><td class="mono">#F4F1EA</td></tr>
+        <tr><td>surface</td><td class="mono">#141820</td><td class="mono">#FFFFFF</td></tr>
+        <tr><td>surface-raised</td><td class="mono">#1A2130</td><td class="mono">#FAF8F3</td></tr>
+        <tr><td>ink</td><td class="mono">#F2F4F7</td><td class="mono">#1B1A17</td></tr>
+        <tr><td>ink-2</td><td class="mono">#D6DBE3</td><td class="mono">#3C3933</td></tr>
+        <tr><td>muted</td><td class="mono">#7C8696</td><td class="mono">#6B665C</td></tr>
+        <tr><td>line</td><td class="mono">#232A35</td><td class="mono">#DDD7CB</td></tr>
+        <tr><td>accent (now / act)</td><td class="mono">#FFB020</td><td class="mono">#1F4FBF</td></tr>
+        <tr><td>ok / ok-bg</td><td class="mono">#5EE09B / #12301F</td><td class="mono">#1B6B3F / #DFF0E4</td></tr>
+        <tr><td>warn / warn-bg</td><td class="mono">#FFC44D / #352A0E</td><td class="mono">#7A4A00 / #F7E8C8</td></tr>
+        <tr><td>bad / bad-bg</td><td class="mono">#FF8A7A / #3B1512</td><td class="mono">#9E2318 / #F9DEDA</td></tr>
+        <tr><td>note (route notice)</td><td class="mono">#E8D45C</td><td class="mono">#E3CF4A</td></tr>
+        <tr><td>circle / met / h&amp;c</td><td class="mono" colspan="2">TfL brand: #FFD329 · #9B0058 · #F4A9BE (both)</td></tr>
+      </table>
+      <p style="margin:8px 0 0;font-size:11px;color:#6B665C">Each direction also carries its opposite theme (A has a light theme; B has a dark one) from the same roles. Every pair above passes 4.5:1 for text on its background.</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">Spacing · radius · motion</h3>
+      <table>
+        <tr><td>space</td><td class="mono">4 · 8 · 12 · 16 · 24 · 32</td></tr>
+        <tr><td>page gutter</td><td class="mono">16 (A) · 20 (B)</td></tr>
+        <tr><td>radius</td><td class="mono">A: 6 chip · 12 control · 16 card&nbsp;&nbsp; B: 4 everywhere, 999 pills</td></tr>
+        <tr><td>touch target</td><td class="mono">≥ 44 px</td></tr>
+        <tr><td>motion</td><td class="mono">countdown ticks, no transitions on redraw; reduced-motion respected</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. Type -->
+  <div class="col">
+    <h2>2 · Type</h2>
+    <div class="box">
+      <h3 style="margin-top:0">A · Signal</h3>
+      <div style="font-family:'JetBrains Mono';font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1">08:14</div>
+      <div style="font-family:'Inter Tight';font-size:16px;font-weight:800;margin-top:6px">Get on the Circle to Aldgate</div>
+      <div style="font-family:'Inter Tight';font-size:13px;color:#3C3933">07:08 Great Northern · platform 2 · 36 min train</div>
+      <div style="font-family:'Inter Tight';font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B665C;margin-top:4px">If you leave now</div>
+      <p class="mono" style="margin:8px 0 0;color:#6B665C">Inter Tight (UI) · JetBrains Mono (every time, tabular)</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">B · Board</h3>
+      <div style="font-family:'Archivo';font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1">08:14</div>
+      <div style="font-family:'Archivo';font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:6px">To the office</div>
+      <div style="font-family:'Public Sans';font-size:13px;color:#3C3933">07:08 Great Northern · platform 2 · 36 min train</div>
+      <div style="font-family:'Public Sans';font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6B665C;margin-top:4px">If you leave now</div>
+      <p class="mono" style="margin:8px 0 0;color:#6B665C">Archivo (times, headings) · Public Sans (body)</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">Scale (both)</h3>
+      <table>
+        <tr><td>hero time</td><td class="mono">52–64 / 1.0</td><td>projected arrival, leave, departs</td></tr>
+        <tr><td>option time</td><td class="mono">30–44 / 1.0</td><td>next best, departure board</td></tr>
+        <tr><td>row time</td><td class="mono">17–19 / 1.0</td><td>list rows</td></tr>
+        <tr><td>instruction</td><td class="mono">16 / 800</td><td>"Get on the…", "You're on the…"</td></tr>
+        <tr><td>body</td><td class="mono">13–14 / 400–600</td><td>meta, steps</td></tr>
+        <tr><td>label</td><td class="mono">11 / 700 caps</td><td>section labels</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. Components -->
+  <div class="col">
+    <h2>3 · Components (one set, two skins)</h2>
+    <div class="box">
+      <h3 style="margin-top:0">Flag pills · map 1:1 to engine flag levels</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="pill" style="background:#F9DEDA;color:#9E2318">Cancelled</span>
+        <span class="pill" style="background:#F9DEDA;color:#9E2318">Usually standing room only</span>
+        <span class="pill" style="background:#F9DEDA;color:#9E2318">Delayed, no estimate</span>
+        <span class="pill" style="background:#F9DEDA;color:#9E2318">Leave time passed: 3 min short</span>
+        <span class="pill" style="background:#F9DEDA;color:#9E2318">Late by 4 min</span>
+        <span class="pill" style="background:#F7E8C8;color:#7A4A00">+3 min</span>
+        <span class="pill" style="background:#F7E8C8;color:#7A4A00">Stopping train</span>
+        <span class="pill" style="background:#F7E8C8;color:#7A4A00">Cutting it fine</span>
+        <span class="pill" style="background:#F7E8C8;color:#7A4A00">Leave 5 min before 08:30</span>
+        <span class="pill" style="border:1px solid #CFC9BC;color:#5E5A52">Timetable only</span>
+        <span class="pill" style="background:#DFF0E4;color:#1B6B3F">Circle: good service</span>
+      </div>
+      <p style="margin:8px 0 0;font-size:11px;color:#6B665C">Long reasons (flag.long) stay off list rows and show on the card, as today. Pills never replace a train.</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">Route chips</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip" style="border:1px solid #CFC9BC">via King's Cross</span><span class="chip" style="border:1px solid #CFC9BC">via Farringdon or St Pancras</span><span class="chip" style="background:#FFD329">Circle</span><span class="chip" style="background:#9B0058;color:#fff">Met</span><span class="chip" style="background:#F4A9BE">H&amp;C</span><span class="chip" style="border:1px dashed #CFC9BC;color:#6B665C">walk 12 min</span></div>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">Card anatomy (every state uses the same slots)</h3>
+      <table>
+        <tr><th>Slot</th><th>Contents</th></tr>
+        <tr><td>1 Label</td><td>context · time · data source</td></tr>
+        <tr><td>2 Verdict</td><td>Arrive-by band, only when set</td></tr>
+        <tr><td>3 Headline</td><td>the one number: leave / departs / projected arrival</td></tr>
+        <tr><td>4 Instruction</td><td>"You're on the…", "Get on the…", with picks / "Not this one?"</td></tr>
+        <tr><td>5 Progress</td><td>A: vertical stop rail · B: horizontal strip + stop table</td></tr>
+        <tr><td>6 Then</td><td>onward legs (replaces "Journey steps" when live)</td></tr>
+        <tr><td>7 Context lines</td><td>right now?, hurry, tubes from Aldgate, board at / get off at</td></tr>
+        <tr><td>8 Your lines</td><td>status strip, every line incl. good service</td></tr>
+        <tr><td>9 Source note</td><td>one line, muted</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. IA -->
+  <div class="col">
+    <h2>4 · Information architecture: the busy-screen fix</h2>
+    <div class="box">
+      <h3 style="margin-top:0">Today → proposed</h3>
+      <table>
+        <tr><th>Today</th><th>Proposed (both directions)</th></tr>
+        <tr><td>3 rows of segmented controls (mode · direction · pace) + plan row</td><td>One context button ("To the office · Auto") opens a sheet with mode + direction. Pace is one toggle beside it. Plan selector stays.</td></tr>
+        <tr><td>Up to 12 stacked banners above the card</td><td>One status line: worst level + counts. Tap → Lines screen holds every banner, graded and folded exactly as today.</td></tr>
+        <tr><td>Hero card with free-form blocks</td><td>Same content, fixed slot order (col 3). Live states share the slots, so On-train, At-station, On-tube, Nearly-home look like one family.</td></tr>
+        <tr><td>Line status grid at the bottom</td><td>Moves to Lines. "Your lines" strip stays on the card.</td></tr>
+        <tr><td>Model note paragraph + diag details</td><td>Merged into one folded "Why these trains? · about the times".</td></tr>
+        <tr><td>Footer: updated · request counts · build · Refresh</td><td>Updated + Refresh stay. Request counts and build → Lines › Data (A) / Settings › About.</td></tr>
+        <tr><td>Settings button top-right</td><td>A: tab bar (Now · Plan · Lines · Settings). B: footer links; single scroll kept.</td></tr>
+      </table>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">What the live states borrow</h3>
+      <p style="margin:0 0 6px"><b>From Commutative:</b> the dark, status-first card; platform as a first-class number; "You're on the…" as a confirmation chip; one instruction in the accent block.</p>
+      <p style="margin:0 0 6px"><b>From Flighty:</b> progress against the plan with a delay delta against the timetable; last reported / next stop; share the ETA; Live Activity &amp; Dynamic Island as native extension points.</p>
+      <p style="margin:0"><b>Better than both:</b> the delta is from Service Details reports, not an estimate, and the onward leg (tube + walk) is already in the number.</p>
+    </div>
+  </div>
+
+  <!-- 5. Recommendations -->
+  <div class="col">
+    <h2>5 · Recommend drop / hide (your decision)</h2>
+    <div class="box">
+      <table>
+        <tr><th>Item</th><th>Recommendation</th></tr>
+        <tr><td>Request counts in footer</td><td><b>Hide</b> → Lines › Data. Diagnostic, not commuter info.</td></tr>
+        <tr><td>Build number in footer</td><td><b>Hide</b> → Settings › About.</td></tr>
+        <tr><td>Line status grid (all lines)</td><td><b>Move</b> to Lines. The card's "Your lines" strip already answers the commuter question.</td></tr>
+        <tr><td>Model note paragraph</td><td><b>Fold</b> into "Why these trains? · about the times".</td></tr>
+        <tr><td>Grey tiers (facilities, elsewhere)</td><td><b>Move</b> to Lines, still folded. Keep the family-day-out caveat: lifts matter there.</td></tr>
+        <tr><td>Mode (Commute / Leisure)</td><td><b>Keep</b>, behind the context button. Out of scope for the restyle but not lost.</td></tr>
+        <tr><td>Direction Auto / manual</td><td><b>Keep</b>, same sheet. Auto note moves into the button label.</td></tr>
+        <tr><td>Pace toggle</td><td><b>Keep</b> as one button; it's a daily switch.</td></tr>
+        <tr><td>"total 1 h 27" on every row</td><td><b>Drop from rows</b>, keep on the card. Leave→arrive already shows it.</td></tr>
+        <tr><td>Circle/Met chips on every row</td><td><b>Keep</b> but smaller; they change when H&amp;C fallback kicks in.</td></tr>
+        <tr><td>"Journey steps" on the live card</td><td><b>Replace</b> with "Then" (remaining legs only), as the code already does.</td></tr>
+        <tr><td>Timetable-not-live banner</td><td><b>Demote</b> to the card label ("· timetable") + per-train pill; a banner only when Darwin failed.</td></tr>
+        <tr><td>Share ETA button</td><td><b>New</b>, cheap: it's the projected arrival as text.</td></tr>
+      </table>
+    </div>
+    <div class="box" style="background:#FAF8F3">
+      <h3 style="margin-top:0">Nothing else moves.</h3>
+      <p style="margin:0;font-size:12px">Every flag, pick button, countdown, "Board at / Get off at" line, hurry line, Aldgate tube table, verdict band, empty state and source note in the inventory has a slot in the card anatomy. The review agent checks that list against these boards.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
