@@ -23,7 +23,8 @@ code reading live screen state. Duplication had started (a St Pancras fix was ne
 2. **Adapters** (`src/core/adapters`): Darwin and TfL responses → one common train format with stops.
 3. **Profile** (`src/core/profiles`): people, places, stations (incl. positions along the line), personal
    timings, rules (standing room, term dates, stopping thresholds, top-card window).
-4. **Screen** (`src/page.html`): draws what the engine returns; location, fetching and caching.
+4. **Screen** (`src/page.html`): draws what the engine returns, in the order the presentation model
+   (`src/core/present.ts`) gives; location, fetching and caching.
 
 A **journey** is: getting to the station (walk, stops such as a nursery drop-off, or a TfL-planned leg) → the
 train → getting from the station. A **route** is described once as segments; every time on screen is computed
@@ -50,6 +51,11 @@ from that description.
 - **New capabilities ship behind feature toggles** (Settings → Experimental, off by default).
 - **Don't overwhelm the interface**: extra detail replaces a line or folds away rather than adding banners
   (29 Oct).
+- **The engine decides priority; the shell decides geometry** (29 Oct). Which view is on screen, what the big
+  number means (leave / departs / arrive), how bad things are (one status line with a fixed precedence) and the
+  order of the blocks are decided once, in the engine (`src/core/present.ts`), from engine outputs. The web page, a
+  widget, a Live Activity or a Watch face draws that order in its own shape; none re-decides it. A design proposal
+  proposes how to draw the blocks, never which comes first. → [presentation-model](stories/presentation-model.md)
 
 ## Data sources
 - **Live board**: Rail Data Marketplace Live Departure Board, direct from the phone (key in Settings). Reaches
@@ -73,7 +79,8 @@ Engine (`src/core`): `situation.ts` (direction, at a station, on the line incl. 
 tube home, nearly home, office arrival), `connections.ts` (generic connection at any station: planConnection,
 Ride), `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave
 around / Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing),
-`warnings.ts` (grading, notices, line status), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`,
+`warnings.ts` (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the
+status line's precedence, block order per view), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`,
 `time.ts`, `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route
 stations) and `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`)
 fetches, caches and draws.
@@ -118,6 +125,9 @@ Later: a design system. Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **29 Oct** The engine decides priority, the shell decides geometry: a presentation model (`present.ts`) owns view
+  choice, headline kind, status-line precedence and block order; `page.html` draws in that order. Design proposals
+  are judged on how they draw the blocks. → [presentation-model](stories/presentation-model.md)
 - **29 Oct** Project context moves into this repo (`CLAUDE.md`, `docs/`); CI enforces docs touched with behaviour
   changes. Build work moves to Claude Code; the claude.ai Project stays for trip debriefs, and anything decided
   there is written here.
