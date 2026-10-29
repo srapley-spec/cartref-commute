@@ -824,11 +824,11 @@ test("Review: at King's Cross the list's best row is the tube on the card; after
   assert.match(app.text("#hero"), /You're getting the Circle/);
   assert.doesNotMatch(app.text("#hero"), /Near the platform already/);
   let best = app.d.querySelector("#list .row.best");
-  assert.ok(best && /07:46/.test(best.textContent), "the picked 07:46 Circle is the highlighted row");
+  assert.equal(best && best.querySelector(".leave .t").textContent, "07:46", "the picked 07:46 Circle is the highlighted row");
   // Pick a later one (not the first row): that row is the highlighted one.
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 12 * MIN) + '|Met"]').click();
   best = app.d.querySelector("#list .row.best");
-  assert.ok(best && /07:56/.test(best.textContent), "the picked 07:56 Met (third row) is highlighted");
+  assert.equal(best && best.querySelector(".leave .t").textContent, "07:56", "the picked 07:56 Met (third row) is highlighted");
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 1);
   app.close();
 });
@@ -943,4 +943,18 @@ test("Review 3: a picked tube that's delayed starts your ride at its new time; G
   await app2.fix(home[0] + 0.0010, home[1], 10, T("06:51"));          // same place, ±10 m
   assert.match(app2.text("#hero"), /^On your way to Letchworth/);
   app2.close();
+});
+
+test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 7, "H&C", "h7"), tubeAt(t0, 9, "Met", "m9")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 7 * MIN) + '|H&C"]').click();
+  await app.fix(51.5260, -0.1110, 30, t0 + 8 * MIN);
+  const hero = app.text("#hero");
+  assert.match(hero, /You're on the 07:51 H&C/);
+  assert.match(hero, /Aldgate East/);
+  assert.match(hero, /H&C: /); assert.doesNotMatch(hero, /Circle: |Met: /);
+  app.close();
 });

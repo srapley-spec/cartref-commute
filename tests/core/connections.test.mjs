@@ -80,3 +80,10 @@ test("A pick with a known train never switches to a different known train", () =
   const q = plan({ departures: [dep(6.5, "Blue")], pick: { t: now + 6 * m, line: "Blue", vehicle: "mine" } });
   assert.equal(q.chosen, true, "a departure with no vehicle on the same line nearby can still be it");
 });
+
+test("A pick without a vehicle: the same line's departure nearest to the picked time, within 3 min", () => {
+  const p = plan({ departures: [dep(5, "Blue", "x"), dep(6.8, "Blue", "y")], pick: { t: now + 6 * m, line: "Blue" } });
+  assert.equal(p.best.vehicle, "y", "6:48 is nearer 6:00 than 5:00 is");
+  const q = plan({ departures: [dep(7.5, "Blue", "z")], pick: { t: now + 6 * m, line: "Blue" } });
+  assert.equal(q.chosen, true, "90 s later is still your pick");
+});
