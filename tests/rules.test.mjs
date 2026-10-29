@@ -36,6 +36,8 @@ async function open({ now, geo = OFFICE, settings = { provider: "tfl", tflKey: "
   app.at = (t) => { cur.t = t; app.setNow(t); };
   app.since = (n) => app.calls.slice(n);
   app.moveTo = async (lat, lon, accuracy = 15) => { app.c.onPosition({ coords: { latitude: lat, longitude: lon, accuracy } }); await sleep(400); };
+  // A real position update at time t, as the phone sends it (with its own timestamp, and speed when it has one).
+  app.fix = async (lat, lon, accuracy, t, speed = null, taken = t) => { app.at(t); app.c.onPosition({ coords: { latitude: lat, longitude: lon, accuracy, speed }, timestamp: taken }); await sleep(300); };
   // Switch view (which first plans for its default time), then set a day and time.
   app.plan = async (v, day, time) => {
     if (app.c.state.saved.view !== v) { app.d.querySelector(`[data-view="${v}"]`).click(); await sleep(500); }
@@ -722,4 +724,349 @@ test("At King's Cross: an H&C to Aldgate East is the pick when it gets you to th
   assert.match(hero, /Aldgate East · about 11 min ride/);
   assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
   app.close();
+});
+
+// ---------- From the independent review (29 Oct): real position updates, no internal state set by hand ----------
+const KX = [51.5309, -0.1236], ZFD = [51.5203, -0.1053];
+const tubeAt = (base, min, line, v) => ({ t: base + min * MIN, line, lineId: { Circle: "circle", Met: "metropolitan", "H&C": "hammersmith-city" }[line],
+  dest: line === "H&C" ? "Barking" : "Aldgate", platform: "Eastbound - Platform 2", vehicle: v || line + min });
+
+test("Review A: back at King's Cross after a gap of minutes is 'you're at King's Cross', not 'on the tube' you missed", async () => {
+  const t0 = T("07:42"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  // Live tubes known when you arrive (the 07:43 Met will leave while the phone is in your pocket).
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 1, "Met", "m1"), tubeAt(t0, 9, "Circle", "c9")], err: null };
+  await app.fix(...KX, 15, t0);
+  assert.equal(c.state.lastHub.arrivals.length, 2, "the departures are remembered with your arrival");
+  await app.fix(...KX, 80, T("07:46"));                              // next update 4 min later, still at the station
+  assert.match(app.text("#hero"), /^You're at King's Cross/);
+  assert.equal(c.state.saved.tubeRide || null, null, "no ride saved for the tube that left");
+  app.close();
+});
+
+test("Review B: coming back with a cached position (taken before you came back) doesn't restart location", async () => {
+  let push, starts = 0;
+  const app = await createApp({ geo: null, settle: 50, relocateMs: 200 });
+  app.w.navigator.geolocation.watchPosition = (ok) => { starts++; push = ok; return 5; };
+  app.w.navigator.geolocation.clearWatch = () => {};
+  app.c.state.watchId = 1; app.c.state.locStatus = "ok";
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(20);
+  // The existing watch delivers iOS's cached fix, taken 10 s before you came back.
+  app.c.onPosition({ coords: { latitude: 51.975, longitude: -0.23, accuracy: 15 }, timestamp: Date.now() - 10e3 });
+  await sleep(300);
+  assert.equal(starts, 0, "a position arrived after coming back: no restart (no new permission prompt)");
+  app.close();
+});
+
+test("Review: at Farringdon with live tubes, office times use Farringdon's rides (Circle 7 min, H&C 8 min)", async () => {
+  const t0 = T("08:00"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...ZFD, 15, t0);
+  c.state.tube = { hub: "ZFD", at: t0, arrivals: [tubeAt(t0, 8, "Circle"), tubeAt(t0, 15, "H&C")], err: null };
+  c.render();
+  // Circle 08:08 + 7 min ride + (90 + 420) s → 08:23:30; H&C 08:15 + 8 min + (90 + 360) s → 08:30:30.
+  const list = app.text("#list");
+  assert.match(list, /08:08.*Aldgate 08:15.*Office ?08:23/);
+  assert.match(list, /08:15.*Aldgate East 08:23.*Office ?08:30/);
+  app.close();
+});
+
+test("Review: H&C to Aldgate East is the pick when it arrives sooner even though it leaves later", async () => {
+  const t0 = T("08:00"), app = await open({ now: t0, geo: null, settings: { ...RDM, rideKxAde: 420 }, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 8, "Met"), tubeAt(t0, 9, "H&C")], err: null };
+  c.render();
+  // Met 08:08 + 10 + 8.5 → 08:26:30; H&C 08:09 + 7 + 7.5 → 08:23:30.
+  assert.match(app.text("#hero"), /Get on the H&C to Barking/);
+  app.close();
+});
+
+test("Review: 'Did you get it?' — No resets the walk: the next tube a minute or two away is the pick", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 6, "Met", "m6"), tubeAt(t0, 12, "Circle", "c12"), tubeAt(t0, 13.5, "Met", "m13")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 6 * MIN) + '|Met"]').click();
+  await app.fix(...KX, 15, t0 + 10 * MIN);                          // 4 min after it left, good fix, still here
+  assert.match(app.text("#hero"), /Did you get the 07:50 Met\?/);
+  app.d.querySelector('[data-ride="no"]').click();
+  const hero = app.text("#hero");
+  assert.match(hero, /^You're at King's Cross/);
+  assert.match(hero, /Get on the Circle .*due 07:56/, "on the platform: the 07:56 (2 min away) is catchable");
+  app.close();
+});
+
+test("Review: tapping a tube that's leaving now makes it your ride; picks expire; 'On a different tube?' offers the others", async () => {
+  const t0 = T("07:50"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 0.4, "Circle", "c0"), tubeAt(t0, 2, "Met", "m2"), tubeAt(t0, 7, "Met", "m7")], err: null };
+  c.state.lastHub = { hub: "KGX", seen: t0, arrivals: c.state.tube.arrivals }; c.state.saved.lastHub = c.state.lastHub;
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Met"]').click();
+  await app.fix(51.5260, -0.1110, 30, t0 + 3 * MIN);                // between stations
+  assert.match(app.text("#hero"), /You're on the 07:52 Met · you picked this/);
+  assert.match(app.text("#hero"), /On a different tube\?.*07:50 Circle/);
+  // Tapping a tube that has already left: it's your ride, confirmed.
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 0.4 * MIN) + '|Circle"]').click();
+  assert.equal(c.state.saved.tubeRide.vehicle, "c0"); assert.equal(c.state.saved.tubeRide.confirmed, true);
+  // A pick from 26 min ago for a tube long gone never becomes a ride.
+  c.state.saved.tubeRide = null; c.state.saved.tubePick = { hub: "KGX", t: t0 - 26 * MIN, line: "Met" };
+  c.state.lastHub = null; c.state.saved.lastHub = null;            // (so only the pick could start a ride)
+  assert.equal(c.currentRide(t0 + 3 * MIN), null);
+  app.close();
+});
+
+test("Review: at King's Cross the list's best row is the tube on the card; after you pick, 'near the platform' isn't offered", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 2, "Circle", "c2"), tubeAt(t0, 8, "Met", "m8"), tubeAt(t0, 12, "Met", "m12")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Circle"]').click();
+  assert.match(app.text("#hero"), /You're getting the Circle/);
+  assert.doesNotMatch(app.text("#hero"), /Near the platform already/);
+  let best = app.d.querySelector("#list .row.best");
+  assert.equal(best && best.querySelector(".leave .t").textContent, "07:46", "the picked 07:46 Circle is the highlighted row");
+  // Pick a later one (not the first row): that row is the highlighted one.
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 12 * MIN) + '|Met"]').click();
+  best = app.d.querySelector("#list .row.best");
+  assert.equal(best && best.querySelector(".leave .t").textContent, "07:56", "the picked 07:56 Met (third row) is highlighted");
+  assert.equal(app.d.querySelectorAll("#list .row.best").length, 1);
+  app.close();
+});
+
+test("Review: H&C problems are shown at King's Cross; the line strip on a tube is that line's", async () => {
+  const t0 = T("08:00"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" },
+    extra: (u) => (/Line\/circle/.test(u) ? json([{ id: "circle", name: "Circle", lineStatuses: [{ statusSeverity: 10, statusSeverityDescription: "Good Service" }] },
+      { id: "metropolitan", name: "Metropolitan", lineStatuses: [{ statusSeverity: 10, statusSeverityDescription: "Good Service" }] },
+      { id: "hammersmith-city", name: "Hammersmith & City", lineStatuses: [{ statusSeverity: 9, statusSeverityDescription: "Minor Delays" }] }]) : undefined) }), c = app.c;
+  await c.refresh({ force: true, manual: true }); await sleep(300);
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 8, "H&C")], err: null };
+  c.render();
+  assert.match(app.text("#hero"), /Hammersmith & City: Minor Delays/);
+  app.close();
+});
+
+test("Review: on your way — exact minutes to spare, and 'on your way' starts 100 m from your saved home", async () => {
+  const now = T("06:50"), home = [51.9690, -0.2440];
+  const app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office", home, pace: "fast" } }), c = app.c;
+  await app.fix(home[0] + 0.0008, home[1], 10, now);                 // 90 m from home: not yet
+  assert.match(app.text("#hero"), /^If you leave now/);
+  await app.fix(home[0] + 0.0012, home[1], 10, now);                 // 130 m
+  assert.match(app.text("#hero"), /^On your way to Letchworth/);
+  const j = c.ranked(now).find((o) => o.recommended === 1), k = Math.floor((j.leave - now) / MIN);
+  assert.match(app.text("#hero"), k >= 1 ? new RegExp(`on track · ${k} min to spare`) : /on track · keep going/);
+  assert.equal(c.fastRefresh(), true, "refresh every 30 s on your way");
+  await app.fix(...home, 10, now);
+  assert.equal(c.fastRefresh(), false, "not at home");
+  app.close();
+});
+
+test("Review: at Letchworth station a late train says 'Departs · N min late'; refreshes every 30 s", async () => {
+  const now = T("07:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" },
+    disrupt: { "Great Northern 07:08 from LET": { late: 3, reason: "late" } } }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  await app.fix(51.9799, -0.2290, 10, now);
+  assert.equal(c.fastRefresh(), true);
+  const late = c.ranked(now).find((o) => o.train.depLate >= 1 && o.recommended);
+  assert.ok(late, "the fixture's late 07:08 is on the card");
+  assert.match(app.text("#hero"), new RegExp(`Departs · ${late.train.depLate} min late`));
+  app.close();
+});
+
+test("Review: office arrival — 120 m is 'you've arrived', 200 m is still walking", async () => {
+  const now = T("08:04"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("07:00") } } });
+  await app.fix(51.5139 + 0.0018, -0.0710, 15, now);                 // 200 m
+  assert.match(app.text("#hero"), /^Walking to the office/);
+  await app.fix(51.5139 + 0.0011, -0.0710, 15, now + 30e3);          // 120 m
+  assert.match(app.text("#hero"), /you've arrived/);
+  assert.match(app.text("#dirNote"), /you're at the office/);
+  app.close();
+});
+
+test("Review: a picked train keeps its National Rail service ID", async () => {
+  const now = T("07:20"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await c.refresh({ force: true }); await sleep(300);
+  await app.fix(51.8667, -0.1876, 20, now, 30);                      // Knebworth at speed: on the train
+  const btn = app.d.querySelector("[data-pick]");
+  if (!btn) { assert.ok(c.state.trainLock && c.state.trainLock.serviceId, "sure without asking, and remembered by service ID"); app.close(); return; }
+  btn.click();
+  assert.ok(c.state.trainLock.picked); assert.ok(c.state.trainLock.serviceId, "pick carries the service ID");
+  app.close();
+});
+
+test("Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0, null, t0 - 20e3);
+  assert.equal(c.state.lastFixAt, t0 - 20e3, "when the phone took it");
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 3, "Met", "m3"), tubeAt(t0, 9, "Circle", "c9")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 3 * MIN) + '|Met"]').click();
+  const since = c.state.hubSince.at;
+  await app.fix(51.5260, -0.1110, 30, t0 + 4 * MIN);                // on the tube
+  assert.equal(c.state.saved.tubePick, null, "the ride replaces the pick");
+  await app.fix(...ZFD, 20, t0 + 6 * MIN);                          // passing Farringdon
+  assert.equal(c.state.lastHub.hub, "KGX", "passing Farringdon doesn't make it your station");
+  assert.equal(c.state.hubSince.hub, "KGX"); assert.equal(c.state.hubSince.at, since);
+  app.close();
+  // A train you picked: on the train even standing still at a station on the line.
+  const n2 = T("07:30"), app2 = await open({ now: n2, geo: null, settings: RDM, saved: { dirMode: "office" } });
+  app2.c.state.trainLock = { operator: "Great Northern", std: "07:08", from: "LET", picked: true };
+  await app2.fix(51.9017, -0.2071, 15, n2, 0);                       // Stevenage platform, stopped
+  assert.equal(app2.c.state.onLine, true);
+  app2.close();
+});
+
+test("Review 2: 200 m from the office isn't 'you're at the office'", async () => {
+  const now = T("08:04"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("07:00") } } });
+  await app.fix(51.5139 + 0.0018, -0.0710, 15, now);
+  assert.doesNotMatch(app.text("#dirNote"), /you're at the office/);
+  app.close();
+});
+
+test("Review 3: a picked tube that's delayed starts your ride at its new time; GPS drift at home isn't leaving", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 5, "Met", "m5"), tubeAt(t0, 11, "Circle", "c11")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 5 * MIN) + '|Met"]').click();
+  app.at(t0 + MIN);
+  c.state.tube = { hub: "KGX", at: t0 + MIN, arrivals: [{ ...tubeAt(t0, 8, "Met", "m5") }, tubeAt(t0, 11, "Circle", "c11")], err: null };   // the Met is 3 min late
+  c.render();
+  assert.equal(c.state.saved.tubePick.t, t0 + 8 * MIN, "your pick follows the train");
+  app.at(t0 + 6 * MIN); c.render();
+  assert.equal(c.currentRide(t0 + 6 * MIN), null, "07:50: your train (now 07:52) hasn't left yet");
+  assert.match(app.text("#hero"), /^You're at King's Cross/);
+  app.close();
+  const home = [51.9690, -0.2440], app2 = await open({ now: T("06:50"), geo: null, settings: RDM, saved: { dirMode: "office", home } });
+  await app2.fix(home[0] + 0.0010, home[1], 80, T("06:50"));          // 112 m off, ±80 m
+  assert.match(app2.text("#hero"), /^If you leave now/, "within the fix's accuracy of home");
+  await app2.fix(home[0] + 0.0010, home[1], 10, T("06:51"));          // same place, ±10 m
+  assert.match(app2.text("#hero"), /^On your way to Letchworth/);
+  app2.close();
+});
+
+test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
+  const t0 = T("07:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  c.state.tube = { hub: "KGX", at: t0, arrivals: [tubeAt(t0, 7, "H&C", "h7"), tubeAt(t0, 9, "Met", "m9")], err: null };
+  c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 7 * MIN) + '|H&C"]').click();
+  await app.fix(51.5260, -0.1110, 30, t0 + 8 * MIN);
+  const hero = app.text("#hero");
+  assert.match(hero, /You're on the 07:51 H&C/);
+  assert.match(hero, /Aldgate East/);
+  assert.match(hero, /H&C: /); assert.doesNotMatch(hero, /Circle: |Met: /);
+  app.close();
+});
+
+// ---------- Going home: the tube from Aldgate on the generic connection model ----------
+const ALD = [51.5142, -0.0755], OFFICE_PT = [51.5139, -0.0710];
+// TfL's live Aldgate arrivals, as the feed sends them (westbound Circle and Met). `late` moves a vehicle later.
+function aldgateFeed(late = {}) {
+  const a = (hhmm, lineId, v) => ({ vehicleId: v, lineId, platformName: "Westbound - Platform 1", destinationName: "Edgware Road (Circle Line) Underground Station",
+    expectedArrival: new Date(T(hhmm) + (late[v] || 0) * MIN).toISOString(), timeToStation: 60 });
+  return [a("16:41", "metropolitan", "m41"), a("16:46", "circle", "c46"), a("16:52", "metropolitan", "m52")];
+}
+async function homeApp(t0, late = {}) {
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed(late)) : undefined) }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  return { app, c };
+}
+
+test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  let hero = app.text("#hero");
+  assert.match(hero, /Tubes from Aldgate \(live\)Met 16:41 → Farringdon 16:48: 16:56 Thameslink/);
+  assert.match(hero, /Which one are you getting\?/);
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  assert.match(app.text("#hero"), /Circle 16:46 → King's Cross 16:56.*you're getting this one/);
+  // At Aldgate, then the tube leaves and you're gone (no fix underground for 2+ min).
+  await app.fix(...ALD, 15, T("16:44"));
+  app.at(T("16:49")); c.render();
+  hero = app.text("#hero");
+  assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
+  assert.match(hero, /You're on the Circle that left Aldgate at 16:46 · you picked this/);
+  assert.match(hero, /Get off at King's Cross 16:56/);
+  app.close();
+});
+
+test("Going home: passing Farringdon doesn't end the ride to King's Cross; 'Got off at Farringdon' does", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:44"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  app.at(T("16:49")); c.render();
+  assert.equal(c.homeRide(T("16:49")).stop, "King's Cross");
+  await app.fix(51.5203, -0.1053, 20, T("16:53"));                   // at Farringdon, passing through
+  assert.match(app.text("#hero"), /^On the tube/);
+  app.d.querySelector('[data-ride="off"]').click();
+  assert.equal(c.state.saved.tubeRide, null);
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.close();
+});
+
+test("Going home: still at Aldgate with a good fix 4 min after your tube left — asked; No keeps you at Aldgate", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:38"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  await app.fix(...ALD, 15, T("16:45"));
+  assert.match(app.text("#hero"), /Still at Aldgate\? Did you get the 16:41 Met\?/);
+  app.d.querySelector('[data-ride="no"]').click();
+  assert.equal(c.homeRide(T("16:45")), null);
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.close();
+});
+
+test("Going home: your picked tube follows a delay (by vehicle)", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  c.state.aldDeps = { ...c.state.aldDeps, list: c.state.aldDeps.list.map((d) => (d.vehicle === "c46" ? { ...d, t: T("16:48") } : d)) };   // next refresh: 2 min late
+  c.render();
+  assert.equal(c.state.saved.tubePick.t, T("16:48"));
+  assert.match(app.text("#hero"), /Circle 16:48 →.*you're getting this one/);
+  app.close();
+});
+
+test("Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:38"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  app.at(T("16:43")); c.render();
+  const r = c.homeRide(T("16:43"));
+  assert.equal(r.stop, "Farringdon", "the 16:41 Met: Farringdon for the 16:56 Thameslink is the soonest home");
+  assert.equal(c.currentRide(T("16:43")), null, "an evening ride is never a morning one");
+  c.state.saved.dirMode = "office";
+  assert.equal(c.currentRide(T("16:43")), null, "even if you switch to 'To office'");
+  c.state.saved.dirMode = "home";
+  await app.fix(51.5203, -0.1053, 20, T("16:48"));                   // at Farringdon: the ride is over
+  assert.equal(c.homeRide(T("16:48")), null);
+  c.state.saved.tubeRide = r;                                         // and one that runs past its time
+  assert.equal(c.homeRide(r.t + r.rideMs + 11 * MIN), null);
+  // A pick at Aldgate is never treated as a morning pick.
+  c.state.saved.tubeRide = null; c.state.saved.tubePick = { hub: "ALD", t: T("16:52"), line: "Met" }; c.state.saved.dirMode = "office";
+  assert.equal(c.currentRide(T("16:53")), null);
+  app.close();
+});
+
+test("Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one", async () => {
+  const { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 15, T("16:44"));                             // at Aldgate at 16:44
+  app.at(T("16:48")); c.render();                                    // underground since: worked out as the 16:46
+  assert.match(app.text("#hero"), /Probably the Circle that left Aldgate at 16:46/);
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
+  assert.equal(c.state.saved.tubeRide.from, "ALD");
+  assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:41/);
+  app.close();
+  // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; then underground as the 16:46 leaves.
+  const h = await homeApp(T("16:30"));
+  await h.app.fix(...ALD, 15, T("16:38"));
+  h.app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
+  await h.app.fix(...ALD, 15, T("16:45"));
+  h.app.d.querySelector('[data-ride="no"]').click();
+  h.app.at(T("16:48")); h.c.render();
+  const r = h.c.homeRide(T("16:48"));
+  assert.ok(r && r.t === T("16:46"), "the 16:46 Circle, not the 16:41 you missed: " + JSON.stringify(r && r.t));
+  h.app.close();
 });

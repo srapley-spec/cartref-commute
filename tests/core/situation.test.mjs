@@ -183,3 +183,85 @@ test("The remembered train: by National Rail service ID when known, else operato
   const r4 = core.whichTrain(clear, here, "office", now + 3 * MIN, null, () => null, testville, now);
   assert.equal(r4.result.stale, true); assert.equal(r4.result.confidence, "low"); assert.equal(r4.lock, null);
 });
+
+test("trackLine without phone speed: frequent fixes accumulate; a picked train counts; one rough fix changes nothing", () => {
+  const L = sam.lines.KGX, t0 = T("07:30"), hat = [51.7638, -0.2156];
+  // Every 5 s at about 70 km/h southwards, no speed from the phone: detected once 300 m+ is covered (within a minute).
+  let tr = null, on = false, k = 0;
+  for (k = 0; k < 12 && !on; k++) {
+    const r = core.trackLine(tr, { here: [hat[0] - k * 0.00087, hat[1] + k * 0.0001], acc: 15, at: t0 + k * 5e3 }, null, null, L);
+    tr = r.track; on = r.onLine;
+  }
+  assert.equal(on, true, "detected"); assert.ok(k <= 7, `after ${k} fixes`);
+  // Standing still but you picked the train: on it.
+  assert.equal(core.trackLine(null, { here: hat, acc: 15, at: t0 }, 0, null, L, true).onLine, true);
+  // On the train, then one fix 800 m rough: unchanged; then a good fix stopped at a station: still on.
+  const moving = core.trackLine(null, { here: hat, acc: 15, at: t0 }, 25, null, L);
+  const rough = core.trackLine(moving.track, { here: [51.75, -0.19], acc: 800, at: t0 + 30e3 }, null, null, L);
+  assert.equal(rough.onLine, true); assert.deepEqual(rough.track, moving.track);
+  assert.equal(core.trackLine(rough.track, { here: [51.7363, -0.2104], acc: 15, at: t0 + 90e3 }, 0, null, L).onLine, true);
+});
+
+test("trackLine near home without phone speed: 500 m+ at 40+ km/h by the track", () => {
+  const L = sam.lines.KGX, t0 = T("07:10");
+  const a = [51.9710, -0.2400], b = [51.9670, -0.2470], c = [51.9640, -0.2520];   // along the line towards Hitchin
+  const first = core.trackLine(null, { here: a, acc: 15, at: t0 }, null, null, L);
+  assert.equal(first.onLine, false);
+  const fast = core.trackLine(first.track, { here: c, acc: 15, at: t0 + 60e3 }, null, null, L);    // ~0.95 km in 60 s
+  assert.equal(fast.onLine, true, "about 57 km/h by the track");
+  const slow = core.trackLine(first.track, { here: c, acc: 15, at: t0 + 150e3 }, null, null, L);   // ~23 km/h
+  assert.equal(slow.onLine, false, "cycling speed near home doesn't count");
+  // 400 m at train speed: enough away from home (300 m), not near home (500 m). Points between real stations.
+  const along = (p, q, km) => { const f = km / core.km(p, q); return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]; };
+  const LET = [51.9799, -0.2290], HIT = [51.9533, -0.2635], HAT = [51.7638, -0.2156], WMG = [51.7363, -0.2104];
+  const a2 = along(LET, HIT, 1.2), b2 = along(LET, HIT, 1.6);
+  const near0 = core.trackLine(null, { here: a2, acc: 15, at: t0 }, null, null, L);
+  assert.equal(core.trackLine(near0.track, { here: b2, acc: 15, at: t0 + 20e3 }, null, null, L).onLine, false, "400 m near home: not yet");
+  const c2 = along(LET, HIT, 1.8);
+  assert.equal(core.trackLine(near0.track, { here: c2, acc: 15, at: t0 + 30e3 }, null, null, L).onLine, true, "600 m near home at 72 km/h: yes");
+  const h1 = along(HAT, WMG, 0.5), h2 = along(HAT, WMG, 0.9);
+  const far0 = core.trackLine(null, { here: h1, acc: 15, at: t0 }, null, null, L);
+  assert.equal(core.trackLine(far0.track, { here: h2, acc: 15, at: t0 + 20e3 }, null, null, L).onLine, true, "400 m away from home: yes");
+});
+
+test("whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten", () => {
+  const now = T("08:00"), here = [50.05, -1.05];
+  const t = toCity("07:20", now - 40 * MIN, 45);                  // by timing you'd be far past here
+  const boards = { "RVS-CEN": { msgs: [], services: [t] } }, lock = { operator: "Express Rail", std: "07:20", from: "RVS" };
+  const fresh = core.whichTrain(boards, here, "office", now, lock, () => null, testville, now);
+  assert.ok(fresh.result.none || fresh.result.t !== t || !fresh.result.locked, "a fresh fix that doesn't fit lets go");
+  const old = core.whichTrain(boards, here, "office", now, lock, () => null, testville, now - 4 * MIN);
+  assert.equal(old.result.t, t); assert.equal(old.result.locked, true); assert.equal(old.result.stale, true);
+  // Office arrival time from 17:55 yesterday, no fix since: arriving today starts the 5 minutes again.
+  const OFF = [51.5139, -0.0710], today = T("08:30"), mem = { trip: { dir: "office", at: today - 3600e3 }, officeSince: today - (14 * 60 + 35) * MIN };
+  const r = core.inferDirection(OFF, today, D, mem, sam);
+  assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, today); assert.equal(r.mem.officeVisit, null);
+});
+
+test("Remembered train: falls back to the fields when the ID isn't on the board; same ID at two stations prefers yours; stale lock is low confidence; departed is judged at fix time", () => {
+  const now = T("08:00"), here = [50.05, -1.05];
+  const a = toCity("07:50", now - 10 * MIN, 20, "Express Rail");                      // no service ID on this board
+  const r1 = core.whichTrain({ x: { msgs: [], services: [a] } }, here, "office", now, { operator: "Express Rail", std: "07:50", from: "RVS", serviceId: "GONE", picked: true }, () => null, testville, now);
+  assert.equal(r1.result.t, a, "ID not found: operator, time and station");
+  assert.equal(r1.result.picked, true, "found as your remembered pick, not just as the nearest fit");
+  const atR = train({ from: "RVS", to: "CEN", std: "07:50", dep: now - 10 * MIN, arr: now + 10 * MIN, serviceId: "S" });
+  const atM = train({ from: "MKT", to: "RVS", std: "07:55", dep: now - 5 * MIN, arr: now + 15 * MIN, serviceId: "S" });
+  assert.equal(core.lockedTrain({ x: { msgs: [], services: [atM, atR] } }, { operator: "Express Rail", std: "x", from: "RVS", serviceId: "S" }), atR, "same service, your station");
+  // Remembered train, stale fix: kept, low confidence.
+  const far = toCity("07:20", now - 40 * MIN, 45);
+  const st = core.whichTrain({ x: { msgs: [], services: [far] } }, here, "office", now, { operator: "Express Rail", std: "07:20", from: "RVS" }, () => null, testville, now - 4 * MIN);
+  assert.equal(st.result.confidence, "low");
+  // Fix taken at 07:59; a train that left at 08:00 can't be the one you were on then.
+  const left = toCity("08:00", now, 20);
+  const r2 = core.whichTrain({ x: { msgs: [], services: [left] } }, here, "office", now + MIN, null, () => null, testville, now - MIN);
+  assert.ok(r2.result.none, "departed after the fix was taken: not yours");
+});
+
+test("Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten", () => {
+  const L = sam.lines.KGX, t0 = T("07:30"), hat = [51.7638, -0.2156];
+  const standing = core.trackLine(null, { here: hat, acc: 15, at: t0 }, 0, null, L);
+  assert.equal(core.trackLine(standing.track, { here: hat, acc: 900, at: t0 + 30e3 }, null, null, L).onLine, false);
+  const OFF = [51.5139, -0.0710], today = T("08:15"), mem = { trip: { dir: "office", at: today - 3600e3 }, officeSince: today - (11 * 60 + 30) * MIN };   // 20:45 yesterday
+  const r = core.inferDirection(OFF, today, D, mem, sam);
+  assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, today);
+});

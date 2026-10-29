@@ -634,3 +634,17 @@ test("Coming back to the app doesn't restart location (which can make Safari ask
   assert.equal(starts, 1, "a position arrived: not restarted");
   app.close();
 });
+
+test("Coming back with a cached position (taken before you came back) doesn't restart location", async () => {
+  let starts = 0;
+  const app = await createApp({ geo: null, settle: 50, relocateMs: 200 });
+  app.w.navigator.geolocation.watchPosition = () => { starts++; return 5; };
+  app.w.navigator.geolocation.clearWatch = () => {};
+  app.c.state.watchId = 1; app.c.state.locStatus = "ok";
+  app.d.dispatchEvent(new app.w.Event("visibilitychange"));
+  await sleep(20);
+  app.c.onPosition({ coords: { latitude: 51.975, longitude: -0.23, accuracy: 15 }, timestamp: Date.now() - 10e3 });
+  await sleep(300);
+  assert.equal(starts, 0);
+  app.close();
+});
