@@ -168,7 +168,7 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
-- **29 Oct evening** Trains you'd hurry for are graded by effort (walk, fast walk, run, car/cab, can't make it);
+- **29 Oct evening** Trains you'd hurry for are graded by effort (walk, fast walk, run, car, can't make it);
   "Arrives first" per effort level; Arrive by's pick says "Latest for 08:30". Agreed, not built.
   → [effort-levels](stories/effort-levels.md)
 - **29 Oct** Sam selects Signal, iPhone first, dynamic appearance and automatic Planner/Live switching with manual override. Sam also approves override lifetime, interaction deferral and ongoing tracking/alerts while Planner is pinned. → [design system](design-system.md)
