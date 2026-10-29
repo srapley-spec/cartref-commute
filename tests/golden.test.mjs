@@ -24,7 +24,7 @@ const PLACES = {
   soho: { coords: { latitude: 51.5130, longitude: -0.1350, accuracy: 20 } },
   oxfordCircus: { coords: { latitude: 51.5154, longitude: -0.1410, accuracy: 20 } },
   aldgateEast: { coords: { latitude: 51.5141, longitude: -0.0745, accuracy: 20 } },
-  knebworth: { coords: { latitude: 51.8667, longitude: -0.1876, accuracy: 30 } },
+  knebworth: { coords: { latitude: 51.8667, longitude: -0.1876, accuracy: 30, speed: 30 } },   // moving: about 108 km/h
 };
 const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", rdmSdBase: "https://darwin.test/SD/LDBWS/api/20220120", tflKey: "k" };
 

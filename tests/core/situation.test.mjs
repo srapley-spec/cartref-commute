@@ -115,3 +115,62 @@ test("Nearly home, walks, in London to the office, the remembered train", () => 
   assert.equal(core.lockedTrain({ a: { services: [t] } }, { operator: "Express Rail", std: "07:50", from: "RVS" }), t);
   assert.equal(core.lockedTrain({ a: { services: [t] } }, null), null);
 });
+
+test("trackLine: on a train only when moving along the line; near home only by the track at train speed; stays on while stopped", () => {
+  const L = sam.lines.KGX, t0 = T("07:10");
+  const at = (here, t, acc = 15) => ({ here, acc, at: t });
+  const hatfield = [51.7638, -0.2156], welham = [51.7363, -0.2104];
+  // Standing on Hatfield platform: on the line, not moving.
+  let r = core.trackLine(null, at(hatfield, t0), 0, null, L);
+  assert.equal(r.onLine, false); assert.equal(r.track.moving, false);
+  r = core.trackLine(r.track, at(hatfield, t0 + 60e3), 0.3, null, L);
+  assert.equal(r.onLine, false, "a minute later, still on the platform");
+  // The phone reports train speed: on a train.
+  assert.equal(core.trackLine(null, at(hatfield, t0), 20, null, L).onLine, true);
+  // No speed from the phone: 3 km along the line in 3 min (60 km/h).
+  r = core.trackLine(core.trackLine(null, at(hatfield, t0), null, null, L).track, at(welham, t0 + 180e3), null, null, L);
+  assert.equal(r.onLine, true);
+  // Stopped at a station later: still on the train.
+  assert.equal(core.trackLine(r.track, at(welham, t0 + 300e3), 0, null, L).onLine, true);
+  // Off the line: off the train.
+  assert.equal(core.trackLine(r.track, at([51.75, -0.10], t0 + 400e3), 20, null, L).track, null);
+  // Walking along the line (5 km/h): no.
+  const walk1 = core.trackLine(null, at(hatfield, t0), null, null, L);
+  assert.equal(core.trackLine(walk1.track, at([51.7600, -0.2150], t0 + 180e3), null, null, L).onLine, false);
+});
+
+test("trackLine near home: just past Letchworth towards Hitchin, only by the track at train speed", () => {
+  const L = sam.lines.KGX, t0 = T("07:10"), at = (here, t) => ({ here, acc: 15, at: t });
+  const towardsHitchin = [51.9700, -0.2420];                       // on the line between Letchworth and Hitchin
+  assert.equal(core.trackLine(null, at(towardsHitchin, t0), 20, null, L).onLine, true, "train speed by the track");
+  assert.equal(core.trackLine(null, at(towardsHitchin, t0), 8, null, L).onLine, false, "cycling speed isn't enough here");
+  assert.equal(core.trackLine(null, at([51.9799, -0.2290], t0), 0, null, L).onLine, false, "on Letchworth platform");
+  assert.equal(core.trackLine(null, at([51.9799, -0.2290], t0), 20, null, L).onLine, false, "at Letchworth station itself");
+  assert.equal(core.trackLine(null, at([51.9650, -0.2560], t0), 20, null, L).onLine, false, "half a km off the track near home");
+});
+
+test("Missing GPS accuracy means unknown, not perfect", () => {
+  assert.equal(core.hubHere({ here: [51.5308, -0.1238], acc: null, at: null }, sam), null);
+  assert.equal(core.hubHere({ here: [51.5308, -0.1238], acc: undefined, at: null }, sam), null);
+  assert.equal(core.onLine({ here: [51.7638, -0.2156], acc: null, at: null }, null, sam.lines.KGX), false);
+});
+
+test("The remembered train: by National Rail service ID when known, else operator, time and station; confidence", () => {
+  const now = T("08:00"), here = [50.05, -1.05];
+  const a = toCity("07:50", now - 10 * MIN, 20, "Express Rail", { serviceId: "SID1" });
+  const boards = { "RVS-CEN": { msgs: [], services: [a, toCity("07:49", now - 11 * MIN, 22, "Metro Rail")] } };
+  // A lock from an earlier board with a different time label but the same service: still found.
+  const r = core.whichTrain(boards, here, "office", now, { operator: "Express Rail", std: "07:48", from: "RVS", serviceId: "SID1", picked: true }, () => null, testville, now);
+  assert.equal(r.result.t, a); assert.equal(r.result.confidence, "high");
+  assert.equal(core.lockedTrain(boards, { operator: "x", std: "x", from: "RVS", serviceId: "SID1" }), a);
+  // Without an ID, by the fields; once the train has an ID it's remembered.
+  const r2 = core.whichTrain(boards, here, "office", now, { operator: "Express Rail", std: "07:50", from: "RVS" }, () => null, testville, now);
+  assert.equal(r2.result.t, a); assert.equal(r2.lock.serviceId, "SID1"); assert.equal(r2.result.confidence, "medium", "sure by timing alone");
+  // A fresh, sure fit remembers the service ID.
+  const clear = { "RVS-CEN": { msgs: [], services: [a] } };
+  const r3 = core.whichTrain(clear, here, "office", now, null, () => null, testville, now);
+  assert.deepEqual(r3.lock, { operator: "Express Rail", std: "07:50", from: "RVS", serviceId: "SID1" });
+  // An old position: low confidence and no new lock.
+  const r4 = core.whichTrain(clear, here, "office", now + 3 * MIN, null, () => null, testville, now);
+  assert.equal(r4.result.stale, true); assert.equal(r4.result.confidence, "low"); assert.equal(r4.lock, null);
+});

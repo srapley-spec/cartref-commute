@@ -17,8 +17,8 @@ export type { RefreshSituation, RefreshPlan, RailLoad, RailSource } from "./refr
 export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRounds, arriveByRounds, liveCovers, aroundOptions, arriveByOptions } from "./search";
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
-export { hubHere, onLine, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta } from "./situation";
-export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta } from "./situation";
+export { hubHere, onLine, trackLine, lockOf, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta } from "./situation";
+export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";
 import { samCommute } from "./profiles/sam";

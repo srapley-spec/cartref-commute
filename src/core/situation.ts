@@ -13,7 +13,7 @@ export interface HubVisit { hub: StationCode; seen: number; arrivals: TubeDep[] 
 /** The last time you were seen at the office's tube station going home, and the tubes due then. */
 export interface TubeStopVisit { seen: number; deps: TubeDep[]; }
 /** The train you're on, once sure (or picked). */
-export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; }
+export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; serviceId?: string; }
 /** Where National Rail last reported a train (Service Details, parsed). */
 export interface Progress {
   last: { code: string | null; t: number } | null;
@@ -24,8 +24,8 @@ export interface Progress {
 /** Your position from the phone. `acc` in metres. */
 export interface Fix { here: LatLon | null; acc: number | null; at: number | null; }
 
-// As the page always has: a missing accuracy compares as 0 (JavaScript's null <= n), an undefined one fails.
-const pos = (f: Fix, maxAcc: number) => (f.here && (f.acc as number) <= maxAcc ? f.here : null);
+// A position counts only with a known accuracy within `maxAcc` metres (a missing accuracy is unknown, not perfect).
+const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null);
 
 /** At a London station (within `atHubKm`, with a fix good to 250 m)? */
 export function hubHere(f: Fix, p: Profile): StationCode | null {
@@ -39,6 +39,32 @@ export function hubHere(f: Fix, p: Profile): StationCode | null {
 export function onLine(f: Fix, atHub: StationCode | null, line: LatLon[]): boolean {
   const here = pos(f, 500); if (!here || atHub) return false;
   const pr = lineProgress(here, line); return pr.offKm < 1.0 && pr.frac > 0.1 && pr.frac < 0.97;
+}
+
+/** How far along the line you were at a moment, and whether you've been seen moving along it like a train. */
+export interface LineTrack { at: number | null; km: number; moving: boolean; }
+const lineKm = (line: LatLon[]) => line.slice(1).reduce((t, q, i) => t + km(line[i], q), 0);
+/**
+ * On a train: on the line and seen moving along it — the phone's speed at 5 m/s (18 km/h) or more, or 300 m+
+ * along the line at 15 km/h or more within 3 minutes. Near home (Letchworth to just past Hitchin) only right by the
+ * track and at train speed. Once moving it stays on the line while you're on it
+ * (a train standing at a station still counts); `keep` (a train you picked) counts as moving. Standing on a
+ * platform or near the line doesn't. Returns whether you're on a train and the track to keep for next time.
+ */
+export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, atHub: StationCode | null, line: LatLon[], keep = false): { onLine: boolean; track: LineTrack | null } {
+  const here = pos(f, 500); if (!here || atHub) return { onLine: false, track: null };
+  const pr = lineProgress(here, line);
+  // The first tenth of the line (Letchworth to just past Hitchin, where home is) counts only right by the track
+  // (300 m) and at train speed (12 m/s, about 43 km/h); beyond it, within 1 km at walking-plus speed.
+  const nearHome = pr.frac > 0.01 && pr.frac <= 0.1 && pr.offKm < 0.3;
+  if (!nearHome && !(pr.offKm < 1.0 && pr.frac > 0.1 && pr.frac < 0.97)) return { onLine: false, track: null };
+  const along = pr.frac * lineKm(line);
+  const ref = prev && !prev.moving && prev.at != null && f.at != null && f.at > prev.at && f.at - prev.at <= 180e3 ? prev : null;
+  const dKm = ref ? Math.abs(along - ref.km) : 0, hours = ref ? ((f.at as number) - (ref.at as number)) / 3600e3 : 0;
+  const minSpeed = nearHome ? 12 : 5, minKmh = nearHome ? 40 : 15, minKm = nearHome ? 0.5 : 0.3;
+  const moving = !!(prev && prev.moving) || keep || (speed != null && speed >= minSpeed) || (!!ref && dKm >= minKm && dKm / hours >= minKmh);
+  const track: LineTrack = moving || !ref ? { at: f.at, km: along, moving } : ref;
+  return { onLine: moving, track };
 }
 
 export const nearOffice = (here: LatLon | null, p: Profile) =>
@@ -73,8 +99,25 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
 export interface TrainFit {
   t: Train; hub: StationCode; mine: number; offMin: number; projected: number; live: boolean; reported: boolean; ruledOut: boolean;
   sure?: boolean; other?: TrainFit | null; others?: TrainFit[]; locked?: boolean; picked?: boolean;
+  /** high: picked, or sure with a reported position; medium: sure from timing alone; low: unsure or position stale. */
+  confidence?: "high" | "medium" | "low";
+  stale?: boolean; fixAgeMin?: number;
 }
 export type WhichTrain = TrainFit | { none: true; others: TrainFit[] };
+
+/** The remembered train among `items`: by National Rail service ID (and station) when both have one, else by
+ *  operator, scheduled time and station. */
+function findLocked<T>(items: T[], train: (x: T) => Train, lock: TrainLock): T | undefined {
+  const byFields = (t: Train) => t.operator === lock.operator && t.std === lock.std && t.from === lock.from;
+  if (lock.serviceId) {
+    const ids = items.filter(x => train(x).serviceId === lock.serviceId);
+    const hit = ids.find(x => train(x).from === lock.from) || ids[0];
+    if (hit) return hit;
+  }
+  return items.find(x => byFields(train(x)));
+}
+const lockOf = (t: Train, picked?: boolean): TrainLock => ({ operator: t.operator, std: t.std, from: t.from, ...(t.serviceId ? { serviceId: t.serviceId } : {}), ...(picked ? { picked } : {}) });
+export { lockOf };
 
 /**
  * Which train you're probably on: how far along the line you are against how far each departed train should be
@@ -83,7 +126,11 @@ export type WhichTrain = TrainFit | { none: true; others: TrainFit[] };
  * and the lock to keep.
  */
 export function whichTrain(boards: Record<string, Board | null | undefined>, here: LatLon, dir: Direction, now: number,
-    lock: TrainLock | null, progress: (serviceId?: string) => Progress | null, p: Profile): { result: WhichTrain; lock: TrainLock | null } {
+    lock: TrainLock | null, progress: (serviceId?: string) => Progress | null, p: Profile, fixAt?: number | null): { result: WhichTrain; lock: TrainLock | null } {
+  // Trains are compared with where you were when the phone took the fix, not now: an old position compared with
+  // the current time makes every train look further ahead than you. Over 2 minutes old the position is stale:
+  // it can't switch or settle which train you're on, only keep the one remembered.
+  const at = fixAt != null && fixAt <= now ? fixAt : now, ageMin = (now - at) / 60e3, stale = ageMin > 2;
   const cands: TrainFit[] = [];
   for (const B of Object.values(boards)) {
     for (const t of (B && B.services) || []) {
@@ -94,13 +141,13 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
       const len = t.arr - t.dep, pr = lineProgress(here, p.lines[hub]);
       const mine = toLondon ? pr.frac : 1 - pr.frac;          // how far along you are, from where the train started
       // You can't be on a train that hasn't left: clear of the station (about 1.5 km), only departed trains count.
-      if (mine > 0.03 && t.dep > now) continue;
-      let expected = Math.max(0, Math.min(1, (now - t.dep) / len)), reported = false;
+      if (mine > 0.03 && t.dep > at) continue;
+      let expected = Math.max(0, Math.min(1, (at - t.dep) / len)), reported = false;
       const pg = progress(t.serviceId);
-      if (pg) { const rf = reportedFrac(pg.last, pg.next, t.from, now, p.lines[hub], p.stationGeo || {});
+      if (pg) { const rf = reportedFrac(pg.last, pg.next, t.from, at, p.lines[hub], p.stationGeo || {});
         if (rf != null) { expected = toLondon ? rf : 1 - rf; reported = true; } }
       // Arrival: the live expected time when the train is live; otherwise from your position.
-      const projected = t.timetable ? now + (1 - mine) * len : t.arr;
+      const projected = t.timetable ? at + (1 - mine) * len : t.arr;
       const offMin = Math.abs(expected - mine) * len / 60e3;
       // A reported position is good to a few minutes: more than 6 min from you rules the train out (still pickable).
       cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: reported && offMin > 6 });
@@ -109,11 +156,16 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   cands.sort((a, b) => a.offMin - b.offMin);
   // The same train appears once per London station it calls at: the runner-up must be a different train.
   const same = (a: TrainFit, b: TrainFit) => a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : (a.t.arr as number) - (b.t.arr as number)) <= 60e3;
-  const locked = lock ? cands.find(c => c.t.operator === lock.operator && c.t.std === lock.std && c.t.from === lock.from) : undefined;
+  const locked = lock ? findLocked(cands, c => c.t, lock) : undefined;
   const others = (c0: TrainFit) => cands.filter((c, i) => !same(c, c0) && cands.findIndex(x => same(x, c)) === i).slice(0, 3);
-  if (locked && lock!.picked) { Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked) }); return { result: locked, lock }; }
-  if (locked && !locked.ruledOut && locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)) {
-    Object.assign(locked, { sure: true, other: null, locked: true, others: others(locked) }); return { result: locked, lock };
+  const age = { stale, fixAgeMin: Math.round(ageMin) };
+  // Remembering the service ID once it's known (a train remembered before live data arrived).
+  const withId = (l: TrainLock, t: Train): TrainLock => (!l.serviceId && t.serviceId ? { ...l, serviceId: t.serviceId } : l);
+  if (locked && lock!.picked) { Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked), confidence: "high", ...age }); return { result: locked, lock: withId(lock!, locked.t) }; }
+  const keeps = locked && !locked.ruledOut && (stale || (locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)));
+  if (locked && keeps) {
+    Object.assign(locked, { sure: true, other: null, locked: true, others: others(locked), confidence: stale ? "low" : locked.reported ? "high" : "medium", ...age });
+    return { result: locked, lock: withId(lock!, locked.t) };
   }
   const fits = cands.filter(c => !c.ruledOut);
   if (!fits.length || fits[0].offMin > 10) {
@@ -124,13 +176,16 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   best.sure = !next || next.offMin - best.offMin >= 4;
   best.other = best.sure ? null : next;
   best.others = others(best);
-  return { result: best, lock: best.sure ? { operator: best.t.operator, std: best.t.std, from: best.t.from } : lock };
+  best.confidence = stale || !best.sure ? "low" : best.reported ? "high" : "medium";
+  Object.assign(best, age);
+  // A stale position never settles which train you're on.
+  return { result: best, lock: best.sure && !stale ? lockOf(best.t) : lock };
 }
 
 /** The remembered train, from the loaded boards. */
 export function lockedTrain(boards: Record<string, Board | null | undefined> | null, lock: TrainLock | null): Train | null {
   if (!lock || !boards) return null;
-  return Object.values(boards).flatMap(b => (b ? b.services : [])).find(x => x.operator === lock.operator && x.std === lock.std && x.from === lock.from) || null;
+  return findLocked(Object.values(boards).flatMap(b => (b ? b.services : [])), t => t, lock) || null;
 }
 
 const stale = (f: Fix, now: number) => !f.at || now - f.at > 90e3;

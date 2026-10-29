@@ -274,7 +274,7 @@ test("On the train: works out which train from your position and projects arriva
   const fast = svc({ from: "LET", to: "KGX", dep: fastDep, arr: fastDep + 29 * m });
   const stopper = svc({ from: "LET", to: "KGX", dep: now - 20 * m, arr: now + 32 * m });
   useBoards({ "LET-KGX": { msgs: [], services: [stopper, fast] }, "LET-ZFD": { msgs: [], services: [] } });
-  c.state.autoDir = "office"; c.state.here = knebworth; c.state.locAcc = 20; c.state.atHub = null;
+  c.state.autoDir = "office"; c.state.here = knebworth; c.state.locAcc = 20; c.state.atHub = null; c.state.lastFixAt = now;
   c.state.onLine = c.onLine();
   try {
     assert.equal(c.state.onLine, true);
@@ -286,8 +286,9 @@ test("On the train: works out which train from your position and projects arriva
     assert.match(hero, new RegExp(`On the train · .*You're on the ${hm(fast.dep)} Great Northern`));
     assert.match(hero, /projected at office/);
     assert.match(hero, /King's Cross \d\d:\d\d expected \(live\) · timetable \d\d:\d\d · on time/);
-    // Same place 5 minutes later than expected, live data: still the fast train (it's behind its timetable),
-    // and the arrival is National Rail's live expected time.
+    // Same place 5 minutes later than expected (a fresh fix), live data: still the fast train (it's behind its
+    // timetable), and the arrival is National Rail's live expected time.
+    c.state.lastFixAt = now + 5 * m;
     const late = c.whichTrain(now + 5 * m);
     assert.equal(late.t, fast);
     assert.equal(late.projected, fast.arr);
@@ -296,6 +297,13 @@ test("On the train: works out which train from your position and projects arriva
     const lateTt = c.whichTrain(now + 5 * m);
     assert.equal(lateTt.t, fast);
     assert.ok(Math.round((lateTt.projected - fast.arr) / m) >= 4);
+    // The same position, but the phone last updated it 5 min ago: judged at that time, so no delay is inferred,
+    // and the card says the location is old.
+    c.state.lastFixAt = now; c.state.trainLock = null;
+    const old = c.whichTrain(now + 5 * m);
+    assert.equal(old.t, fast); assert.equal(old.stale, true); assert.equal(old.fixAgeMin, 5); assert.equal(old.confidence, "low");
+    assert.ok(Math.abs(old.projected - fast.arr) < 60e3, "no delay inferred from an old position");
+    assert.equal(c.state.trainLock, null, "an old position doesn't settle which train");
     // Between Letchworth and Hitchin (where home is): never counted as on a train.
     c.state.here = [51.9650, -0.2480]; assert.equal(c.onLine(), false);
     c.state.here = [51.9790, -0.2300]; assert.equal(c.onLine(), false, "at Letchworth station");
@@ -469,7 +477,7 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
     let hero = app.text("#hero");
     assert.match(hero, /Probably the A1 Great Northern or the B2 Thameslink/);
     assert.match(hero, /Which train are you on\?A1 Great NorthernB2 Thameslink/);
-    app.d.querySelector('[data-pick="Thameslink|B2|LET"]').click();
+    app.d.querySelector('[data-pick="Thameslink|B2|LET|"]').click();
     hero = app.text("#hero");
     assert.match(hero, /You're on the B2 Thameslink · you picked this/);
     assert.match(hero, /On a different train\?A1 Great Northern/);

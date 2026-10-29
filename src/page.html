@@ -373,7 +373,7 @@ const progressData = id => { const p=progressFor(id); return p && p.data || null
 // Which train you're probably on; remembers it once sure (state.trainLock).
 function whichTrain(now){
   if(!state.onLine || !state.boards) return null;
-  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE);
+  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null);
   state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
@@ -839,9 +839,9 @@ function optionBlock(j, opt){
 }
 function renderOnTrain(now, m){
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
-  const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location</div>`;
+  const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location${m && m.stale ? ` · <b>location last updated ${m.fixAgeMin} min ago</b>` : ""}</div>`;
   if(!m || m.none){
-    const pick = m && m.others && m.others.length ? `<div class="pick"><small>Which train are you on?</small>${m.others.map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>` : "";
+    const pick = m && m.others && m.others.length ? `<div class="pick"><small>Which train are you on?</small>${m.others.map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>` : "";
     $("#hero").innerHTML=`${head}<div class="empty">You're on the line between Letchworth and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>${pick}`;
     return null;
   }
@@ -863,7 +863,7 @@ function renderOnTrain(now, m){
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}${m.picked?" · you picked this":""}</span></div>
-    ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
+    ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
     ${lastLine}
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
@@ -1382,7 +1382,7 @@ function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("de
 function render(){ renderInner(); restoreOpen(); }
 // "Which train are you on?": your pick is kept until you're off the line.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
-  const [operator,std,from]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true}; render(); });
+  const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
 function renderInner(){
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
@@ -1567,10 +1567,14 @@ function onPosition(p){
   if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null)){
     state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; save(); }
   noteAldgate();
-  state.atHub=hubHere(); state.lastFixAt=Date.now();
+  // When the phone took the fix (it may hand over one up to 30 s old), never in the future.
+  state.atHub=hubHere(); state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now());
   if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
-  const wasOnLine=state.onLine; state.onLine=onLine(); if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
+  // On a train: on the line and seen moving along it (engine); a train you picked counts as moving.
+  const sp=p.coords.speed, tr=C.trackLine(state.lineTrack||null, fix(), (typeof sp==="number" && sp>=0) ? sp : null, state.atHub, LINE.KGX, !!(state.trainLock&&state.trainLock.picked));
+  state.lineTrack=tr.track;
+  const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = state.saved.officeVisit===today && !state.atHub && km(here,OFFICE)<0.25 ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;

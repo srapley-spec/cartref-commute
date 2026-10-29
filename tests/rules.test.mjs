@@ -622,3 +622,22 @@ test("On your way to Letchworth: departures, when you'll reach the station, and 
   assert.match(app.text("#hero"), /^If you leave now/);
   app.close();
 });
+
+test("This morning: at Letchworth station, then on the 07:08 passing Hitchin — on the train, not 'leave now'", async () => {
+  const now = T("07:08"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto" } }), c = app.c;
+  const fixAt = (lat, lon, speed, t) => { app.at(t); c.onPosition({ coords: { latitude: lat, longitude: lon, accuracy: 15, speed }, timestamp: t }); };
+  fixAt(51.9799, -0.2290, 0, now);                                   // on the platform
+  await sleep(500);
+  assert.match(app.text("#hero"), /^You're at Letchworth · departures/);
+  assert.equal(c.state.onLine, false);
+  fixAt(51.9560, -0.2600, 25, T("07:13"));                           // just short of Hitchin, at speed
+  await sleep(500);
+  assert.equal(c.state.onLine, true);
+  assert.match(app.text("#hero"), /^On the train/);
+  assert.doesNotMatch(app.text("#hero"), /If you leave now/);
+  // Stopped at Hitchin: still on the train.
+  fixAt(51.9533, -0.2635, 0, T("07:15"));
+  await sleep(300);
+  assert.equal(c.state.onLine, true);
+  app.close();
+});
