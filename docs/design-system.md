@@ -119,9 +119,9 @@ Limits: no live credentials, production engine integration, real iPhone hardware
 
 Native extension points: reserve a compact journey summary using the same semantic fields (service, confidence, departure/arrival, next action, platform when available, delay and freshness) for future Live Activities, Dynamic Island and widgets. No native integration is implied by the web mockup.
 
-## Interaction proposal details: automatic view, manual override
+## Agreed interaction: automatic view, manual override
 
-Only automatic switching with manual override is approved. Override lifetime, deferral during interaction, and tracking/alerts while pinned are proposed policies awaiting Sam’s agreement; the architecture document controls their approval status.
+Sam approved automatic switching with manual override and all three supporting policies on 29 October 2026: override lifetime, deferral during editing/service selection, and tracking plus important alerts while Planner is pinned. The architecture document records these decisions.
 
 - Default `viewOverride = auto`. Derive the screen from the existing engine's situation: planning before departure, contextual walking/station boards, active rail, interchange, Tube, final walk and arrival. Do not add a second set of GPS or timetable heuristics in the view layer.
 - **Auto · Plan** or **Auto · Live** makes the current automatic choice visible. Tap Plan or Live to pin that view; the Auto control becomes **Return to Auto**. No modal or confirmation is needed.
@@ -129,12 +129,12 @@ Only automatic switching with manual override is approved. Override lifetime, de
 - When the user returns to Auto, immediately display the latest situation, not the situation from when they overrode it. Avoid moving a screen while the user is editing a date/time, choosing a service or reading an expanded notice; finish that interaction first and expose the pending live state.
 - Preserve the existing inference confidence rules. If train identity is uncertain, show the candidate choice, not a confident fabricated journey. Choosing Live with no active journey shows a clear empty state.
 - Keep **view override**, **direction override**, and **train/Tube confirmation** separate. Changing the screen does not change the trip. Direction controls retain the existing Auto/office/home behavior.
-- Proposed lifecycle for implementation: keep the view override for the current journey/session; reset to Auto on a genuinely new trip, with its identity determined by the existing engine. Do not use a time-of-day reset or clear it on a location blip. The lifecycle boundary still needs integration validation.
+- Approved lifecycle for implementation: keep the view override for the current journey/session; reset to Auto on a genuinely new trip, with its identity determined by the existing engine. Do not use a time-of-day reset or clear it on a location blip. The lifecycle boundary still needs integration validation.
 - The mockup's Journey state selector simulates new situation evidence. With Auto selected the screen follows it; with Plan pinned it stays on planning; Return to Auto shows the latest simulated situation. It does not perform real background or location detection.
 
 ## Decision
 
-Signal is the chosen primary structure. Automatic planning/live switching with manual override is required. No capability deletion is proposed. Other reductions to repeated explanatory copy remain recommendations rather than permission to remove information.
+Signal is the chosen primary structure. Automatic planning/live switching with manual override, journey-scoped override lifetime, interaction deferral, and ongoing tracking/alerts while Planner is pinned are required. No capability deletion is proposed. Other reductions to repeated explanatory copy remain recommendations rather than permission to remove information.
 
 ## Component contracts
 
