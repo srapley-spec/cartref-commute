@@ -50,6 +50,7 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
 - Only the Leave now card is assembled from `BLOCKS`; the live cards (on train, at hub, on tube, tube home, nearly
   home) still compose their own HTML in the model's order by inspection, not by iteration. Move them when the chosen
   design is implemented.
-- A manual Plan/Live pin (proposed by the Signal design) would be an input to `chooseView`, with its lifecycle tested
-  here; it is not implemented and not agreed.
+- The manual Planner/Live override and its lifetime are agreed (Sam, 29 Oct, with Signal: see
+  [signal-design-system](signal-design-system.md)) but not built. It goes in as an input to `chooseView`, with its
+  lifecycle (until Return to Auto or a new journey; deferred while editing) tested here.
 - `docs/design/README.md` tells every design proposal to draw `BLOCKS` in this order and to use `statusLine`.

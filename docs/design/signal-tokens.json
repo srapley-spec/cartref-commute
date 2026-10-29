@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "status": "Selected visual direction; values subject to accessibility verification",
+  "colour": {
+    "canvas": {
+      "light": "#f1f4f7",
+      "dark": "#0b1017"
+    },
+    "surface": {
+      "light": "#ffffff",
+      "dark": "#151e29"
+    },
+    "inset": {
+      "light": "#e9eef4",
+      "dark": "#202c3b"
+    },
+    "text": {
+      "light": "#17283b",
+      "dark": "#edf4fc"
+    },
+    "sub": {
+      "light": "#536477",
+      "dark": "#aebfd1"
+    },
+    "line": {
+      "light": "#cfd9e3",
+      "dark": "#344356"
+    },
+    "accent": {
+      "light": "#174eac",
+      "dark": "#9abfff"
+    },
+    "soft": {
+      "light": "#e4edff",
+      "dark": "#1c3557"
+    },
+    "good": {
+      "light": "#12674e",
+      "dark": "#7ce0b7"
+    },
+    "good-bg": {
+      "light": "#e4f4ed",
+      "dark": "#16392f"
+    },
+    "warn": {
+      "light": "#835000",
+      "dark": "#ffd18a"
+    },
+    "warn-bg": {
+      "light": "#fff0d5",
+      "dark": "#49351c"
+    },
+    "bad": {
+      "light": "#b1293c",
+      "dark": "#ff9ba8"
+    },
+    "bad-bg": {
+      "light": "#ffebee",
+      "dark": "#452431"
+    }
+  },
+  "font": {
+    "family": [
+      "-apple-system",
+      "BlinkMacSystemFont",
+      "Segoe UI",
+      "sans-serif"
+    ],
+    "bodyPx": 16,
+    "supportingPx": 14,
+    "heroPx": 50,
+    "titlePx": 29
+  },
+  "spacingPx": [
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    32
+  ],
+  "radiusPx": {
+    "hero": 24,
+    "panel": 16,
+    "control": 12
+  },
+  "touchTargetMinPx": 44,
+  "appearance": {
+    "default": "system",
+    "overrides": [
+      "light",
+      "dark"
+    ]
+  }
+}

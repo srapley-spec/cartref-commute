@@ -57,6 +57,44 @@ from that description.
   widget, a Live Activity or a Watch face draws that order in its own shape; none re-decides it. A design proposal
   proposes how to draw the blocks, never which comes first. → [presentation-model](stories/presentation-model.md)
 
+
+## Signal presentation architecture (29 Oct 2026)
+
+Status: design selected; implementation not started. See [design system](design-system.md) and
+[acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
+
+### Agreed by Sam
+- Signal is the chosen visual direction, iPhone first. iPad/Mac are later priorities.
+- Appearance switches dynamically between light and dark, with manual overrides.
+- Planner and Live switch automatically, with a manual override. The manual controls are not the normal
+  way to advance through a journey.
+- Preserve functionality. Any proposed removal or concealment must be explicit and approved.
+
+### Architectural consequences within the existing structure
+- Situation inference, service identity, ranking, timings and confidence remain engine responsibilities.
+  The presentation layer consumes their results; it must not introduce duplicate GPS/timetable heuristics.
+- View selection lives in the presentation model (`src/core/present.ts`, `chooseView`): the automatic choice
+  and a manual Planner/Live override are its inputs, tested there, so every shell gets the same answer.
+- Keep view selection separate from direction and selected service. Looking at Planner must not redefine
+  which train the user is on; an appearance change must not reset the journey.
+- Represent view selection explicitly: automatic versus a manual Planner/Live override. The exact field
+  names in the prototype are illustrative, not a mandated production API.
+- Retain the existing uncertainty rules: ask when train identity is ambiguous, label inferred versus
+  reported data, and preserve the user's confirmed selection subject to existing conflict handling.
+- The web design does not assume native background location, Live Activities, early platform predictions,
+  passing-point data or coach formation. Those remain separate capabilities.
+
+### Additional policies agreed by Sam
+1. A manual view override lasts for the current journey/session and clears on explicit Return to Auto
+   or a genuinely new journey. The engine's new-journey boundary needs definition and tests.
+2. Automatic screen transitions wait while the user edits a date/time, chooses a service or reads an
+   expanded notice. A pending live state remains discoverable without discarding the interaction.
+3. Tracking and important active-journey alerts continue while Planner is pinned. Do not interpret a view
+   override as permission to pause refreshes or suppress a cancellation.
+
+Sam agreed to all three policies on 29 Oct 2026. Their implementation is still pending; the prototype
+is not evidence that production background tracking, alert delivery or interaction deferral is implemented.
+
 ## Data sources
 - **Live board**: Rail Data Marketplace Live Departure Board, direct from the phone (key in Settings). Reaches
   ~2 h from now even with a start offset; beyond that TfL's timetable fills in, labelled "timetable only".
@@ -124,10 +162,11 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Later: a design system; proposals being compared in [`design/`](design/README.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); implementation pending. Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **29 Oct** Sam selects Signal, iPhone first, dynamic appearance and automatic Planner/Live switching with manual override. Sam also approves override lifetime, interaction deferral and ongoing tracking/alerts while Planner is pinned. → [design system](design-system.md)
 - **29 Oct** The engine decides priority, the shell decides geometry: a presentation model (`present.ts`) owns view
   choice, headline kind, status-line precedence and block order; `page.html` draws in that order. Design proposals
   are judged on how they draw the blocks. → [presentation-model](stories/presentation-model.md)

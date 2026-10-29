@@ -1,6 +1,6 @@
 # Design system proposals
 
-Status: comparing proposals · Opened: 29 Oct 2026 · Owner: Sam
+Status: **Signal selected** (29 Oct 2026); implementation pending · Opened: 29 Oct 2026 · Owner: Sam
 
 The app works but looks utilitarian. Before features grow further it needs a design system, or every new screen bakes
 in more debt. Several people are producing proposals; this folder holds all of them in one shape so they can be
@@ -68,6 +68,7 @@ Score each proposal 1–5 on every row. The first row is pass/fail and comes fir
 |---|---|---|---|
 | [original](proposals/original/) | Claude, 29 Oct | A restyle of the current layout (controls → status line → hero card → list) in two skins: dark "Signal" and light "Board". | Superseded: reviewed as too close to today's app; kept for its system board (tokens, components, drop/hide table) and its review. |
 | [womble](proposals/womble/) | Claude, 29 Oct | Two structures. **A**, Flighty-shaped: a line/time diagram on top, a sheet that leads with a status word, a record of changes. **B**, Commutative-shaped: saved journeys instead of mode/direction toggles, train cards with departure progress, platform tile, coaches, "Track this train" pinned to the bottom. | Draft for feedback. Arrive by / Leave around and the other live states not yet drawn (see its README). |
+| [Signal](#signal-selected) | 29 Oct | iPhone-first; automatic Planner/Live switching with a manual override; dynamic light/dark. Specification in [`../design-system.md`](../design-system.md), tokens in [`signal-tokens.json`](signal-tokens.json), interactive preview [`signal-preview.html`](signal-preview.html), review in [`review.md`](review.md). | **Selected by Sam, 29 Oct.** |
 
 Add a row per proposal. When one is chosen, its README becomes `docs/design/system.md` (tokens, components, IA) and
 the decision goes in the log in `../architecture.md`.
@@ -88,3 +89,31 @@ Fill in as proposals land. Blank = not scored yet.
 | 7 Native-ready | | | | |
 | 8 Accessibility | | | | |
 | 9 Build cost | | | | |
+
+## Signal (selected)
+
+Signal was selected by Sam on 29 October 2026. Start with [the specification](../design-system.md), the
+[acceptance story](../stories/signal-design-system.md) and the
+[architecture approval register](../architecture.md#signal-presentation-architecture-29-oct-2026).
+
+**Preview.** Open `signal-preview.html` in a browser, or serve the repository (`python3 -m http.server 8000`) and
+open `http://localhost:8000/docs/design/signal-preview.html`. GitHub's file viewer shows source, not the page. The
+repository root is the GitHub Pages site, so the file is also reachable at `…/cartref-commute/docs/design/signal-preview.html`;
+nothing in the app links to it. It contains Signal plus the unselected Journey comparator, for review history. Use
+the variant picker below the phone; change Journey state above the phone to simulate evidence (in Auto the view
+follows it); pin Plan, change the state, then Return to Auto to test the override. Appearance: System, Light, Dark.
+
+All journey values are illustrative. The preview does not request location, credentials or rail APIs (its content
+security policy allows no network connections); it keeps its own preview state in browser storage. Full
+Settings/Leisure and several failure states are documented rather than drawn.
+
+**Consume.**
+- `signal-tokens.json`: semantic colour pairs, spacing, typography and touch targets. Map semantic roles into CSS or
+  native assets, not the prototype's raw selectors.
+- `../design-system.md`: preservation matrix, component contracts, states and implementation gates.
+- `../stories/signal-design-system.md`: acceptance criteria and missing implementation coverage.
+- `review.md`: independent review, fixes and known limits.
+
+Do not import the demonstration JavaScript into the production engine. The same engine outputs (including
+`present.ts`: view, headline, status line, block order) must feed Planner, Live, future widgets and native
+summaries. The manual override is an input to `chooseView`, implemented and tested there.
