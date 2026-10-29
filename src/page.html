@@ -1062,7 +1062,8 @@ function renderHero(list, now){
   const board=atStation();
   const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
-    return m>=1?`leave within ${m} min`:"leave now"; };
+    // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
+    return m>=1?"":"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":"Leaving right now? The"} <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=list.filter(o=>o.missed && !o.uncertain).map(o=>hurryLine(o,dest,picks[0])).join("");
