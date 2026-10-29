@@ -5,6 +5,7 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "typecheck": "tsc -p .",
+    "check-docs": "node tools/check-docs.mjs",
     "test": "node tools/build.mjs && TZ=Europe/London node --import ./tests/clock.mjs --test tests/*.test.mjs tests/core/*.test.mjs"
   },
   "devDependencies": {

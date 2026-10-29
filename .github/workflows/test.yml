@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -16,4 +18,15 @@ jobs:
         run: npm run typecheck
       - name: index.html is built from src/
         run: npm run build && git diff --exit-code -I 'id="build"' index.html
+      - name: Context kept current (docs/, CLAUDE.md)
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          # Compare with the PR's base, else the previous push, else main (a new branch).
+          base="$PR_BASE"
+          if [ -z "$base" ]; then base="$PUSH_BEFORE"; fi
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then base=origin/main; fi
+          if [ "$(git rev-parse "$base")" = "$(git rev-parse HEAD)" ]; then node tools/check-docs.mjs; exit; fi
+          node tools/check-docs.mjs --since "$base"
       - run: npm test

@@ -2,12 +2,19 @@
 
 When to leave the office or Cartref, using live National Rail trains via King's Cross (Great Northern) or Farringdon (Thameslink), Circle/Met to Aldgate, and your measured walks.
 
+## Context
+Start with [`CLAUDE.md`](CLAUDE.md) (working rules), [`docs/architecture.md`](docs/architecture.md) (why it's built
+this way, decisions, plan) and [`docs/stories/`](docs/stories/README.md) (each capability: where it came from,
+acceptance criteria, the tests that prove it). These are the source of truth and are updated with every behaviour
+change; CI checks that they are.
+
 ## Files
-- `site/` — the app. Host this folder as-is (GitHub Pages, Netlify, Cloudflare Pages).
+- `index.html` — the app as hosted (built from `src/`), with `manifest.webmanifest` and the icons.
+- `src/` — the engine (`src/core`) and the screen (`src/page.html`); `tools/build.mjs` builds `index.html`.
 - `proxy/worker.js` — optional Cloudflare Worker, only if the Darwin feed blocks browser calls.
 
 ## Host on GitHub Pages
-1. Create a repo, upload the contents of `site/` to the root.
+1. The repo root is the site (`index.html`).
 2. Repo → Settings → Pages → Deploy from branch → `main` / root.
 3. Open the URL on your phone → Share → Add to Home Screen.
 
@@ -27,7 +34,7 @@ If the app says it couldn't reach the feed (no HTTP code), the provider is block
 - "Fast pace" uses your measured fast walks for Cartref ⇄ Letchworth and a multiplier (0.82, from your data) for London walks.
 
 ## Architecture
-See the architecture decision in the Commuter App project. In short:
+See [`docs/architecture.md`](docs/architecture.md). In short:
 - `src/core/` — the **engine** (TypeScript, pure functions: no screen, no network, no hard-coded places).
   - `types.ts` trains, options, flags, profiles · `time.ts` · `geo.ts`
   - `adapters/` Darwin and TfL responses → trains
