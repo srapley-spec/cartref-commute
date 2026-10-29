@@ -86,7 +86,10 @@ fetches, caches and draws.
 - Rule tests: each threshold pinned at its edge. Proxy tests. Feature toggles tested both off (unchanged) and on.
 - All tests run on a virtual clock (Tue 3 Nov 2026 10:00, ticking).
 - Mutation testing: 60/60 (28 Oct afternoon); 46/46 (28 Oct night); 37/37 over the new engine modules after
-  closing 5 gaps (29 Oct). 196 tests (29 Oct).
+  closing 5 gaps (29 Oct). 29 Oct afternoon, independent review by a separate agent that hadn't written the code:
+  76 breakages over the day's changes, then a second round of 59 after fixes; all caught except agreed equivalents
+  (P22, P31, N10, H15: changes that can't alter any result). Probes found 3 bugs and 4 smaller defects, all fixed
+  with tests. The going-home refactor: 15 breakages, 14 caught, 1 equivalent. 237 tests (29 Oct, incl. 3 for the docs check).
 - Test cases kept as data files are the contract any future native (Swift) engine must also pass.
 - Stories link the tests that prove them; CI checks the links exist.
 
@@ -109,8 +112,8 @@ Native backlog: #2–#7, #10–#12.
 2b-iii. Started (live, behind the "Any start and end point" toggle): Leisure to any London place and home from
    anywhere typed. Still to do: routes as profile data rather than code; a place that isn't home or the office at
    both ends. → [any-start-and-end-point](stories/any-start-and-end-point.md)
-2b-iv. Next: move the going-home tube logic (tubes from Aldgate, which tube you're on, where to get off) onto the
-   generic connection model; it's still bespoke. → [tube-home](stories/tube-home.md)
+2b-iv. Done and live (29 Oct afternoon): going-home tubes (from Aldgate, which tube you're on, where to get off) on
+   the generic connection model. → [tube-home](stories/tube-home.md)
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
@@ -118,6 +121,17 @@ Later: a design system. Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **29 Oct afternoon** Going-home tubes moved onto the generic connection model (2b-iv), after the independent
+  review was satisfied. → [tube-home](stories/tube-home.md)
+- **29 Oct afternoon** Independent test review before further refactoring (Sam). Fixes: phantom tube ride after a
+  gap, cached fix restarting location (hotfixed), pick lost when TfL moves its time (match by vehicle, else same
+  line within 3 min), rough fix dropping the train, yesterday's office arrival. → [connections](stories/connections.md),
+  [location-prompts](stories/location-prompts.md), [which-train](stories/which-train.md),
+  [direction-and-arrival](stories/direction-and-arrival.md)
+- **29 Oct afternoon** H&C to Aldgate East competes from King's Cross and Farringdon going to work; going home it
+  stays a fallback (service frequency). Office "direction turns" needs 5 minutes at the office.
+- **29 Oct afternoon** With a saved home, the walk to the station is the measured walk scaled by distance left.
+  → [on-the-way-to-the-station](stories/on-the-way-to-the-station.md)
 - **29 Oct** Project context moves into this repo (`CLAUDE.md`, `docs/`); CI enforces docs touched with behaviour
   changes. Build work moves to Claude Code; the claude.ai Project stays for trip debriefs, and anything decided
   there is written here.

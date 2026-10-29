@@ -16,8 +16,9 @@ shouldn't turn round the moment GPS puts you near it.
   the next morning it's work again.
 - Once you've been at the office today, anywhere else counts as heading home; King's Cross after the office means
   heading home.
-- Within 150 m of the office: "you've arrived"; still the morning journey until you've been there 5 minutes, then
-  it turns round and reloads trains.
+- Within 150 m of the office: "you've arrived" (200 m is still walking, and isn't "you're at the office"); still
+  the morning journey until you've been there 5 minutes, then it turns round and reloads trains. An office arrival
+  from another calendar day is forgotten, so the next morning's 5 minutes start again (independent review, 29 Oct).
 - Location denied: the app says so and offers a manual choice, which works.
 - Missing GPS accuracy means unknown, not perfect.
 
@@ -32,3 +33,7 @@ shouldn't turn round the moment GPS puts you near it.
 - tests/app.test.mjs: "In London: plans home"
 - tests/app.test.mjs: "Location denied: says so and offers manual choice; manual choice works"
 - tests/core/situation.test.mjs: "Missing GPS accuracy means unknown, not perfect"
+- tests/rules.test.mjs: "Review: office arrival — 120 m is 'you've arrived', 200 m is still walking"
+- tests/rules.test.mjs: "Review 2: 200 m from the office isn't 'you're at the office'"
+- tests/core/situation.test.mjs: "whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten"
+- tests/core/situation.test.mjs: "Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten"
