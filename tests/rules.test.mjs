@@ -479,10 +479,10 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
 });
 
 test("Home location: set from where you are; Nearly home counts the walk from there, and says when you're home", async () => {
-  const now = T("20:25"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c;
+  const now = T("20:25"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home", home: null } }), c = app.c;
   await app.moveTo(51.9752, -0.2402, 200);
   app.d.querySelector("#setHomeBtn").click();
-  assert.equal(c.state.saved.home, undefined, "fix not good enough");
+  assert.equal(c.state.saved.home, null, "fix not good enough");
   await app.moveTo(51.9752, -0.2402, 10);
   app.d.querySelector("#setHomeBtn").click();
   assert.deepEqual(plain(c.state.saved.home), [51.9752, -0.2402]);
@@ -599,5 +599,26 @@ test("Tube going home: Aldgate is noted only within 150 m; at Aldgate with a fre
   assert.equal(w.best.line, "Met"); assert.equal(w.other.line, "Circle");
   c.state.saved.aldHome.deps = [{ line: "Met", t: T("16:41") }, { line: "Met", t: T("16:50") }];
   assert.equal(c.whichTubeHome(T("16:44")).other, undefined);
+  app.close();
+});
+
+test("On your way to Letchworth: departures, when you'll reach the station, and whether you're on track", async () => {
+  const now = T("06:50"), home = [51.9690, -0.2440];                 // ~1.4 km from the station
+  const app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office", home, pace: "fast" } }), c = app.c;
+  await app.moveTo(51.9690, -0.2440, 10);                            // at home: planning to leave
+  assert.match(app.text("#hero"), /^If you leave now/);
+  await app.moveTo(51.9760, -0.2340, 10);                            // ~550 m from the station, on the way
+  const hero = app.text("#hero");
+  assert.match(hero, /^On your way to Letchworth · 06:50/);
+  const walk = c.walkFromHere(), at = new Date(now + walk * 1000);
+  assert.match(hero, new RegExp(`At the station about ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`));
+  assert.match(hero, /Departs ?0[67]:\d\d → Arrive office/);
+  assert.match(hero, /on track · (\d+ min to spare|keep going)/);
+  assert.doesNotMatch(hero, /If you leave now/);
+  // Without a saved home: on the way only when clearly nearer the station than home is (3+ min of walking).
+  c.state.saved.home = null; c.render();
+  assert.match(app.text("#hero"), /^On your way to Letchworth/);
+  await app.moveTo(51.9700, -0.2400, 10);                            // ~1.2 km out: not clearly on the way
+  assert.match(app.text("#hero"), /^If you leave now/);
   app.close();
 });

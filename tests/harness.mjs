@@ -58,6 +58,7 @@ export function tflTimetable({ every = 30, mins = 30, offset = 10 } = {}) {
 
 // Location fixtures.
 export const NEAR_LETCHWORTH = { coords: { latitude: 51.975, longitude: -0.23, accuracy: 12 } };
+export const TEST_HOME = [51.975, -0.23];
 export const IN_LONDON = { coords: { latitude: 51.515, longitude: -0.08, accuracy: 30 } };
 
 // Every page made in a test; closeAll() stops their timers even when a test fails.
@@ -86,7 +87,8 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
         class VirtualDate extends D { constructor(...a) { if (a.length) super(...a); else super(globalThis.Date.now()); } static now() { return globalThis.Date.now(); } }
         w.Date = VirtualDate;
       }
-      w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings }, saved)));
+      // The test persona lives at NEAR_LETCHWORTH (home set in Settings), unless a test says otherwise (home: null).
+      w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings, home: TEST_HOME }, saved)));
       w.addEventListener("error", (e) => errors.push(e.message));
       w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
       w.HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };

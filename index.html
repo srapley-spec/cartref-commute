@@ -249,7 +249,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 06:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 29 Oct 07:03 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1919,8 +1919,20 @@ function walkFromHere(){
   const d=km(state.here,GEO.LET); if(d>3) return null;
   const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
   const est = C.walkSecs(state.here, GEO.LET, leisure?"leisure":fast?"fast":"avg", PROFILE);
-  const fromHome = leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg);
-  return est<fromHome ? est : null;
+  return est<homeWalk() ? est : null;
+}
+// Your usual walk from home to Letchworth station at the current pace (seconds).
+function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
+  return leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg); }
+// On your way to Letchworth station: you've left home (over 100 m from your saved home; without one, at least
+// 3 min of walking nearer the station than home is) and aren't at the station yet. Leave now then says when each
+// train departs, when you'll reach the station, and whether you're on track.
+function onWay(){
+  if((state.saved.view||"now")!=="now" || atStation()) return null;
+  const w=walkFromHere(); if(w==null) return null;
+  const home=state.saved.home;
+  if(home ? km(state.here,home)<0.1 : w>homeWalk()-180) return null;
+  return { walk:w };
 }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 const onTube = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE);
@@ -2267,18 +2279,21 @@ function renderHero(list, now){
   const hurryOpts=list.filter(o=>o.missed && !o.uncertain).sort((a,b)=>b.leave-a.leave || a.arrive-b.arrive);
   if(!picks.length){ const hurry=hurryOpts.map(o=>hurryLine(o,dest)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
-  const board=atStation();
+  const board=atStation(), way=!board && onWay();
   const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
+    // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
+    if(way){ const k=Math.floor((j.leave-now)/60e3); return k>=1?`on track · ${k} min to spare`:"on track · keep going"; }
     // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
     return m>=1?"":"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
-  const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":"Leaving right now? The"} <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
+  const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":way?"Next one you can make: the":"Leaving right now? The"} <span class="t">${esc(first.train.std)}</span> ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=hurryOpts.map(o=>hurryLine(o,dest,picks[0])).join("");
   const tubes=tubesFromAldgate(now);
   h.innerHTML = `
-    <div class="lbl">${board?`You're at ${esc(board)} · departures`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
-    ${picks.map(j=>optionBlock(j,{timing:spare(j), board})).join("")}
+    <div class="lbl">${board?`You're at ${esc(board)} · departures`:way?"On your way to Letchworth":"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>
+    ${way?`<div class="slack" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:""}
+    ${picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?"Letchworth":null)})).join("")}
     ${now1}${hurry}${tubes}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
@@ -2290,10 +2305,10 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
     <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain?" gone":""}${j.missed?" missed":""}">
-      ${atStation() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
+      ${atStation()||onWay() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||atStation()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta"><span class="t">${esc(j.train.std)}</span>${j.train.depLate?` exp <span class="t">${hhmm(j.train.dep)}</span>`:""} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||atStation()||onWay()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
@@ -2855,7 +2870,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={onWay,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
