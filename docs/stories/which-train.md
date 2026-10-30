@@ -42,7 +42,10 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
   destination known: named as before. Tubes likewise: "the 07:56 Met to Aldgate", "the Circle to Edgware Road that
   left Aldgate at 16:46" (the destination is kept with your pick and ride).
 
+- Distinct known National Rail service IDs remain separate candidates even when their times are within one minute; time/operator deduplication is only a fallback when IDs are unavailable.
+
 ## Tests
+- tests/core/situation.test.mjs: "whichTrain: distinct service IDs stay separate even a minute apart"
 - tests/core/situation.test.mjs: "whichTrain: departed trains only, the nearest fit, sure when the runner-up is 4+ min worse, then remembered"
 - tests/core/situation.test.mjs: "whichTrain: a reported position beats the timetable, and more than 6 min from you rules a train out"
 - tests/core/situation.test.mjs: "trackLine: on a train only when moving along the line; near home only by the track at train speed; stays on while stopped"

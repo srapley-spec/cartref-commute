@@ -344,3 +344,44 @@ test("Rough fixes and office days: a rough fix while standing doesn't put you on
   const r = core.inferDirection(OFF, today, D, mem, sam);
   assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, today);
 });
+
+test('inferDirection: location uncertainty cannot manufacture office dwell or overwrite a remembered journey',()=>{
+ const now=T('09:00'),office=sam.places.office,morning={trip:{dir:'office',at:now-30*MIN}};
+ let r=core.inferDirection(office,now,D,morning,sam,1200);
+ assert.equal(r.mem.officeSince,null);assert.equal(r.mem.officeNearSince,null);assert.equal(r.dir,'office');
+ r=core.inferDirection(office,now+20*MIN,D,r.mem,sam,1200);
+ assert.equal(r.dir,'office');assert.equal(r.mem.officeVisit,null,'twenty minutes of uncertain fixes cannot reverse trip');
+ r=core.inferDirection(office,now+21*MIN,D,r.mem,sam,12);
+ assert.equal(r.mem.officeSince,now+21*MIN,'recovery starts dwell now');
+ r=core.inferDirection(office,now+26*MIN,D,r.mem,sam,12);
+ assert.equal(r.dir,'home');assert.equal(r.mem.officeVisit,D);
+ const travelling={trip:{dir:'home',at:now}};
+ for(const acc of [null,NaN,Infinity,-1]){
+  const unknown=core.inferDirection(sam.places.homeStation,now+MIN,D,travelling,sam,acc);
+  assert.equal(unknown.dir,'home');assert.deepEqual(unknown.mem.trip,travelling.trip);
+  assert.equal(core.inferDirection(office,now,D,{},sam,acc).dir,null,'unknown fix without reliable memory awaits location');
+ }
+});
+
+test('atOffice: uncertainty circle must fit inside the arrival radius, on any profile',()=>{
+ const office=sam.places.office;
+ assert.equal(core.atOffice(fix(office,149),sam),true);
+ assert.equal(core.atOffice(fix(office,150),sam),false);
+ assert.equal(core.atOffice(fix(office,1200),sam),false);
+ assert.equal(core.atOffice(fix(office,null),sam),false);
+ const other=testville.places.office;
+ assert.equal(core.atOffice(fix(other,12),testville),true);
+ assert.equal(core.atOffice(fix([other[0]+.001,other[1]],50),testville),false,'110m centre +50m uncertainty extends beyond150m');
+});
+
+ test("whichTrain: distinct service IDs stay separate even a minute apart", () => {
+ const now=T("08:00"), here=[50.05,-1.05];
+ const a=toCity("07:50",now-10*MIN,20,"Express Rail",{serviceId:"A"});
+ const b=toCity("07:51",now-9*MIN,20,"Express Rail",{serviceId:"B"});
+ const boards={"RVS-CEN":{msgs:[],services:[a,b]}};
+ const r=core.whichTrain(boards,here,"office",now,null,()=>null,testville,now);
+ assert.equal(r.result.sure,false);assert.equal(r.result.other.t.serviceId,"B");assert.equal(r.lock,null);
+ b.serviceId="A";
+ const duplicate=core.whichTrain(boards,here,"office",now,null,()=>null,testville,now);
+ assert.equal(duplicate.result.sure,true);assert.equal(duplicate.result.other,null);
+ });

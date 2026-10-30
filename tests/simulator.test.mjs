@@ -50,7 +50,7 @@ test("playback starts at the selected end and supports multiple speeds", async (
   const speed=d.querySelector("#simSpeed");
   const play=d.querySelector("#simPlay");
   const pause=d.querySelector("#simPause");
-  for(const [mode,lat] of [["outbound",51.975],["return",51.5151]]){
+  for(const [mode,lat] of [["outbound",51.975],["return",51.5139]]){
     direction.value=mode;
     for(const value of ["1","5","20"]){
       speed.value=value;

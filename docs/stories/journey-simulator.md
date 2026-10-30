@@ -1,42 +1,36 @@
 # Developer journey simulator
-Status: Partly done (feature branch, pending independent review and CI) · Since: 30 Oct 2026 · Issues: #32
+Status: Partly done (release verification in progress) · Since: 30 Oct 2026 · Issues: #32, #34
 
 ## Story
-As a developer, I want to inject manual coordinates or replay a representative route in the real app, so that I can exercise journey inference with genuine transport feeds while at my desk.
-
-## Where it came from
-30 Oct 2026: repeated physical commuting is too slow for validating GPS-dependent app transitions. Existing deterministic jsdom and golden tests remain essential.
+As a developer I want to replay coherent location, Darwin and TfL inputs through the real application,
+so that I can inspect inference and onward planning without travelling.
 
 ## Acceptance criteria
-- Settings → Experimental → Developer journey simulator enables the panel, off by default. Disabling ends any active simulation and returns to real GPS. This is a user-facing feature switch, not authentication.
-- Enable in Settings. Jump among six sample positions or enter valid latitude/longitude.
-- GPS fixes pass through the existing `onPosition` handler. Browser GPS watch is stopped; late real watch callbacks must not override injected fixes.
-- Real clock and existing API endpoints remain in use; playback does **not** represent historical departures.
-- Select Great Northern via King’s Cross or Thameslink via Farringdon, then either direction, at 1×, 5× or 20×. Pause automatically at each meaningful checkpoint, and resume only on Continue. Reverse journeys use reversed checkpoints. the route is straight-line waypoint interpolation, NOT mapped tracks, and can cross unrealistic terrain.
-- Visual bar must remain present while simulated and offer Stop & reset.
-- In simulation the normal `save()` is suppressed. On exit restore pre-simulation `state.saved`, clear transient inferred train/hub state and request a real GPS watch.
-- Reload exits simulation. No historical replay, virtual clock, map tap, recorded network data, fault injection or trace export yet.
+- Settings → Experimental has independent GPS Simulation and Transport Feed Simulation switches, both off by default and session-only. Reload exits simulation. Stop restores real GPS, clock, feeds and pre-simulation journey memory.
+- Either route (Great Northern via King's Cross or Thameslink via Farringdon) works outbound and returning on an independently defined timetable. Scenario controls select normal, later/wrong train, uncertainty, delay, cancellation, platform change, missed connection, disruption, outage, awaiting GPS, permission denied, GPS loss or low accuracy.
+- Start/restart begins at the selected UTC date/time, paused at the first checkpoint. Continue advances at1×,5× or20× and pauses at every checkpoint indefinitely. Pause stops immediately. Selection changes require a restart before continuing. Reset clears journey memory and caches.
+- GPS fixes enter the normal position handler; train identities are inferred or manually chosen through normal application controls. Synthetic GPS never assigns a train lock or tube ride.
+- GPS accuracy can be entered in metres, or vary with indoor and train contexts. Rough fixes must not assert arrival or invent boarding. Accurate recovery uses normal inference; GPS loss supplies no fabricated precise fixes.
+- Synthetic feeds and GPS playback share a scoped virtual clock. Browser Date and device time remain unchanged. With GPS only, live feeds and application time use device time; speed accelerates coordinates only. With feeds only, real location observations are stamped into the virtual time domain.
+- Simulation does not write journey context or settings to localStorage. Requests and asynchronous work from an older source epoch cannot update current caches. Leaving simulation clears virtual-time caches and throttle/retry timestamps.
+- Approximate rail polylines follow the profile corridor; they are synthetic test geometry, not surveyed tracks. Provider formats pass through production adapters.
 
 ## Tests
 - tests/simulator.test.mjs: "developer simulator defaults off and toggles from Settings"
 - tests/simulator.test.mjs: "simulated fixes do not overwrite persisted journey context"
 - tests/simulator.test.mjs: "playback starts at the selected end and supports multiple speeds"
 - tests/simulator.test.mjs: "each route and direction starts paused at first checkpoint"
-- Gaps: stale callbacks, rapid provider toggling, async requests, GPS permission changes and refresh-count limits still require tests **before merge**.
-- Existing `npm run ci`, golden, mutation and GitHub Actions required before merge.
+- tests/simulation-clock.test.mjs: "simulated clock freezes at waypoint and moves only when explicitly advanced"
+- Additional application scenario assertions and their actual results: [coverage matrix](../simulator-scenario-coverage.md).
+- Independent regressions and mutation results: [review](../simulator-review.md).
+- Real Chromium control/playback verification: `python3 tests/browser-simulator.py` (Playwright and Chromium required).
 
-## Modular implementation
-- `src/simulator/controller.js`: dependency-injected simulation lifecycle, GPS generation guards, playback, state reset and panel handlers.
-- `src/simulator/panel.html`: developer controls and styles.
-- `src/page.html`: settings switch, GPS handler integration, simulator factory initialization and two build placeholders.
-- `tools/build.mjs`: embeds the two simulator assets into the static `index.html` / preview build, preserving GitHub Pages deployment.
-- No simulator functionality is added to `src/core/`; the underlying inference engine remains reusable.
+## Architecture
+`src/simulator/clock.js` supplies scoped time, `feeds.js` supplies transport providers, `controller.js`
+orchestrates scenario playback and GPS, and `panel.html` supplies controls. The static build embeds
+all modules. The shell injects providers and time; `src/core` remains pure and reusable.
 
-## Known risks / review blockers
-- Session-level in-memory persistence isolation must be independently tested across all user interactions and pending asynchronous callbacks.
-- The Settings feature switch is **not a security boundary**. It must default off; risk of accidental enablement requires review.
-- Location interpolation is a crude approximation; inference accuracy cannot be validated against track geometry.
-- App time is actual current time, so speeding coordinates will not speed timetable or real train movement.
-- Review all pending in-flight API responses and retry timers for contamination after reset.
-- No reviewer has signed off; do not merge yet.
-\n## Build blocker (30 October)\nThe source module and panel have been updated for checkpoint playback, but the generated `index.html` is **not yet rebuilt**. The GitHub connector rejected a large generated-file update, and this execution environment cannot access GitHub from its shell. No tests have been executed; CI and independent review remain blocked. Regenerate using `npm run build` in a connected checkout, then verify generated files and tests before merging.\n
+## Release gates
+The source-generated index, full tests, local committed-code CI, independent final review, branch
+GitHub CI, merge and merged-commit CI must all pass. Coverage gaps remain blockers until the matrix
+records executed assertions. This status is not a release approval.

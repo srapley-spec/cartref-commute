@@ -16,7 +16,7 @@ export { liveAdjust, rankNow } from "./plan";
 export { effortNeeds, effortFor, leaveBy, gradeEffort, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
 export type { EffortProfile } from "./effort";
 export { accessOf, fastWalkLegs } from "./journey";
-export { planConnection, rideActive, rideDoubtful, boardSpot, boardMins, leftAgo, platformNo } from "./connections";
+export { planConnection, rideActive, rideEnded, rideDoubtful, boardSpot, boardMins, leftAgo, platformNo } from "./connections";
 export type { Departure, ConnectionLeg, Timed, ConnectionInput, ConnectionPlan, Ride } from "./connections";
 export { refreshPlan, refreshDue, REUSE } from "./refresh";
 export type { RefreshSituation, RefreshPlan, RailLoad, RailSource } from "./refresh";
@@ -24,7 +24,7 @@ export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRound
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
-export { hubHere, awayFromHubs, onLine, trackLine, lockOf, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
+export { hubHere, awayFromHubs, onLine, trackLine, lockOf, nearOffice, atOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, HubVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";

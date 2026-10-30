@@ -86,34 +86,44 @@ export interface DirectionMemory { trip?: { dir: Direction; at: number } | null;
  *  also counts; walking across that circle takes about 7. */
 export const AT_OFFICE_KM = 0.15, OFFICE_DWELL_MS = 5 * 60e3, NEAR_OFFICE_KM = 0.3, NEAR_OFFICE_DWELL_MS = 10 * 60e3;
 
+/** Office arrival requires a known uncertainty circle entirely within the arrival radius. */
+export function atOffice(f: Fix, p: Profile): boolean {
+  return !!f.here && typeof f.acc === "number" && Number.isFinite(f.acc) && f.acc >= 0 && km(f.here, p.places.office) + f.acc / 1000 < AT_OFFICE_KM;
+}
+
 /**
  * Which way you're heading, from where you are. Near the home station you're setting off for work, unless you've
  * been heading home in the last 3 hours (arriving). Once at the office today, anywhere else is heading home.
  * In between, the direction of the journey you started (for 3 hours), else towards whichever end is further.
  * Returns the direction and the memory to keep.
  */
-export function inferDirection(here: LatLon, now: number, today: string, mem: DirectionMemory, p: Profile): { dir: Direction; mem: DirectionMemory } {
+export function inferDirection(here: LatLon, now: number, today: string, mem: DirectionMemory, p: Profile, accuracy?: number | null): { dir: Direction | null; mem: DirectionMemory } {
   const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
   const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null, officeNearSince: mem.officeNearSince || null };
+  // Legacy coordinate-only callers omit accuracy. Browser callers must explicitly pass their measured accuracy
+  // or null. An uncertainty circle must fit wholly inside a decision boundary before it counts as arrival.
+  const uncertainty = accuracy === undefined ? 0 : typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy >= 0 ? accuracy / 1000 : Infinity;
   // Time you've been within `radius` of the office since; an arrival time from another day (no fix since you
   // left) starts again; leaving resets it. Returns whether you've stayed `dwell`.
   const dOff = km(here, p.places.office), sameDay = (t: number) => new Date(t).toDateString() === new Date(now).toDateString();
   const stayed = (key: "officeSince" | "officeNearSince", radius: number, dwell: number) => {
-    if (dOff >= radius) { out[key] = null; return false; }
+    if (dOff + uncertainty >= radius) { out[key] = null; return false; }
     const since = out[key] && sameDay(out[key] as number) ? out[key] as number : now;
     out[key] = since; return now - since >= dwell;
   };
   const atDesk = stayed("officeSince", AT_OFFICE_KM, OFFICE_DWELL_MS), nearby = stayed("officeNearSince", NEAR_OFFICE_KM, NEAR_OFFICE_DWELL_MS);
   if (out.officeVisit !== today && (atDesk || nearby)) out.officeVisit = today;
   const trip = out.trip, recent = !!trip && now - trip.at < 3 * 3600e3;
-  let dir: Direction;
-  if (dHome < 3 && recent && trip!.dir === "home") dir = "home";
-  else if (dHome < 3) { dir = "office"; out.trip = { dir: "office", at: now }; }
+  let dir: Direction | null;
+  if (dHome + uncertainty < 3 && recent && trip!.dir === "home") dir = "home";
+  else if (dHome + uncertainty < 3) { dir = "office"; out.trip = { dir: "office", at: now }; }
   else if (out.officeVisit === today) dir = "home";
   else if (recent) dir = trip!.dir;
-  else dir = dHome <= dTube ? "office" : "home";
+  else if (dHome + uncertainty < dTube - uncertainty) dir = "office";
+  else if (dTube + uncertainty < dHome - uncertainty) dir = "home";
+  else dir = null;
   // Heading home away from the home station: remember it, so arriving there isn't taken as setting off.
-  if (dir === "home" && dHome >= 3) out.trip = { dir: "home", at: now };
+  if (dir === "home" && dHome - uncertainty >= 3) out.trip = { dir: "home", at: now };
   return { dir, mem: out };
 }
 
@@ -177,7 +187,7 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   }
   cands.sort((a, b) => a.offMin - b.offMin);
   // The same train appears once per London station it calls at: the runner-up must be a different train.
-  const same = (a: TrainFit, b: TrainFit) => a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : (a.t.arr as number) - (b.t.arr as number)) <= 60e3;
+  const same = (a: TrainFit, b: TrainFit) => a.t.serviceId && b.t.serviceId ? a.t.serviceId === b.t.serviceId : a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : (a.t.arr as number) - (b.t.arr as number)) <= 60e3;
   const locked = lock ? findLocked(cands, c => c.t, lock) : undefined;
   const others = (c0: TrainFit) => cands.filter((c, i) => !same(c, c0) && cands.findIndex(x => same(x, c)) === i).slice(0, 3);
   const age = { stale, fixAgeMin: Math.round(ageMin) };
