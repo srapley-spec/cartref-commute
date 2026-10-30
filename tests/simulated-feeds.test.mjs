@@ -1,0 +1,23 @@
+import test,{after} from "node:test";
+import assert from "node:assert/strict";
+import {createApp,closeAll} from "./harness.mjs";
+after(closeAll);
+test("separate feed switch defaults off and synthetic transport requests avoid live fetch",async()=>{
+ const app=await createApp({settle:100});
+ const d=app.d,w=app.w;
+ assert.equal(d.querySelector("#s_simulatedFeeds").checked,false);
+ d.querySelector("#settingsBtn").click();
+ d.querySelector("#s_simulatedFeeds").checked=true;
+ d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+ assert.equal(app.c.S().simulatedFeeds,true);
+ const prior=app.calls.length;
+ const response=await app.c.fetchT("https://api1.raildata.org.uk/GetDepBoardWithDetails/LET?filterCrs=KGX");
+ const data=await response.json();
+ assert.ok(data.trainServices.length>=2);
+ assert.equal(app.calls.length,prior);
+ assert.notEqual(data.trainServices[0].serviceID,data.trainServices[1].serviceID);
+ d.querySelector("#settingsBtn").click();
+ d.querySelector("#s_simulatedFeeds").checked=false;
+ d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+ assert.equal(app.c.S().simulatedFeeds,false);
+});
