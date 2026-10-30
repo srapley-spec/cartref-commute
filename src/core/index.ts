@@ -16,7 +16,7 @@ export { liveAdjust, rankNow } from "./plan";
 export { effortNeeds, effortFor, leaveBy, gradeEffort, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
 export type { EffortProfile } from "./effort";
 export { accessOf, fastWalkLegs } from "./journey";
-export { planConnection, rideActive, rideDoubtful } from "./connections";
+export { planConnection, rideActive, rideDoubtful, boardSpot, boardMins } from "./connections";
 export type { Departure, ConnectionLeg, Timed, ConnectionInput, ConnectionPlan, Ride } from "./connections";
 export { refreshPlan, refreshDue, REUSE } from "./refresh";
 export type { RefreshSituation, RefreshPlan, RailLoad, RailSource } from "./refresh";

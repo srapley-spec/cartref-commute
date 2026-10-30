@@ -98,3 +98,14 @@ export function rideDoubtful(r: Ride | null, now: number, f: Fix, fromGeo: LatLo
   if (!f.here || typeof f.acc !== "number" || !(f.acc <= 50) || f.at == null || now - f.at > 60e3) return false;
   return km(f.here, fromGeo) <= radiusKm;
 }
+
+/** The platform's dot-matrix board, the only way to tell tubes apart on the platform (Sam, 30 Oct): a departure's
+ *  place on it (1 = next) among those still shown (leaving no more than 30 s ago), and its minutes. Matched by
+ *  vehicle when known, else time and line. Null if it has gone from the board. */
+export function boardSpot<D extends Departure>(deps: D[], d: D, now: number): { pos: number; ms: number } | null {
+  const shown = deps.filter(a => a.t > now - 30e3).sort((a, b) => a.t - b.t);
+  const i = shown.findIndex(a => (d.vehicle && a.vehicle ? a.vehicle === d.vehicle : a.t === d.t && a.line === d.line));
+  return i < 0 ? null : { pos: i + 1, ms: shown[i].t - now };
+}
+/** Minutes as the board shows them: whole minutes, rounded down; under a minute is "due". */
+export const boardMins = (ms: number) => (ms < 60e3 ? "due" : `${Math.floor(ms / 60e3)} min`);

@@ -189,6 +189,11 @@ Newest first. One line each; the story or issue holds the detail.
   reported delays show as expected times, coloured. One expected arrival; no timetabled door-to-door arrival. Why:
   on the way to Letchworth a big "08:03" hid that the train was the 08:00.
   → [late-trains](stories/late-trains.md), [design-system](design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal)
+- **30 Oct** Tubes to pick on the platform are labelled as the dot-matrix board shows them (place, line, destination,
+  minutes), not by clock time (Sam). → [connections](stories/connections.md)
+- **30 Oct** Status colour follow-ups (Sam): 10–14 min late is amber (red from 15 everywhere); the route-wide status
+  line stays amber from 5 min; "Arrives first · walking" and "Latest for HH:MM" stay green (status: you can make
+  it). → [train-status](stories/train-status.md)
 - **30 Oct** The tube home is only one you picked; never worked out (Sam). At 15:37 at his desk the app said he was on
   the 15:29 Circle: the desk (313 m from Aldgate) read as Aldgate, a tube left, and a still phone going quiet was
   taken as underground. Regression exposed by the 300 m office rule below, which made the desk "heading home".
