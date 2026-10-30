@@ -376,3 +376,18 @@ test("aroundOptions without effort (toggle off): Leave around near now is as bef
   const out = core.aroundOptions([passed, later], now, now, false, "office", testville);
   assert.equal(out.find((o) => o.recommended === 1), passed);
 });
+
+test("aroundOptions with effort, graded: Leave around near now picks the next train you can still make, with a fast walk if need be", () => {
+  const fast = short(1), run = short(3), later = opt(30 * S + 600 * S + 25 * MIN);
+  fast.arrive = run.arrive = later.arrive = 0;
+  [fast.train.arr, run.train.arr, later.train.arr] = [now + 50 * MIN, now + 45 * MIN, now + 80 * MIN];
+  [fast, run, later].forEach((o) => { o.arrive = o.train.arr; });
+  const graded = core.gradeEffort([fast, run, later], now, EP, null, () => "", () => true);
+  const out = core.aroundOptions(graded, now, now, false, "office", testville, true);
+  assert.equal(out.find((o) => o.recommended === 1), fast, "a fast walk is a train you can still make");
+  assert.equal(fast.flags[0].txt, "Arrives first · fast walk");
+  assert.equal(run.recommended, undefined, "a run never tops the card");
+  assert.equal(run.flags.some((f) => f.txt === "Run"), true);
+  const onlyRun = core.aroundOptions(core.gradeEffort([short(3)], now, EP, null, () => "", () => true), now, now, false, "office", testville, true);
+  assert.equal(onlyRun.some((o) => o.recommended), false, "nothing you can still make: no pick");
+});

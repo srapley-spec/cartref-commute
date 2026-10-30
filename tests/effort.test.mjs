@@ -205,3 +205,19 @@ test("Effort levels: the running and car settings only show when the toggle is o
   assert.equal(a.d.querySelector("#effortFields").hidden, false);
   a.close();
 });
+
+test("Extra effort on: Leave around near now shows the next train you can still make (a fast walk), and says so when there's none", async () => {
+  const a = await app({ effort: true }, { view: "at" });
+  a.c.state.at = { T: now, boards: { "LET-KGX": { msgs: [], services: Object.values(T).map((t) => ({ ...t })) }, "LET-ZFD": { msgs: [], services: [] } }, failed: {}, live: true };
+  a.c.render();
+  const best = a.c.atOptions().find((o) => o.recommended === 1);
+  assert.equal(best.train.std, T.X.std, "2 min short: a fast walk, and it arrives first of those you can still make");
+  assert.match(a.text("#hero"), /Arrives first · fast walk/);
+  assert.match(row(a, T.Y.std).textContent, /Arrives first · if you run|Run/);
+  assert.ok(a.c.state.effortPrev.at, "Leave around keeps its own grades");
+  a.c.state.at = { T: now, boards: { "LET-KGX": { msgs: [], services: [T.Y, T.Z, T.W].map((t) => ({ ...t })) }, "LET-ZFD": { msgs: [], services: [] } }, failed: {}, live: true };
+  a.c.render();
+  assert.match(a.text("#hero"), /Nothing around 07:00 you can still make, even with a fast walk/);
+  assert.match(a.text("#list"), /Car needed/, "the list still shows them, with what they'd take");
+  a.close();
+});

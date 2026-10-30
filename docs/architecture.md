@@ -137,7 +137,7 @@ draws.
   (P22, P31, N10, H15: changes that can't alter any result). Probes found 3 bugs and 4 smaller defects, all fixed
   with tests. The going-home refactor: 15 breakages, 14 caught, 1 equivalent. Presentation model (#29), reviewed
   after merging: 47 breakages, 18 unnoticed at first; 15 now caught, 2 equivalent, 1 not yet drawn. 249 tests
-  (29 Oct evening, incl. 3 for the docs check); 301 with effort levels (30 Oct).
+  (29 Oct evening, incl. 3 for the docs check); 303 with effort levels (30 Oct).
 - Test cases kept as data files are the contract any future native (Swift) engine must also pass.
 - Stories link the tests that prove them; CI checks the links exist.
 
@@ -169,7 +169,8 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
-- **30 Oct** Effort levels built behind a toggle after two independent reviews (first: one bug, 15 test gaps, all
+- **30 Oct** "Extra effort to catch a train" (effort levels) built behind a toggle after two independent reviews; Leave
+  around graded too, so near now its card shows the next train you can still make (first: one bug, 15 test gaps, all
   fixed; second: merge). → [effort-levels](stories/effort-levels.md)
 - **29 Oct night** Process: branch from `main`, not from an unmerged branch; bring `main` in and re-check stories and
   goldens before merging. Why: #27–#29 were built on #26 while `main` moved (review fixes, going-home tubes); their

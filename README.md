@@ -123,7 +123,7 @@ See [`docs/architecture.md`](docs/architecture.md). In short:
 - **Any start and end point** (Settings → Experimental, off by default): in Leisure, "Where to?" plans the train to
   King's Cross, St Pancras or Farringdon and TfL's leg from there to any London place (a place name is matched to
   TfL's best guess, and the card names it); going home, "Where from?" is always offered. Off: the app as before.
-- **Effort levels** (Settings → Experimental, off by default): every train you'd have to hurry for is labelled
+- **Extra effort to catch a train** (Settings → Experimental, off by default): every train you'd have to hurry for is labelled
   with what it would take (Fast walk, Run, Car needed, Can't make it) and which arrives first at each level; a fast
   walk can top the card; Arrive by's pick says "Latest for 08:30". Off: the app as before.
 - **Why these trains?** Under the list: what each source returned for the plan on screen (live boards and

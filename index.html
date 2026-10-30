@@ -250,7 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 00:54 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 05:21 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -319,7 +319,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <fieldset>
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_effort" style="margin-top:3px"><span>Effort levels: each train says what it would take to catch it (fast walk, run, car needed, can't make it), and which one arrives first at each level; Arrive by's pick says "Latest for" your time.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_effort" style="margin-top:3px"><span>Extra effort to catch a train: each train says what it would take to catch it (fast walk, run, car needed, can't make it), and which one arrives first at each level; Arrive by's pick says "Latest for" your time.</span></label>
       <div id="effortFields">
       <label class="f"><span>Running speed (× your average walk)</span><input id="s_runFactor" type="number" step="any" min="1" max="4"></label>
       <label class="f"><span>How far you can run (m)</span><input id="s_runM" type="number" step="any" min="0" max="5000"></label>
@@ -2949,7 +2949,9 @@ function atOptions(){
   const keep=state.boards; state.boards=a.boards;
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   const js=build(direction(), a.T); state.boards=keep;
-  return C.aroundOptions(js, a.T, Date.now(), !!a.liveTo, direction(), PROFILE, effortOn());
+  // Extra effort on: grade the trains too (near now, leave times are passing), so the card shows the next train you
+  // can still make — with a fast walk if need be — and the rest say what they'd take.
+  return C.aroundOptions(effortOn() ? liveAdjust(js, Date.now(), "at") : js, a.T, Date.now(), !!a.liveTo, direction(), PROFILE, effortOn());
 }
 function renderAtHero(opts){
   const h=$("#hero"), a=state.at||{};
@@ -2957,7 +2959,7 @@ function renderAtHero(opts){
   if(a.err){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${esc(a.err)}</div>`; return; }
   if(a.loading||!a.boards){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">Finding trains…</div>`; return; }
   const picks=opts.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended);
-  if(!picks.length){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">No trains found for that time.</div>`; return; }
+  if(!picks.length){ h.innerHTML=`<div class="lbl">${esc(lbl)}</div><div class="empty">${effortOn() && opts.length ? `Nothing around ${hhmm(a.T)} you can still make, even with a fast walk.` : "No trains found for that time."}</div>`; return; }
   const timing=j=>{ const before=Math.round((a.T-j.leave)/60e3), after=Math.round((j.leave-a.T)/60e3);
     return j.leave<a.T ? (before?`leave ${before} min before ${hhmm(a.T)}`:`leave at ${hhmm(a.T)}`) : (after?`leave ${after} min after ${hhmm(a.T)}`:`leave at ${hhmm(a.T)}`); };
   h.innerHTML=`<div class="lbl">${esc(lbl)}</div>

@@ -1,5 +1,5 @@
-# Effort levels: what it would take to make each train
-Status: Built, behind Settings → Experimental (off by default) · Since: 29 Oct 2026 (evening)
+# Extra effort to catch a train (effort levels): what it would take to make each train
+Status: Built, behind Settings → Experimental → "Extra effort to catch a train" (off by default) · Since: 29 Oct 2026 (evening)
 
 ## Story
 As a commuter running late, I want each train labelled with what it would take to catch it (walking, a fast walk,
@@ -47,8 +47,11 @@ Engine: `src/core/effort.ts`. The page passes where you are, remembers last refr
 - Arrive by: the pick says "Latest for 08:30" (the time set), or "Least late for 08:30" when nothing is on time;
   "Arrives first" per level as above.
 - Leave around: "Arrives first" among the card's window (leaving from 10 min before your time), so it's the card's
-  best. With the toggle on, a train whose leave time has already passed (Leave around near now) is never the pick
-  or "Arrives first".
+  best. With the toggle on, Leave around's trains are graded too (near now, leave times are passing): the card shows
+  the next train you can still make, with a fast walk if need be (Sam, 30 Oct); a run, car or can't-make-it train is
+  never the pick or "Arrives first" and is labelled in the list. If nothing is makeable even with a fast walk, the
+  card says "Nothing around 07:00 you can still make, even with a fast walk." Grades are kept per view (Leave now,
+  Arrive by, Leave around).
 - Worked examples (10 min walk, nothing fixed, from home): 1 min short → fast walk; 3 → run; 5 → car; 9 → can't
   make it; away from home, 5 → can't make it (a cab takes 10 min). From home in the real data (22 min walk + 3 min
   fixed): fast walk to ≈ 4.2 min short, run to ≈ 5.4, car to ≈ 18.3.
@@ -98,6 +101,8 @@ near now with the toggle off, Arrive by's own grades). Left: three boundaries th
 - tests/effort.test.mjs: "Effort levels: the engine gets your settings (running speed and distance, car, cab)"
 - tests/effort.test.mjs: "Effort levels on: Arrive by's pick says 'Latest for' the time you set; off, it doesn't"
 - tests/effort.test.mjs: "Effort levels on: Leave around's best says 'Arrives first'"
+- tests/effort.test.mjs: "Extra effort on: Leave around near now shows the next train you can still make (a fast walk), and says so when there's none"
+- tests/core/effort.test.mjs: "aroundOptions with effort, graded: Leave around near now picks the next train you can still make, with a fast walk if need be"
 - tests/core/effort.test.mjs: "liveAdjust with effort: cancelled and no-estimate trains are uncertain, get no lozenge and are never picked"
 - tests/core/effort.test.mjs: "gradeEffort at a station: another station's train keeps the walk rule (it isn't 'under a minute')"
 - tests/core/effort.test.mjs: "effortFor: the 30 s margin only applies moving to an easier level, not to a harder one than last time"
@@ -124,6 +129,3 @@ near now with the toggle off, Arrive by's own grades). Left: three boundaries th
 - A cab only replaces walking: a TfL-planned London leg (Leisure, going home) is fixed, so a cab never shortens it.
 - The leave column of a run / car / can't-make-it train still shows the walking-pace leave time, struck through.
 - With pace set to fast in Settings there is no separate fast-walk level: 1 min short is a run.
-- Leave around near now with the toggle on: if every train in the card's window has passed its leave time, the card
-  says no trains were found although later trains are listed. **Decided (Sam, 30 Oct), not built:** the card shows
-  the next train you can still make instead. Needs a test (Leave around at now, every train in the window passed).
