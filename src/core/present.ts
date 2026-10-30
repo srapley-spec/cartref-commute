@@ -6,6 +6,7 @@
 // of them re-decides it. A design proposal proposes how to draw these blocks, not which block comes first.
 import type { RailWarnings } from "./warnings";
 import { lineLevel, type LineStatus } from "./warnings";
+import type { Effort } from "./types";
 
 /** The screens. One of these is chosen from the situation; no shell has a view the model doesn't name. */
 export type View =
@@ -162,3 +163,17 @@ export function statusLine(i: StatusInput): StatusLine {
 }
 
 const worstDesc = (l: LineStatus) => l.statuses.reduce((a, b) => (a.sev <= b.sev ? a : b)).desc;
+
+// ---------- On your way: how you're doing for the top train ----------
+/** Minutes in hand to be comfortable on your way to the station (Sam, 30 Oct). */
+export const WAY_COMFORT_MIN = 3;
+/**
+ * The colour of "At the station about …" on your way, from the top train's whole minutes to spare (the same number
+ * as its "N min to spare") and the effort it needs. ok: 3+ min at your pace. warn: 1–2 min, or only at a fast walk.
+ * bad: under a minute ("keep going"), or it needs more than a fast walk.
+ */
+export function wayLevel(spareMin: number, effort: Effort = "walk"): "ok" | "warn" | "bad" {
+  if (spareMin < 1 || (effort !== "walk" && effort !== "fast")) return "bad";
+  if (effort === "fast" || spareMin < WAY_COMFORT_MIN) return "warn";
+  return "ok";
+}

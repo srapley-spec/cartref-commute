@@ -121,7 +121,7 @@ tube home, nearly home, office arrival), `connections.ts` (generic connection at
 `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave around /
 Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing), `warnings.ts`
 (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the status line's
-precedence, block order per view), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
+precedence, block order per view, the on-your-way colour), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
 `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route stations) and
 `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`) fetches, caches and
 draws.

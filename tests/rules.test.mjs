@@ -861,6 +861,25 @@ test("Review: on your way — exact minutes to spare, and 'on your way' starts 1
   app.close();
 });
 
+test("On your way: 'At the station about' is green with 3+ min to spare for the top train, amber at 1–2, red under 1", async () => {
+  const now = T("06:50"), home = [51.9690, -0.2440], here = [home[0] + 0.0012, home[1]];   // 130 m out: on your way
+  const app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office", home } }), c = app.c;
+  await app.fix(...here, 10, now);
+  const top = (t) => c.ranked(t).find((o) => o.recommended === 1);
+  const j = top(now);
+  // Walk the clock towards the top train's leave time: 5, 3, 2, 1 and 0 whole minutes in hand.
+  for (const [k, want] of [[5, "ok"], [3, "ok"], [2, "warn"], [1, "warn"], [0, "bad"]]) {
+    const t = j.leave - k * MIN - 30e3;
+    await app.fix(...here, 10, t);
+    assert.equal(top(t).train.dep, j.train.dep, "still the same top train");
+    const el = app.d.querySelector("#hero .slack");
+    assert.match(el.textContent, /^At the station about/);
+    assert.deepEqual([...el.classList], ["slack", want], `${k} min in hand: ${want}`);
+    assert.match(app.text("#hero"), k >= 1 ? new RegExp(`on track · ${k} min to spare`) : /on track · keep going/, "colour and text use the same number");
+  }
+  app.close();
+});
+
 test("Review: at Letchworth station a late train says 'Departs · N min late'; refreshes every 30 s", async () => {
   const now = T("07:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" },
     disrupt: { "Great Northern 07:08 from LET": { late: 3, reason: "late" } } }), c = app.c;

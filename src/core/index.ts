@@ -25,7 +25,7 @@ export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearch
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
 export { hubHere, onLine, trackLine, lockOf, nearOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
-export { chooseView, headlineKind, statusLine, BLOCKS } from "./present";
+export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";
 export { compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";

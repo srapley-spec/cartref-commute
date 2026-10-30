@@ -126,6 +126,8 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .verdict.ok{background:var(--ok-bg);color:var(--ok)}
 .verdict.bad{background:var(--bad-bg);color:var(--bad)}
 .hero .slack.bad{background:var(--bad);color:var(--paper)}
+.hero .slack.warn{background:var(--warn);color:var(--paper)}
+.hero .slack.ok{background:var(--ok);color:var(--paper)}
 
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
 .chip.rail{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
@@ -1205,10 +1207,12 @@ function renderHero(list, now){
   if(!picks.length){ const hurry=hurryOpts.map(o=>hurryHtml(o)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
   const board=atStation(), way=!board && onWay();
+  // On your way: whole minutes in hand for a train.
+  const wayMin=j=>Math.floor((j.leave-now)/60e3);
   const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
     // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
-    if(way){ const k=Math.floor((j.leave-now)/60e3), on=j.effort==="fast"?"walk fast":"on track"; return k>=1?`${on} · ${k} min to spare`:`${on} · keep going`; }
+    if(way){ const k=wayMin(j), on=j.effort==="fast"?"walk fast":"on track"; return k>=1?`${on} · ${k} min to spare`:`${on} · keep going`; }
     // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
     return m>=1?"":"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
@@ -1218,7 +1222,8 @@ function renderHero(list, now){
   // Each block's HTML; the model says the order (the headline is the first option's big numbers).
   const blocks = {
     label: `<div class="lbl">${board?`You're at ${esc(board)} · departures`:way?"On your way to Letchworth":"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>`,
-    way: way?`<div class="slack" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:"",
+    // Coloured by the top train's minutes to spare, the same number as its "N min to spare" (engine wayLevel).
+    way: way?`<div class="slack ${C.wayLevel(wayMin(picks[0]), picks[0].effort)}" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:"",
     options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?"Letchworth":null)})).join(""),
     "right-now": now1, hurry, "tubes-home": tubes,
     lines: statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])]),
