@@ -18,7 +18,9 @@ As a developer, I want to inject manual coordinates or replay a representative r
 - Reload exits simulation. No historical replay, virtual clock, map tap, recorded network data, fault injection or trace export yet.
 
 ## Tests
-- None yet (gap). Must add automated browser tests verifying source switch, stale callbacks, storage preservation, exit and refresh counts **before merge**.
+- tests/simulator.test.mjs: "developer simulator defaults off and toggles from Settings"
+- tests/simulator.test.mjs: "simulated fixes do not overwrite persisted journey context"
+- Gaps: stale callbacks, rapid provider toggling, async requests, GPS permission changes and refresh-count limits still require tests **before merge**.
 - Existing `npm run ci`, golden, mutation and GitHub Actions required before merge.
 
 ## Known risks / review blockers
