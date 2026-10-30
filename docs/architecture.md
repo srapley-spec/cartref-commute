@@ -123,8 +123,19 @@ is not evidence of production tracking, alert delivery or interaction deferral.
 - Following a caught Tube uses current connection readiness for rail catchability. After rail, fresh onward
   Tube/walk evidence can revise the arrival with a visible reason without changing completed rail-step times.
   Fresh Service Details arrival evidence remains authoritative even if departure boards are stale.
-- Following a Tube by a verified live vehicle remains a separate feed-reliability gate. Planned Tube legs or
-  inferred existing Tube rides must not be presented as confirmed vehicle tracking.
+- `src/core/followTube.ts` validates an already-known homeward Tube vehicle against its westbound arrival
+  prediction at the chosen rail hub. Five recorded 30 Oct 22:43 TfL snapshots provide a concrete vehicle-441
+  case; they do not prove provider-wide vehicle reliability. Both cache and provider observation expire at
+  exactly three minutes. Station IDs and interchange allowance remain caller-supplied profile data.
+- `src/follow-transport.js` adds at most one existing target-stop arrivals request per refresh only for an enabled
+  followed homeward Tube with a known vehicle, before rail boarding. Concurrent work is shared; source epochs
+  and route/vehicle/target identity guard the response. Absent/stale/nonmatching data keeps the explicit modelled
+  fallback. Missing Met departures at Aldgate are still unsolved; no Tube identity is invented.
+- Chosen arrival stability uses a one-minute threshold; the original plan remains visible after a change.
+  Incident recovery supersedes obsolete cancellation/no-estimate/missed notices. Explicit “I’m on it” confirms
+  boarding; known same-train call evidence can track progress without changing chosen boarding. A person can
+  explicitly follow a run/car option as “Behind”, while automatically proposed alternatives stay walking/fast
+  only and ordinary better-option prompts stay quiet during a Tube approach unless recovery is needed.
 - Saved-state and build integration changes take the GitHub-first release path in `CLAUDE.md`. Independent
   review must check architecture, feature-off compatibility, meaningful regression tests and mutation results.
 
@@ -214,6 +225,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct night, latest-code reconciliation** Premerge review found concurrent `origin/follow-a-route`
+  (`d330e95`). Port its current journey improvements selectively: visible original arrival, incident recovery,
+  explicit boarding correction, same-train observation continuity, explicit run/car choice, quiet Tube-approach
+  alternatives and one-minute ETA stability. Retain current 5/15 status thresholds and latest simulator fixes
+  rather than bulk-merging older page handling. Add recorded known-vehicle Tube prediction validation with a
+  conditional, source-guarded existing-stop request. → [Follow a route](stories/follow-a-route.md)
 - **30 Oct night** Sam authorises implementing Signal as an optional design against latest `main`, using the new
   Follow a route behavior. Manual planning returns to Auto after 20 minutes or a situation change, superseding
   the 29 Oct journey-scoped override. Panda and Signal share followed state and the engine; both switches start

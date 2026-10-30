@@ -87,9 +87,10 @@ test('follow: live details update saved arrival without needing the departed boa
  const stale=update(r,[],{phase:'on-train',currentArrival:r.expectedArrival+7*MIN,dataFresh:false});assert.equal(stale.route.expectedArrival,r.expectedArrival);
 });
 
-test('follow: fast walking is amber; a run or unavailable connection is a missed route',()=>{
+test('follow: fast walking and an explicit run or car remain behind; impossible is missed',()=>{
  const r=start();assert.equal(update(r,[option({effort:'fast'})]).status,'hurry');assert.equal(update(r,[option({effort:'fast'})]).level,'warn');
- for(const effort of ['run','car','none'])assert.equal(update(r,[option({effort})]).status,'missed');
+ for(const effort of ['run','car'])assert.equal(update(r,[option({effort,missed:true})]).status,'hurry');
+ assert.equal(update(r,[option({effort:'none'})]).status,'missed');
 });
 
 test('follow: service ID survives delay and platform changes but cannot change boarding station or date',()=>{
@@ -104,7 +105,7 @@ test('follow: service ID survives delay and platform changes but cannot change b
 test('follow: persisted journey restores as independent data and rejects malformed browser state',()=>{
  const r=start(),saved=JSON.parse(JSON.stringify(r)),restored=core.restoreFollowRoute(saved);assert.deepEqual(restored,r);saved.option.legs[0].d='changed';assert.notEqual(restored.option.legs[0].d,'changed');
  for(const invalid of [null,{}, {...r,version:2},{...r,id:'wrong'},{...r,direction:'elsewhere'},{...r,mode:'other'},{...r,expectedArrival:null},{...r,lastTrain:{...r.lastTrain,dep:Infinity}},{...r,option:{...r.option,legs:[{t:'soon',d:'Walk'}]}},{...r,notices:[{}]},{...r,dismissedAlternatives:[null]}, {...r,seenEvents:[1]}]) assert.equal(core.restoreFollowRoute(invalid),null);
- for(const o of [option({}, {cancelled:true}),option({}, {depUnknown:true}),option({effort:'run'}),option({legs:[]})])assert.equal(start(o),null);
+ for(const o of [option({}, {cancelled:true}),option({}, {depUnknown:true}),option({effort:'none'}),option({legs:[]})])assert.equal(start(o),null);
 });
 
 test('follow: Service Details rail-stop time gets the saved onward tail inside the engine',()=>{
@@ -148,7 +149,7 @@ test('follow: an active approach leg uses actual connection readiness instead of
 
 test('follow: active connection alternatives can have passed original leave times but must meet actual readiness',()=>{
  const r=start(),now=t+20*MIN,alt=option({leave:t,missed:true,effort:'none',arrive:r.expectedArrival-5*MIN},{serviceId:'other'});
- const offered=update(r,[option(),alt],{now,activeConnection:true,readyAt:{CEN:t+29*MIN}}).alternative;
+ const offered=update(r,[option({}, {cancelled:true}),alt],{now,activeConnection:true,readyAt:{CEN:t+29*MIN}}).alternative;
  assert.equal(offered.train.serviceId,alt.train.serviceId);assert.equal(offered.leave,now);assert.equal(offered.effort,'walk');assert.equal(offered.missed,false);assert.ok(core.startFollowRoute(offered,{now,direction:'home',mode:'commute'}));
  assert.equal(offered.legs[0].t,t+29*MIN);assert.doesNotMatch(offered.legs.map(l=>l.d).join(' '),/Walk to city tube|Blue line/);
  assert.equal(update(r,[option(),alt],{now,activeConnection:true,readyAt:{CEN:t+31*MIN}}).alternative,null);
@@ -216,7 +217,99 @@ test('follow: factual platform and expected departure in journey steps update wi
 
 test('follow: sub-minute report changes do not announce an unchanged displayed arrival',()=>{
  const r=start(),small=update(r,[option({}, {arr:t+60*MIN+10000})]);
- assert.equal(small.route.expectedArrival,r.expectedArrival+10000);assert.equal(small.notice,null);
+ assert.equal(small.route.expectedArrival,r.expectedArrival);assert.equal(small.notice,null);
  const changed=update(small.route,[option({}, {arr:t+61*MIN})]);
  assert.ok(changed.notice);assert.match(changed.notice.text,/later/);
+});
+
+test('follow: an obsolete cancelled, no-estimate or missed reason is replaced by explicit recovery even after Seen',()=>{
+ const r=start();
+ for(const [o,reason] of [[option({}, {cancelled:true}),/running again/],[option({}, {depUnknown:true}),/estimate again/],[option({effort:'none'}),/make.*again/]]){
+  const bad=update(r,[o]);assert.ok(bad.notice);
+  const recovered=update(bad.route,[option()]);assert.equal(recovered.notice.kind,'recovered');assert.match(recovered.notice.text,reason);assert.ok(!recovered.route.notices.some(n=>n.kind===bad.notice.kind));
+  const ack=core.acknowledgeFollowNotice(bad.route);const afterAck=update(ack,[option()]);assert.equal(afterAck.notice.kind,'recovered');assert.match(afterAck.notice.text,reason);
+  const steady=update(core.acknowledgeFollowNotice(afterAck.route),[option()]);assert.equal(steady.notice,null,'recovery is said once');
+ }
+});
+
+test('follow: observed known same-train calls progress with shared or separate IDs without changing chosen boarding',()=>{
+ for(const serviceId of ['chosen','separate-call']){
+  const alt=option({hub:'MKT'},{from:'MKT',std:'18:35',dep:t+35*MIN,serviceId});
+  const chosen=option({alts:[alt]}),r=start(chosen);
+  assert.equal(core.followMatchesService(r,alt),false);assert.equal(core.followMatchesObservedTrain(r,alt),true);assert.equal(r.option.train.from,'CEN');assert.equal(r.option.hub,'CEN');
+  assert.equal(core.followMatchesObservedTrain(r,option({hub:'ELSE'},{from:'ELSE',serviceId:'chosen'})),false,'an unknown station cannot match by service ID alone');
+  assert.equal(core.followMatchesObservedTrain(r,option({hub:'MKT'},{from:'MKT',std:'18:35',dep:t+35*MIN,serviceId:'wrong'})),false);
+ }
+});
+
+test('follow: explicit boarding correction keeps service and resolves missed without ambiguous inference',()=>{
+ const r=start(),missed=update(r,[option({effort:'none'})]).route;
+ const confirmed=core.confirmFollowBoarding(missed,t+35*MIN);assert.equal(confirmed.phase,'on-train');assert.equal(confirmed.id,r.id);assert.deepEqual(confirmed.option,r.option);assert.equal(confirmed.incident,null);assert.match(confirmed.notices[0].text,/You confirmed/);assert.ok(!confirmed.notices.some(n=>n.kind==='missed'));
+ const next=update(confirmed,[option({effort:'none'})],{now:t+35*MIN});assert.notEqual(next.status,'missed');assert.equal(next.route.phase,'on-train');
+});
+
+test('follow: explicitly selecting a run or car is allowed but such alternatives are never proposed',()=>{
+ for(const effort of ['run','car']){const r=start(option({effort,missed:true}));assert.ok(r);assert.equal(update(r,[option({effort,missed:true})]).status,'hurry');}
+ assert.equal(start(option({effort:'none'})),null);
+});
+
+test('follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements',()=>{
+ const r=start(),small=option({}, {arr:t+60*MIN+59e3});const unchanged=update(r,[small]);assert.equal(unchanged.route.expectedArrival,r.expectedArrival);assert.equal(unchanged.notice,null);
+ const exact=update(r,[option({}, {arr:t+61*MIN,arrLate:1})]);assert.equal(exact.route.expectedArrival,r.expectedArrival+MIN);assert.equal(exact.notice.deltaMin,1);assert.equal(core.FOLLOW_CHANGE_MS,MIN);
+ const onward=update(r,[],{phase:'after-train',currentArrival:r.expectedArrival+10e3,onwardFresh:true});assert.equal(onward.route.expectedArrival,r.expectedArrival);assert.equal(onward.notice,null);
+});
+
+test('follow: an elapsed rail departure is missed despite a Tube connection that could once have reached it',()=>{
+ const r=start(),u=update(r,[option()],{now:t+31*MIN,activeConnection:true,readyAt:{CEN:t+29*MIN},hasReliableLocation:false});assert.equal(u.status,'missed');
+});
+
+test('follow: current incident takes precedence over an older arrival notice and onboard wording uses arrival delay',()=>{
+ const r=start(),delayed=update(r,[option({}, {arr:t+66*MIN,arrLate:6})]);assert.equal(delayed.notice.kind,'arrival');
+ const cancelled=update(delayed.route,[option({}, {cancelled:true})]);assert.equal(cancelled.notice.kind,'cancelled');
+ const on=update(r,[option({}, {dep:t+45*MIN,depLate:15,arr:t+62*MIN,arrLate:2})],{phase:'on-train'});assert.match(on.notice.text,/2 min late/);assert.doesNotMatch(on.notice.text,/15 min late/);
+});
+
+test('follow: ordinary better options stay quiet during a Tube approach; only a real recovery is proposed',()=>{
+ const r=start(),alt=option({arrive:r.expectedArrival-10*MIN},{serviceId:'other'});
+ assert.equal(update(r,[option(),alt],{activeConnection:true,readyAt:{CEN:t+29*MIN}}).alternative,null);
+ assert.ok(update(r,[option({}, {cancelled:true}),alt],{activeConnection:true,readyAt:{CEN:t+29*MIN}}).alternative);
+ assert.equal(core.restoreFollowRoute({...r,incident:'invented'}),null);
+});
+
+test('follow: a viable saved same-train boarding call is offered explicitly without changing the original route',()=>{
+ for(const serviceId of ['chosen','other-call-id']){
+  const alt=option({hub:'MKT',leave:t+32*MIN},{from:'MKT',std:'18:35',dep:t+35*MIN,serviceId});alt.legs.find(l=>l.train).t=t+35*MIN;alt.legs.find(l=>l.train).d='18:35 Train from Market Street';
+  const r=start(option({alts:[alt]})),now=t+31*MIN;
+  const u=update(r,[option({effort:'none'}),alt],{now});assert.equal(u.status,'hurry');assert.equal(u.level,'warn');assert.match(u.text,/Same train still possible from MKT/);assert.equal(u.alternative.train.from,'MKT');assert.equal(u.nextStep.t,t+35*MIN);assert.match(u.nextStep.d,/Market Street/);
+  assert.equal(u.route.id,r.id);assert.equal(u.route.option.hub,'CEN');assert.equal(u.route.option.train.from,'CEN');assert.equal(u.route.expectedArrival,r.expectedArrival);assert.equal(u.notice.kind,'boarding');assert.doesNotMatch(u.notice.text,/missed.*train|make.*again/);
+  const again=update(u.route,[option({effort:'none'}),alt],{now});assert.equal(again.notice.id,u.notice.id);assert.equal(again.notice.kind,'boarding');
+  const passed=update(u.route,[option({effort:'none'}),{...alt,effort:'none'}],{now:t+36*MIN});assert.equal(passed.status,'missed');assert.equal(passed.notice.kind,'missed');
+  const wrong={...alt,train:{...alt.train,serviceId:'unrelated'}};assert.equal(update(r,[option({effort:'none'}),wrong],{now}).status,'missed');
+ }
+});
+
+test('follow: known boarding recovery uses the actual Tube connection and remains an explicit choice',()=>{
+ const alt=option({hub:'MKT',leave:t,missed:true,effort:'none'},{from:'MKT',std:'18:35',dep:t+35*MIN,serviceId:'call-two'});alt.legs.find(l=>l.train).t=t+35*MIN;
+ const r=start(option({alts:[alt]})),now=t+31*MIN;
+ const u=update(r,[option(),alt],{now,activeConnection:true,readyAt:{CEN:t+32*MIN,MKT:t+34*MIN},hasReliableLocation:false});
+ assert.equal(u.status,'hurry');assert.equal(u.alternative.hub,'MKT');assert.equal(u.nextStep.t,t+35*MIN);assert.equal(u.route.option.hub,'CEN');assert.ok(core.startFollowRoute(u.alternative,{now,direction:'home',mode:'commute'}));
+ const unavailable=update(r,[option(),alt],{now,activeConnection:true,readyAt:{CEN:t+32*MIN,MKT:t+36*MIN},hasReliableLocation:false});assert.equal(unavailable.status,'missed');assert.equal(unavailable.alternative,null);
+});
+
+test('follow: departure grace is uncertain rather than catchable and behind progress includes whole minutes',()=>{
+ const r=start(),grace=update(r,[option()],{now:t+30*MIN+25e3});assert.equal(grace.status,'hurry');assert.equal(grace.level,'info');assert.match(grace.text,/Departure just passed.*confirm/);assert.doesNotMatch(grace.text,/On track/);
+ assert.equal(update(r,[option()],{now:t+30*MIN+31e3}).status,'missed');
+ assert.equal(update(r,[option({effort:'none'})],{now:t+30*MIN+25e3}).status,'missed','an actual unreachable access rule is stronger than departure grace');
+ for(const effort of ['run','car'])assert.match(update(r,[option({effort,missed:true})],{now:t+12*MIN}).text,new RegExp(`2 min behind.*${effort} needed`));
+});
+
+test('follow: corrupted or recursively nested saved boarding alternatives are rejected before render',()=>{
+ const r=start();
+ for(const alts of ['bad',{},[null],[{}],[{hub:'MKT',train:r.option.train}],Array.from({length:21},()=>option())]){
+  assert.equal(core.restoreFollowRoute({...r,option:{...r.option,alts}}),null);
+ }
+ const alt=option({hub:'MKT'},{from:'MKT',std:'18:35',dep:t+35*MIN,serviceId:'known-call'});
+ const valid=start(option({alts:[alt]}));assert.ok(core.restoreFollowRoute(valid));
+ const nested=option();nested.alts=[nested];assert.equal(start(nested),null,'a cyclic option is rejected without overflowing or JSON clone errors');
+ const corrupt={...r,option:{...r.option,alts:'bad'}};assert.equal(core.followMatchesObservedTrain(corrupt,alt),false,'observation guards remain defensive for direct API callers');
 });

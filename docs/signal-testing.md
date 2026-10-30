@@ -6,6 +6,8 @@ a test plan and handoff, not release approval.
 ## Starting point
 
 The implementation branches from current `main` (`47c82c7`), rather than from the older Signal prototype.
+Premerge reconciliation also found concurrent `origin/follow-a-route` (`d330e95`); current journey improvements
+were selectively ported while retaining current-main status thresholds and simulator handling.
 GitHub's Tests run and a fresh local `npm run ci` passed for that baseline. The prototype remains a visual
 reference; its example journeys, timers, inference and routing code are not production inputs.
 
@@ -77,6 +79,8 @@ simulator tests:
 | Suite | Main evidence |
 | --- | --- |
 | `tests/core/follow.test.mjs` | Immutable chosen itinerary, service matching/date/boarding identity, explained ETA changes, cancellation/recovery, 5-minute alternatives, stale data and persistence validation |
+| `tests/core/followTube.test.mjs` | Six recorded-data probes for exact vehicle441 arrival, stop/line/direction identity, three-minute cache/provider expiry and malformed/missing fallback |
+| `tests/follow-transport.test.mjs` | Three page integration probes for conditional target-stop requests, stale/wrong-vehicle fallback, shared concurrent work and source-switch rejection |
 | `tests/core/viewControl.test.mjs` | Pure Plan/Live resolution, exact 20-minute expiry, situation change, interaction deferral, no-active state and malformed overrides |
 | `tests/follow.test.mjs` | Real page controls, immediate persistence, live updates, correction, design/reload preservation and simulator isolation |
 | `tests/signal.test.mjs` | Feature-off compatibility, semantic/request parity, status-summary precedence, manual views, expiry, GPS loss, focus/disclosure and appearance |
@@ -95,6 +99,25 @@ Canonical block rendering now closes the old Signal live-order coverage gap: tes
 check that the actual rendered DOM follows it. Panda retains its existing feature-off content. Full CI results,
 reviewed commit and mutation review evidence must be recorded after final verification; independent reviewers'
 separate evidence documents are authoritative for their findings.
+
+## Latest-code reconciliation and Tube evidence
+
+Concurrent follow-route improvements are preserved: original arrival stays visible after change, recovered
+incidents supersede obsolete cancellation/no-estimate/missed notices, “I’m on it” provides explicit boarding
+correction, and known same-train station calls can supply progress without changing chosen boarding. A person
+may explicitly follow a run/car option as Behind, but automatic alternatives remain walking/fast only. Ordinary
+better-option prompts stay quiet during a Tube approach unless recovery is necessary. ETA changes below one
+minute keep the previous baseline instead of generating zero-minute announcements.
+
+Five recorded TfL snapshots at `tests/fixtures/tfl-2026-10-30T2243Z/` verify a narrowly scoped live Tube case:
+known westbound Met vehicle 441 reaches Farringdon at 22:49:42Z and King's Cross St Pancras at 22:52:41Z. The six
+pure matching tests and three transport integration tests passed before final release verification. Matching
+requires the selected vehicle, line, target stop and direction; both provider observation and fetch cache must
+be younger than three minutes. Only an enabled followed homeward journey with an already-known Tube vehicle,
+before its rail leg, makes one additional existing target-stop request per refresh. Concurrent requests share
+work; source/route/vehicle/stop changes invalidate the result. No fresh matching prediction means modelled
+route-duration fallback, not a live arrival claim. This evidence does not solve missing Aldgate Met departures
+or prove that every live Tube journey exposes a usable vehicle identity.
 
 ## Morning test sequence
 
@@ -121,8 +144,9 @@ After the implementation is released and the verification record says it passed:
 
 - Existing jsdom page tests execute the real built application with mocked network and location. They prove
   integration with deterministic response shapes, not current provider reliability or Safari rendering.
-- Planned Tube legs and inferred Tube rides do not establish that a verified vehicle can be followed underground.
-  That remains subject to recorded-feed evidence; display estimates and unknowns honestly.
+- Recorded predictions verify only the already-known vehicle/target-stop case. Planned Tube legs and inferred
+  rides alone do not establish live vehicle identity, provider-wide reliability, or missing Met departures at
+  Aldgate; estimates and unknowns stay explicit.
 - Closed-Safari alerts and background location require native capabilities; a web page can update only while open.
 - Real iPhone, Dynamic Type/large text, VoiceOver and live journeys must not be claimed as passed without being run.
 - Review summaries and automated pass results will be added by the integrator after the implementation is tested.

@@ -13,7 +13,11 @@ Sam selected Signal after reviewing two iPhone-first mockups, requested dynamic 
 - Uncertain identity asks for confirmation. Live without an active journey is explicit, not invented.
 - Follow the device appearance by default; manual light/dark choices are available.
 - Preserve all current commute capabilities in the specification inventory, including cancelled/no-estimate options, same-train boarding points, warnings, freshness, corrections, all modes, dates, pace, Settings and Leisure entry points.
-- Preserve the station departure-first rule and the homeward Tube-to-train consequences.
+- Preserve the station departure-first rule and the homeward Tube-to-train consequences. Latest-code
+  reconciliation includes original arrival, incident recovery, explicit “I’m on it”, stable same-train progress,
+  explicit run/car following, quiet ordinary alternatives while on a Tube, and one-minute ETA stability.
+- Known-vehicle Tube predictions may update the chosen connection only through the recorded-data validated,
+  source-guarded matching path; missing/stale observations remain modelled. See [Follow a route](follow-a-route.md).
 - No simulated early-platform, coach or signalling-point features are presented as current capabilities.
 - Red, amber and green are reserved for status (Sam, 30 Oct): never accent, identity, selection or tracking. Every
   live train, including the one you're on, shows its status as a word with minutes, coloured by band (red: cancelled,

@@ -27,9 +27,11 @@ Follow a route Experimental setting is independent of the Signal design switch. 
 The implementation follows the existing complete route snapshot and live rail service. A caught homeward Tube
 uses current connection readiness to test the chosen rail service, rather than restarting the journey from the
 office. After the rail leg, fresh Tube/walk evidence updates the onward arrival with a reason without retiming
-completed rail steps. Planned Tube legs remain estimates unless existing live evidence says otherwise; verified
-by-vehicle Tube following remains a separate feed-reliability gate. The full acceptance criteria below remain the target, not a claim that every
-criterion has already passed verification. See [Signal testing](../signal-testing.md).
+completed rail steps. A known homeward Tube vehicle can now use its matching westbound prediction at the
+chosen rail hub, verified against recorded TfL snapshots. This narrowly scoped observation does not prove
+provider-wide reliability or solve missing Met departures at Aldgate. Missing, stale or nonmatching predictions
+retain an explicitly modelled route-duration fallback. The full acceptance criteria below remain the target,
+not a claim that every criterion has already passed release verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
 ### Choosing and keeping a route
@@ -50,22 +52,36 @@ criterion has already passed verification. See [Signal testing](../signal-testin
   ahead, amber 1–2 min behind or only at a fast walk, red if you'd miss the next connection):
   - Walking: your position against the planned walk at your pace (the rule already used on the way to Letchworth).
   - On a tube: the tube's own position from TfL (by its vehicle) against its planned times, when TfL gives one;
-    otherwise the planned times. Underground without GPS this still works if TfL reports the vehicle. (Unverified:
-    to be checked with a recorded feed before building.)
+    otherwise the modelled route times. The recorded homeward vehicle-441 case is verified below; use of an
+    already-known vehicle does not guarantee reliable identity/predictions for every underground journey.
   - On a train: National Rail's reported position and expected times, as on the train card today.
-- **A stable arrival.** The arrival changes only for a real reason, and every change shows its reason on the card
-  until you've seen it: "Your 18:48 is cancelled", "Your train is 6 min late", "You're 4 min behind: you'll miss the
-  18:48", "A better option: …". Re-ranking of other trains never moves the followed arrival.
+- **A stable arrival.** The arrival changes only for a real reason, and every change of at least one minute
+  shows its reason on the card until you've seen it: "Your 18:48 is cancelled", "Your train is 6 min late", "You're 4 min behind: you'll miss the
+  18:48", "A better option: …". Re-ranking of other trains never moves the followed arrival. Sub-minute
+  fluctuations keep the previous arrival baseline and do not announce a zero-minute change. The original
+  planned arrival stays visible once the current arrival changes or becomes uncertain.
+- **Recovery is explicit.** A new cancellation, no-estimate or missed incident supersedes obsolete reasons. If
+  the service runs again, receives an estimate, or becomes catchable again, show its recovery even if the old
+  incident was already acknowledged. Do not leave an obsolete cancellation on a recovered route.
+- **Boarding correction.** “I’m on it” explicitly confirms the selected train when inference is uncertain.
+  Known same-train calls at alternative stations may provide boarding/progress evidence, with shared or
+  separate provider IDs, without silently changing the chosen boarding station or replacing its itinerary.
 
 ### Missed, and better options
 - **Missed**: when a step can no longer be made (its train or tube has left without you, or you can't reach it at a
-  fast walk), the card says which and offers the best way on from where you are now, with its arrival and how much
+  fast walk and it was not explicitly selected at a run/car effort), the card says which and offers the best
+  way on from where you are now, with its arrival and how much
   later it is: "Missed the 18:34 Circle. Next: the 18:40 Circle → 18:56 Thameslink from Farringdon, home 19:59 (7 min
   later). Follow this?" One tap follows it.
+- **Explicit effort choice:** the person may Follow an otherwise plannable run/car option. It remains “Behind”
+  with the required effort rather than being automatically declared missed; an impossible connection or elapsed
+  departure is still missed. Automatically proposed alternatives remain limited to walking/fast-walking reachability.
 - **Cancelled or badly delayed**: same as missed, triggered by the feed, before you get there.
 - **Better option**: offered only when it gets you home at least 5 minutes sooner (Sam, 30 Oct) and you can make it
   at your pace; shown once per option, not repeated on every refresh. One tap switches. Smaller gains are never
   offered: live times move by a minute or two all the time, and switching for them would make the arrival jumpy.
+  Ordinary better-option prompts stay quiet during an actual Tube approach; a necessary recovery can still be
+  offered when cancellation, a missed connection, no estimate or a serious delay makes the chosen route unusable.
 
 ### Live mode when not following
 - If you seem to be on the move (at a station, on a train or tube, or walking to the station) and aren't following a
@@ -114,10 +130,44 @@ criterion has already passed verification. See [Signal testing](../signal-testin
 - tests/follow-journey-review.test.mjs: "journey review: stale Darwin boards are not called live, while a fresh Service Details report updates the followed ETA"
 - tests/follow-journey-review.test.mjs: "journey review: the home walk updates the followed ETA with a reason even when rail boards are old"
 
+- tests/core/follow.test.mjs: "follow: an obsolete cancelled, no-estimate or missed reason is replaced by explicit recovery even after Seen"
+- tests/core/follow.test.mjs: "follow: observed known same-train calls progress with shared or separate IDs without changing chosen boarding"
+- tests/core/follow.test.mjs: "follow: explicit boarding correction keeps service and resolves missed without ambiguous inference"
+- tests/core/follow.test.mjs: "follow: explicitly selecting a run or car is allowed but such alternatives are never proposed"
+- tests/core/follow.test.mjs: "follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements"
+- tests/core/follow.test.mjs: "follow: ordinary better options stay quiet during a Tube approach; only a real recovery is proposed"
+- tests/core/followTube.test.mjs: "follow Tube: recorded441 westbound Met gives exact Farringdon and Kings Cross predictions"
+- tests/core/followTube.test.mjs: "follow Tube: vehicle, direction, line and target station must all match"
+- tests/core/followTube.test.mjs: "follow Tube: cache and provider timestamp expire at exactly three minutes"
+- tests/core/followTube.test.mjs: "follow Tube: malformed, missing and already passed predictions fall back without invented ETAs"
+- tests/core/followTube.test.mjs: "follow Tube: normalized guarded adapter records retain provider timestamp and exact prediction"
+- tests/core/followTube.test.mjs: "follow Tube: a timestamp-less prediction uses guarded endpoint provenance and never another explicit stop"
+- tests/follow-transport.test.mjs: "follow transport: only an enabled followed homeward Tube requests the existing target-stop feed"
+- tests/follow-transport.test.mjs: "follow transport: stale predictions and a different vehicle never replace the route-duration fallback"
+- tests/follow-transport.test.mjs: "follow transport: concurrent refreshes share one request and a source switch discards its delayed body"
+
+## Recorded Tube evidence and request policy
+- Five actual TfL arrival snapshots from 30 Oct 22:43 (`tests/fixtures/tfl-2026-10-30T2243Z/`: ALD, MGT, LVT,
+  FCN, KSX) supply evidence for the known-vehicle case. Vehicle 441's westbound Metropolitan predictions are
+  Farringdon 22:49:42Z and King's Cross St Pancras 22:52:41Z; tests assert those exact instants.
+- Pure `src/core/followTube.ts` accepts a prediction only when vehicle, target stop, line and westbound direction
+  match, both cache and provider observation are younger than three minutes, and arrival is no more than
+  30 seconds in the past.
+  The caller supplies station identity and existing interchange allowance; the generic engine hard-codes neither.
+- `src/follow-transport.js` uses the existing guarded target-stop arrivals fetcher. Only an enabled followed
+  homeward commute, before its rail leg, with a known current Tube vehicle requests this observation: one
+  target-stop request per refresh, with concurrent calls sharing the same pending request. No new endpoint,
+  broad vehicle polling, or request for feature-off/no-route/no-vehicle cases is introduced.
+- Source epoch, chosen route, vehicle, line and target context are checked after asynchronous work. Stale,
+  malformed, wrong-vehicle and source-switched results cannot revise the chosen connection. Missing evidence
+  falls back to the measured route model; it is not a live claim.
+
 ## Not yet / open questions
-- Whether TfL reports tube positions by vehicle reliably enough to follow a tube underground (check against a recorded
-  feed first).
+- The recorded known-vehicle case does not establish reliable vehicle availability for every live Tube journey.
+  Missing Met departures at Aldgate remain unsolved; matching an already-known vehicle at the rail hub does not
+  manufacture a Met departure or make it pickable at Aldgate.
 - Notifications with Safari closed (e.g. "your train is cancelled") need the native app (#2–#7); a web page can only
   update while open.
-- Order of work: (1) Follow button, saved route, stable arrival with reasons, ahead/behind; (2) missed, cancelled,
-  better option; (3) following a tube by vehicle.
+- Release verification remains pending for the integrated implementation, including the selected latest-branch
+  improvements and conditional Tube observation. The recorded vehicle case is narrower than provider-wide
+  live journey validation.

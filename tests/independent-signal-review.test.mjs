@@ -93,3 +93,13 @@ test('independent review: a completed saved journey is not an active route on th
  assert.equal(a.c.state.presentation.noActiveJourney,true,'old completed history is not evidence of an active journey');
  assert.equal(a.c.state.saved.followRoute.id,r.id,'completed summary may remain available without being active');a.close();
 });
+
+test('independent review: explicit direction and mode changes expire a pin despite denied GPS',async()=>{
+ for(const [attribute,value] of [['data-dir','home'],['data-mode','leisure']]){
+  const a=await app();a.d.querySelector('[data-journey-view="plan"]').click();assert.ok(a.c.state.saved.viewOverride);
+  a.c.state.locStatus='denied';a.c.state.lastFixAt=null;
+  a.d.querySelector(`[${attribute}="${value}"]`).click();
+  assert.equal(a.c.state.saved.viewOverride,null,`${attribute} is an explicit journey-context change, independent of GPS`);
+  assert.equal(a.c.state.presentation.mode,'auto');await sleep(350);assert.deepEqual(a.errors,[]);a.close();
+ }
+});

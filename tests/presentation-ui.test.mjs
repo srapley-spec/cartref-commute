@@ -66,8 +66,24 @@ test('canonical rendering preserves unknown content, untagged context, listeners
 });
 
 test('Signal dispatch enforces the canonical order on the actual live hero',async()=>{
- const a=await app();a.c.state.onLine=true;a.c.render();
- assert.equal(a.c.state.presentation.view,'on-train');assertCanonical(a,'on-train');
+ const a=await app(),c=a.c;
+ const train=c.state.boards['LET-KGX'].services.find(t=>!t.cancelled&&!t.depUnknown&&t.arr!=null);
+ assert.ok(train,'the dispatched card uses a real departure from the fixture');
+ const now=train.dep+MIN;a.setNow(now);
+ Object.assign(c.state,{onLine:true,here:[51.956,-.26],locAcc:12,locStatus:'ok',lastFixAt:now,boardsAt:now,
+  trainLock:{operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})}});
+ c.render();assert.equal(c.state.presentation.view,'on-train');assertCanonical(a,'on-train');
+ assert.ok(blocks(a).includes('which'),'confirmed/inferred identity is actually present');
+ assert.ok(blocks(a).includes('headline'),'the real card has an arrival headline');
+ const model=a.w.CommuteCore.BLOCKS['on-train'];
+ const headline=model.indexOf('headline'),which=model.indexOf('which');
+ try{
+  [model[headline],model[which]]=[model[which],model[headline]];
+  c.render();
+  const actual=blocks(a);assert.ok(actual.indexOf('which')<actual.indexOf('headline'),
+   'dispatch must consume changed engine priority rather than relying on template order');
+  assertCanonical(a,'on-train');
+ }finally{[model[headline],model[which]]=[model[which],model[headline]];}
  assert.deepEqual(a.errors,[]);a.close();
 });
 

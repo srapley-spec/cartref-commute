@@ -148,6 +148,13 @@ tracking" accent. None may be carried forward without retuning. Signal complies.
 
 The review package supplies visual references, not production planning logic. Implementation starts from latest `main`, preserving improvements since the prototype audit. Signal changes presentation; the shared Follow a route engine supplies journey behavior. Reference existing stories and thresholds. Signal design and Follow a route are separate Experimental switches, both initially off; selecting Signal checks Follow a route, which remains independently configurable. Panda and Signal share saved journey state. See [preservation and verification](signal-testing.md).
 
+Latest-code reconciliation also preserves the concurrent Follow a route improvements from `d330e95`: visible
+original arrival, explicit recovery and boarding correction, stable same-train progress, deliberate run/car
+selection, quiet ordinary alternatives during a Tube approach and a one-minute ETA-change threshold. Known
+homeward Tube vehicle predictions are accepted only through the recorded-data validated stop/line/direction
+matching path with three-minute freshness and source guards; modelled fallback remains explicit. This does
+not solve missing Met departures at Aldgate or establish provider-wide vehicle reliability.
+
 Implementation verification: existing engine, golden and app suites; document any intentional presentation snapshot changes; run build and commit generated index.html; typecheck and check-docs. Add targeted UI/accessibility coverage for theme persistence, manual correction, full-board retention and responsive controls. No claim of production regression protection is made by this mockup alone.
 
 ## Palette reference

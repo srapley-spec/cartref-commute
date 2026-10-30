@@ -514,7 +514,7 @@ function invalidateSources(){
  sourceEpoch++; for(const controller of pendingRequests)controller.abort(); pendingRequests.clear();
  clearTimeout(state.retryTimer);state.retryTimer=null;
  state.byToken={};state.atToken={};state.loading=false;state.again=false;
- for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards'])state[key]=null;
+ for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport'])state[key]=null;
  state.progressById={};state.byCache={};state.atCache={};state.errors=[];reqLog.length=0;
 }
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
@@ -688,14 +688,14 @@ function demoBoards(now){
 
 // ---------- TfL ----------
 // Live Circle and Metropolitan departures eastbound (towards Aldgate) from King's Cross or Farringdon.
-async function fetchTubeArrivals(hub){
+async function fetchTubeArrivals(hub,direction="eastbound"){
   const r=await fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${TUBE_STOP[hub]}/Arrivals`);
   if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
   const now=Date.now();
   return (await r.json())
-    .filter(a=>/^(circle|metropolitan|hammersmith-city)$/.test(a.lineId) && /eastbound/i.test(a.platformName||""))
+    .filter(a=>/^(circle|metropolitan|hammersmith-city)$/.test(a.lineId) && String(a.platformName||"").toLowerCase().includes(direction))
     .map(a=>({ vehicle:a.vehicleId||"", line:{circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[a.lineId], lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
-      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
+      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : Number.isFinite(a.timeToStation)&&a.timeToStation>=0?now+a.timeToStation*1000:NaN, platform:a.platformName||"", observedAt:a.timestamp?new Date(a.timestamp).getTime():null,stopId:a.naptanId||null }))
     .filter(a=>isFinite(a.t))
     .sort((a,b)=>a.t-b.t);
 }
@@ -1868,6 +1868,7 @@ async function refresh(opts){
       ? fetchAldgateDepartures().then(d=>{if(epoch!==sourceEpoch)return; state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{if(epoch!==sourceEpoch)return; state.aldDeps={at:Date.now(), list:null, err:e.message}; })
       : Promise.resolve();
     await Promise.all([railP,refreshLondon(),aldP]);if(epoch!==sourceEpoch)return;
+    await refreshFollowTransport(Date.now());if(epoch!==sourceEpoch)return;
     await refreshTrainProgress();if(epoch!==sourceEpoch)return;
     await Promise.all([statusP(),nrP()]);
   } catch(e){
@@ -1974,6 +1975,7 @@ const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locat
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
 /*__PRESENTATION_BLOCKS__*/
+/*__FOLLOW_TRANSPORT__*/
 /*__JOURNEY_UI__*/
 // ---------- Settings ----------
 const dlg=$("#settings");
@@ -2106,6 +2108,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
