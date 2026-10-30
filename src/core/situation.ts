@@ -207,7 +207,7 @@ const stale = (f: Fix, now: number) => !f.at || now - f.at > 90e3;
 /** How much sooner than the walk model says you could have been on the platform: a tube leaving more than this
  *  before `ready` (arrival at the station + the walk to the platform) is one you couldn't have caught. 30 Oct: GPS
  *  went quiet underground at King's Cross, the 08:40 Circle counted as "a tube has left" while Sam was still walking
- *  down, and he was put on it (then could only correct it to the 08:38 H&C); he caught the 08:46 H&C. */
+ *  down, and he was put on it (then could only correct it to the 08:38 H&C); he caught the H&C due 08:45. */
 export const TUBE_REACH_SLACK_MS = 60e3;
 const reachable = (arrivals: TubeDep[], ready: number | null | undefined) =>
   ready == null ? arrivals : arrivals.filter(a => a.t >= ready - TUBE_REACH_SLACK_MS);

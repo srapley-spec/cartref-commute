@@ -96,3 +96,26 @@ test("Several stops to get off at: the earliest arrival is the leg; ties go to t
   assert.deepEqual(p.best.others.map((o) => o.stop), ["Far", "Mid"]);
   assert.equal(core.planConnection({ now, leg: () => [], walkMs: 2 * m, arrivedAt: null, departures: [dep(5, "Blue")] }).best, null, "no stop is any use");
 });
+
+test("The platform board: a tube's place (1 = next) among those still shown, and its minutes rounded down; under 1 is 'due'", () => {
+  const now = 1_000_000_000_000, M = 60e3;
+  const d = (min, line, vehicle) => ({ t: now + min * M, line, ...(vehicle ? { vehicle } : {}) });
+  const deps = [d(8, "Met", "m8"), d(2.5, "Circle", "c2"), d(-0.4, "H&C", "h0"), d(-1, "Met", "m-1"), d(3.9, "H&C", "h3")];
+  assert.deepEqual(core.boardSpot(deps, deps[1], now), { pos: 2, ms: 2.5 * M }, "the H&C leaving 24 s ago is still shown, first");
+  assert.equal(core.boardSpot(deps, deps[2], now).pos, 1);
+  assert.equal(core.boardSpot(deps, deps[4], now).pos, 3);
+  assert.equal(core.boardSpot(deps, deps[0], now).pos, 4, "sorted by time, not by list order");
+  assert.equal(core.boardSpot(deps, deps[3], now), null, "gone from the board a minute ago");
+  assert.equal(core.boardSpot(deps, { t: now + 8 * M, line: "Met", vehicle: "zz" }, now), null, "a different known vehicle is not this one");
+  assert.equal(core.boardSpot(deps, { t: now + 2.5 * M, line: "Circle" }, now).pos, 2, "no vehicle: matched by time and line");
+  assert.equal(core.boardSpot(deps, { t: now + 2.5 * M, line: "Met" }, now), null, "same time, different line: not it");
+  assert.equal(core.boardMins(59.9e3), "due"); assert.equal(core.boardMins(0), "due"); assert.equal(core.boardMins(-20e3), "due");
+  assert.equal(core.boardMins(60e3), "1 min"); assert.equal(core.boardMins(179e3), "2 min"); assert.equal(core.boardMins(180e3), "3 min");
+});
+
+test("On the tube the board is gone: a tube that left is told by how long ago (rounded down); platform numbers from TfL's names", () => {
+  assert.equal(core.leftAgo(-20e3), "leaving now"); assert.equal(core.leftAgo(0), "just left"); assert.equal(core.leftAgo(59.9e3), "just left");
+  assert.equal(core.leftAgo(60e3), "left 1 min ago"); assert.equal(core.leftAgo(4.9 * 60e3), "left 4 min ago");
+  assert.equal(core.platformNo("Westbound - Platform 3"), "3"); assert.equal(core.platformNo("Eastbound - Platform 2"), "2");
+  assert.equal(core.platformNo("Westbound"), null); assert.equal(core.platformNo(""), null); assert.equal(core.platformNo(undefined), null);
+});

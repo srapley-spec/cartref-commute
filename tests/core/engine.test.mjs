@@ -182,11 +182,12 @@ test("trainFlags: cancelled, standing room, stopping, delays, unknown — from t
   assert.deepEqual(flags({ cancelled: true, depLate: 20 }), ["Cancelled", "Usually standing room only"], "cancelled outranks late");
 });
 
-test("Train status: red, amber, green by minutes late (green under 2, amber 2–14, red 15+); never 'on time' without live data", () => {
+test("Train status: red, amber, green by minutes late (green under 5, amber 5–14, red 15+); never 'on time' without live data", () => {
   const st = (o) => { const s = core.trainStatus(train({ dep: 0, arr: 60 * MIN, ...o })); return s && `${s.level}: ${s.text}`; };
   assert.equal(st({}), "ok: On time");
   assert.equal(st({ depLate: 1 }), "ok: 1 min late");
-  assert.equal(st({ depLate: 2 }), "warn: 2 min late");
+  assert.equal(st({ depLate: 4 }), "ok: 4 min late", "amber starts at 5 (Sam, 30 Oct)");
+  assert.equal(st({ depLate: 5 }), "warn: 5 min late");
   assert.equal(st({ arrLate: 14 }), "warn: 14 min late");
   assert.equal(st({ arrLate: 15 }), "bad: 15 min late");
   assert.equal(st({ depLate: 3, arrLate: 16 }), "bad: 16 min late", "the worse of departure and arrival");
@@ -196,17 +197,44 @@ test("Train status: red, amber, green by minutes late (green under 2, amber 2–
   assert.equal(st({ timetable: true }), null);
   assert.equal(st({ derived: true }), null);
   assert.equal(st({ estimated: true }), null);
-  assert.equal(st({ derived: true, arrLate: 4 }), "warn: 4 min late", "a known delay is still shown");
+  assert.equal(st({ derived: true, arrLate: 6 }), "warn: 6 min late", "a known delay is still shown");
   const a = (late) => { const s = core.arrivalStatus(T0 + late * MIN, T0); return `${s.level}: ${s.text}`; }, T0 = 1e12;
   assert.equal(a(0), "ok: On time");
   assert.equal(a(1), "ok: On time", "a projection inside the green band reads on time");
   assert.equal(a(-1), "ok: On time");
-  assert.equal(a(2), "warn: About 2 min late");
+  assert.equal(a(2), "ok: About 2 min late", "a projection says its minutes from 2, still green until 5");
+  assert.equal(a(4), "ok: About 4 min late");
+  assert.equal(a(5), "warn: About 5 min late");
   assert.equal(a(-3), "ok: About 3 min early");
   assert.equal(a(14), "warn: About 14 min late");
   assert.equal(a(15), "bad: About 15 min late");
-  assert.equal(core.arrivalStatus(T0 + 1.4 * MIN, T0).level, "ok", "rounded to whole minutes");
-  assert.equal(core.arrivalStatus(T0 + 1.6 * MIN, T0).level, "warn");
+  assert.equal(core.arrivalStatus(T0 + 1.4 * MIN, T0).text, "On time", "rounded to whole minutes");
+  assert.equal(core.arrivalStatus(T0 + 1.6 * MIN, T0).text, "About 2 min late");
+  assert.equal(core.arrivalStatus(T0 + 4.4 * MIN, T0).level, "ok");
+  assert.equal(core.arrivalStatus(T0 + 4.6 * MIN, T0).level, "warn");
+});
+
+test("departureStatus: the Expected column; the time whenever it differs from the timetable (live or TfL), else a word, never 'On time' without live data", () => {
+  const T = at("2026-11-03", "06:55");
+  const st = (o) => { const s = core.departureStatus(train({ from: "RVS", to: "CEN", std: "06:55", dep: T, arr: T + 17 * MIN, ...o })); return `${s.level}: ${s.showTime ? "time" : s.text}`; };
+  assert.equal(st({}), "ok: On time");
+  assert.equal(st({ depLate: 1, dep: T + MIN }), "ok: time", "1 min late shows the expected time");
+  assert.equal(st({ depLate: 4, dep: T + 4 * MIN }), "ok: time");
+  assert.equal(st({ depLate: 5, dep: T + 5 * MIN }), "warn: time");
+  assert.equal(st({ depLate: 14, dep: T + 14 * MIN }), "warn: time");
+  assert.equal(st({ depLate: 15, dep: T + 15 * MIN }), "bad: time");
+  assert.equal(st({ depLate: 3, dep: T + 3 * MIN, arrLate: 20 }), "ok: time", "Expected is the departure; the arrival delay is the pill's");
+  assert.equal(st({ dep: T - 2 * MIN }), "ok: time", "early: the feed clamps late to 0, but the time differs");
+  assert.equal(st({ cancelled: true, depLate: 3 }), "bad: Cancelled");
+  assert.equal(st({ cancelled: true, depUnknown: true }), "bad: Cancelled", "cancelled outranks no estimate");
+  assert.equal(st({ depUnknown: true }), "bad: No estimate");
+  assert.equal(st({ timetable: true }), "info: Not live", "a timetable train is never claimed on time");
+  assert.equal(st({ timetable: true, depLate: 6, dep: T + 6 * MIN }), "warn: time", "TfL reporting a delay: its time, coloured (Sam, 30 Oct)");
+  assert.equal(st({ derived: true }), "info: Estimated");
+  assert.equal(st({ estimated: true }), "info: Estimated");
+  assert.equal(st({ timetable: true, derived: true }), "info: Not live", "another stop of a timetable train: still not live");
+  const s1 = core.departureStatus(train({ from: "RVS", to: "CEN", std: "06:55", dep: T + MIN, arr: T + 17 * MIN, depLate: 1 }));
+  assert.equal(s1.text, "1 min late", "1 min late is late, not early");
 });
 
 test("bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never", () => {

@@ -29,9 +29,13 @@ chose: the tube home is only ever one you picked; the app never works it out.
   going quiet (no fix for 90 s+) after a tube left, not from a fresh fix away from Aldgate. A worked-out ride saved
   by an older build is ignored.
 - "Which one are you getting?" near the office and at Aldgate; your pick follows its vehicle if TfL moves its time.
+  Buttons read like Aldgate's single combined westbound list: "Platform 1: 3 Met Amersham · 11 min" (platform when
+  they're on more than one, place on the list, line in its colour, destination, minutes ticking; 30 Oct, Sam: the
+  countdown is unique to each train). Golden: the evening goldens show them.
 - Once your picked tube leaves you're on it until within 300 m of the stop the app chose, or 10 minutes after the
   ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …" ends it. "On a
-  different tube?" switches to one that has left (up to 3 within 6 min of yours, nearest first; 30 Oct).
+  different tube?" switches to one that has left (up to 3 within 6 min of yours, nearest first; 30 Oct); its
+  buttons say how long ago each left ("left 7 min ago").
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
   here" ends the ride; nothing is assumed about the next tube until you pick one.
 - A ride home is never treated as a ride to work, or the reverse.
@@ -47,6 +51,7 @@ chose: the tube home is only ever one you picked; the app never works it out.
 - tests/rules.test.mjs: "Going home: your picked tube follows a delay (by vehicle)"
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' nothing is assumed until you pick"
+- tests/rules.test.mjs: "Review: going home, 'On a different tube?' at Aldgate lists the nearest to yours first"
 - tests/core/connections.test.mjs: "Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept"
 - tests/core/situation.test.mjs: "onTube / whichTube: left the station after a tube left; not while there with a fresh fix; not near Aldgate"
 - tests/core/situation.test.mjs: "Going home by tube: noted at Aldgate within 150 m with a fix good to 150 m, only going home; never worked out"

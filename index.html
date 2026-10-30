@@ -96,6 +96,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .hero .slack .slackst{display:inline-block;white-space:nowrap;margin:1px -4px 1px 6px;padding:0 6px;border-radius:4px}
 .hero .slackst.ok{background:var(--hero-ok)} .hero .slackst.warn{background:var(--hero-warn)} .hero .slackst.bad{background:var(--hero-bad)}
 .hero .stat.ok{color:var(--hero-ok)} .hero .stat.warn{color:var(--hero-warn)} .hero .stat.bad{color:var(--hero-bad)}
+/* Departure board (Sam, 30 Oct): Train (timetabled) · Expected · At destination, same size; Expected carries the status band. */
+.hero .optrow.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.hero .optrow.board .optroute{grid-column:1/-1;margin-left:0;padding-bottom:0}
+.hero .optbig.word{font-size:22px;line-height:1.5}
+.hero .exp.ok{color:var(--hero-ok)} .hero .exp.warn{color:var(--hero-warn)} .hero .exp.bad{color:var(--hero-bad)}
+@media (max-width:370px){ .hero .optrow.board .optbig{font-size:25px} .hero .optrow.board .optbig.word{font-size:17px;line-height:1.5} }
 .legs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:6px;font-size:14px}
 .legs .t{opacity:.95}
 .legs .d{min-width:0}
@@ -114,10 +120,18 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .row .mid{min-width:0;display:flex;flex-direction:column;gap:4px}
 .row .route{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:600}
 .row .meta{font-size:12px;color:var(--muted)}
+.row.board{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:6px}
+.row.board .mid{grid-column:1/-1;grid-row:2}
+.row .exp small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.row .exp .t{font-size:18px;font-weight:600}
+.row .exp .word{font-size:15px;font-weight:600;line-height:1.6}
+.row .exp .ok{color:var(--ok)} .row .exp .warn{color:var(--warn)} .row .exp .bad{color:var(--bad)}
 .row .meta b{color:var(--ink);font-weight:800}
 .row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .row.gone{opacity:.5}
 .row.missed .leave .t{text-decoration:line-through;color:var(--bad)}
+/* On a departure board the timetabled time is the train's name: never struck through; "Can't make it" says it (Sam, 30 Oct). */
+.row.board.missed .leave .t{text-decoration:none;color:var(--muted)}
 .row.late .leave .t,.row.late .arrive .t{color:var(--muted)}
 .hero .alt{border-top:1px solid color-mix(in srgb,var(--paper) 25%,transparent);padding-top:10px;font-size:14px;opacity:.95}
 .hero .alt [data-cd]{opacity:.75;font-size:13px}
@@ -264,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 16:07 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 17:22 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -386,6 +400,7 @@ var CommuteCore = (() => {
     LATE_WARN_MIN: () => LATE_WARN_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
+    PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
@@ -400,6 +415,8 @@ var CommuteCore = (() => {
     arriveByRounds: () => arriveByRounds,
     atOfficeTube: () => atOfficeTube,
     bestConnections: () => bestConnections,
+    boardMins: () => boardMins,
+    boardSpot: () => boardSpot,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
     callsText: () => callsText,
@@ -410,6 +427,7 @@ var CommuteCore = (() => {
     countdown: () => countdown,
     delayLevel: () => delayLevel,
     delayStatus: () => delayStatus,
+    departureStatus: () => departureStatus,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -429,6 +447,7 @@ var CommuteCore = (() => {
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
     leaveBy: () => leaveBy,
+    leftAgo: () => leftAgo,
     leftHome: () => leftHome,
     lineLevel: () => lineLevel,
     lineOk: () => lineOk,
@@ -459,6 +478,7 @@ var CommuteCore = (() => {
     parseServiceDetails: () => parseServiceDetails,
     planConnection: () => planConnection,
     plannable: () => plannable,
+    platformNo: () => platformNo,
     profiles: () => profiles,
     railWarnings: () => railWarnings,
     rankNow: () => rankNow,
@@ -754,12 +774,13 @@ var CommuteCore = (() => {
     return t.arr - t.dep >= limit * 6e4;
   }
   var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
-  var LATE_WARN_MIN = 2;
+  var LATE_WARN_MIN = 5;
   var LATE_BAD_MIN = 15;
   var delayLevel = (lateMin) => lateMin >= LATE_BAD_MIN ? "bad" : lateMin >= LATE_WARN_MIN ? "warn" : "ok";
+  var PROJECTION_ON_TIME_MIN = 2;
   function delayStatus(lateMin, about = false) {
     const level = delayLevel(lateMin);
-    if (about) return { level, text: Math.abs(lateMin) < LATE_WARN_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
+    if (about) return { level, text: Math.abs(lateMin) < PROJECTION_ON_TIME_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
     return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
   }
   function trainStatus(t) {
@@ -768,6 +789,15 @@ var CommuteCore = (() => {
     const late = Math.max(t.depLate || 0, t.arrLate || 0);
     if (late >= 1) return delayStatus(late);
     return t.timetable || t.derived || t.estimated ? null : delayStatus(0);
+  }
+  function departureStatus(t) {
+    if (t.cancelled) return { level: "bad", text: "Cancelled", showTime: false };
+    if (t.depUnknown) return { level: "bad", text: "No estimate", showTime: false };
+    if ((t.depLate || 0) >= 1) return { ...delayStatus(t.depLate), showTime: true };
+    if (hhmm(t.dep) !== t.std) return { level: "ok", text: "Early", showTime: true };
+    if (t.timetable) return { level: "info", text: "Not live", showTime: false };
+    if (t.derived || t.estimated) return { level: "info", text: "Estimated", showTime: false };
+    return { ...delayStatus(0), showTime: false };
   }
   var arrivalStatus = (expected, scheduled) => delayStatus(Math.round((expected - scheduled) / 6e4), true);
 
@@ -889,14 +919,14 @@ var CommuteCore = (() => {
     const corridor = new RegExp(`\\b(${p.corridorPattern})\\b`, "i");
     const svcs = keys.flatMap((k) => boards[k] ? boards[k].services : []).filter((t) => t.dep >= now - 5 * 6e4);
     const cancelled = svcs.filter((t) => t.cancelled);
-    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.depLate >= 5 || t.arrLate >= 5).length;
+    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.depLate >= LATE_WARN_MIN || t.arrLate >= LATE_WARN_MIN).length;
     const msgs = [...new Set(keys.flatMap((k) => boards[k] ? boards[k].msgs : []))];
     const facilities = msgs.filter(facilityOnly);
     const onRoute = msgs.filter((m) => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
     const other = msgs.filter((m) => !facilityOnly(m) && !onRoute.includes(m));
     const uncertain = svcs.filter((t) => !t.cancelled && (t.depUnknown || t.arrUnknown) && t.dep >= now - 5 * 6e4);
     const late = Math.max(0, ...svcs.filter((t) => !t.cancelled).map((t) => Math.max(t.depLate || 0, t.arrLate || 0)));
-    const level = cancelled.length || uncertain.length || late >= 15 ? "red" : late >= 5 ? "amber" : "none";
+    const level = cancelled.length || uncertain.length || late >= LATE_BAD_MIN ? "red" : late >= LATE_WARN_MIN ? "amber" : "none";
     return { cancelled, uncertain, affected, total: svcs.length, hit: affected >= 2, onRoute, other, facilities, level, late };
   }
   function noticeTitle(m) {
@@ -944,7 +974,7 @@ var CommuteCore = (() => {
     if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
     else if (!t.cancelled) {
       const s = trainStatus(t);
-      if (s) f.push({ lvl: s.level, txt: s.text });
+      if (s) f.push({ lvl: s.level, txt: s.text, status: true });
     }
     if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
     return f;
@@ -1194,6 +1224,17 @@ var CommuteCore = (() => {
     if (!f.here || typeof f.acc !== "number" || !(f.acc <= 50) || f.at == null || now - f.at > 6e4) return false;
     return km(f.here, fromGeo) <= radiusKm;
   }
+  function boardSpot(deps, d, now) {
+    const shown = deps.filter((a) => a.t > now - 3e4).sort((a, b) => a.t - b.t);
+    const i = shown.findIndex((a) => d.vehicle && a.vehicle ? a.vehicle === d.vehicle : a.t === d.t && a.line === d.line);
+    return i < 0 ? null : { pos: i + 1, ms: shown[i].t - now };
+  }
+  var boardMins = (ms) => ms < 6e4 ? "due" : `${Math.floor(ms / 6e4)} min`;
+  var leftAgo = (ms) => ms < 0 ? "leaving now" : ms < 6e4 ? "just left" : `left ${Math.floor(ms / 6e4)} min ago`;
+  var platformNo = (name) => {
+    const m = /platform\s*(\w+)/i.exec(name || "");
+    return m ? m[1] : null;
+  };
 
   // src/core/refresh.ts
   var REUSE = { minGap: 3e4, timetable: 5 * 6e4, lineStatus: 2 * 6e4, nrStatus: 5 * 6e4, toOffice: 12e4 };
@@ -2184,7 +2225,7 @@ async function fetchAldgateDepartures(){
   return (await r.json())
     .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
     .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
-      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000 }))
+      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
     .filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);
 }
 // Live arrivals at Aldgate, to follow the tube you're on by its vehicle id.
@@ -2335,8 +2376,11 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
 // passing Farringdon, or a stray fix at the station you left, doesn't end it.
-// When you could first be on that station's tube platform: when you arrived plus the walk (null if not known).
-const tubeReady = hub => state.hubSince && state.hubSince.hub===hub ? state.hubSince.at+onwardParts(hub).ic : null;
+// The earliest a tube you're on can have left (engine onTube/whichTube allow a minute's slack before it): when you
+// arrived plus the walk, if the app saw you arrive; else when it first saw you here (opened on the platform, say);
+// after "No, still here", that moment exactly. Null if it hasn't seen you at this station.
+const tubeReady = hub => { const h=state.hubSince; if(!h || h.hub!==hub) return null;
+  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.seen ? h.at+onwardParts(hub).ic : h.at; };
 const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
@@ -2347,6 +2391,19 @@ function officeLeg(hub, lineId){
     rideMs:(east?(kx?s.rideKxAde:s.rideFarAde):(kx?s.rideKxAld:s.rideFarAld))*1000,
     tailMs:(east?s.adePlatform+s.adeWalk:s.aldPlatform+s.aldWalk)*k*1000 };
 }
+// A tube as the platform's board shows it: place, line, destination, minutes (ticking). Tap to pick it.
+const lineChip = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"met";
+const boardDest = d => String(d||"").replace(/ \([^)]*Line\)/i,"");
+const tubeBtn = (hub, a, inner) => `<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${inner}</button>`;
+const lineDest = (a, dflt) => `<span class="chip ${lineChip(a.line)}">${esc(a.line)}</span> ${esc(boardDest(a.dest)||dflt)}`;
+// Platform pick buttons: board order, up to 4; the platform number when they're on more than one board (Aldgate).
+function boardBtns(hub, list, all, now, dflt){
+  const pick=[...list].sort((a,b)=>a.t-b.t).slice(0,4), plats=new Set(pick.map(a=>a.platform||""));
+  return pick.map(a=>{ const sp=C.boardSpot(all||[], a, now), no=plats.size>1?C.platformNo(a.platform):null;
+    return tubeBtn(hub, a, `${no?`Platform ${esc(no)}: `:""}${sp?`<b>${sp.pos}</b> `:""}${lineDest(a, dflt)} · <span data-boardmin="${a.t}">${C.boardMins(a.t-now)}</span>`); }).join("");
+}
+// On the tube the board is gone: the others that left, by how long ago (ticking).
+const goneBtns = (hub, list, now, dflt) => list.map(a=>tubeBtn(hub, a, `${lineDest(a, dflt)} · <span data-leftago="${a.t}">${C.leftAgo(now-a.t)}</span>`)).join("");
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
 // The line's colour class for a lozenge naming it; none for an unknown line.
 const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
@@ -2492,6 +2549,13 @@ function vsBest(j, best, dest){
   return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, ${cmp}`;
 }
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
+// Departure board, Expected column: the engine's departure status, as the time (when it differs) or a word.
+function expectedHtml(t, cls){
+  const s=C.departureStatus(t);
+  return s.showTime ? `<span class="t ${cls} exp ${s.level}">${hhmm(t.dep)}</span>` : `<span class="${cls} word exp ${s.level}">${esc(s.text)}</span>`;
+}
+// On a departure board an "On time" status pill repeats the Expected column; any delay still says its minutes.
+const boardFlags = flags => flags.filter(f=>!(f.status && f.txt==="On time"));
 const stdExp = t => `<span class="t">${esc(t.std)}</span>${t.depLate>=1?` exp <span class="t">${hhmm(t.dep)}</span>`:""}`;
 // Effort levels: a train that needs a run or a car and arrives sooner than the card's best (engine marks it).
 function effortLine(j, dest, best){
@@ -2502,15 +2566,20 @@ function effortLine(j, dest, best){
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
-    <div class="optrow">
-      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>`}
+    ${opt.board ? `<div class="optrow board">
+      <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
+      <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
+      <div class="optroute">${chips(j)}</div>
+    </div>` : `<div class="optrow">
+      <div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
-    </div>
-    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    </div>`}
+    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
-    ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
+    ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
@@ -2590,8 +2659,7 @@ function tubesFromAldgate(now){
   const row=(t,mark)=>{ const o=t.leg.o;
     return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
   const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
-  const btns=[...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)).slice(0,4)
-    .map(t=>`<button type="button" class="pickbtn" data-tubepick="ALD|${t.t}|${esc(t.line)}|${esc(t.vehicle||"")}">${hhmm(t.t)} ${esc(t.line)}</button>`).join("");
+  const btns=boardBtns("ALD", [...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)), d.list, now, "");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
@@ -2608,7 +2676,7 @@ function renderOnTubeHome(now){
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   const others = C.otherTubes(a&&a.deps, r, now);
-  const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(d=>`<button type="button" class="pickbtn" data-tubepick="ALD|${d.t}|${esc(d.line)}|${esc(d.vehicle||"")}">${hhmm(d.t)} ${esc(d.line)}</button>`).join("")}</div>` : "";
+  const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
@@ -2636,7 +2704,7 @@ function renderOnTube(now){
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
   const others = C.otherTubes(lh&&lh.arrivals, r, now);
-  const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(a=>`<button type="button" class="pickbtn" data-tubepick="${r.hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>` : "";
+  const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;
   const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
@@ -2703,7 +2771,7 @@ function renderAtHub(now){
     if(chosen && pk && (pk.t!==n.t || pk.vehicle!==n.vehicle)){ state.saved.tubePick={...pk, t:n.t, ...(n.vehicle?{vehicle:n.vehicle}:{})}; save(); }
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
-    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)).slice(0,4).map(a=>`<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>`;
+    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${boardBtns(hub, [...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)), tube.arrivals, now, "Aldgate")}</div>`;
     const nearly = early.length ? `<div class="alt">Near the platform already? The ${early.map(e=>`<span class="t">${hhmm(e.t)}</span> ${esc(e.line)} (office <span class="t">${hhmm(e.office)}</span>)`).join(" or the ")}.</div>` : "";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
@@ -2819,14 +2887,15 @@ function renderList(list, now, opts){
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
+  const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
-      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
+    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
+      ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
-        ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
+        ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");
@@ -3116,7 +3185,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   else if(r.from==="ALD"){ state.saved.tubeRide=null; state.saved.tubePick=null; state.saved.aldHome={ seen:Date.now(), deps:(state.aldDeps&&state.aldDeps.list)||[] }; }
   else { state.saved.tubeRide=null; state.saved.tubePick=null; state.lastHub=null; state.saved.lastHub=null;
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
-    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
+    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, seen:true, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
   save(); render(); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
@@ -3189,6 +3258,8 @@ function renderInner(){
 function tick(){
   const now=Date.now();
   document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"leave time passed"; });
+  document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
+  document.querySelectorAll("[data-leftago]").forEach(e=>{ e.textContent=C.leftAgo(now-e.dataset.leftago); });
   document.querySelectorAll("[data-tube]").forEach(e=>{ const ms=+e.dataset.tube-now; e.textContent = ms>30e3?`in ${countdown(ms)}`:"due now"; });
   document.querySelectorAll("[data-dep]").forEach(e=>{ const ms=+e.dataset.dep-now; e.textContent = ms>0?`train departs in ${countdown(ms)}`:"train has departed"; });
 }
@@ -3306,10 +3377,14 @@ function onPosition(p){
   noteAldgate();
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
+  const prevFixRecvAt=state.lastFixRecvAt;
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
-  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now()}; state.saved.hubSince=state.hubSince; save(); }
+  // Arriving was seen only if this session had a fix away from a station in the last 5 min; otherwise the app was
+  // opened (or woke) here, and you may have arrived long before (tubeReady then adds no walk).
+  const seen = prevHub==null && prevFixRecvAt!=null && Date.now()-prevFixRecvAt<5*60e3;
+  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(seen?{seen:true}:{})}; state.saved.hubSince=state.hubSince; save(); }
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});

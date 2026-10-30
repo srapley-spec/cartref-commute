@@ -1942,7 +1942,7 @@ const btn=(text,action,cls=&#x27;&#x27;,value=&#x27;&#x27;)=&gt;`&lt;button type
 const flag=(t,k=&#x27;&#x27;)=&gt;`&lt;span class=&quot;cc-flag ${k}&quot;&gt;${t}&lt;/span&gt;`;
 // One delay-band rule everywhere (Sam, 30 Oct): cancelled, no estimate or 15+ min late = bad; 2–14 min late = warn; under 2 min = good.
 // Timetable-only trains get no status claim. Status is always a word, never colour alone.
-const delayStatus=late=&gt;late==null?[&#x27;No estimate&#x27;,&#x27;bad&#x27;]:late&lt;=0?[&#x27;On time&#x27;,&#x27;good&#x27;]:[`${late} min late`,late&gt;=15?&#x27;bad&#x27;:late&gt;=2?&#x27;warn&#x27;:&#x27;good&#x27;];
+const delayStatus=late=&gt;late==null?[&#x27;No estimate&#x27;,&#x27;bad&#x27;]:late&lt;=0?[&#x27;On time&#x27;,&#x27;good&#x27;]:[`${late} min late`,late&gt;=15?&#x27;bad&#x27;:late&gt;=5?&#x27;warn&#x27;:&#x27;good&#x27;];
 const statusFlag=late=&gt;flag(...delayStatus(late));
 const home=()=&gt;state.dir===&#x27;home&#x27;;
 const tubeArrival=()=&gt;tt(mins(state.tubeTime)+15);

@@ -15,6 +15,10 @@ tube was dropped when TfL moved its time by seconds; the card's tube and the lis
 All fixed and tested. Going home now uses the same model (see [tube-home](tube-home.md)).
 30 Oct morning: Sam asked that the lozenge naming the tube to get on be that line's colour (H&C light pink, Circle
 yellow, Met magenta), as the line chips in the list already are.
+30 Oct: Sam asked that tubes you pick be identified by their order on the platform's dot-matrix board and minutes
+until arrival, "the only real way to identify them that a user has access to"; clock times like "08:42 Met" aren't
+on the board. Once on the tube, "left 4 min ago" works (Sam). Aldgate has a single combined list as well as
+per-platform boards, and each train's countdown is unique (Sam).
 30 Oct morning, measured best case (Friday, quiet, front of the train, platform 6): stepping off the train to the
 subsurface platform took 3 min 05 s (log: [`data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md`](../../data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md)).
 **The model was not changed to 185 s**, because the walk here counts from "arrived": the first fix within 400 m of
@@ -29,6 +33,10 @@ be on the platform before about 08:44). "On a different tube?" listed the earlie
 H&C on offer was the 08:38; picked, it said Aldgate East 08:49 (he was at Farringdon) and the office 08:56 (he was
 at his desk 09:05). He caught the H&C due 08:45. Fixed the same day: only a tube you could have caught counts, and
 the others are nearest first. Whether the list was exactly that when he picked is inferred from the code, not seen.
+Independent review (30 Oct): "arrived" is the app's first fix at the station, which is late if the app was opened
+on the platform: adding the walk then hid the tube Sam was on ("Probably the 08:48 Met" for the 08:45 H&C). Fixed:
+the walk is added only when the app saw you arrive. Also: after "No, still here" a tube that had just left could
+still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12 untested boundaries, now pinned.
 
 ## Acceptance criteria
 - The walk to the platform counts from when you arrived at the station; you can be on the platform no sooner than
@@ -43,18 +51,32 @@ the others are nearest first. Whether the list was exactly that when he picked i
   departure nearest the picked time, within 3 minutes; never a different known vehicle. When TfL moves its time,
   the pick follows it. The list's highlighted row is always the card's tube; after you pick, "near the platform"
   isn't offered. A pick earlier than we'd expect you can reach is said ("tight"), not overruled.
+- "Which one are you getting?" (King's Cross, Farringdon) reads like the platform's dot-matrix board, the only
+  way to tell tubes apart on the platform: place on the board (1 = next, among the eastbound tubes still shown,
+  i.e. leaving no more than 30 s ago), the line in its colour, destination (a "(… Line)" suffix dropped), and
+  minutes, rounded down, "due" under a minute, ticking every second. The first 4 you could pick, in board order.
+  When they're on more than one platform, each says "Platform N:" first. The board's own rounding (down vs
+  nearest, when "due" shows) is unverified: Sam to compare on the platform.
+- Once you're on the tube the board is gone: "On a different tube?" buttons say the line (coloured), destination
+  and how long ago it left ("left 4 min ago", rounded down; "just left" under a minute; "leaving now" if due in
+  the next 30 s), ticking (Sam, 30 Oct). Going home the same.
 - Once it leaves you're on it until within 300 m of your stop, or 10 minutes after the ride time; passing stations
   (e.g. Farringdon) or a stray fix don't end it or change which station you arrived at. A ride clears the pick.
 - "Did you get it?" only on a good (≤50 m), fresh (≤1 min) fix within the station's radius, 3+ minutes after it
   left, unless you've said yes. "No, still here" treats you as on the platform, so a tube about a minute away is
   catchable. "On a different tube?" switches to one that has left.
 - Worked out (not picked): you're on a tube only once one **you could have caught** has left: leaving no more than
-  1 minute before you could be on the platform (when you arrived + the walk, at your pace). The guess is the one
-  of those leaving nearest to when you were last seen, or to when you could be on the platform if that's later;
-  another within 3 min is "or". Without an arrival time, any tube that has left counts (as before). If none you
-  could have caught has left, the guess is the nearest that has (only reached by a pick).
-- "On a different tube?" lists up to 3 that have left (or leave within 30 s), within 6 min of yours, **nearest to
-  yours first** (ties: the earlier); earlier ones you'd have had to be quick for are kept. Same going home.
+  1 minute before the earliest you could be on the platform. That earliest is:
+  - **the app saw you arrive** (a fix away from a station in the 5 min before the first fix there, this session):
+    that first fix + the walk, at your pace;
+  - **it didn't** (opened, or woke, at the station; you may have arrived long before): that first fix, no walk;
+  - **after "No, still here"**: that moment exactly (no minute's slack);
+  - **no visit to this station recorded** (or one at another station): any tube that has left counts (as before).
+  The guess is the one of those leaving nearest to when you were last seen, or to the earliest you could be on the
+  platform if that's later; another within 3 min (not exactly 3) is "or". If somehow none you could have caught
+  has left (e.g. an older worked-out ride redrawn after the visit changed), the guess is the nearest that has.
+- "On a different tube?" lists up to 3 that have left (or leave within 30 s), less than 6 min from yours, **nearest
+  to yours first** (ties: the earlier); earlier ones you'd have had to be quick for are kept. Same going home.
 - Back at the station after minutes without a fix is "you're at the station", not on a tube that has gone.
 - Fastest arrival wins across lines and stops: at King's Cross and Farringdon with live tubes, the H&C to Aldgate
   East competes with Circle/Met to Aldgate, each with its own ride time. H&C problems are shown at King's Cross; on
@@ -81,12 +103,20 @@ the others are nearest first. Whether the list was exactly that when he picked i
 - tests/rules.test.mjs: "Aldgate East only when Circle and Met are both closed; severe delays on both are a 'bad' flag"
 - tests/app.test.mjs: "Morning at King's Cross: which tube to get on and when you'll be at the office"
 - tests/app.test.mjs: "At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)"
+- tests/app.test.mjs: "At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes"
+- tests/core/connections.test.mjs: "The platform board: a tube's place (1 = next) among those still shown, and its minutes rounded down; under 1 is 'due'"
+- tests/core/connections.test.mjs: "On the tube the board is gone: a tube that left is told by how long ago (rounded down); platform numbers from TfL's names"
 - tests/app.test.mjs: "At King's Cross without live tube times: says so and estimates"
 - tests/app.test.mjs: "On the tube: works out which one from when you left King's Cross and follows it to Aldgate"
 - tests/rules.test.mjs: "On the tube: within 25 min of the station, a tube has left, and either you've left the station or the fix is over 90 s old"
 - tests/rules.test.mjs: "Which tube: the one that left nearest to when you were last seen; a second within 3 min is 'or'"
 - tests/core/situation.test.mjs: "onTube / whichTube / otherTubes: only a tube you could have caught (arrival + walk) puts you on it (30 Oct)"
 - tests/rules.test.mjs: "30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you couldn't reach; then the H&C you caught, others nearest first"
+- tests/core/situation.test.mjs: "otherTubes: boundaries (30 s leaving, 6 min window), ties go to the earlier whatever the list order (review, 30 Oct)"
+- tests/rules.test.mjs: "Review: the app opened on the platform: no walk added (you may have arrived long before), so the tube you caught counts"
+- tests/rules.test.mjs: "Review: after 'No, still here', a tube that had already left never becomes your ride"
+- tests/rules.test.mjs: "Review: arrival at a different station (Farringdon) doesn't limit the tubes at King's Cross"
+- tests/rules.test.mjs: "Review: 'saw you arrive' needs a fix away from the station within 5 min; an older one (app asleep) doesn't count"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"
 - tests/core/connections.test.mjs: "Ready: never sooner than a minute from now; arrival in the future counts as now"

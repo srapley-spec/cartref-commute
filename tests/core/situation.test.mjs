@@ -144,6 +144,27 @@ test("onTube / whichTube / otherTubes: only a tube you could have caught (arriva
   // first you'd have had to be 55 s quick for.
   const two = { hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready - 55 * S, line: "Met" }, { t: ready + 20 * S, line: "H&C" }] };
   assert.equal(core.whichTube(two, ready + 5 * MIN, ready).best.line, "H&C");
+  // Review: a tube you couldn't have caught is never the guess, even when it's nearer the reference time.
+  const near = { hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready - 65 * S, line: "Met" }, { t: ready + 70 * S, line: "H&C" }] };
+  assert.equal(core.whichTube(near, ready + 5 * MIN, ready).best.t, ready + 70 * S);
+  // Leaving within 30 s counts as gone; 31 s doesn't.
+  const soon = (sec) => ({ hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready + 2 * MIN + sec * S, line: "Met" }] });
+  assert.equal(core.whichTube(soon(30), ready + 2 * MIN, ready).best.line, "Met");
+  assert.equal(core.whichTube(soon(31), ready + 2 * MIN, ready), null);
+  // "Or": within 3 min of the best's distance, not at exactly 3:00 or beyond.
+  const or = (sec) => core.whichTube({ hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready, line: "Met" }, { t: ready + sec * S, line: "H&C" }] }, ready + 10 * MIN, ready).other;
+  assert.equal(or(179).line, "H&C"); assert.equal(or(180), undefined); assert.equal(or(210), undefined);
+});
+
+test("otherTubes: boundaries (30 s leaving, 6 min window), ties go to the earlier whatever the list order (review, 30 Oct)", () => {
+  const on = { t: T("08:45"), line: "H&C" }, at = (m, s = 0, line = "Met") => ({ t: T("08:45") + m * MIN + s * 1e3, line });
+  const now = T("08:45") + 3 * MIN;
+  assert.ok(core.otherTubes([at(3, 30)], on, now).length === 1, "leaving in 30 s: offered");
+  assert.ok(core.otherTubes([at(3, 31)], on, now).length === 0, "31 s: not yet");
+  assert.equal(core.otherTubes([at(-6)], on, now).length, 0, "exactly 6:00 away: not offered");
+  assert.equal(core.otherTubes([at(-6, -10)], on, now).length, 0, "6:10 away: not offered, even with room in the list");
+  assert.equal(core.otherTubes([at(-5, -50)], on, now).length, 1, "5:50 away: offered");
+  assert.deepEqual(core.otherTubes([at(1), at(-1)], on, now).map((a) => a.t), [T("08:44"), T("08:46")], "a tie: the earlier first");
 });
 
 test("Going home by tube: noted at Aldgate within 150 m with a fix good to 150 m, only going home; never worked out", () => {

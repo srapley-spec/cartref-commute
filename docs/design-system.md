@@ -73,10 +73,35 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 - 4-point spacing scale: 4, 8, 12, 16, 20, 24, 32. Phone content inset 20 px (16 on small widths); touch controls at least 44 px. Content scrolls as a single page; overlays must support keyboard, focus return and dismissal.
 - Semantic roles: canvas, surface, raised surface, primary text, secondary text, divider, accent/action, positive, caution, severe, informational. Separate light/dark values; never reuse the same warning text colour blindly on both themes.
 - Signal radii 24/16/12; Journey 12/8/6. One strong primary area per screen. Colour is never the sole indicator of a state. Cancelled and uncertain services remain readable.
-- A train: red when cancelled, no estimate or 15+ min late; amber 2–14 min; green under 2 min (Sam, 30 Oct). The route-wide status line keeps amber from 5 min. Red, amber and green are reserved for status; see [Status colour is reserved](#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal). Route notice without observed impact: caution. Background notices: neutral.
+- A train: red when cancelled, no estimate or 15+ min late; amber 5–14 min; green under 5 min (Sam, 30 Oct; amber moved from 2 to 5 the same day). The route-wide status line uses the same thresholds. Red, amber and green are reserved for status; see [Status colour is reserved](#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal). Route notice without observed impact: caution. Background notices: neutral.
 - Prefer labelled actions to mystery icons. Minimum contrast target WCAG AA (4.5:1 body, 3:1 large text/UI). Test both appearances, 320 px width, large text and VoiceOver on real iPhone before implementation acceptance.
 - Appearance defaults to System; optional Light/Dark override. Changes preserve view, selected service, scroll, expanded details and entered deadline. Avoid automatic theme animation; respect Reduce Motion.
 - State model: loading, empty, live, timetable only, stale, partial failure, no estimate, cancelled, location denied, uncertain train, user-confirmed train, connection, final walk, arrived. Confidence belongs to the data, not visual polish.
+
+## Timetabled and expected departure (Sam, 30 Oct 2026): Panda and Signal
+
+A train is named by its timetabled time ("the 08:00"): the platform board, the "Which train?" choice and "You're on the
+08:00" all use it. Wherever the departure is the headline (at a station, on your way to one), the timetabled time is
+as prominent as the expected time. Chosen from three options
+([comparison](https://claude.ai/artifact/M5yQwasvt3bLdiFgKXXfbz)): **A, board columns.**
+
+| Column | Content | Style |
+| --- | --- | --- |
+| Train | Timetabled departure; "Train from St Pancras" when you'd board elsewhere | Option-time size, neutral |
+| Expected | Expected time when it differs from the timetable; else "On time" / "Not live" / "Estimated" / "No estimate" / "Cancelled" | Same size (a word a step smaller); colour = status band |
+| At office / At home | One expected arrival; no timetabled door-to-door arrival exists | Same size, neutral |
+
+- Platform-board order: timetabled, then expected. Never strike through the timetabled time (it reads as cancelled and
+  hides the name you match against); never "08:00 › 08:03" in one slot (reads as a journey).
+- The delay's word and minutes appear once, in the status pill; an "On time" pill is left off (Expected says it).
+- Never "On time" without live data. TfL's reported delays count as data: shown as the expected time, coloured.
+- Leave mode keeps Leave → Arrive as the big times, with "08:00 exp 08:03" on the train line.
+- List rows use the same three columns, with route, operator and flags on a line below.
+- Engine: `departureStatus` in `src/core/rules.ts`. Story: [late-trains](stories/late-trains.md).
+- **Panda** (the live build): built 30 Oct; tokens `--hero-ok/warn/bad` on the card, `--ok/warn/bad` in the list.
+  → [panda](design/panda.md#departure-board)
+- **Signal:** `JourneyOption` and `TrainBoard` follow this. The review prototype (`design/signal-preview.html`)
+  predates it and still shows "Departs" with the expected time; superseded on this point.
 
 ## Status colour is reserved (Sam, 30 Oct 2026): binding on every build and every proposal
 
@@ -90,11 +115,12 @@ train" read as a warning while the train was close to on time.
   (ink / outline), never a status colour.
 - **Every train in live mode shows its status**: card, list and board, and the train you're on. Word and minutes,
   coloured by band; never colour alone ("On time", "2 min late", "18 min late", "Cancelled", "No estimate").
-- **Bands (Sam, 30 Oct), one engine rule** (`delayLevel` in `src/core/rules.ts`): green under 2 min late (or
-  early), amber 2–14 min, red 15+ min, cancelled or no estimate. A timetable train, or a time worked out from another
+- **Bands (Sam, 30 Oct), one engine rule** (`delayLevel` in `src/core/rules.ts`): green under 5 min late (or
+  early), amber 5–14 min, red 15+ min, cancelled or no estimate. (Amber started at 2 until later on 30 Oct.) A timetable train, or a time worked out from another
   stop, gets no status: never "On time" without live data. On the train, the band is for the expected arrival at the
   change station against the timetable, the time that matters; departure delay is history. The route-wide status
-  line keeps its own tiers (amber from 5 min): it answers "is my route disrupted", not "is this train late".
+  line uses the same thresholds, but answers "is my route disrupted", not "is this train late". On a departure
+  board the status is the Expected column ([below](#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal)).
 - **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
   for amber.
 - **Tube line colours are identity, not status** (Sam, 30 Oct): a lozenge or chip naming one tube line uses TfL's

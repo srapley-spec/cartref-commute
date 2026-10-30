@@ -17,7 +17,9 @@ Sam selected Signal after reviewing two iPhone-first mockups, requested dynamic 
 - No simulated early-platform, coach or signalling-point features are presented as current capabilities.
 - Red, amber and green are reserved for status (Sam, 30 Oct): never accent, identity, selection or tracking. Every
   live train, including the one you're on, shows its status as a word with minutes, coloured by band (red: cancelled,
-  no estimate, 15+ min; amber: 2–14 min; green: under 2 min). On the live card the status chip sits inside the
+  no estimate, 15+ min; amber: 5–14 min; green: under 5 min; Sam 30 Oct). A departure shows Train · Expected ·
+  At destination at the same size ([rule](../design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal);
+  the preview predates it). On the live card the status chip sits inside the
   train's blue identity lozenge (Sam, 30 Oct). The preview shows this; production shares the engine rule with Panda
   ([train-status](train-status.md)). → [specification](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
 

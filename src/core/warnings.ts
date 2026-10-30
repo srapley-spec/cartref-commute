@@ -1,5 +1,6 @@
 // Warnings: how badly your own trains are hit, which notices are about your route, and tube line status.
 import type { Board, Flag, Profile, Train } from "./types";
+import { LATE_WARN_MIN, LATE_BAD_MIN } from "./rules";
 
 /** Station facilities (toilets, lifts…): never about whether trains run. */
 export const FACILITY = /\b(toilets?|lavator(y|ies)|escalators?|lifts?|elevators?|ticket (office|machines?|barriers?|gates?)|car ?park|parking|wi-?fi|waiting rooms?|caf[eé]s?|shops?|help points?|customer information|footbridge|entrances?|exits?|step[- ]free|baby chang\w*|accessib\w*|cycle (racks?|parking)|taxi rank)\b/i;
@@ -24,14 +25,14 @@ export function railWarnings(boards: Record<string, Board | null | undefined>, k
   const corridor = new RegExp(`\\b(${p.corridorPattern})\\b`, "i");
   const svcs = keys.flatMap(k => (boards[k] ? boards[k]!.services : [])).filter(t => t.dep >= now - 5 * 60e3);
   const cancelled = svcs.filter(t => t.cancelled);
-  const affected = svcs.filter(t => t.cancelled || t.depUnknown || t.depLate >= 5 || t.arrLate >= 5).length;
+  const affected = svcs.filter(t => t.cancelled || t.depUnknown || t.depLate >= LATE_WARN_MIN || t.arrLate >= LATE_WARN_MIN).length;
   const msgs = [...new Set(keys.flatMap(k => (boards[k] ? boards[k]!.msgs : [])))];
   const facilities = msgs.filter(facilityOnly);
   const onRoute = msgs.filter(m => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
   const other = msgs.filter(m => !facilityOnly(m) && !onRoute.includes(m));
   const uncertain = svcs.filter(t => !t.cancelled && (t.depUnknown || t.arrUnknown) && t.dep >= now - 5 * 60e3);
   const late = Math.max(0, ...svcs.filter(t => !t.cancelled).map(t => Math.max(t.depLate || 0, t.arrLate || 0)));
-  const level: ImpactLevel = cancelled.length || uncertain.length || late >= 15 ? "red" : late >= 5 ? "amber" : "none";
+  const level: ImpactLevel = cancelled.length || uncertain.length || late >= LATE_BAD_MIN ? "red" : late >= LATE_WARN_MIN ? "amber" : "none";
   return { cancelled, uncertain, affected, total: svcs.length, hit: affected >= 2, onRoute, other, facilities, level, late };
 }
 

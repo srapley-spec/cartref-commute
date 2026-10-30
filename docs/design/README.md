@@ -27,7 +27,7 @@ compared and contrasted on the same terms.
   tests) instead. → [presentation-model](../stories/presentation-model.md)
 - **Red, amber and green mean status only** (Sam, 30 Oct; critical): no problem / some problem / serious problem.
   Never brand, accent, identity ("You're on the…"), selection or tracking. Every live train shows its status as a
-  word with minutes, coloured by band (green under 2 min late, amber 2–14, red 15+ / cancelled / no estimate). → [`../design-system.md`](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal).
+  word with minutes, coloured by band (green under 5 min late, amber 5–14, red 15+ / cancelled / no estimate; Sam 30 Oct). A departure shows Train · Expected · arrival, the same size. → [`../design-system.md`](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal).
   Existing proposals with an amber or green accent (original A, womble A and B) must retune before reuse.
 - **Phone first, used while walking to a station.** Glanceable; touch targets ≥ 44 px; small text ≥ 4.5:1 contrast;
   dark and light; iOS later (Live Activities, Dynamic Island, widgets, Watch are native extension points to design for,
