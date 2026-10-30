@@ -15,9 +15,9 @@ function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}
      mk("SIM-TL-0912","LET","ZFD",12,48,"Thameslink"),
      mk("SIM-GN-0917","LET","KGX",17,35,"Great Northern"),
      mk("SIM-TL-0927","LET","ZFD",27,48,"Thameslink"),
-     mk("SIM-GN-HOME-1005","KGX","LET",65,36,"Great Northern"),
-     mk("SIM-TL-HOME-1012","ZFD","LET",72,48,"Thameslink"),
-     mk("SIM-GN-HOME-1017","KGX","LET",77,35,"Great Northern")
+     mk("SIM-GN-HOME-1617","KGX","LET",437,36,"Great Northern"),
+     mk("SIM-TL-HOME-1620","ZFD","LET",440,48,"Thameslink"),
+     mk("SIM-GN-HOME-1627","KGX","LET",447,35,"Great Northern")
    ];
  };
  const shifted=(s,from,to)=>s.from===from&&s.to===to ||
