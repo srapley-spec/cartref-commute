@@ -44,6 +44,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Reliability when feeds fail](reliability.md) · Done
 
 ### Where you are
+- [Developer journey simulator](journey-simulator.md) · Partly done, branch only (review pending)
 - [Direction and arriving](direction-and-arrival.md) · Done
 - [On your way to the station](on-the-way-to-the-station.md) · Done
 - [At the station: departure board](at-the-station.md) · Done
