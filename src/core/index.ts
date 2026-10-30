@@ -35,3 +35,7 @@ export { samRoutes, tubeHomeConnections } from "./profiles/samRoutes";
 export type { Timings, RouteInput, LondonLeg } from "./profiles/samRoutes";
 export const profiles = { samCommute };
 export const ENGINE_VERSION = "1";
+export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewControl } from './viewControl';
+export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
+export { FOLLOW_BETTER_MIN, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
+export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';

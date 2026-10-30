@@ -56,7 +56,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
-- [Follow a route](follow-a-route.md) · Planned (for Sam to agree)
+- [Follow a route](follow-a-route.md) · Implementation in progress (Experimental; verification pending)
 
 ### Beyond the commute
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
@@ -75,4 +75,4 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 
 ### Design and presentation
 - [Every live train says how late it is, in colour](train-status.md) · Done
-- [Signal design system and automatic journey presentation](signal-design-system.md) · Planned (design and interaction policies agreed; implementation pending)
+- [Signal design system and automatic journey presentation](signal-design-system.md) · Implementation in progress (Experimental; verification pending)

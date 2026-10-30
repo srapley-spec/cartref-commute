@@ -1,5 +1,5 @@
 # Follow a route
-Status: Planned (for Sam to agree before building) · Behind Settings → Experimental first · Since: 30 Oct 2026 (evening)
+Status: Implementation in progress (Sam selected 30 Oct; release verification pending) · Behind Settings → Experimental · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have
@@ -18,6 +18,16 @@ something better has turned up, so that the arrival time means something and I'm
 Sam: "I think what we need is to pick the route. I'm aiming for this route. And then the app can tell me if I'm ahead
 or behind. And if I have better options or missed them." And: "You still need the live mode because I might not
 click."
+
+## Delivery boundary
+Sam selected this newer behavior as the basis for Signal on 30 Oct, then authorised implementation with regular
+independent reviews of behavior, tests and architecture. The selected route is shared by Panda and Signal; the
+Follow a route Experimental setting is independent of the Signal design switch. Both start off.
+
+The initial implementation follows the existing complete route snapshot and live rail service. Its planned Tube
+legs are estimates unless existing live evidence says otherwise; verified by-vehicle Tube following remains
+a separate feed-reliability gate. The full acceptance criteria below remain the target, not a claim that every
+criterion has already passed verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
 ### Choosing and keeping a route
@@ -59,16 +69,33 @@ click."
 - If you seem to be on the move (at a station, on a train or tube, or walking to the station) and aren't following a
   route, the app shows where you are (station departures, the train or tube you're probably on with picks), as it
   does today. Tapping Leave now, Arrive by or Leave around goes back to planning; that choice lapses after 20 minutes
-  or when your situation changes (you reach or leave a station, start or stop moving on the line).
+  or when your situation changes (you reach or leave a station, start or stop moving on the line). This is the
+  current policy for Signal and supersedes its older journey-scoped override. A location blip, refresh or theme
+  change alone does not end the override. View selection never resets direction, train/Tube selection or the
+  followed journey; tracking and important alerts continue while planning is pinned.
 
 ### Generic
 - Built in the engine (`src/core`) from route segments and live data, not around Aldgate or King's Cross: the same
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
-- None yet (planned). Each criterion above gets a test before it is built; the 30 Oct evening (18:19 → 18:48
-  cancelled → 18:54) becomes a whole-journey test: following the 18:22 route, the card says "Your 18:48 is
-  cancelled" and offers the 18:54 (home 19:52, 18 min later), and the arrival never changes without a reason shown.
+- Implementation tests and independent review are in progress. Required evidence includes stable arrival despite
+  re-ranking, an explicit reason for live changes, cancellation/missed recovery without automatic replacement,
+  the exact 5-minute alternative threshold, persistence validation, switch preservation, simulation isolation,
+  and planning override expiry. See [verification record](../signal-testing.md).
+- The 30 Oct evening (18:19 → 18:48 cancelled → 18:54) remains a whole-journey acceptance case: following the
+  18:22 route, the card says the 18:48 is cancelled and offers the 18:54 (home 19:52, 18 min later); the arrival
+  never changes without a reason shown.
+
+- tests/core/follow.test.mjs: "follow: snapshots the entire journey and never changes the selected route when rankings change"
+- tests/core/follow.test.mjs: "follow: refreshed approach routes cannot silently change arrival or the saved tube/walk"
+- tests/core/follow.test.mjs: "follow: real train delays change arrival with a retained reason until acknowledged"
+- tests/core/follow.test.mjs: "follow: whole evening cancellation offers explicit replacement with later arrival, never swaps it"
+- tests/core/follow.test.mjs: "follow: better option boundary is five minutes, only walking/fast reachable, once dismissed"
+- tests/core/follow.test.mjs: "follow: missing or stale feeds retain chosen arrival; missing location never proves missed"
+- tests/core/follow.test.mjs: "follow: service ID survives delay and platform changes but cannot change boarding station or date"
+- tests/core/follow.test.mjs: "follow: persisted journey restores as independent data and rejects malformed browser state"
+- tests/core/viewControl.test.mjs: "view control: manual choice expires at exactly twenty minutes and immediately on a changed situation"
 
 ## Not yet / open questions
 - Whether TfL reports tube positions by vehicle reliably enough to follow a tube underground (check against a recorded

@@ -193,6 +193,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
+/*__SIGNAL_STYLES__*/
+/* Follow controls also work in Panda; status colours retain their usual meaning. */
+#followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
+.follow-btn,.follow-action{min-height:44px;font:inherit;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--accent)}
+#followPanel .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
+#journeyViewControl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#followPanel .follow-actions{display:flex;gap:8px;flex-wrap:wrap}
+#signalStatus{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent)}
+#signalStatus.bad{border-color:var(--bad)} #signalStatus.warn{border-color:var(--warn)} #signalStatus.note{border-color:var(--note)}
 </style>
 
 <div class="wrap">
@@ -252,6 +261,16 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <label class="byf"><span id="byLabel">Be there by</span><input id="byTime" type="time" step="60"></label>
   </form>
 
+  <div id="journeyViewControl" hidden>
+    <div class="seg" role="group" aria-label="Journey view">
+      <button type="button" data-journey-view="auto">Auto</button>
+      <button type="button" data-journey-view="plan">Plan</button>
+      <button type="button" data-journey-view="live">Live</button>
+    </div>
+    <span id="journeyViewNote" class="note" role="status"></span>
+  </div>
+  <section id="followPanel" aria-label="Followed route" aria-live="polite" hidden></section>
+  <div id="signalStatus" role="status" hidden></div>
   <section class="hero" id="hero" aria-live="polite"></section>
 
   <h2 id="listTitle">Next trains, in leaving order</h2>
@@ -340,6 +359,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
     <fieldset>
       <legend>Experimental</legend>
+      <label class="f wide"><span><input type="checkbox" id="s_signal"> Signal design — the new light/dark journey screen. Off by default.</span></label>
+      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
+      <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
@@ -433,7 +455,7 @@ function whichTrain(now){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,
+  simulatorEnabled:false,simulatedFeeds:false,signal:false,followRoute:false,appearance:"system",
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -464,7 +486,7 @@ delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulat
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
- for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub'])delete state.saved[key];
+ for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride'])delete state.saved[key];
 }}
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
@@ -1068,6 +1090,7 @@ function optionBlock(j, opt){
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
+    ${followButton(j)}
   </section>`;
 }
 function renderOnTrain(now, m){
@@ -1385,6 +1408,7 @@ function renderList(list, now, opts){
         <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
+        ${followButton(j)}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");
@@ -1518,6 +1542,8 @@ function renderControls(){
 }
 // ---------- Arrive by ----------
 function defaultBy(view){
+  const input=journeyEnabled()&&state.saved.planInputs?.[view||state.saved.view];
+  if(input&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&/^\d{2}:\d{2}$/.test(input.time))return {date:input.date,time:input.time};
   const d=new Date(); const target = (view||state.saved.view)==="at" ? (state.saved.atTime||"17:40") : (state.saved.byTime||"08:30");
   const [h,m]=target.split(":").map(Number); const t=new Date(d); t.setHours(h,m,0,0);
   if(t.getTime()<Date.now()+30*60e3) t.setDate(t.getDate()+1);
@@ -1661,7 +1687,13 @@ const openKeys=new Set();
 const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d.querySelector("summary")||{}).textContent||""}`;
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
-function render(){ renderInner(); restoreOpen(); }
+function render(){
+  applyJourneyAppearance();
+  const focus=journeyFocus();
+  if(journeyEnabled())document.querySelectorAll("details").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
+  followChoices.clear();
+  renderInner(); restoreOpen(); renderJourneyExtras(); restoreJourneyFocus(focus);
+}
 // "Which train are you on?": your pick is kept until you're off the line.
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
@@ -1687,7 +1719,8 @@ function renderInner(){
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
-  const shown = C.chooseView(situation(now)), view = shown.view;
+  const shown = journeyPresentation(now, situation(now)), view = shown.view;
+  state.presentation=shown;
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -1703,6 +1736,11 @@ function renderInner(){
   $("#byForm").hidden=!(byView||atView);
   $("#byLabel").textContent = atView ? "Leave around" : "Be there by";
   renderControls(); renderBanners();
+  if(shown.noActiveJourney){
+    $("#hero").innerHTML='<div class="lbl">Live</div><div class="empty">No active journey yet. Choose a route to follow, or return to Auto while the app works out where you are.</div>';
+    renderList(state.boards?ranked(now):[],now); $("#listTitle").textContent="Journeys you can follow";
+    renderStatus(); renderDiag(); return;
+  }
   const T=byView?byTarget():NaN;
   if(shown.underWay){
     const arr = view==="in-london" ? renderInLondon(now) : view==="on-tube" ? renderOnTube(now) : view==="on-train" ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
@@ -1929,10 +1967,13 @@ const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
+/*__JOURNEY_UI__*/
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
+  $("#s_signal").checked=!!s.signal; $("#s_followRoute").checked=!!s.followRoute;
+  $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
@@ -1946,12 +1987,16 @@ function readSettings(){
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
+  if($("#s_signal").checked) o.signal=true;
+  if($("#s_followRoute").checked) o.followRoute=true;
+  if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+$("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;});
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -1983,6 +2028,10 @@ $("#captureShareBtn").addEventListener("click", async ()=>{
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
+ const previous=S(), effective={...DEFAULTS,...next};
+ const presentationKeys=new Set(["signal","followRoute","appearance"]);
+ const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
+ if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
  if(next.simulatedFeeds && !Number.isFinite(window.Date.parse(document.getElementById("simDate").value+'Z'))){
   document.getElementById("simDate").value=document.getElementById("simDirection").value==="return"?"2026-11-03T15:44":"2026-11-03T08:44";
@@ -2008,12 +2057,14 @@ dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
 const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && (!state.boards || state.boardsDir!==direction()))) refresh({force:true}); else refreshLondon().then(render); planView(); };
 const planView = () => state.saved.view==="at" ? planAt() : planBy();
-document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view; save();
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view;
+  if(journeyEnabled()&&(was==="by"||was==="at"))rememberPlanningInput();
+  state.saved.view=b.dataset.view; if(journeyEnabled())pinJourneyView("plan"); save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
   render(); if(state.saved.view==="at"){ planAt(); return; }
   if(state.saved.view==="now" && !state.boards && state.railSource==="tfl") refresh({force:true}); else planBy(); }));
 ["#byDate","#byTime"].forEach(id=>$(id).addEventListener("change",()=>{ const v=$("#byTime").value;
-  if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; save(); planView(); }));
+  if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; if(journeyEnabled())rememberPlanningInput(); save(); planView(); }));
 $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planView(); });
 { const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
@@ -2048,6 +2099,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

@@ -206,6 +206,170 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
+/* Signal changes geometry and appearance only. All rules are opt-in; Panda owns the default. */
+html[data-design="signal"] {
+  color-scheme: light;
+  --paper: #f1f4f7; --card: #ffffff; --ink: #17283b; --muted: #536477; --line: #cfd9e3;
+  --accent: #174eac; --accent-ink: #ffffff; --signal-soft: #e4edff; --signal-inset: #e9eef4;
+  --signal-control-line: #8394a8; --signal-shadow: 0 8px 28px #17283b0b;
+  --ok: #12674e; --ok-bg: #e4f4ed; --warn: #835000; --warn-bg: #fff0d5;
+  --bad: #b1293c; --bad-bg: #ffebee; --note: #726000; --note-bg: #fff8cf;
+  --hero-accent: #e4edff; --hero-accent-ink: #174eac;
+  --hero-ok: #12674e; --hero-warn: #835000; --hero-bad: #b1293c;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-body); --font-mono: var(--font-body);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-design="signal"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
+    --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
+    --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
+    --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
+    --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
+    --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
+    --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+  }
+}
+html[data-design="signal"][data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
+  --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
+  --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
+  --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
+  --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
+  --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
+  --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+}
+html[data-design="signal"] body {
+  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
+  font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%;
+}
+html[data-design="signal"] .wrap { max-width: 600px; gap: 16px; min-width: 0; }
+html[data-design="signal"] header { align-items: center; gap: 12px; }
+html[data-design="signal"] h1 { font-size: 29px; font-weight: 750; line-height: 1.15; letter-spacing: -.045em; }
+html[data-design="signal"] .sub { font-size: 14px; margin-top: 5px; }
+html[data-design="signal"] .controls { gap: 8px; }
+html[data-design="signal"] .seg { border-radius: 14px; padding: 3px; max-width: 100%; flex-wrap: wrap; }
+html[data-design="signal"] .seg button { min-height: 44px; padding: 8px 11px; border-radius: 11px; font-size: 14px; }
+html[data-design="signal"] .seg button[aria-pressed="true"] { background: var(--signal-soft); color: var(--accent); }
+html[data-design="signal"] button { min-height: 44px; touch-action: manipulation; white-space: normal; }
+html[data-design="signal"] :is(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 3px;
+}
+html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost, .primary, .follow-btn, .follow-action) {
+  min-height: 44px; border-radius: 12px; padding: 10px 14px; font-size: 14px;
+}
+html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost) { border-color: var(--signal-control-line); background: var(--card); color: var(--ink); }
+html[data-design="signal"] :is(.primary, .follow-btn) { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+html[data-design="signal"] .follow-action { border: 1px solid var(--signal-control-line); background: var(--card); color: var(--accent); font-weight: 700; }
+html[data-design="signal"] .dirnote { font-size: 14px; }
+html[data-design="signal"] :is(.origin, .byf) { font-size: 14px; }
+html[data-design="signal"] :is(.originbar input, .byf input, .f input, .f select) {
+  min-height: 44px; font-size: 16px; border-radius: 12px; border-color: var(--signal-control-line);
+}
+html[data-design="signal"] .hero {
+  background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 24px;
+  padding: 20px; gap: 16px; box-shadow: var(--signal-shadow); transition: none;
+}
+html[data-design="signal"] .hero .lbl { color: var(--muted); font-size: 13px; text-transform: none; letter-spacing: .015em; opacity: 1; }
+html[data-design="signal"] .hero .arr { font-size: clamp(42px, 12vw, 56px); font-weight: 750; letter-spacing: -.055em; }
+html[data-design="signal"] .hero .arrlbl { color: var(--muted); opacity: 1; font-size: 16px; }
+html[data-design="signal"] .hero .slack {
+  border-radius: 12px; padding: 6px 10px; font-size: 14px; font-weight: 650;
+}
+html[data-design="signal"] .hero .slack .slackst { margin: 0 0 0 5px; padding: 2px 6px; border-radius: 8px; }
+html[data-design="signal"] .hero .slackst.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero .slackst.warn { background: var(--warn-bg); color: var(--warn); }
+html[data-design="signal"] .hero .slackst.bad { background: var(--bad-bg); color: var(--bad); }
+html[data-design="signal"] .hero .slack.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero .slack.warn { background: var(--warn-bg); color: var(--warn); }
+html[data-design="signal"] .hero .slack.bad { background: var(--bad-bg); color: var(--bad); }
+/* Tube identity retains TfL colours, including when displayed inside the primary answer. */
+html[data-design="signal"] .hero .slack.circle { background: var(--circle); color: var(--circle-ink); }
+html[data-design="signal"] .hero .slack.met { background: var(--met); color: var(--met-ink); }
+html[data-design="signal"] .hero .slack.hc { background: var(--hc); color: var(--hc-ink); }
+html[data-design="signal"] .hero :is(.empty, .alt, .optmeta, .legs .t, .legs .d small, .striphead, .steps summary) { opacity: 1; }
+html[data-design="signal"] .hero :is(.empty, .optmeta, .alt, .legs) { font-size: 14px; }
+html[data-design="signal"] .hero :is(.alt, .opt, .strip) { border-color: var(--line); }
+html[data-design="signal"] .hero .opt { gap: 8px; padding-top: 16px; }
+html[data-design="signal"] .hero .optrow { gap: 10px; }
+html[data-design="signal"] .hero .optrow small { color: var(--muted); font-size: 12px; letter-spacing: .025em; text-transform: none; opacity: 1; }
+html[data-design="signal"] .hero .optbig { font-size: 36px; font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
+html[data-design="signal"] .hero .optrow.board { gap: 8px; }
+html[data-design="signal"] .hero .optrow.board .optbig { font-size: clamp(24px, 7vw, 34px); }
+html[data-design="signal"] .hero .optrow.board .optbig.word { font-size: clamp(16px, 4.8vw, 22px); line-height: 1.5; }
+html[data-design="signal"] .hero .optarrow { color: var(--muted); opacity: 1; }
+html[data-design="signal"] .hero .optroute { align-items: center; }
+html[data-design="signal"] .hero .altstop { border-color: var(--signal-control-line); }
+html[data-design="signal"] .hero .steps summary, html[data-design="signal"] #followPanel .steps summary { color: var(--accent); font-size: 14px; min-height: 44px; padding-block: 11px; }
+html[data-design="signal"] .hero .steps .legs { margin-top: 4px; }
+html[data-design="signal"] .hero .striphead { color: var(--muted); font-size: 12px; }
+html[data-design="signal"] .hero .pill.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero :is(.pill.info, .chip.rail, .chip.walk) { color: var(--muted); border-color: var(--signal-control-line); }
+html[data-design="signal"] .hero .latetxt { color: var(--bad); }
+html[data-design="signal"] .hero .latetxt.warn { color: var(--warn); }
+html[data-design="signal"] :is(.chip, .pill) { font-size: 12px; letter-spacing: 0; line-height: 1.6; }
+html[data-design="signal"] .pill.note { background: var(--note-bg); color: var(--note); }
+html[data-design="signal"] .chip { padding: 2px 7px; border-radius: 7px; }
+html[data-design="signal"] h2 { font-size: 16px; text-transform: none; letter-spacing: -.015em; color: var(--ink); }
+html[data-design="signal"] .list { border-radius: 16px; }
+html[data-design="signal"] .row { padding: 16px; gap: 10px; grid-template-columns: 4em minmax(0, 1fr) 4em; }
+html[data-design="signal"] .row.board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html[data-design="signal"] .row :is(.leave .t, .exp .t, .arrive .t) { font-size: 22px; font-weight: 700; letter-spacing: -.025em; }
+html[data-design="signal"] .row :is(.leave small, .exp small, .arrive small) { font-size: 12px; letter-spacing: .015em; text-transform: none; }
+html[data-design="signal"] .row .exp .word { font-size: 16px; }
+html[data-design="signal"] .row :is(.meta, .route) { font-size: 14px; }
+html[data-design="signal"] .row.best { background: var(--signal-soft); }
+/* A missed/cancelled train stays readable; its flags communicate availability, not low opacity. */
+html[data-design="signal"] .row.gone { opacity: 1; }
+html[data-design="signal"] .banner { border-radius: 16px; padding: 12px 16px; font-size: 14px; }
+html[data-design="signal"] .banner details summary { min-height: 44px; display: list-item; padding-block: 10px; }
+html[data-design="signal"] :is(.diag, .note, footer, .st .s, .sreason) { font-size: 14px; }
+html[data-design="signal"] .diag summary { min-height: 44px; padding-block: 11px; color: var(--accent); }
+html[data-design="signal"] .st { border-radius: 16px; padding: 12px; }
+html[data-design="signal"] .st .n { font-size: 14px; }
+html[data-design="signal"] dialog { border-radius: 24px; background: var(--card); }
+html[data-design="signal"] .sheet { padding: 20px; gap: 20px; }
+html[data-design="signal"] .sheet h3 { font-size: 24px; letter-spacing: -.03em; }
+html[data-design="signal"] .sheet fieldset { border-radius: 16px; padding: 12px; gap: 12px; }
+html[data-design="signal"] .sheet :is(.f, legend, .hint) { font-size: 14px; }
+html[data-design="signal"] .sheet label:has(input[type="checkbox"]) { min-height: 44px; align-items: center !important; }
+html[data-design="signal"] .sheet input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--accent); }
+html[data-design="signal"] #journeyViewControl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+html[data-design="signal"] #journeyViewControl > :is(p, span) { font-size: 14px; color: var(--muted); }
+html[data-design="signal"] #appearanceControl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+html[data-design="signal"] #followPanel { border: 1px solid var(--accent); border-radius: 24px; background: var(--card); padding: 20px; box-shadow: var(--signal-shadow); }
+html[data-design="signal"] #followPanel :is(h2, h3) { margin: 0; text-transform: none; font-size: 18px; color: var(--ink); }
+html[data-design="signal"] #followPanel :is(.big, .follow-arrival) { font-size: 44px; font-weight: 750; letter-spacing: -.045em; line-height: 1.2; }
+html[data-design="signal"] #followPanel :is(.follow-actions, .actions) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+html[data-design="signal"] #followPanel p { margin-block: 10px; }
+html[data-design="signal"] #signalStatus { border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; background: var(--card); color: var(--ink); font-size: 14px; }
+html[data-design="signal"] #signalStatus.bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+html[data-design="signal"] #signalStatus.warn { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+html[data-design="signal"] #signalStatus.note { background: var(--note-bg); border-color: var(--note); color: var(--note); }
+html[data-design="signal"] #signalStatus.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+html[data-design="signal"] #simPanel { border-radius: 20px; }
+html[data-design="signal"] #simPanel :is(button, input, select), html[data-design="signal"] #simBar button { border-radius: 12px; }
+html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 370px) {
+  html[data-design="signal"] body { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  html[data-design="signal"] .hero, html[data-design="signal"] #followPanel { padding: 16px; }
+  html[data-design="signal"] .seg button { padding-inline: 9px; font-size: 13px; }
+  html[data-design="signal"] .row { padding: 12px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-design="signal"] *, html[data-design="signal"] *::before, html[data-design="signal"] *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+/* Follow controls also work in Panda; status colours retain their usual meaning. */
+#followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
+.follow-btn,.follow-action{min-height:44px;font:inherit;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--accent)}
+#followPanel .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
+#journeyViewControl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#followPanel .follow-actions{display:flex;gap:8px;flex-wrap:wrap}
+#signalStatus{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent)}
+#signalStatus.bad{border-color:var(--bad)} #signalStatus.warn{border-color:var(--warn)} #signalStatus.note{border-color:var(--note)}
 </style>
 </head>
 <body>
@@ -267,6 +431,16 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <label class="byf"><span id="byLabel">Be there by</span><input id="byTime" type="time" step="60"></label>
   </form>
 
+  <div id="journeyViewControl" hidden>
+    <div class="seg" role="group" aria-label="Journey view">
+      <button type="button" data-journey-view="auto">Auto</button>
+      <button type="button" data-journey-view="plan">Plan</button>
+      <button type="button" data-journey-view="live">Live</button>
+    </div>
+    <span id="journeyViewNote" class="note" role="status"></span>
+  </div>
+  <section id="followPanel" aria-label="Followed route" aria-live="polite" hidden></section>
+  <div id="signalStatus" role="status" hidden></div>
   <section class="hero" id="hero" aria-live="polite"></section>
 
   <h2 id="listTitle">Next trains, in leaving order</h2>
@@ -278,7 +452,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:59 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:28 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -355,6 +529,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
     <fieldset>
       <legend>Experimental</legend>
+      <label class="f wide"><span><input type="checkbox" id="s_signal"> Signal design — the new light/dark journey screen. Off by default.</span></label>
+      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
+      <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
@@ -455,6 +632,7 @@ var CommuteCore = (() => {
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
     FACILITY: () => FACILITY,
+    FOLLOW_BETTER_MIN: () => FOLLOW_BETTER_MIN,
     LATE_BAD_MIN: () => LATE_BAD_MIN,
     LATE_WARN_MIN: () => LATE_WARN_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
@@ -463,8 +641,10 @@ var CommuteCore = (() => {
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
+    VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
     accessOf: () => accessOf,
+    acknowledgeFollowNotice: () => acknowledgeFollowNotice,
     addCallingAlternatives: () => addCallingAlternatives,
     addJourneys: () => addJourneys,
     aroundOptions: () => aroundOptions,
@@ -486,9 +666,11 @@ var CommuteCore = (() => {
     clock: () => clock,
     compareWithBest: () => compareWithBest,
     countdown: () => countdown,
+    createViewOverride: () => createViewOverride,
     delayLevel: () => delayLevel,
     delayStatus: () => delayStatus,
     departureStatus: () => departureStatus,
+    dismissFollowAlternative: () => dismissFollowAlternative,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -496,6 +678,9 @@ var CommuteCore = (() => {
     effortOffers: () => effortOffers,
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
+    followMatchesService: () => followMatchesService,
+    followServiceKey: () => followServiceKey,
+    followedLegs: () => followedLegs,
     gradeEffort: () => gradeEffort,
     headlineKind: () => headlineKind,
     hhmm: () => hhmm,
@@ -548,6 +733,9 @@ var CommuteCore = (() => {
     refreshPlan: () => refreshPlan,
     reportedFrac: () => reportedFrac,
     resolve: () => resolve,
+    resolveViewControl: () => resolveViewControl,
+    restoreFollowRoute: () => restoreFollowRoute,
+    restoreViewOverride: () => restoreViewOverride,
     rideActive: () => rideActive,
     rideDoubtful: () => rideDoubtful,
     rideEnded: () => rideEnded,
@@ -555,6 +743,7 @@ var CommuteCore = (() => {
     samRoutes: () => samRoutes,
     searchRoutes: () => searchRoutes,
     standingRoomOnly: () => standingRoomOnly,
+    startFollowRoute: () => startFollowRoute,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
     statusLine: () => statusLine,
@@ -572,6 +761,7 @@ var CommuteCore = (() => {
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
     tubeName: () => tubeName,
+    updateFollowRoute: () => updateFollowRoute,
     walkSecs: () => walkSecs,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
@@ -826,8 +1016,8 @@ var CommuteCore = (() => {
 
   // src/core/rules.ts
   function busyDay(t, rule) {
-    const d = new Date(t), day = isoDay(t);
-    return rule.days.includes(d.getDay()) && !rule.holidays.some(([a, b]) => day >= a && day <= b);
+    const d = new Date(t), day2 = isoDay(t);
+    return rule.days.includes(d.getDay()) && !rule.holidays.some(([a, b]) => day2 >= a && day2 <= b);
   }
   function standingRoomOnly(t, rule) {
     if (t.from !== rule.from || t.to !== rule.to || !new RegExp(rule.operator, "i").test(t.operator || "")) return false;
@@ -2051,6 +2241,200 @@ var CommuteCore = (() => {
     };
   }
 
+  // src/core/viewControl.ts
+  var VIEW_OVERRIDE_MS = 20 * 60 * 1e3;
+  var planViews = { now: "plan-now", by: "plan-by", at: "plan-at" };
+  var isLive = (p) => !!p && p.view !== "awaiting-location" && !p.view.startsWith("plan-");
+  function restoreViewOverride(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const v = value;
+    if (v.mode !== "plan" && v.mode !== "live" || typeof v.at !== "number" || !Number.isFinite(v.at) || v.at < 0 || typeof v.situationKey !== "string" || !v.situationKey.trim() || v.situationKey.length > 512) return null;
+    return { mode: v.mode, at: v.at, situationKey: v.situationKey };
+  }
+  function createViewOverride(mode, now, situationKey) {
+    return restoreViewOverride({ mode, at: now, situationKey });
+  }
+  function resolveViewControl(i) {
+    var _a, _b;
+    let override = restoreViewOverride(i.override);
+    if (override && (!Number.isFinite(i.now) || override.at > i.now || i.now - override.at >= VIEW_OVERRIDE_MS || override.situationKey !== i.situationKey)) override = null;
+    const mode = (_a = override == null ? void 0 : override.mode) != null ? _a : "auto";
+    let desired = i.auto;
+    let noActiveJourney = false;
+    if (mode === "plan") {
+      const view = i.auto.view === "awaiting-location" ? "awaiting-location" : planViews[i.plan];
+      desired = { view, underWay: false, blocks: BLOCKS[view] };
+    } else if (mode === "live") {
+      const available = (_b = i.hasActiveJourney) != null ? _b : isLive(i.live);
+      if (available && i.live && i.live.view !== "awaiting-location") desired = i.live;
+      else {
+        noActiveJourney = true;
+        const view = i.auto.view === "awaiting-location" ? "awaiting-location" : "plan-now";
+        desired = { view, underWay: false, blocks: BLOCKS[view] };
+      }
+    }
+    const previous = i.previous;
+    const pending = mode === "auto" && !!i.interacting && !!previous && (previous.view !== desired.view || previous.underWay !== desired.underWay || previous.blocks.join("|") !== desired.blocks.join("|"));
+    const displayed = pending && previous ? previous : desired;
+    return { ...displayed, blocks: [...displayed.blocks], mode, override, pending, noActiveJourney };
+  }
+
+  // src/core/follow.ts
+  var MIN = 6e4;
+  var FOLLOW_BETTER_MIN = 5;
+  var finite = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var record = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+  var clone = (x) => JSON.parse(JSON.stringify(x));
+  var day = (t) => new Date(t.dep - (t.depLate || 0) * MIN).toISOString().slice(0, 10);
+  function followServiceKey(o) {
+    const t = o.train;
+    return `${day(t)}|${t.serviceId ? `id:${t.serviceId}` : `${t.operator}|${t.std}`}|${t.from}|${t.to}|${o.hub}`;
+  }
+  function sameService(a, b) {
+    const x = a.train, y = b.train;
+    if (day(x) !== day(y) || x.from !== y.from || x.to !== y.to || a.hub !== b.hub) return false;
+    return x.serviceId && y.serviceId ? x.serviceId === y.serviceId : x.std === y.std && x.operator === y.operator;
+  }
+  function followMatchesService(route, option) {
+    return sameService(route.option, option);
+  }
+  function validTrain(t, allowNullArrival = false) {
+    return record(t) && typeof t.from === "string" && t.from.length <= 100 && typeof t.to === "string" && t.to.length <= 100 && typeof t.std === "string" && /^\d\d:\d\d$/.test(t.std) && finite(t.dep) && (finite(t.arr) || allowNullArrival && t.arr === null) && Math.abs(t.dep) < 864e13 && (t.arr === null || Math.abs(t.arr) < 864e13) && finite(t.depLate) && Math.abs(t.depLate) < 1e6 && finite(t.arrLate) && Math.abs(t.arrLate) < 1e6 && typeof t.operator === "string" && t.operator.length <= 500 && typeof t.cancelled === "boolean" && typeof t.depUnknown === "boolean" && typeof t.reason === "string" && t.reason.length <= 1e4 && (t.serviceId == null || typeof t.serviceId === "string" && t.serviceId.length <= 500) && (t.platform == null || typeof t.platform === "string" && t.platform.length <= 100);
+  }
+  function validOption(o) {
+    return record(o) && validTrain(o.train) && typeof o.hub === "string" && finite(o.leave) && finite(o.arrive) && o.leave <= o.train.dep && o.arrive >= o.train.arr && Array.isArray(o.flags) && o.flags.length <= 100 && o.flags.every((f) => record(f) && typeof f.txt === "string" && ["ok", "info", "warn", "bad"].includes(String(f.lvl))) && Array.isArray(o.legs) && o.legs.length > 0 && o.legs.length <= 200 && o.legs.every((l) => record(l) && typeof l.d === "string" && l.d.length <= 1e4 && (l.t === null || finite(l.t)) && (l.note == null || typeof l.note === "string"));
+  }
+  function startFollowRoute(option, ctx) {
+    if (!validOption(option) || !finite(ctx.now) || !["office", "home"].includes(ctx.direction) || !["commute", "leisure"].includes(ctx.mode) || option.train.dep < ctx.now || option.train.cancelled || option.train.depUnknown || option.train.arrUnknown || option.uncertain || option.effort === "none" || option.effort === "run" || option.effort === "car") return null;
+    const copy = clone(option);
+    return {
+      version: 1,
+      id: followServiceKey(copy),
+      direction: ctx.direction,
+      mode: ctx.mode,
+      startedAt: ctx.now,
+      option: copy,
+      plannedArrival: copy.arrive,
+      expectedArrival: copy.arrive,
+      lastTrain: clone(copy.train),
+      phase: "before-train",
+      notices: [],
+      dismissedAlternatives: [],
+      seenEvents: []
+    };
+  }
+  function restoreFollowRoute(value) {
+    try {
+      if (!record(value) || value.version !== 1 || !["office", "home"].includes(String(value.direction)) || !["commute", "leisure"].includes(String(value.mode)) || !finite(value.startedAt) || !finite(value.plannedArrival) || !finite(value.expectedArrival) || !validOption(value.option) || !validTrain(value.lastTrain, true) || !sameService({ ...value.option, train: value.lastTrain }, value.option) || typeof value.id !== "string" || value.id !== followServiceKey(value.option) || !["before-train", "on-train", "after-train", "arrived"].includes(String(value.phase)) || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every((n2) => record(n2) && typeof n2.id === "string" && typeof n2.text === "string" && finite(n2.at) && ["cancelled", "unknown", "missed", "arrival", "platform"].includes(String(n2.kind)) && (n2.deltaMin == null || finite(n2.deltaMin))) || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every((x) => typeof x === "string") || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every((x) => typeof x === "string")) return null;
+      return clone(value);
+    } catch {
+      return null;
+    }
+  }
+  function acknowledgeFollowNotice(route, id) {
+    return { ...route, notices: id ? route.notices.filter((n2) => n2.id !== id) : [] };
+  }
+  function dismissFollowAlternative(route, option) {
+    const key = followServiceKey(option);
+    return { ...route, dismissedAlternatives: [...route.dismissedAlternatives.filter((k) => k !== key), key].slice(-100) };
+  }
+  function legsFor(route) {
+    const before = route.option.train, after = route.lastTrain;
+    const departureShift = after.dep - before.dep;
+    const arrivalShift = route.expectedArrival - route.plannedArrival;
+    return route.option.legs.map((l) => ({ ...l, t: l.t == null ? null : l.train ? l.t + departureShift : l.t >= before.arr ? l.t + arrivalShift : l.t }));
+  }
+  var followedLegs = (route) => legsFor(route);
+  function updateFollowRoute(previous, input) {
+    const route = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
+    const phase = input.phase || route.phase;
+    const order = ["before-train", "on-train", "after-train", "arrived"];
+    route.phase = order[Math.max(order.indexOf(route.phase), order.indexOf(phase))];
+    const fresh = input.dataFresh !== false;
+    const suppliedArrival = finite(input.currentTrainArrival) ? input.currentTrainArrival + (route.plannedArrival - route.option.train.arr) : input.currentArrival;
+    const selected = fresh ? input.options.find((o) => sameService(o, route.option)) : void 0;
+    let status = "on-track", level = "ok", text = "On track";
+    const addNotice = (kind, key, message, deltaMin) => {
+      const id = `${route.id}|${kind}|${key}`;
+      if (!route.seenEvents.includes(id)) {
+        route.seenEvents = [...route.seenEvents, id].slice(-100);
+        route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...deltaMin != null ? { deltaMin } : {} }].slice(-100);
+      }
+    };
+    if (selected) {
+      route.lastTrain = clone(selected.train);
+      if (selected.train.platform !== previous.lastTrain.platform && selected.train.platform) addNotice("platform", selected.train.platform, `Your train now leaves from platform ${selected.train.platform}`);
+      if (selected.train.cancelled) {
+        status = "cancelled";
+        level = "bad";
+        text = `Your ${selected.train.std} is cancelled`;
+        addNotice("cancelled", "cancelled", text);
+      } else if (selected.train.depUnknown || selected.train.arrUnknown || selected.train.arr == null) {
+        status = "unknown";
+        level = "bad";
+        text = "Your train is delayed with no estimate";
+        addNotice("unknown", "no-estimate", text);
+      } else {
+        const arrival = finite(suppliedArrival) ? suppliedArrival : selected.train.arr + (route.plannedArrival - route.option.train.arr);
+        if (arrival !== previous.expectedArrival) {
+          const delta = Math.round((arrival - previous.expectedArrival) / MIN);
+          const late = Math.max(selected.train.depLate, selected.train.arrLate);
+          const reason = delta > 0 ? `Your train${late > 0 ? ` is ${late} min late` : " is running later"}; arriving ${hhmm(arrival)}` : `Your train is running earlier; arriving ${hhmm(arrival)}`;
+          addNotice("arrival", String(arrival), reason, delta);
+          route.expectedArrival = arrival;
+        }
+      }
+    } else if (fresh && finite(suppliedArrival)) {
+      if (suppliedArrival !== previous.expectedArrival) {
+        const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
+        addNotice("arrival", String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
+        route.expectedArrival = suppliedArrival;
+      }
+    } else {
+      level = "info";
+      text = "Last known journey \xB7 waiting for fresh data";
+    }
+    if (route.phase === "arrived") {
+      status = "arrived";
+      level = "ok";
+      text = "Arrived";
+    } else if (route.phase === "before-train" && status === "on-track" && input.hasReliableLocation !== false && fresh) {
+      const missed = selected ? selected.missed || ["none", "run", "car"].includes(selected.effort || "") || selected.train.dep < input.now : route.lastTrain.dep < input.now;
+      if (missed) {
+        status = "missed";
+        level = "bad";
+        text = `You can no longer make your ${route.option.train.std}`;
+        addNotice("missed", "missed", text);
+      } else if ((selected == null ? void 0 : selected.effort) === "fast") {
+        status = "hurry";
+        level = "warn";
+        text = "Behind \xB7 fast walk needed";
+      } else if (selected) {
+        const spare = Math.floor((selected.leave - input.now) / MIN);
+        text = spare > 0 ? `On track \xB7 ${spare} min to spare` : "On track";
+      }
+    }
+    if (route.phase === "before-train" && input.hasReliableLocation === false && status === "on-track") {
+      status = "unknown";
+      level = "info";
+      text = "Location unavailable \xB7 keeping your chosen journey";
+    }
+    const recovery = status === "missed" || status === "cancelled" || status === "unknown" && level === "bad" || route.lastTrain.arrLate >= 15;
+    const alternative = route.phase !== "arrived" && fresh ? (input.availableOptions || input.options).filter((o) => !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now) && o.train.dep >= input.now && !route.dismissedAlternatives.includes(followServiceKey(o)) && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN)).sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null : null;
+    const legs = legsFor(route).filter((l) => l.t != null && !l.calls);
+    const nextStep = route.phase === "arrived" ? null : route.phase === "before-train" ? legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
+    return {
+      route,
+      status,
+      level,
+      text,
+      nextStep,
+      notice: route.notices[0] || null,
+      alternative,
+      deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null
+    };
+  }
+
   // src/core/index.ts
   var profiles = { samCommute };
   var ENGINE_VERSION = "1";
@@ -2127,7 +2511,7 @@ function whichTrain(now){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,
+  simulatorEnabled:false,simulatedFeeds:false,signal:false,followRoute:false,appearance:"system",
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -2158,7 +2542,7 @@ delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulat
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
- for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub'])delete state.saved[key];
+ for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride'])delete state.saved[key];
 }}
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
@@ -2762,6 +3146,7 @@ function optionBlock(j, opt){
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
+    ${followButton(j)}
   </section>`;
 }
 function renderOnTrain(now, m){
@@ -3079,6 +3464,7 @@ function renderList(list, now, opts){
         <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
+        ${followButton(j)}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");
@@ -3212,6 +3598,8 @@ function renderControls(){
 }
 // ---------- Arrive by ----------
 function defaultBy(view){
+  const input=journeyEnabled()&&state.saved.planInputs?.[view||state.saved.view];
+  if(input&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&/^\d{2}:\d{2}$/.test(input.time))return {date:input.date,time:input.time};
   const d=new Date(); const target = (view||state.saved.view)==="at" ? (state.saved.atTime||"17:40") : (state.saved.byTime||"08:30");
   const [h,m]=target.split(":").map(Number); const t=new Date(d); t.setHours(h,m,0,0);
   if(t.getTime()<Date.now()+30*60e3) t.setDate(t.getDate()+1);
@@ -3355,7 +3743,13 @@ const openKeys=new Set();
 const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d.querySelector("summary")||{}).textContent||""}`;
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
-function render(){ renderInner(); restoreOpen(); }
+function render(){
+  applyJourneyAppearance();
+  const focus=journeyFocus();
+  if(journeyEnabled())document.querySelectorAll("details").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
+  followChoices.clear();
+  renderInner(); restoreOpen(); renderJourneyExtras(); restoreJourneyFocus(focus);
+}
 // "Which train are you on?": your pick is kept until you're off the line.
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
@@ -3381,7 +3775,8 @@ function renderInner(){
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
-  const shown = C.chooseView(situation(now)), view = shown.view;
+  const shown = journeyPresentation(now, situation(now)), view = shown.view;
+  state.presentation=shown;
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -3397,6 +3792,11 @@ function renderInner(){
   $("#byForm").hidden=!(byView||atView);
   $("#byLabel").textContent = atView ? "Leave around" : "Be there by";
   renderControls(); renderBanners();
+  if(shown.noActiveJourney){
+    $("#hero").innerHTML='<div class="lbl">Live</div><div class="empty">No active journey yet. Choose a route to follow, or return to Auto while the app works out where you are.</div>';
+    renderList(state.boards?ranked(now):[],now); $("#listTitle").textContent="Journeys you can follow";
+    renderStatus(); renderDiag(); return;
+  }
   const T=byView?byTarget():NaN;
   if(shown.underWay){
     const arr = view==="in-london" ? renderInLondon(now) : view==="on-tube" ? renderOnTube(now) : view==="on-train" ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
@@ -3819,10 +4219,10 @@ function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
- for(const key of ['autoDir','atHub','hubSince','lastAwayAt','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london'])state[key]=null;
+ for(const key of ['autoDir','atHub','hubSince','lastAwayAt','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
-function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub'])delete state.saved[key];}
+function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride'])delete state.saved[key];}
 function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
  sim.baseline=JSON.parse(JSON.stringify(state.saved));
  const home=sim.baseline.home;
@@ -3886,10 +4286,179 @@ return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateT
 const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
+// Signal and Follow a route shell. Decisions and timing belong to src/core; this file draws
+// those results and adapts existing observations. Both designs share this single controller.
+const followChoices = new Map();
+const journeyEnabled = () => !!(S().signal || S().followRoute);
+function applyJourneyAppearance(){
+  document.documentElement.dataset.design=S().signal?'signal':'panda';
+  const theme=S().appearance;
+  if(theme==='light'||theme==='dark')document.documentElement.dataset.theme=theme;
+  else delete document.documentElement.dataset.theme;
+  $('#journeyViewControl').hidden=!journeyEnabled();
+}
+function journeyInteracting(){
+  const a=document.activeElement;
+  return !!($('#settings').open || (a&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
+    document.querySelector('#banners details[open],#hero details[open],#followPanel details[open]'));
+}
+function journeySituation(now,s){
+  const live=C.chooseView({...s,plan:'now'});
+  const active=!live.view.startsWith('plan-')&&live.view!=='awaiting-location';
+  const station=atStation(), way=onWay();
+  const phase=active?live.view:station?'station:'+station:way?'walking-to-station':'planning';
+  const key=`${direction()}|${currentMode()}|${phase}`;
+  // A temporary denied/stale position is not a new journey situation.
+  const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
+  if(reliable || !state.journeySituationKey)state.journeySituationKey=key;
+  return {live,key:state.journeySituationKey,active:active||!!station||!!way};
+}
+function journeyPresentation(now,s){
+  const auto=C.chooseView(s);
+  if(!journeyEnabled())return auto;
+  const current=journeySituation(now,s);
+  const shown=C.resolveViewControl({auto,live:current.live,hasActiveJourney:current.active,plan:s.plan,
+    override:state.saved.viewOverride,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
+  if(JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
+    state.saved.viewOverride=shown.override;save();
+  }
+  state.pendingView=shown.pending;
+  document.querySelectorAll('[data-journey-view]').forEach(b=>{
+    b.setAttribute('aria-pressed',String(b.dataset.journeyView===shown.mode));
+    if(b.dataset.journeyView==='auto')b.textContent=shown.mode==='auto'?'Auto':'Return to Auto';
+  });
+  $('#journeyViewNote').textContent=shown.pending?'Journey update ready · finish what you’re reading or choose Live':
+    shown.mode==='auto'?`Auto · ${current.active?'Live':'Plan'}`:shown.mode==='plan'?'Planning pinned · tracking continues':'Live pinned';
+  return shown;
+}
+function rememberPlanningInput(){
+  if(state.saved.view!=="by"&&state.saved.view!=="at")return;
+  state.saved.planInputs={...state.saved.planInputs,[state.saved.view]:{date:$("#byDate").value,time:$("#byTime").value}};
+}
+function pinJourneyView(mode){
+  const now=Date.now(), current=journeySituation(now,situation(now));
+  state.saved.viewOverride=mode==='auto'?null:C.createViewOverride(mode,now,current.key);
+  save();
+}
+document.querySelectorAll('[data-journey-view]').forEach(b=>b.addEventListener('click',()=>{pinJourneyView(b.dataset.journeyView);render();}));
+// Retry a deferred transition when editing or reading ends, using the latest evidence.
+document.addEventListener('focusout',()=>{if(state.pendingView)setTimeout(()=>render(),0);});
+document.addEventListener('toggle',e=>{if(e.target instanceof HTMLDetailsElement&&!e.target.open&&state.pendingView)setTimeout(()=>render(),0);},true);
+
+function followButton(option){
+  if(!S().followRoute)return '';
+  const key=C.followServiceKey(option);
+  followChoices.set(key,option);
+  const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
+  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
+}
+function selectFollowRoute(option){
+  const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
+  if(!chosen)return;
+  state.saved.followRoute=chosen;state.followUpdate=null;state.saved.viewOverride=null;save();render();
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-follow],[data-follow-action]');if(!b)return;
+  if(b.dataset.follow){const option=followChoices.get(b.dataset.follow);if(option)selectFollowRoute(option);return;}
+  const action=b.dataset.followAction;
+  if(action==='stop'){state.saved.followRoute=null;state.followUpdate=null;}
+  else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
+  else if(action==='switch'&&state.followUpdate?.alternative){selectFollowRoute(state.followUpdate.alternative);return;}
+  else if(action==='dismiss'&&state.followUpdate?.alternative)state.saved.followRoute=C.dismissFollowAlternative(state.followUpdate.route,state.followUpdate.alternative);
+  save();render();
+});
+function followedObservation(route,now){
+  const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
+  let phase=route.phase, currentTrainArrival=null;
+  const fit=state.onLine?whichTrain(now):null;
+  if(fit?.t&&C.followMatchesService(route,{...route.option,train:fit.t,hub:fit.hub||route.option.hub})){
+    phase='on-train';
+    const pg=progressFor(fit.t.serviceId);
+    currentTrainArrival=pg?.data?.at(route.option.train.to)||fit.projected||fit.t.arr;
+  }
+  if(reliable){
+    if(route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
+    else if(route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
+    else if(route.phase==='on-train'&&!state.onLine&&
+      ((route.direction==='office'&&state.atHub)||(route.direction==='home'&&nearlyHome())))phase='after-train';
+  }
+  return {phase,currentTrainArrival,hasReliableLocation:reliable};
+}
+function renderFollowPanel(){
+  const panel=$('#followPanel');
+  const route=C.restoreFollowRoute(state.saved.followRoute);
+  panel.hidden=!S().followRoute||!route;
+  if(panel.hidden){panel.innerHTML='';return;}
+  const now=Date.now(), observation=followedObservation(route,now);
+  // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
+  // supplies the reachable alternatives without giving the shell a second planning algorithm.
+  const sameContext=route.direction===direction()&&route.mode===currentMode();
+  const raw=sameContext?(route.mode==='leisure'?buildLeisure:buildJourneys)(route.direction,now,{here:true}):[];
+  const availableOptions=sameContext?liveAdjust(raw,now,'follow'):[];
+  // A cancelled/no-estimate service may lack an arrival and is correctly omitted by
+  // buildOptions. Keep its actual observation for following without planning from it.
+  if(sameContext&&!raw.some(o=>C.followMatchesService(route,o))){
+    for(const board of Object.values(state.boards||{}))for(const train of board?.services||[]){
+      const observed={...route.option,train};
+      if(C.followMatchesService(route,observed))raw.push(observed);
+    }
+  }
+  const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
+  const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
+    !(state.routeFailed&&state.routeFailed[selectedBoard]);
+  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation});
+  state.followUpdate=result;
+  if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
+  const r=result.route,t=r.lastTrain, alt=result.alternative,st=C.trainStatus(t);
+  const unknown=result.status==='cancelled'||(result.status==='unknown'&&result.level==='bad');
+  const notice=result.notice;
+  const delta=result.deltaMin;
+  panel.innerHTML=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+    <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
+    <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
+    <div class="follow-status ${result.level}">${esc(result.text)}</div>
+    ${!dataFresh?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
+    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
+    ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
+    ${alt?`<div class="follow-alternative"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}${pills(alt.flags,true)}
+      <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
+    <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
+  restoreOpen();
+}
+function renderSignalStatus(){
+  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const failed=Object.keys(state.routeFailed||{}).map(k=>HUB_NAME[hubOfKey(k)]||k);
+  const result=C.statusLine({errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
+    tubeFallback:aldgateUnusable(),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'});
+  if(!state.boards&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+  el.className=result.level;
+  el.textContent=result.text;
+}
+function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();}
+// DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
+function journeyFocus(){
+  if(!journeyEnabled())return null;
+  const a=document.activeElement;
+  if(!a||a===document.body)return null;
+  const keys=['data-follow','data-follow-action','data-pick','data-tubepick','data-ride'];
+  const key=keys.find(k=>a.hasAttribute(k));
+  return {id:a.id,key,value:key?a.getAttribute(key):null,detail:a.tagName==='SUMMARY'?detailsKey(a.parentElement):null,x:window.scrollX,y:window.scrollY};
+}
+function restoreJourneyFocus(f){
+  if(!f)return;
+  let el=f.id?document.getElementById(f.id):f.key?[...document.querySelectorAll(`[${f.key}]`)].find(e=>e.getAttribute(f.key)===f.value):null;
+  if(f.detail){const d=[...document.querySelectorAll('details')].find(d=>detailsKey(d)===f.detail);el=d?.querySelector('summary');}
+  if(el&&el!==document.activeElement){el.focus({preventScroll:true});if(window.scrollX!==f.x||window.scrollY!==f.y)window.scrollTo(f.x,f.y);}
+}
+
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
+  $("#s_signal").checked=!!s.signal; $("#s_followRoute").checked=!!s.followRoute;
+  $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
@@ -3903,12 +4472,16 @@ function readSettings(){
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
+  if($("#s_signal").checked) o.signal=true;
+  if($("#s_followRoute").checked) o.followRoute=true;
+  if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+$("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;});
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -3940,6 +4513,10 @@ $("#captureShareBtn").addEventListener("click", async ()=>{
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
+ const previous=S(), effective={...DEFAULTS,...next};
+ const presentationKeys=new Set(["signal","followRoute","appearance"]);
+ const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
+ if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
  if(next.simulatedFeeds && !Number.isFinite(window.Date.parse(document.getElementById("simDate").value+'Z'))){
   document.getElementById("simDate").value=document.getElementById("simDirection").value==="return"?"2026-11-03T15:44":"2026-11-03T08:44";
@@ -3965,12 +4542,14 @@ dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
 const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && (!state.boards || state.boardsDir!==direction()))) refresh({force:true}); else refreshLondon().then(render); planView(); };
 const planView = () => state.saved.view==="at" ? planAt() : planBy();
-document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view; save();
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view;
+  if(journeyEnabled()&&(was==="by"||was==="at"))rememberPlanningInput();
+  state.saved.view=b.dataset.view; if(journeyEnabled())pinJourneyView("plan"); save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
   render(); if(state.saved.view==="at"){ planAt(); return; }
   if(state.saved.view==="now" && !state.boards && state.railSource==="tfl") refresh({force:true}); else planBy(); }));
 ["#byDate","#byTime"].forEach(id=>$(id).addEventListener("change",()=>{ const v=$("#byTime").value;
-  if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; save(); planView(); }));
+  if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; if(journeyEnabled())rememberPlanningInput(); save(); planView(); }));
 $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planView(); });
 { const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
@@ -4005,7 +4584,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
