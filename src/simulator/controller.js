@@ -1,6 +1,6 @@
 // Developer-only journey simulator. Shared engine remains unaware of simulation.
 // Dependency injection keeps this module independent from the web shell's lexical state.
-function createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document}) {
+function createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document,clock}) {
 // ---------- Developer journey simulator (real clock and feeds) ----------
 const sim = { active:false, timer:null, baseline:null, index:0, elapsed:0, watchGeneration:0 };
 // Route templates are illustrative. Checkpoints are explicit test states, not live service timings.
@@ -33,6 +33,14 @@ function simRoute(){
  if(document.getElementById("simDirection").value!=="return")return raw;
  const end=raw[raw.length-1].at;
  return raw.reverse().map(p=>({...p,at:end-p.at,label:p.label}));
+}
+function simSyncClock(){
+ if(!S().simulatedFeeds)return;
+ if(!clock.active)clock.start("2026-11-03T08:44:00Z");
+ const base=clock.date("2026-11-03T08:44:00Z").getTime();
+ const reverse=document.getElementById("simDirection").value==="return";
+ // Different sample service window for the reverse itinerary.
+ clock.set(base+(reverse?420:0)*60000+sim.elapsed*60000);
 }
 function simWaypoint(){
  const route=simRoute(),index=Math.min(sim.index,route.length-1),p=route[index];
@@ -81,6 +89,7 @@ function simTick(){
  const route=simRoute(),speed=Number(document.getElementById("simSpeed").value)||1;
  const next=route[Math.min(sim.index+1,route.length-1)];
  sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);
+ simSyncClock();
  const current=route[sim.index], start=SIM_POINTS[current.point],end=SIM_POINTS[next.point];
  const duration=Math.max(0.001,next.at-current.at), f=Math.min(1,Math.max(0,(sim.elapsed-current.at)/duration));
  simFix(start[0]+(end[0]-start[0])*f,start[1]+(end[1]-start[1])*f,null);
@@ -93,7 +102,7 @@ function simTick(){
 function simContinue(){
  const route=simRoute();
  if(!sim.active || !sim.index && !state.here){
-   simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;
+   simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;simSyncClock();
    simFix(...SIM_POINTS[route[0].point]);simWaypoint();return;
  }
  if(sim.index>=route.length-1){simStatus("Journey complete. Press Restart to repeat.");return;}
@@ -110,7 +119,7 @@ function simSetup(){
     simStopTimer();simFix(Number(document.getElementById("simLat").value),Number(document.getElementById("simLon").value));
   });
   document.getElementById("simPlay").addEventListener("click",()=>{
-    simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;simFix(...SIM_POINTS[simRoute()[0].point]);simWaypoint();
+    simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;simSyncClock();simFix(...SIM_POINTS[simRoute()[0].point]);simWaypoint();
   });
   for(const id of ["simDirection","simPath"])document.getElementById(id).addEventListener("change",()=>{simStopTimer();sim.elapsed=0;sim.index=0;if(sim.active)simResetContext();simStatus("Route changed. Press Restart.");});
   document.getElementById("simContinue").addEventListener("click",simContinue);
