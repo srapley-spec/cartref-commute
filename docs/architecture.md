@@ -183,6 +183,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** Working out which tube you're on counts only tubes you could have caught (the later of last-seen-away +
+  walk and first seen there; 1 min slack), and "On a different tube?" is nearest first. Why: GPS went quiet underground and Sam was put on the 08:40 Circle
+  while still walking down; the office time was 9 min early. → [connections](stories/connections.md)
 - **30 Oct** A train's timetabled time is as prominent as its expected time (Sam): at a station or on the way, card
   and list show Train · Expected · At destination, platform-board order (option A of three), in Panda and Signal.
   Amber now starts at 5 min late (was 2): one rule for trains, the Expected column and route warnings. TfL's

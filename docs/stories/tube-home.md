@@ -45,7 +45,8 @@ the London rail stations replaced the start of the route going home; Aldgate did
   countdown is unique to each train). Golden: the evening goldens show them.
 - Once your picked tube leaves you're on it until within 300 m of the stop the app chose, or 10 minutes after the
   ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …" ends it. "On a
-  different tube?" switches to one that has left; its buttons say how long ago each left ("left 7 min ago").
+  different tube?" switches to one that has left (up to 3 within 6 min of yours, nearest first; 30 Oct); its
+  buttons say how long ago each left ("left 7 min ago").
 - The card says where your tube is going: "You're on the Circle to Edgware Road that left Aldgate at 16:46" (30 Oct;
   kept with your pick, so a pick saved before this shows no destination).
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
@@ -63,6 +64,7 @@ the London rail stations replaced the start of the route going home; Aldgate did
 - tests/rules.test.mjs: "Going home: your picked tube follows a delay (by vehicle)"
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' nothing is assumed until you pick"
+- tests/rules.test.mjs: "Review: going home, 'On a different tube?' at Aldgate lists the nearest to yours first"
 - tests/rules.test.mjs: "Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not the office; the status line says Aldgate"
 - tests/rules.test.mjs: "Going home, 30 Oct 18:24: a Met leaving Aldgate counts whatever its platform is called; eastbound Circles and arrivals still don't"
 - tests/core/plan.test.mjs: "Routes home; from where you are (walk to Letchworth, or already at King's Cross); leisure"

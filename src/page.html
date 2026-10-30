@@ -782,7 +782,14 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
 // passing Farringdon, or a stray fix at the station you left, doesn't end it.
-const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE);
+// The earliest a tube you're on can have left (engine onTube/whichTube allow a minute's slack before it): you
+// can't have arrived before you were last seen away from a station, nor been at the station before it first saw you,
+// so the later of (last seen away + the walk) and (first seen here). Running all along, that's arrival + walk;
+// locked on the train and unlocked on the platform, or opened here, it's less. After "No, still here": that moment
+// exactly. Null if it hasn't seen you at this station.
+const tubeReady = hub => { const h=state.hubSince; if(!h || h.hub!==hub) return null;
+  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
+const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
   const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, kx=hub!=="ZFD";
@@ -861,7 +868,7 @@ function tubeConnections(t, now){
   return C.bestConnections(reach, ready, opts).map(o=>({ o, at:reach[o.hub] }));
 }
 const nearOffice = () => C.nearOffice(state.here, PROFILE);
-const whichTube = now => C.whichTube(state.lastHub, now);
+const whichTube = now => C.whichTube(state.lastHub, now, tubeReady(state.lastHub.hub));
 const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
@@ -1076,7 +1083,7 @@ function renderOnTubeHome(now){
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
-  const others = a ? (a.deps||[]).filter(d=>d.t<=now+30e3 && d.t!==r.t && Math.abs(d.t-r.t)<6*60e3).slice(0,3) : [];
+  const others = C.otherTubes(a&&a.deps, r, now);
   const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
@@ -1104,7 +1111,7 @@ function renderOnTube(now){
   const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
-  const others = lh ? (lh.arrivals||[]).filter(a=>a.t<=now+30e3 && a.t!==r.t && Math.abs(a.t-r.t)<6*60e3).slice(0,3) : [];
+  const others = C.otherTubes(lh&&lh.arrivals, r, now);
   const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;
@@ -1586,7 +1593,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   else if(r.from==="ALD"){ state.saved.tubeRide=null; state.saved.tubePick=null; state.saved.aldHome={ seen:Date.now(), deps:(state.aldDeps&&state.aldDeps.list)||[] }; }
   else { state.saved.tubeRide=null; state.saved.tubePick=null; state.lastHub=null; state.saved.lastHub=null;
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
-    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
+    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
   save(); render(); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
@@ -1781,7 +1788,10 @@ function onPosition(p){
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
-  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now()}; state.saved.hubSince=state.hubSince; save(); }
+  // With the station visit, the last time this session saw you away from any station: you can't have arrived
+  // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
+  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
+  if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});

@@ -110,6 +110,75 @@ test("onTube / whichTube: left the station after a tube left; not while there wi
   assert.equal(w.best.t, T("08:16")); assert.equal(w.other.t, T("08:18"));
 });
 
+test("onTube / whichTube / otherTubes: only a tube you could have caught (arrival + walk) puts you on it (30 Oct)", () => {
+  // 30 Oct, King's Cross: first fix in the station 08:39:20, walk at fast pace 295 s, so on the platform about
+  // 08:44:15. Last fix 08:41 (GPS goes quiet underground). Sam caught the H&C due 08:45.
+  const S = 1e3, ready = T("08:39") + 20 * S + 295 * S, KGX = [51.5308, -0.1238];
+  const d = (hm, line, sec = 0) => ({ t: T(hm) + sec * S, line, vehicle: line + hm });
+  const lh = { hub: "KGX", seen: T("08:41"), arrivals: [d("08:38", "H&C", 50), d("08:40", "Circle"), d("08:42", "Met"), d("08:45", "H&C"), d("08:46", "Met"), d("08:48", "Met")] };
+  const quiet = (now) => core.onTube(lh, "office", now, fix(KGX, 20, T("08:41")), false, "KGX", sam, ready);
+  assert.equal(core.onTube(lh, "office", T("08:42") + 40 * S, fix(KGX, 20, T("08:41")), false, "KGX", sam), true, "without the walk: the old guess");
+  assert.equal(quiet(T("08:42") + 40 * S), false, "still walking down: the 08:40 and 08:42 left before you could reach them");
+  assert.equal(quiet(T("08:44") + 30 * S), false, "nothing you could catch has left yet");
+  assert.equal(quiet(T("08:45")), true, "the 08:45 H&C has left");
+  const w = core.whichTube(lh, T("08:47"), ready);
+  assert.equal(w.best.line, "H&C"); assert.equal(w.best.t, T("08:45"));
+  assert.equal(w.other.t, T("08:46"), "the 08:46 Met is 'or'");
+  assert.equal(core.whichTube(lh, T("08:47")).best.t, T("08:40"), "without the walk: nearest to the last fix");
+  // The others: nearest the one you're on first, at most 3; earlier ones kept (never hide a train).
+  assert.deepEqual(core.otherTubes(lh.arrivals, w.best, T("08:49")).map(a => a.t), [T("08:46"), T("08:42"), T("08:48")]);
+  // Had it guessed the 08:40 Circle, the 08:45 H&C must still be offered once it has left.
+  assert.ok(core.otherTubes(lh.arrivals, lh.arrivals[1], T("08:46")).some(a => a.t === T("08:45")), "the H&C you were on is offered");
+  assert.ok(!core.otherTubes(lh.arrivals, lh.arrivals[1], T("08:44")).some(a => a.t === T("08:45")), "not before it has left");
+  assert.equal(core.otherTubes(null, w.best, T("08:49")).length, 0);
+  // The slack: a minute sooner than the walk model is still catchable, more isn't.
+  const edge = (sec) => ({ hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready - sec * S, line: "Met" }] });
+  assert.equal(core.TUBE_REACH_SLACK_MS, 60e3);
+  assert.equal(core.onTube(edge(60), "office", ready + 5 * MIN, fix(KGX, 20, T("08:41")), false, "KGX", sam, ready), true, "60 s before: catchable");
+  assert.equal(core.onTube(edge(61), "office", ready + 5 * MIN, fix(KGX, 20, T("08:41")), false, "KGX", sam, ready), false, "61 s before: not");
+  // Nothing you could have caught: whichTube still answers with the nearest that left (a pick, say).
+  assert.equal(core.whichTube(edge(120), ready + 5 * MIN, ready).best.t, ready - 120 * S);
+  // The reference is the later of the last fix and the platform: seen on the platform at 08:47, the 08:46 or 08:48.
+  assert.equal(core.whichTube({ ...lh, seen: T("08:47") + 20 * S }, T("08:49"), ready).best.t, T("08:48"));
+  // Last seen well before you could reach the platform: the one leaving nearest to when you could be there, not the
+  // first you'd have had to be 55 s quick for.
+  const two = { hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready - 55 * S, line: "Met" }, { t: ready + 20 * S, line: "H&C" }] };
+  assert.equal(core.whichTube(two, ready + 5 * MIN, ready).best.line, "H&C");
+  // Review: a tube you couldn't have caught is never the guess, even when it's nearer the reference time.
+  const near = { hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready - 65 * S, line: "Met" }, { t: ready + 70 * S, line: "H&C" }] };
+  assert.equal(core.whichTube(near, ready + 5 * MIN, ready).best.t, ready + 70 * S);
+  // Leaving within 30 s counts as gone; 31 s doesn't.
+  const soon = (sec) => ({ hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready + 2 * MIN + sec * S, line: "Met" }] });
+  assert.equal(core.whichTube(soon(30), ready + 2 * MIN, ready).best.line, "Met");
+  assert.equal(core.whichTube(soon(31), ready + 2 * MIN, ready), null);
+  // "Or": within 3 min of the best's distance, not at exactly 3:00 or beyond.
+  const or = (sec) => core.whichTube({ hub: "KGX", seen: T("08:41"), arrivals: [{ t: ready, line: "Met" }, { t: ready + sec * S, line: "H&C" }] }, ready + 10 * MIN, ready).other;
+  assert.equal(or(179).line, "H&C"); assert.equal(or(180), undefined); assert.equal(or(210), undefined);
+});
+
+test("otherTubes: boundaries (30 s leaving, 6 min window), ties go to the earlier whatever the list order (review, 30 Oct)", () => {
+  const on = { t: T("08:45"), line: "H&C" }, at = (m, s = 0, line = "Met") => ({ t: T("08:45") + m * MIN + s * 1e3, line });
+  const now = T("08:45") + 3 * MIN;
+  assert.ok(core.otherTubes([at(3, 30)], on, now).length === 1, "leaving in 30 s: offered");
+  assert.ok(core.otherTubes([at(3, 31)], on, now).length === 0, "31 s: not yet");
+  assert.equal(core.otherTubes([at(-6)], on, now).length, 0, "exactly 6:00 away: not offered");
+  assert.equal(core.otherTubes([at(-6, -10)], on, now).length, 0, "6:10 away: not offered, even with room in the list");
+  assert.equal(core.otherTubes([at(-5, -50)], on, now).length, 1, "5:50 away: offered");
+  assert.deepEqual(core.otherTubes([at(1), at(-1)], on, now).map((a) => a.t), [T("08:44"), T("08:46")], "a tie: the earlier first");
+});
+
+test("awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)", () => {
+  const KGX = [51.5308, -0.1238], north = (m) => [KGX[0] + m / 111320, KGX[1]];
+  assert.equal(core.awayFromHubs(fix(north(1500), 30), sam), true, "on the train coming in");
+  assert.equal(core.awayFromHubs(fix(KGX, 400), sam), false, "a coarse fix at the station (first one underground)");
+  assert.equal(core.awayFromHubs(fix(north(900), 251), sam), false, "worse than 250 m: not confident, even far off");
+  assert.equal(core.awayFromHubs(fix(north(900), 250), sam), true, "250 m, 900 m off: away");
+  assert.equal(core.awayFromHubs(fix(north(480), 100), sam), false, "480 m off ± 100 m could be within 400 m");
+  assert.equal(core.awayFromHubs(fix(north(520), 100), sam), true, "520 m ± 100 m can't");
+  assert.equal(core.awayFromHubs(fix(null, 10), sam), false);
+  assert.equal(core.awayFromHubs(fix([51.5203, -0.1053], 20), sam), false, "at Farringdon isn't away");
+});
+
 test("Going home by tube: noted at Aldgate within 150 m with a fix good to 150 m, only going home; never worked out", () => {
   const ALD = [51.5142, -0.0755];
   assert.equal(core.atOfficeTube("home", fix(ALD, 20), sam), true);
