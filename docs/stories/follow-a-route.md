@@ -107,6 +107,12 @@ click."
 - Toggle off: every existing test and golden is unchanged.
 
 ## Not yet / open questions
+- From the second independent review (30 Oct, satisfied for merge; low risk, to cover next): no page test of OK's
+  wiring to `dismissReason`, nor of following while on the train worked out (not picked); OK on "cancelled" then the
+  train reinstated returns to "On track" without saying "running again"; on the tube to Farringdon with a merged
+  Thameslink whose Farringdon call has gone, minutes in hand use St Pancras's departure with Farringdon's arrival and
+  ready time (overstates the time in hand); untested filters in the tube-position request (westbound, line) and the
+  station check on its result.
 - Following a tube by vehicle is checked against one snapshot only, and only for the Met; the Circle falls back to the
   ride time. On the way to work the tube is after the train, so it isn't followed for minutes in hand yet.
 - "Ahead/behind" while walking uses the option's leave time from where you are (the same as Leave now), not a
