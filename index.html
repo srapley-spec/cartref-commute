@@ -278,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 18:29 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 18:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2218,7 +2218,9 @@ async function fetchAldgateDepartures(){
   if(!r.ok) throw new Error(`TfL tube departures error (HTTP ${r.status}).`);
   const now=Date.now();
   return (await r.json())
-    .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
+    // Aldgate is the Met's terminus: every Met leaving it heads west, whatever its platform is called (30 Oct 18:24: a
+    // Met due in 2 min on the board was missing). The Circle runs both ways through it, so it must say westbound.
+    .filter(a=>(a.lineId==="metropolitan" || (a.lineId==="circle" && /westbound/i.test(a.platformName||""))) && !/^aldgate\b/i.test(a.destinationName||""))
     .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
     .filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);

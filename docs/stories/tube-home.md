@@ -22,6 +22,9 @@ chose: the tube home is only ever one you picked; the app never works it out.
 the London rail stations replaced the start of the route going home; Aldgate didn't.
 
 ## Acceptance criteria
+- Which tubes count (30 Oct 18:24): every Met leaving Aldgate (its terminus, so all head west), whatever TfL calls
+  its platform; a Circle only on a westbound platform (it runs both ways through Aldgate); never one terminating at
+  Aldgate.
 - Near the office: the next westbound tubes from Aldgate you can make, each with where to get off, its train home,
   home time and when to leave. At Aldgate, tubes you might just make are offered "if you're near the platform".
 - Where to get off: Farringdon or King's Cross, whichever gets you home soonest with the trains loaded; ties go to
@@ -59,6 +62,7 @@ the London rail stations replaced the start of the route going home; Aldgate did
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' nothing is assumed until you pick"
 - tests/rules.test.mjs: "Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not the office; the status line says Aldgate"
+- tests/rules.test.mjs: "Going home, 30 Oct 18:24: a Met leaving Aldgate counts whatever its platform is called; eastbound Circles and arrivals still don't"
 - tests/core/plan.test.mjs: "Routes home; from where you are (walk to Letchworth, or already at King's Cross); leisure"
 - tests/core/connections.test.mjs: "Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept"
 - tests/core/situation.test.mjs: "onTube / whichTube: left the station after a tube left; not while there with a fresh fix; not near Aldgate"
@@ -69,9 +73,9 @@ the London rail stations replaced the start of the route going home; Aldgate did
 - If you don't pick, there's no tube card on the way home, even underground. Working it out again would need evidence
   a desk can't produce (e.g. motion, or fixes along the route); not planned.
 - The morning tube from a London station is still worked out (onTube); the office isn't near those stations.
-- **Open (30 Oct 18:24): tubes missing from Aldgate's list.** The board showed tubes due in 2–3 min (one a Met) while
-  the app's list started with a Circle in 10 min and had no Met for 27 min. The app keeps only TfL arrivals whose
-  platform name says "Westbound"; Aldgate is a terminus and the Met leaves from bay platforms, which may be labelled
-  differently or missing from TfL's arrivals. Unverified: needs a real TfL response from Aldgate (the test data is
-  made up). Not fixed by guessing: dropping the filter would let in eastbound Circle trains towards Tower Hill.
+- **Partly verified (30 Oct 18:24): Met missing from Aldgate's list.** Sam on the platform: the board had a Met
+  leaving in 2 min while the app's list started with a Circle in 10 min and had no Met for 27 min. The fix assumes TfL
+  doesn't label Met departures from the bay platforms "Westbound" (the old filter); if instead TfL leaves trains
+  starting at Aldgate out of its arrivals entirely, this won't help. Needs a real TfL response from Aldgate to confirm
+  (all test data is made up).
 - Aldgate East (H&C) has no live departures in the app going home; the H&C stays a fallback.

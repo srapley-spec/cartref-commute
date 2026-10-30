@@ -550,6 +550,18 @@ test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not
   app.close();
 });
 
+test("Going home, 30 Oct 18:24: a Met leaving Aldgate counts whatever its platform is called; eastbound Circles and arrivals still don't", async () => {
+  const t0 = T("16:36");
+  const deps = (now) => [["metropolitan", "Platform 1", "Uxbridge", T("16:50")], ["metropolitan", "", "Amersham", T("16:55")], ["metropolitan", "Platform 4", "Aldgate", T("16:44")],
+    ["circle", "Westbound - Platform 2", "Hammersmith", T("16:46")], ["circle", "Platform 3", "Tower Hill", T("16:48")]]
+    .map(([lineId, platformName, dest, t]) => ({ vehicleId: lineId + t, lineId, platformName, destinationName: dest + " Underground Station", expectedArrival: new Date(t).toISOString(), timeToStation: Math.round((t - now) / 1000) }));
+  const app = await open({ now: t0, geo: OFFICE, settings: RDM, extra: (u, now) => (/StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? json(deps(now)) : undefined) });
+  const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest}`);
+  assert.deepEqual(list, ["Circle Hammersmith", "Met Uxbridge", "Met Amersham"]);
+  assert.match(app.text("#hero"), /Met 16:50 →/);
+  app.close();
+});
+
 // ---------- Gaps found by deliberately breaking tonight's code ----------
 const trn = (o) => Object.assign({ depLate: 0, arrLate: 0, depUnknown: false, platform: null, operator: "Great Northern", cancelled: false, reason: "" }, o);
 
