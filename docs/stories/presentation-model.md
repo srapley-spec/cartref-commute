@@ -66,3 +66,6 @@ orders (below).
   [signal-design-system](signal-design-system.md)) but not built. It goes in as an input to `chooseView`, with its
   lifecycle (until Return to Auto or a new journey; deferred while editing) tested here.
 - `docs/design/README.md` tells every design proposal to draw `BLOCKS` in this order and to use `statusLine`.
+- Side effect (found in review, 29 Oct): `situation()` evaluates every live situation on each render, where the
+  page used to stop at the first. Going home with Arrive by or Leave around on screen, a tube picked at Aldgate now
+  becomes your ride once it leaves (before, only in Leave now). Judged correct; no test pins it yet.

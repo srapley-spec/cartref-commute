@@ -43,10 +43,21 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Golden tests: after an intentional change, `UPDATE_GOLDEN=1 npm test`, read every diff in `tests/golden/*.json`,
   and say in the commit what changed and why.
 - Tests run on a virtual clock (Tue 3 Nov 2026 10:00, `TZ=Europe/London`).
+- Page tests: add `after(closeAll)` (harness) to every file, or one failing test leaves a page open and the run hangs.
+- In Claude Code cloud sessions `gh` GraphQL commands (`gh pr list`, `gh pr view`) are blocked: use the REST API
+  (`gh api repos/srapley-spec/cartref-commute/pulls`). Never `pkill -f` a pattern that matches your own shell; kill
+  by PID. A fresh clone may fetch only some branches: add a fetch refspec for a branch you need to track.
 
 ## Release
 - `main` is live (GitHub Pages). Push to `main` only when every test passes. Bigger changes go on a branch
   and are merged when green.
+- **Bigger changes get an independent test review before merging** (Sam, 29 Oct): a separate agent that didn't
+  write the code makes deliberate one-line breakages (mutation testing) and probes edge cases against the story;
+  fix what it finds, re-run its survivors, and merge only once it's satisfied. Give it the commit to review (an
+  agent's worktree starts at `main`).
+- **Branch from `main`, never from another unmerged branch.** Before merging, merge `main` in, re-run everything,
+  and re-read the stories and golden diffs against what `main` now does. (29 Oct: #27–#29 were built on #26 while
+  `main` moved on; their stories described the morning's app, and nothing flagged it.)
 - Commit messages say what changed for the person using the app, not just the code.
 
 ## Working with Sam

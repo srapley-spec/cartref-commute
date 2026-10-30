@@ -22,6 +22,11 @@ shouldn't turn round the moment GPS puts you near it.
 - Location denied: the app says so and offers a manual choice, which works.
 - Missing GPS accuracy means unknown, not perfect.
 
+## Open questions
+- 29 Oct, Sam: "within 20 metres of the office, or being at the office for more than five minutes". Built: within
+  150 m, and the journey turns round after 5 minutes there. Why 150 m rather than 20 m isn't recorded (GPS in the
+  City is often worse than 20 m, so 20 m might rarely trigger); confirm with Sam.
+
 ## Tests
 - tests/core/situation.test.mjs: "inferDirection: setting off, arriving home, after the office, mid-journey, and remembering the trip"
 - tests/rules.test.mjs: "Direction: nearest end when there's no trip; a trip keeps its direction for 3 hours"

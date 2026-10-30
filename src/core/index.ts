@@ -14,7 +14,7 @@ export type { RailWarnings, ImpactLevel, LineStatus } from "./warnings";
 export { liveAdjust, rankNow } from "./plan";
 export { effortNeeds, effortFor, leaveBy, gradeEffort, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
 export type { EffortProfile } from "./effort";
-export { accessOf } from "./journey";
+export { accessOf, fastWalkLegs } from "./journey";
 export { planConnection, rideActive, rideDoubtful } from "./connections";
 export type { Departure, ConnectionLeg, Timed, ConnectionInput, ConnectionPlan, Ride } from "./connections";
 export { refreshPlan, refreshDue, REUSE } from "./refresh";

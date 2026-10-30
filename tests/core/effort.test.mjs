@@ -354,3 +354,25 @@ test("samRoutes: going out to a London place starts at home (your car)", () => {
   const r = core.samRoutes({ dir: "office", mode: "leisure", pace: "avg", timings: TM, dest: { name: "Science Museum", legs: null } });
   assert.ok(r.length && r.every((x) => core.accessOf(x).home));
 });
+
+// ---------- Follow-ups from the second review ----------
+test("fastWalkLegs going home: the walk to the tube is shortened and every step after it moves with it", () => {
+  const routes = core.samRoutes({ dir: "home", mode: "commute", pace: "avg", timings: TM }), r = routes.find((x) => x.hub === "KGX");
+  const dep = at("2026-11-03", "18:00");
+  const t = train({ from: "KGX", to: "LET", dep, arr: dep + 30 * MIN, std: "18:00", operator: "Great Northern" });
+  const [o] = core.buildOptions([r], { "KGX-LET": { services: [t], msgs: [] } }, core.profiles.samCommute);
+  const leave = o.leave + 76e3;                                   // 420 s walk → 344.4 s at a fast walk: 75.6 s later
+  const legs = core.fastWalkLegs(o, leave);
+  assert.equal(legs.length, o.legs.length);
+  assert.equal(legs[0].t, leave); assert.match(legs[0].note, /fast walk 6 min/);
+  const tubeOld = o.legs.find((l) => l.tube), tubeNew = legs.find((l) => l.tube);
+  assert.equal(tubeNew.t, leave + (344.4 + 90 + 180) * 1000, "the tube step: fast walk + platform + wait after the new leave");
+  assert.ok(tubeNew.t > tubeOld.t);
+  assert.equal(legs.find((l) => l.train).t, dep, "the train is unchanged");
+});
+
+test("aroundOptions without effort (toggle off): Leave around near now is as before — a passed leave time can still be the pick", () => {
+  const passed = opt(30 * S + 600 * S - MIN), later = opt(30 * S + 600 * S + 30 * MIN);
+  const out = core.aroundOptions([passed, later], now, now, false, "office", testville);
+  assert.equal(out.find((o) => o.recommended === 1), passed);
+});

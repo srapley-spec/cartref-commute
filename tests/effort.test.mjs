@@ -190,6 +190,10 @@ test("Effort levels on: Arrive by's card says which run / car train gets you the
   assert.match(hero, new RegExp(`Latest for ${hm(Tby)}`));
   assert.match(hero, new RegExp(`Arrives first by car: the ${T.Z.std}`));
   assert.match(hero, new RegExp(`Arrives first if you run: the ${T.Y.std}`));
+  assert.ok(a.c.state.effortPrev.by && Object.keys(a.c.state.effortPrev.by).length === 5, "Arrive by keeps its own grades");
+  a.c.state.effortPrev = { now: Object.fromEntries(Object.keys(a.c.state.effortPrev.by).map((k) => [k, "none"])) };
+  a.c.render();
+  assert.match(a.text("#hero"), /Arrives first by car/, "Leave now's memory doesn't affect Arrive by");
   a.close();
 });
 

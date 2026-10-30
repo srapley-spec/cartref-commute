@@ -59,7 +59,10 @@ Independent review (29 Oct night, a separate agent): 108 deliberate breakages, 8
 can't change any output. It also found a bug (the same train at two stations shared one remembered grade, so a
 walkable St Pancras train showed "Fast walk"), a fast-walk pick whose total and steps were still at walking pace,
 the card and "Arrives first" breaking ties differently, and Leave around near now marking a train whose leave time
-had passed. All fixed, with a test for each gap; each of those breakages re-run and now caught.
+had passed. All fixed, with a test for each gap; each of those breakages re-run and now caught. Second review of the fixes (30 Oct):
+verdict merge; probes confirm the fixes; its three follow-up tests added (going-home fast-walk steps, Leave around
+near now with the toggle off, Arrive by's own grades). Left: three boundaries that can't matter in practice
+(sub-millisecond rounding, exactly 100 m from home, 'leave now' counted from now rather than now + 30 s).
 
 ## Tests
 - tests/core/effort.test.mjs: "effortNeeds: walk, fast walk, run (400 m at 1.8×, the rest fast), own car from home, a cab elsewhere"
@@ -106,6 +109,8 @@ had passed. All fixed, with a test for each gap; each of those breakages re-run 
 - tests/core/effort.test.mjs: "gradeEffort: a train leaving this instant is still listed"
 - tests/core/effort.test.mjs: "effortKey: the same train at two stations, or the same time another day, has its own key"
 - tests/core/effort.test.mjs: "samRoutes: going out to a London place starts at home (your car)"
+- tests/core/effort.test.mjs: "fastWalkLegs going home: the walk to the tube is shortened and every step after it moves with it"
+- tests/core/effort.test.mjs: "aroundOptions without effort (toggle off): Leave around near now is as before — a passed leave time can still be the pick"
 - tests/effort.test.mjs: "Effort levels on: a fast-walk pick's total time and steps are at a fast walk too; no 'leave now' while there's time"
 - tests/effort.test.mjs: "Effort levels on: on your way, a train that needs a fast walk says 'walk fast'"
 - tests/effort.test.mjs: "Effort levels on: Arrive by's card says which run / car train gets you there sooner"
@@ -119,3 +124,5 @@ had passed. All fixed, with a test for each gap; each of those breakages re-run 
 - A cab only replaces walking: a TfL-planned London leg (Leisure, going home) is fixed, so a cab never shortens it.
 - The leave column of a run / car / can't-make-it train still shows the walking-pace leave time, struck through.
 - With pace set to fast in Settings there is no separate fast-walk level: 1 min short is a run.
+- Leave around near now with the toggle on: if every train in the card's window has passed its leave time, the card
+  says no trains were found although later trains are listed. Rare; clearer wording wanted.
