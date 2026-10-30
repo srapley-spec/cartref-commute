@@ -845,7 +845,8 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // locked on the train and unlocked on the platform, or opened here, it's less. After "No, still here": that moment
 // exactly. Null if it hasn't seen you at this station.
 const tubeReady = hub => { const h=state.hubSince; if(!h || h.hub!==hub) return null;
-  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
+  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.stopped!=null ? h.stopped+onwardParts(hub).ic
+    : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
 const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
@@ -1243,7 +1244,9 @@ function renderInLondon(now){
 function renderAtHub(now){
   const s=S(), hub=state.atHub, { ic, ride, tail } = onwardParts(hub);
   const tube=state.tube&&state.tube.hub===hub?state.tube:null;
-  const since = state.hubSince && state.hubSince.hub===hub ? state.hubSince.at : null;
+  // The walk counts from when your train stopped (seen from GPS speed), else from when you were first seen here.
+  const hsv = state.hubSince && state.hubSince.hub===hub ? state.hubSince : null, stopped = hsv && hsv.stopped!=null;
+  const since = hsv ? (stopped ? hsv.stopped : hsv.at) : null;
   // What you can catch (engine planConnection): the walk to the platform counts from when you arrived; tubes before
   // you can reach it are still offered "if you're near the platform" (GPS can't tell concourse from platform).
   const pk=state.saved.tubePick && state.saved.tubePick.hub===hub ? state.saved.tubePick : null;
@@ -1266,7 +1269,7 @@ function renderAtHub(now){
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
       <div><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs">
-        <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when you arrived (${hhmm(since)})`:""}</small></li>
+        <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
         <li class="t">${hhmm(n.ald)}</li><li class="d">${esc(n.leg.stop)} <small>· about ${dur(n.leg.rideMs)} ride</small></li>
         <li class="t">${hhmm(n.office)}</li><li class="d">Arrive office <small>· walk ${dur(n.leg.tailMs)}</small></li>
@@ -1878,6 +1881,14 @@ function onPosition(p){
   // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
   if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
+  // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
+  // Held at a signal and moving again clears it; a stop is only taken in the station you're visiting.
+  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, Date.now());
+  const hs=state.hubSince;
+  if(!riding && hs && state.atHub===hs.hub && !hs.still){
+    const st=state.stopWatch.stoppedAt!=null && state.stopWatch.stoppedAt>=hs.at ? state.stopWatch.stoppedAt : null;
+    if(st!==(hs.stopped??null)){ if(st!=null) hs.stopped=st; else delete hs.stopped; state.saved.hubSince=hs; save(); }
+  }
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});

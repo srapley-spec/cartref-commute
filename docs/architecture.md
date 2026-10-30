@@ -183,6 +183,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct evening** At a London station the walk to the tube counts from the train stopping (GPS speed ≤ 0.5 m/s
+  after ≥ 5 m/s; engine `watchStop`), else from the first fix as before (Sam). Unverified under the King's Cross
+  roof. → [connections](stories/connections.md)
 - **30 Oct evening** Interchange timings from Sam's measurements: King's Cross rail → tube 400 s from the train
   stopping (30 s off + double the 185 s best, both paces); Aldgate East 112 s + 283 s (as measured). Next: start the
   King's Cross walk when the train stops (GPS speed), not at the first fix. → [connections](stories/connections.md)

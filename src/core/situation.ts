@@ -27,6 +27,20 @@ export interface Fix { here: LatLon | null; acc: number | null; at: number | nul
 // A position counts only with a known accuracy within `maxAcc` metres (a missing accuracy is unknown, not perfect).
 const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null);
 
+/** When the train you came in on stopped, from GPS speed (Sam, 30 Oct: the walk to the tube counts from the train
+ *  stopping, not from the first fix in the station while it pulls in). A stop is speed ≤ 0.5 m/s after the train was
+ *  seen moving (≥ 5 m/s, faster than you can run). Moving again at train speed (held at a signal, or a later train)
+ *  clears it; walking off or queueing at the gateline doesn't (only train speed starts a new stop). No speed:
+ *  nothing changes. */
+export interface StopWatch { moving: boolean; stoppedAt: number | null; }
+export const TRAIN_MOVING_MPS = 5, STOPPED_MPS = 0.5;
+export function watchStop(prev: StopWatch | null, speed: number | null, at: number): StopWatch {
+  const w: StopWatch = prev || { moving: false, stoppedAt: null };
+  if (speed == null || !(speed >= 0)) return w;
+  if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null };
+  return speed <= STOPPED_MPS && w.moving ? { moving: false, stoppedAt: at } : w;
+}
+
 /** Confidently away from every London station: a fix good to 250 m whose uncertainty can't reach any of them
  *  (further than `atHubKm` + its accuracy). A coarse fix at the station (the first one underground, say) isn't.
  *  Used for "you can't have arrived before you were last seen away" (30 Oct review). */

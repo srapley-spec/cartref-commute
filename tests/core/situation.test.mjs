@@ -179,6 +179,26 @@ test("awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any L
   assert.equal(core.awayFromHubs(fix([51.5203, -0.1053], 20), sam), false, "at Farringdon isn't away");
 });
 
+test("watchStop: the train stopping is speed ≤ 0.5 m/s after ≥ 5 m/s; moving at train speed again clears it; walking or queueing doesn't", () => {
+  let w = null;
+  const go = (speed, t) => (w = core.watchStop(w, speed, t));
+  assert.deepEqual(go(0, 1), { moving: false, stoppedAt: null }, "standing still before any train: no stop");
+  go(15, 2); assert.equal(w.moving, true);
+  go(3, 3); assert.equal(w.stoppedAt, null, "slowing down isn't stopped");
+  go(0.5, 4); assert.equal(w.stoppedAt, 4, "0.5 m/s is stopped");
+  go(5, 5); assert.deepEqual(w, { moving: true, stoppedAt: null }, "held at a signal: moving again at train speed clears it");
+  go(0.2, 6); assert.equal(w.stoppedAt, 6);
+  go(0, 7); assert.equal(w.stoppedAt, 6, "still stopped: the first moment counts");
+  go(null, 8); go(-1, 9); assert.equal(w.stoppedAt, 6, "no speed reported: nothing changes");
+  go(1.4, 10); assert.equal(w.stoppedAt, 6, "walking off");
+  go(0, 11); assert.equal(w.stoppedAt, 6, "a queue at the gateline isn't the train stopping");
+  go(4.9, 12); assert.equal(w.stoppedAt, 6, "running for a tube isn't a train");
+  go(5, 13); assert.deepEqual(w, { moving: true, stoppedAt: null }, "a later train starts again");
+  assert.deepEqual(core.watchStop(null, 0.6, 1), { moving: false, stoppedAt: null });
+  assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 0.51, 1).stoppedAt, null, "just over 0.5: not stopped");
+  assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 4.99, 1).moving, true, "decelerating keeps 'moving'");
+});
+
 test("Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one", () => {
   const ALD = [51.5142, -0.0755], seen = T("17:00"), v = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:05") }] };
   assert.equal(core.atOfficeTube("home", fix(ALD, 20), sam), true);

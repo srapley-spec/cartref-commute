@@ -1407,3 +1407,68 @@ test("Review 3: opened on the platform with a coarse first fix (400 m), then a g
   assert.match(app.text("#hero"), /Probably the 08:45 H&C/);
   app.close();
 });
+
+// 30 Oct (Sam): the walk to the tube counts from when the train stops, seen from GPS speed.
+test("Train stop: the walk to the tube counts from when your train stopped (GPS speed), and the card says so", async () => {
+  const app = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);       // on the train coming in
+  await app.fix(...KX, 20, T("08:39"), 8);                            // in the station, still moving
+  await app.fix(...KX, 20, T("08:39") + 40e3, 3);                     // slowing
+  await app.fix(...KX, 20, T("08:40") + 30e3, 0);                     // stopped
+  assert.equal(c.state.hubSince.at, T("08:39")); assert.equal(c.state.hubSince.stopped, T("08:40") + 30e3);
+  assert.equal(JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).hubSince.stopped, T("08:40") + 30e3, "saved: kept if the page reloads");
+  await app.fix(...KX, 20, T("08:41"), 1.4);                          // walking off
+  await app.fix(...KX, 20, T("08:42"), 0);                            // queueing at the gateline
+  assert.equal(c.state.hubSince.stopped, T("08:40") + 30e3, "a queue isn't the train stopping");
+  const base = T("08:00"); c.state.tube = { hub: "KGX", at: T("08:42"), arrivals: [tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 46.5, "Met", "m46")], err: null };
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /Walk to the eastbound platform · about \d min, from when your train stopped \(08:40\)/);
+  // Fast pace: 400 s × 0.82 = 328 s from 08:40:30 → 08:45:58: the 08:45 H&C is "near the platform", the 08:46:30 Met the pick.
+  assert.match(hero, /Get on the Met/);
+  assert.match(hero, /Near the platform already\? The 08:45 H&C/);
+  app.close();
+});
+
+test("Train stop: held at a signal in the station then moving again, the later stop counts; no speed from GPS, from when you arrived", async () => {
+  let app = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
+  await app.fix(...KX, 20, T("08:39"), 0);                            // held at a signal inside 400 m
+  assert.equal(c.state.hubSince.stopped, T("08:39"));
+  await app.fix(...KX, 20, T("08:39") + 50e3, 6);                     // moving again
+  assert.equal(c.state.hubSince.stopped, undefined, "cleared");
+  await app.fix(...KX, 20, T("08:40") + 20e3, 0);
+  assert.equal(c.state.hubSince.stopped, T("08:40") + 20e3);
+  app.close();
+  app = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }); c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3);
+  await app.fix(...KX, 20, T("08:39"));
+  await app.fix(...KX, 20, T("08:40") + 30e3);
+  assert.equal(c.state.hubSince.stopped, undefined, "no speed: no stop");
+  c.state.tube = { hub: "KGX", at: T("08:42"), arrivals: [tubeAt(T("08:00"), 48, "Met", "m48")], err: null };
+  app.at(T("08:42")); c.render();
+  assert.match(app.text("#hero"), /from when you arrived \(08:39\)/);
+  app.close();
+});
+
+test("Train stop: a stop before you reached the station (outside 400 m) isn't taken; worked-out tubes count from the stop", async () => {
+  const app = await open({ now: T("08:38"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:38"), 15);
+  await app.fix(51.5420, -0.1180, 30, T("08:38") + 20e3, 0);          // held outside the station
+  await app.fix(...KX, 20, T("08:39"), 2);                            // creeps in
+  await app.fix(...KX, 20, T("08:39") + 30e3, 0);
+  assert.equal(c.state.hubSince.stopped, undefined, "the stop outside isn't the arrival; the creep in settles nothing new");
+  app.close();
+  // With a stop seen, the earliest tube you could be on is the stop + the walk (less a minute).
+  const app2 = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c2 = app2.c;
+  await app2.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
+  await app2.fix(...KX, 20, T("08:39"), 8);
+  await app2.fix(...KX, 20, T("08:41") + 30e3, 0);                    // a long crawl in: stopped 08:41:30
+  const base = T("08:00"), deps = [tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 47.5, "Met", "m47")];
+  await app2.fix(...KX, 20, T("08:42"), 1.4);
+  c2.state.tube = { hub: "KGX", at: T("08:42"), arrivals: deps, err: null };
+  c2.state.lastHub = { hub: "KGX", seen: T("08:42"), arrivals: deps }; c2.state.saved.lastHub = c2.state.lastHub;
+  app2.at(T("08:49")); c2.render();                                    // GPS quiet underground
+  assert.match(app2.text("#hero"), /Probably the 08:47 Met/, "08:41:30 + 5 min 28 s = 08:46:58: the 08:45 left before you could be there");
+  app2.close();
+});

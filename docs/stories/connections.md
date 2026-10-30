@@ -111,9 +111,18 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   One measurement; the same settings time the evening walk from the office to the platform, which isn't measured.
 - These are defaults: settings already saved on a phone keep their values until changed in Settings.
 
-## Open
-- The King's Cross walk still counts from the first fix within 400 m (while the train is pulling in), not from the
-  train stopping: stop detection (GPS speed in the station) is the agreed next change (Sam, 30 Oct).
+## When the walk starts: the train stopping (Sam, 30 Oct evening)
+- At the station, the walk to the tube counts from **when your train stopped**, seen from GPS speed: ≤ 0.5 m/s after
+  it was seen moving at ≥ 5 m/s (faster than you can run). The card says "from when your train stopped (08:40)".
+- Held at a signal inside the station and moving again at train speed: that stop is dropped and the next counts.
+  Walking off, queueing at the gateline or running for a tube don't count as the train.
+- Only a stop in the station you're visiting counts (at or after the first fix there); a stop outside (held before
+  the station) followed by a crawl in under 5 m/s gives no stop, so the rules below apply.
+- No stop seen (GPS gives no speed, e.g. under the trainshed roof; the app opened on the platform; a reload loses
+  the speed history but keeps a stop already saved): from the first fix in the station, or the later of last-seen-
+  away + walk, as below. **Unverified:** whether iOS reports speed under the King's Cross roof. Sam to check the
+  card's "from when your train stopped" on the next trip.
+- Worked-out tubes use the same start: the earliest tube you could be on is the stop + the walk (less a minute).
 
 ## Tests
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
@@ -143,6 +152,10 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Review 2: after 'No, still here' a tube leaving 30 s later is catchable (no slack, but no extra margin either)"
 - tests/rules.test.mjs: "Review 2: opened on the platform, the earliest is when it first saw you, not 'anything that left'"
 - tests/rules.test.mjs: "Review 3: opened on the platform with a coarse first fix (400 m), then a good one: the coarse fix isn't 'away', so the tube you caught counts"
+- tests/core/situation.test.mjs: "watchStop: the train stopping is speed ≤ 0.5 m/s after ≥ 5 m/s; moving at train speed again clears it; walking or queueing doesn't"
+- tests/rules.test.mjs: "Train stop: the walk to the tube counts from when your train stopped (GPS speed), and the card says so"
+- tests/rules.test.mjs: "Train stop: held at a signal in the station then moving again, the later stop counts; no speed from GPS, from when you arrived"
+- tests/rules.test.mjs: "Train stop: a stop before you reached the station (outside 400 m) isn't taken; worked-out tubes count from the stop"
 - tests/core/situation.test.mjs: "awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"
