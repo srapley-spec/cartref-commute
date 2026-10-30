@@ -109,7 +109,7 @@ train" read as a warning while the train was close to on time.
   (alarming in red; large-digit contrast), and a full-width strip (heaviest change).
 - **Accent (Sam, 30 Oct): Signal's blue**, in Signal and in [Panda](design/panda.md) (the live build).
 
-**Where it is implemented:** Panda (`src/page.html`, 30 Oct). The accent and hero lozenges are blue, late text takes
+**Where it is implemented:** Panda (`src/page.html`, 30 Oct). The accent and rail hero lozenges are blue (tube lozenges take their line's colour), late text takes
 its band, and every live train has a status pill and lozenge →
 [train-status](stories/train-status.md). "At the station about" on your way is green / amber / red by minutes to
 spare (`wayLevel`), which is status, not identity. The Signal preview ([`signal-preview.html`](design/signal-preview.html))
