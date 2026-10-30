@@ -173,7 +173,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 Newest first. One line each; the story or issue holds the detail.
 - **30 Oct** Toggles are Sam's call: recommend one for a very complex or experimental change, never add one by
   default. Why: effort levels went behind a toggle Sam hadn't asked for and didn't know about, so he thought the
-  feature was missing. The effort-levels toggle removed (always on). → [effort-levels](stories/effort-levels.md)
+  feature was missing. The effort-levels toggle removed (always on). Sam confirmed "Any start and end point" stays
+  behind its toggle (major and experimental). → [effort-levels](stories/effort-levels.md),
+  [any-start-and-end-point](stories/any-start-and-end-point.md)
 - **30 Oct** "Extra effort to catch a train" (effort levels) built behind a toggle after two independent reviews; Leave
   around graded too, so near now its card shows the next train you can still make (first: one bug, 15 test gaps, all
   fixed; second: merge). → [effort-levels](stories/effort-levels.md)

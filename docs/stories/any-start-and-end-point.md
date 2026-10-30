@@ -1,5 +1,6 @@
 # Any start and end point
-Status: Behind toggle (Settings → Experimental → "Any start and end point", off by default) · Since: 29 Oct 2026 · Issues: #25
+Status: Behind toggle (Settings → Experimental → "Any start and end point", off by default; Sam confirmed 30 Oct: a major,
+experimental change, so it stays toggled) · Since: 29 Oct 2026 · Issues: #25
 
 ## Story
 As someone going into London for something other than work, I want to type where I'm going (or where I am) and get
