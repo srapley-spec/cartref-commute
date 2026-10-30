@@ -26,7 +26,7 @@ so that I can inspect inference and onward planning without travelling.
 - Real Chromium control/playback verification: `python3 tests/browser-simulator.py` (Playwright and Chromium required).
 
 ## Architecture
-`src/simulator/clock.js` supplies scoped time, `feeds.js` supplies transport providers, `controller.js`
+`src/simulator/scenarios.js` contains route definitions, `gps.js` emits browser-shaped observations and interpolates movement, `clock.js` supplies scoped time, `feeds.js` supplies transport providers, `controller.js`
 orchestrates scenario playback and GPS, and `panel.html` supplies controls. The static build embeds
 all modules. The shell injects providers and time; `src/core` remains pure and reusable.
 

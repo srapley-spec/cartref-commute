@@ -19,7 +19,7 @@ const stamp = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short
 let page = readFileSync(path.join(ROOT, "src/page.html"), "utf8").replace("__BUILD__", stamp);
 // Embed the development simulator from its own source module and panel asset.
 // The web app is a static single-file GitHub Pages deployment.
-const simController = readFileSync(path.join(ROOT, "src/simulator/controller.js"), "utf8");
+const simController = ["scenarios.js", "gps.js", "controller.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");
 const simFeeds = readFileSync(path.join(ROOT, "src/simulator/feeds.js"), "utf8");
 const simClock = readFileSync(path.join(ROOT, "src/simulator/clock.js"), "utf8");
 const simPanel = readFileSync(path.join(ROOT, "src/simulator/panel.html"), "utf8");

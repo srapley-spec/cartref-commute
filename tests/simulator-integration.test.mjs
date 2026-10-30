@@ -66,7 +66,16 @@ for(const route of ['kgx','far'])for(const direction of ['outbound','return']){
     assert.ok(ride,'application maintains an Underground ride at Barbican');assert.equal(ride.vehicle,tubeVehicle,'actual ride keeps selected TfL vehicle');
    }
    if(checkpoint.includes('Waiting at King'))assert.equal(a.c.hubHere(),'KGX');
-   if(checkpoint.includes('Alight at Farringdon'))assert.equal(a.c.hubHere(),'ZFD');
+   if(checkpoint.includes('Alight at Farringdon')){
+    assert.equal(a.c.hubHere(),'ZFD');
+    if(direction==='return'&&a.c.homeRide(a.c.simClock.now())){
+     // Farringdon is also a passing point on the faster King's Cross option. Confirm the
+     // actual station using the same alighting choice a passenger sees in the real app.
+     const off=[...a.d.querySelectorAll('[data-ride="off"]')].find(b=>b.textContent.includes('Farringdon'));assert.ok(off,'real screen offers the alternative alighting station');off.click();await a.c.refresh({force:true});await sleep(10);
+    }
+   }
+   if(checkpoint.includes('Waiting on northbound Thameslink platform')){assert.equal(a.c.state.atHub,'ZFD');assert.equal(a.c.homeRide(a.c.simClock.now()),null,'confirmed alighting ends the actual ride');assert.doesNotMatch(a.text('#hero'),/^On the tube/);}
+
    if(checkpoint.includes('Alight at Aldgate')){assert.equal(a.c.onTube(a.c.simClock.now()),false,'arrival fix ends actual Underground ride');assert.equal(a.c.inLondonToOffice(a.c.simClock.now()),true,'actual engine now plans office walk');}
    if(direction==='return'&&checkpoint.includes('Nearly home'))assert.match(a.text('#hero'),/Nearly home/);
    if(direction==='return'&&checkpoint.includes('Arrive home'))assert.match(a.text('#hero'),/You're home/);

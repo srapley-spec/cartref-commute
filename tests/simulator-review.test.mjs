@@ -92,3 +92,18 @@ test('independent review: feed-only native GPS preserves observation age in virt
  const age=a.c.simClock.now()-a.c.state.lastFixAt;
  await sleep(400);assert.equal(age,30000,'native GPS age must be preserved across clock domains');assert.equal(a.c.state.locAcc,12);assert.deepEqual(a.errors,[]);
 });
+test('independent review: configured home drives both simulator endpoints and actual home arrival',async()=>{
+ const home=[51.974,-.236];const a=await enabled({saved:{home}});
+ a.d.querySelector('#simSpeed').value='20';a.d.querySelector('#simPlay').click();
+ assert.equal(a.c.state.here[0],home[0]);assert.equal(a.c.state.here[1],home[1]);
+ const direction=a.d.querySelector('#simDirection');direction.value='return';direction.dispatchEvent(new a.w.Event('change'));
+ const originalSet=a.w.setInterval.bind(a.w),originalClear=a.w.clearInterval.bind(a.w),tasks=new Map();let sequence=95000;
+ a.w.setInterval=(fn,ms)=>{if(ms!==1000)return originalSet(fn,ms);const id=sequence++;tasks.set(id,fn);return id;};
+ a.w.clearInterval=id=>{if(!tasks.delete(id))originalClear(id);};a.d.querySelector('#simPlay').click();
+ const sim=a.c.simulator;
+ while(sim.sim.index<sim.route().length-1){a.d.querySelector('#simContinue').click();let guard=0;while(tasks.size&&guard++<3000)for(const fn of [...tasks.values()])fn();assert.ok(guard<3000);await sleep(5);}
+ a.c.render();const hero=a.text('#hero'),position=[...a.c.state.here];
+ a.d.querySelector('#simExit').click();await sleep(400);
+ assert.deepEqual(position,home);assert.match(hero,/at home|you're home/i,'actual application recognises the configured home');
+ assert.deepEqual(JSON.parse(JSON.stringify(a.c.state.saved.home)),home);assert.deepEqual(a.errors,[]);
+});

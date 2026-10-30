@@ -290,7 +290,7 @@ The simulator clock supplies a scoped Date wrapper; the global browser clock is 
 playback uses device time; feed simulation uses a selectable frozen virtual epoch advanced only by
 playback. Native GPS observation timestamps are translated into that epoch in feed-only mode.
 
-GPS, provider fixtures, controller/UI and virtual clock are separate from the pure production engine.
+GPS (`gps.js`), scenario definitions (`scenarios.js`), provider fixtures, controller/UI and virtual clock are separate from the pure production engine.
 `tools/build.mjs` embeds their modules into the static page. Routes have separate outbound/return
 schedules, explicit checkpoints, service alternatives and Underground vehicle progress. Accuracy
 and no-fix scenarios exercise the normal location and inference paths.
@@ -313,3 +313,7 @@ time: only playback ticks do. A paused or backgrounded scenario does not catch u
 Source changes, restart and Stop abort old requests, invalidate response-body epochs, invalidate planner
 tokens/retry timers, clear progress and all timestamped caches and reset throttles. Global browser Date
 and device time remain unchanged; old virtual timestamps never return to real cache reuse decisions.
+
+Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
+progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
+ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.
