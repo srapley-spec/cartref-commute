@@ -20,7 +20,7 @@ export interface RouteInput {
   dir: Direction; mode: "commute" | "leisure"; pace: "avg" | "fast"; timings: Timings;
   tubeFallback?: boolean;                                   // Circle and Met closed: H&C to Aldgate East
   london?: { KXSP: LondonLeg; FAR: LondonLeg } | null;      // leisure going home
-  here?: { walkToStation: number | null; atHub: StationCode | null; atHome?: boolean } | null;   // plan from where you are
+  here?: { walkToStation: number | null; atHub: StationCode | null; atHome?: boolean; atOfficeTube?: boolean } | null;   // plan from where you are
   /** Any start and end point (feature toggle): going out to a London place — TfL legs from each station group to it. */
   dest?: { name: string; legs: { KXSP: LondonLeg | null; FAR: LondonLeg | null } | null } | null;
 }
@@ -97,7 +97,8 @@ function baseRoutes(i: RouteInput): Route[] {
 }
 
 // From where you are now: on the way to Letchworth the walk starts here; at a London station going home, trains
-// from that station need only the walk to the platform, and trains from the other one the tube between.
+// from that station need only the walk to the platform, and trains from the other one the tube between; at Aldgate
+// going home (30 Oct 18:24: the card still counted the walk from the office), only the walk to the platform.
 function fromHere(routes: Route[], i: RouteInput) {
   const s = i.timings, k = paceFactor(i), dir = i.dir, at = i.here!.atHub, hw = i.here!.walkToStation;
   const ic: Record<string, number> = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
@@ -115,6 +116,11 @@ function fromHere(routes: Route[], i: RouteInput) {
         : [seg("station", 120 * k, { at: "start", d: `Tube from ${NAMES[at]} to ${NAMES[r.hub]}`, note: `about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change` }),
           seg("wait", s.tubeWait), seg("ride", HUB_HOP), seg("change", ic[r.hub] * k), seg("margin", s.catchMargin)];
       r.extra = { ...r.extra, fromHere: true, planned: true };
+    } else if (dir === "home" && i.here!.atOfficeTube && !(r.extra as { tube: { fallback: boolean } }).tube.fallback) {
+      // The office walk and its step go; the platform walk carries the first step instead.
+      const plat = r.before[1];
+      r.before.splice(0, 2, { ...plat, step: { at: "start", d: "You're at Aldgate: go to the platform", note: `about ${dur(sec(plat.secs))}` } });
+      r.extra = { ...r.extra, fromHere: true };
     }
   }
 }

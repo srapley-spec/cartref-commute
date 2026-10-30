@@ -31,6 +31,12 @@ test("Routes home; from where you are (walk to Letchworth, or already at King's 
   const kx = R({ dir: "home", here: { walkToStation: null, atHub: "KGX" } });
   assert.equal(secs(kx[0].before), 180 + 60); assert.match(kx[1].before[0].step.d, /You're at King's Cross: go to the St Pancras platform/);
   assert.equal(secs(kx[2].before), 120 + 180 + 240 + 240 + 60); assert.match(kx[2].before[0].step.d, /Tube from King's Cross to Farringdon/);
+  // At Aldgate going home (30 Oct 18:24): no walk from the office; the platform walk carries the first step.
+  const ald = R({ dir: "home", here: { walkToStation: null, atHub: null, atOfficeTube: true } });
+  assert.equal(secs(ald[1].before), 90 + 180 + 600 + 420 + 60); assert.match(ald[0].before[0].step.d, /^You're at Aldgate: go to the platform/);
+  assert.equal(ald[2].extra.fromHere, true);
+  assert.equal(secs(R({ dir: "home", tubeFallback: true, here: { walkToStation: null, atHub: null, atOfficeTube: true } })[0].before), 360 + 90 + 180 + 660 + 360 + 60, "Aldgate East: the walk stays");
+  assert.equal(secs(R({ dir: "office", here: { walkToStation: null, atHub: null, atOfficeTube: true } })[0].before), 1337 + 120 + 60, "going to work it changes nothing");
   const lo = R({ mode: "leisure" });
   assert.deepEqual(lo.map(r => r.hub), ["KGX", "STP"]);
   const lh = R({ dir: "home", mode: "leisure", london: { KXSP: { dur: 18 * MIN, summary: "Walk", disruptions: [] }, FAR: { dur: 21 * MIN, summary: "Bus", disruptions: [] } } });

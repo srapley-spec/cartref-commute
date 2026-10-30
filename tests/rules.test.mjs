@@ -533,6 +533,23 @@ test("Tube going home: at Aldgate the tubes due are noted; without a pick, going
   app.close();
 });
 
+test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not the office; the status line says Aldgate", async () => {
+  const app = await open({ now: T("16:36"), geo: OFFICE, settings: RDM }), c = app.c;
+  assert.equal(c.direction(), "home");
+  const leaveFor = (o) => { const j = c.ranked(Date.now()).find(x => x.train.std === o.train.std && x.train.from === o.train.from); return j && j.leave; };
+  const first = c.ranked(Date.now()).find(o => o.recommended === 1), atDesk = leaveFor(first);
+  assert.match(app.text("#hero"), /Leave office/);
+  await app.moveTo(51.5142, -0.0755, 7);                                  // on the platform at Aldgate, ±7 m
+  assert.match(app.text("#dirNote"), /^Heading home · you're at Aldgate \(±7 m\)/);
+  assert.equal(leaveFor(first), atDesk + 420e3, "the 7-minute walk from the office is gone; the platform walk stays");
+  const steps = c.routesFor("home", "commute", { here: true });
+  assert.ok(steps.every(r => /^You're at Aldgate: go to the platform/.test(r.before[0].step.d)), steps.map(r => r.before[0].step && r.before[0].step.d).join());
+  await app.moveTo(51.5142, -0.0755, 200);                                // a rough fix doesn't place you at Aldgate
+  assert.doesNotMatch(app.text("#dirNote"), /Aldgate/);
+  assert.equal(leaveFor(first), atDesk);
+  app.close();
+});
+
 // ---------- Gaps found by deliberately breaking tonight's code ----------
 const trn = (o) => Object.assign({ depLate: 0, arrLate: 0, depUnknown: false, platform: null, operator: "Great Northern", cancelled: false, reason: "" }, o);
 
