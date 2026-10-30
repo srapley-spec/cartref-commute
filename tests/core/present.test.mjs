@@ -135,3 +135,16 @@ test("statusLine edges: a later plan says the warning is about trains now, for e
   const s = line({ tiers: tiers([tr({ depUnknown: true })]), stale: true });
   assert.ok(s.detail.includes("1 train delayed with no estimate"), "no-estimate trains are counted in the detail");
 });
+
+test("wayLevel: on your way, green with 3+ min to spare at your pace; amber when tight or only at a fast walk; red otherwise", () => {
+  assert.equal(core.WAY_COMFORT_MIN, 3);
+  assert.equal(core.wayLevel(10), "ok", "no effort level: your pace");
+  assert.equal(core.wayLevel(3, "walk"), "ok", "3 min is comfortable");
+  assert.equal(core.wayLevel(2, "walk"), "warn", "2 min is tight");
+  assert.equal(core.wayLevel(1, "walk"), "warn");
+  assert.equal(core.wayLevel(0, "walk"), "bad", "under a minute: keep going");
+  assert.equal(core.wayLevel(-1, "walk"), "bad");
+  assert.equal(core.wayLevel(10, "fast"), "warn", "only at a fast walk is never green");
+  assert.equal(core.wayLevel(0, "fast"), "bad");
+  for (const e of ["run", "car", "none"]) assert.equal(core.wayLevel(10, e), "bad", `${e}: more than a fast walk`);
+});
