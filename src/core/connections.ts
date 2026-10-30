@@ -99,9 +99,10 @@ export function rideDoubtful(r: Ride | null, now: number, f: Fix, fromGeo: LatLo
   return km(f.here, fromGeo) <= radiusKm;
 }
 
-/** The platform's dot-matrix board, the only way to tell tubes apart on the platform (Sam, 30 Oct): a departure's
- *  place on it (1 = next) among those still shown (leaving no more than 30 s ago), and its minutes. Matched by
- *  vehicle when known, else time and line. Null if it has gone from the board. */
+/** The station's dot-matrix board, the only way to tell tubes apart on the platform (Sam, 30 Oct): a departure's
+ *  place (1 = next) among `deps` still shown (leaving no more than 30 s ago), and its minutes, which are unique to
+ *  each train. `deps` is the board's list: King's Cross eastbound (one platform); Aldgate's single combined
+ *  westbound list (it also has per-platform boards). Matched by vehicle when known, else time and line. Null if gone. */
 export function boardSpot<D extends Departure>(deps: D[], d: D, now: number): { pos: number; ms: number } | null {
   const shown = deps.filter(a => a.t > now - 30e3).sort((a, b) => a.t - b.t);
   const i = shown.findIndex(a => (d.vehicle && a.vehicle ? a.vehicle === d.vehicle : a.t === d.t && a.line === d.line));
@@ -109,3 +110,8 @@ export function boardSpot<D extends Departure>(deps: D[], d: D, now: number): { 
 }
 /** Minutes as the board shows them: whole minutes, rounded down; under a minute is "due". */
 export const boardMins = (ms: number) => (ms < 60e3 ? "due" : `${Math.floor(ms / 60e3)} min`);
+/** Once you're on the tube the board is gone: a tube that has left is told by how long ago, whole minutes rounded
+ *  down (Sam, 30 Oct). `ms` = now − when it left; a tube leaving in the next 30 s is "leaving now". */
+export const leftAgo = (ms: number) => (ms < 0 ? "leaving now" : ms < 60e3 ? "just left" : `left ${Math.floor(ms / 60e3)} min ago`);
+/** "Westbound - Platform 3" → "3"; null when TfL gives no number. */
+export const platformNo = (name: string | null | undefined) => { const m = /platform\s*(\w+)/i.exec(name || ""); return m ? m[1] : null; };

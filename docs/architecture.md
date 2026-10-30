@@ -190,7 +190,8 @@ Newest first. One line each; the story or issue holds the detail.
   on the way to Letchworth a big "08:03" hid that the train was the 08:00.
   → [late-trains](stories/late-trains.md), [design-system](design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal)
 - **30 Oct** Tubes to pick on the platform are labelled as the dot-matrix board shows them (place, line, destination,
-  minutes), not by clock time (Sam). → [connections](stories/connections.md)
+  minutes), not by clock time (Sam); at Aldgate by its single combined list, with the platform; on the tube, by how
+  long ago each left. → [connections](stories/connections.md), [tube-home](stories/tube-home.md)
 - **30 Oct** Status colour follow-ups (Sam): 10–14 min late is amber (red from 15 everywhere); the route-wide status
   line stays amber from 5 min; "Arrives first · walking" and "Latest for HH:MM" stay green (status: you can make
   it). → [train-status](stories/train-status.md)
