@@ -30,9 +30,9 @@ test('synthetic delay cancellation and platform changes preserve competing servi
 });
 test('TfL predictions progress by stable vehicle across stations and freeze while paused',()=>{
  const f=fixture();f.at(60);const k=f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals');const train=k.find(x=>x.timeToStation===240);assert.ok(train);
- f.at(61);const again=f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals').find(x=>x.vehicleId===train.vehicleId);assert.equal(again.timeToStation,180);assert.equal(again.expectedArrival,train.expectedArrival);
+ f.at(61);const again=f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals').find(x=>x.vehicleId===train.vehicleId);assert.ok(again,"same vehicle must remain identifiable as the clock advances");assert.equal(again.timeToStation,180);assert.equal(again.expectedArrival,train.expectedArrival);
  assert.deepEqual(f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals'),f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals'));
- f.at(72);const ald=f.feeds.tube('StopPoint/940GZZLUALD/Arrivals').find(x=>x.vehicleId===train.vehicleId);assert.equal(ald.timeToStation,360);assert.equal(Date.parse(ald.expectedArrival)-Date.parse(train.expectedArrival),14*minute);
+ f.at(72);const ald=f.feeds.tube('StopPoint/940GZZLUALD/Arrivals').find(x=>x.vehicleId===train.vehicleId);assert.ok(ald,"same vehicle must progress to Aldgate");assert.equal(ald.timeToStation,360);assert.equal(Date.parse(ald.expectedArrival)-Date.parse(train.expectedArrival),14*minute);
  f.at(65);assert.ok(!f.feeds.tube('StopPoint/940GZZLUKSX/Arrivals').some(x=>x.vehicleId===train.vehicleId));
 });
 test('return Underground services travel west with coherent Farringdon and Kings Cross timing',()=>{

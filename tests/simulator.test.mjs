@@ -1,7 +1,18 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, closeAll } from "./harness.mjs";
-after(closeAll);
+import { createApp as loadApp, closeAll, sleep } from "./harness.mjs";
+const apps=[];
+async function createApp(options){const app=await loadApp(options);apps.push(app);return app;}
+after(async()=>{
+ // Stop has restarted native GPS and transport refresh. Let its initial callback run, then
+ // await the actual loading state before closing the page (which removes its document).
+ await sleep(30);
+ const deadline=Date.now()+5000;
+ while(apps.some(app=>app.c.state.loading || app.c.state.again)){
+  assert.ok(Date.now()<deadline,"simulator cleanup refresh settled");await sleep(10);
+ }
+ closeAll();
+});
 
 test("developer simulator defaults off and toggles from Settings", async () => {
   const app = await createApp({ settle: 120 });

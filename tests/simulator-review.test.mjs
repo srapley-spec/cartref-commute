@@ -107,3 +107,17 @@ test('independent review: configured home drives both simulator endpoints and ac
  assert.deepEqual(position,home);assert.match(hero,/at home|you're home/i,'actual application recognises the configured home');
  assert.deepEqual(JSON.parse(JSON.stringify(a.c.state.saved.home)),home);assert.deepEqual(a.errors,[]);
 });
+test('independent review: empty scenario date cannot partially enable synthetic feeds',async()=>{
+ const a=await createApp({settle:80});
+ a.d.querySelector('#simDate').value='';a.d.querySelector('#settingsBtn').click();
+ a.d.querySelector('#s_simulatedFeeds').checked=true;
+ a.d.querySelector('#settingsForm').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
+ await sleep(100);
+ const valid=a.c.simClock.active&&Number.isFinite(a.c.simClock.now());
+ const disabled=!a.c.S().simulatedFeeds&&!a.c.simClock.active;
+ assert.ok(valid||disabled,'invalid date must be rejected or safely defaulted before source switching');
+ assert.equal(a.d.querySelector('#simDate').value,'2026-11-03T08:44');
+ assert.match(a.text('#simStatus'),/date|time/i);
+ if(valid)assert.equal(a.d.querySelector('#simPanel').hidden,false);
+ assert.deepEqual(a.errors,[]);await sleep(350);
+});
