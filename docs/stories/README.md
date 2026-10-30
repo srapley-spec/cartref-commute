@@ -66,5 +66,8 @@ Passing points #23 · Along the line / nerd mode #24 · Searchable place picker 
 timetable #18 · Early platforms #19 · Structured incidents #20 · Train length and crowding #21 · Native iPhone
 #2–#7, #10–#12.
 
+### How changes reach the live app
+- [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
+
 ### Design and presentation
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Planned (design and interaction policies agreed; implementation pending)
