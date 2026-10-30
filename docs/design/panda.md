@@ -23,7 +23,8 @@ option, focus or tracking. Full rule and history:
 Each band is shown as a word plus minutes, never colour alone. A timetable train, or a time worked out from another
 stop, gets no status: it is never claimed to be on time. → [train-status](../stories/train-status.md)
 
-The route-wide status line has its own tiers (amber from 5 min): it answers "is my route disrupted", not "is this
+Green flags that mean "you can make it" ("Arrives first · walking", "Latest for 08:30") are status, not a mark of the
+best option, and stay green (Sam, 30 Oct). The route-wide status line has its own tiers (amber from 5 min; Sam kept it, 30 Oct): it answers "is my route disrupted", not "is this
 train late" (→ [warnings](../stories/warnings.md)). Other status uses follow the same meaning, for example the time
 to spare on your way to the station (`wayLevel`, → [on-the-way-to-the-station](../stories/on-the-way-to-the-station.md)).
 

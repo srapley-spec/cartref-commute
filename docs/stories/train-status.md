@@ -32,6 +32,9 @@ accent. → [design-system](../design-system.md#status-colour-is-reserved-sam-30
 - The identity part of a lozenge, the accent, the best-row tint and the focus ring are blue, never red, amber or
   green. On the hero, text on the status chips and status text is at least 4.5:1 in light and dark (calculated from
   the tokens: 6.0–9.6:1; checked by hand, no automated test reads CSS).
+- Confirmed by Sam, 30 Oct: 10–14 min late is amber (red starts at 15 everywhere); the route-wide line stays at 5;
+  "Arrives first · walking" and "Latest for HH:MM" stay green, because they are status (you can make it, nothing
+  wrong), not a mark of the best option.
 - The route-wide status line keeps its own tiers (amber from 5 min, red from 15: [warnings](warnings.md)); it
   answers "is my route disrupted", not "is this train late".
 

@@ -183,6 +183,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** Status colour follow-ups (Sam): 10–14 min late is amber (red from 15 everywhere); the route-wide status
+  line stays amber from 5 min; "Arrives first · walking" and "Latest for HH:MM" stay green (status: you can make
+  it). → [train-status](stories/train-status.md)
 - **30 Oct** The tube home is only one you picked; never worked out (Sam). At 15:37 at his desk the app said he was on
   the 15:29 Circle: the desk (313 m from Aldgate) read as Aldgate, a tube left, and a still phone going quiet was
   taken as underground. Regression exposed by the 300 m office rule below, which made the desk "heading home".
