@@ -104,8 +104,10 @@ train" read as a warning while the train was close to on time.
 
 **Known violations in the live build (`src/page.html`, 30 Oct):** `--accent` is orange (`#B0500C` light,
 `#EE9A45` dark, close to `--warn` `#E3B04D` in dark) and is used for the identity lozenge (`.slack`: "You're on",
-"Probably", "Get on", "At the station about"), for late text (`.latetxt`), the best-row tint and the focus ring.
+"Probably", "Get on", "You're getting"), for late text (`.latetxt`), the best-row tint and the focus ring.
 Late text must take its band colour; the rest must move to a non-status accent (recommended: Signal's blue).
+Compliant: "At the station about" on your way is green / amber / red by minutes to spare (`wayLevel`, 30 Oct), which
+is status, not identity.
 **Proposals:** `original` skin A and `womble` skin A use an amber accent and `womble` skin B a green "on time /
 tracking" accent; none may be carried forward without retuning. Signal complies.
 
