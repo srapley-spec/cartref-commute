@@ -24,14 +24,22 @@ accent. → [design-system](../design-system.md#status-colour-is-reserved-sam-30
 - On the train (both directions) the lozenge is the train in blue with its status inside it, banded, for the
   expected arrival at the change station (King's Cross / St Pancras / Farringdon going to work; Letchworth going
   home) against the timetable: "On time" inside the green band, otherwise "About N min late / early". The King's
-  Cross line keeps the expected and timetabled times but no longer repeats the status. "Last reported … N min late"
+  Cross line keeps the expected and timetabled times but no longer repeats the status. A timetable train with no
+  Service Details gets no status chip (projected from where you are, but not live data). "Last reported … N min late"
   is coloured by the same bands.
 - Nearly home on your train: the same lozenge, from the expected Letchworth time; none for a timetable train with no
   Service Details.
 - The identity part of a lozenge, the accent, the best-row tint and the focus ring are blue, never red, amber or
-  green. Small text on every status colour is at least 4.5:1 in light and dark (measured 6.0–9.6:1).
+  green. On the hero, text on the status chips and status text is at least 4.5:1 in light and dark (calculated from
+  the tokens: 6.0–9.6:1; checked by hand, no automated test reads CSS).
 - The route-wide status line keeps its own tiers (amber from 5 min, red from 15: [warnings](warnings.md)); it
   answers "is my route disrupted", not "is this train late".
+
+## Review
+30 Oct, independent test review of d17daa2: 31 one-line mutants, 27 killed. The four survivors: an early-text branch
+production never reaches (equivalent); the nearly-home timetable-with-Service-Details case and the nearly-home
+identity lozenge (tests added, now killed); the CSS accent token (checked by hand). It also found the on-train card
+called a timetable train "On time" from a projection, contradicting this story; that's fixed and tested.
 
 ## Tests
 - tests/core/engine.test.mjs: "Train status: red, amber, green by minutes late (green under 2, amber 2–14, red 15+); never 'on time' without live data"

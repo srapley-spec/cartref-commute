@@ -178,6 +178,8 @@ test("trainFlags: cancelled, standing room, stopping, delays, unknown — from t
   assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "12 min late"]);
   assert.deepEqual(flags({ depUnknown: true }), ["Usually standing room only", "Delayed, no estimate: times unknown"]);
   assert.deepEqual(flags({ timetable: true }), ["Usually standing room only"], "timetable: no claim to be on time");
+  assert.deepEqual(flags({ depLate: -2 }), ["Usually standing room only", "On time"], "early is on time");
+  assert.deepEqual(flags({ cancelled: true, depLate: 20 }), ["Cancelled", "Usually standing room only"], "cancelled outranks late");
 });
 
 test("Train status: red, amber, green by minutes late (green under 2, amber 2–14, red 15+); never 'on time' without live data", () => {

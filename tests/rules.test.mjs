@@ -483,6 +483,11 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok");
   t.timetable = true; c.render();
   assert.equal(app.w.document.querySelector("#hero .slackst"), null, "a timetable train is never claimed on time");
+  assert.equal(app.w.document.querySelector("#hero .slack").className, "slack", "the identity part is never a status colour");
+  t.serviceId = "S1"; c.state.progressById = { S1: { at: now, data: app.w.CommuteCore.parseServiceDetails({ crs: "KGX", std: "19:48", atd: "19:50", subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", locationName: "Letchworth Garden City", st: "20:16", et: "20:21" }] }] }, now) } };
+  c.render();
+  assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst warn", "a timetable train with Service Details does get its status");
+  c.state.progressById = {};
   c.state.here = null; c.state.trainLock = null;
   app.close();
 });
@@ -586,9 +591,14 @@ test("On the train card: arrival from Service Details; 'timetable' is the schedu
     { crs: "HAT", locationName: "Hatfield", st: "19:59", at: "20:16" }, { crs: "LET", locationName: "Letchworth Garden City", st: "20:16", et: "20:34" }] }] }, now);
   c.render();
   assert.match(app.text("#hero"), /About 18 min late/);
+  assert.equal(app.w.document.querySelector("#hero .stat").className, "stat bad", "the last report's 17 min late is red");
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst bad", "15+ min late is red");
   // The identity part of the lozenge is never a status colour.
   assert.equal(app.w.document.querySelector("#hero .slack").className, "slack");
+  // A timetable train with no Service Details: projected from where you are, but never claimed on time.
+  t.timetable = true; delete t.serviceId; c.state.progressById = {}; c.render();
+  assert.match(app.text("#hero"), /You're on the 19:48 Great Northern/);
+  assert.equal(app.w.document.querySelector("#hero .slackst"), null, "no status without live data");
   c.state.onLine = false; c.state.here = null; c.state.trainLock = null; c.state.progressById = {}; app.close();
 });
 

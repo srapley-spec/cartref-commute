@@ -952,7 +952,8 @@ function renderOnTrain(now, m){
   const pg = progressFor(t.serviceId);
   const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
   if(pgAt) { m.projected = pgAt; m.live = true; }
-  const st=C.arrivalStatus(m.projected, sched);
+  // No status for a timetable train without a live report: never claimed on time without live data.
+  const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched);
   const lastLine = pg && pg.data && pg.data.last ? `<div style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
@@ -963,7 +964,7 @@ function renderOnTrain(now, m){
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
-    <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)} <span class="slackst ${st.level}">${esc(st.text)}</span></span>
+    <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}${m.picked?" · you picked this":""}</span></div>
     ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
