@@ -45,3 +45,11 @@ shouldn't turn round the moment GPS puts you near it. 30 Oct 10:16: at his desk 
 - tests/rules.test.mjs: "At the desk with GPS reading 217 m: after 10 minutes within 300 m the journey turns round"
 - tests/core/situation.test.mjs: "whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten"
 - tests/core/situation.test.mjs: "Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten"
+
+## Location accuracy (30 October simulator audit)
+- Browser fixes pass their measured accuracy to direction inference. Missing, negative or non-finite accuracy is unknown.
+- Office arrival and both dwell timers require the entire reported uncertainty circle inside the existing 150 m / 300 m radius. An uncertain fix breaks an unfinished dwell; precise recovery starts a new dwell.
+- A coarse fix retains a recent journey or today's completed office visit. Without reliable memory, nearest-end direction requires non-overlapping distance bounds; otherwise await a usable fix. Near-home decisions use the same uncertainty bounds against the existing 3 km boundary.
+- Coordinate-only engine callers may omit accuracy for compatibility; browser callers explicitly provide accuracy or null.
+- tests/core/situation.test.mjs: "inferDirection: location uncertainty cannot manufacture office dwell or overwrite a remembered journey"
+- tests/core/situation.test.mjs: "atOffice: uncertainty circle must fit inside the arrival radius, on any profile"

@@ -278,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:33 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -357,6 +357,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
     </fieldset>
 
     <fieldset>
@@ -374,6 +376,37 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     </div>
   </form>
 </dialog>
+
+<style>
+#simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
+#simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
+#simPanel label{display:block;margin:8px 0 3px}#simPanel input,#simPanel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #777;border-radius:5px}
+#simPanel button,#simBar button{padding:7px 10px;margin:4px 3px 4px 0;border:1px solid #777;border-radius:6px;cursor:pointer}
+#simPanel .simRow{display:flex;gap:5px;flex-wrap:wrap}#simPanel .simRow button{flex:1}#simPanel small{display:block;color:#555}
+</style>
+<div id="simBar" hidden role="status">SIMULATION ACTIVE <button id="simExit" type="button">Stop &amp; reset</button></div>
+<section id="simPanel" hidden aria-label="Journey simulator">
+<strong>Journey simulator · development mode</strong>
+<small>Independent GPS and feed switches. Reload exits simulation.</small>
+<label for="simPreset">Jump to location</label><select id="simPreset">
+<option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate</option><option value="office">Office</option>
+</select>
+<label for="simDirection">Playback direction</label><select id="simDirection"><option value="outbound">Letchworth → office</option><option value="return">Office → Letchworth</option></select>
+<label for="simPath">Rail route</label><select id="simPath"><option value="kgx">Great Northern → King’s Cross → Metropolitan</option><option value="far">Thameslink → Farringdon → Underground</option></select>
+<label for="simScenario">Scenario</label><select id="simScenario"><option value="normal">Normal journey</option><option value="later-train">Board later train</option><option value="wrong-train">Board different train</option><option value="uncertain">Train identity uncertain</option><option value="delay">Delayed train</option><option value="cancellation">Cancelled train; take later service</option><option value="platform-change">Platform change</option><option value="missed-connection">Miss Underground connection</option><option value="disruption">Underground disruption</option><option value="outage">Provider outage and recovery</option><option value="gps-loss">Underground GPS loss</option><option value="low-accuracy">Poor indoor/train GPS accuracy</option><option value="awaiting-location">Awaiting location</option><option value="permission-denied">Location permission denied</option></select>
+<label for="simDate">Scenario start (UTC)</label><input type="datetime-local" id="simDate" value="2026-11-03T08:44">
+<output id="simTime"></output><small id="simClockMode"></small>
+<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Restart at first waypoint</button><button type="button" id="simContinue">Continue to next waypoint</button><button type="button" id="simPause">Pause now</button></div>
+<strong id="simCheckpoint" aria-live="polite">Not started</strong>
+<small>Next checkpoint: <span id="simNext">Not started</span></small><small id="simFixStatus">No simulated fix</small>
+<label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
+<label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
+<label for="simAccuracyMode">Playback accuracy</label><select id="simAccuracyMode"><option value="realistic">Good fixes (12 m walking, 45 m train)</option><option value="poor">Poor indoor/train fixes (180–1400 m)</option><option value="manual">Use manual accuracy</option></select>
+<label for="simAccuracy">Manual location accuracy (metres)</label><input type="number" min="0" step="any" id="simAccuracy" value="12">
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
+<small id="simStatus" aria-live="polite">Ready</small>
+</section>
 
 <script>/* engine (src/core) */
 "use strict";
@@ -422,6 +455,7 @@ var CommuteCore = (() => {
     arrivalStatus: () => arrivalStatus,
     arriveByOptions: () => arriveByOptions,
     arriveByRounds: () => arriveByRounds,
+    atOffice: () => atOffice,
     atOfficeTube: () => atOfficeTube,
     awayFromHubs: () => awayFromHubs,
     bestConnections: () => bestConnections,
@@ -499,6 +533,7 @@ var CommuteCore = (() => {
     resolve: () => resolve,
     rideActive: () => rideActive,
     rideDoubtful: () => rideDoubtful,
+    rideEnded: () => rideEnded,
     routeCount: () => routeCount,
     samRoutes: () => samRoutes,
     searchRoutes: () => searchRoutes,
@@ -1234,9 +1269,14 @@ var CommuteCore = (() => {
     const same = ds.filter((d) => d.line === pk.line && Math.abs(d.t - pk.t) <= 3 * 6e4 && !(pk.vehicle && d.vehicle && d.vehicle !== pk.vehicle)).sort((a, b) => Math.abs(a.t - pk.t) - Math.abs(b.t - pk.t));
     return same[0] || null;
   }
+  function rideEnded(r, now, f) {
+    if (!r) return false;
+    if (now > r.t + r.rideMs + 10 * 6e4) return true;
+    if (now < r.t - 3e4 || !r.stopGeo || !f.here || f.at == null || f.at < r.t - 3e4 || f.at > now || now - f.at > 6e4) return false;
+    return typeof f.acc === "number" && Number.isFinite(f.acc) && f.acc >= 0 && km(f.here, r.stopGeo) + f.acc / 1e3 < 0.3;
+  }
   function rideActive(r, now, f) {
-    if (!r || now < r.t - 3e4 || now > r.t + r.rideMs + 10 * 6e4) return false;
-    return !(r.stopGeo && f.here && km(f.here, r.stopGeo) < 0.3);
+    return !!r && now >= r.t - 3e4 && !rideEnded(r, now, f);
   }
   function rideDoubtful(r, now, f, fromGeo, radiusKm) {
     if (!r || r.confirmed || !fromGeo || now < r.t + 3 * 6e4) return false;
@@ -1507,12 +1547,16 @@ var CommuteCore = (() => {
   var OFFICE_DWELL_MS = 5 * 6e4;
   var NEAR_OFFICE_KM = 0.3;
   var NEAR_OFFICE_DWELL_MS = 10 * 6e4;
-  function inferDirection(here, now, today, mem, p) {
+  function atOffice(f, p) {
+    return !!f.here && typeof f.acc === "number" && Number.isFinite(f.acc) && f.acc >= 0 && km(f.here, p.places.office) + f.acc / 1e3 < AT_OFFICE_KM;
+  }
+  function inferDirection(here, now, today, mem, p, accuracy) {
     const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
     const out = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null, officeNearSince: mem.officeNearSince || null };
+    const uncertainty = accuracy === void 0 ? 0 : typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy >= 0 ? accuracy / 1e3 : Infinity;
     const dOff = km(here, p.places.office), sameDay = (t) => new Date(t).toDateString() === new Date(now).toDateString();
     const stayed = (key, radius, dwell) => {
-      if (dOff >= radius) {
+      if (dOff + uncertainty >= radius) {
         out[key] = null;
         return false;
       }
@@ -1524,14 +1568,16 @@ var CommuteCore = (() => {
     if (out.officeVisit !== today && (atDesk || nearby)) out.officeVisit = today;
     const trip = out.trip, recent = !!trip && now - trip.at < 3 * 36e5;
     let dir;
-    if (dHome < 3 && recent && trip.dir === "home") dir = "home";
-    else if (dHome < 3) {
+    if (dHome + uncertainty < 3 && recent && trip.dir === "home") dir = "home";
+    else if (dHome + uncertainty < 3) {
       dir = "office";
       out.trip = { dir: "office", at: now };
     } else if (out.officeVisit === today) dir = "home";
     else if (recent) dir = trip.dir;
-    else dir = dHome <= dTube ? "office" : "home";
-    if (dir === "home" && dHome >= 3) out.trip = { dir: "home", at: now };
+    else if (dHome + uncertainty < dTube - uncertainty) dir = "office";
+    else if (dTube + uncertainty < dHome - uncertainty) dir = "home";
+    else dir = null;
+    if (dir === "home" && dHome - uncertainty >= 3) out.trip = { dir: "home", at: now };
     return { dir, mem: out };
   }
   function findLocked(items, train, lock) {
@@ -1571,13 +1617,14 @@ var CommuteCore = (() => {
       }
     }
     cands.sort((a, b) => a.offMin - b.offMin);
-    const same = (a, b) => a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : a.t.arr - b.t.arr) <= 6e4;
+    const same = (a, b) => a.t.serviceId && b.t.serviceId ? a.t.serviceId === b.t.serviceId : a.t.operator === b.t.operator && Math.abs(dir === "office" ? a.t.dep - b.t.dep : a.t.arr - b.t.arr) <= 6e4;
     const locked = lock ? findLocked(cands, (c) => c.t, lock) : void 0;
     const others = (c0) => cands.filter((c, i) => !same(c, c0) && cands.findIndex((x) => same(x, c)) === i).slice(0, 3);
     const age = { stale: stale2, fixAgeMin: Math.round(ageMin) };
     const withId = (l, t) => !l.serviceId && t.serviceId ? { ...l, serviceId: t.serviceId } : l;
     if (locked && lock.picked) {
-      Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked), confidence: "high", ...age });
+      const conflict = !stale2 && (locked.ruledOut || locked.offMin > 12);
+      Object.assign(locked, { sure: !conflict, conflict, other: null, locked: true, picked: true, others: others(locked), confidence: stale2 || conflict ? "low" : "high", ...age });
       return { result: locked, lock: withId(lock, locked.t) };
     }
     const keeps = locked && !locked.ruledOut && (stale2 || locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6));
@@ -1996,6 +2043,8 @@ var CommuteCore = (() => {
 <script>
 (() => {
 "use strict";
+const simClock=createJourneySimulationClock({NativeDate:window.Date});
+const Date=simClock.ClockDate;
 // ---------- Engine ----------
 // Planning logic lives in the engine (src/core, TypeScript), loaded just before this script.
 // This page supplies the profile, the safe HTML-to-text parser, and the screen.
@@ -2032,9 +2081,11 @@ const markTimetable = js => { C.markTimetable(js); };
 // The timetable search may find a train at one London station but not the same train at the other.
 // Look for it: one extra search per missing station, near when it should be. The result decides; nothing is assumed.
 async function completePairs(boards, diag){
+ const epoch=sourceEpoch;
   if(!tflKeyed()) return 0;
   let n=0;
   for(const q of C.missingPairSearches(boards, direction(), PROFILE)){
+    assertSource(epoch);
     const [a,b]=q.key.split("-");
     try{ addJourneys(boards, await tflJourneys(a,b,q.at,"Departing"), q.key, diag); n++; }
     catch(e){ break; }
@@ -2059,6 +2110,7 @@ function whichTrain(now){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
+  simulatorEnabled:false,simulatedFeeds:false,
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -2078,12 +2130,25 @@ const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number
 const LS = "cartrefCommute.v1";
 
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
-function save(){ try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
+let simulationSnapshot=null;
+function save(){if(simulationSnapshot || (typeof sim!=="undefined" && sim.active))return;try{const saved={...state.saved,settings:{...state.saved.settings}};delete saved.settings.simulatorEnabled;delete saved.settings.simulatedFeeds;localStorage.setItem(LS,JSON.stringify(saved));}catch(e){}}
 const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
   lastHub:null, diag:{},
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
   here:null, origin:"", london:null, londonErr:"" };
+// Simulation is a session opt-in; reload always returns to device GPS and live sources.
+delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
+function beginSimulationSession(){if(!simulationSnapshot){
+ simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
+ for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub'])delete state.saved[key];
+}}
+function endSimulationSession(){
+ if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
+ delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
+ simClock.stop();
+ document.getElementById("simPanel").hidden=true;document.getElementById("s_simulator").checked=false;document.getElementById("s_simulatedFeeds").checked=false;
+}
 // The last London station you were seen at survives reopening the app (for 25 minutes).
 try{ const lh=state.saved.lastHub; if(lh && Date.now()-lh.seen<25*60e3) state.lastHub=lh; }catch(e){}
 // When you arrived at the London station you're at (kept across reopening, for 20 minutes).
@@ -2095,14 +2160,33 @@ function setLastHub(v){ state.lastHub=v; state.saved.lastHub=v; save(); }
 const FETCH_TIMEOUT = () => (window.COMMUTE_FETCH_TIMEOUT_MS || 12000);
 // Requests made in the last minute, by service, shown in the footer.
 const reqLog=[];
+// Async work belongs to a source/clock session, including JSON parsing and retries.
+let sourceEpoch=0;
+const pendingRequests=new Set();
+const staleSource=()=>Object.assign(new Error("Transport source changed"),{staleSource:true});
+function assertSource(epoch){if(epoch!==sourceEpoch)throw staleSource();}
+function invalidateSources(){
+ sourceEpoch++; for(const controller of pendingRequests)controller.abort(); pendingRequests.clear();
+ clearTimeout(state.retryTimer);state.retryTimer=null;
+ state.byToken={};state.atToken={};state.loading=false;state.again=false;
+ for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed'])state[key]=null;
+ state.progressById={};state.byCache={};state.atCache={};state.errors=[];reqLog.length=0;
+}
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
 async function fetchT(url, opts){
+  const epoch=sourceEpoch;
+  const guarded=response=>new Proxy(response,{get(target,key){
+   const value=Reflect.get(target,key,target);
+   if(typeof value!=="function")return value;
+   return async (...args)=>{assertSource(epoch);const result=await value.apply(target,args);assertSource(epoch);return result;};
+  }});
+  if(S().simulatedFeeds)return guarded(simulatedFeeds.respond(url));
   logRequest(url);
-  const ctl = new AbortController(), id = setTimeout(()=>ctl.abort(), FETCH_TIMEOUT());
-  try{ return await fetch(url, Object.assign({cache:"no-store"}, opts||{}, {signal:ctl.signal})); }
-  catch(e){ const err=new Error(ctl.signal.aborted?"timeout":"network"); err.timeout=ctl.signal.aborted; throw err; }
-  finally{ clearTimeout(id); }
+  const ctl=new AbortController(),id=setTimeout(()=>ctl.abort(),FETCH_TIMEOUT());pendingRequests.add(ctl);
+  try{const response=await fetch(url,Object.assign({cache:"no-store"},opts||{},{signal:ctl.signal}));assertSource(epoch);return guarded(response);}
+  catch(e){assertSource(epoch);const err=new Error(ctl.signal.aborted?"timeout":"network");err.timeout=ctl.signal.aborted;throw err;}
+  finally{clearTimeout(id);pendingRequests.delete(ctl);}
 }
 // TfL: optional free app key (raises the rate limit) and a shared back-off after HTTP 429.
 function tflUrl(u){ const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
@@ -2114,8 +2198,9 @@ const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retryin
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
 function noteTfl429(){ state.tflBackoffUntil=Date.now()+60e3; }
 async function fetchTfl_(u){
+ const epoch=sourceEpoch;
   if(tflBackingOff()){ const e=new Error(TFL_LIMIT_MSG()); e.rateLimited=true; throw e; }
-  const r=await fetchT(tflUrl(u));
+  const r=await fetchT(tflUrl(u));assertSource(epoch);
   if(r.status===429){ noteTfl429(); const e=new Error(TFL_LIMIT_MSG()); e.rateLimited=true; throw e; }
   return r;
 }
@@ -2138,12 +2223,12 @@ const stripHtml = h => {
 // ---------- Darwin ----------
 function boardUrl(from,to,offsetMin){
   const s=S(), trim=u=>String(u||"").trim().replace(/\/+$/,"");
-  if(s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${offsetMin?`&timeOffset=${offsetMin}`:""}`, headers:{"x-apikey":s.rdmKey} };
+  if(s.simulatedFeeds || s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${offsetMin?`&timeOffset=${offsetMin}`:""}`, headers:{"x-apikey":s.rdmKey} };
   if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
   return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
 }
 // Which train source runs: demo, tfl (timetable), or darwin. Darwin without a key falls back to tfl.
-function source(){ const p=S().provider; if(p==="demo"||p==="tfl") return p; return missingCreds()?"tfl":"darwin"; }
+function source(){ if(S().simulatedFeeds)return "darwin"; const p=S().provider; if(p==="demo"||p==="tfl") return p; return missingCreds()?"tfl":"darwin"; }
 
 // ---------- TfL timetable source (no key; not live) ----------
 async function tflJourneys(from,to,t,timeIs){
@@ -2164,13 +2249,17 @@ const hubOfKey = k => C.hubOfKey(k, PROFILE);
 // Searches run by the engine (src/core/search.ts) against TfL's journey planner.
 const CONVERT = { train: trainFromJourney, dropReason };
 const addJourneys = (boards, js, key, diag) => C.addJourneys(boards, js, key, diag, CONVERT, PROFILE);
-const searchRoutes = (keys, rounds) => C.searchRoutes(keys, rounds, tflJourneys, CONVERT, PROFILE);
+const searchRoutes = (keys, rounds) => {
+ const epoch=sourceEpoch;
+ return C.searchRoutes(keys,rounds,(...args)=>{assertSource(epoch);return tflJourneys(...args);},CONVERT,PROFILE);
+};
 const roundOpts = () => ({ keyed:tflKeyed(), earliestCatch, p:PROFILE });
 function scheduleRouteRetry(){
+  const epoch=sourceEpoch;
   clearTimeout(state.retryTimer);
   const wait=Math.max(5e3,(state.tflBackoffUntil||0)-Date.now()+2e3);
   state.retryAt=Date.now()+wait;
-  state.retryTimer=setTimeout(()=>{ state.retryAt=null;
+  state.retryTimer=setTimeout(()=>{ if(epoch!==sourceEpoch)return;state.retryAt=null;
     if(state.saved.view==="by" && state.by && state.by.failed && Object.keys(state.by.failed).length) planBy({missingOnly:true});
     else if(state.saved.view==="at" && state.at && state.at.failed && Object.keys(state.at.failed).length){ state.atCache={}; planAt(); }
     else if(state.routeFailed && Object.keys(state.routeFailed).length) refresh({force:true});
@@ -2183,11 +2272,12 @@ function scheduleRouteRetry(){
 // first train found is one you can still catch (from the route description; waits not counted).
 function earliestCatch(hub){ const r=routeFor(hub); return r ? Math.max(0, C.minTimeToTrain(r) - 60e3) : 0; }
 async function fetchTflBoards(){
+ const epoch=sourceEpoch;
   const now=Date.now(), keys=boardKeys();
   // Each route starts at the first train you could still catch, so one search per route covers the next few.
   // On a train: start ~35 min back, so the train you're on is included.
   const {boards, failed, diag}=await searchRoutes(keys, C.nowRounds(now, !!state.onLine, roundOpts()));
-  await completePairs(boards, diag);
+  assertSource(epoch);await completePairs(boards, diag);
   if(Object.keys(failed).length===keys.length) throw new Error(Object.values(failed)[0]);
   return {boards, failed, diag};
 }
@@ -2223,14 +2313,15 @@ async function fetchServiceDetails(id){
 // sure which train, also the runner-up, so where each was reported can settle it.
 const progressFor = (id, maxAge=3*60e3) => { const p=state.progressById && id && state.progressById[id]; return p && Date.now()-p.at<maxAge ? p : null; };
 async function refreshTrainProgress(){
-  if(state.railSource!=="darwin" || S().provider!=="rdm") return;
+ const epoch=sourceEpoch;
+  if(state.railSource!=="darwin" || (!S().simulatedFeeds && S().provider!=="rdm")) return;
   if(!state.onLine && !(nearlyHome() && state.trainLock)) return;
   const m=state.onLine ? whichTrain(Date.now()) : null, lt=state.onLine ? null : lockedTrain();
   const ids = m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])].filter(Boolean) : lt && lt.serviceId ? [lt.serviceId] : [];
   state.progressById=state.progressById||{};
   for(const id of ids){
-    try{ state.progressById[id]={ id, at:Date.now(), data:await fetchServiceDetails(id), err:null }; }
-    catch(e){ state.progressById[id]={ id, at:Date.now(), data:null, err:e.message }; }
+    try{ const data=await fetchServiceDetails(id);if(epoch!==sourceEpoch)return;state.progressById[id]={id,at:Date.now(),data,err:null}; }
+    catch(e){ if(epoch!==sourceEpoch)return;state.progressById[id]={ id, at:Date.now(), data:null, err:e.message }; }
   }
 }
 // Example boards, clearly marked in the UI.
@@ -2322,6 +2413,7 @@ async function fetchLondon(from){
 // Any start and end point: TfL legs from King's Cross St Pancras and Farringdon to a London place.
 // A place name TfL can't pin down exactly is matched to its best guess, and the name shown says which.
 async function fetchLondonTo(dest){
+ const epoch=sourceEpoch;
   let place=dest, name=dest;
   const go=async from=>{
     for(let attempt=0; attempt<2; attempt++){
@@ -2338,7 +2430,7 @@ async function fetchLondonTo(dest){
   // One at a time, so a place matched on the first search is reused for the second.
   let kx=null, far=null, err=null;
   try{ kx=await go(TFL_HUBS.KXSP); }catch(e){ err=e; if(e.rateLimited) throw e; }
-  try{ far=await go(TFL_HUBS.FAR); }catch(e){ err=err||e; }
+  assertSource(epoch);try{ far=await go(TFL_HUBS.FAR); }catch(e){ err=err||e; }
   if(!kx && !far) throw err;
   return { name, KXSP:kx, FAR:far };
 }
@@ -2460,17 +2552,30 @@ const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
 // A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
 const rideFor = (hub, d, extra) => { const leg=officeLeg(hub, d.lineId||lineIdOf(d.line))||officeLeg(hub,"circle");
   return { hub, from:hub, t:d.t, line:d.line, vehicle:d.vehicle, ...(d.dest?{dest:boardDest(d.dest)}:{}), rideMs:leg.rideMs, stop:leg.stop, stopGeo:leg.stopGeo, ...extra }; };
+// Completion is remembered: leaving the destination's GPS radius cannot revive the same ride.
+function finishRide(r,now){
+ const same=a=>a && a.t===r.t && (a.vehicle||"")===(r.vehicle||"");
+ if(same(state.saved.tubeRide))state.saved.tubeRide=null;
+ const pick=state.saved.tubePick;
+ if(pick && pick.t<=now+30e3 && (pick.hub===(r.from||r.hub)))state.saved.tubePick=null;
+ if(state.lastHub && state.lastHub.hub===(r.from||r.hub)){state.lastHub=null;state.saved.lastHub=null;}
+ if((r.from||r.hub)==="ALD")state.saved.aldHome=null;
+ save();
+}
 function currentRide(now){
-  if(direction()!=="office" || state.saved.mode==="leisure") return null;
-  const active = r => r && C.rideActive(r.rideMs ? r : rideFor(r.hub, r, r), now, fix()) ? (r.rideMs ? r : rideFor(r.hub, r, r)) : null;
-  let r=state.saved.tubeRide && state.saved.tubeRide.from!=="ALD" ? active(state.saved.tubeRide) : null;
-  if(r) return r;
-  const pk=state.saved.tubePick && state.saved.tubePick.hub!=="ALD" ? state.saved.tubePick : null;
-  if(pk && pk.t<=now+30e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }   // (an old pick: rideActive says it's over)
-  // A tube you picked here that hasn't left yet wins over working out an earlier one (same as going home).
-  else if(!(pk && state.lastHub && pk.hub===state.lastHub.hub) && onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
-  if(r){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); }
-  return r;
+ if(direction()!=="office" || state.saved.mode==="leisure")return null;
+ const active=r=>{
+  if(!r)return null;const ride=r.rideMs?r:rideFor(r.hub,r,r);
+  if(C.rideEnded(ride,now,fix())){finishRide(ride,now);return null;}
+  return C.rideActive(ride,now,fix())?ride:null;
+ };
+ let r=state.saved.tubeRide && state.saved.tubeRide.from!=="ALD"?active(state.saved.tubeRide):null;
+ if(r)return r;
+ const pk=state.saved.tubePick && state.saved.tubePick.hub!=="ALD"?state.saved.tubePick:null;
+ if(pk && pk.t<=now+30e3)r=active(rideFor(pk.hub,pk,{picked:true}));
+ else if(!(pk && state.lastHub && pk.hub===state.lastHub.hub) && onTubeAuto(now)){const w=whichTube(now);if(w)r=active(rideFor(state.lastHub.hub,w.best,{}));}
+ if(r){state.saved.tubeRide=r;state.saved.tubePick=null;save();}
+ return r;
 }
 const onTube = now => !!currentRide(now);
 const inLondonToOffice = now => C.inLondonToOffice(direction(), fix(), state.atHub, !!state.onLine, onTube(now||Date.now()), PROFILE);
@@ -2501,11 +2606,12 @@ function homeRide(now){
   const r0=state.saved.tubeRide;
   // A ride that's over is cleared, so it never blocks the next one (independent review: an old ride kept in storage
   // stopped every later tube being worked out).
-  if(r0 && r0.from==="ALD"){ if(C.rideActive(r0, now, fix())) return r0; state.saved.tubeRide=null; save(); }
+  if(r0 && r0.from==="ALD"){ if(C.rideEnded(r0,now,fix())){finishRide(r0,now);return null;} if(C.rideActive(r0, now, fix())) return r0; }
   let r=null; const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
   if(pk && pk.t<=now+30e3) r=homeRideFor(pk, now, {picked:true});
   // A tube you picked that hasn't left yet wins over working out an earlier one.
   else if(!pk && onTubeHomeAuto(now)){ const w=whichTubeHome(now); if(w) r=homeRideFor(w.best, now, {}); }
+  if(r && C.rideEnded(r,now,fix())){finishRide(r,now);return null;}
   if(r && C.rideActive(r, now, fix())){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); return r; }
   return null;
 }
@@ -2668,6 +2774,7 @@ function renderOnTrain(now, m){
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
+    ${m.conflict?`<div class="note"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
     ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
@@ -2791,7 +2898,7 @@ async function fetchToOffice(){
 }
 function renderInLondon(now){
   const s=S(), fast=state.saved.pace==="fast", dOff=km(state.here,OFFICE);
-  if(dOff<C.AT_OFFICE_KM){
+  if(C.atOffice(fix(),PROFILE)){
     $("#hero").innerHTML=`<div class="lbl">At the office · ${hhmm(now)}</div><div class="big"><span class="arr t">${hhmm(now)}</span><span class="arrlbl">you've arrived</span></div>`;
     $("#listTitle").textContent="Arrived"; $("#list").innerHTML=""; return now;
   }
@@ -3096,6 +3203,7 @@ function defaultBy(view){
 function byTarget(){ const v=$("#byDate").value, t=$("#byTime").value; if(!v||!t) return NaN; return new Date(`${v}T${t}:00`).getTime(); }
 // ---------- Leave around ----------
 async function planAt(){
+ const epoch=sourceEpoch;
   if(state.saved.view!=="at" || awaitingLocation()) return;
   const T=byTarget(), token={}; state.atToken=token;
   if(!isFinite(T)){ state.at={err:"Pick a day and time."}; render(); return; }
@@ -3109,19 +3217,19 @@ async function planAt(){
     let r;
     // Within reach of the live board: live times (every stop timed). Otherwise the timetable.
     if(canLiveAhead() && C.liveCovers("at", T, Date.now())){
-      try{ r=await fetchLiveAhead((T-Date.now())/60e3-15); r.live=true; }catch(e){ r=null; }
+      try{ r=await fetchLiveAhead((T-Date.now())/60e3-15);assertSource(epoch);r.live=true; }catch(e){if(epoch!==sourceEpoch)return;r=null;}
       // Live board doesn't reach far enough after your time: fill the rest from the timetable.
       if(r){ const hz=liveHorizon(r.boards);
         if(hz < T+100*60e3){
           const tt=await searchRoutes(boardKeys(), [k=>({t:Math.max(hz,T)+60e3, timeIs:"Departing"}), ...rounds.slice(1)]);
-          await completePairs(tt.boards, tt.diag); mergeBeyond(r.boards, tt.boards, hz); r.liveTo=hz; r.diag=tt.diag; } }
+          assertSource(epoch);await completePairs(tt.boards, tt.diag);assertSource(epoch);mergeBeyond(r.boards, tt.boards, hz); r.liveTo=hz; r.diag=tt.diag; } }
     }
-    if(!r){ r=await searchRoutes(boardKeys(), rounds); await completePairs(r.boards, r.diag); }
-    if(state.atToken!==token) return;
+    if(!r){assertSource(epoch);r=await searchRoutes(boardKeys(),rounds);assertSource(epoch);await completePairs(r.boards,r.diag);}
+    if(epoch!==sourceEpoch || state.atToken!==token) return;
     state.atCache[key]={boards:r.boards,failed:r.failed,at:Date.now(),live:!!r.live,liveTo:r.liveTo,diag:r.diag};
     state.at={T,boards:r.boards,failed:r.failed,live:!!r.live,liveTo:r.liveTo,diag:r.diag};
     if(Object.keys(r.failed).length) scheduleRouteRetry();
-  }catch(e){ if(state.atToken!==token) return; state.at={T,err:e.message}; }
+  }catch(e){ if(epoch!==sourceEpoch || state.atToken!==token) return; state.at={T,err:e.message}; }
   render();
 }
 function atOptions(){
@@ -3153,6 +3261,7 @@ function postTrain(hub){ const r=routeFor(hub); return r ? C.timeFromTrain(r) : 
 // for trains the other routes already found).
 const fetchTflArriving = (T, keys) => searchRoutes(keys||boardKeys(), C.arriveByRounds(T, hub=>postTrain(hub), roundOpts()));
 async function planBy(opts){
+ const epoch=sourceEpoch;
   if(state.saved.view!=="by" || awaitingLocation()) return;
   const missingOnly=!!(opts&&opts.missingOnly);
   const T=byTarget(), token={}; state.byToken=token;
@@ -3163,13 +3272,13 @@ async function planBy(opts){
   if(canLiveAhead() && C.liveCovers("by", T, Date.now())){
     const lkey=`live|${T}|${direction()}`; state.byCache=state.byCache||{}; const h=state.byCache[lkey];
     if(h && Date.now()-h.at<2*60e3){ state.by={T,boards:h.boards,failed:{},live:true,liveTo:h.liveTo,diag:h.diag}; render(); return; }
-    try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(state.byToken!==token) return;
+    try{ const r=await fetchLiveAhead((T-Date.now())/60e3-120); if(epoch!==sourceEpoch || state.byToken!==token) return;
       // Live board stops short of your arrival time: fill the rest from the timetable.
       const hz=liveHorizon(r.boards); let liveTo=null;
       let diag=null;
-      if(hz < T){ const tt=await fetchTflArriving(T); if(state.byToken!==token) return; await completePairs(tt.boards, tt.diag); mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; diag=tt.diag; }
+      if(hz < T){ const tt=await fetchTflArriving(T); if(epoch!==sourceEpoch || state.byToken!==token) return; assertSource(epoch);await completePairs(tt.boards, tt.diag);assertSource(epoch);mergeBeyond(r.boards, tt.boards, hz); liveTo=hz; diag=tt.diag; }
       state.byCache[lkey]={boards:r.boards,at:Date.now(),liveTo,diag}; state.by={T,boards:r.boards,failed:{},live:true,liveTo,diag}; render(); return; }
-    catch(e){ /* fall through to the timetable */ }
+    catch(e){if(epoch!==sourceEpoch)return; /* fall through to the timetable */ }
   }
   const key=`${T}|${state.saved.mode}|${direction()}`; state.byCache=state.byCache||{};
   const hit=state.byCache[key];
@@ -3179,15 +3288,15 @@ async function planBy(opts){
   if(!missingOnly || !hit) { state.by={T,loading:!hit,boards:hit&&hit.boards,failed:hit?hit.failed:{},live:false}; render(); }
   try{
     const r=await fetchTflArriving(T, fetchKeys);
-    if(state.byToken!==token) return;
+    if(epoch!==sourceEpoch || state.byToken!==token) return;
     const boards=Object.assign({}, hit?hit.boards:{}, ...Object.keys(r.boards).filter(k=>!r.failed[k]).map(k=>({[k]:r.boards[k]})));
     boardKeys().forEach(k=>{ boards[k]=boards[k]||{services:[],msgs:[]}; });
-    await completePairs(boards, r.diag); if(state.byToken!==token) return;
+    await completePairs(boards, r.diag); if(epoch!==sourceEpoch || state.byToken!==token) return;
     const failed=fetchKeys ? Object.fromEntries(fetchKeys.filter(k=>r.failed[k]).map(k=>[k,r.failed[k]])) : r.failed;
     state.byCache[key]={boards,failed,at:Date.now(),diag:r.diag};
     state.by={T,boards,failed,live:false,diag:r.diag};
     if(Object.keys(failed).length) scheduleRouteRetry();
-  }catch(e){ if(state.byToken!==token) return; state.by={T,err:e.message}; }
+  }catch(e){ if(epoch!==sourceEpoch || state.byToken!==token) return; state.by={T,err:e.message}; }
   render();
 }
 function byOptions(){
@@ -3328,17 +3437,19 @@ function tick(){
 function setBoards(b){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); }
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
+ const epoch=sourceEpoch;
   try{
-    const {boards,failed,diag}=await fetchTflBoards(); state.nowDiag=diag;
+    const {boards,failed,diag}=await fetchTflBoards();if(epoch!==sourceEpoch)return;state.nowDiag=diag;
     // A route that failed keeps its last good trains if they are for the same direction.
     Object.keys(failed).forEach(k=>{ if(prev && prev[k] && prev[k].services.length) boards[k]=prev[k]; });
     setBoards(boards); state.routeFailed=failed;
-  }catch(e){ state.errors.push(e.message); state.boards = boardsFit(prev) ? prev : null; state.routeFailed=Object.fromEntries(boardKeys().map(k=>[k,e.message])); }
+  }catch(e){ if(epoch!==sourceEpoch)return;state.errors.push(e.message); state.boards = boardsFit(prev) ? prev : null; state.routeFailed=Object.fromEntries(boardKeys().map(k=>[k,e.message])); }
   if(Object.keys(state.routeFailed||{}).length) scheduleRouteRetry();
 }
 // How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
 // a refresh you ask for, or a change of direction or settings, always runs.
 async function refresh(opts){
+ const epoch=sourceEpoch;
   const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
   if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
   if(!C.refreshDue(force, state.lastRefreshAt||null, Date.now())) return;
@@ -3355,25 +3466,25 @@ async function refresh(opts){
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },
       toOffice: state.toOffice ? { at:state.toOffice.at, movedKm: state.here ? km(state.toOffice.from,state.here) : 0 } : null,
       statusAt:state.statusAt||null, nrAt:state.nrAt||null });
-    const statusP = () => !plan.lineStatus ? Promise.resolve() : fetchTfl().then(v=>{state.status=v; state.statusAt=Date.now();}).catch(e=>{ if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrP = () => !plan.nrStatus ? Promise.resolve() : fetchNrStatus().then(v=>{ state.nrAt=Date.now(); return v; }).then(v=>{ if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    const statusP = () => !plan.lineStatus ? Promise.resolve() : fetchTfl().then(v=>{if(epoch!==sourceEpoch)return;state.status=v; state.statusAt=Date.now();}).catch(e=>{if(epoch!==sourceEpoch)return; if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
+    const nrP = () => !plan.nrStatus ? Promise.resolve() : fetchNrStatus().then(v=>{if(epoch!==sourceEpoch)return; state.nrAt=Date.now(); return v; }).then(v=>{if(epoch!==sourceEpoch)return; if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
     let railP=Promise.resolve();
     if(plan.rail==="toOffice"){
-      if(plan.toOfficeNeeded) railP=fetchToOffice().then(v=>{ state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{ state.toOfficeErr=e.message; });
+      if(plan.toOfficeNeeded) railP=fetchToOffice().then(v=>{if(epoch!==sourceEpoch)return; state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{if(epoch!==sourceEpoch)return; state.toOfficeErr=e.message; });
     }
     else if(plan.rail==="officeTubeArrivals"){
-      railP=fetchAldgateArrivals().then(a=>{ state.ald={at:Date.now(),arrivals:a,err:null}; }).catch(e=>{ state.ald={at:Date.now(),arrivals:null,err:e.message}; });
+      railP=fetchAldgateArrivals().then(a=>{if(epoch!==sourceEpoch)return; state.ald={at:Date.now(),arrivals:a,err:null}; }).catch(e=>{if(epoch!==sourceEpoch)return; state.ald={at:Date.now(),arrivals:null,err:e.message}; });
     }
     else if(plan.rail==="hubTubeArrivals"){
       const hub=state.atHub;
-      railP=fetchTubeArrivals(hub).then(a=>{ state.tube={hub,at:Date.now(),arrivals:a,err:null}; setLastHub({hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}); })
-        .catch(e=>{ state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
+      railP=fetchTubeArrivals(hub).then(a=>{if(epoch!==sourceEpoch)return; state.tube={hub,at:Date.now(),arrivals:a,err:null}; setLastHub({hub, seen:state.lastHub&&state.lastHub.hub===hub?state.lastHub.seen:Date.now(), arrivals:a}); })
+        .catch(e=>{if(epoch!==sourceEpoch)return; state.tube={hub,at:Date.now(),arrivals:null,err:e.message}; });
     }
     else if(plan.rail==="demo"){ setBoards(demoBoards(now)); }
     else if(plan.rail==="timetable"){ railP=loadTflTimetable(prev); }
     else if(plan.rail==="live"){
       const pairs=livePairs();
-      railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,plan.liveBack))).then(async rs=>{
+      railP=Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,plan.liveBack))).then(async rs=>{if(epoch!==sourceEpoch)return;
         const boards={}; let firstErr=null;
         rs.forEach((r,i)=>{ const k=pairs[i].join("-"); if(r.status==="fulfilled") boards[k]=r.value; else firstErr=firstErr||r.reason.message; });
         if(Object.keys(boards).length){
@@ -3387,33 +3498,34 @@ async function refresh(opts){
     }
     // Trains first, then line status, so a tight TfL limit is spent on the trains.
     const aldP = plan.officeTubeDeps
-      ? fetchAldgateDepartures().then(d=>{ state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{ state.aldDeps={at:Date.now(), list:null, err:e.message}; })
+      ? fetchAldgateDepartures().then(d=>{if(epoch!==sourceEpoch)return; state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{if(epoch!==sourceEpoch)return; state.aldDeps={at:Date.now(), list:null, err:e.message}; })
       : Promise.resolve();
-    await Promise.all([railP,refreshLondon(),aldP]);
-    await refreshTrainProgress();
+    await Promise.all([railP,refreshLondon(),aldP]);if(epoch!==sourceEpoch)return;
+    await refreshTrainProgress();if(epoch!==sourceEpoch)return;
     await Promise.all([statusP(),nrP()]);
   } catch(e){
-    state.errors.push("Something went wrong loading times. Pull to refresh or tap Refresh.");
+    if(epoch!==sourceEpoch)return;state.errors.push("Something went wrong loading times. Pull to refresh or tap Refresh.");
   } finally {
-    state.loading=false; state.fetchedAt=Date.now(); render();
+    if(epoch!==sourceEpoch)return;state.loading=false; state.fetchedAt=Date.now(); render();
   }
   if(state.again){ const f=state.again==="force"; state.again=false; refresh({force:f}); }
 }
 async function refreshLondon(){
+ const epoch=sourceEpoch;
   if(anyPlace() && state.saved.mode==="leisure" && direction()==="office"){
     const to=(state.saved.dest||"").trim();
     if(!to){ state.londonTo=null; state.londonToErr=""; return; }
     if(state.londonTo && state.londonTo.query===to && Date.now()-state.londonTo.at<5*60e3) return;
     if(S().provider==="demo"){ state.londonTo={query:to, at:Date.now(), name:to, ...demoLondon()}; state.londonToErr=""; return; }
-    try{ state.londonTo={query:to, at:Date.now(), ...await fetchLondonTo(to)}; state.londonToErr=""; }
-    catch(e){ state.londonTo=null; state.londonToErr=e.message||"Couldn't plan the London leg."; }
+    try{const result=await fetchLondonTo(to);if(epoch!==sourceEpoch)return;state.londonTo={query:to, at:Date.now(), ...result}; state.londonToErr=""; }
+    catch(e){ if(epoch!==sourceEpoch)return;state.londonTo=null; state.londonToErr=e.message||"Couldn't plan the London leg."; }
     return;
   }
   if(state.saved.mode!=="leisure" || direction()!=="home") return;
   if(S().provider==="demo"){ state.london=demoLondon(); state.londonErr=""; return; }
   const from=londonOrigin(); if(!from) return;
-  try{ state.london=await fetchLondon(from); state.londonErr=""; }
-  catch(e){ state.london=null; state.londonErr=e.message||"Couldn't plan the London leg."; }
+  try{const result=await fetchLondon(from);if(epoch!==sourceEpoch)return;state.london=result; state.londonErr=""; }
+  catch(e){ if(epoch!==sourceEpoch)return;state.london=null; state.londonErr=e.message||"Couldn't plan the London leg."; }
 }
 
 // ---------- Auto direction ----------
@@ -3421,7 +3533,7 @@ async function refreshLondon(){
 // otherwise heading to whichever end is further away. No time-of-day guessing.
 const LOC_HELP="Turn it on in iPhone Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, with Precise Location on. Or choose a direction above.";
 function onPosition(p){
-  const here=[p.coords.latitude,p.coords.longitude], acc=Math.round(p.coords.accuracy||0);
+  const here=[p.coords.latitude,p.coords.longitude], acc=Number.isFinite(p.coords.accuracy)&&p.coords.accuracy>=0?Math.round(p.coords.accuracy):null;
   const moved=!state.here || km(state.here,here)>0.2;
   state.here=here; state.locAcc=acc; state.locStatus="ok";
   const dLet=km(here,GEO.LET), dAld=km(here,GEO.ALD), prev=state.autoDir, prevHub=state.atHub;
@@ -3429,7 +3541,7 @@ function onPosition(p){
   // at King's Cross) keep the direction of the journey you started, for up to 3 hours.
   // (engine: near Letchworth setting off unless arriving home; at the office today → home; else the trip you started.)
   const today=new Date().toDateString();
-  const d=C.inferDirection(here, Date.now(), today, {trip:state.saved.trip, officeVisit:state.saved.officeVisit, officeSince:state.saved.officeSince, officeNearSince:state.saved.officeNearSince}, PROFILE);
+  const d=C.inferDirection(here, Date.now(), today, {trip:state.saved.trip, officeVisit:state.saved.officeVisit, officeSince:state.saved.officeSince, officeNearSince:state.saved.officeNearSince}, PROFILE, acc);
   state.autoDir=d.dir;
   if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null) || (d.mem.officeSince||null)!==(state.saved.officeSince||null) || (d.mem.officeNearSince||null)!==(state.saved.officeNearSince||null)){
     state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; state.saved.officeSince=d.mem.officeSince||undefined; state.saved.officeNearSince=d.mem.officeNearSince||undefined; save(); }
@@ -3451,7 +3563,7 @@ function onPosition(p){
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
-  const where = !state.atHub && km(here,OFFICE)<C.AT_OFFICE_KM ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
+  const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
   if(moved && state.saved.mode==="leisure" && !state.origin && (!state.londonAt || Date.now()-state.londonAt>60e3)){ state.londonAt=Date.now(); refreshLondon().then(render); }
@@ -3467,22 +3579,288 @@ function onPositionError(e){
   state.autoSrc = state.locStatus==="denied" ? "location is off for this app" : "can't get your location right now";
   render();
 }
+// Native fixes retain their device-clock age when only transport time is simulated.
+function receiveRealPosition(position){
+ if(S().simulatedFeeds && !S().simulatorEnabled){
+  const realNow=window.Date.now(),taken=Number.isFinite(position.timestamp)?position.timestamp:realNow;
+  const age=Math.max(0,realNow-taken);
+  onPosition({coords:position.coords,timestamp:simClock.now()-age});
+ }else onPosition(position);
+}
 function locate(){
+  if(sim.active && S().simulatorEnabled)return;
   if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
   if(!state.locStatus || state.locStatus!=="ok") state.locStatus = state.locStatus==="denied" ? "denied" : "pending";
   try{
     if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);   // restart after the app was in the background
-    state.watchId=navigator.geolocation.watchPosition(onPosition, onPositionError, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
+    const gen=sim.watchGeneration;
+    state.watchId=navigator.geolocation.watchPosition(p=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)receiveRealPosition(p);}, e=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)onPositionError(e);}, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
   }catch(e){ onPositionError(); }
 }
 // True when Auto is selected but the phone hasn't said where you are yet.
 const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 
+// Session-scoped virtual time. Never modifies window.Date or the user's system clock.
+function createJourneySimulationClock({NativeDate=Date}={}) {
+ let active=false,instant=null;
+ const start=(value)=>{const ms=NativeDate.parse(value);if(!Number.isFinite(ms))throw Error("Invalid simulation start time");active=true;instant=ms;return instant;};
+ const set=(value)=>{if(!active)throw Error("Simulation clock inactive");const ms=Number(value);if(!Number.isFinite(ms))throw Error("Invalid simulation instant");instant=ms;return instant;};
+ const advance=(minutes)=>set(instant+minutes*60000);
+ const stop=()=>{active=false;instant=null;};
+ const now=()=>active?instant:NativeDate.now();
+ const date=(...args)=>args.length?new NativeDate(...args):new NativeDate(now());
+ const ClockDate=class extends NativeDate { constructor(...args){super(...(args.length?args:[now()]));} static now(){return now();} };
+ return {start,set,advance,stop,now,date,ClockDate,get active(){return active;}};
+}
+
+// Session-only provider fixtures. All times are offsets from the scenario epoch,
+// so midnight does not rebuild a timetable and vehicle identities never change.
+function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}) {
+ const names={LET:"Letchworth Garden City",HIT:"Hitchin",SVG:"Stevenage",FPK:"Finsbury Park",KGX:"London Kings Cross",STP:"London St Pancras International",ZFD:"Farringdon"};
+ const minute=60000;
+ const fmt=t=>new Date(t).toLocaleTimeString("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hour12:false});
+ let fallbackStart;
+ function config(){
+  const c=scenario()||{};
+  if(fallbackStart==null){const d=new Date(now());d.setHours(c.direction==="return"?15:8,44,0,0);fallbackStart=d.getTime();}
+  const epoch=typeof c.startTime==="number"?c.startTime:Date.parse(c.startTime);
+  return {...c,startTime:Number.isFinite(epoch)?epoch:fallbackStart};
+ }
+ function services(){
+  const c=config(),base=c.startTime-(c.direction==="return"?420:0)*minute;
+  const mk=(id,from,to,dep,stops,operator)=>{
+   const selected=(c.direction==="return"?id.includes("HOME"):!id.includes("HOME"))&&(c.route==="far"?id.includes("TL"):id.includes("GN"))&&!id.includes("LATER");
+   // A corridor signalling restriction delays every train in this direction.
+   const inDirection=c.direction==="return"?id.includes("HOME"):!id.includes("HOME");
+   const delay=inDirection&&c.scenario==="delay"?8:0;
+   return {id,from,to,dep:base+dep*minute,arr:base+stops[stops.length-1][1]*minute,operator,delay,
+    cancelled:selected&&c.scenario==="cancellation",platform:selected&&c.scenario==="platform-change"?"4":from==="LET"?"2":"1",
+    calls:[[from,dep],...stops].map(([code,at])=>({code,t:base+at*minute}))};
+  };
+  const result=[
+   mk("SIM-GN-0905","LET","KGX",21,[["HIT",26],["SVG",32],["FPK",50],["KGX",57]],"Great Northern"),
+   mk("SIM-TL-0912","LET","ZFD",28,[["HIT",33],["SVG",40],["FPK",65],["STP",71],["ZFD",76]],"Thameslink"),
+   mk("SIM-GN-LATER-0917","LET","KGX",33,[["HIT",38],["SVG",44],["FPK",62],["KGX",69]],"Great Northern"),
+   mk("SIM-TL-LATER-0927","LET","ZFD",43,[["HIT",48],["SVG",55],["FPK",80],["STP",86],["ZFD",91]],"Thameslink"),
+   mk("SIM-GN-HOME-1617","KGX","LET",453,[["FPK",460],["SVG",477],["HIT",484],["LET",489]],"Great Northern"),
+   mk("SIM-TL-HOME-1620","ZFD","LET",456,[["STP",461],["FPK",467],["SVG",492],["HIT",499],["LET",504]],"Thameslink"),
+   mk("SIM-GN-HOME-LATER-1627","KGX","LET",463,[["FPK",470],["SVG",487],["HIT",494],["LET",499]],"Great Northern"),
+   mk("SIM-TL-HOME-LATER-1635","ZFD","LET",471,[["STP",476],["FPK",482],["SVG",507],["HIT",514],["LET",519]],"Thameslink")
+  ];
+  // Near-identical reports deliberately leave the inference engine uncertain.
+  // This changes provider evidence only; no service is selected in application state.
+  if(c.scenario==="uncertain"){
+   for(const [primary,other] of [[0,2],[1,3],[4,6],[5,7]]){
+    const a=result[primary],b=result[other],shift=a.dep+2*minute-b.dep;
+    b.dep+=shift;b.arr+=shift;b.calls=b.calls.map(p=>({...p,t:p.t+shift}));
+   }
+  }
+  return result;
+ }
+ const call=(s,p)=>({locationName:names[p.code],crs:p.code,st:fmt(p.t),et:s.cancelled?"Cancelled":s.delay?fmt(p.t+s.delay*minute):"On time",...(now()>=p.t+s.delay*minute&&!s.cancelled?{at:fmt(p.t+s.delay*minute)}:{})});
+ function train(s,from){
+  const index=s.calls.findIndex(p=>p.code===from),p=s.calls[index];
+  return {std:fmt(p.t),etd:s.cancelled?"Cancelled":s.delay?fmt(p.t+s.delay*minute):"On time",platform:s.platform,operator:s.operator,
+   serviceID:s.id,isCancelled:s.cancelled,cancelReason:s.cancelled?"Synthetic train crew shortage":"",delayReason:s.delay?"Synthetic signalling delay":"",
+   origin:[{locationName:names[s.from],crs:s.from}],destination:[{locationName:s.to==="ZFD"?"Brighton":s.to==="LET"?"Cambridge":names[s.to],crs:s.to}],
+   subsequentCallingPoints:[{callingPoint:s.calls.slice(index+1).map(p=>call(s,p))}]};
+ }
+ function board(from,to){
+  return {locationName:names[from]||from,crs:from,generatedAt:new Date(now()).toISOString(),trainServices:services().filter(s=>{
+   const a=s.calls.findIndex(p=>p.code===from),b=s.calls.findIndex(p=>p.code===to);return a>=0&&b>a;
+  }).map(s=>train(s,from)),nrccMessages:[]};
+ }
+ function details(id){
+  const s=services().find(s=>s.id===id);if(!s)return null;
+  return {...train(s,s.from),locationName:names[s.from],crs:s.from,...(now()>=s.dep+s.delay*minute&&!s.cancelled?{atd:fmt(s.dep+s.delay*minute)}:{}),
+   previousCallingPoints:[],subsequentCallingPoints:[{callingPoint:s.calls.slice(1).map(p=>call(s,p))}]};
+ }
+ function tube(url){
+  const c=config(),ret=c.direction==="return",route=c.route==="far"?"far":"kgx";
+  const railShift=["later-train","wrong-train","cancellation"].includes(c.scenario)?(ret?(route==="far"?15:10):(route==="far"?15:12)):c.scenario==="delay"?8:0;
+  const shift=c.scenario==="disruption"?5:0;
+  const stop=/StopPoint\/([^/]+)/i.exec(url)?.[1];
+  const offset=ret?({"940GZZLUALD":10,"940GZZLUBBN":18,"940GZZLUFCN":20,"940GZZLUKSX":24}[stop]):
+   ({"940GZZLUKSX":64,"940GZZLUFCN":route==="far"?83:69,"940GZZLUBBN":route==="far"?86:72,"940GZZLUALD":route==="far"?92:78}[stop]);
+  if(offset==null)return [];
+  return [-6,0,6,12,18,24].map((extra,i)=>{
+   const t=c.startTime+(offset+extra+shift+(ret?0:railShift))*minute;
+   return {vehicleId:`SIM-TUBE-${ret?"WEST":"EAST"}-${route}-${i}`,lineId:i%3===2?"circle":"metropolitan",direction:ret?"outbound":"inbound",
+    destinationName:ret?(i%3===2?"Edgware Road Underground Station":"Uxbridge Underground Station"):"Aldgate Underground Station",platformName:ret?"Westbound - Platform 1":"Eastbound - Platform 2",
+    expectedArrival:new Date(t).toISOString(),timeToStation:Math.round((t-now())/1000)};
+  }).filter(a=>a.timeToStation>=0&&a.timeToStation<=1800);
+ }
+ function journey(s,from,to){
+  const a=s.calls.find(p=>p.code===from),b=s.calls.find(p=>p.code===to);
+  return {legs:[{mode:{id:"national-rail"},departureTime:new Date(a.t+s.delay*minute).toISOString(),scheduledDepartureTime:new Date(a.t).toISOString(),
+   arrivalTime:new Date(b.t+s.delay*minute).toISOString(),departurePoint:{commonName:names[from]+" Rail Station"},arrivalPoint:{commonName:names[to]+" Rail Station"},instruction:{summary:s.operator},
+   path:{stopPoints:s.calls.slice(s.calls.indexOf(a)+1,s.calls.indexOf(b)).map(p=>({name:names[p.code]+" Rail Station"}))}}]};
+ }
+ function localJourney(from,to){
+  const known={"940GZZLUKSX":[51.5307,-.1237],"940GZZLUFCN":[51.5205,-.1053],"940GZZLUALD":[51.5142,-.0755],"Science Museum":[51.4967,-.1764],"SW7 2DD":[51.4967,-.1764],"office":[51.5139,-.071]};
+  const location=v=>{if(known[v])return known[v];if(!/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(v))return null;const p=v.split(',').map(Number);return p[0]>51.3&&p[0]<51.7&&p[1]>-.6&&p[1]<.3?p:null;};
+  const a=location(from),b=location(to);if(!a||!b)return null;
+  const distance=111*Math.hypot(a[0]-b[0],(a[1]-b[1])*.62),walk=distance<=1.5;
+  const duration=walk?Math.max(1,Math.ceil(distance*1.3/4.3*60)):Math.ceil(8+distance/25*60);
+  const departure=now(),arrival=departure+duration*minute;
+  const point=(name,p)=>({commonName:name,lat:p[0],lon:p[1]});
+  const legs=walk?[{mode:{id:"walking",name:"Walking"},duration,departureTime:new Date(departure).toISOString(),arrivalTime:new Date(arrival).toISOString(),departurePoint:point(from,a),arrivalPoint:point(to,b),instruction:{summary:"Walk to destination"}}]:[
+   {mode:{id:"walking",name:"Walking"},duration:4,departureTime:new Date(departure).toISOString(),arrivalTime:new Date(departure+4*minute).toISOString(),departurePoint:point(from,a),arrivalPoint:point("Underground platforms",a),instruction:{summary:"Walk to Underground platforms"}},
+   {mode:{id:"tube",name:"Underground"},duration:duration-8,departureTime:new Date(departure+4*minute).toISOString(),arrivalTime:new Date(arrival-4*minute).toISOString(),departurePoint:point("Underground platforms",a),arrivalPoint:point("Destination Underground platforms",b),routeOptions:[{name:"Circle"}],instruction:{summary:"Circle line towards destination"}},
+   {mode:{id:"walking",name:"Walking"},duration:4,departureTime:new Date(arrival-4*minute).toISOString(),arrivalTime:new Date(arrival).toISOString(),departurePoint:point("Destination Underground platforms",b),arrivalPoint:point(to,b),instruction:{summary:"Walk to destination"}}];
+  return {duration,startDateTime:new Date(departure).toISOString(),arrivalDateTime:new Date(arrival).toISOString(),legs};
+ }
+ const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>JSON.parse(JSON.stringify(body)),text:async()=>JSON.stringify(body)});
+ function respond(url){
+  const u=String(url),c=config(),elapsed=(now()-c.startTime)/minute;
+  if(c.scenario==="outage"&&elapsed>=16&&elapsed<40)return response({message:"Synthetic provider outage; recovery at minute 40"},503);
+  const boardMatch=/GetDepBoardWithDetails\/([A-Z]{3})(?:\?|$)/i.exec(u),dest=/filterCrs=([A-Z]{3})/i.exec(u),proxy=/\/board\/([A-Z]{3})\/([A-Z]{3})/i.exec(u),huxley=/\/departures\/([A-Z]{3})\/to\/([A-Z]{3})/i.exec(u);
+  if(boardMatch)return response(board(boardMatch[1].toUpperCase(),dest?dest[1].toUpperCase():"KGX"));
+  if(proxy||huxley){const m=proxy||huxley;return response(board(m[1].toUpperCase(),m[2].toUpperCase()));}
+  if(/GetServiceDetails\//i.test(u)){const s=details(decodeURIComponent(u.split(/GetServiceDetails\//i)[1].split("?")[0]));return response(s||{message:"Unknown synthetic service"},s?200:404);}
+  if(/trackernet\//i.test(u))return response({message:"TrackerNet is unsupported in synthetic feeds; no live request was sent"},501);
+  if(/StopPoint\/.*\/Arrivals/i.test(u))return response(tube(u));
+  if(/Line\//i.test(u))return response(c.scenario==="disruption"?[{id:"metropolitan",name:"Metropolitan",lineStatuses:[{statusSeverity:6,statusSeverityDescription:"Severe Delays",reason:"Synthetic signal failure"}]}]:[]);
+  if(/Journey\/JourneyResults\//i.test(u)){
+   // Coordinate pairs used by normal rail search. Other journeys explicitly fail,
+   // ensuring unsupported fixtures cannot masquerade as a successful empty route.
+   const coordinates={"51.98002,-0.22909":"LET","51.53197,-0.12341":"KGX","51.53062,-0.12594":"STP","51.52036,-0.10514":"ZFD"};
+   const m=/JourneyResults\/([^/]+)\/to\/([^?]+)/i.exec(decodeURIComponent(u));
+   const from=m&&(coordinates[m[1]]||m[1]),to=m&&(coordinates[m[2]]||m[2]);
+   const found=services().filter(s=>!s.cancelled&&s.calls.some(p=>p.code===from)&&s.calls.findIndex(p=>p.code===to)>s.calls.findIndex(p=>p.code===from));
+   if(found.length)return response({journeys:found.map(s=>journey(s,from,to))});
+   const local=localJourney(from,to);
+   return local?response({journeys:[local]}):response({message:"Unsupported synthetic Journey Planner endpoints"},422);
+  }
+  return response({message:"Unsupported synthetic provider URL"},501);
+ }
+ return {respond,services,board,details,tube};
+}
+
+// Session-local scenario definitions; no application state or inference.
+function createJourneySimulationScenarioDefinitions(){
+const points={home:[51.975,-0.23],walk:[51.9775,-0.2295],let:[51.98002,-0.22909],
+ north:[51.9017,-0.2071],approach:[51.5646,-0.1063],kgx:[51.53197,-0.12341],stp:[51.53062,-0.12594],
+ far:[51.52036,-0.10514],farTube:[51.5205,-0.1053],kxTube:[51.5307,-0.1237],
+ barbican:[51.5201,-0.0973],ald:[51.5142,-0.0755],officeWalk:[51.5140,-0.0733],office:[51.5139,-0.071],nearHome:[51.978,-0.2295]};
+// Separate outbound/return schedules: minutes from 08:44 / 15:44 UTC by default.
+const routes={
+ 'outbound-kgx':[['home','Home',0],['walk','Travelling to Letchworth',8],['let','Waiting at Letchworth',16],['let','Board Great Northern',21,'rail'],['north','On train at Stevenage',32,'rail'],['approach','Approaching King’s Cross',50,'rail'],['kgx','Alight at King’s Cross',57],['kxTube','Walk to Underground platforms',63],['kxTube','Board eastbound Underground',64,'tube'],['barbican','Barbican — GPS returns',72,'tube'],['ald','Alight at Aldgate',78],['officeWalk','Walking to office',82],['office','Arrive at office',86],['office','Office dwell',97]],
+ 'outbound-far':[['home','Home',0],['walk','Travelling to Letchworth',8],['let','Waiting at Letchworth',16],['let','Board Thameslink',28,'rail'],['north','On train at Stevenage',40,'rail'],['approach','Approaching St Pancras',65,'rail'],['stp','Passing St Pancras',71,'rail'],['far','Alight at Farringdon',76],['farTube','Walk to Underground platforms',80],['farTube','Board eastbound Underground',83,'tube'],['barbican','Barbican — GPS returns',86,'tube'],['ald','Alight at Aldgate',92],['officeWalk','Walking to office',96],['office','Arrive at office',100],['office','Office dwell',111]],
+ 'return-kgx':[['office','Office',0],['officeWalk','Walking to Aldgate',3],['ald','At Aldgate westbound platforms',7],['ald','Board westbound Underground',10,'tube'],['barbican','Barbican — GPS returns',18,'tube'],['kxTube','Alight at King’s Cross St Pancras',24],['kgx','Waiting at King’s Cross National Rail',28],['kgx','Board Great Northern for Letchworth',33,'rail'],['approach','Leaving London',40,'rail'],['north','On train at Stevenage',57,'rail'],['let','Alight at Letchworth',69],['nearHome','Nearly home',74],['home','Arrive home',80]],
+ 'return-far':[['office','Office',0],['officeWalk','Walking to Aldgate',3],['ald','At Aldgate westbound platforms',7],['ald','Board westbound Underground',10,'tube'],['barbican','Barbican — GPS returns',18,'tube'],['farTube','Alight at Farringdon',20],['far','Waiting on northbound Thameslink platform',28],['far','Board Thameslink for Letchworth',36,'rail'],['stp','Passing St Pancras northbound',41,'rail'],['approach','Leaving London',49,'rail'],['north','On train at Stevenage',72,'rail'],['let','Alight at Letchworth',84],['nearHome','Nearly home',89],['home','Arrive home',95]]
+};
+const railLine=[points.let,[51.9533,-0.2635],points.north,[51.8667,-0.1876],[51.8233,-0.1920],[51.8010,-0.2040],[51.7638,-0.2156],[51.6973,-0.1925],[51.6141,-0.1431],[51.5983,-0.1201],points.approach,points.kgx];
+return {points,routes,railLine};
+}
+
+// Synthetic browser-position provider. It emits observations only, never journey conclusions.
+function createSimulatedGPSProvider({now,onPosition}){
+ return {emit(latitude,longitude,accuracy,speed=null){
+  if(![latitude,longitude,accuracy].every(Number.isFinite)||Math.abs(latitude)>90||Math.abs(longitude)>180||accuracy<0)throw new Error("Invalid simulated GPS observation");
+  onPosition({coords:{latitude,longitude,accuracy,speed},timestamp:now()});
+ }};
+}
+function interpolateSimulatedPosition(a,b,f,isRail,railLine){
+ if(!isRail)return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];
+ const near=q=>railLine.reduce((best,p,i)=>Math.hypot(p[0]-q[0],(p[1]-q[1])*.62)<best.d?{i,d:Math.hypot(p[0]-q[0],(p[1]-q[1])*.62)}:best,{i:0,d:Infinity}).i;
+ const ia=near(a),ib=near(b),middle=ia<ib?railLine.slice(ia+1,ib):railLine.slice(ib+1,ia).reverse(),path=[a,...middle,b];
+ const ds=path.slice(1).map((q,i)=>Math.hypot(q[0]-path[i][0],(q[1]-path[i][1])*.62));let distance=ds.reduce((x,y)=>x+y,0)*f;
+ for(let i=0;i<ds.length;i++){if(distance<=ds[i]||i===ds.length-1){const t=ds[i]?distance/ds[i]:0;return [path[i][0]+(path[i+1][0]-path[i][0])*t,path[i][1]+(path[i+1][1]-path[i][1])*t];}distance-=ds[i];}
+ return b;
+}
+
+// Simulator orchestration. GPS enters the normal browser-position handler; no train identity is injected.
+function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onStop=()=>{}}) {
+const $=id=>document.getElementById(id);
+const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null};
+const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
+const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
+function getScenario(){return {route:$("simPath").value,direction:$("simDirection").value,scenario:$("simScenario").value,startTime:sim.startTime??startTime()};}
+function startTime(){return Date.parse($("simDate").value+'Z');}
+function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let boarded=false;
+ const shift=['later-train','wrong-train','cancellation'].includes(c.scenario)?(c.route==='far'?15:c.direction==='return'?10:12):c.scenario==='delay'?8:0;
+ let tubeBoarded=false;
+ return raw.map(([point,label,at,mode])=>{if(mode==='rail')boarded=true;if(mode==='tube')tubeBoarded=true;
+ const tubeShift=c.scenario==='missed-connection'?6:c.scenario==='disruption'?5:0;
+ let adjustment=boarded?shift:0;
+ if(tubeShift&&tubeBoarded){if(c.direction==='return'&&boarded)adjustment=c.route==='far'?15:10;else adjustment+=tubeShift;}
+ return {point,label,at:at+adjustment,mode};});}
+function status(message){$("simStatus").textContent=message;updateTime();}
+function updateTime(){const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';}
+function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;}
+function resetContext(preserveLiveLocation=!S().simulatorEnabled){
+ invalidateSources();
+ const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
+ for(const key of ['autoDir','atHub','hubSince','lastAwayAt','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london'])state[key]=null;
+ state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
+}
+function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub'])delete state.saved[key];}
+function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
+ sim.baseline=JSON.parse(JSON.stringify(state.saved));
+ const home=sim.baseline.home;
+ if(Array.isArray(home)&&home.length===2&&home.every(Number.isFinite)&&Math.abs(home[0])<=90&&Math.abs(home[1])<=180){
+  points.home=home.slice();points.walk=[(home[0]+points.let[0])/2,(home[1]+points.let[1])/2];
+  points.nearHome=[home[0]+(points.let[0]-home[0])*.25,home[1]+(points.let[1]-home[1])*.25];
+ }sim.active=true;if(S().simulatorEnabled)sim.watchGeneration++;
+ if(S().simulatorEnabled&&state.watchId!=null){try{navigator.geolocation.clearWatch(state.watchId);}catch(e){}state.watchId=null;}
+ clearJourneyMemory();resetContext();$("simBar").hidden=false;return true;
+}
+function syncClock(){if(S().simulatedFeeds){if(!clock.active)clock.start(new Date(sim.startTime).toISOString());clock.set(sim.startTime+sim.elapsed*60000);}updateTime();}
+function accuracy(p){const mode=$("simAccuracyMode").value;if(mode==='manual')return Number($("simAccuracy").value);
+ if(mode==='poor'||getScenario().scenario==='low-accuracy')return p.mode==='rail'?([180,800,1400][sim.index%3]):['home','office'].includes(p.point)?650:350;
+ return p.mode==='rail'?45:12;}
+function fix(lat,lon,speed=0,acc=Number($("simAccuracy").value)){
+ if(!S().simulatorEnabled)return;
+ if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||!Number.isFinite(acc)||acc<0){status('Invalid coordinates or accuracy');return;}
+ if(!start())return;
+ $("simLat").value=String(lat);$("simLon").value=String(lon);
+ gps.emit(lat,lon,acc,speed);
+ $("simFixStatus").textContent=`GPS ${lat.toFixed(5)}, ${lon.toFixed(5)} ±${acc} m`;
+}
+function emit(p,speed=0){const scenario=getScenario().scenario;
+ if(scenario==='uncertain'&&p.mode==='rail'&&p.point!=='north'&&!route().slice(0,sim.index).some(x=>x.point==='north')){$("simFixStatus").textContent='Train: GPS unavailable until Stevenage';return;}
+ if(scenario==='awaiting-location'||scenario==='permission-denied'){
+ if(S().simulatorEnabled){state.here=null;state.autoDir=null;if(scenario==='permission-denied'&&onPositionError)onPositionError({code:1});else {state.locStatus='pending';state.autoSrc='finding your location…';render();}}
+ $("simFixStatus").textContent=scenario==='permission-denied'?'Location permission denied':'Awaiting location';return;}
+ if(p.mode==='tube'&&p.point!=='barbican'&&(scenario==='gps-loss'||scenario==='normal'||scenario==='low-accuracy')){
+ if(S().simulatorEnabled&&onPositionError)onPositionError({code:2});$("simFixStatus").textContent='Underground: no usable GPS fix';return;}
+ fix(...points[p.point],speed,accuracy(p));
+}
+function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textContent=`${p.label} · ${sim.index+1}/${r.length}`;$("simNext").textContent=r[sim.index+1]?.label||'Journey complete';status('Paused at '+p.label+'. Press Continue to next waypoint.');}
+function restart(){stopTimer();if(!start())return;const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.elapsed=0;sim.index=0;clearJourneyMemory();resetContext();syncClock();emit(route()[0]);checkpoint();refresh({force:true});}
+// Follow the same approximate corridor as the profile rather than cutting across the bends.
+function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
+ const speed=Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
+ const a=points[p.point],b=points[next.point],f=(sim.elapsed-p.at)/Math.max(.001,next.at-p.at);
+ // Rail travel uses explicit speed evidence. Tube travel withholds GPS except at exposed sections.
+ if(getScenario().scenario==='uncertain'&&next.mode==='rail'&&!route().slice(0,sim.index+1).some(x=>x.point==='north')&&f<1){$("simFixStatus").textContent='Train: GPS unavailable until Stevenage';}
+ else if((next.mode==='tube'||p.mode==='tube')&&f<1&&!(getScenario().scenario==='missed-connection'&&next.label.startsWith('Board')&&p.mode!=='tube')){if(S().simulatorEnabled&&onPositionError)onPositionError({code:2});$("simFixStatus").textContent='Underground: no usable GPS fix';}
+ else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,next.mode==='rail',railLine),next.mode==='rail'?25:1.4,accuracy(next));
+ if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
+}
+function continuePlayback(){if(!sim.active||sim.startTime===null){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
+function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
+function simSetup(){
+ $("simPanel").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
+ $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',()=>{stopTimer();status('Paused');});$("simExit").addEventListener('click',simStop);
+ $("simJump").addEventListener('click',()=>{stopTimer();const p=points[$("simPreset").value];if(p)fix(...p);status('Manual GPS fix applied');});
+ $("simApply").addEventListener('click',()=>{stopTimer();fix(Number($("simLat").value),Number($("simLon").value));});
+ $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');}});
+ for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';sim.startTime=null;sim.index=0;sim.elapsed=0;status('Selection changed. Press Restart.');});
+ updateTime();
+}
+return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateTime};
+}
+
+const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
+const {sim,simSetup,simStop}=simulator;
+const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
+  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
 }
@@ -3496,6 +3874,8 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_simulator").checked) o.simulatorEnabled=true;
+  if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -3510,10 +3890,12 @@ $("#setHomeBtn").addEventListener("click",()=>{
 const CAPTURE_URLS = ["https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals",
   "https://api.tfl.gov.uk/trackernet/PredictionDetailed/M/ALD", "https://api.tfl.gov.uk/trackernet/PredictionDetailed/H/ALD"];
 async function captureAldgate(){
+  const epoch=sourceEpoch;
   const k=S().tflKey, hide=t=>k ? String(t).split(k).join("***") : String(t), out=[`Captured ${new Date().toISOString()} (${hhmm(Date.now())} London)`];
   for(const u of CAPTURE_URLS){
+    if(epoch!==sourceEpoch)return "Capture discarded because the transport source changed.";
     try{ const r=await fetchT(tflUrl(u)); const body=await r.text(); out.push(`== ${u}\nHTTP ${r.status}\n${body.slice(0,30000)}`); }
-    catch(e){ out.push(`== ${u}\nfailed: ${e.message}`); }
+    catch(e){ if(epoch!==sourceEpoch)return "Capture discarded because the transport source changed.";out.push(`== ${u}\nfailed: ${e.message}`); }
   }
   return hide(out.join("\n\n"));
 }
@@ -3526,7 +3908,27 @@ $("#captureShareBtn").addEventListener("click", async ()=>{
   catch(e){ $("#captureOut").select(); }
 });
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
-$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; state.byCache={}; refresh({force:true}); });
+$("#settingsForm").addEventListener("submit",e=>{
+ e.preventDefault();const next=readSettings();
+ let resetInvalidStart=false;
+ if(next.simulatedFeeds && !Number.isFinite(window.Date.parse(document.getElementById("simDate").value+'Z'))){
+  document.getElementById("simDate").value=document.getElementById("simDirection").value==="return"?"2026-11-03T15:44":"2026-11-03T08:44";
+  resetInvalidStart=true;
+ }
+ const modeChanged=!!S().simulatorEnabled!==!!next.simulatorEnabled || !!S().simulatedFeeds!==!!next.simulatedFeeds;
+ if(modeChanged){simStop({resume:false});endSimulationSession();}
+ invalidateSources();
+ if(next.simulatorEnabled || next.simulatedFeeds)beginSimulationSession();
+ state.saved.settings=next;
+ if(next.simulatedFeeds && !simClock.active)simClock.start(new window.Date(document.getElementById("simDate").value+'Z').toISOString());
+ if(!next.simulatedFeeds)simClock.stop();
+ save();dlg.close();document.getElementById("simPanel").hidden=!next.simulatorEnabled&&!next.simulatedFeeds;
+ document.getElementById("simBar").hidden=!next.simulatedFeeds&&!sim.active;
+ simulator.updateTime();
+ if(resetInvalidStart)document.getElementById("simStatus").textContent="Invalid start time was reset to the displayed default. Select a valid date/time before Start.";
+ if(modeChanged)locate();
+ state.boards=null;state.byCache={};refresh({force:true});
+});
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
@@ -3552,15 +3954,18 @@ $("#refreshBtn").addEventListener("click",()=>refresh({force:true,manual:true}))
 const RELOCATE_MS = () => (window.COMMUTE_RELOCATE_MS ?? 5000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
   const back=Date.now();
-  if(state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable") locate();
+  if(!sim.active && (state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable")) locate();
   // (When a position arrived, not when it was taken: iOS often hands over a cached one up to 30 s old.)
-  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
+  else if(!sim.active) setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
   if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
+
+window.addEventListener("pagehide",invalidateSources);
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
 if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
-locate(); render(); refresh({force:true}).then(()=>planView());
+if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
+simSetup(); locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
 // Every 30 s when minutes matter: at a London station, on the tube, at Letchworth station or on your way there.
@@ -3570,7 +3975,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

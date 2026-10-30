@@ -156,3 +156,8 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
 - tests/rules.test.mjs: "Review 3: a picked tube that's delayed starts your ride at its new time; GPS drift at home isn't leaving"
 - tests/rules.test.mjs: "Review 3: on an H&C ride, 'Your lines' is the H&C"
+
+## Destination accuracy (30 October simulator audit)
+- Ending a ride from GPS requires a fix taken no earlier than departure minus the existing 30-second leaving allowance, no more than one minute old (the existing ride-confirmation freshness rule), and no future timestamp. Its entire uncertainty circle must lie within the existing 300 m destination radius. Unknown or poor accuracy does not end a ride; precise recovery can. The existing ride duration plus 10-minute expiry still applies without GPS.
+- `rideEnded` distinguishes positive completion from a ride which has not started yet, allowing the shell to persist completion without resurrecting an old selected departure.
+- tests/core/connections.test.mjs: "Ride completion requires fresh destination GPS with its uncertainty inside the stop radius"

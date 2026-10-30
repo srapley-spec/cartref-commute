@@ -283,3 +283,37 @@ Newest first. One line each; the story or issue holds the detail.
 - **28 Oct** Top-card rule. → [top-card](stories/top-card.md)
 - **28 Oct** Four-layer re-architecture, in steps that keep the live app unchanged and all tests green.
 - **28 Oct** People and trips requirements (Laura, nursery, day out). → [people-and-trips](stories/people-and-trips.md)
+
+## Journey simulator (release verification in progress)
+The web shell injects independent session-only GPS and transport providers from `src/simulator`.
+The simulator clock supplies a scoped Date wrapper; the global browser clock is unchanged. GPS-only
+playback uses device time; feed simulation uses a selectable frozen virtual epoch advanced only by
+playback. Native GPS observation timestamps are translated into that epoch in feed-only mode.
+
+GPS (`gps.js`), scenario definitions (`scenarios.js`), provider fixtures, controller/UI and virtual clock are separate from the pure production engine.
+`tools/build.mjs` embeds their modules into the static page. Routes have separate outbound/return
+schedules, explicit checkpoints, service alternatives and Underground vehicle progress. Accuracy
+and no-fix scenarios exercise the normal location and inference paths.
+
+Simulation sessions snapshot saved journey memory, suppress persistence and reset transient caches.
+A source epoch guards requests, response bodies, asynchronous callbacks and retries across switches,
+restart and Stop. Reload always restores real operation. See [journey simulator](stories/journey-simulator.md),
+[coverage](simulator-scenario-coverage.md), and [independent review](simulator-review.md) for verification
+and outstanding release gates. GitHub-first release applies because this changes location, timing,
+feed requests, saved-state isolation and generated build integration.
+
+### Simulator time audit
+The shell's lexical Date wrapper supplies current time to board parsing, service matching, direction
+memory, arrival/leave date inputs, stale-fix checks, request counts, cache ages, backoff and refresh
+throttling. Core functions receive current instants; their Date construction formats or derives dates
+from explicit inputs. No core function reads Date.now. Simulator provider times use the same supplied
+epoch and remain anchored across midnight. Native location timestamps carry observation age into the
+virtual epoch in feed-only mode. Browser intervals schedule work but do not themselves advance virtual
+time: only playback ticks do. A paused or backgrounded scenario does not catch up to wall time.
+Source changes, restart and Stop abort old requests, invalidate response-body epochs, invalidate planner
+tokens/retry timers, clear progress and all timestamped caches and reset throttles. Global browser Date
+and device time remain unchanged; old virtual timestamps never return to real cache reuse decisions.
+
+Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
+progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
+ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.

@@ -1,0 +1,33 @@
+import test,{after} from "node:test";
+import assert from "node:assert/strict";
+import {createApp,closeAll,sleep} from "./harness.mjs";
+after(closeAll);
+test("separate feed switch defaults off and synthetic transport requests avoid live fetch",async()=>{
+ const app=await createApp({settle:100});
+ const d=app.d,w=app.w;
+ assert.equal(d.querySelector("#s_simulatedFeeds").checked,false);
+ d.querySelector("#settingsBtn").click();
+ d.querySelector("#s_simulatedFeeds").checked=true;
+ d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+ assert.equal(app.c.S().simulatedFeeds,true);
+ const prior=app.calls.length;
+ const response=await app.c.fetchT("https://api1.raildata.org.uk/GetDepBoardWithDetails/LET?filterCrs=KGX");
+ const data=await response.json();
+ assert.ok(data.trainServices.length>=2);
+ assert.equal(app.calls.length,prior);
+ assert.notEqual(data.trainServices[0].serviceID,data.trainServices[1].serviceID);
+ d.querySelector("#settingsBtn").click();
+ d.querySelector("#s_simulatedFeeds").checked=false;
+ d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+ assert.equal(app.c.S().simulatedFeeds,false);
+});
+test("Aldgate diagnostic capture reads synthetic text and refuses TrackerNet without live requests",async()=>{
+ const app=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:60});
+ app.d.querySelector('#settingsBtn').click();app.d.querySelector('#s_simulatedFeeds').checked=true;
+ app.d.querySelector('#settingsForm').dispatchEvent(new app.w.Event('submit',{bubbles:true,cancelable:true}));
+ await sleep(100);
+ const before=app.calls.length;
+ const result=await app.c.captureAldgate();
+ assert.match(result,/HTTP 200/);assert.match(result,/HTTP 501/);assert.match(result,/TrackerNet is unsupported in synthetic feeds/);assert.doesNotMatch(result,/failed:|text is not a function/);
+ assert.equal(app.calls.length,before,'diagnostic capture never leaves synthetic feed boundary');
+});
