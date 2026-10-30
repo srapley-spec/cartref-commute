@@ -112,7 +112,7 @@ function simSetup(){
   document.getElementById("simPlay").addEventListener("click",()=>{
     simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;simFix(...SIM_POINTS[simRoute()[0].point]);simWaypoint();
   });
-  for(const id of ["simDirection","simPath"])document.getElementById(id).addEventListener("change",()=>{simStopTimer();sim.elapsed=0;sim.index=0;simResetContext();simStatus("Route changed. Press Restart.");});
+  for(const id of ["simDirection","simPath"])document.getElementById(id).addEventListener("change",()=>{simStopTimer();sim.elapsed=0;sim.index=0;if(sim.active)simResetContext();simStatus("Route changed. Press Restart.");});
   document.getElementById("simContinue").addEventListener("click",simContinue);
   document.getElementById("simPause").addEventListener("click",()=>{simStopTimer();simStatus("Paused");});
   document.getElementById("simClear").addEventListener("click",()=>{simStopTimer();simStart();simResetContext();sim.index=0;sim.elapsed=0;render();simStatus("Journey context cleared");});
