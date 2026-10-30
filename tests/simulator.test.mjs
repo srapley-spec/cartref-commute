@@ -1,0 +1,40 @@
+import test, { after } from "node:test";
+import assert from "node:assert/strict";
+import { createApp, closeAll } from "./harness.mjs";
+after(closeAll);
+
+test("developer simulator defaults off and toggles from Settings", async () => {
+  const app = await createApp({ settle: 120 });
+  const d = app.d, w = app.w;
+  assert.equal(d.querySelector("#simPanel").hidden, true);
+  assert.equal(d.querySelector("#s_simulator").checked, false);
+  d.querySelector("#settingsBtn").click();
+  d.querySelector("#s_simulator").checked = true;
+  d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit", {bubbles:true,cancelable:true}));
+  assert.equal(d.querySelector("#simPanel").hidden, false);
+  assert.equal(app.c.S().simulatorEnabled, true);
+  d.querySelector("#simPreset").value = "far";
+  d.querySelector("#simJump").click();
+  assert.equal(d.querySelector("#simBar").hidden, false);
+  assert.ok(app.c.state.here && Math.abs(app.c.state.here[0]-51.52036)<0.0001);
+  d.querySelector("#settingsBtn").click();
+  d.querySelector("#s_simulator").checked = false;
+  d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit", {bubbles:true,cancelable:true}));
+  assert.equal(d.querySelector("#simPanel").hidden, true);
+  assert.equal(d.querySelector("#simBar").hidden, true);
+  assert.equal(app.c.S().simulatorEnabled, false);
+  assert.equal(app.c.state.here, null);
+});
+test("simulated fixes do not overwrite persisted journey context",async ()=>{
+  const app=await createApp({settle:120});
+  const d=app.d,w=app.w;
+  d.querySelector("#settingsBtn").click();
+  d.querySelector("#s_simulator").checked=true;
+  d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+  const baseline=w.localStorage.getItem("cartrefCommute.v1");
+  d.querySelector("#simPreset").value="far";
+  d.querySelector("#simJump").click();
+  assert.equal(w.localStorage.getItem("cartrefCommute.v1"),baseline);
+  d.querySelector("#simExit").click();
+  assert.equal(w.localStorage.getItem("cartrefCommute.v1"),baseline);
+});
