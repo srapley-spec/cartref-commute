@@ -1,23 +1,34 @@
 <style>
-#simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
-#simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
-#simPanel label{display:block;margin:8px 0 3px}#simPanel input,#simPanel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #777;border-radius:5px}
-#simPanel button,#simBar button{padding:7px 10px;margin:4px 3px 4px 0;border:1px solid #777;border-radius:6px;cursor:pointer}
-#simPanel .simRow{display:flex;gap:5px;flex-wrap:wrap}#simPanel .simRow button{flex:1}#simPanel small{display:block;color:#555}
+#simDock{position:fixed;z-index:9998;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;max-height:100vh;max-height:100dvh;pointer-events:none;font:14px system-ui;color:var(--ink)}
+#simPanel{pointer-events:auto;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:65vh;max-height:65dvh;overflow:auto;padding:14px;border:2px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
+#simBar{pointer-events:auto;flex-shrink:0;width:100%;background:var(--card);color:var(--ink);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--muted);box-shadow:0 -2px 15px #0003;text-align:center}
+#simActivity{display:block;margin-bottom:6px;font-weight:700}
+#simPanel label{display:block;margin:8px 0 3px}
+#simPanel input,#simPanel select{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:16px system-ui;min-height:44px}
+#simPanel input{-webkit-appearance:none;appearance:none}#simPanel input::-webkit-date-and-time-value{text-align:left;min-width:0}
+#simPanel button,#simBar button{padding:10px;margin:0;min-height:44px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:600 14px system-ui;cursor:pointer;touch-action:manipulation}
+#simPanel #simPlay,#simBar #simAdvance{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#simPanel button:focus-visible,#simBar button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#simPanel .simRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+#simPanel .simPlayback{grid-template-columns:repeat(3,minmax(0,1fr))}
+#simPanel small{display:block;color:var(--muted)}#simPanel output,#simPanel small{overflow-wrap:anywhere}
+#simBar .simDockActions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+body.simControlsVisible{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 </style>
-<div id="simBar" hidden role="status">SIMULATION ACTIVE <button id="simExit" type="button">Stop &amp; reset</button></div>
+<div id="simDock">
 <section id="simPanel" hidden aria-label="Journey simulator">
-<strong>Journey simulator · development mode</strong>
+<strong>Journey simulator</strong>
+<div class="simRow simPlayback"><button type="button" id="simPlay">Start</button><button type="button" id="simContinue">Continue</button><button type="button" id="simPause">Pause</button></div>
 <small>Independent GPS and feed switches. Reload exits simulation.</small>
 <label for="simPreset">Jump to location</label><select id="simPreset">
 <option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate</option><option value="office">Office</option>
 </select>
+<div class="simRow"><button type="button" id="simJump">Jump to location</button></div>
 <label for="simDirection">Playback direction</label><select id="simDirection"><option value="outbound">Letchworth → office</option><option value="return">Office → Letchworth</option></select>
 <label for="simPath">Rail route</label><select id="simPath"><option value="kgx">Great Northern → King’s Cross → Metropolitan</option><option value="far">Thameslink → Farringdon → Underground</option></select>
 <label for="simScenario">Scenario</label><select id="simScenario"><option value="normal">Normal journey</option><option value="later-train">Board later train</option><option value="wrong-train">Board different train</option><option value="uncertain">Train identity uncertain</option><option value="delay">Delayed train</option><option value="cancellation">Cancelled train; take later service</option><option value="platform-change">Platform change</option><option value="missed-connection">Miss Underground connection</option><option value="disruption">Underground disruption</option><option value="outage">Provider outage and recovery</option><option value="gps-loss">Underground GPS loss</option><option value="low-accuracy">Poor indoor/train GPS accuracy</option><option value="awaiting-location">Awaiting location</option><option value="permission-denied">Location permission denied</option></select>
 <label for="simDate">Scenario start (UTC)</label><input type="datetime-local" id="simDate" value="2026-11-03T08:44">
 <output id="simTime"></output><small id="simClockMode"></small>
-<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Restart at first waypoint</button><button type="button" id="simContinue">Continue to next waypoint</button><button type="button" id="simPause">Pause now</button></div>
 <strong id="simCheckpoint" aria-live="polite">Not started</strong>
 <small>Next checkpoint: <span id="simNext">Not started</span></small><small id="simFixStatus">No simulated fix</small>
 <label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
@@ -28,3 +39,9 @@
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
 </section>
+
+<div id="simBar" hidden role="group" aria-label="Simulator playback">
+<span id="simActivity" role="status">Simulator ready</span>
+<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button">Start</button><button id="simExit" type="button">Stop</button></div>
+</div>
+</div>
