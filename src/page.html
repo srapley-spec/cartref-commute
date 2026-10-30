@@ -305,10 +305,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_effort" style="margin-top:3px"><span>Effort levels: each train says what it would take to catch it (fast walk, run, car needed, can't make it), and which one arrives first at each level; Arrive by's pick says "Latest for" your time.</span></label>
+      <div id="effortFields">
       <label class="f"><span>Running speed (× your average walk)</span><input id="s_runFactor" type="number" step="any" min="1" max="4"></label>
       <label class="f"><span>How far you can run (m)</span><input id="s_runM" type="number" step="any" min="0" max="5000"></label>
       <label class="f"><span>Car: home to the station entrance, incl. parking (min)</span><input id="s_carFromHome" type="number" step="any" min="0"></label>
       <label class="f"><span>Cab: time to get one (min)</span><input id="s_cabWait" type="number" step="any" min="0"></label>
+      </div>
       <p class="hint">Off: the app works exactly as before.</p>
     </fieldset>
 
@@ -822,10 +824,12 @@ const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(D
 // (effort.ts); the page only remembers last time's grades (so labels don't flicker) and draws them.
 const effortOn = () => !!S().effort;
 const effortProfile = () => { const s=S(); return { ...PROFILE.effort, runFactor:s.runFactor, runKm:s.runM/1000, carFromHomeSecs:s.carFromHome, cabWaitSecs:s.cabWait }; };
-const liveAdjust = (js, now) => {
+// Last refresh's grades are kept per view ("now", "by"), for the trains still listed only.
+const liveAdjust = (js, now, view="now") => {
   if(!effortOn()) return C.liveAdjust(js, now, atStation(), depStation);
-  const out=C.liveAdjust(js, now, atStation(), depStation, { ep:effortProfile(), prev:state.effortPrev||{} });
-  state.effortPrev=Object.assign({}, state.effortPrev, Object.fromEntries(out.map(j=>[C.effortKey(j), j.effort])));
+  const prev=(state.effortPrev||{})[view]||{};
+  const out=C.liveAdjust(js, now, atStation(), depStation, { ep:effortProfile(), prev });
+  state.effortPrev={ ...(state.effortPrev||{}), [view]: Object.fromEntries(out.map(j=>[C.effortKey(j), j.effort])) };
   return out;
 };
 // ---------- Presentation model ----------
@@ -904,8 +908,6 @@ function vsBest(j, best, dest){
 }
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
 const stdExp = t => `<span class="t">${esc(t.std)}</span>${t.depLate>=1?` exp <span class="t">${hhmm(t.dep)}</span>`:""}`;
-// The latest you can set off for this train at the effort it needs (engine: a fast walk leaves later than a walk).
-const leaveAt = j => j.leaveBy ?? j.leave;
 // Effort levels: a train that needs a run or a car and arrives sooner than the card's best (engine marks it).
 function effortLine(j, dest, best){
   const from = j.train.from==="LET" ? "Letchworth" : STATIONS[j.train.from];
@@ -920,12 +922,12 @@ function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
     <div class="optrow">
-      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(leaveAt(j))}</span></div>`}
+      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>`}
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>
-    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${leaveAt(j)}"></span>`}</div>
+    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -1208,10 +1210,10 @@ function renderHero(list, now){
   if(!picks.length){ const hurry=hurryOpts.map(o=>hurryHtml(o)).join("");
     h.innerHTML=`<div class="lbl">If you leave now</div><div class="empty">${hurry?"Nothing you can catch at walking pace.":"No catchable trains in the next two hours."}</div>${hurry}`; return; }
   const board=atStation(), way=!board && onWay();
-  const spare=j=>{ const m=Math.floor((leaveAt(j)-t0)/60e3);
+  const spare=j=>{ const m=Math.floor((j.leave-t0)/60e3);
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
     // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
-    if(way){ const k=Math.floor((leaveAt(j)-now)/60e3); return k>=1?`on track · ${k} min to spare`:"on track · keep going"; }
+    if(way){ const k=Math.floor((j.leave-now)/60e3), on=j.effort==="fast"?"walk fast":"on track"; return k>=1?`${on} · ${k} min to spare`:`${on} · keep going`; }
     // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
     return m>=1?"":"leave now"; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
@@ -1236,10 +1238,10 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   el.innerHTML=list.map((j,i)=>`
     <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
-      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(leaveAt(j))}</span></div>`}
+      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${leaveAt(j)}"></span>`}</div>
+        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
       </div>
@@ -1481,7 +1483,7 @@ function byOptions(){
   const build=state.saved.mode==="leisure"?buildLeisure:buildJourneys;
   // Only plan from where you are when the target is within the next 3 hours.
   const js=build(direction(), Date.now(), {here: b.T-Date.now()<=3*3600e3}); state.boards=keep;
-  return C.arriveByOptions(liveAdjust(js, Date.now()), b.T, !!b.liveTo, direction(), PROFILE, effortOn());
+  return C.arriveByOptions(liveAdjust(js, Date.now(), "by"), b.T, !!b.liveTo, direction(), PROFILE, effortOn());
 }
 // Routes that loaded but have no train getting you there in time (said out loud rather than left blank).
 function byRoutesWithoutOnTime(opts){
@@ -1765,7 +1767,7 @@ function fillSettings(){
   const s=S();
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; $("#s_effort").checked=!!s.effort; showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; $("#s_effort").checked=!!s.effort; $("#effortFields").hidden=!s.effort; showProviderFields();
 }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
@@ -1782,6 +1784,7 @@ function readSettings(){
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
 $("#s_provider").addEventListener("change",showProviderFields);
+$("#s_effort").addEventListener("change",()=>{ $("#effortFields").hidden=!$("#s_effort").checked; });
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{

@@ -5,6 +5,7 @@
 import type { Access, Effort, EffortProfile, Option } from "./types";
 export type { Access, Effort, EffortProfile };
 import { hhmm } from "./time";
+import { fastWalkLegs } from "./journey";
 
 export const EFFORTS: Effort[] = ["walk", "fast", "run", "car", "none"];
 const rank = (e: Effort) => EFFORTS.indexOf(e);
@@ -57,8 +58,10 @@ const LOZENGE: Record<Effort, { lvl: "warn" | "bad"; txt: string } | null> = {
   walk: null, fast: { lvl: "warn", txt: "Fast walk" }, run: { lvl: "warn", txt: "Run" },
   car: { lvl: "warn", txt: "Car needed" }, none: { lvl: "bad", txt: "Can't make it" },
 };
-/** A stable key for a train across refreshes (for `prev`). */
-export const effortKey = (o: Option) => o.train.serviceId || `${o.train.from}|${o.train.std}|${o.train.operator || ""}`;
+/** A stable key for a train at one station on one day, across refreshes (for `prev`). The same train at two
+ *  stations (one service ID) gets two keys: they leave at different times and need different walks. */
+export const effortKey = (o: Option) =>
+  `${o.train.serviceId || ""}|${o.train.from}|${o.train.std}|${o.train.operator || ""}|${new Date(o.train.dep).toDateString()}`;
 
 /**
  * Leave now (live): every train that hasn't left, graded. Sets `effort`, `missed` (anything harder than a fast walk:
@@ -72,6 +75,8 @@ export function gradeEffort<T extends Option>(opts: T[], now: number, ep: Effort
     j.uncertain = !plannable(j);
     const e = effortFor(j, now, ep, !!atStation && depStation(j) === atStation, prev[effortKey(j)]);
     j.effort = e; j.missed = rank(e) > rank("fast"); j.leaveBy = leaveBy(j, e, ep);
+    // A fast walk is the plan for this train: leave, total time and the steps are all at a fast walk.
+    if (e === "fast" && j.leaveBy !== j.leave) { (j as Option).legs = fastWalkLegs(j, j.leaveBy); j.leave = j.leaveBy; }
     const z = LOZENGE[e]; if (z && !j.uncertain) j.flags.unshift({ ...z });
   }
   return keep;
@@ -82,7 +87,7 @@ const FIRST_TXT: Record<Exclude<Effort, "none">, string> = {
 };
 /**
  * "Arrives first", per level of effort: at each level, the earliest arrival you could make with that much effort or
- * less (ties: the later departure) is marked — only if it beats every easier level's. `among`: the options that
+ * less (ties: the later leave, as the card) is marked — only if it beats every easier level's. `among`: the options that
  * count (e.g. Leave around's window); default all. Cancelled and no-estimate never. Sets `firstAt` and a lozenge
  * ("Arrives first", or "Arrives first · walking" when a harder level's lozenge is shown too);
  * returns the marked options, easiest level first. Options without `effort` count as "walk".
@@ -92,7 +97,8 @@ export function markArrivesFirst<T extends Option>(list: T[], among: T[] = list)
   const out: T[] = []; let bestSoFar: T | null = null;
   for (const e of ["walk", "fast", "run", "car"] as const) {
     const can = ok.filter(j => rank(j.effort || "walk") <= rank(e));
-    const w = can.reduce<T | null>((b, j) => (!b || j.arrive < b.arrive || (j.arrive === b.arrive && j.train.dep > b.train.dep) ? j : b), null);
+    // Ties: the later leave (less waiting), as the card does.
+    const w = can.reduce<T | null>((b, j) => (!b || j.arrive < b.arrive || (j.arrive === b.arrive && j.leave > b.leave) ? j : b), null);
     if (!w || (bestSoFar && !(w.arrive < bestSoFar.arrive))) continue;
     if (w === bestSoFar) continue;
     w.firstAt = e;

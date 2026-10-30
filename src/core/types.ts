@@ -51,6 +51,7 @@ export interface Option {
   leaveBy?: number;        // latest set-off at its level (walk: = leave)
   offer?: boolean;         // the card says it: needs a run or a car, and arrives sooner than the card's best
   access?: Access;         // what the time before the train is made of (from the route's segments)
+  before?: unknown;        // the route's segments before the train (journey.ts Segment[]), to re-time a fast walk
   [extra: string]: unknown;
 }
 

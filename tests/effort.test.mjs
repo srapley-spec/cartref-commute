@@ -70,13 +70,14 @@ test("Effort levels on: the card says which run / car trains arrive sooner; the 
 test("Effort levels on: last refresh's grade holds a train back from an easier level until it's 30 s inside it", async () => {
   const a = await app({ effort: true });
   const y = () => a.c.ranked(now).find((o) => o.train.std === T.Y.std);
-  const key = Object.keys(a.c.state.effortPrev).find((k) => k.includes(T.Y.std));
-  assert.equal(a.c.state.effortPrev[key], "run", "the page remembers each train's grade");
+  const key = Object.keys(a.c.state.effortPrev.now).find((k) => k.includes(`|${T.Y.std}|`));
+  assert.equal(a.c.state.effortPrev.now[key], "run", "the page remembers each train's grade, per view");
+  assert.equal(Object.keys(a.c.state.effortPrev.now).length, 5, "only the trains listed now");
   // The 07:20 is 25 s inside the run boundary. Had it been 'car needed' last time, it stays that until 30 s inside.
-  a.c.state.effortPrev = { [key]: "car" };
+  a.c.state.effortPrev = { now: { [key]: "car" }, by: { [key]: "walk" } };
   assert.equal(y().effort, "car");
-  a.c.state.effortPrev = {};
-  assert.equal(y().effort, "run");
+  a.c.state.effortPrev = { by: { [key]: "car" } };
+  assert.equal(y().effort, "run", "Arrive by's memory doesn't leak into Leave now");
   a.close();
 });
 
@@ -151,5 +152,52 @@ test("Effort levels on: Leave around's best says 'Arrives first'", async () => {
   const best = a.c.atOptions().find((o) => o.recommended === 1);
   assert.equal(best.train.std, t1.std);
   assert.match(a.text("#hero"), /Arrives first/);
+  a.close();
+});
+
+test("Effort levels on: a fast-walk pick's total time and steps are at a fast walk too; no 'leave now' while there's time", async () => {
+  const a = await app({ effort: true });
+  const x = a.c.ranked(now).find((o) => o.train.std === T.X.std), leave = T.X.dep - (1086 + 180) * S;
+  assert.equal(x.leave, leave);
+  assert.equal(x.legs[0].t, leave); assert.match(x.legs[0].d, /Leave Cartref/); assert.match(x.legs[0].note, /fast walk 18 min/);
+  assert.equal(x.legs.find((l) => l.train).t, T.X.dep, "the train is unchanged");
+  const hero = a.text("#hero");
+  const mins = Math.round((x.arrive - leave) / 60e3);
+  assert.match(hero, new RegExp(`total ${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m`), "total from the fast-walk leave");
+  assert.doesNotMatch(hero.slice(hero.indexOf("→"), hero.indexOf("Journey steps")), /leave now/, "2 min 41 s to leave at a fast walk (the label above says 'If you leave now')");
+  a.close();
+});
+
+test("Effort levels on: on your way, a train that needs a fast walk says 'walk fast'", async () => {
+  // ~1 km from home, 550 m from the station: 474 s of your walk left (fast 385 s), plus 180 s fixed.
+  const f = svc({ dep: now + 30 * S + 600 * S, arr: now + 45 * MIN }), later = svc({ dep: now + 40 * MIN, arr: now + 70 * MIN });
+  const a = await createApp({ now, settings: { provider: "demo", effort: true }, saved: { dirMode: "office", home: [51.975 - 0.009, -0.23] } });
+  a.c.state.boards = { "LET-KGX": { msgs: [], services: [f, later] }, "LET-ZFD": { msgs: [], services: [] } };
+  a.c.state.status = []; a.c.state.nrStatus = []; a.c.state.here = [51.975, -0.23]; a.c.state.locAcc = 10; a.c.render();
+  const best = a.c.ranked(now).find((o) => o.recommended === 1);
+  assert.equal(best.train.std, f.std); assert.equal(best.effort, "fast");
+  assert.match(a.text("#hero"), /On your way to Letchworth/);
+  assert.match(a.text("#hero"), /walk fast · (1 min to spare|keep going)/);
+  a.close();
+});
+
+test("Effort levels on: Arrive by's card says which run / car train gets you there sooner", async () => {
+  const a = await app({ effort: true }, { view: "by" });
+  const Tby = now + 82 * MIN;          // 08:22: the 07:23 (office 08:19) is the latest on time
+  a.c.state.by = { T: Tby, boards: { "LET-KGX": { msgs: [], services: Object.values(T).map((t) => ({ ...t })) }, "LET-ZFD": { msgs: [], services: [] } }, failed: {}, live: false };
+  a.c.render();
+  const hero = a.text("#hero");
+  assert.match(hero, new RegExp(`Latest for ${hm(Tby)}`));
+  assert.match(hero, new RegExp(`Arrives first by car: the ${T.Z.std}`));
+  assert.match(hero, new RegExp(`Arrives first if you run: the ${T.Y.std}`));
+  a.close();
+});
+
+test("Effort levels: the running and car settings only show when the toggle is on", async () => {
+  const a = await app({});
+  a.d.querySelector("#settingsBtn").click();
+  assert.equal(a.d.querySelector("#effortFields").hidden, true);
+  a.d.querySelector("#s_effort").checked = true; a.d.querySelector("#s_effort").dispatchEvent(new a.w.Event("change"));
+  assert.equal(a.d.querySelector("#effortFields").hidden, false);
   a.close();
 });

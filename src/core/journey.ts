@@ -64,6 +64,19 @@ function walkSteps(segs: Segment[], from: number, legs: Leg[]): number {
   return cur;
 }
 
+/**
+ * The same journey with every walk before the train at your fast pace, leaving at `leave`: the steps before the train
+ * are re-timed from the route's segments (and say "fast walk"); the train and everything after are unchanged.
+ */
+export function fastWalkLegs(o: Option, leave: number): Leg[] {
+  const before = o.before as Segment[] | undefined; if (!before) return o.legs as Leg[];
+  const segs = before.map(s => s.kind === "walk" && s.fast != null
+    ? { ...s, secs: Math.min(s.secs, s.fast), step: s.step ? { ...s.step, note: `${s.step.note ? s.step.note + " · " : ""}fast walk ${dur(Math.min(s.secs, s.fast) * 1000)}` } : s.step }
+    : s);
+  const pre: Leg[] = []; walkSteps(segs, leave, pre);
+  return [...pre, ...(o.legs as Leg[]).slice(before.filter(s => s.step).length)];
+}
+
 /** What the time before the train is made of: walking (at the plan's, average and fast pace) and the rest. */
 export function accessOf(r: Route): Access {
   const walks = r.before.filter(s => s.kind === "walk"), sum = (f: (s: Segment) => number, xs: Segment[]) => xs.reduce((t, s) => t + f(s), 0);
@@ -86,7 +99,7 @@ export function buildOptions(routes: Route[], boards: Record<string, Board | und
       if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t, profile), calls: true });
       legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
       walkSteps(r.after, t.arr, legs);
-      out.push({ ...(r.extra || {}), hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile), access: accessOf(r) } as Option);
+      out.push({ ...(r.extra || {}), hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile), access: accessOf(r), before: r.before } as Option);
     }
   }
   return out;

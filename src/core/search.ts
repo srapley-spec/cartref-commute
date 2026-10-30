@@ -119,7 +119,8 @@ export function aroundOptions<T extends Option>(opts: T[], T: number, now: numbe
     if (j.leave < T) j.flags.unshift({ lvl: "warn", txt: `Leave ${Math.max(1, Math.round((T - j.leave) / 60e3))} min before ${hhmm(T)}` }); });
   if (mixed) js.forEach(o => { if (o.train.timetable) o.flags.push({ lvl: "info", txt: "Timetable only: not live-checked" }); });
   js = mergeSameTrain(js, dir, p);
-  const window = js.filter(j => j.leave >= T - 10 * 60e3);
+  // Effort levels on: a leave time that has already passed (Leave around near now) is never the pick or "Arrives first".
+  const window = js.filter(j => j.leave >= T - 10 * 60e3 && (!effort || j.leave >= now + 30e3));
   topPicks(window, "now", p.topWindowMin).forEach((j, i) => { (j as Option).recommended = i + 1; });
   if (effort) markArrivesFirst(js, window);     // the card's window: the lozenge and the card agree
   return js.sort((x, y) => x.leave - y.leave || x.arrive - y.arrive);

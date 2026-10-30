@@ -95,18 +95,19 @@ test("gradeEffort: missed = harder than a fast walk; the latest set-off; one loz
   assert.deepEqual([f.flags[0].lvl, r.flags[0].lvl, c.flags[0].lvl, x.flags[0].lvl], ["warn", "warn", "warn", "bad"]);
   assert.equal(w.leaveBy, w.leave);
   assert.equal(f.leaveBy, f.train.dep - 492e3, "a fast walk: leave by departure − the fast walk");
+  assert.equal(f.leave, f.leaveBy, "a fast walk is the plan for that train: its leave time is the fast one");
   assert.equal(cancelled.uncertain, true); assert.equal(cancelled.flags.length, 0, "no lozenge on a cancelled train");
   assert.equal(r.flags.some((z) => /Leave time passed/.test(z.txt)), false, "the old wording is gone");
 });
 
-test("gradeEffort: last time's grade is looked up by the train's key (serviceId, else from + time + operator)", () => {
+test("gradeEffort: last time's grade is looked up by the train's key (service ID, station, time, operator, day)", () => {
   const o = opt(30 * S + 500 * S, { train: { serviceId: "SID1" } });
-  core.gradeEffort([o], now, EP, null, () => "", () => true, { SID1: "run" });
+  core.gradeEffort([o], now, EP, null, () => "", () => true, { [core.effortKey(o)]: "run" });
   assert.equal(o.effort, "run", "8 s inside the fast-walk boundary: stays a run");
   const p = opt(30 * S + 500 * S);
   core.gradeEffort([p], now, EP, null, () => "", () => true, { [core.effortKey(p)]: "run" });
   assert.equal(p.effort, "run");
-  assert.equal(core.effortKey(p), `RVS|${p.train.std}|Express Rail`);
+  assert.equal(core.effortKey(p), `|RVS|${p.train.std}|Express Rail|${new Date(p.train.dep).toDateString()}`);
   core.gradeEffort([p], now, EP, null, () => "", () => true, {});
   assert.equal(p.effort, "fast");
 });
@@ -148,8 +149,8 @@ test("markArrivesFirst: one lozenge when walking is already first; ties go to th
   assert.equal(f.flags.length, 0); assert.equal(r.flags.length, 0);
   assert.equal(w.flags[0].txt, "Arrives first", "alone: just 'Arrives first'");
   const [a, b] = graded([[0, 40], [0, 40]]);
-  b.train.dep = a.train.dep + 1;
-  assert.deepEqual(core.markArrivesFirst([a, b]), [b], "same arrival: the later departure (less waiting)");
+  b.train.dep = a.train.dep + 1; b.leave = a.leave + 1;
+  assert.deepEqual(core.markArrivesFirst([a, b]), [b], "same arrival: the later leave (less waiting)");
   const [u, v] = graded([[0, 30, { uncertain: true }], [0, 40]]);
   assert.deepEqual(core.markArrivesFirst([u, v]), [v], "a cancelled or no-estimate train is never 'arrives first'");
   const fast = graded([[1, 30]])[0];
@@ -272,4 +273,84 @@ test("samRoutes going home: the walk to the tube at both paces, not from home; a
   const own = acc(kx.find((r) => r.hub === "KGX")), other = acc(kx.find((r) => r.hub === "ZFD"));
   assert.deepEqual([own.walk, own.walkFast], [180, 180 * 0.82]);
   assert.equal(other.walk, 0, "to Farringdon by tube: nothing to walk faster");
+});
+
+// ---------- Independent review (29 Oct night): gaps the first tests missed ----------
+test("liveAdjust with effort: cancelled and no-estimate trains are uncertain, get no lozenge and are never picked", () => {
+  const ok = short(0), gone = short(9, { train: { cancelled: true } }), unk = short(1, { train: { depUnknown: true } });
+  const list = core.rankNow(core.liveAdjust([ok, gone, unk], now, null, () => "", { ep: EP }), "office", testville, true);
+  assert.deepEqual([gone.uncertain, unk.uncertain, ok.uncertain], [true, true, false]);
+  assert.deepEqual([gone.flags.length, unk.flags.length], [0, 0], "no effort lozenge (the helper adds no train flags)");
+  assert.equal(gone.effort, "none", "graded, but not labelled");
+  assert.equal(list.find((o) => o.recommended === 1), ok);
+});
+
+test("gradeEffort at a station: another station's train keeps the walk rule (it isn't 'under a minute')", () => {
+  const other = opt(50e3, { access: { walk: 0, walkAvg: 0, walkFast: 0, fixed: 0, home: false } });
+  core.gradeEffort([other], now, EP, "Central", () => "Market Street", () => true);
+  assert.equal(other.effort, "walk", "nothing to walk, 20 s in hand: catchable");
+  const here = opt(50e3, { access: { walk: 0, walkAvg: 0, walkFast: 0, fixed: 0, home: false } });
+  core.gradeEffort([here], now, EP, "Central", () => "Central", () => true);
+  assert.equal(here.effort, "none");
+});
+
+test("effortFor: the 30 s margin only applies moving to an easier level, not to a harder one than last time", () => {
+  const run = 492 - 236.16 + 160;
+  assert.equal(lvl(opt(30 * S + run * S + 10 * S), "fast"), "run", "was a fast walk, now 10 s inside a run: a run");
+  assert.equal(lvl(opt(30 * S + run * S + 10 * S), "car"), "car", "was a car, 10 s inside a run: still a car");
+});
+
+test("markArrivesFirst: a harder level that only ties an easier level's arrival isn't marked", () => {
+  const [w, f] = graded([[0, 40], [1, 40]]);
+  f.leave = w.leave + MIN;     // re-timed to a fast walk it leaves later, and arrives at the same time
+  assert.deepEqual(core.markArrivesFirst([w, f]), [w], "the same arrival for more effort isn't 'arrives first'");
+  assert.equal(w.flags[0].txt, "Arrives first");
+  assert.equal(f.firstAt, undefined);
+});
+
+test("markArrivesFirst: ties go to the later leave, as the card's pick", () => {
+  const [a, b] = graded([[0, 40], [0, 40]]);
+  b.train.dep = a.train.dep + 5 * MIN; b.leave = a.leave - MIN;    // leaves Cartref earlier but its train is later
+  assert.deepEqual(core.markArrivesFirst([a, b]), [a]);
+});
+
+test("aroundOptions with effort: a train before the card's window never takes 'Arrives first', and passed leave times don't count", () => {
+  const T = now + 60 * MIN;
+  const early = opt(60 * MIN + 600e3 - 12 * MIN, { ride: 10 * MIN }), inWin = opt(60 * MIN + 600e3, { ride: 30 * MIN });
+  const out = core.aroundOptions([early, inWin], T, now, false, "office", testville, true);
+  assert.ok(out.includes(early) && early.arrive < inWin.arrive, "(setup) the early train is listed and arrives sooner");
+  assert.equal(early.firstAt, undefined); assert.equal(inWin.firstAt, "walk");
+  const nearNow = core.aroundOptions([opt(30 * S + 600 * S - MIN), opt(30 * S + 600 * S + 5 * MIN)], now, now, false, "office", testville, true);
+  const passed = nearNow.find((o) => o.leave < now + 30e3);
+  assert.equal(passed.recommended, undefined); assert.equal(passed.firstAt, undefined, "its leave time has passed");
+});
+
+test("arriveByOptions with effort: run / car trains that get you there sooner are offered", () => {
+  const T = now + 70 * MIN;
+  const js = graded([[0, 60], [3, 45]]);
+  js.forEach((o) => { o.missed = o.effort === "run"; });
+  const out = core.arriveByOptions(js, T, false, "office", testville, true);
+  const run = out.find((o) => o.effort === "run");
+  assert.equal(run.offer, true); assert.equal(run.recommended, undefined);
+});
+
+test("effortNeeds: a cab drives the walking distance at your average pace, whatever pace the plan uses", () => {
+  const n = core.effortNeeds({ walk: 1086, walkAvg: 1337, walkFast: 1086, fixed: 0, home: false }, EP);
+  assert.equal(n.car, Math.round((600 + (1337 / 3600 * 5) / 20 * 3600) * 1000));
+});
+
+test("gradeEffort: a train leaving this instant is still listed", () => {
+  const o = opt(0); assert.equal(core.gradeEffort([o], now, EP, null, () => "", () => true).length, 1);
+});
+
+test("effortKey: the same train at two stations, or the same time another day, has its own key", () => {
+  const a = opt(10 * MIN, { train: { serviceId: "S1", from: "ZFD" } }), b = opt(15 * MIN, { train: { serviceId: "S1", from: "STP", std: a.train.std } });
+  assert.notEqual(core.effortKey(a), core.effortKey(b));
+  const c = opt(10 * MIN + 24 * 3600e3, { train: { std: a.train.std, serviceId: "S1", from: "ZFD" } });
+  assert.notEqual(core.effortKey(a), core.effortKey(c));
+});
+
+test("samRoutes: going out to a London place starts at home (your car)", () => {
+  const r = core.samRoutes({ dir: "office", mode: "leisure", pace: "avg", timings: TM, dest: { name: "Science Museum", legs: null } });
+  assert.ok(r.length && r.every((x) => core.accessOf(x).home));
 });
