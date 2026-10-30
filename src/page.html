@@ -470,7 +470,7 @@ function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
  delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
  simClock.stop();
- document.getElementById("simPanel").hidden=true;document.getElementById("s_simulator").checked=false;document.getElementById("s_simulatedFeeds").checked=false;
+ simulator.setPanelVisible(false);document.getElementById("s_simulator").checked=false;document.getElementById("s_simulatedFeeds").checked=false;
 }
 // The last London station you were seen at survives reopening the app (for 25 minutes).
 try{ const lh=state.saved.lastHub; if(lh && Date.now()-lh.seen<25*60e3) state.lastHub=lh; }catch(e){}
@@ -1995,8 +1995,8 @@ $("#settingsForm").addEventListener("submit",e=>{
  state.saved.settings=next;
  if(next.simulatedFeeds && !simClock.active)simClock.start(new window.Date(document.getElementById("simDate").value+'Z').toISOString());
  if(!next.simulatedFeeds)simClock.stop();
- save();dlg.close();document.getElementById("simPanel").hidden=!next.simulatorEnabled&&!next.simulatedFeeds;
- document.getElementById("simBar").hidden=!next.simulatedFeeds&&!sim.active;
+ save();dlg.close();simulator.setPanelVisible(!!(next.simulatorEnabled||next.simulatedFeeds));
+ document.getElementById("simBar").hidden=!next.simulatorEnabled&&!next.simulatedFeeds;
  simulator.updateTime();
  if(resetInvalidStart)document.getElementById("simStatus").textContent="Invalid start time was reset to the displayed default. Select a valid date/time before Start.";
  if(modeChanged)locate();

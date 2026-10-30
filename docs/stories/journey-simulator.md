@@ -15,7 +15,12 @@ so that I can inspect inference and onward planning without travelling.
 - Simulation does not write journey context or settings to localStorage. Requests and asynchronous work from an older source epoch cannot update current caches. Leaving simulation clears virtual-time caches and throttle/retry timestamps.
 - Approximate rail polylines follow the profile corridor; they are synthetic test geometry, not surveyed tracks. Provider formats pass through production adapters.
 
+- A compact bottom bar is visible whenever either simulator switch is enabled, including before Start. Start/Continue/Pause and Stop remain reachable with the controller hidden. Show/Hide controls only collapses the panel: it preserves the checkpoint, clock, settings and playback state. The panel and bar share layout space above the phone safe area, and all controls use explicit theme colours with readable contrast in light and dark modes.
+
 ## Tests
+- tests/simulator-controls.test.mjs: "Stop exits a ready GPS-only simulator before the journey has started"
+- tests/simulator-controls.test.mjs: "simulator dock starts hidden playback and preserves paused state while showing and hiding controls"
+- tests/simulator-controls.test.mjs: "GPS-only opt-in exposes the dock before Start and disabling hides both controls"
 - tests/simulator.test.mjs: "developer simulator defaults off and toggles from Settings"
 - tests/simulator.test.mjs: "simulated fixes do not overwrite persisted journey context"
 - tests/simulator.test.mjs: "playback starts at the selected end and supports multiple speeds"
@@ -36,3 +41,5 @@ GitHub CI, merge and merged-commit CI must all pass. Coverage gaps remain blocke
 records executed assertions. This status is not a release approval.
 
 Test lifecycle cleanup waits for native GPS and the resulting refresh to settle before closing a simulated browser. This prevents pending asynchronous callbacks from running after document teardown; CI correctly rejected the earlier incomplete cleanup.
+
+Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides. Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
