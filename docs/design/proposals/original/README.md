@@ -2,6 +2,8 @@
 
 By Claude · 29 Oct 2026 · Status: **superseded** by [womble](../womble/), kept for its system board and its review.
 
+> **Not compliant with the status-colour rule (Sam, 30 Oct):** red, amber and green are reserved for status. Skin A's amber accent must be retuned before any of this is reused. → [the rule](../../../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
+
 ## The idea
 Keep the current page's skeleton (controls → status line → hero card → list) and restyle it with a proper token set,
 in two skins: **A "Signal"** (dark-first, Inter Tight + JetBrains Mono, amber accent, vertical stop rail on the live

@@ -73,10 +73,41 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 - 4-point spacing scale: 4, 8, 12, 16, 20, 24, 32. Phone content inset 20 px (16 on small widths); touch controls at least 44 px. Content scrolls as a single page; overlays must support keyboard, focus return and dismissal.
 - Semantic roles: canvas, surface, raised surface, primary text, secondary text, divider, accent/action, positive, caution, severe, informational. Separate light/dark values; never reuse the same warning text colour blindly on both themes.
 - Signal radii 24/16/12; Journey 12/8/6. One strong primary area per screen. Colour is never the sole indicator of a state. Cancelled and uncertain services remain readable.
-- Red: cancelled/no estimate/15+ minute delay. Amber: 5–14 minute delay. Route notice without observed impact: caution. Background notices: neutral. A 1–4 minute delay still says how late without turning the whole interface alarming.
+- Red: cancelled/no estimate/15+ minute delay. Amber: 5–14 minute delay. Red, amber and green are reserved for status; see [Status colour is reserved](#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal). Route notice without observed impact: caution. Background notices: neutral. A 1–4 minute delay still says how late without turning the whole interface alarming.
 - Prefer labelled actions to mystery icons. Minimum contrast target WCAG AA (4.5:1 body, 3:1 large text/UI). Test both appearances, 320 px width, large text and VoiceOver on real iPhone before implementation acceptance.
 - Appearance defaults to System; optional Light/Dark override. Changes preserve view, selected service, scroll, expanded details and entered deadline. Avoid automatic theme animation; respect Reduce Motion.
 - State model: loading, empty, live, timetable only, stale, partial failure, no estimate, cancelled, location denied, uncertain train, user-confirmed train, connection, final walk, arrived. Confidence belongs to the data, not visual polish.
+
+## Status colour is reserved (Sam, 30 Oct 2026): binding on every build and every proposal
+
+Red, amber and green mean one thing only: **is there a problem?** Green = no problem, amber = some problem, red =
+serious problem. They are never used for brand, identity ("You're on the 08:00"), selection, the best option,
+emphasis, focus, tracking or actions. Why: 30 Oct, on the train, the identity lozenge was orange, so "this is your
+train" read as a warning while the train was close to on time.
+
+- **Accent / action must be a hue clearly distinct from all three.** Signal's blue (`accent` in
+  [`signal-tokens.json`](design/signal-tokens.json)) complies. Identity, selection and "best" use accent or neutral
+  (ink / outline), never a status colour.
+- **Every train in live mode shows its status**: card, list and board, and the train you're on. Word and minutes,
+  coloured by band; never colour alone ("On time", "2 min late", "18 min late", "Cancelled", "No estimate").
+- **Bands.** Red: cancelled, no estimate, 15+ min late (as `warnings.ts` today). Green: on time. Amber: in between.
+  The lower edge of amber is **awaiting Sam**: 2 min (what the on-train line already calls late) or 5 min (the
+  engine's route-wide amber today). Whichever is chosen, the band comes from the engine, not from page arithmetic.
+  On the train, the band is for the expected arrival at the change station against the timetable, the time that
+  matters; departure delay is history.
+- **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
+  for amber.
+- **Where the status sits on the live card: awaiting Sam.** Options put to him 30 Oct: (A) a status chip beside
+  the hero arrival time; (B) the identity lozenge split, neutral train name plus a coloured status segment;
+  (C) the hero time itself coloured, with the status word in its label; (D) a full-width coloured status strip
+  across the top of the card, replacing the eyebrow. Record the choice here and in the decisions log.
+
+**Known violations in the live build (`src/page.html`, 30 Oct):** `--accent` is orange (`#B0500C` light,
+`#EE9A45` dark, close to `--warn` `#E3B04D` in dark) and is used for the identity lozenge (`.slack`: "You're on",
+"Probably", "Get on", "At the station about"), for late text (`.latetxt`), the best-row tint and the focus ring.
+Late text must take its band colour; the rest must move to a non-status accent (recommended: Signal's blue).
+**Proposals:** `original` skin A and `womble` skin A use an amber accent and `womble` skin B a green "on time /
+tracking" accent; none may be carried forward without retuning. Signal complies.
 
 ## Implementation handoff
 

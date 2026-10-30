@@ -15,6 +15,10 @@ Sam selected Signal after reviewing two iPhone-first mockups, requested dynamic 
 - Preserve all current commute capabilities in the specification inventory, including cancelled/no-estimate options, same-train boarding points, warnings, freshness, corrections, all modes, dates, pace, Settings and Leisure entry points.
 - Preserve the station departure-first rule and the homeward Tube-to-train consequences.
 - No simulated early-platform, coach or signalling-point features are presented as current capabilities.
+- Red, amber and green are reserved for status (Sam, 30 Oct): never accent, identity, selection or tracking. Every
+  live train, including the one you're on, shows its status as a word with minutes, coloured by band (red: cancelled,
+  no estimate, 15+ min; green: on time; amber: between, lower edge 2 or 5 min awaiting Sam). Placement on the live
+  card awaiting Sam. → [specification](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
 
 ## Additional policies agreed by Sam (29 Oct 2026)
 - Override duration ends at Return to Auto or a genuinely new journey.

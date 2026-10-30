@@ -92,5 +92,22 @@
       "light",
       "dark"
     ]
+  },
+  "statusColourRule": {
+    "reserved": [
+      "good",
+      "good-bg",
+      "warn",
+      "warn-bg",
+      "bad",
+      "bad-bg"
+    ],
+    "meaning": "good = no problem, warn = some problem, bad = serious problem. Never accent, brand, identity, selection, best option, focus or tracking (Sam, 30 Oct 2026).",
+    "bands": {
+      "bad": "cancelled, no estimate, or 15+ min late",
+      "good": "on time",
+      "warn": "between; lower edge 2 or 5 min, awaiting Sam"
+    },
+    "spec": "../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal"
   }
 }

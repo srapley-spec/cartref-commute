@@ -3,6 +3,8 @@
 By Claude · 29 Oct 2026 · Status: **draft for feedback**. Not yet independently reviewed against the inventory (the
 [original](../original/review.md) review still applies wherever womble keeps the same device).
 
+> **Not compliant with the status-colour rule (Sam, 30 Oct):** red, amber and green are reserved for status. Skin A's amber accent and skin B's green "on time / tracking" accent must be retuned before any of this is reused. → [the rule](../../../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
+
 Two structures, deliberately different, so the choice is about shape and not only skin. Both are dark-first.
 
 ## A — Flighty-shaped
