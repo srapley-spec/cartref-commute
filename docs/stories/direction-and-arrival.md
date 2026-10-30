@@ -16,16 +16,11 @@ shouldn't turn round the moment GPS puts you near it.
   the next morning it's work again.
 - Once you've been at the office today, anywhere else counts as heading home; King's Cross after the office means
   heading home.
-- Within 150 m of the office: "you've arrived" (200 m is still walking, and isn't "you're at the office"); still
+- Within 150 m of the office (Sam, 30 Oct: 150 m with the 5-minute wait is right; he had suggested 20 m): "you've arrived" (200 m is still walking, and isn't "you're at the office"); still
   the morning journey until you've been there 5 minutes, then it turns round and reloads trains. An office arrival
   from another calendar day is forgotten, so the next morning's 5 minutes start again (independent review, 29 Oct).
 - Location denied: the app says so and offers a manual choice, which works.
 - Missing GPS accuracy means unknown, not perfect.
-
-## Open questions
-- 29 Oct, Sam: "within 20 metres of the office, or being at the office for more than five minutes". Built: within
-  150 m, and the journey turns round after 5 minutes there. Why 150 m rather than 20 m isn't recorded (GPS in the
-  City is often worse than 20 m, so 20 m might rarely trigger); confirm with Sam.
 
 ## Tests
 - tests/core/situation.test.mjs: "inferDirection: setting off, arriving home, after the office, mid-journey, and remembering the trip"
