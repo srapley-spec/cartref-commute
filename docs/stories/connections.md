@@ -50,6 +50,9 @@ about 10 s. Options for using the measurement are with Sam (see "Open").
 - Once you're on the tube the board is gone: "On a different tube?" buttons say the line (coloured), destination
   and how long ago it left ("left 4 min ago", rounded down; "just left" under a minute; "leaving now" if due in
   the next 30 s), ticking (Sam, 30 Oct). Going home the same.
+- On the tube, the card names your tube with its destination: "You're on the 07:56 Met to Aldgate" (and "or the …"
+  likewise), as on the tube's front and the board; the destination is kept with your pick and ride (30 Oct).
+  → [which-train](which-train.md)
 - Once it leaves you're on it until within 300 m of your stop, or 10 minutes after the ride time; passing stations
   (e.g. Farringdon) or a stray fix don't end it or change which station you arrived at. A ride clears the pick.
 - "Did you get it?" only on a good (≤50 m), fresh (≤1 min) fix within the station's radius, 3+ minutes after it

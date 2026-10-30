@@ -22,6 +22,7 @@ export interface Train {
   cancelled: boolean;
   reason: string;
   origin?: string;         // where the train started (Darwin only)
+  destination?: string;    // where it's going (Darwin; TfL when its summary says), to tell close trains apart
   timetable?: boolean;     // from the timetable, not live
   calls?: Call[];
   serviceId?: string;      // National Rail service ID (live data), for Service Details

@@ -515,6 +515,23 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
   } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
 });
 
+test("On the train: each train is named with where it's going, as its own screens say, to tell close trains apart", () => {
+  const now = Date.now(), m = 60e3;
+  const pt = [51.80, -0.20], f = c.lineProgress(pt, "KGX").frac, len = 30 * m;
+  const at2 = (offMin, op, std, destination) => { const dep = now - f * len + offMin * m;
+    return svc({ from: "LET", to: "KGX", std, dep, arr: dep + len, operator: op, ...(destination ? { destination } : {}) }); };
+  const a = at2(0.5, "Great Northern", "A1", "London Kings Cross"), b = at2(-1.5, "Thameslink", "B2", "Brighton");
+  useBoards({ "LET-KGX": { msgs: [], services: [a, b] }, "LET-ZFD": { msgs: [], services: [] } }, { dirMode: "office", view: "now" });
+  c.state.here = pt; c.state.locAcc = 20; c.state.onLine = true; c.state.trainLock = null;
+  try {
+    c.render();
+    assert.match(app.text("#hero"), /Probably the A1 Great Northern to London Kings Cross On time or the B2 Thameslink to Brighton/);
+    assert.match(app.text("#hero"), /Which train are you on\?A1 Great Northern to London Kings CrossB2 Thameslink to Brighton/, "the picks say it too");
+    delete a.destination; c.render();
+    assert.match(app.text("#hero"), /Which train are you on\?A1 Great NorthernB2 Thameslink to Brighton/, "no destination: named as before");
+  } finally { c.state.here = null; c.state.onLine = false; c.state.trainLock = null; }
+});
+
 test("On the train: where National Rail reported each train settles which one you're on", () => {
   const now = Date.now(), m = 60e3, P = app.w.CommuteCore;
   const pad = (n) => String(n).padStart(2, "0"), hhmm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };

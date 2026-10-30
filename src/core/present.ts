@@ -162,6 +162,20 @@ export function statusLine(i: StatusInput): StatusLine {
   return { level: "ok", text: "Good service on your lines", detail };
 }
 
+// ---------- Naming a train ----------
+/**
+ * A train as people tell it apart on the platform or on board: "18:57 Great Northern to Cambridge". The destination
+ * is what the train's own screens and announcements say, so it settles which of two close trains you're on.
+ */
+export function trainName(t: { std: string; operator: string; destination?: string }): string {
+  return `${t.std} ${t.operator}${t.destination ? ` to ${t.destination}` : ""}`.trim();
+}
+/** A tube as its front and the platform board name it: "10:03 Met to Aldgate". Line and destination as given. */
+export function tubeName(timeHHMM: string, line: string | undefined, dest: string | undefined): string {
+  const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();
+  return `${timeHHMM} ${line || "tube"}${d ? ` to ${d}` : ""}`;
+}
+
 const worstDesc = (l: LineStatus) => l.statuses.reduce((a, b) => (a.sev <= b.sev ? a : b)).desc;
 
 // ---------- On your way: how you're doing for the top train ----------

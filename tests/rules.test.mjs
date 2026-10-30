@@ -729,7 +729,7 @@ test("Tube ride: pick your tube at King's Cross; once it leaves you're on it, pa
   // The Met leaves at 07:56: on the tube from then.
   app.at(now + 12.5 * m); c.state.lastFixAt = now + 12.5 * m; c.render();
   assert.match(app.text("#hero"), /^On the tube · 07:56 · the tube you picked/);
-  assert.match(app.text("#hero"), /You're on the 07:56 Met · you picked this/);
+  assert.match(app.text("#hero"), /You're on the 07:56 Met to Aldgate · you picked this/);
   // A fix at Farringdon on the way: still on the tube, not "you're at Farringdon".
   app.at(now + 15 * m); await app.moveTo(51.5203, -0.1053, 20);
   assert.match(app.text("#hero"), /^On the tube/);
@@ -853,7 +853,7 @@ test("Review: tapping a tube that's leaving now makes it your ride; picks expire
   c.render();
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Met"]').click();
   await app.fix(51.5260, -0.1110, 30, t0 + 3 * MIN);                // between stations
-  assert.match(app.text("#hero"), /You're on the 07:52 Met · you picked this/);
+  assert.match(app.text("#hero"), /You're on the 07:52 Met to Aldgate · you picked this/);
   assert.match(app.text("#hero"), /On a different tube\?\s*Circle Aldgate · left 2 min ago/, "the board is gone: told by how long ago it left");
   // Tapping a tube that has already left: it's your ride, confirmed.
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 0.4 * MIN) + '|Circle"]').click();
@@ -1082,7 +1082,7 @@ test("Going home: tubes from Aldgate get off where you're home soonest; pick one
   app.at(T("16:49")); c.render();
   hero = app.text("#hero");
   assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
-  assert.match(hero, /You're on the Circle that left Aldgate at 16:46 · you picked this/);
+  assert.match(hero, /You're on the Circle to Edgware Road that left Aldgate at 16:46 · you picked this/);
   assert.match(hero, /Get off at King's Cross 16:56/);
   app.close();
 });
@@ -1150,12 +1150,12 @@ test("Going home 2: 'On a different tube?' switches you to one that has left; af
   await app.fix(...ALD, 15, T("16:44"));                             // at Aldgate at 16:44
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
   app.at(T("16:48")); c.render();
-  assert.match(app.text("#hero"), /You're on the Circle that left Aldgate at 16:46/);
+  assert.match(app.text("#hero"), /You're on the Circle to Edgware Road that left Aldgate at 16:46/);
   assert.match(app.text("#hero"), /On a different tube\?\s*Met Edgware Road · left 7 min ago/, "told by how long ago it left, not the clock");
   assert.equal(app.d.querySelector("#hero [data-leftago]").dataset.leftago, String(T("16:41")), "ticks");
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
   assert.equal(c.state.saved.tubeRide.from, "ALD");
-  assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:41/);
+  assert.match(app.text("#hero"), /You're on the Met to Edgware Road that left Aldgate at 16:41/);
   app.close();
   // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; the 16:46 leaves and you go quiet.
   const h = await homeApp(T("16:30"));

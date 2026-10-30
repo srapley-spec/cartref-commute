@@ -2,7 +2,7 @@
  "load": {
   "dirNote": "",
   "banners": [],
-  "hero": "On the train · 07:25 · worked out from your locationYou're on the line between Letchworth and London, but no train matches where you are right now. Which train are you on?07:20 Thameslink07:08 Great Northern07:00 Great Northern",
+  "hero": "On the train · 07:25 · worked out from your locationYou're on the line between Letchworth and London, but no train matches where you are right now. Which train are you on?07:20 Thameslink to Brighton07:08 Great Northern to London Kings Cross07:00 Great Northern to London Kings Cross",
   "rows": [
    "At the London station the app switches to the onward tube and live departures."
   ],

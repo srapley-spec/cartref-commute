@@ -46,6 +46,8 @@ the London rail stations replaced the start of the route going home; Aldgate did
 - Once your picked tube leaves you're on it until within 300 m of the stop the app chose, or 10 minutes after the
   ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …" ends it. "On a
   different tube?" switches to one that has left; its buttons say how long ago each left ("left 7 min ago").
+- The card says where your tube is going: "You're on the Circle to Edgware Road that left Aldgate at 16:46" (30 Oct;
+  kept with your pick, so a pick saved before this shows no destination).
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
   here" ends the ride; nothing is assumed about the next tube until you pick one.
 - A ride home is never treated as a ride to work, or the reverse.
