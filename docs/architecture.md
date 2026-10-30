@@ -145,20 +145,21 @@ draws.
 
 ## Release
 GitHub Pages, same URL, single page. A build step compiles the engine and inlines it into the page; CI
-type-checks, rebuilds, tests and checks the docs on every push. Pages publishes every push to `main` at once,
-independently of the tests. Every change passes `npm run ci` (all of GitHub's checks on a fresh copy of the commit)
-before merging; most then merge without waiting for GitHub (fast path), and GitHub's result on `main` is checked
-after every push. The rules, and which changes must wait for GitHub, are in `CLAUDE.md` ("Merging to `main`").
+type-checks, rebuilds, tests and checks the docs on every push, and publishes to Pages only from `main` and only
+once every check has passed (30 Oct). Every change passes `npm run ci` (all of GitHub's checks on a fresh copy of the
+commit) before merging; most then merge without waiting for GitHub (fast path). The whole process, including revert
+first and the proxy, is in [sdlc.md](sdlc.md).
 
 ## Known risks and technical debt
 Accepted on purpose, with a plan to resolve. Each has a story or issue.
-- **Changes go live before GitHub has tested them** (accepted 30 Oct, Sam; low priority to resolve). For fast cycle
-  time while trips find bugs, most changes merge once the local check passes, and Pages publishes `main` at once.
-  Risk: a change that passes locally but fails on GitHub's machine (e.g. a timing-sensitive page test) is live for a
-  few minutes until fixed forward; large changes such as engine refactors go live before GitHub checks them (their
-  protection is the independent review). Mitigations: the local check repeats every GitHub check on the committed
-  code; GitHub's result is checked after every push; nothing merges on a red `main`. Resolve: publish only after the
-  tests pass, and every change waits for GitHub. → [only-tested-code-goes-live](stories/only-tested-code-goes-live.md), #30
+- **Changes merge to `main` before GitHub has tested them** (accepted 30 Oct, Sam; low priority to resolve). For
+  fast cycle time, most changes merge once the local check passes. Since 30 Oct the live site publishes only after
+  GitHub's tests pass, so an untested change no longer reaches the app; the remaining risk is a red `main` (a change
+  that passes locally but fails on GitHub's machine), which blocks every publish, including the next urgent fix,
+  until it's reverted. Large changes such as engine refactors merge before GitHub checks them (their protection is
+  the independent review). Mitigations: the local check repeats every GitHub check on the committed code; GitHub's
+  result is checked after every push; revert first when `main` goes red. Resolve: every change waits for GitHub
+  green on its branch. → [only-tested-code-goes-live](stories/only-tested-code-goes-live.md), #30
 
 ## iOS
 The same engine can run on iPhone (JavaScriptCore) for the native app and widgets, or be ported to Swift against
@@ -183,6 +184,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** One written SDLC ([sdlc.md](sdlc.md)), pulled into `CLAUDE.md`. Pages publishes from the Tests workflow,
+  only after every check passes on `main` (an untested change never reaches the app). Revert first when `main` goes
+  red (a red `main` blocks every publish), unless reverting would break saved data. `npm run ci` checks the Node
+  version, fetches `main` and flags build/test machinery changes (wait for GitHub). Proxy deploys stay manual (Sam),
+  with old and new kept compatible.
 - **30 Oct** Fast cycle time over a strict release gate, for now (Sam): `npm run ci` (every GitHub check, on a fresh
   copy of the commit) before every merge; most changes then merge without waiting for GitHub; GitHub's result on
   `main` is checked after every push and a red `main` is fixed before anything else merges. Changes to build/test

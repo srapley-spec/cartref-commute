@@ -67,7 +67,8 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 #2–#7, #10–#12.
 
 ### How changes reach the live app
-- [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
+- [Only tested code goes live](only-tested-code-goes-live.md) · Partly done: publishes only after green; merging before GitHub is accepted debt (#30)
+- The process itself: [sdlc.md](../sdlc.md)
 
 ### Design and presentation
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Planned (design and interaction policies agreed; implementation pending)

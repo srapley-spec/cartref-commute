@@ -29,9 +29,8 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.
 - Don't overwhelm the interface: detail replaces a line or folds away.
-- Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
-  off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
-  on, and he's told it exists and where.
+- Toggles are Sam's decision: recommend one for a very complex or experimental change and ask; never by default
+  (`docs/sdlc.md`).
 
 ## Code rules
 - `src/core` is pure: no DOM, no network, no clock reads, no hard-coded places. Data sources are injected.
@@ -42,7 +41,7 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - `npm ci` once. `npm test` builds and runs everything (≈2–3 min). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
 - `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
-  committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
+  committed code (HEAD), and prints the merge path the changed files require. Required before any merge to `main`.
 - After editing `src/`, run `npm run build` and commit `index.html`; CI fails if it's stale.
 - Golden tests: after an intentional change, `UPDATE_GOLDEN=1 npm test`, read every diff in `tests/golden/*.json`,
   and say in the commit what changed and why.
@@ -52,51 +51,11 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   (`gh api repos/srapley-spec/cartref-commute/pulls`). Never `pkill -f` a pattern that matches your own shell; kill
   by PID. A fresh clone may fetch only some branches: add a fetch refspec for a branch you need to track.
 
-## Release
-- `main` is live (GitHub Pages publishes every push at once, before GitHub's tests finish). Work on a branch; merge
-  to `main` as below.
-- **Bigger changes get an independent test review before merging** (Sam, 29 Oct): a separate agent that didn't
-  write the code makes deliberate one-line breakages (mutation testing) and probes edge cases against the story;
-  fix what it finds, re-run its survivors, and merge only once it's satisfied. Give it the commit to review (an
-  agent's worktree starts at `main`).
-- **Branch from `main`, never from another unmerged branch.** Before merging, merge `main` in, re-run everything,
-  and re-read the stories and golden diffs against what `main` now does. (29 Oct: #27–#29 were built on #26 while
-  `main` moved on; their stories described the morning's app, and nothing flagged it.)
-- Commit messages say what changed for the person using the app, not just the code.
+## Release: how changes reach the live app
+The whole SDLC (branching, `npm run ci`, merge paths, publishing, checks after every push, revert first, the proxy)
+is in `docs/sdlc.md`, pulled in here:
 
-### Merging to `main` (Sam, 30 Oct: fast cycle time, carefully balanced against change failure rate)
-Every change: `npm run ci` passes before merging. Then one of two paths. Say which, and why, in the commit message
-and in the report to Sam (before merging when possible); Sam can always say "wait for GitHub".
-
-**Fast path (default): merge once `npm run ci` passes; verify GitHub afterwards.** For changes to engine logic,
-rules, thresholds, ranking (`src/core`); what the page draws (wording, lozenges, layout, order); tests, golden
-re-recordings, docs, stories.
-
-**Wait for GitHub green on the branch first** when the change touches something the local check can't fully stand
-in for, or something a fix-forward can't repair:
-1. Build or test machinery: `package.json`, the lockfile, `tools/`, `.github/`, `tests/harness.mjs`,
-   `tests/clock.mjs` (if these are wrong, the local check itself may be wrong).
-2. Saved data on the phone: the shape of saved settings or state, renaming or dropping keys (a bad write corrupts
-   what's stored; the next commit doesn't undo it).
-3. What's fetched from live feeds: endpoints, request counts or frequency, keys, the proxy (quotas, a refused key;
-   the goldens show these as request changes).
-4. Location and permission handling (a prompt loop makes the app unusable on the move).
-5. Timing-sensitive page tests changed, or one failed then passed on a re-run during the work.
-6. `main` is red, or its latest result wasn't seen: nothing merges until it's green.
-
-If unsure, take the GitHub-first path and say why. This is separate from the independent review above (whether the
-tests are good enough); this decides when to merge. The fast path is accepted technical debt: `docs/architecture.md`
-(Known risks and technical debt), issue #30.
-
-### After every push to `main`
-1. Check GitHub's Tests run for that exact commit (≈2–3 min) before telling Sam the change is done.
-2. Never merge on top of red: before each merge, confirm the latest `main` run passed. If it failed, or wasn't
-   seen, fixing it comes first.
-3. A failure is investigated to its cause, never waved off as a flake; fix forward through the same steps. If it's
-   a difference between GitHub's machine and the local check, tell Sam: the local check has a gap.
-4. Start of every session: check the latest `main` run before anything else (a session can end before a run
-   finishes, and a push to `main` doesn't wake this session; only pull requests do).
-5. Tell Sam about every failure found: the cause and the fix, even when the fix is already pushed.
+@docs/sdlc.md
 
 ## Working with Sam
 - Direct, evidence-based; state confidence and what's unverified. Investigate root causes from code and data

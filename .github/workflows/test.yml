@@ -2,6 +2,8 @@ name: Tests
 on:
   push:
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,3 +32,38 @@ jobs:
           if [ "$(git rev-parse "$base")" = "$(git rev-parse HEAD)" ]; then node tools/check-docs.mjs; exit; fi
           node tools/check-docs.mjs --since "$base"
       - run: npm test
+
+  # The live site (GitHub Pages) publishes only from main, and only after every check above has passed
+  # (docs/sdlc.md). Needs Settings → Pages → Source → "GitHub Actions". Publishes the committed files as they are
+  # (index.html is checked above to match src/).
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      # A newer push to main supersedes this one: never let an older commit overwrite it on the live site.
+      - name: Still the latest commit on main?
+        id: latest
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" = "$GITHUB_SHA" ]; then echo "publish=true" >> "$GITHUB_OUTPUT"
+          else echo "main has moved on to $tip; that run publishes instead"; echo "publish=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.latest.outputs.publish == 'true'
+        uses: actions/configure-pages@v5
+      - if: steps.latest.outputs.publish == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - if: steps.latest.outputs.publish == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
