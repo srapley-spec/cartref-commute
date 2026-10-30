@@ -63,3 +63,22 @@ test("playback starts at the selected end and supports multiple speeds", async (
   d.querySelector("#simExit").click();
   assert.equal(d.querySelector("#simBar").hidden,true);
 });
+
+test("each route and direction starts paused at first checkpoint",async()=>{
+ const app=await createApp({settle:120});
+ const d=app.d,w=app.w;
+ d.querySelector("#settingsBtn").click();
+ d.querySelector("#s_simulator").checked=true;
+ d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+ for(const route of ["kgx","far"])for(const direction of ["outbound","return"]){
+   d.querySelector("#simPath").value=route;
+   d.querySelector("#simDirection").value=direction;
+   d.querySelector("#simPlay").click();
+   assert.match(d.querySelector("#simStatus").textContent,/Paused at/);
+   assert.equal(d.querySelector("#simCheckpoint").textContent.includes("1/"),true);
+   const expected=direction==="return"?51.5139:51.975;
+   assert.ok(Math.abs(app.c.state.here[0]-expected)<0.0001);
+   d.querySelector("#simPause").click();
+ }
+ d.querySelector("#simExit").click();
+});
