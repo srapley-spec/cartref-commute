@@ -344,6 +344,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <p class="hint">Off: the app works exactly as before.</p>
     </fieldset>
 
+    <fieldset>
+      <legend>Capture live data</legend>
+      <p class="hint">On the platform at Aldgate: capture what TfL is sending now (its arrivals and TrackerNet, the per-platform
+        feed the boards use) and share it. Your key is used but never shown or shared. Three requests, only when you tap.</p>
+      <button type="button" class="ghost" id="captureAldBtn">Capture Aldgate now</button>
+      <button type="button" class="ghost" id="captureShareBtn" hidden>Share capture</button>
+      <textarea id="captureOut" readonly hidden rows="8" style="width:100%;font:12px ui-monospace,monospace"></textarea>
+    </fieldset>
+
     <div class="actions">
       <button type="button" class="ghost" id="resetBtn">Reset times to defaults</button>
       <button type="submit" class="primary" id="saveBtn" value="save">Save</button>
@@ -1844,6 +1853,26 @@ function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent 
 $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
   state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
+// Capture live data (Settings): what TfL sends for Aldgate right now, to find where its Met departures are (30 Oct:
+// the arrivals feed lists Met trains only as arriving). The key is removed from everything shown or shared.
+const CAPTURE_URLS = ["https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals",
+  "https://api.tfl.gov.uk/trackernet/PredictionDetailed/M/ALD", "https://api.tfl.gov.uk/trackernet/PredictionDetailed/H/ALD"];
+async function captureAldgate(){
+  const k=S().tflKey, hide=t=>k ? String(t).split(k).join("***") : String(t), out=[`Captured ${new Date().toISOString()} (${hhmm(Date.now())} London)`];
+  for(const u of CAPTURE_URLS){
+    try{ const r=await fetchT(tflUrl(u)); const body=await r.text(); out.push(`== ${u}\nHTTP ${r.status}\n${body.slice(0,30000)}`); }
+    catch(e){ out.push(`== ${u}\nfailed: ${e.message}`); }
+  }
+  return hide(out.join("\n\n"));
+}
+$("#captureAldBtn").addEventListener("click", async ()=>{
+  const b=$("#captureAldBtn"), o=$("#captureOut"); b.disabled=true; b.textContent="Capturing…";
+  o.value=await captureAldgate(); o.hidden=false; $("#captureShareBtn").hidden=false; b.disabled=false; b.textContent="Capture Aldgate now"; });
+$("#captureShareBtn").addEventListener("click", async ()=>{
+  const t=$("#captureOut").value;
+  try{ if(navigator.share){ await navigator.share({ title:"Aldgate capture", text:t }); return; } await navigator.clipboard.writeText(t); $("#captureShareBtn").textContent="Copied"; }
+  catch(e){ $("#captureOut").select(); }
+});
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
 $("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; state.byCache={}; refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
@@ -1889,6 +1918,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={effortProfile,atHome,homeRide,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={captureAldgate,effortProfile,atHome,homeRide,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

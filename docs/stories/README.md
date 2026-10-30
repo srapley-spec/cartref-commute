@@ -53,6 +53,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Elsewhere in London](elsewhere-in-london.md) · Done
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari
+- [Capture live data from the platform](capture-live-data.md) · Done
 
 ### Beyond the commute
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
