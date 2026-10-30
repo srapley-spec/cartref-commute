@@ -1512,3 +1512,80 @@ test("Follow: Arrive by chosen at the office lapses back to live when you reach 
   await off.fix(...KX, 15, T("18:15")); assert.equal(off.c.state.saved.view, "by", "toggle off: as before");
   off.close();
 });
+
+test("Follow review: reopening (trains not loaded yet) or a change of direction never says 'missed'; a cancelled train has no Follow button", async () => {
+  let app = await open({ now: T("18:19"), geo: OFFICE, settings: FOLLOW, saved: { dirMode: "home" } }), c = app.c;
+  followBtn(app, "Great Northern|18:48|KGX").click();
+  const saved = JSON.parse(JSON.stringify(c.state.saved.follow));
+  app.close();
+  app = await open({ now: T("18:20"), geo: OFFICE, settings: FOLLOW, saved: { dirMode: "home", follow: saved } }); c = app.c;
+  assert.equal(c.state.saved.follow.reason, null); assert.doesNotMatch(app.text("#hero"), /missed/);
+  app.d.querySelector('[data-dir="office"]').click(); await sleep(400);
+  app.d.querySelector('[data-dir="home"]').click(); await sleep(400);
+  assert.equal(c.state.saved.follow.reason, null); assert.doesNotMatch(app.text("#hero"), /missed/);
+  assert.ok(followBtn(app, "Great Northern|19:06|KGX"), "the 19:06 can be followed");
+  trainIn(c, "19:06").forEach(t => { t.cancelled = true; }); c.render();
+  assert.equal(followBtn(app, "Great Northern|19:06|KGX"), null, "cancelled: no Follow button");
+  app.close();
+});
+
+test("Follow review: the tube ETA is your vehicle's, at the station you're heading for; a stale or failed one falls back to the ride time", async () => {
+  const row = (v, t) => ({ vehicleId: v, lineId: "circle", platformName: "Westbound - Platform 1", destinationName: "Edgware Road (Circle Line) Underground Station", expectedArrival: new Date(t).toISOString(), timeToStation: 60 });
+  let fail = false;
+  const app = await open({ now: T("16:30"), geo: null, settings: FOLLOW, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed()) : /940GZZLUKSX\/Arrivals/.test(u) ? (fail ? json({}, 500) : json([row("c99", T("16:50")), row("c46", T("16:57"))])) : undefined) }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  await app.fix(...ALD, 7, T("16:44"));
+  followBtn(app, "Great Northern|17:18|KGX").click();
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  app.at(T("16:48")); await c.refresh({ force: true }); await sleep(400);
+  assert.match(app.text("#hero"), /at King's Cross 16:57 \(TfL, by your tube\)/, "c46's time, not c99's");
+  fail = true; app.at(T("16:52")); await c.refresh({ force: true }); await sleep(400);
+  assert.doesNotMatch(app.text("#hero"), /by your tube/, "over 3 min old and not refreshed: the ride time instead");
+  assert.match(app.text("#hero"), /at King's Cross 16:56/);
+  c.state.tubeEta = { vehicle: "c99", hub: "KGX", at: T("16:52"), t: T("16:58") }; c.render();
+  assert.doesNotMatch(app.text("#hero"), /by your tube/, "another vehicle's time is never used");
+  app.close();
+});
+
+test("Follow review: on the train it says so and offers nothing better; toggle off ignores a saved follow, fetches nothing extra, saves nothing new", async () => {
+  let app = await open({ now: T("18:10"), geo: OFFICE, settings: FOLLOW, saved: { dirMode: "home" } }), c = app.c;
+  followBtn(app, "Great Northern|19:06|KGX").click();
+  const saved = JSON.parse(JSON.stringify(c.state.saved.follow));
+  const t = trainIn(c, "19:06")[0];
+  app.at(T("19:15")); c.state.trainLock = c.lockOf ? c.lockOf(t, true) : { operator: t.operator, std: t.std, from: t.from, picked: true, ...(t.serviceId ? { serviceId: t.serviceId } : {}) };
+  c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /^Following · the 19:06 Great Northern/); assert.match(hero, /On the 19:06 Great Northern/);
+  assert.doesNotMatch(hero, /missed|Better option/);
+  app.close();
+  app = await open({ now: T("18:20"), geo: OFFICE, settings: RDM, saved: { dirMode: "home", follow: saved } }); c = app.c;
+  assert.doesNotMatch(app.text("#hero"), /Following/, "toggle off: a saved follow isn't shown");
+  app.d.querySelector('[data-view="by"]').click(); await sleep(300);
+  assert.equal(c.state.saved.viewAt, undefined); assert.equal(c.state.saved.viewKey, undefined);
+  assert.equal(app.calls.filter(u => /940GZZLUKSX|940GZZLUFCN/.test(u)).length, 0);
+  app.close();
+  // Toggle off, on a tube home with a saved follow: TfL isn't asked where the tube is.
+  app = await open({ now: T("16:30"), geo: null, settings: RDM, saved: { dirMode: "home", follow: { ...saved, train: { operator: "Great Northern", std: "17:18", from: "KGX" }, calls: [{ operator: "Great Northern", std: "17:18", from: "KGX" }] } },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed()) : undefined) }); c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  await app.fix(...ALD, 7, T("16:44"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  app.at(T("16:48")); await c.refresh({ force: true }); await sleep(400);
+  assert.ok(c.homeRide(T("16:48")), "on the tube home");
+  assert.equal(app.calls.filter(u => /940GZZLUKSX|940GZZLUFCN/.test(u)).length, 0, "toggle off: no tube-position requests");
+  app.close();
+  // Following one direction and the app now heading the other: not shown.
+  app = await open({ now: T("18:20"), geo: OFFICE, settings: FOLLOW, saved: { dirMode: "home", follow: { ...saved, dir: "office" } } });
+  assert.doesNotMatch(app.text("#hero"), /Following/);
+  app.close();
+});
+
+test("Follow review: a planning tab is kept at 19 min on the move, back to live after 20", async () => {
+  const app = await open({ now: T("18:00"), geo: OFFICE, settings: FOLLOW, saved: { dirMode: "home" } }), c = app.c;
+  await app.fix(...KX, 15, T("18:00"));
+  app.d.querySelector('[data-view="at"]').click(); await sleep(300);
+  await app.fix(...KX, 15, T("18:19")); assert.equal(c.state.saved.view, "at", "19 min");
+  await app.fix(...KX, 15, T("18:20") + 1e3); assert.equal(c.state.saved.view, "now", "just over 20 min");
+  app.close();
+});

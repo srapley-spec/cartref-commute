@@ -64,6 +64,19 @@ click."
   at your pace; shown once per option, not repeated on every refresh. One tap switches. Smaller gains are never
   offered: live times move by a minute or two all the time, and switching for them would make the arrival jumpy.
 
+### Edge cases (independent review, 30 Oct late evening)
+- Before the trains load (reopening, a change of direction, a failed load) nothing is decided: never "missed" from
+  no data. A train missing from the loaded boards counts as gone only once its last call was due to leave.
+- The same train at another station counts, with shared or separate service IDs: past Farringdon, the St Pancras call
+  of the same Thameslink keeps you on it.
+- No better option while you're on the train or on a tube.
+- A cancelled or missed reason that stops being true is replaced ("Your 18:48 Great Northern is running again", "You
+  can make the … again"); OK on cancelled or missed isn't undone by the next refresh; a reason isn't re-said with a
+  new time on every refresh.
+- A train that was never late and is now expected earlier says "now expected earlier", not "back on time".
+- Toggle off: a saved route isn't shown, no tube-position requests, and choosing a planning tab saves nothing new.
+- A cancelled train has no Follow button.
+
 ### Live mode when not following
 - If you seem to be on the move (at a station, on a train or tube, or walking to the station) and aren't following a
   route, the app shows where you are (station departures, the train or tube you're probably on with picks), as it
@@ -76,16 +89,21 @@ click."
 
 ## Tests
 - tests/core/follow.test.mjs: "Follow, 30 Oct evening: the 18:48 is cancelled — said, and the 18:54 offered (home 19:52, 18 min later); the arrival never moves without a reason"
-- tests/core/follow.test.mjs: "Follow: the arrival changes only with a reason — later, back on time; under a minute is no change"
+- tests/core/follow.test.mjs: "Follow: before the trains load nothing is decided (reopening, a change of direction): never 'missed' from no data"
+- tests/core/follow.test.mjs: "Follow: the arrival changes only with a reason — 60 s is a change, 59 s isn't; 5 min late is red, 4 amber; back on time"
 - tests/core/follow.test.mjs: "Follow: minutes in hand and behind; can't make it at any effort, or it has left: missed, with the best way on"
 - tests/core/follow.test.mjs: "Follow: on board the train counts however late you'd be to 'leave'; on a tube, minutes in hand from when it reaches the station"
 - tests/core/follow.test.mjs: "Follow: a better option only at 5+ min sooner and makeable at a walk or fast walk; once declined, never again"
-- tests/core/follow.test.mjs: "Follow: the same train at another station still counts (Thameslink at Farringdon or St Pancras); found by service ID; arrived"
+- tests/core/follow.test.mjs: "Follow: the same train at another station counts (Thameslink at Farringdon, then St Pancras), with shared or separate service IDs; arrived"
 - tests/rules.test.mjs: "Follow, 30 Oct evening: follow the 18:48 from the office; it's cancelled — said with its reason, the best way on offered, one tap follows it"
 - tests/rules.test.mjs: "Follow: kept across reopening; a delay is said and moves the arrival; OK clears the reason; off = no Follow buttons"
 - tests/rules.test.mjs: "Follow: a later train followed — a better one 5+ min sooner is offered once; No thanks never offers it again; behind and missed"
 - tests/rules.test.mjs: "Follow, on the tube home: minutes in hand from when TfL says your tube (by vehicle) reaches King's Cross; too late = connection lost"
 - tests/rules.test.mjs: "Follow: Arrive by chosen at the office lapses back to live when you reach King's Cross, or after 20 minutes"
+- tests/rules.test.mjs: "Follow review: reopening (trains not loaded yet) or a change of direction never says 'missed'; a cancelled train has no Follow button"
+- tests/rules.test.mjs: "Follow review: the tube ETA is your vehicle's, at the station you're heading for; a stale or failed one falls back to the ride time"
+- tests/rules.test.mjs: "Follow review: on the train it says so and offers nothing better; toggle off ignores a saved follow, fetches nothing extra, saves nothing new"
+- tests/rules.test.mjs: "Follow review: a planning tab is kept at 19 min on the move, back to live after 20"
 - Toggle off: every existing test and golden is unchanged.
 
 ## Not yet / open questions

@@ -286,7 +286,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:00 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:31 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -483,6 +483,7 @@ var CommuteCore = (() => {
     delayLevel: () => delayLevel,
     delayStatus: () => delayStatus,
     departureStatus: () => departureStatus,
+    dismissReason: () => dismissReason,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -491,6 +492,7 @@ var CommuteCore = (() => {
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
     findTrain: () => findTrain,
+    followHas: () => followHas,
     followOption: () => followOption,
     gradeEffort: () => gradeEffort,
     headlineKind: () => headlineKind,
@@ -1252,65 +1254,83 @@ var CommuteCore = (() => {
   // src/core/follow.ts
   var BETTER_MS = 5 * 6e4;
   var CHANGE_MS = 6e4;
+  var GONE_GRACE_MS = 3e4;
   var trainKey = (t) => `${t.operator}|${t.std}|${t.from}`;
   var sameTrain = (a, b) => a.serviceId && b.serviceId ? a.serviceId === b.serviceId : trainKey(a) === trainKey(b);
+  var idOf = (t) => ({ operator: t.operator, std: t.std, from: t.from, ...t.serviceId ? { serviceId: t.serviceId } : {} });
   var trainsOf = (o) => [o.train, ...(o.alts || []).map((a) => a.train)];
-  var optionHas = (o, id) => trainsOf(o).some((t) => sameTrain(t, id));
+  var isMine = (f, t) => f.calls.some((id) => sameTrain(t, id));
+  var followHas = (o, f) => trainsOf(o).some((t) => isMine(f, t));
+  var optionHas = (o, id) => followHas(o, { calls: [id] });
   function followOption(o, dir, now) {
-    const t = o.train;
+    const t = o.train, calls = trainsOf(o);
     return {
       dir,
       hub: o.hub,
-      train: { operator: t.operator, std: t.std, from: t.from, ...t.serviceId ? { serviceId: t.serviceId } : {} },
+      train: idOf(t),
+      calls: calls.map(idOf),
+      lastDep: Math.max(...calls.map((c) => c.dep)),
       afterMs: o.arrive - t.arr,
       planned: o.arrive,
       arrive: o.arrive,
       lateMin: t.arrLate || 0,
       followedAt: now,
       reason: null,
+      dismissed: null,
       declined: []
     };
   }
+  var dismissReason = (f) => ({ ...f, reason: null, dismissed: f.reason && (f.reason.kind === "cancelled" || f.reason.kind === "missed") ? f.reason.kind : f.dismissed });
   function findTrain(trains, id) {
-    return trains.find((t) => id.serviceId && t.serviceId === id.serviceId) || trains.find((t) => trainKey(t) === trainKey(id)) || null;
+    return trains.find((t) => id.serviceId && t.serviceId === id.serviceId && t.from === id.from) || trains.find((t) => trainKey(t) === trainKey(id)) || trains.find((t) => id.serviceId && t.serviceId === id.serviceId) || null;
   }
   var catchable = (o) => !o.train.cancelled && !o.uncertain && !o.train.depUnknown && !o.missed && o.effort !== "none";
   var easy = (o) => catchable(o) && (o.effort == null || o.effort === "walk" || o.effort === "fast");
   var earliest = (os) => os.reduce((b, o) => !b || o.arrive < b.arrive || o.arrive === b.arrive && o.leave > b.leave ? o : b, null);
   function trackFollowed(f, i) {
-    var _a;
-    const out = { ...f, declined: [...f.declined] };
-    const { now, train, option } = i;
+    var _a, _b;
+    const out = { ...f, declined: [...f.declined], calls: f.calls || [f.train], dismissed: (_a = f.dismissed) != null ? _a : null };
+    const { now, option } = i;
     const say = (kind, text, level) => {
       out.reason = { kind, text, at: now, level };
     };
+    const sayOnce = (kind, text) => {
+      if ((!out.reason || out.reason.kind !== kind) && out.dismissed !== kind) say(kind, text, "bad");
+    };
     const name = `${f.train.std} ${f.train.operator}`;
-    const base = { effort: option ? (_a = option.effort) != null ? _a : null : null, next: null, better: null };
+    const base = { effort: option ? (_b = option.effort) != null ? _b : null : null, next: null, better: null };
+    if (!i.trains) return { state: "on", arrive: out.arrive, spareMin: null, ...base, train: null, followed: out };
+    const mine = i.trains.filter((t) => isMine(out, t)).sort((a, b) => a.dep - b.dep);
+    const toCome = mine.filter((t) => t.dep >= now - GONE_GRACE_MS);
+    const train = toCome[0] || mine[mine.length - 1] || null;
     const arriveNow = train && train.arr != null ? train.arr + f.afterMs : f.arrive;
-    if (now > Math.max(f.arrive, arriveNow) + 5 * 6e4) return { state: "arrived", arrive: f.arrive, spareMin: null, ...base, followed: out };
-    const others = i.options.filter((o) => !optionHas(o, f.train));
+    if (now > Math.max(f.arrive, arriveNow) + 5 * 6e4) return { state: "arrived", arrive: out.arrive, spareMin: null, ...base, train, followed: out };
+    const others = i.options.filter((o) => !followHas(o, out));
     if (train && train.cancelled) {
-      if (!out.reason || out.reason.kind !== "cancelled") say("cancelled", `Your ${name} is cancelled`, "bad");
-      return { state: "cancelled", arrive: f.arrive, spareMin: null, ...base, next: earliest(others.filter(catchable)), followed: out };
+      sayOnce("cancelled", `Your ${name} is cancelled`);
+      return { state: "cancelled", arrive: out.arrive, spareMin: null, ...base, train, next: earliest(others.filter(catchable)), followed: out };
     }
     const spareMs = i.onBoard ? null : i.tube && train ? train.dep - (i.tube.reach + i.tube.readyMs) : option ? option.leave - now : null;
-    const gone = !i.onBoard && (!train || train.dep < now - 3e4);
+    const gone = !i.onBoard && !toCome.length && (mine.length > 0 || now > out.lastDep + GONE_GRACE_MS);
     const cantMake = !i.onBoard && (i.tube ? spareMs != null && spareMs < 0 : !!option && option.effort === "none");
     if (gone || cantMake) {
-      if (!out.reason || out.reason.kind !== "missed") say("missed", gone ? `You've missed the ${name}` : `You can't make the ${name} now`, "bad");
-      return { state: "missed", arrive: f.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, next: earliest(others.filter(catchable)), followed: out };
+      sayOnce("missed", gone ? `You've missed the ${name}` : `You can't make the ${name} now`);
+      return { state: "missed", arrive: out.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, train, next: earliest(others.filter(catchable)), followed: out };
     }
-    const arrive = train && train.arr != null ? train.arr + f.afterMs : f.arrive;
-    if (Math.abs(arrive - f.arrive) >= CHANGE_MS) {
+    if (out.reason && (out.reason.kind === "cancelled" || out.reason.kind === "missed"))
+      say("updated", out.reason.kind === "cancelled" ? `Your ${name} is running again` : `You can make the ${name} again`, "ok");
+    out.dismissed = null;
+    const arrive = train && train.arr != null ? train.arr + f.afterMs : out.arrive;
+    if (Math.abs(arrive - out.arrive) >= CHANGE_MS) {
       const late = train ? train.arrLate || 0 : 0;
-      if (late > f.lateMin) say("late", late >= 1 ? `Your ${name} is now ${late} min late` : `Your ${name} is running later`, late >= 5 ? "bad" : "warn");
-      else if (arrive < f.arrive) say("earlier", late >= 1 ? `Your ${name} is now only ${late} min late` : `Your ${name} is back on time`, "ok");
+      if (late > out.lateMin) say("late", late >= 1 ? `Your ${name} is now ${late} min late` : `Your ${name} is running later`, late >= 5 ? "bad" : "warn");
+      else if (arrive < out.arrive) say("earlier", late >= 1 ? `Your ${name} is now only ${late} min late` : out.lateMin >= 1 ? `Your ${name} is back on time` : `Your ${name} is now expected earlier`, "ok");
       else say("updated", `Your ${name}'s expected arrival changed`, "warn");
       out.arrive = arrive;
       out.lateMin = late;
     }
-    const better = earliest(others.filter((o) => easy(o) && o.arrive <= out.arrive - BETTER_MS && !out.declined.includes(trainKey(o.train))));
-    return { state: "on", arrive: out.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, better, followed: out };
+    const better = i.onBoard || i.tube ? null : earliest(others.filter((o) => easy(o) && o.arrive <= out.arrive - BETTER_MS && !out.declined.includes(trainKey(o.train))));
+    return { state: "on", arrive: out.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, train, better, followed: out };
   }
 
   // src/core/connections.ts
@@ -2726,10 +2746,11 @@ const liveAdjust = (js, now, view="now") => {
 // home: when your tube reaches the station, from TfL's arrivals for that vehicle when known, else its ride time.
 function followInputs(f, now){
   const options = state.boards ? ranked(now) : [];
-  const all = Object.values(state.boards||{}).flatMap(b=>b?b.services:[]);
-  const train = C.findTrain(all, f.train), option = options.find(o=>C.optionHas(o, f.train)) || null;
+  // Not loaded (reopening, a change of direction, a failed load): the engine decides nothing.
+  const trains = state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]) : null;
+  const option = options.find(o=>C.followHas(o, f)) || null;
   const m = state.onLine ? whichTrain(now) : null, lt = lockedTrain();
-  const same = t => !!t && C.optionHas({ train:t }, f.train);
+  const same = t => !!t && C.followHas({ train:t }, f);
   const onBoard = same(lt) || (!!m && !m.none && same(m.t));
   let tube=null; const r = f.dir==="home" ? homeRide(now) : null;
   if(r && !onBoard){
@@ -2739,7 +2760,7 @@ function followInputs(f, now){
     const ride = f.hub==="ZFD" ? S().rideFarAld*1000 : S().rideKxAld*1000;
     tube = { reach: eta || (leg ? r.t+leg.rideMs : r.t+ride), readyMs: ready||0, live: !!eta };
   }
-  return { now, train, option, options, onBoard, tube };
+  return { now, trains, option, options, onBoard, tube };
 }
 function renderFollow(now){
   const f=state.saved.follow; if(!followOn() || !f) return;
@@ -2775,9 +2796,9 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   const now=Date.now(), f=state.saved.follow;
   if(b.dataset.follow!=null){ const o=(state.followable||{})[b.dataset.follow]; if(!o) return; state.saved.follow=C.followOption(o, direction(), now); }
   else if(b.hasAttribute("data-follow-stop")) state.saved.follow=null;
-  else if(b.hasAttribute("data-follow-ok") && f) state.saved.follow={...f, reason:null};
+  else if(b.hasAttribute("data-follow-ok") && f) state.saved.follow=C.dismissReason(f);
   else if(b.dataset.followNo!=null && f) state.saved.follow={...f, declined:[...f.declined, b.dataset.followNo]};
-  else if(b.hasAttribute("data-follow-onboard") && f){ const t=C.findTrain(Object.values(state.boards||{}).flatMap(x=>x?x.services:[]), f.train); if(t){ state.trainLock=C.lockOf(t, true); } state.saved.follow={...f, reason:null}; }
+  else if(b.hasAttribute("data-follow-onboard") && f){ const t=C.findTrain(Object.values(state.boards||{}).flatMap(x=>x?x.services:[]), f.train); if(t){ state.trainLock=C.lockOf(t, true); } state.saved.follow={...f, reason:null, dismissed:null}; }
   save(); render();
 });
 // On the tube home while following: where TfL says your tube (by vehicle) reaches the station you're heading for.
@@ -2883,7 +2904,7 @@ function effortLine(j, dest, best){
 // Follow a route (toggle): one tap on any journey. The options on screen are kept so a tap finds its journey.
 const followBtn = j => { if(!followOn() || j.train.cancelled) return "";
   const k=C.trainKey(j.train); state.followable=state.followable||{}; state.followable[k]=j;
-  const f=state.saved.follow, on=f && C.optionHas(j, f.train);
+  const f=state.saved.follow, on=f && C.followHas(j, f);
   return on ? `<div class="followtag">Following</div>` : `<button type="button" class="pickbtn followbtn" data-follow="${esc(k)}">Follow</button>`; };
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
@@ -4103,7 +4124,7 @@ const planView = () => state.saved.view==="at" ? planAt() : planBy();
 // Where you are, for the planning lapse: a change here (station, train, tube, on your way) means the choice is stale.
 const liveKey = () => { const n=Date.now(); return [direction(), state.atHub||"", !!state.onLine, !!currentRide(n), !!homeRide(n), !!onWay()].join("|"); };
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view;
-  if(b.dataset.view!=="now"){ state.saved.viewAt=Date.now(); state.saved.viewKey=liveKey(); } save();
+  if(followOn() && b.dataset.view!=="now"){ state.saved.viewAt=Date.now(); state.saved.viewKey=liveKey(); } save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
   render(); if(state.saved.view==="at"){ planAt(); return; }
   if(state.saved.view==="now" && !state.boards && state.railSource==="tfl") refresh({force:true}); else planBy(); }));

@@ -978,10 +978,11 @@ const liveAdjust = (js, now, view="now") => {
 // home: when your tube reaches the station, from TfL's arrivals for that vehicle when known, else its ride time.
 function followInputs(f, now){
   const options = state.boards ? ranked(now) : [];
-  const all = Object.values(state.boards||{}).flatMap(b=>b?b.services:[]);
-  const train = C.findTrain(all, f.train), option = options.find(o=>C.optionHas(o, f.train)) || null;
+  // Not loaded (reopening, a change of direction, a failed load): the engine decides nothing.
+  const trains = state.boards ? Object.values(state.boards).flatMap(b=>b?b.services:[]) : null;
+  const option = options.find(o=>C.followHas(o, f)) || null;
   const m = state.onLine ? whichTrain(now) : null, lt = lockedTrain();
-  const same = t => !!t && C.optionHas({ train:t }, f.train);
+  const same = t => !!t && C.followHas({ train:t }, f);
   const onBoard = same(lt) || (!!m && !m.none && same(m.t));
   let tube=null; const r = f.dir==="home" ? homeRide(now) : null;
   if(r && !onBoard){
@@ -991,7 +992,7 @@ function followInputs(f, now){
     const ride = f.hub==="ZFD" ? S().rideFarAld*1000 : S().rideKxAld*1000;
     tube = { reach: eta || (leg ? r.t+leg.rideMs : r.t+ride), readyMs: ready||0, live: !!eta };
   }
-  return { now, train, option, options, onBoard, tube };
+  return { now, trains, option, options, onBoard, tube };
 }
 function renderFollow(now){
   const f=state.saved.follow; if(!followOn() || !f) return;
@@ -1027,9 +1028,9 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   const now=Date.now(), f=state.saved.follow;
   if(b.dataset.follow!=null){ const o=(state.followable||{})[b.dataset.follow]; if(!o) return; state.saved.follow=C.followOption(o, direction(), now); }
   else if(b.hasAttribute("data-follow-stop")) state.saved.follow=null;
-  else if(b.hasAttribute("data-follow-ok") && f) state.saved.follow={...f, reason:null};
+  else if(b.hasAttribute("data-follow-ok") && f) state.saved.follow=C.dismissReason(f);
   else if(b.dataset.followNo!=null && f) state.saved.follow={...f, declined:[...f.declined, b.dataset.followNo]};
-  else if(b.hasAttribute("data-follow-onboard") && f){ const t=C.findTrain(Object.values(state.boards||{}).flatMap(x=>x?x.services:[]), f.train); if(t){ state.trainLock=C.lockOf(t, true); } state.saved.follow={...f, reason:null}; }
+  else if(b.hasAttribute("data-follow-onboard") && f){ const t=C.findTrain(Object.values(state.boards||{}).flatMap(x=>x?x.services:[]), f.train); if(t){ state.trainLock=C.lockOf(t, true); } state.saved.follow={...f, reason:null, dismissed:null}; }
   save(); render();
 });
 // On the tube home while following: where TfL says your tube (by vehicle) reaches the station you're heading for.
@@ -1135,7 +1136,7 @@ function effortLine(j, dest, best){
 // Follow a route (toggle): one tap on any journey. The options on screen are kept so a tap finds its journey.
 const followBtn = j => { if(!followOn() || j.train.cancelled) return "";
   const k=C.trainKey(j.train); state.followable=state.followable||{}; state.followable[k]=j;
-  const f=state.saved.follow, on=f && C.optionHas(j, f.train);
+  const f=state.saved.follow, on=f && C.followHas(j, f);
   return on ? `<div class="followtag">Following</div>` : `<button type="button" class="pickbtn followbtn" data-follow="${esc(k)}">Follow</button>`; };
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
@@ -2105,7 +2106,7 @@ const planView = () => state.saved.view==="at" ? planAt() : planBy();
 // Where you are, for the planning lapse: a change here (station, train, tube, on your way) means the choice is stale.
 const liveKey = () => { const n=Date.now(); return [direction(), state.atHub||"", !!state.onLine, !!currentRide(n), !!homeRide(n), !!onWay()].join("|"); };
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view;
-  if(b.dataset.view!=="now"){ state.saved.viewAt=Date.now(); state.saved.viewKey=liveKey(); } save();
+  if(followOn() && b.dataset.view!=="now"){ state.saved.viewAt=Date.now(); state.saved.viewKey=liveKey(); } save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
   render(); if(state.saved.view==="at"){ planAt(); return; }
   if(state.saved.view==="now" && !state.boards && state.railSource==="tfl") refresh({force:true}); else planBy(); }));
