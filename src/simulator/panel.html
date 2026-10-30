@@ -1,0 +1,22 @@
+<style>
+#simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
+#simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
+#simPanel label{display:block;margin:8px 0 3px}#simPanel input,#simPanel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #777;border-radius:5px}
+#simPanel button,#simBar button{padding:7px 10px;margin:4px 3px 4px 0;border:1px solid #777;border-radius:6px;cursor:pointer}
+#simPanel .simRow{display:flex;gap:5px;flex-wrap:wrap}#simPanel .simRow button{flex:1}#simPanel small{display:block;color:#555}
+</style>
+<div id="simBar" hidden role="status">SIMULATED LOCATION — NOT YOUR REAL POSITION <button id="simExit" type="button">Stop &amp; reset</button></div>
+<section id="simPanel" hidden aria-label="Journey simulator">
+<strong>Journey simulator · development mode</strong>
+<small>GPS simulated · actual clock · transport feeds unchanged. Reload exits simulation.</small>
+<label for="simPreset">Jump to location</label><select id="simPreset">
+<option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate East</option><option value="office">Office</option>
+</select>
+<label for="simDirection">Playback direction</label><select id="simDirection"><option value="outbound">Letchworth → office</option><option value="return">Office → Letchworth</option></select>
+<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Play journey</button><button type="button" id="simPause">Pause</button></div>
+<label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
+<label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
+<small id="simStatus" aria-live="polite">Ready</small>
+</section>
