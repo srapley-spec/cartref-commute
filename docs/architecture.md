@@ -183,6 +183,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct evening** Interchange timings from Sam's measurements: King's Cross rail → tube 400 s from the train
+  stopping (30 s off + double the 185 s best, both paces); Aldgate East 112 s + 283 s (as measured). Next: start the
+  King's Cross walk when the train stops (GPS speed), not at the first fix. → [connections](stories/connections.md)
 - **30 Oct evening** Revert 15:48: the tube home is worked out again (picks still win), because on the 18:24 trip
   the Met he took wasn't pickable and the app timed his journey from the office at Moorgate. The two mistakes aren't
   equal: a false alarm at the desk is harmless, missing that you're travelling isn't. Sam's direction (planned, not

@@ -98,10 +98,20 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   (magenta), H&C `--hc` (light pink). A line the app doesn't know keeps the default lozenge; "Get on the next Circle
   or Met" (no live times, two lines) keeps it too.
 
+## Timings (Settings; defaults)
+- **King's Cross rail ⇄ Circle/Met: 400 s** at average pace, from the train stopping (Sam, 30 Oct evening): 30 s to
+  get off + 370 s, double the measured best of 185 s (quiet Friday, front of the train, platform 6 by the gateline),
+  "to be on the safe side" for busy times, the back of the train or a far platform. Fast pace ×0.82 ≈ 328 s. Was
+  360 s from the first fix within 400 m. Sam weighed: average 370 / fast 185 (a separate fast setting) and chose
+  double for both paces.
+- **Aldgate East platform ⇄ street: 112 s, walk to the office: 283 s** at average pace (30 Oct measurement, "apply
+  the measurement", Sam): at fast pace 92 s and 232 s, as measured train → street and street → desk. Was 90 + 360.
+  One measurement; the same settings time the evening walk from the office to the platform, which isn't measured.
+- These are defaults: settings already saved on a phone keep their values until changed in Settings.
+
 ## Open
-- King's Cross rail → subsurface platform: one best-case measurement of 185 s from stepping off (30 Oct). To use it,
-  the walk would need to count from when you step off (or the train stops), not from the first fix within 400 m.
-  Until Sam decides, the setting stays 6 min (fast ≈ 4 min 55 s from the first fix), which matched 29 and 30 Oct.
+- The King's Cross walk still counts from the first fix within 400 m (while the train is pulling in), not from the
+  train stopping: stop detection (GPS speed in the station) is the agreed next change (Sam, 30 Oct).
 
 ## Tests
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
