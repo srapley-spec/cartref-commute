@@ -38,3 +38,28 @@ test("simulated fixes do not overwrite persisted journey context",async ()=>{
   d.querySelector("#simExit").click();
   assert.equal(w.localStorage.getItem("cartrefCommute.v1"),baseline);
 });
+
+
+test("playback starts at the selected end and supports multiple speeds", async () => {
+  const app=await createApp({settle:120});
+  const d=app.d,w=app.w;
+  d.querySelector("#settingsBtn").click();
+  d.querySelector("#s_simulator").checked=true;
+  d.querySelector("#settingsForm").dispatchEvent(new w.Event("submit",{bubbles:true,cancelable:true}));
+  const direction=d.querySelector("#simDirection");
+  const speed=d.querySelector("#simSpeed");
+  const play=d.querySelector("#simPlay");
+  const pause=d.querySelector("#simPause");
+  for(const [mode,lat] of [["outbound",51.975],["return",51.5151]]){
+    direction.value=mode;
+    for(const value of ["1","5","20"]){
+      speed.value=value;
+      play.click();
+      assert.ok(Math.abs(app.c.state.here[0]-lat)<0.0001,mode+" start at "+value+"x");
+      assert.equal(d.querySelector("#simBar").hidden,false);
+      pause.click();
+    }
+  }
+  d.querySelector("#simExit").click();
+  assert.equal(d.querySelector("#simBar").hidden,true);
+});
