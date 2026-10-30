@@ -183,6 +183,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** The tube home is only one you picked; never worked out (Sam). At 15:37 at his desk the app said he was on
+  the 15:29 Circle: the desk (313 m from Aldgate) read as Aldgate, a tube left, and a still phone going quiet was
+  taken as underground. Regression exposed by the 300 m office rule below, which made the desk "heading home".
+  → [tube-home](stories/tube-home.md)
 - **30 Oct** Office arrival also counts after staying within 300 m for 10 minutes (Sam). At his desk the phone read
   217 m (±15 m) for over an hour, outside the 150 m circle, so the app kept saying "Walking to the office". 150 m /
   5 min still decides "you've arrived"; the wider, slower rule only turns the journey round. Office point unverified
