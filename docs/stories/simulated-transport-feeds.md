@@ -57,3 +57,6 @@ Missed connections keep the original Underground timetable intact: delaying pass
 - tests/simulator-providers.test.mjs: "return Circle destinations are valid for the line while Metropolitan services continue to Uxbridge"
 
 Updated provider contract result: 12 passed, 0 failed; `npm run check-docs` passes after removing literal references to parameterised test-name templates.
+
+Aldgate diagnostic capture also stays inside the synthetic provider boundary. Synthetic responses expose JSON text for the capture utility; TrackerNet explicitly returns HTTP 501 with an unsupported-fixture message and never calls the live endpoint.
+- tests/simulated-feeds.test.mjs: "Aldgate diagnostic capture reads synthetic text and refuses TrackerNet without live requests"

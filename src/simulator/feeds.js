@@ -95,7 +95,7 @@ function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}
    {mode:{id:"walking",name:"Walking"},duration:4,departureTime:new Date(arrival-4*minute).toISOString(),arrivalTime:new Date(arrival).toISOString(),departurePoint:point("Destination Underground platforms",b),arrivalPoint:point(to,b),instruction:{summary:"Walk to destination"}}];
   return {duration,startDateTime:new Date(departure).toISOString(),arrivalDateTime:new Date(arrival).toISOString(),legs};
  }
- const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>JSON.parse(JSON.stringify(body))});
+ const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>JSON.parse(JSON.stringify(body)),text:async()=>JSON.stringify(body)});
  function respond(url){
   const u=String(url),c=config(),elapsed=(now()-c.startTime)/minute;
   if(c.scenario==="outage"&&elapsed>=16&&elapsed<40)return response({message:"Synthetic provider outage; recovery at minute 40"},503);
@@ -103,6 +103,7 @@ function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}
   if(boardMatch)return response(board(boardMatch[1].toUpperCase(),dest?dest[1].toUpperCase():"KGX"));
   if(proxy||huxley){const m=proxy||huxley;return response(board(m[1].toUpperCase(),m[2].toUpperCase()));}
   if(/GetServiceDetails\//i.test(u)){const s=details(decodeURIComponent(u.split(/GetServiceDetails\//i)[1].split("?")[0]));return response(s||{message:"Unknown synthetic service"},s?200:404);}
+  if(/trackernet\//i.test(u))return response({message:"TrackerNet is unsupported in synthetic feeds; no live request was sent"},501);
   if(/StopPoint\/.*\/Arrivals/i.test(u))return response(tube(u));
   if(/Line\//i.test(u))return response(c.scenario==="disruption"?[{id:"metropolitan",name:"Metropolitan",lineStatuses:[{statusSeverity:6,statusSeverityDescription:"Severe Delays",reason:"Synthetic signal failure"}]}]:[]);
   if(/Journey\/JourneyResults\//i.test(u)){
