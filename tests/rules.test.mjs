@@ -1055,7 +1055,10 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
 // ---------- Going home: the tube from Aldgate on the generic connection model ----------
 test("Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not", async () => {
   const t0 = T("16:30"), raw = JSON.parse(readFileSync(new URL("./fixtures/tfl-aldgate-arrivals-2026-10-30T1932Z.json", import.meta.url), "utf8"));
-  const feed = (now) => raw.map(a => ({ ...a, expectedArrival: new Date(t0 + a.timeToStation * 1000).toISOString() }));
+  // Plus two made-up entries that only the line and destination checks exclude.
+  const extra = [{ lineId: "hammersmith-city", platformName: "Westbound - Platform 1", destinationName: "Hammersmith (H&C Line) Underground Station", timeToStation: 300, vehicleId: "x1" },
+    { lineId: "circle", platformName: "Westbound - Platform 4", destinationName: "Aldgate Underground Station", timeToStation: 360, vehicleId: "x2" }];
+  const feed = (now) => [...raw, ...extra].map(a => ({ ...a, expectedArrival: new Date(t0 + a.timeToStation * 1000).toISOString() }));
   const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" }, extra: (u, now) => (/940GZZLUALD\/Arrivals/.test(u) ? json(feed(now)) : undefined) });
   await app.fix(...OFFICE_PT, 15, t0); await app.c.refresh({ force: true }); await sleep(300);
   const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest} ${Math.floor((d.t - t0) / MIN)}`);
@@ -1097,6 +1100,49 @@ async function homeApp(t0, late = {}) {
   await c.refresh({ force: true }); await sleep(400);
   return { app, c };
 }
+
+test("Review 30 Oct: an old finished ride doesn't stop tonight's tube being worked out; a pick that hasn't left wins", async () => {
+  const MOORGATE = [51.5186, -0.0886];
+  let { app, c } = await homeApp(T("16:30"));
+  c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T("15:29"), line: "Circle", rideMs: 10 * MIN, stop: "King's Cross", stopGeo: null };
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  await app.fix(...ALD, 7, T("16:44"));
+  app.at(T("16:48")); c.render();
+  assert.match(app.text("#hero"), /^On the tube.*Probably the Circle that left Aldgate at 16:46/);
+  await app.fix(...MOORGATE, 30, T("16:50"));
+  assert.doesNotMatch(app.text("#hero"), /Leave office|leave the office/);
+  app.close();
+  ({ app, c } = await homeApp(T("16:30")));
+  await app.fix(...ALD, 7, T("16:44"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:52") + '|Met"]').click();
+  app.at(T("16:48")); c.render();                                     // quiet on the platform, waiting for the 16:52
+  assert.equal(c.homeRide(T("16:48")), null); assert.equal(c.state.saved.tubePick.t, T("16:52"));
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.at(T("16:53")); c.render();
+  assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:52 · you picked this/);
+  app.close();
+});
+
+test("Review 30 Oct: underground, a refresh doesn't re-note Aldgate from the old fix; got off ends it for good; never going to work or in leisure", async () => {
+  let { app, c } = await homeApp(T("16:30"));
+  await app.fix(...ALD, 7, T("16:44"));
+  app.at(T("16:50")); await c.refresh({ force: true }); await sleep(300);
+  assert.equal(c.state.saved.aldHome.seen, T("16:44"), "the 16:44 fix is old: not seen again at 16:50");
+  assert.match(app.text("#hero"), /^On the tube.*Probably the Circle that left Aldgate at 16:46/);
+  [...app.d.querySelectorAll('[data-ride="off"]')][0].click();
+  app.at(T("16:58")); c.render();
+  assert.equal(c.homeRide(T("16:58")), null); assert.equal(c.state.saved.aldHome, null);
+  app.close();
+  for (const saved of [{ mode: "leisure" }, { dirMode: "office" }]) {
+    ({ app, c } = await homeApp(T("16:30")));
+    Object.assign(c.state.saved, saved);
+    await app.fix(...ALD, 7, T("16:44"));
+    app.at(T("16:48")); c.render();
+    assert.equal(c.homeRide(T("16:48")), null, JSON.stringify(saved));
+    assert.doesNotMatch(app.text("#hero"), /^On the tube/, JSON.stringify(saved));
+    app.close();
+  }
+});
 
 test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
   const { app, c } = await homeApp(T("16:30"));

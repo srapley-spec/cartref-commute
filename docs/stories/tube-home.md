@@ -48,6 +48,11 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - Once your tube leaves (picked or worked out) you're on it until within 300 m of the stop the app chose, or 10
   minutes after the ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …"
   ends it. "On a different tube?" switches to one that has left; its buttons say how long ago each left.
+- A ride that's over (reached the stop, or its time is up) is cleared, so an old one, even yesterday's, never stops
+  tonight's tube being worked out. A tube you picked that hasn't left yet wins: nothing earlier is worked out over it.
+- Aldgate is noted only from a fresh fix (90 s): underground the last fix still reads Aldgate, and re-noting it would
+  move "seen" past the tube you took. (Independent review, 30 Oct evening.)
+- Leisure going home at Aldgate plans as before (its routes have no tube; this crashed from 18:35 to the fix).
 - **Whole evening:** once you've left the office (at Aldgate, underground, passing Moorgate or Farringdon, got off),
   the card never times the journey from the office.
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
@@ -57,6 +62,9 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 ## Tests
 - tests/rules.test.mjs: "Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office"
 - tests/rules.test.mjs: "Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not"
+- tests/rules.test.mjs: "Review 30 Oct: an old finished ride doesn't stop tonight's tube being worked out; a pick that hasn't left wins"
+- tests/rules.test.mjs: "Review 30 Oct: underground, a refresh doesn't re-note Aldgate from the old fix; got off ends it for good; never going to work or in leisure"
+- tests/core/situation.test.mjs: "Going home by tube, boundaries (independent review 30 Oct): 25 min window, a train or a London station, away from the office, tubes before you arrived"
 - tests/rules.test.mjs: "Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not the office; the status line says Aldgate"
 - tests/core/plan.test.mjs: "Routes home; from where you are (walk to Letchworth, or already at King's Cross); leisure"
 - tests/rules.test.mjs: "Tube going home: at Aldgate the next tube is noted; underground the card says which tube and where to get off"
@@ -76,6 +84,12 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - **Met departures from Aldgate are missing** (TfL's arrivals don't have them). Proposed: TfL's Met timetable from
   Aldgate (fetched once a day), confirmed by arriving vehicles. A new request: Sam to agree; GitHub-first merge.
   Until then, a worked-out tube can be the wrong one when you took a Met.
+- A rough fix at Aldgate (worse than 150 m) isn't noted, so underground afterwards the card still times from the
+  office. Accepted for now: loosening it brings the desk closer to counting as Aldgate.
+- At the desk with a still phone, a worked-out tube has no "No, still here" until a fresh fix arrives (that question
+  needs a good fix under 1 min old); each tube that leaves can bring the card back. Known trade-off of the revert.
+- The morning tube has the same order as the evening had: a pick that hasn't left can be overridden by a worked-out
+  earlier tube. Not changed here.
 - The invented Aldgate feed in the going-home tests includes westbound Met departures that the real feed never has.
 - Live tab (Sam, 30 Oct evening): live tracking separate from Leave now / Arrive by / Leave around; planned.
 - Aldgate East (H&C) has no live departures in the app going home; the H&C stays a fallback.

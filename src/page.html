@@ -826,7 +826,9 @@ const onTube = now => !!currentRide(now);
 const inLondonToOffice = now => C.inLondonToOffice(direction(), fix(), state.atHub, !!state.onLine, onTube(now||Date.now()), PROFILE);
 // Going home: the last time you were at Aldgate (within 150 m) and the tubes due then, kept across reopening.
 function noteAldgate(){
-  if(!C.atOfficeTube(direction(), fix(), PROFILE)) return;
+  // A fresh fix only: underground the last fix still reads Aldgate, and re-noting it would move "seen" past the tube
+  // you took (independent review, 30 Oct).
+  const f=fix(); if(!C.atOfficeTube(direction(), f, PROFILE) || !f.at || Date.now()-f.at>90e3) return;
   const deps = state.aldDeps && state.aldDeps.list || (state.saved.aldHome && state.saved.aldHome.deps) || [];
   state.saved.aldHome={ seen:Date.now(), deps }; save();
 }
@@ -847,10 +849,13 @@ const homeRideFor = (d, now, extra) => { const legs=homeLegs(d.t, now).sort((a,b
 function homeRide(now){
   if(direction()!=="home" || state.saved.mode==="leisure") return null;
   const r0=state.saved.tubeRide;
-  if(r0 && r0.from==="ALD") return C.rideActive(r0, now, fix()) ? r0 : null;
-  let r=null; const pk=state.saved.tubePick;
-  if(pk && pk.hub==="ALD" && pk.t<=now+30e3) r=homeRideFor(pk, now, {picked:true});
-  else if(onTubeHomeAuto(now)){ const w=whichTubeHome(now); if(w) r=homeRideFor(w.best, now, {}); }
+  // A ride that's over is cleared, so it never blocks the next one (independent review: an old ride kept in storage
+  // stopped every later tube being worked out).
+  if(r0 && r0.from==="ALD"){ if(C.rideActive(r0, now, fix())) return r0; state.saved.tubeRide=null; save(); }
+  let r=null; const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
+  if(pk && pk.t<=now+30e3) r=homeRideFor(pk, now, {picked:true});
+  // A tube you picked that hasn't left yet wins over working out an earlier one.
+  else if(!pk && onTubeHomeAuto(now)){ const w=whichTubeHome(now); if(w) r=homeRideFor(w.best, now, {}); }
   if(r && C.rideActive(r, now, fix())){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); return r; }
   return null;
 }
@@ -1778,10 +1783,10 @@ function onPosition(p){
   state.autoDir=d.dir;
   if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null) || (d.mem.officeSince||null)!==(state.saved.officeSince||null) || (d.mem.officeNearSince||null)!==(state.saved.officeNearSince||null)){
     state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; state.saved.officeSince=d.mem.officeSince||undefined; state.saved.officeNearSince=d.mem.officeNearSince||undefined; save(); }
-  noteAldgate();
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
+  noteAldgate();
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now()}; state.saved.hubSince=state.hubSince; save(); }

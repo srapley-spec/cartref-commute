@@ -37,6 +37,7 @@ test("Routes home; from where you are (walk to Letchworth, or already at King's 
   assert.equal(ald[2].extra.fromHere, true);
   assert.equal(secs(R({ dir: "home", tubeFallback: true, here: { walkToStation: null, atHub: null, atOfficeTube: true } })[0].before), 360 + 90 + 180 + 660 + 360 + 60, "Aldgate East: the walk stays");
   assert.equal(secs(R({ dir: "office", here: { walkToStation: null, atHub: null, atOfficeTube: true } })[0].before), 1337 + 120 + 60, "going to work it changes nothing");
+  assert.doesNotThrow(() => R({ dir: "home", mode: "leisure", here: { walkToStation: null, atHub: null, atOfficeTube: true } }), "leisure routes have no tube (review 30 Oct: this crashed)");
   const lo = R({ mode: "leisure" });
   assert.deepEqual(lo.map(r => r.hub), ["KGX", "STP"]);
   const lh = R({ dir: "home", mode: "leisure", london: { KXSP: { dur: 18 * MIN, summary: "Walk", disruptions: [] }, FAR: { dur: 21 * MIN, summary: "Bus", disruptions: [] } } });
