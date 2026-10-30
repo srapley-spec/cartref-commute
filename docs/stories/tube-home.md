@@ -43,11 +43,15 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
   Known trade-off (30 Oct 15:37): indoor GPS can put the desk at Aldgate, so this can show at the desk; "No, still
   here" or the planning tabs clear it.
 - "Which one are you getting?" near the office and at Aldgate; your pick follows its vehicle if TfL moves its time.
-  Buttons read like Aldgate's single combined westbound list (platform when more than one, place on the list, line
-  in its colour, destination, minutes ticking).
+  Buttons read like Aldgate's single combined westbound list: "Platform 1: 3 Met Amersham · 11 min" (platform when
+  they're on more than one, place on the list, line in its colour, destination, minutes ticking; 30 Oct, Sam: the
+  countdown is unique to each train). Golden: the evening goldens show them.
 - Once your tube leaves (picked or worked out) you're on it until within 300 m of the stop the app chose, or 10
   minutes after the ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …"
-  ends it. "On a different tube?" switches to one that has left; its buttons say how long ago each left.
+  ends it. "On a different tube?" switches to one that has left (up to 3 within 6 min of yours, nearest first; 30
+  Oct); its buttons say how long ago each left ("left 7 min ago").
+- The card says where your tube is going: "Probably the Circle to Edgware Road that left Aldgate at 16:46" (30 Oct;
+  kept with the ride, so a pick saved before this shows no destination).
 - A ride that's over (reached the stop, or its time is up) is cleared, so an old one, even yesterday's, never stops
   tonight's tube being worked out. A tube you picked that hasn't left yet wins: nothing earlier is worked out over it.
 - Aldgate is noted only from a fresh fix (90 s): underground the last fix still reads Aldgate, and re-noting it would
@@ -75,6 +79,7 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/rules.test.mjs: "Going home: your picked tube follows a delay (by vehicle)"
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one"
+- tests/rules.test.mjs: "Review: going home, 'On a different tube?' at Aldgate lists the nearest to yours first"
 - tests/core/connections.test.mjs: "Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept"
 - tests/core/situation.test.mjs: "onTube / whichTube: left the station after a tube left; not while there with a fresh fix; not near Aldgate"
 - tests/core/situation.test.mjs: "Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one"

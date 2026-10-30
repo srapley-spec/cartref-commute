@@ -27,6 +27,14 @@ export interface Fix { here: LatLon | null; acc: number | null; at: number | nul
 // A position counts only with a known accuracy within `maxAcc` metres (a missing accuracy is unknown, not perfect).
 const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null);
 
+/** Confidently away from every London station: a fix good to 250 m whose uncertainty can't reach any of them
+ *  (further than `atHubKm` + its accuracy). A coarse fix at the station (the first one underground, say) isn't.
+ *  Used for "you can't have arrived before you were last seen away" (30 Oct review). */
+export function awayFromHubs(f: Fix, p: Profile): boolean {
+  const here = pos(f, 250); if (!here) return false;
+  return Object.values(p.places.hubGeo).every(h => km(here, h) > p.places.atHubKm + (f.acc as number) / 1000);
+}
+
 /** At a London station (within `atHubKm`, with a fix good to 250 m)? */
 export function hubHere(f: Fix, p: Profile): StationCode | null {
   const here = pos(f, 250); if (!here) return null;
@@ -206,22 +214,43 @@ export function lockedTrain(boards: Record<string, Board | null | undefined> | n
 
 const stale = (f: Fix, now: number) => !f.at || now - f.at > 90e3;
 
-/** On the tube to work: at a London station in the last 25 min, a tube has left since, and you've left the station
- *  (or your location stopped updating underground for over 90 s). Never near the office's tube station. */
-export function onTube(lastHub: HubVisit | null, dir: Direction, now: number, f: Fix, onTheLine: boolean, atHub: StationCode | null, p: Profile): boolean {
+/** How much sooner than the walk model says you could have been on the platform: a tube leaving more than this
+ *  before `ready` (arrival at the station + the walk to the platform) is one you couldn't have caught. 30 Oct: GPS
+ *  went quiet underground at King's Cross, the 08:40 Circle counted as "a tube has left" while Sam was still walking
+ *  down, and he was put on it (then could only correct it to the 08:38 H&C); he caught the H&C due 08:45. */
+export const TUBE_REACH_SLACK_MS = 60e3;
+const reachable = (arrivals: TubeDep[], ready: number | null | undefined) =>
+  ready == null ? arrivals : arrivals.filter(a => a.t >= ready - TUBE_REACH_SLACK_MS);
+
+/** On the tube to work: at a London station in the last 25 min, a tube you could have caught has left since (see
+ *  `ready`), and you've left the station (or your location stopped updating underground for over 90 s). Never near
+ *  the office's tube station. `ready`: when you could be on the platform (arrival + walk); unknown = any tube. */
+export function onTube(lastHub: HubVisit | null, dir: Direction, now: number, f: Fix, onTheLine: boolean, atHub: StationCode | null, p: Profile, ready?: number | null): boolean {
   if (!lastHub || dir !== "office" || now - lastHub.seen > 25 * 60e3 || onTheLine) return false;
   if (f.here && km(f.here, p.places.officeTube) < 0.3) return false;
   if (atHub && !stale(f, now)) return false;
-  return (lastHub.arrivals || []).some(a => a.t <= now);
+  return reachable(lastHub.arrivals || [], ready).some(a => a.t <= now);
 }
 
-/** Which tube you probably took: the one leaving closest to when you were last seen; another within 3 min is "or". */
-export function whichTube(lastHub: HubVisit, now: number): { best: TubeDep; other?: TubeDep } | null {
-  const gone = (lastHub.arrivals || []).filter(a => a.t <= now + 30e3);
+/** Which tube you probably took: of those you could have caught (see `ready`), the one leaving closest to when you
+ *  were last seen, or to when you could be on the platform if that's later; another within 3 min is "or". If none
+ *  you could have caught has left, the nearest of any that has. */
+export function whichTube(lastHub: HubVisit, now: number, ready?: number | null): { best: TubeDep; other?: TubeDep } | null {
+  const all = (lastHub.arrivals || []).filter(a => a.t <= now + 30e3);
+  const could = reachable(all, ready), gone = could.length ? could : all;
   if (!gone.length) return null;
-  gone.sort((a, b) => Math.abs(a.t - lastHub.seen) - Math.abs(b.t - lastHub.seen));
-  const best = gone[0], other = gone.find(a => a !== best && Math.abs(a.t - lastHub.seen) - Math.abs(best.t - lastHub.seen) < 3 * 60e3);
+  const at = Math.max(lastHub.seen, ready ?? -Infinity), off = (a: TubeDep) => Math.abs(a.t - at);
+  gone.sort((a, b) => off(a) - off(b));
+  const best = gone[0], other = gone.find(a => a !== best && off(a) - off(best) < 3 * 60e3);
   return { best, other };
+}
+
+/** "On a different tube?": the others that have left (or are leaving), within 6 min of the one you're on, nearest
+ *  first, at most `max`. Earlier ones you'd have needed to be quick for are kept: never hide a train. */
+export function otherTubes(deps: TubeDep[] | null | undefined, on: TubeDep, now: number, max = 3): TubeDep[] {
+  return (deps || [])
+    .filter(a => a.t <= now + 30e3 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 60e3)
+    .sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
 }
 
 /** On the way to work, somewhere in London (not at a station, on the train or a tube): plan from where you are. */

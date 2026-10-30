@@ -185,13 +185,17 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 Newest first. One line each; the story or issue holds the detail.
 - **30 Oct evening** Revert 15:48: the tube home is worked out again (picks still win), because on the 18:24 trip
   the Met he took wasn't pickable and the app timed his journey from the office at Moorgate. The two mistakes aren't
-  equal: a false alarm at the desk is harmless, missing that you're travelling isn't. Sam's direction: a **Live** tab
-  beside Leave now / Arrive by / Leave around. Live works out where you are (station departures, the train or tube
-  you're probably on with picks, walking on track) and switches on by itself when you seem to be on the move; you can
-  switch back, and that choice goes stale. Leave now stays as now minus the "on a train/tube" views. Both directions,
-  eventually any location. Behind Settings → Experimental first. → [tube-home](stories/tube-home.md)
+  equal: a false alarm at the desk is harmless, missing that you're travelling isn't. Sam's direction (planned, not
+  built): follow a chosen route (one tap): ahead/behind, a stable arrival, every change announced with its reason
+  (cancelled, delayed, missed, better option), tube followed by its vehicle. Without a chosen route, live mode works
+  out where you are (this revert), switching on by itself when you seem to be on the move; you can switch back to
+  planning and that choice lapses after 20 min or a change of situation. Leave now stays as now minus the "on a
+  train/tube" views. Both directions, eventually any location. Behind Settings → Experimental first. → [tube-home](stories/tube-home.md)
 - **30 Oct evening** TfL's Aldgate arrivals have no Met departures (recorded feed in `tests/fixtures/`); test data
   must come from recorded feeds where possible, marked as such. → [tube-home](stories/tube-home.md)
+- **30 Oct** Working out which tube you're on counts only tubes you could have caught (the later of last-seen-away +
+  walk and first seen there; 1 min slack), and "On a different tube?" is nearest first. Why: GPS went quiet underground and Sam was put on the 08:40 Circle
+  while still walking down; the office time was 9 min early. → [connections](stories/connections.md)
 - **30 Oct** A train's timetabled time is as prominent as its expected time (Sam): at a station or on the way, card
   and list show Train · Expected · At destination, platform-board order (option A of three), in Panda and Signal.
   Amber now starts at 5 min late (was 2): one rule for trains, the Expected column and route warnings. TfL's

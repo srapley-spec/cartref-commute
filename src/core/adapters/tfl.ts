@@ -33,6 +33,10 @@ export function trainFromTflJourney(j: Journey, profile: Profile, toText: (h: st
     ...(l.routeOptions || []).map((o: any) => `${o.name || ""} ${(o.directions || []).join(" ")}`)].join(" ");
   const hub = a === profile.home ? b : a;
   const operator = /thameslink/i.test(text) ? "Thameslink" : /great northern/i.test(text) ? "Great Northern" : (profile.operatorByHub[hub] || "");
+  // "Great Northern to Cambridge": the train's destination. Taken only when it isn't where you get off, since TfL
+  // may name the alighting station instead (unverified), and that wouldn't tell two trains apart.
+  const toM = /\bto\s+(.+?)\s*$/i.exec(String((l.instruction && l.instruction.summary) || ""));
+  const destination = toM && stationOf(toM[1], profile) !== b ? stationLabel(toM[1], profile) : undefined;
   const msgs = (l.disruptions || []).map((d: any) => toText(d.description)).filter(Boolean);
   // Every stop: TfL lists them on the leg's path (no times at intermediate stops).
   const label = (n: string) => stationLabel(n, profile);
@@ -42,7 +46,7 @@ export function trainFromTflJourney(j: Journey, profile: Profile, toText: (h: st
   return {
     key: `${a}-${b}`, msgs,
     svc: { from: a, to: b, std: hhmm(isFinite(sched) ? sched : dep), dep, depLate: isFinite(sched) ? Math.max(0, mins(dep - sched)) : 0, depUnknown: false,
-      arr, arrLate: 0, platform: null, operator, cancelled: false, reason: "", timetable: true, calls },
+      arr, arrLate: 0, platform: null, operator, cancelled: false, reason: "", timetable: true, calls, ...(destination ? { destination } : {}) },
   };
 }
 

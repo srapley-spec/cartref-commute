@@ -35,6 +35,8 @@ export function parseDarwinBoard(json: Json, from: StationCode, to: StationCode,
       arr: arr ? arr.t : null, arrLate: arr ? arr.late : 0, arrUnknown: !!(arr && arr.unknownDelay), platform: pick(s, "platform") ?? null,
       operator: pick(s, "operator") || "", cancelled, reason: pick(s, "cancelReason") || pick(s, "delayReason") || "",
       origin: ((pick(s, "origin") || [])[0] || {}).locationName || "",
+      // A train that divides lists each part's destination ("Cambridge & Peterborough").
+      destination: ((pick(s, "destination") || []) as Json[]).map(d => pick(d, "locationName")).filter(Boolean).join(" & ") || undefined,
       serviceId: pick(s, "serviceID", "serviceId") || undefined,
       calls: cp ? calls : undefined,
     };

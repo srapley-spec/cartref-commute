@@ -139,3 +139,27 @@ test("reportedFrac: a train between its last reported stop and the next is place
   assert.equal(core.reportedFrac({ code: "XXX", t: T("19:57") }, null, "KGX", T("20:00"), line, geo), null, "unknown station");
   assert.ok(f("LET") < f("HIT") && f("HIT") < f("SVG") && f("SVG") < f("FPK") && f("FPK") < f("KGX"), "stations in order along the line");
 });
+
+test("Destination: from Darwin (a dividing train names both parts) and TfL's summary; a train is named with it", () => {
+  const svc = (dest) => ({ std: "18:57", etd: "On time", operator: "Great Northern", ...(dest ? { destination: dest } : {}),
+    subsequentCallingPoints: [{ callingPoint: [{ locationName: "Letchworth Garden City", crs: "LET", st: "19:36", et: "On time" }] }] });
+  const board = { locationName: "London Kings Cross", trainServices: [svc([{ locationName: "Cambridge" }]),
+    svc([{ locationName: "Cambridge" }, { locationName: "Kings Lynn" }]), svc(null)] };
+  const [a, b, c] = core.parseDarwinBoard(board, "KGX", "LET", now, text).services;
+  assert.equal(a.destination, "Cambridge");
+  assert.equal(b.destination, "Cambridge & Kings Lynn");
+  assert.equal(c.destination, undefined);
+  assert.equal(core.trainName(a), "18:57 Great Northern to Cambridge");
+  assert.equal(core.trainName(c), "18:57 Great Northern", "no destination: as before");
+  // TfL: "Great Northern to Cambridge" on the leg; not taken when it's only the station you get off at.
+  const leg = (summary, to = "Letchworth Garden City Rail Station") => ({ legs: [{ mode: { id: "national-rail" }, instruction: { summary },
+    departurePoint: { commonName: "London Kings Cross Rail Station" }, arrivalPoint: { commonName: to },
+    departureTime: "2026-11-03T18:57:00", arrivalTime: "2026-11-03T19:33:00" }] });
+  assert.equal(core.trainFromTflJourney(leg("Great Northern to Cambridge"), sam, text).svc.destination, "Cambridge");
+  assert.equal(core.trainFromTflJourney(leg("Great Northern to Letchworth Garden City"), sam, text).svc.destination, undefined);
+  assert.equal(core.trainFromTflJourney(leg("Great Northern"), sam, text).svc.destination, undefined);
+  // A tube as its front and the platform board name it.
+  assert.equal(core.tubeName("10:03", "Met", "Aldgate"), "10:03 Met to Aldgate");
+  assert.equal(core.tubeName("16:46", "Circle", "Edgware Road (Circle Line)"), "16:46 Circle to Edgware Road");
+  assert.equal(core.tubeName("16:46", "Circle", ""), "16:46 Circle");
+});
