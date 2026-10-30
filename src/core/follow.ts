@@ -169,7 +169,9 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   const reportedTrain = (train: Train): Train => liveRailReport ? { ...train, arr: input.currentTrainArrival as number,
     arrLate: Math.round(((input.currentTrainArrival as number) - ((route.option.train.arr as number) - route.option.train.arrLate * MIN)) / MIN),
     cancelled: false, depUnknown: false, arrUnknown: false } : train;
-  const selected = sourceSelected ? { ...sourceSelected, train: reportedTrain(sourceSelected.train) } : undefined;
+  // An expected arrival can remain in Service Details after a cancellation/early termination.
+  // A fresh cancellation is authoritative; only an obsolete board may yield to a fresh report.
+  const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : undefined;
   if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
   let status: FollowUpdate['status'] = 'on-track', level: FollowUpdate['level'] = 'ok', text = 'On track';
   const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number) => {

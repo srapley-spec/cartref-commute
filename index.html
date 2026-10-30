@@ -452,7 +452,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:57 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:58 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2426,7 +2426,7 @@ var CommuteCore = (() => {
       depUnknown: false,
       arrUnknown: false
     } : train;
-    const selected = sourceSelected ? { ...sourceSelected, train: reportedTrain(sourceSelected.train) } : void 0;
+    const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : void 0;
     if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
     let status = "on-track", level = "ok", text = "On track";
     const addNotice = (kind, key, message, deltaMin) => {

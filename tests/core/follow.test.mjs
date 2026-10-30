@@ -11,6 +11,13 @@ function option(extra = {}, trainExtra = {}) {
 const start = (o=option()) => core.startFollowRoute(o,{now:t,direction:'home',mode:'commute'});
 const update = (r, options, extra={}) => core.updateFollowRoute(r,{now:t,options,...extra});
 
+test('independent review: fresh cancellation remains visible despite a recent live arrival prediction',()=>{
+ const r=start(),cancelled=option({}, {cancelled:true});
+ const u=update(r,[cancelled],{now:r.option.train.dep+MIN,dataFresh:true,phase:'on-train',trainArrivalLive:true,currentTrainArrival:r.option.train.arr});
+ assert.equal(u.status,'cancelled');assert.equal(u.route.lastTrain.cancelled,true);assert.equal(u.notice.kind,'cancelled');
+ assert.equal(u.route.expectedArrival,r.expectedArrival);assert.equal(u.trainStatus.level,'bad');
+});
+
 test('follow: snapshots the entire journey and never changes the selected route when rankings change',()=>{
  const chosen=option(),r=start(chosen); chosen.legs[0].d='mutated';
  assert.equal(r.option.legs[0].d,'Walk to city tube');

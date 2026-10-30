@@ -171,3 +171,7 @@ not a claim that every criterion has already passed release verification. See [S
 - Release verification remains pending for the integrated implementation, including the selected latest-branch
   improvements and conditional Tube observation. The recorded vehicle case is narrower than provider-wide
   live journey validation.
+
+Source precedence: a fresh selected-board cancellation remains an alert even when a recent Service Details
+response still contains an expected arrival (a train can be terminated early). An obsolete board does not
+outvote a genuinely fresh train report. Regression: tests/core/follow.test.mjs: "independent review: fresh cancellation remains visible despite a recent live arrival prediction".
