@@ -23,6 +23,12 @@ off at about 08:40:45). From 08:39 the model at fast pace (6 min × 0.82 ≈ 4 m
 08:44:54; Sam reached the platform at about 08:43:50, so it was within a minute and slightly cautious. 185 s from
 08:39 would have put him on the platform at about 08:42, so the app would have recommended a Met that he missed by
 about 10 s. Options for using the measurement are with Sam (see "Open").
+30 Oct morning, the same trip: GPS went quiet underground (last fix about 08:41). 90 s later the 08:40 Circle
+counted as "a tube has left", so the app put Sam on it while he was still walking down (by its own walk he couldn't
+be on the platform before about 08:44). "On a different tube?" listed the earliest three that had left, so the only
+H&C on offer was the 08:38; picked, it said Aldgate East 08:49 (he was at Farringdon) and the office 08:56 (he was
+at his desk 09:05). He caught the H&C due 08:45. Fixed the same day: only a tube you could have caught counts, and
+the others are nearest first. Whether the list was exactly that when he picked is inferred from the code, not seen.
 
 ## Acceptance criteria
 - The walk to the platform counts from when you arrived at the station; you can be on the platform no sooner than
@@ -42,6 +48,13 @@ about 10 s. Options for using the measurement are with Sam (see "Open").
 - "Did you get it?" only on a good (≤50 m), fresh (≤1 min) fix within the station's radius, 3+ minutes after it
   left, unless you've said yes. "No, still here" treats you as on the platform, so a tube about a minute away is
   catchable. "On a different tube?" switches to one that has left.
+- Worked out (not picked): you're on a tube only once one **you could have caught** has left: leaving no more than
+  1 minute before you could be on the platform (when you arrived + the walk, at your pace). The guess is the one
+  of those leaving nearest to when you were last seen, or to when you could be on the platform if that's later;
+  another within 3 min is "or". Without an arrival time, any tube that has left counts (as before). If none you
+  could have caught has left, the guess is the nearest that has (only reached by a pick).
+- "On a different tube?" lists up to 3 that have left (or leave within 30 s), within 6 min of yours, **nearest to
+  yours first** (ties: the earlier); earlier ones you'd have had to be quick for are kept. Same going home.
 - Back at the station after minutes without a fix is "you're at the station", not on a tube that has gone.
 - Fastest arrival wins across lines and stops: at King's Cross and Farringdon with live tubes, the H&C to Aldgate
   East competes with Circle/Met to Aldgate, each with its own ride time. H&C problems are shown at King's Cross; on
@@ -72,6 +85,8 @@ about 10 s. Options for using the measurement are with Sam (see "Open").
 - tests/app.test.mjs: "On the tube: works out which one from when you left King's Cross and follows it to Aldgate"
 - tests/rules.test.mjs: "On the tube: within 25 min of the station, a tube has left, and either you've left the station or the fix is over 90 s old"
 - tests/rules.test.mjs: "Which tube: the one that left nearest to when you were last seen; a second within 3 min is 'or'"
+- tests/core/situation.test.mjs: "onTube / whichTube / otherTubes: only a tube you could have caught (arrival + walk) puts you on it (30 Oct)"
+- tests/rules.test.mjs: "30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you couldn't reach; then the H&C you caught, others nearest first"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"
 - tests/core/connections.test.mjs: "Ready: never sooner than a minute from now; arrival in the future counts as now"

@@ -1148,3 +1148,25 @@ test("Tube going home: a worked-out ride saved by an older build is dropped; a p
   assert.match(app.text("#hero"), /^On the tube · 16:44 · the tube you picked/);
   app.close();
 });
+
+test("30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you couldn't reach; then the H&C you caught, others nearest first", async () => {
+  const t0 = T("08:39") + 20e3, app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(...KX, 15, t0);                                      // in the station (still on the train): "arrived"
+  const base = T("08:00"), deps = [tubeAt(base, 38 + 50 / 60, "H&C", "h38"), tubeAt(base, 40, "Circle", "c40"), tubeAt(base, 42, "Met", "m42"),
+    tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 46, "Met", "m46"), tubeAt(base, 48, "Met", "m48")];
+  await app.fix(...KX, 15, T("08:41"));                              // the last fix: then quiet underground
+  c.state.tube = { hub: "KGX", at: T("08:41"), arrivals: deps, err: null };
+  c.state.lastHub = { hub: "KGX", seen: T("08:41"), arrivals: deps }; c.state.saved.lastHub = c.state.lastHub;
+  assert.equal(c.state.hubSince.at, t0, "arrived when first seen in the station");
+  app.at(T("08:42") + 40e3); c.render();
+  assert.equal(c.onTubeAuto(Date.now()), false, "the 08:40 Circle and 08:42 Met left before you could reach the platform");
+  assert.match(app.text("#hero"), /^You're at King's Cross/);
+  app.at(T("08:47")); c.render();
+  const hero = app.text("#hero");
+  assert.match(hero, /^On the tube/);
+  assert.match(hero, /Probably the 08:45 H&C/);
+  assert.equal(app.d.querySelector("#hero .slack").className, "slack hc");
+  assert.match(hero, /On a different tube\?\s*08:46 Met\s*08:42 Met/, "nearest first; the earlier Met is still offered");
+  assert.doesNotMatch(hero, /08:38 H&C/, "the 08:38 H&C is 7 min off: not offered");
+  app.close();
+});

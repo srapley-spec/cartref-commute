@@ -766,7 +766,9 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
 // passing Farringdon, or a stray fix at the station you left, doesn't end it.
-const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE);
+// When you could first be on that station's tube platform: when you arrived plus the walk (null if not known).
+const tubeReady = hub => state.hubSince && state.hubSince.hub===hub ? state.hubSince.at+onwardParts(hub).ic : null;
+const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
   const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, kx=hub!=="ZFD";
@@ -832,7 +834,7 @@ function tubeConnections(t, now){
   return C.bestConnections(reach, ready, opts).map(o=>({ o, at:reach[o.hub] }));
 }
 const nearOffice = () => C.nearOffice(state.here, PROFILE);
-const whichTube = now => C.whichTube(state.lastHub, now);
+const whichTube = now => C.whichTube(state.lastHub, now, tubeReady(state.lastHub.hub));
 const atHubToOffice = () => !!state.atHub && direction()==="office" && !onTube(Date.now());
 // Re-time journeys from where you are; keep every train that hasn't left yet; flag the ones whose leave time
 // has passed (you'd need to run or bike) instead of dropping them.
@@ -1036,7 +1038,7 @@ function renderOnTubeHome(now){
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
-  const others = a ? (a.deps||[]).filter(d=>d.t<=now+30e3 && d.t!==r.t && Math.abs(d.t-r.t)<6*60e3).slice(0,3) : [];
+  const others = C.otherTubes(a&&a.deps, r, now);
   const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(d=>`<button type="button" class="pickbtn" data-tubepick="ALD|${d.t}|${esc(d.line)}|${esc(d.vehicle||"")}">${hhmm(d.t)} ${esc(d.line)}</button>`).join("")}</div>` : "";
   const off = `<div class="pick"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
@@ -1064,7 +1066,7 @@ function renderOnTube(now){
   const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
-  const others = lh ? (lh.arrivals||[]).filter(a=>a.t<=now+30e3 && a.t!==r.t && Math.abs(a.t-r.t)<6*60e3).slice(0,3) : [];
+  const others = C.otherTubes(lh&&lh.arrivals, r, now);
   const swap = others.length ? `<div class="pick"><small>On a different tube?</small>${others.map(a=>`<button type="button" class="pickbtn" data-tubepick="${r.hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;

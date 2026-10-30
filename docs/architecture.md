@@ -183,6 +183,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** Working out which tube you're on counts only tubes you could have caught (arrival + walk, 1 min slack),
+  and "On a different tube?" is nearest first. Why: GPS went quiet underground and Sam was put on the 08:40 Circle
+  while still walking down; the office time was 9 min early. → [connections](stories/connections.md)
 - **30 Oct** Status colour follow-ups (Sam): 10–14 min late is amber (red from 15 everywhere); the route-wide status
   line stays amber from 5 min; "Arrives first · walking" and "Latest for HH:MM" stay green (status: you can make
   it). → [train-status](stories/train-status.md)

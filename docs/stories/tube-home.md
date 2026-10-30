@@ -31,7 +31,7 @@ chose: the tube home is only ever one you picked; the app never works it out.
 - "Which one are you getting?" near the office and at Aldgate; your pick follows its vehicle if TfL moves its time.
 - Once your picked tube leaves you're on it until within 300 m of the stop the app chose, or 10 minutes after the
   ride time: passing Farringdon on the way to King's Cross doesn't end it. "Got off already? At …" ends it. "On a
-  different tube?" switches to one that has left.
+  different tube?" switches to one that has left (up to 3 within 6 min of yours, nearest first; 30 Oct).
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
   here" ends the ride; nothing is assumed about the next tube until you pick one.
 - A ride home is never treated as a ride to work, or the reverse.
