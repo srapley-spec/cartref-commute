@@ -110,13 +110,21 @@ test("onTube / whichTube: left the station after a tube left; not while there wi
   assert.equal(w.best.t, T("08:16")); assert.equal(w.other.t, T("08:18"));
 });
 
-test("Going home by tube: noted at Aldgate within 150 m with a fix good to 150 m, only going home; never worked out", () => {
-  const ALD = [51.5142, -0.0755];
+test("Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one", () => {
+  const ALD = [51.5142, -0.0755], seen = T("17:00"), v = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:05") }] };
   assert.equal(core.atOfficeTube("home", fix(ALD, 20), sam), true);
   assert.equal(core.atOfficeTube("home", fix(ALD, 200), sam), false);
   assert.equal(core.atOfficeTube("office", fix(ALD, 20), sam), false);
-  assert.equal(core.onTubeHome, undefined, "a tube home is never worked out from position or a quiet phone (30 Oct)");
-  assert.equal(core.whichTubeHome, undefined);
+  assert.equal(core.onTubeHome(v, "home", "commute", T("17:03"), fix(ALD, 20, T("17:00")), false, null, sam), true);   // fix stale
+  assert.equal(core.onTubeHome(v, "home", "commute", T("17:03"), fix(ALD, 20, T("17:03")), false, null, sam), false);  // still there
+  assert.equal(core.onTubeHome(v, "home", "commute", T("17:00"), fix(ALD, 20, T("16:55")), false, null, sam), false);  // nothing left yet
+  assert.equal(core.onTubeHome(v, "home", "leisure", T("17:03"), fix(ALD, 20, T("17:00")), false, null, sam), false);
+  const w = core.whichTubeHome(v, T("17:03"));
+  assert.equal(w.best.line, "Met"); assert.equal(w.other, undefined);
+  const two = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:03") }, { line: "Met", t: T("17:05") }] };
+  assert.equal(core.whichTubeHome(two, T("17:10")).other.line, "Circle", "2 min apart: or");
+  const apart = { seen, deps: [{ line: "Met", t: T("17:01") }, { line: "Circle", t: T("17:05") }] };
+  assert.equal(core.whichTubeHome(apart, T("17:10")).other, undefined, "4 min apart: not or");
 });
 
 test("Nearly home, walks, in London to the office, the remembered train", () => {

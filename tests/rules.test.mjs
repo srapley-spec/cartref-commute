@@ -2,6 +2,7 @@
 // Written after mutation testing showed these could change without any other test failing.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createApp, json, sleep, closeAll, parseJourneyUrl, NEAR_LETCHWORTH } from "./harness.mjs";
 import { services, tflResponder, darwinResponder } from "./golden/feeds.mjs";
 
@@ -514,7 +515,7 @@ test("Home location: set from where you are; Nearly home counts the walk from th
   app.close();
 });
 
-test("Tube going home: at Aldgate the tubes due are noted; without a pick, going quiet underground isn't taken as being on one", async () => {
+test("Tube going home: at Aldgate the next tube is noted; underground the card says which tube and where to get off", async () => {
   const t0 = T("16:36");
   const deps = (now) => [["metropolitan", "Westbound - Platform 1", "Uxbridge", T("16:41")], ["circle", "Westbound - Platform 2", "Hammersmith", T("16:46")], ["circle", "Eastbound - Platform 3", "Tower Hill", T("16:40")]]
     .map(([lineId, platformName, dest, t]) => ({ vehicleId: lineId + t, lineId, platformName, destinationName: dest + " Underground Station", expectedArrival: new Date(t).toISOString(), timeToStation: Math.round((t - now) / 1000) }));
@@ -527,9 +528,12 @@ test("Tube going home: at Aldgate the tubes due are noted; without a pick, going
   app.at(T("16:39")); await app.moveTo(51.5142, -0.0755, 10);        // at Aldgate
   await app.c.refresh({ force: true });
   assert.ok(app.c.state.saved.aldHome && app.c.state.saved.aldHome.seen === T("16:39"));
-  app.at(T("16:45")); app.c.render();                                   // no fix for 6 min: underground, or a still phone
-  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
-  assert.equal(app.c.state.saved.tubeRide || null, null);
+  app.at(T("16:45")); app.c.render();                                   // underground: no fix for 6 min
+  const hero = app.text("#hero");
+  assert.match(hero, /^On the tube · 16:45 · worked out from when you left Aldgate/);
+  assert.match(hero, /Probably the Met that left Aldgate at 16:41/);
+  assert.match(hero, /Get off at Farringdon 16:48 → 16:56 Thameslink · platform 4 · home (\d\d:\d\d)/);
+  assert.match(hero, /or get off at King's Cross 16:51 → .* \(\d+ min later\)/);
   app.close();
 });
 
@@ -547,18 +551,6 @@ test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not
   await app.moveTo(51.5142, -0.0755, 200);                                // a rough fix doesn't place you at Aldgate
   assert.doesNotMatch(app.text("#dirNote"), /Aldgate/);
   assert.equal(leaveFor(first), atDesk);
-  app.close();
-});
-
-test("Going home, 30 Oct 18:24: a Met leaving Aldgate counts whatever its platform is called; eastbound Circles and arrivals still don't", async () => {
-  const t0 = T("16:36");
-  const deps = (now) => [["metropolitan", "Platform 1", "Uxbridge", T("16:50")], ["metropolitan", "", "Amersham", T("16:55")], ["metropolitan", "Platform 4", "Aldgate", T("16:44")],
-    ["circle", "Westbound - Platform 2", "Hammersmith", T("16:46")], ["circle", "Platform 3", "Tower Hill", T("16:48")]]
-    .map(([lineId, platformName, dest, t]) => ({ vehicleId: lineId + t, lineId, platformName, destinationName: dest + " Underground Station", expectedArrival: new Date(t).toISOString(), timeToStation: Math.round((t - now) / 1000) }));
-  const app = await open({ now: t0, geo: OFFICE, settings: RDM, extra: (u, now) => (/StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? json(deps(now)) : undefined) });
-  const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest}`);
-  assert.deepEqual(list, ["Circle Hammersmith", "Met Uxbridge", "Met Amersham"]);
-  assert.match(app.text("#hero"), /Met 16:50 →/);
   app.close();
 });
 
@@ -639,19 +631,25 @@ test("Nearly home: the walk counts streets (straight line × 1.3)", async () => 
   app.close();
 });
 
-test("Tube going home: Aldgate is noted only within 150 m; without a pick you're never on a tube, fresh fix or not", async () => {
-  const now = T("16:40"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c;
+test("Tube going home: Aldgate is noted only within 150 m; at Aldgate with a fresh fix you're not on a tube; no tube has left yet means not on one; a second tube within 3 min is 'or'", async () => {
+  const now = T("16:40"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home" } }), c = app.c, m = 60e3;
   c.state.aldDeps = { at: now, list: [{ line: "Met", t: T("16:41") }, { line: "Circle", t: T("16:43") }, { line: "Met", t: T("16:50") }] };
   await app.moveTo(51.5142 + 0.0045, -0.0755, 10);     // 500 m from Aldgate
   assert.equal(c.state.saved.aldHome, undefined);
   await app.moveTo(51.5142, -0.0755, 10);              // at Aldgate
   assert.equal(c.state.saved.aldHome.seen, now);
+  c.state.saved.aldHome.deps = [{ line: "Met", t: T("16:41") }, { line: "Circle", t: T("16:43") }, { line: "Met", t: T("16:50") }];
   app.at(now + 30e3); c.state.lastFixAt = now + 20e3;
   assert.equal(c.onTubeHome(now + 30e3), false, "still at Aldgate, fix fresh");
+  assert.equal(c.onTubeHome(now + 30e3 - 2 * m), false, "no tube has left yet");
+  c.state.lastFixAt = now - 5 * m;
+  assert.equal(c.onTubeHome(now + 30e3), false, "fix stale but no tube has left yet");
   app.at(T("16:44")); c.state.lastFixAt = now;
-  assert.equal(c.onTubeHome(T("16:44")), false, "no fix for 4 min after the 16:41 left: not worked out");
-  c.state.here = [51.5203, -0.1053]; c.state.lastFixAt = T("16:44");
-  assert.equal(c.onTubeHome(T("16:44")), false, "a fresh fix away from Aldgate: still not worked out");
+  assert.equal(c.onTubeHome(T("16:44")), true, "no fix for 4 min after the 16:41 left");
+  const w = c.whichTubeHome(T("16:44"));
+  assert.equal(w.best.line, "Met"); assert.equal(w.other.line, "Circle");
+  c.state.saved.aldHome.deps = [{ line: "Met", t: T("16:41") }, { line: "Met", t: T("16:50") }];
+  assert.equal(c.whichTubeHome(T("16:44")).other, undefined);
   app.close();
 });
 
@@ -1055,8 +1053,39 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
 });
 
 // ---------- Going home: the tube from Aldgate on the generic connection model ----------
+test("Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not", async () => {
+  const t0 = T("16:30"), raw = JSON.parse(readFileSync(new URL("./fixtures/tfl-aldgate-arrivals-2026-10-30T1932Z.json", import.meta.url), "utf8"));
+  const feed = (now) => raw.map(a => ({ ...a, expectedArrival: new Date(t0 + a.timeToStation * 1000).toISOString() }));
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" }, extra: (u, now) => (/940GZZLUALD\/Arrivals/.test(u) ? json(feed(now)) : undefined) });
+  await app.fix(...OFFICE_PT, 15, t0); await app.c.refresh({ force: true }); await sleep(300);
+  const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest} ${Math.floor((d.t - t0) / MIN)}`);
+  assert.deepEqual(list, ["Circle Hammersmith (H&C Line) 7", "Circle Hammersmith (H&C Line) 15"], "no Met: TfL gives no Met departures from Aldgate");
+  app.close();
+});
+
+test("Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office", async () => {
+  const MOORGATE = [51.5186, -0.0886], FARRINGDON = [51.5203, -0.1053];
+  const { app, c } = await homeApp(T("16:30"));
+  const fromOffice = () => /Leave office|leave the office/.test(app.text("#hero"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  assert.ok(fromOffice(), "at the desk: timed from the office");
+  await app.fix(...ALD, 7, T("16:44"));                                // on the platform at Aldgate
+  assert.match(app.text("#hero"), /You.re at Aldgate: go to the platform/); assert.ok(!fromOffice(), "at Aldgate");
+  app.at(T("16:48")); c.render();                                      // underground, no fix since 16:44, no pick
+  assert.match(app.text("#hero"), /^On the tube.*Probably the Circle that left Aldgate at 16:46/); assert.ok(!fromOffice(), "underground");
+  await app.fix(...MOORGATE, 30, T("16:50"));                          // a fix at Moorgate on the way
+  assert.match(app.text("#hero"), /^On the tube/); assert.ok(!fromOffice(), "at Moorgate");
+  await app.fix(...FARRINGDON, 24, T("16:53"));                        // passing Farringdon, heading for King's Cross
+  assert.match(app.text("#hero"), /^On the tube.*Get off at King's Cross/); assert.ok(!fromOffice(), "passing Farringdon");
+  [...app.d.querySelectorAll('[data-ride="off"]')].find(b => /Farringdon/.test(b.textContent)).click();   // got off here
+  assert.match(app.text("#hero"), /^You're at Farringdon/); assert.ok(!fromOffice(), "at Farringdon");
+  app.close();
+});
+
+
 const ALD = [51.5142, -0.0755], OFFICE_PT = [51.5139, -0.0710];
-// TfL's live Aldgate arrivals, as the feed sends them (westbound Circle and Met). `late` moves a vehicle later.
+// Invented Aldgate departures (westbound Circle and Met) for the going-home rules. Not the real feed's shape: TfL lists
+// no Met departures at Aldgate (see the recorded feed test below). `late` moves a vehicle later.
 function aldgateFeed(late = {}) {
   const a = (hhmm, lineId, v) => ({ vehicleId: v, lineId, platformName: "Westbound - Platform 1", destinationName: "Edgware Road (Circle Line) Underground Station",
     expectedArrival: new Date(T(hhmm) + (late[v] || 0) * MIN).toISOString(), timeToStation: 60 });
@@ -1145,54 +1174,25 @@ test("Going home 2: the ride heads for the best stop and ends there or when its 
   app.close();
 });
 
-test("Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' nothing is assumed until you pick", async () => {
+test("Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one", async () => {
   const { app, c } = await homeApp(T("16:30"));
   await app.fix(...ALD, 15, T("16:44"));                             // at Aldgate at 16:44
-  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
-  app.at(T("16:48")); c.render();
-  assert.match(app.text("#hero"), /You're on the Circle that left Aldgate at 16:46/);
+  app.at(T("16:48")); c.render();                                    // underground since: worked out as the 16:46
+  assert.match(app.text("#hero"), /Probably the Circle that left Aldgate at 16:46/);
   assert.match(app.text("#hero"), /On a different tube\?\s*Met Edgware Road · left 7 min ago/, "told by how long ago it left, not the clock");
   assert.equal(app.d.querySelector("#hero [data-leftago]").dataset.leftago, String(T("16:41")), "ticks");
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
   assert.equal(c.state.saved.tubeRide.from, "ALD");
   assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:41/);
   app.close();
-  // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; the 16:46 leaves and you go quiet.
+  // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; then underground as the 16:46 leaves.
   const h = await homeApp(T("16:30"));
   await h.app.fix(...ALD, 15, T("16:38"));
   h.app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();
   await h.app.fix(...ALD, 15, T("16:45"));
   h.app.d.querySelector('[data-ride="no"]').click();
   h.app.at(T("16:48")); h.c.render();
-  assert.equal(h.c.homeRide(T("16:48")), null, "not the 16:41 you missed, and the 16:46 isn't assumed");
-  assert.doesNotMatch(h.app.text("#hero"), /^On the tube/);
+  const r = h.c.homeRide(T("16:48"));
+  assert.ok(r && r.t === T("16:46"), "the 16:46 Circle, not the 16:41 you missed: " + JSON.stringify(r && r.t));
   h.app.close();
-});
-
-test("Tube going home, 30 Oct 15:37: at the desk with GPS reading Aldgate, a tube leaving and the phone going quiet is not a ride", async () => {
-  const { app, c } = await homeApp(T("16:30"));
-  await app.fix(...OFFICE_PT, 15, T("16:30"));
-  await app.fix(51.5141, -0.0745, 30, T("16:38"));                   // the desk, read ~70 m from Aldgate (±30 m)
-  assert.ok(c.state.saved.aldHome, "noted as at Aldgate: position can't tell the desk from the station");
-  for (const t of ["16:43", "16:48", "16:55"]) {                     // tubes leave; no fix (a still phone)
-    app.at(T(t)); c.render();
-    assert.doesNotMatch(app.text("#hero"), /^On the tube/, t);
-    assert.equal(c.homeRide(T(t)), null, t);
-  }
-  await app.fix(51.5141, -0.0745, 30, T("16:56"));                   // a fresh fix, still "at Aldgate"
-  assert.doesNotMatch(app.text("#hero"), /^On the tube|Still at Aldgate/);
-  assert.match(app.text("#hero"), /^If you leave now/, "the normal plan home");
-  app.close();
-});
-
-test("Tube going home: a worked-out ride saved by an older build is dropped; a picked one still counts", async () => {
-  const { app, c } = await homeApp(T("16:30"));
-  c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T("16:41"), line: "Met", rideMs: 7 * MIN, stop: "Farringdon", stopGeo: null };
-  app.at(T("16:44")); c.render();
-  assert.equal(c.homeRide(T("16:44")), null);
-  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
-  c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T("16:41"), line: "Met", rideMs: 7 * MIN, stop: "Farringdon", stopGeo: null, picked: true };
-  c.render();
-  assert.match(app.text("#hero"), /^On the tube · 16:44 · the tube you picked/);
-  app.close();
 });
