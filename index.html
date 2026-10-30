@@ -367,6 +367,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </form>
 </dialog>
 
+
 <style>
 #simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
 #simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
@@ -389,6 +390,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
 </section>
+
 <script>/* engine (src/core) */
 "use strict";
 var CommuteCore = (() => {
@@ -3472,6 +3474,9 @@ function locate(){
 // True when Auto is selected but the phone hasn't said where you are yet.
 const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 
+// Developer-only journey simulator. Shared engine remains unaware of simulation.
+// Dependency injection keeps this module independent from the web shell's lexical state.
+function createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document}) {
 // ---------- Developer journey simulator (real clock and feeds) ----------
 const sim = { active:false, timer:null, baseline:null, index:0, elapsed:0, watchGeneration:0 };
 // These are illustrative route waypoints, NOT a claimed track-level alignment.
@@ -3556,6 +3561,11 @@ function simSetup(){
   document.getElementById("simExit").addEventListener("click",simStop);
 }
 
+
+return {sim,simSetup,simStop};
+}
+
+const {sim,simSetup,simStop}=createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document});
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
