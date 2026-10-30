@@ -342,6 +342,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Simulate Darwin and TfL feeds (separate test data source; off by default).</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>Developer journey simulator: enable manual location and route playback. Off by default.</span></label>
     </fieldset>
 
@@ -458,6 +459,7 @@ const reqLog=[];
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
 async function fetchT(url, opts){
+  if(S().simulatedFeeds)return simulatedFeeds.respond(url);
   logRequest(url);
   const ctl = new AbortController(), id = setTimeout(()=>ctl.abort(), FETCH_TIMEOUT());
   try{ return await fetch(url, Object.assign({cache:"no-store"}, opts||{}, {signal:ctl.signal})); }
@@ -1831,13 +1833,15 @@ function locate(){
 // True when Auto is selected but the phone hasn't said where you are yet.
 const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 
+/*__SIMULATED_FEEDS__*/
 /*__SIMULATOR_CONTROLLER__*/
 const {sim,simSetup,simStop}=createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document});
+const simulatedFeeds=createSimulatedTransportFeeds({scenario:()=>({route:document.getElementById("simPath")?.value||"kgx"})});
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled;
+  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
 }
@@ -1852,6 +1856,7 @@ function readSettings(){
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_simulator").checked) o.simulatorEnabled=true;
+  if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -1862,7 +1867,7 @@ $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
   state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
-$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); const next=readSettings(); const was=!!S().simulatorEnabled; if(was && !next.simulatorEnabled)simStop(); state.saved.settings=next; save(); dlg.close(); document.getElementById("simPanel").hidden=!next.simulatorEnabled; state.boards=null; state.byCache={}; refresh({force:true}); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); const next=readSettings(); const was=!!S().simulatorEnabled; const feedChanged=!!S().simulatedFeeds!==!!next.simulatedFeeds; if(was && !next.simulatorEnabled)simStop(); state.saved.settings=next; save(); dlg.close(); document.getElementById("simPanel").hidden=!next.simulatorEnabled; state.boards=null; state.byCache={}; if(feedChanged){state.progressById={};state.tube=null;state.ald=null;state.aldDeps=null;state.lastHub=null;state.status=null;state.nrStatus=null;state.fetchedAt=null;} refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
