@@ -1905,6 +1905,7 @@ function simTick(){
   for(let i=1;i<SIM_ROUTE.length;i++){
     if(sim.elapsed<=SIM_ROUTE[i].at){a=SIM_ROUTE[i-1];b=SIM_ROUTE[i];break;}
   }
+  if(sim.elapsed>=SIM_ROUTE[SIM_ROUTE.length-1].at){a=SIM_ROUTE[SIM_ROUTE.length-2];b=SIM_ROUTE[SIM_ROUTE.length-1];}
   const frac=Math.max(0,Math.min(1,(sim.elapsed-a.at)/(b.at-a.at)));
   const p=SIM_POINTS[a.point],q=SIM_POINTS[b.point];
   // Speed is null: interpolation is only approximate and must not claim measured velocity.
