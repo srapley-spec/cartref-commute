@@ -357,6 +357,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>Developer journey simulator: enable manual location and route playback. Off by default.</span></label>
     </fieldset>
 
     <div class="actions">
@@ -3491,6 +3492,7 @@ function simResetContext(){
   state.byCache={};state.atCache={};
 }
 function simStart(){
+  if(!S().simulatorEnabled)return;
   if(sim.active)return;
   sim.baseline=JSON.parse(JSON.stringify(state.saved));
   sim.active=true;sim.watchGeneration++;
@@ -3534,8 +3536,7 @@ function simTick(){
 }
 function simSetup(){
   // Intentional opt-in on a development preview. This is a UI gate, not authentication.
-  if(!location.hash.includes("simulator"))return;
-  document.getElementById("simPanel").hidden=false;
+  document.getElementById("simPanel").hidden=!S().simulatorEnabled;
   document.getElementById("simJump").addEventListener("click",()=>{
     simStopTimer();const p=SIM_POINTS[document.getElementById("simPreset").value];if(p)simFix(...p);
   });
@@ -3555,7 +3556,7 @@ function simSetup(){
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
+  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
 }
@@ -3569,6 +3570,7 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_simulator").checked) o.simulatorEnabled=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -3579,7 +3581,7 @@ $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
   state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
-$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); state.saved.settings=readSettings(); save(); dlg.close(); state.boards=null; state.byCache={}; refresh({force:true}); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); const next=readSettings(); const was=!!S().simulatorEnabled; if(was && !next.simulatorEnabled)simStop(); state.saved.settings=next; save(); dlg.close(); document.getElementById("simPanel").hidden=!next.simulatorEnabled; state.boards=null; state.byCache={}; refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
