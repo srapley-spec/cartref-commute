@@ -53,6 +53,8 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   departure nearest the picked time, within 3 minutes; never a different known vehicle. When TfL moves its time,
   the pick follows it. The list's highlighted row is always the card's tube; after you pick, "near the platform"
   isn't offered. A pick earlier than we'd expect you can reach is said ("tight"), not overruled.
+- A tube you picked that hasn't left yet wins: while you wait for it, an earlier tube leaving (and the phone going
+  quiet) never makes the app work out that you're on that one (30 Oct, same rule as going home).
 - "Which one are you getting?" (King's Cross, Farringdon) reads like the platform's dot-matrix board, the only
   way to tell tubes apart on the platform: place on the board (1 = next, among the eastbound tubes still shown,
   i.e. leaving no more than 30 s ago), the line in its colour, destination (a "(… Line)" suffix dropped), and
@@ -118,6 +120,7 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/core/engine.test.mjs: "Rides: last until your stop or the ride time is over; asked only on a good, fresh fix back where you started"
 - tests/core/engine.test.mjs: "bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never"
 - tests/rules.test.mjs: "At King's Cross: the walk to the tube counts from when you arrived; tubes you might just make are listed, marked"
+- tests/rules.test.mjs: "Morning, 30 Oct: a tube you picked at King's Cross that hasn't left wins over working out an earlier one"
 - tests/rules.test.mjs: "Tube ride: pick your tube at King's Cross; once it leaves you're on it, passing Farringdon or a stray fix doesn't undo it; asked if you're clearly still there"
 - tests/rules.test.mjs: "Aldgate East only when Circle and Met are both closed; severe delays on both are a 'bad' flag"
 - tests/app.test.mjs: "Morning at King's Cross: which tube to get on and when you'll be at the office"

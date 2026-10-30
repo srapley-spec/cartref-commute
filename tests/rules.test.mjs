@@ -1271,6 +1271,20 @@ test("30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you cou
 const kxDeps = () => { const base = T("08:00"); return [tubeAt(base, 40, "Circle", "c40"), tubeAt(base, 42, "Met", "m42"), tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 48, "Met", "m48"), tubeAt(base, 52, "Circle", "c52")]; };
 const atKx = (c, deps, seen) => { c.state.tube = { hub: "KGX", at: seen, arrivals: deps, err: null }; c.state.lastHub = { hub: "KGX", seen, arrivals: deps }; c.state.saved.lastHub = c.state.lastHub; };
 
+test("Morning, 30 Oct: a tube you picked at King's Cross that hasn't left wins over working out an earlier one", async () => {
+  const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(...KX, 15, t0);
+  atKx(c, kxDeps(), t0); c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + T("08:48") + '|Met"]').click();   // getting the 08:48 Met
+  app.at(T("08:46") + 30e3); c.render();                              // the 08:45 H&C has left; GPS quiet on the platform
+  assert.equal(c.currentRide(T("08:46") + 30e3), null);
+  assert.equal(c.state.saved.tubePick.t, T("08:48"), "the pick is kept");
+  assert.doesNotMatch(app.text("#hero"), /^On the tube/);
+  app.at(T("08:49")); c.render();
+  assert.match(app.text("#hero"), /^On the tube.*08:48 Met/);
+  app.close();
+});
+
 test("Review: the app opened on the platform: no walk added (you may have arrived long before), so the tube you caught counts", async () => {
   const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
   await app.fix(...KX, 15, t0);                                      // the first fix this session: already at King's Cross
