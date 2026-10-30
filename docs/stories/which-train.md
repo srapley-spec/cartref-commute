@@ -1,5 +1,5 @@
 # Which train you're on
-Status: Done · Since: 28 Oct 2026 (evening trip); near home 29 Oct (morning trip) · Issues: #10, #11, #23
+Status: Done · Since: 28 Oct 2026 (evening trip); near home 29 Oct (morning trip); destinations 30 Oct · Issues: #10, #11, #23
 
 ## Story
 As a commuter on a train, especially when there's disruption, I want the app to know which train I'm on and when
@@ -9,6 +9,8 @@ it will really arrive, so that the rest of the journey (tube, home time) is plan
 28 Oct evening: matching by timetable position broke after the train made an extra stop. 29 Oct morning: passing
 Hitchin on the 07:08, the app thought Sam was at home; with the late 07:00 and the 07:08 a few minutes apart it had
 to ask; Service Details needed its own key. Non-stop runs only report their two ends (passing points: #23).
+30 Oct 18:58, leaving King's Cross: asked to choose between the 18:54 and 18:57 Great Northern, Sam could only tell
+them apart by where each was going (the 18:57 to Cambridge), which the train's screens show and the app didn't.
 
 ## Acceptance criteria
 - The train you're on is one blue lozenge with its status inside it ("On time" / "About N min late"), banded green /
@@ -33,6 +35,12 @@ to ask; Service Details needed its own key. Non-stop runs only report their two 
 - Arrival comes from Service Details' expected time at your stop; "timetable" is the scheduled time; the card shows
   the last reported stop. Service Details about once a minute.
 - On the train home, the list doesn't talk about the onward tube.
+- Every train on the on-train card (the lozenge, "or the …", the pick buttons) and on the nearly-home card is named
+  with its destination, as the train's own screens say: "18:57 Great Northern to Cambridge". From National Rail's
+  board (a dividing train names both parts: "Cambridge & Kings Lynn"); from TfL's summary ("Great Northern to
+  Cambridge") only when it isn't the station you get off at, since TfL may name that instead (unverified). No
+  destination known: named as before. Tubes likewise: "the 07:56 Met to Aldgate", "the Circle to Edgware Road that
+  left Aldgate at 16:46" (the destination is kept with your pick and ride).
 
 ## Tests
 - tests/core/situation.test.mjs: "whichTrain: departed trains only, the nearest fit, sure when the runner-up is 4+ min worse, then remembered"
@@ -62,6 +70,8 @@ to ask; Service Details needed its own key. Non-stop runs only report their two 
 - tests/core/situation.test.mjs: "Remembered train: falls back to the fields when the ID isn't on the board; same ID at two stations prefers yours; stale lock is low confidence; departed is judged at fix time"
 - tests/core/situation.test.mjs: "Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten"
 - tests/rules.test.mjs: "Review: a picked train keeps its National Rail service ID"
+- tests/core/calls.test.mjs: "Destination: from Darwin (a dividing train names both parts) and TfL's summary; a train is named with it"
+- tests/logic.test.mjs: "On the train: each train is named with where it's going, as its own screens say, to tell close trains apart"
 - tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
 
 ## Not yet / open questions

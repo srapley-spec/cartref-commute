@@ -12,22 +12,22 @@ const TFL_NAME = { KGX: "London Kings Cross Rail Station", STP: "London St Pancr
 // Patterns: minutes past each hour, and stops with minutes after departure.
 const PATTERNS = [
   // To Letchworth
-  { op: "Great Northern", origin: "London Kings Cross", mins: [18, 48], stops: [["KGX", 0], ["FPK", 6], ["SVG", 20], ["HIT", 24], ["LET", 28]] },
-  { op: "Great Northern", origin: "London Kings Cross", mins: [6, 36], stops: [["KGX", 0], ["FPK", 8], ["SVG", 38], ["HIT", 47], ["LET", 55]] },
-  { op: "Thameslink", origin: "Brighton", mins: [26, 56], stops: [["ZFD", 0], ["STP", 5], ["FPK", 12], ["SVG", 33], ["HIT", 38], ["LET", 43]] },
+  { op: "Great Northern", origin: "London Kings Cross", dest: "Cambridge", mins: [18, 48], stops: [["KGX", 0], ["FPK", 6], ["SVG", 20], ["HIT", 24], ["LET", 28]] },
+  { op: "Great Northern", origin: "London Kings Cross", dest: "Letchworth Garden City", mins: [6, 36], stops: [["KGX", 0], ["FPK", 8], ["SVG", 38], ["HIT", 47], ["LET", 55]] },
+  { op: "Thameslink", origin: "Brighton", dest: "Cambridge", mins: [26, 56], stops: [["ZFD", 0], ["STP", 5], ["FPK", 12], ["SVG", 33], ["HIT", 38], ["LET", 43]] },
   // To London
-  { op: "Great Northern", origin: "Cambridge", mins: [8, 38], stops: [["LET", 0], ["HIT", 4], ["SVG", 9], ["FPK", 23], ["KGX", 29]] },
-  { op: "Great Northern", origin: "Letchworth Garden City", mins: [0, 30], stops: [["LET", 0], ["HIT", 6], ["SVG", 16], ["FPK", 44], ["KGX", 52]] },
-  { op: "Thameslink", origin: "Cambridge", mins: [20, 50], stops: [["LET", 0], ["HIT", 5], ["SVG", 10], ["FPK", 32], ["STP", 39], ["ZFD", 44]] },
+  { op: "Great Northern", origin: "Cambridge", dest: "London Kings Cross", mins: [8, 38], stops: [["LET", 0], ["HIT", 4], ["SVG", 9], ["FPK", 23], ["KGX", 29]] },
+  { op: "Great Northern", origin: "Letchworth Garden City", dest: "London Kings Cross", mins: [0, 30], stops: [["LET", 0], ["HIT", 6], ["SVG", 16], ["FPK", 44], ["KGX", 52]] },
+  { op: "Thameslink", origin: "Cambridge", dest: "Brighton", mins: [20, 50], stops: [["LET", 0], ["HIT", 5], ["SVG", 10], ["FPK", 32], ["STP", 39], ["ZFD", 44]] },
 ];
 
-/** Every service on `day` (YYYY-MM-DD), 05:00–23:59, as {op, origin, calls:[{crs, t}]}. Disruptions by "OP HH:MM from CRS". */
+/** Every service on `day` (YYYY-MM-DD), 05:00–23:59, as {op, origin, dest, calls:[{crs, t}]}. Disruptions by "OP HH:MM from CRS". */
 export function services(day, disrupt = {}) {
   const base = new Date(`${day}T00:00:00`).getTime(), out = [];
   for (const p of PATTERNS) for (let h = 5; h <= 23; h++) for (const m of p.mins) {
     const dep = base + (h * 60 + m) * 60e3;
     const key = `${p.op} ${pad(h)}:${pad(m)} from ${p.stops[0][0]}`;
-    out.push({ op: p.op, origin: p.origin, key, day, calls: p.stops.map(([crs, d]) => ({ crs, t: dep + d * 60e3 })), ...(disrupt[key] || {}) });
+    out.push({ op: p.op, origin: p.origin, dest: p.dest, key, day, calls: p.stops.map(([crs, d]) => ({ crs, t: dep + d * 60e3 })), ...(disrupt[key] || {}) });
   }
   return out.sort((a, b) => a.calls[0].t - b.calls[0].t);
 }
@@ -71,7 +71,7 @@ export function darwinResponder(svcs, nowFn) {
     return { locationName: NAME[from], nrccMessages: [], trainServices: list.map((s) => {
       const i = idx(s, from), late = s.late || 0, et = (t) => (s.cancelled ? "Cancelled" : late ? hm(t + late * 60e3) : "On time");
       return { serviceID: serviceId(s), std: hm(s.calls[i].t), etd: et(s.calls[i].t), platform: s.platform?.[from] ?? (from === "ZFD" ? "4" : from === "STP" ? "B" : from === "LET" ? "2" : "9"),
-        operator: s.op, origin: [{ locationName: s.origin }], isCancelled: !!s.cancelled, cancelReason: s.cancelled ? s.reason : undefined,
+        operator: s.op, origin: [{ locationName: s.origin }], destination: [{ locationName: s.dest }], isCancelled: !!s.cancelled, cancelReason: s.cancelled ? s.reason : undefined,
         delayReason: !s.cancelled && late ? s.reason : undefined,
         subsequentCallingPoints: [{ callingPoint: s.calls.slice(i + 1).map((c) => ({ locationName: NAME[c.crs], crs: c.crs, st: hm(c.t), et: et(c.t) })) }] };
     }) };
