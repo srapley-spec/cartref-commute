@@ -36,7 +36,8 @@ the others are nearest first. Whether the list was exactly that when he picked i
 Independent review (30 Oct): "arrived" is the app's first fix at the station, which is late if the app was opened
 on the platform: adding the walk then hid the tube Sam was on ("Probably the 08:48 Met" for the 08:45 H&C). Second
 round: the same with the phone locked on the train and unlocked on the platform. Fixed: the walk counts from the
-last fix away from a station, and never earlier than the first fix at the station. Also: after "No, still here" a tube that had just left could
+last fix away from a station, and never earlier than the first fix at the station. Third round: a coarse first
+fix at the station counted as "away"; now only a fix confidently away from every station does. Also: after "No, still here" a tube that had just left could
 still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12 untested boundaries, now pinned.
 
 ## Acceptance criteria
@@ -68,8 +69,9 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   catchable. "On a different tube?" switches to one that has left.
 - Worked out (not picked): you're on a tube only once one **you could have caught** has left: leaving no more than
   1 minute before the earliest you could be on the platform. That earliest is:
-  - the later of **(the last fix this session away from any station + the walk, at your pace)** and **(the first
-    fix at this station)**: you can't have arrived before you were last seen away, nor been here before the app
+  - the later of **(the last fix this session confidently away from every station + the walk, at your pace)** and
+    **(the first fix at this station)**. Confidently away: good to 250 m and further than 400 m + its accuracy from
+    each station, so a coarse fix at the station (the first one underground) doesn't count: you can't have arrived before you were last seen away, nor been here before the app
     first saw you. Running all along (fixes seconds apart), that's arrival + walk. Locked on the train and unlocked
     on the platform, the walk counts from the last fix on the train. Opened (or reloaded) at the station, or asleep
     for longer than the walk: the first fix here, no walk. A gap before arriving (a tunnel) only ever makes earlier
@@ -124,6 +126,8 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Review 2: the app asleep for a long time: no earlier than when it first saw you here; via Farringdon, the last fix away from any station"
 - tests/rules.test.mjs: "Review 2: after 'No, still here' a tube leaving 30 s later is catchable (no slack, but no extra margin either)"
 - tests/rules.test.mjs: "Review 2: opened on the platform, the earliest is when it first saw you, not 'anything that left'"
+- tests/rules.test.mjs: "Review 3: opened on the platform with a coarse first fix (400 m), then a good one: the coarse fix isn't 'away', so the tube you caught counts"
+- tests/core/situation.test.mjs: "awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"
 - tests/core/connections.test.mjs: "Ready: never sooner than a minute from now; arrival in the future counts as now"

@@ -1789,7 +1789,7 @@ function onPosition(p){
   // With the station visit, the last time this session saw you away from any station: you can't have arrived
   // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
-  if(!state.atHub) state.lastAwayAt=state.lastFixAt;
+  if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});

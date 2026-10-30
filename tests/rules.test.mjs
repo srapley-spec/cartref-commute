@@ -1250,7 +1250,7 @@ test("Review 2: after 'No, still here' a tube leaving 30 s later is catchable (n
 
 test("Review: arrival at a different station (Farringdon) doesn't limit the tubes at King's Cross", async () => {
   const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
-  c.state.hubSince = { hub: "ZFD", at: T("08:39"), seen: true };
+  c.state.hubSince = { hub: "ZFD", at: T("08:42"), away: T("08:39") };
   atKx(c, kxDeps(), T("08:41")); c.state.atHub = "KGX"; c.state.here = KX; c.state.lastFixAt = T("08:41");
   assert.equal(c.onTubeAuto(T("08:42") + 40e3), true, "as before: a tube has left and you've gone quiet");
   app.close();
@@ -1306,3 +1306,15 @@ test("Review 2: the app asleep for a long time: no earlier than when it first sa
 });
 
 
+
+test("Review 3: opened on the platform with a coarse first fix (400 m), then a good one: the coarse fix isn't 'away', so the tube you caught counts", async () => {
+  const app = await open({ now: T("08:44"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(...KX, 400, T("08:44"));                             // first fix after opening, underground: coarse
+  assert.equal(c.state.atHub, null, "too coarse to say you're at King's Cross");
+  await app.fix(...KX, 15, T("08:44") + 20e3);
+  assert.equal(c.state.hubSince.away, undefined, "never seen away");
+  atKx(c, kxDeps(), T("08:44") + 20e3);                              // boards the 08:45 H&C; GPS goes quiet
+  app.at(T("08:47")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:45 H&C/);
+  app.close();
+});

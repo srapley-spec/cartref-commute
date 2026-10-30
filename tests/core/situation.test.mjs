@@ -167,6 +167,18 @@ test("otherTubes: boundaries (30 s leaving, 6 min window), ties go to the earlie
   assert.deepEqual(core.otherTubes([at(1), at(-1)], on, now).map((a) => a.t), [T("08:44"), T("08:46")], "a tie: the earlier first");
 });
 
+test("awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)", () => {
+  const KGX = [51.5308, -0.1238], north = (m) => [KGX[0] + m / 111320, KGX[1]];
+  assert.equal(core.awayFromHubs(fix(north(1500), 30), sam), true, "on the train coming in");
+  assert.equal(core.awayFromHubs(fix(KGX, 400), sam), false, "a coarse fix at the station (first one underground)");
+  assert.equal(core.awayFromHubs(fix(north(900), 251), sam), false, "worse than 250 m: not confident, even far off");
+  assert.equal(core.awayFromHubs(fix(north(900), 250), sam), true, "250 m, 900 m off: away");
+  assert.equal(core.awayFromHubs(fix(north(480), 100), sam), false, "480 m off ± 100 m could be within 400 m");
+  assert.equal(core.awayFromHubs(fix(north(520), 100), sam), true, "520 m ± 100 m can't");
+  assert.equal(core.awayFromHubs(fix(null, 10), sam), false);
+  assert.equal(core.awayFromHubs(fix([51.5203, -0.1053], 20), sam), false, "at Farringdon isn't away");
+});
+
 test("Going home by tube: noted at Aldgate within 150 m with a fix good to 150 m, only going home; never worked out", () => {
   const ALD = [51.5142, -0.0755];
   assert.equal(core.atOfficeTube("home", fix(ALD, 20), sam), true);

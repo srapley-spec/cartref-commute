@@ -25,6 +25,14 @@ export interface Fix { here: LatLon | null; acc: number | null; at: number | nul
 // A position counts only with a known accuracy within `maxAcc` metres (a missing accuracy is unknown, not perfect).
 const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null);
 
+/** Confidently away from every London station: a fix good to 250 m whose uncertainty can't reach any of them
+ *  (further than `atHubKm` + its accuracy). A coarse fix at the station (the first one underground, say) isn't.
+ *  Used for "you can't have arrived before you were last seen away" (30 Oct review). */
+export function awayFromHubs(f: Fix, p: Profile): boolean {
+  const here = pos(f, 250); if (!here) return false;
+  return Object.values(p.places.hubGeo).every(h => km(here, h) > p.places.atHubKm + (f.acc as number) / 1000);
+}
+
 /** At a London station (within `atHubKm`, with a fix good to 250 m)? */
 export function hubHere(f: Fix, p: Profile): StationCode | null {
   const here = pos(f, 250); if (!here) return null;
