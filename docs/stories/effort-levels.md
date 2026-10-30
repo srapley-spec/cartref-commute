@@ -125,4 +125,5 @@ near now with the toggle off, Arrive by's own grades). Left: three boundaries th
 - The leave column of a run / car / can't-make-it train still shows the walking-pace leave time, struck through.
 - With pace set to fast in Settings there is no separate fast-walk level: 1 min short is a run.
 - Leave around near now with the toggle on: if every train in the card's window has passed its leave time, the card
-  says no trains were found although later trains are listed. Rare; clearer wording wanted.
+  says no trains were found although later trains are listed. **Decided (Sam, 30 Oct), not built:** the card shows
+  the next train you can still make instead. Needs a test (Leave around at now, every train in the window passed).
