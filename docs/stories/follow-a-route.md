@@ -1,5 +1,5 @@
 # Follow a route
-Status: Planned (for Sam to agree before building) · Behind Settings → Experimental first · Since: 30 Oct 2026 (evening)
+Status: Behind toggle (Settings → Experimental → Follow a route, off by default) · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have
@@ -37,9 +37,13 @@ click."
 - **Ahead / on track / behind** for the step you're on, in whole minutes, coloured as elsewhere (green on track or
   ahead, amber 1–2 min behind or only at a fast walk, red if you'd miss the next connection):
   - Walking: your position against the planned walk at your pace (the rule already used on the way to Letchworth).
-  - On a tube: the tube's own position from TfL (by its vehicle) against its planned times, when TfL gives one;
-    otherwise the planned times. Underground without GPS this still works if TfL reports the vehicle. (Unverified:
-    to be checked with a recorded feed before building.)
+  - On the tube home: minutes in hand = your train's departure − (when your tube reaches the station + the time you
+    need there). When it reaches the station comes from TfL's arrivals at that station for your tube's vehicle
+    ("(TfL, by your tube)"), fetched once per refresh while following; otherwise from the ride time. Too late for the
+    train: "You can't make the … now", with the best way on. Checked against TfL on 30 Oct 22:43 (recorded in
+    `tests/fixtures/tfl-2026-10-30T2243Z/`): Met vehicle 441 "At Aldgate Platform 2" appeared with the same vehicle
+    number in the westbound arrivals at Liverpool Street, Moorgate, Farringdon and King's Cross. Westbound Circles
+    weren't predicted downstream in that snapshot, so for a Circle the ride time is the usual fallback.
   - On a train: National Rail's reported position and expected times, as on the train card today.
 - **A stable arrival.** The arrival changes only for a real reason, and every change shows its reason on the card
   until you've seen it: "Your 18:48 is cancelled", "Your train is 6 min late", "You're 4 min behind: you'll miss the
@@ -50,7 +54,10 @@ click."
   fast walk), the card says which and offers the best way on from where you are now, with its arrival and how much
   later it is: "Missed the 18:34 Circle. Next: the 18:40 Circle → 18:56 Thameslink from Farringdon, home 19:59 (7 min
   later). Follow this?" One tap follows it.
-- **Cancelled or badly delayed**: same as missed, triggered by the feed, before you get there.
+- **Cancelled**: same as missed, triggered by the feed, before you get there. A delay is said ("Your 18:48 Great
+  Northern is now 7 min late", amber under 5 min late, red from 5; "back on time" / "now only 3 min late" in green)
+  and moves the arrival; the planned arrival stays visible ("planned 19:39"). OK clears the reason.
+- **I'm on it**: when the app says you missed it but you're on board (it couldn't tell), one tap picks the train.
 - **Better option**: offered only when it gets you home at least 5 minutes sooner (Sam, 30 Oct) and you can make it
   at your pace; shown once per option, not repeated on every refresh. One tap switches. Smaller gains are never
   offered: live times move by a minute or two all the time, and switching for them would make the arrival jumpy.
@@ -66,14 +73,25 @@ click."
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
-- None yet (planned). Each criterion above gets a test before it is built; the 30 Oct evening (18:19 → 18:48
-  cancelled → 18:54) becomes a whole-journey test: following the 18:22 route, the card says "Your 18:48 is
-  cancelled" and offers the 18:54 (home 19:52, 18 min later), and the arrival never changes without a reason shown.
+- tests/core/follow.test.mjs: "Follow, 30 Oct evening: the 18:48 is cancelled — said, and the 18:54 offered (home 19:52, 18 min later); the arrival never moves without a reason"
+- tests/core/follow.test.mjs: "Follow: the arrival changes only with a reason — later, back on time; under a minute is no change"
+- tests/core/follow.test.mjs: "Follow: minutes in hand and behind; can't make it at any effort, or it has left: missed, with the best way on"
+- tests/core/follow.test.mjs: "Follow: on board the train counts however late you'd be to 'leave'; on a tube, minutes in hand from when it reaches the station"
+- tests/core/follow.test.mjs: "Follow: a better option only at 5+ min sooner and makeable at a walk or fast walk; once declined, never again"
+- tests/core/follow.test.mjs: "Follow: the same train at another station still counts (Thameslink at Farringdon or St Pancras); found by service ID; arrived"
+- tests/rules.test.mjs: "Follow, 30 Oct evening: follow the 18:48 from the office; it's cancelled — said with its reason, the best way on offered, one tap follows it"
+- tests/rules.test.mjs: "Follow: kept across reopening; a delay is said and moves the arrival; OK clears the reason; off = no Follow buttons"
+- tests/rules.test.mjs: "Follow: a later train followed — a better one 5+ min sooner is offered once; No thanks never offers it again; behind and missed"
+- tests/rules.test.mjs: "Follow, on the tube home: minutes in hand from when TfL says your tube (by vehicle) reaches King's Cross; too late = connection lost"
+- tests/rules.test.mjs: "Follow: Arrive by chosen at the office lapses back to live when you reach King's Cross, or after 20 minutes"
+- Toggle off: every existing test and golden is unchanged.
 
 ## Not yet / open questions
-- Whether TfL reports tube positions by vehicle reliably enough to follow a tube underground (check against a recorded
-  feed first).
+- Following a tube by vehicle is checked against one snapshot only, and only for the Met; the Circle falls back to the
+  ride time. On the way to work the tube is after the train, so it isn't followed for minutes in hand yet.
+- "Ahead/behind" while walking uses the option's leave time from where you are (the same as Leave now), not a
+  separate walk model; on a train it says you're on it, without minutes ahead or behind.
+- Only following a route that starts from where you are now (Leave now's list); Arrive by and Leave around options
+  aren't followable yet.
 - Notifications with Safari closed (e.g. "your train is cancelled") need the native app (#2–#7); a web page can only
   update while open.
-- Order of work: (1) Follow button, saved route, stable arrival with reasons, ahead/behind; (2) missed, cancelled,
-  better option; (3) following a tube by vehicle.

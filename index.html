@@ -163,6 +163,14 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .slack.bad{background:var(--hero-bad);color:var(--hero-accent-ink)}
 .hero .slack.warn{background:var(--hero-warn);color:var(--hero-accent-ink)}
 .hero .slack.ok{background:var(--hero-ok);color:var(--hero-accent-ink)}
+/* Follow a route: the followed journey sits above the screen; its reason line uses the status colours. */
+.hero .follow{display:flex;flex-direction:column;gap:6px;padding:0 0 10px;margin-bottom:10px;border-bottom:1px solid color-mix(in srgb,var(--paper) 22%,transparent)}
+.hero .followreason{border-radius:8px;padding:6px 10px;font-weight:700;font-size:15px}
+.hero .followreason.bad{background:var(--hero-bad);color:var(--hero-accent-ink)}
+.hero .followreason.warn{background:var(--hero-warn);color:var(--hero-accent-ink)}
+.hero .followreason.ok{background:var(--hero-ok);color:var(--hero-accent-ink)}
+.hero .followalt{font-size:15px}
+.followtag{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
 /* A lozenge naming one tube line takes that line's colour (Sam, 30 Oct), as the line chips do. */
 .hero .slack.circle{background:var(--circle);color:var(--circle-ink)}
 .hero .slack.met{background:var(--met);color:var(--met-ink)}
@@ -278,7 +286,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:49 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -356,6 +364,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <fieldset>
       <legend>Experimental</legend>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_follow" style="margin-top:3px"><span>Follow a route: a Follow button on each journey. The app then follows it: arriving when, ahead or behind, every change with its reason, and the best way on if you miss it or something 5+ min sooner turns up. Planning (Arrive by, Leave around) lapses back to live after 20 min on the move.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
     </fieldset>
 
@@ -401,7 +410,9 @@ var CommuteCore = (() => {
   __export(core_exports, {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
+    BETTER_MS: () => BETTER_MS,
     BLOCKS: () => BLOCKS,
+    CHANGE_MS: () => CHANGE_MS,
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
     FACILITY: () => FACILITY,
@@ -445,6 +456,8 @@ var CommuteCore = (() => {
     effortOffers: () => effortOffers,
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
+    findTrain: () => findTrain,
+    followOption: () => followOption,
     gradeEffort: () => gradeEffort,
     headlineKind: () => headlineKind,
     hhmm: () => hhmm,
@@ -483,6 +496,7 @@ var CommuteCore = (() => {
     onLine: () => onLine,
     onTube: () => onTube,
     onTubeHome: () => onTubeHome,
+    optionHas: () => optionHas,
     otherTubes: () => otherTubes,
     pad: () => pad,
     parseDarwinBoard: () => parseDarwinBoard,
@@ -511,9 +525,11 @@ var CommuteCore = (() => {
     timeFromTrain: () => timeFromTrain,
     timeToTrain: () => timeToTrain,
     topPicks: () => topPicks,
+    trackFollowed: () => trackFollowed,
     trackLine: () => trackLine,
     trainFlags: () => trainFlags,
     trainFromTflJourney: () => trainFromTflJourney,
+    trainKey: () => trainKey,
     trainName: () => trainName,
     trainStatus: () => trainStatus,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
@@ -1196,6 +1212,70 @@ var CommuteCore = (() => {
       j.offer = true;
     });
     return list;
+  }
+
+  // src/core/follow.ts
+  var BETTER_MS = 5 * 6e4;
+  var CHANGE_MS = 6e4;
+  var trainKey = (t) => `${t.operator}|${t.std}|${t.from}`;
+  var sameTrain = (a, b) => a.serviceId && b.serviceId ? a.serviceId === b.serviceId : trainKey(a) === trainKey(b);
+  var trainsOf = (o) => [o.train, ...(o.alts || []).map((a) => a.train)];
+  var optionHas = (o, id) => trainsOf(o).some((t) => sameTrain(t, id));
+  function followOption(o, dir, now) {
+    const t = o.train;
+    return {
+      dir,
+      hub: o.hub,
+      train: { operator: t.operator, std: t.std, from: t.from, ...t.serviceId ? { serviceId: t.serviceId } : {} },
+      afterMs: o.arrive - t.arr,
+      planned: o.arrive,
+      arrive: o.arrive,
+      lateMin: t.arrLate || 0,
+      followedAt: now,
+      reason: null,
+      declined: []
+    };
+  }
+  function findTrain(trains, id) {
+    return trains.find((t) => id.serviceId && t.serviceId === id.serviceId) || trains.find((t) => trainKey(t) === trainKey(id)) || null;
+  }
+  var catchable = (o) => !o.train.cancelled && !o.uncertain && !o.train.depUnknown && !o.missed && o.effort !== "none";
+  var easy = (o) => catchable(o) && (o.effort == null || o.effort === "walk" || o.effort === "fast");
+  var earliest = (os) => os.reduce((b, o) => !b || o.arrive < b.arrive || o.arrive === b.arrive && o.leave > b.leave ? o : b, null);
+  function trackFollowed(f, i) {
+    var _a;
+    const out = { ...f, declined: [...f.declined] };
+    const { now, train, option } = i;
+    const say = (kind, text, level) => {
+      out.reason = { kind, text, at: now, level };
+    };
+    const name = `${f.train.std} ${f.train.operator}`;
+    const base = { effort: option ? (_a = option.effort) != null ? _a : null : null, next: null, better: null };
+    const arriveNow = train && train.arr != null ? train.arr + f.afterMs : f.arrive;
+    if (now > Math.max(f.arrive, arriveNow) + 5 * 6e4) return { state: "arrived", arrive: f.arrive, spareMin: null, ...base, followed: out };
+    const others = i.options.filter((o) => !optionHas(o, f.train));
+    if (train && train.cancelled) {
+      if (!out.reason || out.reason.kind !== "cancelled") say("cancelled", `Your ${name} is cancelled`, "bad");
+      return { state: "cancelled", arrive: f.arrive, spareMin: null, ...base, next: earliest(others.filter(catchable)), followed: out };
+    }
+    const spareMs = i.onBoard ? null : i.tube && train ? train.dep - (i.tube.reach + i.tube.readyMs) : option ? option.leave - now : null;
+    const gone = !i.onBoard && (!train || train.dep < now - 3e4);
+    const cantMake = !i.onBoard && (i.tube ? spareMs != null && spareMs < 0 : !!option && (option.effort === "none" || !!option.missed));
+    if (gone || cantMake) {
+      if (!out.reason || out.reason.kind !== "missed") say("missed", gone ? `You've missed the ${name}` : `You can't make the ${name} now`, "bad");
+      return { state: "missed", arrive: f.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, next: earliest(others.filter(catchable)), followed: out };
+    }
+    const arrive = train && train.arr != null ? train.arr + f.afterMs : f.arrive;
+    if (Math.abs(arrive - f.arrive) >= CHANGE_MS) {
+      const late = train ? train.arrLate || 0 : 0;
+      if (late > f.lateMin) say("late", late >= 1 ? `Your ${name} is now ${late} min late` : `Your ${name} is running later`, late >= 5 ? "bad" : "warn");
+      else if (arrive < f.arrive) say("earlier", late >= 1 ? `Your ${name} is now only ${late} min late` : `Your ${name} is back on time`, "ok");
+      else say("updated", `Your ${name}'s expected arrival changed`, "warn");
+      out.arrive = arrive;
+      out.lateMin = late;
+    }
+    const better = earliest(others.filter((o) => easy(o) && o.arrive <= out.arrive - BETTER_MS && !out.declined.includes(trainKey(o.train))));
+    return { state: "on", arrive: out.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 6e4), ...base, better, followed: out };
   }
 
   // src/core/connections.ts
@@ -2303,6 +2383,8 @@ function legLabel(l){
 }
 // Feature toggle (Settings → Experimental): any start and end point. Off = the app as before.
 const anyPlace = () => !!S().anyPlace;
+// Feature toggle (Settings → Experimental): follow a route. Off = the app as before.
+const followOn = () => !!S().follow;
 async function fetchLondon(from){
   const go=async to=>{
     let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
@@ -2532,6 +2614,76 @@ const liveAdjust = (js, now, view="now") => {
   state.effortPrev={ ...(state.effortPrev||{}), [view]: Object.fromEntries(out.map(j=>[C.effortKey(j), j.effort])) };
   return out;
 };
+// ---------- Following a route (Settings → Experimental) ----------
+// The engine (follow.ts) says where you are on the route you chose; this draws it above whatever the screen shows.
+// Your train: from the loaded boards. On board: the train you're on (worked out or picked) is this one. On the tube
+// home: when your tube reaches the station, from TfL's arrivals for that vehicle when known, else its ride time.
+function followInputs(f, now){
+  const options = state.boards ? ranked(now) : [];
+  const all = Object.values(state.boards||{}).flatMap(b=>b?b.services:[]);
+  const train = C.findTrain(all, f.train), option = options.find(o=>C.optionHas(o, f.train)) || null;
+  const m = state.onLine ? whichTrain(now) : null, lt = lockedTrain();
+  const same = t => !!t && C.optionHas({ train:t }, f.train);
+  const onBoard = same(lt) || (!!m && !m.none && same(m.t));
+  let tube=null; const r = f.dir==="home" ? homeRide(now) : null;
+  if(r && !onBoard){
+    const hub=f.hub==="STP"?"KGX":f.hub, leg=homeLegs(r.t, now).find(l=>l.o && (l.o.hub===f.hub || (l.o.hub==="STP"?"KGX":l.o.hub)===hub));
+    const ready=C.tubeHomeConnections(r.t, S(), state.saved.pace==="fast"?"fast":"avg").ready[f.hub];
+    const eta = state.tubeEta && state.tubeEta.vehicle && state.tubeEta.vehicle===r.vehicle && state.tubeEta.hub===hub && Date.now()-state.tubeEta.at<3*60e3 ? state.tubeEta.t : null;
+    const ride = f.hub==="ZFD" ? S().rideFarAld*1000 : S().rideKxAld*1000;
+    tube = { reach: eta || (leg ? r.t+leg.rideMs : r.t+ride), readyMs: ready||0, live: !!eta };
+  }
+  return { now, train, option, options, onBoard, tube };
+}
+function renderFollow(now){
+  const f=state.saved.follow; if(!followOn() || !f) return;
+  if(f.dir!==direction()){ return; }
+  const i=followInputs(f, now), st=C.trackFollowed(f, i);
+  if(JSON.stringify(st.followed)!==JSON.stringify(f)){ state.saved.follow=st.followed; save(); }
+  const g=st.followed, name=`${g.train.std} ${g.train.operator}`, dest=f.dir==="office"?"office":"home";
+  if(st.state==="arrived"){ state.saved.follow=null; save(); $("#hero").insertAdjacentHTML("afterbegin", `<div class="follow ok"><b>You've arrived.</b> Stopped following the ${esc(name)}.</div>`); return; }
+  const delta = o => { const d=Math.round((o.arrive-g.arrive)/60e3); return d>0?`${d} min later`:d<0?`${-d} min sooner`:"same time"; };
+  const offer = (o, why) => `<div class="followalt">${why}: the ${stdExp(o.train)} ${esc(o.train.operator)} from ${esc(depStation(o))}, ${esc(dest)} <span class="t">${hhmm(o.arrive)}</span> (${delta(o)}). <button type="button" class="pickbtn" data-follow="${esc(C.trainKey(o.train))}">Follow this</button>${why==="Better option"?` <button type="button" class="pickbtn" data-follow-no="${esc(C.trainKey(o.train))}">No thanks</button>`:""}</div>`;
+  [st.next, st.better].forEach(o=>{ if(o){ state.followable=state.followable||{}; state.followable[C.trainKey(o.train)]=o; } });
+  let where, level;
+  if(st.state==="cancelled" || st.state==="missed"){ where=""; level="bad"; }
+  else if(i.onBoard){ where=`On the ${esc(name)}`; level="ok"; }
+  else if(i.tube){ const k=st.spareMin; where=`On the tube: at ${esc(HUB_NAME[g.hub==="STP"?"KGX":g.hub]||g.hub)} <span class="t">${hhmm(i.tube.reach)}</span>${i.tube.live?" (TfL, by your tube)":""} · ${k>=1?`${k} min to spare`:k===0?"no time to spare":`${-k} min short`}`; level=k>=2?"ok":k>=0?"warn":"bad"; }
+  else if(st.spareMin!=null){ const k=st.spareMin, how=st.effort==="fast"?" · walk fast":st.effort==="run"?" · run":st.effort==="car"?" · car needed":"";
+    where = k>=1?`On track · leave by <span class="t">${hhmm(i.option.leave)}</span> · ${k} min to spare${how}`:k===0?`Leave now${how}`:`${-k} min behind${how}`; level = k>=3&&st.effort!=="fast"?"ok":k>=0||st.effort==="fast"?"warn":"bad"; }
+  else { where=""; level="ok"; }
+  const r=g.reason, reason = r ? `<div class="followreason ${r.level}">${esc(r.text)} · <span class="t">${hhmm(r.at)}</span> <button type="button" class="pickbtn" data-follow-ok>OK</button></div>` : "";
+  const lost = st.state==="cancelled" || st.state==="missed";
+  // Missed, but you're on it after all (the app couldn't tell): one tap says so.
+  const onIt = st.state==="missed" ? `<div><button type="button" class="pickbtn" data-follow-onboard>I'm on it</button></div>` : "";
+  $("#hero").insertAdjacentHTML("afterbegin", `<div class="follow ${level}">
+    <div class="lbl">Following · the ${esc(name)} · ${esc(dest)} <span class="t">${hhmm(g.arrive)}</span>${g.arrive!==g.planned?` (planned <span class="t">${hhmm(g.planned)}</span>)`:""}</div>
+    ${where?`<div class="slack ${level}">${where}</div>`:""}
+    ${reason}${lost&&!r?`<div class="followreason bad">${st.state==="cancelled"?"Cancelled":"Missed"}</div>`:""}${onIt}
+    ${lost ? (st.next ? offer(st.next, "Best way on") : `<div class="followalt">No train you can make found yet.</div>`) : ""}
+    ${!lost && st.better ? offer(st.better, "Better option") : ""}
+    <div><button type="button" class="ghost" data-follow-stop>Stop following</button></div>
+  </div>`);
+}
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-follow],[data-follow-stop],[data-follow-ok],[data-follow-no],[data-follow-onboard]"); if(!b) return;
+  const now=Date.now(), f=state.saved.follow;
+  if(b.dataset.follow!=null){ const o=(state.followable||{})[b.dataset.follow]; if(!o) return; state.saved.follow=C.followOption(o, direction(), now); }
+  else if(b.hasAttribute("data-follow-stop")) state.saved.follow=null;
+  else if(b.hasAttribute("data-follow-ok") && f) state.saved.follow={...f, reason:null};
+  else if(b.dataset.followNo!=null && f) state.saved.follow={...f, declined:[...f.declined, b.dataset.followNo]};
+  else if(b.hasAttribute("data-follow-onboard") && f){ const t=C.findTrain(Object.values(state.boards||{}).flatMap(x=>x?x.services:[]), f.train); if(t){ state.trainLock=C.lockOf(t, true); } state.saved.follow={...f, reason:null}; }
+  save(); render();
+});
+// On the tube home while following: where TfL says your tube (by vehicle) reaches the station you're heading for.
+async function refreshTubeEta(){
+  const f=state.saved.follow, r=followOn() && f && f.dir==="home" ? homeRide(Date.now()) : null;
+  if(!r || !r.vehicle){ state.tubeEta=null; return; }
+  const hub=f.hub==="STP"?"KGX":f.hub, id=hub==="ZFD"?"940GZZLUFCN":"940GZZLUKSX";
+  try{ const res=await fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${id}/Arrivals`); if(!res.ok) return;
+    const a=(await res.json()).find(x=>String(x.vehicleId)===String(r.vehicle) && /^(circle|metropolitan|hammersmith-city)$/.test(x.lineId) && /westbound/i.test(x.platformName||""));
+    state.tubeEta = a ? { vehicle:r.vehicle, hub, at:Date.now(), t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : Date.now()+(a.timeToStation||0)*1000 } : null;
+  }catch(e){ /* keep the ride time */ }
+}
 // ---------- Presentation model ----------
 // The engine decides which view is on screen, what the big number means and the order of the blocks
 // (src/core/present.ts). The page only draws them. Nothing below re-decides priority.
@@ -2621,6 +2773,11 @@ function effortLine(j, dest, best){
   return `<div class="alt hurry">Arrives first ${j.firstAt==="run"?"if you run":"by car"}: the ${stdExp(j.train)} ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}.</div>`;
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
+// Follow a route (toggle): one tap on any journey. The options on screen are kept so a tap finds its journey.
+const followBtn = j => { if(!followOn() || j.train.cancelled) return "";
+  const k=C.trainKey(j.train); state.followable=state.followable||{}; state.followable[k]=j;
+  const f=state.saved.follow, on=f && C.optionHas(j, f.train);
+  return on ? `<div class="followtag">Following</div>` : `<button type="button" class="pickbtn followbtn" data-follow="${esc(k)}">Follow</button>`; };
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
@@ -2638,6 +2795,7 @@ function optionBlock(j, opt){
     <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
+    ${followBtn(j)}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
@@ -2955,6 +3113,7 @@ function renderList(list, now, opts){
         <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
+        ${followBtn(j)}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");
@@ -3254,6 +3413,9 @@ function renderInner(){
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
+  // Follow a route (toggle): a planning view chosen while on the move lapses back to live after 20 minutes or when
+  // your situation changes (reaching or leaving a station, getting on or off).
+  if(followOn() && (state.saved.view==="by"||state.saved.view==="at") && state.saved.viewAt && (Date.now()-state.saved.viewAt>20*60e3 || liveKey()!==state.saved.viewKey)){ state.saved.view="now"; state.saved.viewAt=null; save(); }
   const now=Date.now(), byView=state.saved.view==="by";
   const shown = C.chooseView(situation(now)), view = shown.view;
   if(view==="awaiting-location"){
@@ -3310,6 +3472,7 @@ function renderInner(){
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
   }
+  renderFollow(now);
   renderStatus(); renderDiag(); tick();
   const rc=requestCounts();
   $("#updated").textContent = (state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet")) + ` · requests in the last minute: TfL ${rc.tfl}${rc.other?`, National Rail ${rc.other}`:""}`;
@@ -3389,7 +3552,7 @@ async function refresh(opts){
     const aldP = plan.officeTubeDeps
       ? fetchAldgateDepartures().then(d=>{ state.aldDeps={at:Date.now(), list:d, err:null}; noteAldgate(); }).catch(e=>{ state.aldDeps={at:Date.now(), list:null, err:e.message}; })
       : Promise.resolve();
-    await Promise.all([railP,refreshLondon(),aldP]);
+    await Promise.all([railP,refreshLondon(),aldP,refreshTubeEta()]);
     await refreshTrainProgress();
     await Promise.all([statusP(),nrP()]);
   } catch(e){
@@ -3484,7 +3647,7 @@ function fillSettings(){
   const s=S();
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; $("#s_follow").checked=!!s.follow; showProviderFields();
 }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
@@ -3496,6 +3659,7 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_follow").checked) o.follow=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
@@ -3533,7 +3697,10 @@ dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
 const onRouteChange=()=>{ save(); render(); if(state.railSource==="tfl" || (state.railSource==="darwin" && (!state.boards || state.boardsDir!==direction()))) refresh({force:true}); else refreshLondon().then(render); planView(); };
 const planView = () => state.saved.view==="at" ? planAt() : planBy();
-document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view; save();
+// Where you are, for the planning lapse: a change here (station, train, tube, on your way) means the choice is stale.
+const liveKey = () => { const n=Date.now(); return [direction(), state.atHub||"", !!state.onLine, !!currentRide(n), !!homeRide(n), !!onWay()].join("|"); };
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{ const was=state.saved.view; state.saved.view=b.dataset.view;
+  if(b.dataset.view!=="now"){ state.saved.viewAt=Date.now(); state.saved.viewKey=liveKey(); } save();
   if(was!==state.saved.view && (state.saved.view==="by"||state.saved.view==="at")){ const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
   render(); if(state.saved.view==="at"){ planAt(); return; }
   if(state.saved.view==="now" && !state.boards && state.railSource==="tfl") refresh({force:true}); else planBy(); }));
@@ -3570,7 +3737,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={followInputs,liveKey,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

@@ -183,6 +183,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct late evening** Follow a route built behind Settings → Experimental (Sam: "do all of it"): one-tap Follow;
+  the arrival changes only with a reason; missed/cancelled offer the best way on; better options at 5+ min sooner;
+  the tube home followed by its vehicle from TfL's arrivals at the station you're heading for (one request per
+  refresh while following on a tube); planning tabs lapse to live after 20 min or a change of situation. Engine:
+  `src/core/follow.ts`. → [follow-a-route](stories/follow-a-route.md)
 - **30 Oct evening** Revert 15:48: the tube home is worked out again (picks still win), because on the 18:24 trip
   the Met he took wasn't pickable and the app timed his journey from the office at Moorgate. The two mistakes aren't
   equal: a false alarm at the desk is harmless, missing that you're travelling isn't. Sam's direction (planned, not
