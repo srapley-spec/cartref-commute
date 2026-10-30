@@ -90,9 +90,9 @@ train" read as a warning while the train was close to on time.
   (ink / outline), never a status colour.
 - **Every train in live mode shows its status**: card, list and board, and the train you're on. Word and minutes,
   coloured by band; never colour alone ("On time", "2 min late", "18 min late", "Cancelled", "No estimate").
-- **Bands.** Red: cancelled, no estimate, 15+ min late (as `warnings.ts` today). Green: on time. Amber: in between.
-  The lower edge of amber is **awaiting Sam**: 2 min (what the on-train line already calls late) or 5 min (the
-  engine's route-wide amber today). Whichever is chosen, the band comes from the engine, not from page arithmetic.
+- **Bands (decided, Sam 30 Oct).** Green: on time or under 5 min late. Amber: 5–14 min late. Red: 15+ min late,
+  cancelled, no estimate. The same bands as the route-wide warnings. They come from the engine
+  (`LATE_AMBER_MIN`, `LATE_RED_MIN`, `lateLevel`, `departureStatus` in `src/core/rules.ts`), never page arithmetic.
   On the train, the band is for the expected arrival at the change station against the timetable, the time that
   matters; departure delay is history.
 - **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
@@ -101,17 +101,44 @@ train" read as a warning while the train was close to on time.
   colour for that line (`--circle`, `--met`, `--hc`), always with the line's name in it. The Circle's yellow is
   close to caution; the name and the lozenge shape keep it distinct. Don't extend this to a status colour that
   isn't a line's own.
-- **Where the status sits on the live card: awaiting Sam.** Options put to him 30 Oct: (A) a status chip beside
-  the hero arrival time; (B) the identity lozenge split, neutral train name plus a coloured status segment;
-  (C) the hero time itself coloured, with the status word in its label; (D) a full-width coloured status strip
-  across the top of the card, replacing the eyebrow. Record the choice here and in the decisions log.
+- **Departures: decided (Sam 30 Oct), see [Timetabled and expected departure](#timetabled-and-expected-departure-sam-30-oct-2026).**
+  The Expected column carries the band; the status word sits in the delay pill.
+- **The on-train card: still awaiting Sam.** Options put to him 30 Oct: (A) a status chip beside the hero arrival
+  time; (B) the identity lozenge split, neutral train name plus a coloured status segment; (C) the hero time itself
+  coloured, with the status word in its label; (D) a full-width coloured status strip across the top of the card,
+  replacing the eyebrow. Record the choice here and in the decisions log.
+
+## Timetabled and expected departure (Sam, 30 Oct 2026)
+
+A train is named by its timetabled time ("the 08:00"): the platform board, the "Which train?" choice and "You're on the
+08:00" all use it. So wherever the departure is the headline (at a station, on your way to one), the timetabled time
+must be as prominent as the expected time. Chosen from three options
+([comparison](https://claude.ai/artifact/M5yQwasvt3bLdiFgKXXfbz)): **A, board columns.**
+
+| Column | Content | Style |
+| --- | --- | --- |
+| Train | Timetabled departure (`std`); "Train from Hitchin" when boarding elsewhere | Option time size, neutral text |
+| Expected | Expected time when 1+ min late; else "On time" / "Not live" / "No estimate" / "Cancelled" | Same size (word smaller); colour = status band |
+| At office / At home | One expected arrival at the destination; no timetabled arrival (none exists door to door) | Same size, neutral |
+
+- Order follows the platform board: timetabled, then expected. Never a strikethrough on the timetabled time (it
+  reads as cancelled and shrinks the name you match against). Never "08:00 › 08:03" in one slot (reads as a journey).
+- The status word ("3 min late") appears once, in the delay pill; the label no longer repeats it.
+- A timetable-only train never says "On time": its delay is unknown ("Not live").
+- Leave mode keeps Leave → Arrive as the big times; the train line keeps "08:00 exp 08:03".
+- List rows: the same three columns, with route, operator and flags on a line below.
+- **Signal:** `JourneyOption` and `TrainBoard` follow this. The review prototype (`design/signal-preview.html`)
+  predates it and still shows "Departs" with the expected time; it is superseded on this point.
+- **Panda:** not yet recorded: no Panda design system was found in this repo, its branches, issues or Sam's
+  artifacts (30 Oct). Add it there once its location is known.
 
 **Known violations in the live build (`src/page.html`, 30 Oct):** `--accent` is orange (`#B0500C` light,
 `#EE9A45` dark, close to `--warn` `#E3B04D` in dark) and is used for the identity lozenge (`.slack`: "You're on",
 "Probably", "Get on", "You're getting") on rail trains (tube lozenges take their line's colour since 30 Oct), for late text (`.latetxt`), the best-row tint and the focus ring.
 Late text must take its band colour; the rest must move to a non-status accent (recommended: Signal's blue).
 Compliant: "At the station about" on your way is green / amber / red by minutes to spare (`wayLevel`, 30 Oct), which
-is status, not identity.
+is status, not identity. The Expected departure and the delay pill take the band (`departureStatus`, `lateLevel`,
+30 Oct); the pill used to turn red from 10 min.
 **Proposals:** `original` skin A and `womble` skin A use an amber accent and `womble` skin B a green "on time /
 tracking" accent; none may be carried forward without retuning. Signal complies.
 
@@ -181,8 +208,8 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 | ViewControl | Auto by default; explicit Plan/Live overrides; Return to Auto; never mutate selected service |
 | PlanningQuestion | Leave now / Arrive by / Leave around; retain date/time values per mode |
 | PrimaryAnswer | Situation-labelled leave/depart/arrive time; data source; deadline consequence; no ETA for unplannable services |
-| JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps |
-| TrainBoard | All engine-returned options in engine order; do not filter by aesthetic preference; cancelled/unknown remain |
+| JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps. Departure headline: Train · Expected · At destination columns, same size ([rule](#timetabled-and-expected-departure-sam-30-oct-2026)) |
+| TrainBoard | All engine-returned options in engine order; do not filter by aesthetic preference; cancelled/unknown remain. At a station: Train · Expected · Arrive per row |
 | ActiveJourney | Confirmed/inferred identity, source timestamp, last reported station, expected arrival and next action |
 | ConnectionChoice | Station arrival, transfer allowance, candidate departures, spare time, near-platform caveat, confirm/correct actions |
 | StatusAndNotices | Relevant line statuses including good/unknown; severity from existing rules; full notice retained on expansion |

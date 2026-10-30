@@ -175,8 +175,27 @@ test("trainFlags: cancelled, standing room, stopping, delays, unknown — from t
   assert.deepEqual(flags({}), ["Usually standing room only"]);
   assert.deepEqual(flags({ cancelled: true, reason: "crew" }), ["Cancelled", "Usually standing room only", "crew"]);
   assert.deepEqual(flags({ arr: T + 31 * MIN }), ["Stopping train"]);
-  assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "+12 min"]);
+  assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "12 min late"]);
+  const lvl = (o) => core.trainFlags(train({ from: "RVS", to: "CEN", dep: T, arr: T + 17 * MIN, ...o }), testville).find((f) => f.delay).lvl;
+  assert.deepEqual([4, 5, 14, 15].map((n) => lvl({ depLate: n })), ["ok", "warn", "warn", "bad"], "the status bands: amber from 5, red from 15");
+  assert.equal(lvl({ depLate: 2, arrLate: 6 }), "warn", "the later of departure and arrival");
   assert.deepEqual(flags({ depUnknown: true }), ["Usually standing room only", "Delayed, no estimate: times unknown"]);
+});
+
+test("departureStatus: on time, N min late, cancelled, no estimate, not live; green under 5 min, amber 5–14, red 15+", () => {
+  const T = at("2026-11-03", "06:55");
+  const st = (o) => { const s = core.departureStatus(train({ from: "RVS", to: "CEN", dep: T, arr: T + 17 * MIN, ...o })); return `${s.level}: ${s.word}`; };
+  assert.equal(st({}), "ok: On time");
+  assert.equal(st({ depLate: 0.4 }), "ok: On time", "under a minute rounds to on time");
+  assert.equal(st({ depLate: 3 }), "ok: 3 min late", "3 min late is green (Sam, 30 Oct: amber from 5)");
+  assert.equal(st({ depLate: 4 }), "ok: 4 min late");
+  assert.equal(st({ depLate: 5 }), "warn: 5 min late");
+  assert.equal(st({ depLate: 14 }), "warn: 14 min late");
+  assert.equal(st({ depLate: 15 }), "bad: 15 min late");
+  assert.equal(st({ cancelled: true, depLate: 3 }), "bad: Cancelled");
+  assert.equal(st({ depUnknown: true }), "bad: No estimate");
+  assert.equal(st({ timetable: true }), "info: Not live", "a timetable train's delay isn't known: never 'On time'");
+  assert.deepEqual([core.LATE_AMBER_MIN, core.LATE_RED_MIN], [5, 15]);
 });
 
 test("bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never", () => {

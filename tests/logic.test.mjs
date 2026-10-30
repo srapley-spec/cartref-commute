@@ -433,7 +433,7 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.equal(in2.recommended, 1, "and it's the best");
     assert.equal(stp.missed, true, "St Pancras in 3 min: the walk there is real");
     c.render();
-    assert.match(app.text("#hero"), new RegExp(`Departs ?${hm(now + 2 * m)} → Arrive home.*go to the platform now`));
+    assert.match(app.text("#hero"), new RegExp(`Train ?${hm(now + 2 * m)} Expected ?On time At home.*go to the platform now`));
     c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
     const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
     assert.equal(soon.missed, true); assert.equal(soon.effort, "none"); assert.equal(soon.flags[0].txt, "Can't make it");

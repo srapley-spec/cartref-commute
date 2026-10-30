@@ -26,4 +26,19 @@ export function isStopping(t: Train, profile: Profile): boolean {
 }
 
 /** Only trains with known times can be recommended (they are still listed otherwise). */
+/** How late a train is, as status (Sam, 30 Oct): green under 5 min, amber 5–14, red 15+. Same bands everywhere. */
+export const LATE_AMBER_MIN = 5;
+export const LATE_RED_MIN = 15;
+export const lateLevel = (min: number): "ok" | "warn" | "bad" => (min >= LATE_RED_MIN ? "bad" : min >= LATE_AMBER_MIN ? "warn" : "ok");
+
+/** A train's departure status: a word with minutes, and its band. Timetable trains say so: their delay isn't known. */
+export interface DepartureStatus { level: "ok" | "warn" | "bad" | "info"; word: string; late: number; }
+export function departureStatus(t: Pick<Train, "cancelled" | "depUnknown" | "depLate" | "timetable">): DepartureStatus {
+  if (t.cancelled) return { level: "bad", word: "Cancelled", late: 0 };
+  if (t.depUnknown) return { level: "bad", word: "No estimate", late: 0 };
+  if (t.timetable) return { level: "info", word: "Not live", late: 0 };
+  const late = Math.max(0, Math.round(t.depLate || 0));
+  return { level: lateLevel(late), word: late >= 1 ? `${late} min late` : "On time", late };
+}
+
 export const plannable = (t: Train): boolean => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;

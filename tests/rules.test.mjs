@@ -528,7 +528,7 @@ const trn = (o) => Object.assign({ depLate: 0, arrLate: 0, depUnknown: false, pl
 test("At Letchworth station going to work, Leave now is a departure board too", async () => {
   const app = await open({ now: T("07:00"), geo: { coords: { latitude: 51.9800, longitude: -0.2292, accuracy: 15 } }, settings: RDM, saved: { dirMode: "office" } });
   assert.match(app.text("#hero"), /^You're at Letchworth · departures · 07:00/);
-  assert.match(app.text("#hero"), /Departs ?07:\d\d → Arrive office/);
+  assert.match(app.text("#hero"), /Train ?07:\d\d Expected ?(07:\d\d|On time) At office ?\d\d:\d\d/);
   app.close();
 });
 
@@ -615,7 +615,7 @@ test("On your way to Letchworth: departures, when you'll reach the station, and 
   assert.match(hero, /^On your way to Letchworth · 06:50/);
   const walk = c.walkFromHere(), at = new Date(now + walk * 1000);
   assert.match(hero, new RegExp(`At the station about ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`));
-  assert.match(hero, /Departs ?0[67]:\d\d → Arrive office/);
+  assert.match(hero, /Train ?0[67]:\d\d Expected ?(0[67]:\d\d|On time) At office ?\d\d:\d\d/);
   assert.match(hero, /on track · (\d+ min to spare|keep going)/);
   assert.doesNotMatch(hero, /If you leave now/);
   // Without a saved home: on the way only when clearly nearer the station than home is (3+ min of walking).
@@ -880,16 +880,25 @@ test("On your way: 'At the station about' is green with 3+ min to spare for the 
   app.close();
 });
 
-test("Review: at Letchworth station a late train says 'Departs · N min late'; refreshes every 30 s", async () => {
-  const now = T("07:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" },
-    disrupt: { "Great Northern 07:08 from LET": { late: 3, reason: "late" } } }), c = app.c;
-  await c.refresh({ force: true }); await sleep(400);
-  await app.fix(51.9799, -0.2290, 10, now);
-  assert.equal(c.fastRefresh(), true);
-  const late = c.ranked(now).find((o) => o.train.depLate >= 1 && o.recommended);
-  assert.ok(late, "the fixture's late 07:08 is on the card");
-  assert.match(app.text("#hero"), new RegExp(`Departs · ${late.train.depLate} min late`));
-  app.close();
+test("At Letchworth station a late train shows Train and Expected side by side, coloured by status band; refreshes every 30 s", async () => {
+  for (const [late, level] of [[3, "ok"], [8, "warn"], [16, "bad"]]) {
+    const now = T("07:00"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "office" },
+      disrupt: { "Great Northern 07:08 from LET": { late, reason: "late" } } }), c = app.c;
+    await c.refresh({ force: true }); await sleep(400);
+    await app.fix(51.9799, -0.2290, 10, now);
+    assert.equal(c.fastRefresh(), true);
+    const j = c.ranked(now).find((o) => o.train.std === "07:08");
+    assert.ok(j, "the fixture's late 07:08 is listed");
+    const exp = `07:${String(8 + late).padStart(2, "0")}`;
+    const row = app.rows().find((r) => /^Train ?07:08/.test(r));
+    assert.match(row, new RegExp(`^Train ?07:08 ?Expected ?${exp}`), `list: the timetabled time names the train, the expected time beside it (${late} min)`);
+    const cells = [...app.d.querySelectorAll("#list .row .exp .exp, #hero .exp")].filter((e) => e.textContent === exp);
+    assert.ok(cells.length >= 1 && cells.every((e) => e.classList.contains(level)), `${late} min late is ${level}`);
+    if (j.recommended) assert.match(app.text("#hero"), new RegExp(`Train ?07:08 ?Expected ?${exp}`), "card: same columns");
+    const pill = [...app.d.querySelectorAll(".pill")].find((p) => p.textContent === `${late} min late`);
+    assert.ok(pill && pill.classList.contains(level), `the status word says ${late} min late, ${level}`);
+    app.close();
+  }
 });
 
 test("Review: office arrival — 120 m is 'you've arrived', 200 m is still walking", async () => {

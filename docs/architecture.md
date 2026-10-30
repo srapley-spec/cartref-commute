@@ -183,6 +183,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** A train's timetabled time is as prominent as its expected time (Sam): at a station or on the way, the
+  card and list show Train · Expected · At destination columns, platform-board order (option A of three). Amber starts
+  at 5 min late (green under 5, red 15+), one engine rule for the departure, the delay pill and route warnings. One
+  expected arrival; no timetabled door-to-door arrival. Why: on the way to Letchworth, a big "08:03" hid that the train
+  was the 08:00. → [late-trains](stories/late-trains.md), [design-system](design-system.md#timetabled-and-expected-departure-sam-30-oct-2026)
 - **30 Oct** A lozenge naming a tube line is that line's colour (Sam): line colours are identity, not status. King's
   Cross rail → subsurface measured at 185 s from stepping off (best case); not applied, because the walk counts from
   the first fix within 400 m, so 185 s would have recommended a Met Sam missed. The choice is with Sam.
@@ -190,7 +195,7 @@ Newest first. One line each; the story or issue holds the detail.
 - **30 Oct** Red, amber and green are reserved for status (Sam; critical, binding on this build, Signal and every
   proposal): never brand, accent, identity or selection; every live train shows on time / a bit late / very late as
   word, minutes and colour. Why: on the train the "You're on the 08:00" lozenge was orange and read as a warning.
-  Amber's lower edge (2 or 5 min) and placement on the live card are open. → [design-system](design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
+  Amber's lower edge and departure placement decided 30 Oct (above); on-train placement still open. → [design-system](design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
 - **30 Oct** Fast cycle time over a strict release gate, for now (Sam): `npm run ci` (every GitHub check, on a fresh
   copy of the commit) before every merge; most changes then merge without waiting for GitHub; GitHub's result on
   `main` is checked after every push and a red `main` is fixed before anything else merges. Changes to build/test

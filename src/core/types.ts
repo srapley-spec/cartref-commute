@@ -32,7 +32,7 @@ export interface Train {
 export interface Board { services: Train[]; msgs: string[]; }
 
 /** A flag shown on an option. Flags never hide a train. */
-export interface Flag { lvl: "ok" | "info" | "warn" | "bad"; txt: string; long?: boolean; fine?: boolean; }
+export interface Flag { lvl: "ok" | "info" | "warn" | "bad"; txt: string; long?: boolean; fine?: boolean; delay?: boolean; }   // delay: how late the train is
 
 /** A door-to-door option built from one train. The engine only relies on these fields. */
 export interface Option {
