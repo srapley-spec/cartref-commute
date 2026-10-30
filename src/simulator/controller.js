@@ -13,18 +13,18 @@ const SIM_POINTS = {
 const SIM_ROUTES = {
  kgx:[
   ["home","Home",0],["let","Letchworth Garden City station",16],
-  ["north","On Great Northern train (Stevenage)",27],["approach","Approaching King's Cross",43],
-  ["kgx","Alight at King's Cross",49],["kxTube","Walk to King's Cross St Pancras Underground",55],
-  ["barbican","Metropolitan line — Barbican (GPS-visible section)",64],
-  ["ald","Alight at Aldgate",70],["officeWalk","Walking from Aldgate",74],["office","Office",78]
+  ["north","On Great Northern train (Stevenage)",27],["approach","Approaching King's Cross",47],
+  ["kgx","Alight at King's Cross",57],["kxTube","Walk to King's Cross St Pancras Underground",63],
+  ["barbican","Metropolitan line — Barbican (GPS-visible section)",72],
+  ["ald","Alight at Aldgate",78],["officeWalk","Walking from Aldgate",82],["office","Office",86]
  ],
  far:[
   ["home","Home",0],["let","Letchworth Garden City station",16],
-  ["north","On Thameslink train (Stevenage)",27],["approach","Approaching London / St Pancras",43],
-  ["stp","On train at St Pancras",49],["far","Alight at Farringdon",54],
-  ["farTube","Walk to Circle/H&C/Met platforms",58],
-  ["barbican","Underground — Barbican (GPS-visible section)",64],
-  ["ald","Alight at Aldgate",70],["officeWalk","Walking from Aldgate",74],["office","Office",78]
+  ["north","On Thameslink train (Stevenage)",37],["approach","Approaching London / St Pancras",60],
+  ["stp","On train at St Pancras",72],["far","Alight at Farringdon",76],
+  ["farTube","Walk to Circle/H&C/Met platforms",80],
+  ["barbican","Underground — Barbican (GPS-visible section)",89],
+  ["ald","Alight at Aldgate",95],["officeWalk","Walking from Aldgate",99],["office","Office",103]
  ]
 };
 function simRoute(){
