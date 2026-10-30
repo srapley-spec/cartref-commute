@@ -48,6 +48,8 @@ test("Follow: minutes in hand and behind; can't make it at any effort, or it has
   assert.equal(run(f, T("18:15"), [o, o54]).spareMin, 7);
   const behind = run(f, T("18:24"), [trip("18:48", "18:22", "18:48", "19:09", { effort: "run" }), o54]);
   assert.equal(behind.state, "on"); assert.equal(behind.spareMin, -2); assert.equal(behind.effort, "run");
+  const passed = run(f, T("18:24"), [trip("18:48", "18:22", "18:48", "19:09", { effort: "run", o: { missed: true } }), o54]);
+  assert.equal(passed.state, "on", "walking leave time passed but you can run: behind, not missed (review after merging main, 30 Oct)");
   const none = run(f, T("18:30"), [trip("18:48", "18:22", "18:48", "19:09", { effort: "none" }), o54, o56]);
   assert.equal(none.state, "missed"); assert.equal(none.followed.reason.text, "You can't make the 18:48 Great Northern now");
   assert.equal(none.next.train.std, "18:54", "the earliest arrival you can still make");

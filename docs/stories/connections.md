@@ -100,10 +100,20 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   (magenta), H&C `--hc` (light pink). A line the app doesn't know keeps the default lozenge; "Get on the next Circle
   or Met" (no live times, two lines) keeps it too.
 
+## Timings (Settings; defaults)
+- **King's Cross rail ⇄ Circle/Met: 400 s** at average pace, from the train stopping (Sam, 30 Oct evening): 30 s to
+  get off + 370 s, double the measured best of 185 s (quiet Friday, front of the train, platform 6 by the gateline),
+  "to be on the safe side" for busy times, the back of the train or a far platform. Fast pace ×0.82 ≈ 328 s. Was
+  360 s from the first fix within 400 m. Sam weighed: average 370 / fast 185 (a separate fast setting) and chose
+  double for both paces.
+- **Aldgate East platform ⇄ street: 112 s, walk to the office: 283 s** at average pace (30 Oct measurement, "apply
+  the measurement", Sam): at fast pace 92 s and 232 s, as measured train → street and street → desk. Was 90 + 360.
+  One measurement; the same settings time the evening walk from the office to the platform, which isn't measured.
+- These are defaults: settings already saved on a phone keep their values until changed in Settings.
+
 ## Open
-- King's Cross rail → subsurface platform: one best-case measurement of 185 s from stepping off (30 Oct). To use it,
-  the walk would need to count from when you step off (or the train stops), not from the first fix within 400 m.
-  Until Sam decides, the setting stays 6 min (fast ≈ 4 min 55 s from the first fix), which matched 29 and 30 Oct.
+- The King's Cross walk still counts from the first fix within 400 m (while the train is pulling in), not from the
+  train stopping: stop detection (GPS speed in the station) is the agreed next change (Sam, 30 Oct).
 
 ## Tests
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
@@ -156,3 +166,8 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
 - tests/rules.test.mjs: "Review 3: a picked tube that's delayed starts your ride at its new time; GPS drift at home isn't leaving"
 - tests/rules.test.mjs: "Review 3: on an H&C ride, 'Your lines' is the H&C"
+
+## Destination accuracy (30 October simulator audit)
+- Ending a ride from GPS requires a fix taken no earlier than departure minus the existing 30-second leaving allowance, no more than one minute old (the existing ride-confirmation freshness rule), and no future timestamp. Its entire uncertainty circle must lie within the existing 300 m destination radius. Unknown or poor accuracy does not end a ride; precise recovery can. The existing ride duration plus 10-minute expiry still applies without GPS.
+- `rideEnded` distinguishes positive completion from a ride which has not started yet, allowing the shell to persist completion without resurrecting an old selected departure.
+- tests/core/connections.test.mjs: "Ride completion requires fresh destination GPS with its uncertainty inside the stop radius"

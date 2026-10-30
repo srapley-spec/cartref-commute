@@ -4,17 +4,17 @@
   "banners": [
    "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
   ],
-  "hero": "If you leave now · 15:00 · timetable · best, and the next best Leave15:03 → Arrive home16:36 from St PancrasWalk 5m → Northern 9m → Walk 4m 15:31 Thameslink · 38 min train · total 1h 32m · leave in 3m 52s Board at Farringdon 15:26 (too late to reach from here) or St Pancras 15:31 Arrives first Northern line: minor delays. Journey steps15:03Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)15:3115:31 Thameslink from St Pancras · allow 8 min to reach the platformCalls at · St Pancras 15:31 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:0916:09Arrive Letchworth · 38 min on the train16:36Arrive Cartref · walk 26 min Leave15:22 → Arrive home16:43 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:48 Great Northern · 28 min train · total 1h 21m · leave in 22m 01s Northern line: minor delays. Journey steps15:22Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)15:4815:48 Great Northern from King's Cross · allow 7 min to reach the platformCalls at · King's Cross 15:48 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:1616:16Arrive Letchworth · 28 min on the train16:43Arrive Cartref · walk 26 min Your lines: all good service Thameslink: Good Service Great Northern: Good Service",
+  "hero": "If you leave now · 15:00 · timetable · best, and the next best Leave15:03 → Arrive home16:36 from St PancrasWalk 5m → Northern 9m → Walk 4m 15:31 Thameslink · 38 min train · total 1h 32m · leave in 3m 52s Board at Farringdon 15:26 (too late to reach from here) or St Pancras 15:31 Arrives first Northern line: minor delays. Journey steps15:03Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)15:3115:31 Thameslink from St Pancras · allow 8 min to reach the platformCalls at · St Pancras 15:31 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:0916:09Arrive Letchworth · 38 min on the train16:36Arrive Cartref · walk 26 min Leave15:21 → Arrive home16:43 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:48 Great Northern · 28 min train · total 1h 22m · leave in 21m 15s Northern line: minor delays. Journey steps15:21Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)15:4815:48 Great Northern from King's Cross · allow 8 min to reach the platformCalls at · King's Cross 15:48 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:1616:16Arrive Letchworth · 28 min on the train16:43Arrive Cartref · walk 26 min Your lines: all good service Thameslink: Good Service Great Northern: Good Service",
   "rows": [
    "Leave14:33 from St PancrasWalk 5m → Northern 9m → Walk 4m 15:01 Thameslink · 38 min train · total 1h 32m · train departs in 0m 55s Can't make it Arrive16:06",
-   "Leave14:40 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:06 Great Northern · 55 min train · total 1h 48m · train departs in 5m 55s Can't make it Stopping train Arrive16:28",
-   "Leave14:52 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:18 Great Northern · 28 min train · total 1h 21m · train departs in 17m 55s Can't make it Arrive16:13",
+   "Leave14:39 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:06 Great Northern · 55 min train · total 1h 49m · train departs in 5m 55s Can't make it Stopping train Arrive16:28",
+   "Leave14:51 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:18 Great Northern · 28 min train · total 1h 22m · train departs in 17m 55s Can't make it Arrive16:13",
    "Leave15:03 from St PancrasWalk 5m → Northern 9m → Walk 4m 15:31 Thameslink · 38 min train · total 1h 32m · leave in 3m 52s Board at Farringdon 15:26 (too late to reach from here) or St Pancras 15:31 Arrives first Arrive16:36",
-   "Leave15:10 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:36 Great Northern · 55 min train · total 1h 48m · leave in 10m 01s Stopping train Arrive16:58",
-   "Leave15:22 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:48 Great Northern · 28 min train · total 1h 21m · leave in 22m 01s Arrive16:43",
+   "Leave15:09 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:36 Great Northern · 55 min train · total 1h 49m · leave in 9m 15s Stopping train Arrive16:58",
+   "Leave15:21 from King's CrossWalk 5m → Northern 9m → Walk 4m 15:48 Great Northern · 28 min train · total 1h 22m · leave in 21m 15s Arrive16:43",
    "Leave15:33 from St PancrasWalk 5m → Northern 9m → Walk 4m 16:01 Thameslink · 38 min train · total 1h 32m · leave in 33m 52s Board at Farringdon 15:56 or St Pancras 16:01 Arrive17:06",
-   "Leave15:40 from King's CrossWalk 5m → Northern 9m → Walk 4m 16:06 Great Northern · 55 min train · total 1h 48m · leave in 40m 01s Stopping train Arrive17:28",
-   "Leave15:52 from King's CrossWalk 5m → Northern 9m → Walk 4m 16:18 Great Northern · 28 min train · total 1h 21m · leave in 52m 01s Arrive17:13",
+   "Leave15:39 from King's CrossWalk 5m → Northern 9m → Walk 4m 16:06 Great Northern · 55 min train · total 1h 49m · leave in 39m 15s Stopping train Arrive17:28",
+   "Leave15:51 from King's CrossWalk 5m → Northern 9m → Walk 4m 16:18 Great Northern · 28 min train · total 1h 22m · leave in 51m 15s Arrive17:13",
    "Leave16:03 from St PancrasWalk 5m → Northern 9m → Walk 4m 16:31 Thameslink · 38 min train · total 1h 32m · leave in 1h 3m Board at Farringdon 16:26 or St Pancras 16:31 Arrive17:36",
    "Leave16:33 from St PancrasWalk 5m → Northern 9m → Walk 4m 17:01 Thameslink · 38 min train · total 1h 32m · leave in 1h 33m Board at Farringdon 16:56 or St Pancras 17:01 Arrive18:06",
    "Leave17:03 from St PancrasWalk 5m → Northern 9m → Walk 4m 17:31 Thameslink · 38 min train · total 1h 32m · leave in 2h 3m Board at Farringdon 17:26 or St Pancras 17:31 Arrive18:36",
@@ -49,7 +49,7 @@
   {
    "hub": "KGX",
    "train": "15:06 Great Northern KGX-LET",
-   "leave": "14:40:06",
+   "leave": "14:39:20",
    "arrive": "16:28:15",
    "missed": true,
    "uncertain": false,
@@ -61,8 +61,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "14:40:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "15:06:00 15:06 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "14:39:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "15:06:00 15:06 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 15:06 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:01",
     "16:01:00 Arrive Letchworth · 55 min on the train",
     "16:28:15 Arrive Cartref · walk 26 min"
@@ -71,7 +71,7 @@
   {
    "hub": "KGX",
    "train": "15:18 Great Northern KGX-LET",
-   "leave": "14:52:06",
+   "leave": "14:51:20",
    "arrive": "16:13:15",
    "missed": true,
    "uncertain": false,
@@ -82,8 +82,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "14:52:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "15:18:00 15:18 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "14:51:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "15:18:00 15:18 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 15:18 · Finsbury Park · Stevenage · Hitchin · Letchworth 15:46",
     "15:46:00 Arrive Letchworth · 28 min on the train",
     "16:13:15 Arrive Cartref · walk 26 min"
@@ -115,7 +115,7 @@
   {
    "hub": "KGX",
    "train": "15:36 Great Northern KGX-LET",
-   "leave": "15:10:06",
+   "leave": "15:09:20",
    "arrive": "16:58:15",
    "missed": false,
    "uncertain": false,
@@ -126,8 +126,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "15:10:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "15:36:00 15:36 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "15:09:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "15:36:00 15:36 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 15:36 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:31",
     "16:31:00 Arrive Letchworth · 55 min on the train",
     "16:58:15 Arrive Cartref · walk 26 min"
@@ -136,7 +136,7 @@
   {
    "hub": "KGX",
    "train": "15:48 Great Northern KGX-LET",
-   "leave": "15:22:06",
+   "leave": "15:21:20",
    "arrive": "16:43:15",
    "missed": false,
    "uncertain": false,
@@ -146,8 +146,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "15:22:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "15:48:00 15:48 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "15:21:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "15:48:00 15:48 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 15:48 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:16",
     "16:16:00 Arrive Letchworth · 28 min on the train",
     "16:43:15 Arrive Cartref · walk 26 min"
@@ -178,7 +178,7 @@
   {
    "hub": "KGX",
    "train": "16:06 Great Northern KGX-LET",
-   "leave": "15:40:06",
+   "leave": "15:39:20",
    "arrive": "17:28:15",
    "missed": false,
    "uncertain": false,
@@ -189,8 +189,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "15:40:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "16:06:00 16:06 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "15:39:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "16:06:00 16:06 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 16:06 · Finsbury Park · Stevenage · Hitchin · Letchworth 17:01",
     "17:01:00 Arrive Letchworth · 55 min on the train",
     "17:28:15 Arrive Cartref · walk 26 min"
@@ -199,7 +199,7 @@
   {
    "hub": "KGX",
    "train": "16:18 Great Northern KGX-LET",
-   "leave": "15:52:06",
+   "leave": "15:51:20",
    "arrive": "17:13:15",
    "missed": false,
    "uncertain": false,
@@ -209,8 +209,8 @@
     "warn: Northern line: minor delays."
    ],
    "legs": [
-    "15:52:06 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
-    "16:18:00 16:18 Great Northern from King's Cross · allow 7 min to reach the platform",
+    "15:51:20 Set off to King's Cross St Pancras · Walk 5m → Northern 9m → Walk 4m (18 min)",
+    "16:18:00 16:18 Great Northern from King's Cross · allow 8 min to reach the platform",
     "- Calls at · King's Cross 16:18 · Finsbury Park · Stevenage · Hitchin · Letchworth 16:46",
     "16:46:00 Arrive Letchworth · 28 min on the train",
     "17:13:15 Arrive Cartref · walk 26 min"

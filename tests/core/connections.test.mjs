@@ -119,3 +119,19 @@ test("On the tube the board is gone: a tube that left is told by how long ago (r
   assert.equal(core.platformNo("Westbound - Platform 3"), "3"); assert.equal(core.platformNo("Eastbound - Platform 2"), "2");
   assert.equal(core.platformNo("Westbound"), null); assert.equal(core.platformNo(""), null); assert.equal(core.platformNo(undefined), null);
 });
+
+test('Ride completion requires fresh destination GPS with its uncertainty inside the stop radius',()=>{
+ const r={from:'X',t:now,rideMs:10*m,stopGeo:[50.2,-1.2]},arr=now+10*m;
+ const fix=(acc,at=arr)=>({here:r.stopGeo,acc,at});
+ for(const acc of [null,NaN,Infinity,-1,300,1400]){
+  assert.equal(core.rideEnded(r,arr,fix(acc)),false);
+  assert.equal(core.rideActive(r,arr,fix(acc)),true,'rough fix cannot alight');
+ }
+ assert.equal(core.rideEnded(r,arr,fix(12)),true);
+ assert.equal(core.rideActive(r,arr,fix(12)),false,'precise recovery confirms arrival');
+ assert.equal(core.rideEnded(r,arr,fix(12,arr-60001)),false,'stale fix cannot end ride');
+ assert.equal(core.rideEnded(r,arr,fix(12,arr+1)),false,'future fix cannot end ride');
+ assert.equal(core.rideEnded(r,arr,fix(12,now-30001)),false,'old cached fix from before departure cannot end ride');
+ assert.equal(core.rideEnded(r,now-30001,fix(12,now-30001)),false,'not yet started is not completed');
+ assert.equal(core.rideEnded(r,arr+10*m+1,fix(1400)),true,'existing expiry works without good GPS');
+});

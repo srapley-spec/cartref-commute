@@ -703,10 +703,10 @@ test("At King's Cross: the walk to the tube counts from when you arrived; tubes 
   const tube = (min, line) => ({ t: T("07:44") + min * m, line, lineId: line === "Circle" ? "circle" : "metropolitan", dest: "Aldgate", platform: "Eastbound - Platform 2" });
   c.state.tube = { hub: "KGX", at: T("07:44"), arrivals: [tube(0.3, "Circle"), tube(1, "Met"), tube(2.5, "Circle"), tube(6, "Met")], err: null };
   c.render();
-  // Fast pace: about 5 min to the platform from 07:42 → ready about 07:47: the 07:46:30 Circle is "near the platform", the 07:50 Met is the pick.
+  // Fast pace: 400 s × 0.82 ≈ 5 min 28 s to the platform from 07:42 → ready 07:47:28: the 07:46:30 Circle is "near the platform", the 07:50 Met is the pick.
   const hero = app.text("#hero");
   assert.match(hero, /Get on the Met/);
-  assert.match(hero, /about 3 min to spare on the platform/);
+  assert.match(hero, /about 2 min to spare on the platform/);
   assert.match(hero, /Near the platform already\? The 07:45 Met \(office 08:01\) or the 07:46 Circle/);
   assert.match(hero, /Walk to the eastbound platform · about \d min, from when you arrived \(07:42\)/);
   assert.match(app.text("#list"), /07:46.*If you're near the platform/);
@@ -811,10 +811,10 @@ test("Review: at Farringdon with live tubes, office times use Farringdon's rides
   await app.fix(...ZFD, 15, t0);
   c.state.tube = { hub: "ZFD", at: t0, arrivals: [tubeAt(t0, 8, "Circle"), tubeAt(t0, 15, "H&C")], err: null };
   c.render();
-  // Circle 08:08 + 7 min ride + (90 + 420) s → 08:23:30; H&C 08:15 + 8 min + (90 + 360) s → 08:30:30.
+  // Circle 08:08 + 7 min ride + (90 + 420) s → 08:23:30; H&C 08:15 + 8 min + (112 + 283) s → 08:29:35.
   const list = app.text("#list");
   assert.match(list, /08:08.*Aldgate 08:15.*Office ?08:23/);
-  assert.match(list, /08:15.*Aldgate East 08:23.*Office ?08:30/);
+  assert.match(list, /08:15.*Aldgate East 08:23.*Office ?08:29/);
   app.close();
 });
 

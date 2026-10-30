@@ -50,6 +50,8 @@ click."
   18:48", "A better option: …". Re-ranking of other trains never moves the followed arrival.
 
 ### Missed, and better options
+- **Behind is not missed**: past the walking leave time but makeable with a fast walk or a run says "N min behind ·
+  run", not missed (found merging main's longer King's Cross interchange, 30 Oct).
 - **Missed**: when a step can no longer be made (its train or tube has left without you, or you can't reach it at a
   fast walk), the card says which and offers the best way on from where you are now, with its arrival and how much
   later it is: "Missed the 18:34 Circle. Next: the 18:40 Circle → 18:56 Thameslink from Farringdon, home 19:59 (7 min

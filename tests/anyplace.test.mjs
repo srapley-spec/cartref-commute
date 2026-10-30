@@ -1,7 +1,9 @@
 // Feature toggle: any start and end point (Settings → Experimental). Off = exactly as before.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, sleep } from "./harness.mjs";
+import { createApp, sleep, closeAll } from "./harness.mjs";
+
+after(closeAll);
 
 const NEAR_LET = { coords: { latitude: 51.975, longitude: -0.23, accuracy: 15 } };
 
@@ -24,7 +26,7 @@ test("Toggle on: going out to a London place — train, then TfL's leg from the 
   // Demo London legs: 18 min from King's Cross St Pancras, 21 from Farringdon, plus the change.
   const opt = app.c.ranked(Date.now()).find(o => o.recommended === 1);
   assert.ok(opt && opt.outTo, "planned to the place");
-  assert.equal(opt.arrive - opt.train.arr, ({ KGX: 360, STP: 420, ZFD: 240 }[opt.hub] * 1.15 + (opt.hub === "ZFD" ? 21 : 18) * 60) * 1000);
+  assert.equal(opt.arrive - opt.train.arr, ({ KGX: 400, STP: 420, ZFD: 240 }[opt.hub] * 1.15 + (opt.hub === "ZFD" ? 21 : 18) * 60) * 1000);
   app.close();
 });
 

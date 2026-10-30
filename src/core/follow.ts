@@ -110,7 +110,9 @@ export function trackFollowed(f: Followed, i: FollowInput): FollowStatus {
   // Minutes in hand: on a tube, from when it reaches the station; otherwise from when you must set off.
   const spareMs = i.onBoard ? null : i.tube && train ? train.dep - (i.tube.reach + i.tube.readyMs) : option ? option.leave - now : null;
   const gone = !i.onBoard && (!train || train.dep < now - 30e3);
-  const cantMake = !i.onBoard && (i.tube ? spareMs != null && spareMs < 0 : !!option && (option.effort === "none" || !!option.missed));
+  // An option whose walking leave time has passed (Leave now's "missed") can still be made running: that's behind, not
+  // lost. Lost is only "can't make it at any effort".
+  const cantMake = !i.onBoard && (i.tube ? spareMs != null && spareMs < 0 : !!option && option.effort === "none");
   if (gone || cantMake) {
     if (!out.reason || out.reason.kind !== "missed") say("missed", gone ? `You've missed the ${name}` : `You can't make the ${name} now`, "bad");
     return { state: "missed", arrive: f.arrive, spareMin: spareMs == null ? null : Math.floor(spareMs / 60e3), ...base, next: earliest(others.filter(catchable)), followed: out };

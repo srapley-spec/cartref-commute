@@ -95,7 +95,7 @@ test("Commute to office via King's Cross, average pace", () => {
   useBoards({ "LET-KGX": { msgs: [], services: [svc({ from: "LET", to: "KGX", dep, arr: at("2026-11-03", "08:30") })] }, "LET-ZFD": { msgs: [], services: [] } });
   const [j] = c.buildJourneys("office", dep - 3600e3);
   assert.equal(j.leave, dep - (60 + 120 + 1337) * 1000);                       // 07:34:43
-  assert.equal(j.arrive, at("2026-11-03", "08:30") + (360 + 180 + 600 + 90 + 420) * 1000); // 08:57:30
+  assert.equal(j.arrive, at("2026-11-03", "08:30") + (400 + 180 + 600 + 90 + 420) * 1000); // 08:58:10
 });
 
 test("Commute to office, fast pace scales London walks and uses measured fast walk", () => {
@@ -103,7 +103,7 @@ test("Commute to office, fast pace scales London walks and uses measured fast wa
   useBoards({ "LET-KGX": { msgs: [], services: [svc({ from: "LET", to: "KGX", dep, arr: at("2026-11-03", "08:30") })] }, "LET-ZFD": { msgs: [], services: [] } }, { pace: "fast" });
   const [j] = c.buildJourneys("office", dep - 3600e3);
   assert.equal(j.leave, dep - (60 + 120 * 0.82 + 1086) * 1000);
-  assert.equal(j.arrive, at("2026-11-03", "08:30") + (360 * 0.82 + 180 + 600 + 90 * 0.82 + 420 * 0.82) * 1000);
+  assert.equal(j.arrive, at("2026-11-03", "08:30") + (400 * 0.82 + 180 + 600 + 90 * 0.82 + 420 * 0.82) * 1000);
 });
 
 test("Commute home via Farringdon", () => {

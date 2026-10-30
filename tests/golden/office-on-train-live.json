@@ -2,7 +2,7 @@
  "load": {
   "dirNote": "",
   "banners": [],
-  "hero": "On the train · 07:19 · worked out from your location 08:19projected at office Probably the 07:00 Great Northern to London Kings Cross On time or the 07:08 Great Northern to London Kings Cross Which train are you on?07:00 Great Northern to London Kings Cross07:08 Great Northern to London Kings Cross06:50 Thameslink to Brighton King's Cross 07:52 expected (live) · timetable 07:52 Last reported: Stevenage 07:16 · on time · next Finsbury Park 07:44 07:52Arrive King's Cross · 52 min on the train, change 6 min08:01Circle or Met to Aldgate · ~10 min, allows 3 min wait08:19Arrive office · walk 7 min Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.",
+  "hero": "On the train · 07:19 · worked out from your location 08:20projected at office Probably the 07:00 Great Northern to London Kings Cross On time or the 07:08 Great Northern to London Kings Cross Which train are you on?07:00 Great Northern to London Kings Cross07:08 Great Northern to London Kings Cross06:50 Thameslink to Brighton King's Cross 07:52 expected (live) · timetable 07:52 Last reported: Stevenage 07:16 · on time · next Finsbury Park 07:44 07:52Arrive King's Cross · 52 min on the train, change 7 min08:01Circle or Met to Aldgate · ~10 min, allows 3 min wait08:20Arrive office · walk 7 min Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service Arrival and last report: National Rail Service Details for this train. Your location says which train you're on.",
   "rows": [
    "At King's Cross the app switches to the onward tube and live departures."
   ],
@@ -38,7 +38,7 @@
    "hub": "KGX",
    "train": "07:30 Great Northern LET-KGX",
    "leave": "07:04:43",
-   "arrive": "08:49:30",
+   "arrive": "08:50:10",
    "missed": true,
    "uncertain": false,
    "recommended": 0,
@@ -52,16 +52,16 @@
     "07:04:43 Leave Cartref · walk 22 min",
     "07:30:00 07:30 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 07:30 · Hitchin 07:36 · Stevenage 07:46 · Finsbury Park 08:14 · King's Cross 08:22",
-    "08:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
-    "08:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "08:49:30 Arrive office · walk 7 min"
+    "08:22:00 Arrive King's Cross · 52 min on the train, change 7 min",
+    "08:31:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "08:50:10 Arrive office · walk 7 min"
    ]
   },
   {
    "hub": "KGX",
    "train": "07:38 Great Northern LET-KGX",
    "leave": "07:12:43",
-   "arrive": "08:34:30",
+   "arrive": "08:35:10",
    "missed": true,
    "uncertain": false,
    "recommended": 0,
@@ -75,9 +75,9 @@
     "07:12:43 Leave Cartref · walk 22 min",
     "07:38:00 07:38 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:07",
-    "08:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
-    "08:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "08:34:30 Arrive office · walk 7 min"
+    "08:07:00 Arrive King's Cross · 29 min on the train, change 7 min",
+    "08:16:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "08:35:10 Arrive office · walk 7 min"
    ]
   },
   {
@@ -108,7 +108,7 @@
    "hub": "KGX",
    "train": "08:00 Great Northern LET-KGX",
    "leave": "07:34:43",
-   "arrive": "09:19:30",
+   "arrive": "09:20:10",
    "missed": false,
    "uncertain": false,
    "recommended": 0,
@@ -121,16 +121,16 @@
     "07:34:43 Leave Cartref · walk 22 min",
     "08:00:00 08:00 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 08:00 · Hitchin 08:06 · Stevenage 08:16 · Finsbury Park 08:44 · King's Cross 08:52",
-    "08:52:00 Arrive King's Cross · 52 min on the train, change 6 min",
-    "09:01:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "09:19:30 Arrive office · walk 7 min"
+    "08:52:00 Arrive King's Cross · 52 min on the train, change 7 min",
+    "09:01:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:20:10 Arrive office · walk 7 min"
    ]
   },
   {
    "hub": "KGX",
    "train": "08:08 Great Northern LET-KGX",
    "leave": "07:42:43",
-   "arrive": "09:04:30",
+   "arrive": "09:05:10",
    "missed": false,
    "uncertain": false,
    "recommended": 2,
@@ -142,9 +142,9 @@
     "07:42:43 Leave Cartref · walk 22 min",
     "08:08:00 08:08 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 08:08 · Hitchin 08:12 · Stevenage 08:17 · Finsbury Park 08:31 · King's Cross 08:37",
-    "08:37:00 Arrive King's Cross · 29 min on the train, change 6 min",
-    "08:46:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "09:04:30 Arrive office · walk 7 min"
+    "08:37:00 Arrive King's Cross · 29 min on the train, change 7 min",
+    "08:46:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:05:10 Arrive office · walk 7 min"
    ]
   },
   {
@@ -174,7 +174,7 @@
    "hub": "KGX",
    "train": "08:30 Great Northern LET-KGX",
    "leave": "08:04:43",
-   "arrive": "09:49:30",
+   "arrive": "09:50:10",
    "missed": false,
    "uncertain": false,
    "recommended": 0,
@@ -187,16 +187,16 @@
     "08:04:43 Leave Cartref · walk 22 min",
     "08:30:00 08:30 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 08:30 · Hitchin 08:36 · Stevenage 08:46 · Finsbury Park 09:14 · King's Cross 09:22",
-    "09:22:00 Arrive King's Cross · 52 min on the train, change 6 min",
-    "09:31:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "09:49:30 Arrive office · walk 7 min"
+    "09:22:00 Arrive King's Cross · 52 min on the train, change 7 min",
+    "09:31:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:50:10 Arrive office · walk 7 min"
    ]
   },
   {
    "hub": "KGX",
    "train": "08:38 Great Northern LET-KGX",
    "leave": "08:12:43",
-   "arrive": "09:34:30",
+   "arrive": "09:35:10",
    "missed": false,
    "uncertain": false,
    "recommended": 0,
@@ -208,9 +208,9 @@
     "08:12:43 Leave Cartref · walk 22 min",
     "08:38:00 08:38 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 08:38 · Hitchin 08:42 · Stevenage 08:47 · Finsbury Park 09:01 · King's Cross 09:07",
-    "09:07:00 Arrive King's Cross · 29 min on the train, change 6 min",
-    "09:16:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "09:34:30 Arrive office · walk 7 min"
+    "09:07:00 Arrive King's Cross · 29 min on the train, change 7 min",
+    "09:16:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "09:35:10 Arrive office · walk 7 min"
    ]
   },
   {
@@ -240,7 +240,7 @@
    "hub": "KGX",
    "train": "09:00 Great Northern LET-KGX",
    "leave": "08:34:43",
-   "arrive": "10:19:30",
+   "arrive": "10:20:10",
    "missed": false,
    "uncertain": false,
    "recommended": 0,
@@ -253,16 +253,16 @@
     "08:34:43 Leave Cartref · walk 22 min",
     "09:00:00 09:00 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 09:00 · Hitchin 09:06 · Stevenage 09:16 · Finsbury Park 09:44 · King's Cross 09:52",
-    "09:52:00 Arrive King's Cross · 52 min on the train, change 6 min",
-    "10:01:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "10:19:30 Arrive office · walk 7 min"
+    "09:52:00 Arrive King's Cross · 52 min on the train, change 7 min",
+    "10:01:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "10:20:10 Arrive office · walk 7 min"
    ]
   },
   {
    "hub": "KGX",
    "train": "09:08 Great Northern LET-KGX",
    "leave": "08:42:43",
-   "arrive": "10:04:30",
+   "arrive": "10:05:10",
    "missed": false,
    "uncertain": false,
    "recommended": 0,
@@ -274,9 +274,9 @@
     "08:42:43 Leave Cartref · walk 22 min",
     "09:08:00 09:08 Great Northern from Letchworth · platform 2",
     "- Calls at · Letchworth 09:08 · Hitchin 09:12 · Stevenage 09:17 · Finsbury Park 09:31 · King's Cross 09:37",
-    "09:37:00 Arrive King's Cross · 29 min on the train, change 6 min",
-    "09:46:00 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
-    "10:04:30 Arrive office · walk 7 min"
+    "09:37:00 Arrive King's Cross · 29 min on the train, change 7 min",
+    "09:46:40 Circle or Met to Aldgate · ~10 min, allows 3 min wait",
+    "10:05:10 Arrive office · walk 7 min"
    ]
   }
  ],

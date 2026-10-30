@@ -17,6 +17,14 @@ const core = iife.outputFiles[0].text;
 
 const stamp = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false }).replace(",", "") + " UTC";
 let page = readFileSync(path.join(ROOT, "src/page.html"), "utf8").replace("__BUILD__", stamp);
+// Embed the development simulator from its own source module and panel asset.
+// The web app is a static single-file GitHub Pages deployment.
+const simController = ["scenarios.js", "gps.js", "controller.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");
+const simFeeds = readFileSync(path.join(ROOT, "src/simulator/feeds.js"), "utf8");
+const simClock = readFileSync(path.join(ROOT, "src/simulator/clock.js"), "utf8");
+const simPanel = readFileSync(path.join(ROOT, "src/simulator/panel.html"), "utf8");
+if (!page.includes("/*__SIMULATION_CLOCK__*/") || !page.includes("/*__SIMULATED_FEEDS__*/") || !page.includes("/*__SIMULATOR_CONTROLLER__*/") || !page.includes("<!--__SIMULATOR_PANEL__-->")) throw new Error("Missing simulator build insertion point");
+page = page.replace("/*__SIMULATION_CLOCK__*/", simClock).replace("/*__SIMULATED_FEEDS__*/", simFeeds).replace("/*__SIMULATOR_CONTROLLER__*/", simController).replace("<!--__SIMULATOR_PANEL__-->", simPanel);
 // The engine goes in its own script, just before the page's script.
 const at = page.indexOf("<script>");
 if (at < 0) throw new Error("src/page.html has no <script>");

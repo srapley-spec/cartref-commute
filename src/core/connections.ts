@@ -87,9 +87,16 @@ export interface Ride { from: string; t: number; line?: string; vehicle?: string
  * On the ride: from when it leaves until you're near the stop you get off at (300 m), or the ride time plus 10
  * minutes has passed. A fix at a station on the way, or a stray one at the station you left, doesn't end it.
  */
+/** Positive completion evidence, separate from a ride which has not started yet. Destination GPS must be
+ *  fresh (one minute, as for rideDoubtful), taken after departure, with its whole uncertainty inside 300 m. */
+export function rideEnded(r: Ride | null, now: number, f: Fix): boolean {
+  if (!r) return false;
+  if (now > r.t + r.rideMs + 10 * 60e3) return true;
+  if (now < r.t - 30e3 || !r.stopGeo || !f.here || f.at == null || f.at < r.t - 30e3 || f.at > now || now - f.at > 60e3) return false;
+  return typeof f.acc === "number" && Number.isFinite(f.acc) && f.acc >= 0 && km(f.here, r.stopGeo) + f.acc / 1000 < 0.3;
+}
 export function rideActive(r: Ride | null, now: number, f: Fix): boolean {
-  if (!r || now < r.t - 30e3 || now > r.t + r.rideMs + 10 * 60e3) return false;
-  return !(r.stopGeo && f.here && km(f.here, r.stopGeo) < 0.3);
+  return !!r && now >= r.t - 30e3 && !rideEnded(r, now, f);
 }
 /** Worth asking "did you get it?": a good (50 m), fresh (1 min) fix still within `radiusKm` of the station you
  *  left, 3+ min after it left, and you haven't already said yes. */
