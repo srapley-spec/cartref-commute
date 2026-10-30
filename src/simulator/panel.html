@@ -1,0 +1,30 @@
+<style>
+#simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
+#simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
+#simPanel label{display:block;margin:8px 0 3px}#simPanel input,#simPanel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #777;border-radius:5px}
+#simPanel button,#simBar button{padding:7px 10px;margin:4px 3px 4px 0;border:1px solid #777;border-radius:6px;cursor:pointer}
+#simPanel .simRow{display:flex;gap:5px;flex-wrap:wrap}#simPanel .simRow button{flex:1}#simPanel small{display:block;color:#555}
+</style>
+<div id="simBar" hidden role="status">SIMULATION ACTIVE <button id="simExit" type="button">Stop &amp; reset</button></div>
+<section id="simPanel" hidden aria-label="Journey simulator">
+<strong>Journey simulator · development mode</strong>
+<small>Independent GPS and feed switches. Reload exits simulation.</small>
+<label for="simPreset">Jump to location</label><select id="simPreset">
+<option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate</option><option value="office">Office</option>
+</select>
+<label for="simDirection">Playback direction</label><select id="simDirection"><option value="outbound">Letchworth → office</option><option value="return">Office → Letchworth</option></select>
+<label for="simPath">Rail route</label><select id="simPath"><option value="kgx">Great Northern → King’s Cross → Metropolitan</option><option value="far">Thameslink → Farringdon → Underground</option></select>
+<label for="simScenario">Scenario</label><select id="simScenario"><option value="normal">Normal journey</option><option value="later-train">Board later train</option><option value="wrong-train">Board different train</option><option value="uncertain">Train identity uncertain</option><option value="delay">Delayed train</option><option value="cancellation">Cancelled train; take later service</option><option value="platform-change">Platform change</option><option value="missed-connection">Miss Underground connection</option><option value="disruption">Underground disruption</option><option value="outage">Provider outage and recovery</option><option value="gps-loss">Underground GPS loss</option><option value="low-accuracy">Poor indoor/train GPS accuracy</option><option value="awaiting-location">Awaiting location</option><option value="permission-denied">Location permission denied</option></select>
+<label for="simDate">Scenario start (UTC)</label><input type="datetime-local" id="simDate" value="2026-11-03T08:44">
+<output id="simTime"></output><small id="simClockMode"></small>
+<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Restart at first waypoint</button><button type="button" id="simContinue">Continue to next waypoint</button><button type="button" id="simPause">Pause now</button></div>
+<strong id="simCheckpoint" aria-live="polite">Not started</strong>
+<small>Next checkpoint: <span id="simNext">Not started</span></small><small id="simFixStatus">No simulated fix</small>
+<label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
+<label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
+<label for="simAccuracyMode">Playback accuracy</label><select id="simAccuracyMode"><option value="realistic">Good fixes (12 m walking, 45 m train)</option><option value="poor">Poor indoor/train fixes (180–1400 m)</option><option value="manual">Use manual accuracy</option></select>
+<label for="simAccuracy">Manual location accuracy (metres)</label><input type="number" min="0" step="any" id="simAccuracy" value="12">
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
+<small id="simStatus" aria-live="polite">Ready</small>
+</section>

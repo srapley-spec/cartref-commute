@@ -51,8 +51,9 @@ click."
   later it is: "Missed the 18:34 Circle. Next: the 18:40 Circle → 18:56 Thameslink from Farringdon, home 19:59 (7 min
   later). Follow this?" One tap follows it.
 - **Cancelled or badly delayed**: same as missed, triggered by the feed, before you get there.
-- **Better option**: offered only when it gets you home at least 5 minutes sooner (threshold to agree) and you can
-  make it at your pace; shown once per option, not repeated on every refresh. One tap switches.
+- **Better option**: offered only when it gets you home at least 5 minutes sooner (Sam, 30 Oct) and you can make it
+  at your pace; shown once per option, not repeated on every refresh. One tap switches. Smaller gains are never
+  offered: live times move by a minute or two all the time, and switching for them would make the arrival jumpy.
 
 ### Live mode when not following
 - If you seem to be on the move (at a station, on a train or tube, or walking to the station) and aren't following a
@@ -70,7 +71,6 @@ click."
   cancelled" and offers the 18:54 (home 19:52, 18 min later), and the arrival never changes without a reason shown.
 
 ## Not yet / open questions
-- Better-option threshold: 5 minutes proposed.
 - Whether TfL reports tube positions by vehicle reliably enough to follow a tube underground (check against a recorded
   feed first).
 - Notifications with Safari closed (e.g. "your train is cancelled") need the native app (#2–#7); a web page can only
