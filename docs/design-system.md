@@ -73,7 +73,7 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 - 4-point spacing scale: 4, 8, 12, 16, 20, 24, 32. Phone content inset 20 px (16 on small widths); touch controls at least 44 px. Content scrolls as a single page; overlays must support keyboard, focus return and dismissal.
 - Semantic roles: canvas, surface, raised surface, primary text, secondary text, divider, accent/action, positive, caution, severe, informational. Separate light/dark values; never reuse the same warning text colour blindly on both themes.
 - Signal radii 24/16/12; Journey 12/8/6. One strong primary area per screen. Colour is never the sole indicator of a state. Cancelled and uncertain services remain readable.
-- Red: cancelled/no estimate/15+ minute delay. Amber: 5–14 minute delay. Red, amber and green are reserved for status; see [Status colour is reserved](#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal). Route notice without observed impact: caution. Background notices: neutral. A 1–4 minute delay still says how late without turning the whole interface alarming.
+- A train: red when cancelled, no estimate or 15+ min late; amber 2–14 min; green under 2 min (Sam, 30 Oct). The route-wide status line keeps amber from 5 min. Red, amber and green are reserved for status; see [Status colour is reserved](#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal). Route notice without observed impact: caution. Background notices: neutral.
 - Prefer labelled actions to mystery icons. Minimum contrast target WCAG AA (4.5:1 body, 3:1 large text/UI). Test both appearances, 320 px width, large text and VoiceOver on real iPhone before implementation acceptance.
 - Appearance defaults to System; optional Light/Dark override. Changes preserve view, selected service, scroll, expanded details and entered deadline. Avoid automatic theme animation; respect Reduce Motion.
 - State model: loading, empty, live, timetable only, stale, partial failure, no estimate, cancelled, location denied, uncertain train, user-confirmed train, connection, final walk, arrived. Confidence belongs to the data, not visual polish.
@@ -90,26 +90,29 @@ train" read as a warning while the train was close to on time.
   (ink / outline), never a status colour.
 - **Every train in live mode shows its status**: card, list and board, and the train you're on. Word and minutes,
   coloured by band; never colour alone ("On time", "2 min late", "18 min late", "Cancelled", "No estimate").
-- **Bands.** Red: cancelled, no estimate, 15+ min late (as `warnings.ts` today). Green: on time. Amber: in between.
-  The lower edge of amber is **awaiting Sam**: 2 min (what the on-train line already calls late) or 5 min (the
-  engine's route-wide amber today). Whichever is chosen, the band comes from the engine, not from page arithmetic.
-  On the train, the band is for the expected arrival at the change station against the timetable, the time that
-  matters; departure delay is history.
+- **Bands (Sam, 30 Oct), one engine rule** (`delayLevel` in `src/core/rules.ts`): green under 2 min late (or
+  early), amber 2–14 min, red 15+ min, cancelled or no estimate. A timetable train, or a time worked out from another
+  stop, gets no status: never "On time" without live data. On the train, the band is for the expected arrival at the
+  change station against the timetable, the time that matters; departure delay is history. The route-wide status
+  line keeps its own tiers (amber from 5 min): it answers "is my route disrupted", not "is this train late".
 - **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
   for amber.
-- **Where the status sits on the live card: awaiting Sam.** Options put to him 30 Oct: (A) a status chip beside
-  the hero arrival time; (B) the identity lozenge split, neutral train name plus a coloured status segment;
-  (C) the hero time itself coloured, with the status word in its label; (D) a full-width coloured status strip
-  across the top of the card, replacing the eyebrow. Record the choice here and in the decisions log.
+- **Where the status sits on the live card (Sam, 30 Oct: option 2 of 4):** inside the train's identity lozenge. The
+  train name is in accent blue, with the status chip inside it in its band: `[You're on the 08:00 Great Northern
+  (About 2 min late)]`. Panda nests the chip inside the lozenge so it wraps as one piece on narrow screens. The Signal preview, whose
+  identity text is shorter, draws a split lozenge (name, then status segment). The status isn't repeated on the next line.
+  Rejected: a chip beside the hero time (it describes the office arrival, not the train), the hero time coloured
+  (alarming in red; large-digit contrast), and a full-width strip (heaviest change).
+- **Accent (Sam, 30 Oct): Signal's blue**, in Signal and in [Panda](design/panda.md) (the live build).
 
-**Known violations in the live build (`src/page.html`, 30 Oct):** `--accent` is orange (`#B0500C` light,
-`#EE9A45` dark, close to `--warn` `#E3B04D` in dark) and is used for the identity lozenge (`.slack`: "You're on",
-"Probably", "Get on", "You're getting"), for late text (`.latetxt`), the best-row tint and the focus ring.
-Late text must take its band colour; the rest must move to a non-status accent (recommended: Signal's blue).
-Compliant: "At the station about" on your way is green / amber / red by minutes to spare (`wayLevel`, 30 Oct), which
-is status, not identity.
-**Proposals:** `original` skin A and `womble` skin A use an amber accent and `womble` skin B a green "on time /
-tracking" accent; none may be carried forward without retuning. Signal complies.
+**Where it is implemented:** Panda (`src/page.html`, 30 Oct). The accent and hero lozenges are blue, late text takes
+its band, and every live train has a status pill and lozenge →
+[train-status](stories/train-status.md). "At the station about" on your way is green / amber / red by minutes to
+spare (`wayLevel`), which is status, not identity. The Signal preview ([`signal-preview.html`](design/signal-preview.html))
+is updated to match. Its countdown line is accent rather than always-green, lines with no live status say so, and
+"Cancellations reported" is amber.
+**Proposals:** `original` skin A and `womble` skin A use an amber accent, and `womble` skin B a green "on time /
+tracking" accent. None may be carried forward without retuning. Signal complies.
 
 ## Implementation handoff
 

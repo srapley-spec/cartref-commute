@@ -17,7 +17,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Arrives first · by car"
+    "warn: Arrives first · by car",
+    "ok: On time"
    ],
    "legs": [
     "08:42:43 Leave Cartref · walk 22 min",
@@ -40,7 +41,8 @@
     "STP 09:20:00 leave 08:54:43 missed"
    ],
    "flags": [
-    "warn: Car needed"
+    "warn: Car needed",
+    "ok: On time"
    ],
    "legs": [
     "08:54:43 Leave Cartref · walk 22 min",
@@ -61,7 +63,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "09:04:43 Leave Cartref · walk 22 min",
@@ -82,7 +85,8 @@
    "recommended": 1,
    "alts": [],
    "flags": [
-    "ok: Arrives first · walking"
+    "ok: Arrives first · walking",
+    "ok: On time"
    ],
    "legs": [
     "09:12:43 Leave Cartref · walk 22 min",
@@ -104,7 +108,9 @@
    "alts": [
     "STP 09:50:00 leave 09:24:43"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "09:24:43 Leave Cartref · walk 22 min",
     "09:50:00 09:50 Thameslink from Letchworth · platform 2",
@@ -124,7 +130,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "09:34:43 Leave Cartref · walk 22 min",
@@ -144,7 +151,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "09:42:43 Leave Cartref · walk 22 min",
     "10:08:00 10:08 Great Northern from Letchworth · platform 2",
@@ -165,7 +174,9 @@
    "alts": [
     "STP 10:20:00 leave 09:54:43"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "09:54:43 Leave Cartref · walk 22 min",
     "10:20:00 10:20 Thameslink from Letchworth · platform 2",
@@ -185,7 +196,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "10:04:43 Leave Cartref · walk 22 min",
@@ -205,7 +217,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "10:12:43 Leave Cartref · walk 22 min",
     "10:38:00 10:38 Great Northern from Letchworth · platform 2",
@@ -226,7 +240,9 @@
    "alts": [
     "STP 10:50:00 leave 10:24:43"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "10:24:43 Leave Cartref · walk 22 min",
     "10:50:00 10:50 Thameslink from Letchworth · platform 2",
@@ -246,7 +262,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "10:34:43 Leave Cartref · walk 22 min",

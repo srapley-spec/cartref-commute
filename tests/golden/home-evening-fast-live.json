@@ -2,21 +2,21 @@
  "load": {
   "dirNote": "Heading home · you're at the office (±10 m)",
   "banners": [],
-  "hero": "If you leave now · 17:30 · best, and the next best Leave17:34 → Arrive home18:58 via Farringdon or St PancrasCircleMet 17:56 Thameslink · 43 min train · total 1h 24m · leave in 4m 40s Board at Farringdon 17:56 platform 4 or St Pancras 18:01 platform B Arrives first Journey steps17:34Leave office · walk to Aldgate 6 min17:44Circle or Met to Farringdon · ~7 min, allows 3 min wait17:5617:56 Thameslink from Farringdon · platform 4Calls at · Farringdon 17:56 · St Pancras 18:01 · Finsbury Park 18:08 · Stevenage 18:29 · Hitchin 18:34 · Letchworth 18:3918:39Arrive Letchworth · 43 min on the train18:58Arrive Cartref · walk 19 min Leave17:52 → Arrive home19:05 via King's CrossCircleMet 18:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 22m 01s Journey steps17:52Leave office · walk to Aldgate 6 min18:02Circle or Met to King's Cross · ~10 min, allows 3 min wait18:1818:18 Great Northern from King's Cross · platform 9Calls at · King's Cross 18:18 · Finsbury Park 18:24 · Stevenage 18:38 · Hitchin 18:42 · Letchworth 18:4618:46Arrive Letchworth · 28 min on the train19:05Arrive Cartref · walk 19 min Tubes from Aldgate (live)Circle 17:37 → Farringdon 17:44: 17:56 Thameslink, home 18:58 · leave the office by 17:30Met 17:41 → Farringdon 17:48: 17:56 Thameslink, home 18:58 · leave the office by 17:34Circle 17:46 → King's Cross 17:56: 18:18 Great Northern, home 19:05 · leave the office by 17:39Which one are you getting?17:37 Circle17:41 Met17:46 Circle Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "If you leave now · 17:30 · best, and the next best Leave17:34 → Arrive home18:58 via Farringdon or St PancrasCircleMet 17:56 Thameslink · 43 min train · total 1h 24m · leave in 4m 40s Board at Farringdon 17:56 platform 4 or St Pancras 18:01 platform B Arrives first On time Journey steps17:34Leave office · walk to Aldgate 6 min17:44Circle or Met to Farringdon · ~7 min, allows 3 min wait17:5617:56 Thameslink from Farringdon · platform 4Calls at · Farringdon 17:56 · St Pancras 18:01 · Finsbury Park 18:08 · Stevenage 18:29 · Hitchin 18:34 · Letchworth 18:3918:39Arrive Letchworth · 43 min on the train18:58Arrive Cartref · walk 19 min Leave17:52 → Arrive home19:05 via King's CrossCircleMet 18:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 22m 01s On time Journey steps17:52Leave office · walk to Aldgate 6 min18:02Circle or Met to King's Cross · ~10 min, allows 3 min wait18:1818:18 Great Northern from King's Cross · platform 9Calls at · King's Cross 18:18 · Finsbury Park 18:24 · Stevenage 18:38 · Hitchin 18:42 · Letchworth 18:4618:46Arrive Letchworth · 28 min on the train19:05Arrive Cartref · walk 19 min Tubes from Aldgate (live)Circle 17:37 → Farringdon 17:44: 17:56 Thameslink, home 18:58 · leave the office by 17:30Met 17:41 → Farringdon 17:48: 17:56 Thameslink, home 18:58 · leave the office by 17:34Circle 17:46 → King's Cross 17:56: 18:18 Great Northern, home 19:05 · leave the office by 17:39Which one are you getting?17:37 Circle17:41 Met17:46 Circle Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
   "rows": [
-   "Leave17:04 via St PancrasCircleMet 17:31 Thameslink · platform B · 38 min train · total 1h 24m · train departs in 0m 55s Can't make it Arrive18:28",
-   "Leave17:10 via King's CrossCircleMet 17:36 Great Northern · platform 9 · 55 min train · total 1h 41m · train departs in 5m 55s Can't make it Stopping train Arrive18:50",
-   "Leave17:22 via King's CrossCircleMet 17:48 Great Northern · platform 9 · 28 min train · total 1h 14m · train departs in 17m 55s Can't make it Arrive18:35",
-   "Leave17:34 via Farringdon or St PancrasCircleMet 17:56 Thameslink · 43 min train · total 1h 24m · leave in 4m 40s Board at Farringdon 17:56 platform 4 or St Pancras 18:01 platform B Arrives first Arrive18:58",
-   "Leave17:40 via King's CrossCircleMet 18:06 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 10m 01s Stopping train Arrive19:20",
-   "Leave17:52 via King's CrossCircleMet 18:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 22m 01s Arrive19:05",
-   "Leave18:04 via Farringdon or St PancrasCircleMet 18:26 Thameslink · 43 min train · total 1h 24m · leave in 34m 40s Board at Farringdon 18:26 platform 4 or St Pancras 18:31 platform B Arrive19:28",
-   "Leave18:10 via King's CrossCircleMet 18:36 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 40m 01s Stopping train Arrive19:50",
-   "Leave18:22 via King's CrossCircleMet 18:48 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 52m 01s Arrive19:35",
-   "Leave18:34 via Farringdon or St PancrasCircleMet 18:56 Thameslink · 43 min train · total 1h 24m · leave in 1h 4m Board at Farringdon 18:56 platform 4 or St Pancras 19:01 platform B Arrive19:58",
-   "Leave18:40 via King's CrossCircleMet 19:06 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 1h 10m Stopping train Arrive20:20",
-   "Leave18:52 via King's CrossCircleMet 19:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 1h 22m Arrive20:05",
-   "Leave19:04 via Farringdon or St PancrasCircleMet 19:26 Thameslink · 43 min train · total 1h 24m · leave in 1h 34m Board at Farringdon 19:26 platform 4 or St Pancras 19:31 Arrive20:28"
+   "Leave17:04 via St PancrasCircleMet 17:31 Thameslink · platform B · 38 min train · total 1h 24m · train departs in 0m 55s Can't make it On time Arrive18:28",
+   "Leave17:10 via King's CrossCircleMet 17:36 Great Northern · platform 9 · 55 min train · total 1h 41m · train departs in 5m 55s Can't make it Stopping train On time Arrive18:50",
+   "Leave17:22 via King's CrossCircleMet 17:48 Great Northern · platform 9 · 28 min train · total 1h 14m · train departs in 17m 55s Can't make it On time Arrive18:35",
+   "Leave17:34 via Farringdon or St PancrasCircleMet 17:56 Thameslink · 43 min train · total 1h 24m · leave in 4m 40s Board at Farringdon 17:56 platform 4 or St Pancras 18:01 platform B Arrives first On time Arrive18:58",
+   "Leave17:40 via King's CrossCircleMet 18:06 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 10m 01s Stopping train On time Arrive19:20",
+   "Leave17:52 via King's CrossCircleMet 18:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 22m 01s On time Arrive19:05",
+   "Leave18:04 via Farringdon or St PancrasCircleMet 18:26 Thameslink · 43 min train · total 1h 24m · leave in 34m 40s Board at Farringdon 18:26 platform 4 or St Pancras 18:31 platform B On time Arrive19:28",
+   "Leave18:10 via King's CrossCircleMet 18:36 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 40m 01s Stopping train On time Arrive19:50",
+   "Leave18:22 via King's CrossCircleMet 18:48 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 52m 01s On time Arrive19:35",
+   "Leave18:34 via Farringdon or St PancrasCircleMet 18:56 Thameslink · 43 min train · total 1h 24m · leave in 1h 4m Board at Farringdon 18:56 platform 4 or St Pancras 19:01 platform B On time Arrive19:58",
+   "Leave18:40 via King's CrossCircleMet 19:06 Great Northern · platform 9 · 55 min train · total 1h 41m · leave in 1h 10m Stopping train On time Arrive20:20",
+   "Leave18:52 via King's CrossCircleMet 19:18 Great Northern · platform 9 · 28 min train · total 1h 14m · leave in 1h 22m On time Arrive20:05",
+   "Leave19:04 via Farringdon or St PancrasCircleMet 19:26 Thameslink · 43 min train · total 1h 24m · leave in 1h 34m Board at Farringdon 19:26 platform 4 or St Pancras 19:31 On time Arrive20:28"
   ],
   "diag": "King's Cross → Letchworth, live board: 8 trains: 17:36, 17:48, 18:06, 18:18, 18:36, 18:48, 19:06, 19:18.Farringdon → Letchworth, live board: 4 trains: 17:56, 18:26, 18:56, 19:26.St Pancras → Letchworth, live board: 4 trains: 17:31, 18:01, 18:31, 19:01."
  },
@@ -31,7 +31,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Can't make it"
+    "bad: Can't make it",
+    "ok: On time"
    ],
    "legs": [
     "17:04:17 Leave office · walk to Aldgate 6 min",
@@ -53,7 +54,8 @@
    "alts": [],
    "flags": [
     "bad: Can't make it",
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "17:10:06 Leave office · walk to Aldgate 6 min",
@@ -74,7 +76,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Can't make it"
+    "bad: Can't make it",
+    "ok: On time"
    ],
    "legs": [
     "17:22:06 Leave office · walk to Aldgate 6 min",
@@ -97,7 +100,8 @@
     "STP 18:01:00 leave 17:34:17"
    ],
    "flags": [
-    "ok: Arrives first"
+    "ok: Arrives first",
+    "ok: On time"
    ],
    "legs": [
     "17:34:45 Leave office · walk to Aldgate 6 min",
@@ -118,7 +122,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "17:40:06 Leave office · walk to Aldgate 6 min",
@@ -138,7 +143,9 @@
    "uncertain": false,
    "recommended": 2,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "17:52:06 Leave office · walk to Aldgate 6 min",
     "18:02:04 Circle or Met to King's Cross · ~10 min, allows 3 min wait",
@@ -159,7 +166,9 @@
    "alts": [
     "STP 18:31:00 leave 18:04:17"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "18:04:45 Leave office · walk to Aldgate 6 min",
     "18:14:43 Circle or Met to Farringdon · ~7 min, allows 3 min wait",
@@ -179,7 +188,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "18:10:06 Leave office · walk to Aldgate 6 min",
@@ -199,7 +209,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "18:22:06 Leave office · walk to Aldgate 6 min",
     "18:32:04 Circle or Met to King's Cross · ~10 min, allows 3 min wait",
@@ -220,7 +232,9 @@
    "alts": [
     "STP 19:01:00 leave 18:34:17"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "18:34:45 Leave office · walk to Aldgate 6 min",
     "18:44:43 Circle or Met to Farringdon · ~7 min, allows 3 min wait",
@@ -240,7 +254,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "18:40:06 Leave office · walk to Aldgate 6 min",
@@ -260,7 +275,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "18:52:06 Leave office · walk to Aldgate 6 min",
     "19:02:04 Circle or Met to King's Cross · ~10 min, allows 3 min wait",
@@ -281,7 +298,9 @@
    "alts": [
     "STP 19:31:00 leave 19:04:17"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "19:04:45 Leave office · walk to Aldgate 6 min",
     "19:14:43 Circle or Met to Farringdon · ~7 min, allows 3 min wait",

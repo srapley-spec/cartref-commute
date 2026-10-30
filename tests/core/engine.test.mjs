@@ -172,11 +172,39 @@ test("buildOptions: leave, arrive and steps all come from the route's segments (
 test("trainFlags: cancelled, standing room, stopping, delays, unknown — from the profile's rules", () => {
   const T = at("2026-11-03", "06:55");
   const flags = (o) => core.trainFlags(train({ from: "RVS", to: "CEN", dep: T, arr: T + 17 * MIN, ...o }), testville).map((f) => f.txt);
-  assert.deepEqual(flags({}), ["Usually standing room only"]);
+  assert.deepEqual(flags({}), ["Usually standing room only", "On time"]);
   assert.deepEqual(flags({ cancelled: true, reason: "crew" }), ["Cancelled", "Usually standing room only", "crew"]);
-  assert.deepEqual(flags({ arr: T + 31 * MIN }), ["Stopping train"]);
-  assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "+12 min"]);
+  assert.deepEqual(flags({ arr: T + 31 * MIN }), ["Stopping train", "On time"]);
+  assert.deepEqual(flags({ arr: T + 17 * MIN, depLate: 12 }), ["Usually standing room only", "12 min late"]);
   assert.deepEqual(flags({ depUnknown: true }), ["Usually standing room only", "Delayed, no estimate: times unknown"]);
+  assert.deepEqual(flags({ timetable: true }), ["Usually standing room only"], "timetable: no claim to be on time");
+});
+
+test("Train status: red, amber, green by minutes late (green under 2, amber 2–14, red 15+); never 'on time' without live data", () => {
+  const st = (o) => { const s = core.trainStatus(train({ dep: 0, arr: 60 * MIN, ...o })); return s && `${s.level}: ${s.text}`; };
+  assert.equal(st({}), "ok: On time");
+  assert.equal(st({ depLate: 1 }), "ok: 1 min late");
+  assert.equal(st({ depLate: 2 }), "warn: 2 min late");
+  assert.equal(st({ arrLate: 14 }), "warn: 14 min late");
+  assert.equal(st({ arrLate: 15 }), "bad: 15 min late");
+  assert.equal(st({ depLate: 3, arrLate: 16 }), "bad: 16 min late", "the worse of departure and arrival");
+  assert.equal(st({ cancelled: true, depLate: 3 }), "bad: Cancelled");
+  assert.equal(st({ depUnknown: true }), "bad: No estimate");
+  assert.equal(st({ arrUnknown: true }), "bad: No estimate");
+  assert.equal(st({ timetable: true }), null);
+  assert.equal(st({ derived: true }), null);
+  assert.equal(st({ estimated: true }), null);
+  assert.equal(st({ derived: true, arrLate: 4 }), "warn: 4 min late", "a known delay is still shown");
+  const a = (late) => { const s = core.arrivalStatus(T0 + late * MIN, T0); return `${s.level}: ${s.text}`; }, T0 = 1e12;
+  assert.equal(a(0), "ok: On time");
+  assert.equal(a(1), "ok: On time", "a projection inside the green band reads on time");
+  assert.equal(a(-1), "ok: On time");
+  assert.equal(a(2), "warn: About 2 min late");
+  assert.equal(a(-3), "ok: About 3 min early");
+  assert.equal(a(14), "warn: About 14 min late");
+  assert.equal(a(15), "bad: About 15 min late");
+  assert.equal(core.arrivalStatus(T0 + 1.4 * MIN, T0).level, "ok", "rounded to whole minutes");
+  assert.equal(core.arrivalStatus(T0 + 1.6 * MIN, T0).level, "warn");
 });
 
 test("bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never", () => {

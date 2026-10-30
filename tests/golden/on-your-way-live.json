@@ -2,20 +2,20 @@
  "load": {
   "dirNote": "",
   "banners": [],
-  "hero": "On your way to Letchworth · 07:10 · best, and the next best At the station about 07:17 · 8 min walk from here at average pace Departs07:38 → Arrive office08:34 via King's CrossCircleMet 07:38 Great Northern · platform 2 · 29 min train · total 1h 07m · on track · 17 min to spare · train departs in 27m 55s Arrives first · walking Usually standing room only Journey steps07:27Set off from where you are · about 8 min walk to Letchworth station07:3807:38 Great Northern from Letchworth · platform 2Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 6 min08:16Circle or Met to Aldgate · ~10 min, allows 3 min wait08:34Arrive office · walk 7 min Next one you can make: the 07:30 Great Northern — stopping train, 52 min; office 08:49, 15 min later than the 07:38 (office 08:34). Arrives first if you run: the 07:20 Thameslink leaves Letchworth, train departs in 9m 55s — 44 min train; office 08:26, 8 min sooner than the 07:38. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "On your way to Letchworth · 07:10 · best, and the next best At the station about 07:17 · 8 min walk from here at average pace Departs07:38 → Arrive office08:34 via King's CrossCircleMet 07:38 Great Northern · platform 2 · 29 min train · total 1h 07m · on track · 17 min to spare · train departs in 27m 55s Arrives first · walking Usually standing room only On time Journey steps07:27Set off from where you are · about 8 min walk to Letchworth station07:3807:38 Great Northern from Letchworth · platform 2Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 6 min08:16Circle or Met to Aldgate · ~10 min, allows 3 min wait08:34Arrive office · walk 7 min Next one you can make: the 07:30 Great Northern — stopping train, 52 min; office 08:49, 15 min later than the 07:38 (office 08:34). Arrives first if you run: the 07:20 Thameslink leaves Letchworth, train departs in 9m 55s — 44 min train; office 08:26, 8 min sooner than the 07:38. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
   "rows": [
-   "Departs07:20 via Farringdon or St PancrasCircleMet 07:20 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 9m 55s Get off at St Pancras 07:59 or Farringdon 08:04 Arrives first · if you run Arrive08:26",
-   "Departs07:30 via King's CrossCircleMet 07:30 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 19m 55s Stopping train Arrive08:49",
-   "Departs07:38 via King's CrossCircleMet 07:38 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 27m 55s Arrives first · walking Usually standing room only Arrive08:34",
-   "Departs07:50 via Farringdon or St PancrasCircleMet 07:50 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 39m 55s Get off at St Pancras 08:29 or Farringdon 08:34 Arrive08:56",
-   "Departs08:00 via King's CrossCircleMet 08:00 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 49m 55s Stopping train Arrive09:19",
-   "Departs08:08 via King's CrossCircleMet 08:08 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 57m 55s Arrive09:04",
-   "Departs08:20 via Farringdon or St PancrasCircleMet 08:20 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 1h 9m Get off at St Pancras 08:59 or Farringdon 09:04 Arrive09:26",
-   "Departs08:30 via King's CrossCircleMet 08:30 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 1h 19m Stopping train Arrive09:49",
-   "Departs08:38 via King's CrossCircleMet 08:38 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 1h 27m Arrive09:34",
-   "Departs08:50 via Farringdon or St PancrasCircleMet 08:50 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 1h 39m Get off at St Pancras 09:29 or Farringdon 09:34 Arrive09:56",
-   "Departs09:00 via King's CrossCircleMet 09:00 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 1h 49m Stopping train Arrive10:19",
-   "Departs09:08 via King's CrossCircleMet 09:08 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 1h 57m Arrive10:04"
+   "Departs07:20 via Farringdon or St PancrasCircleMet 07:20 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 9m 55s Get off at St Pancras 07:59 or Farringdon 08:04 Arrives first · if you run On time Arrive08:26",
+   "Departs07:30 via King's CrossCircleMet 07:30 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 19m 55s Stopping train On time Arrive08:49",
+   "Departs07:38 via King's CrossCircleMet 07:38 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 27m 55s Arrives first · walking Usually standing room only On time Arrive08:34",
+   "Departs07:50 via Farringdon or St PancrasCircleMet 07:50 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 39m 55s Get off at St Pancras 08:29 or Farringdon 08:34 On time Arrive08:56",
+   "Departs08:00 via King's CrossCircleMet 08:00 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 49m 55s Stopping train On time Arrive09:19",
+   "Departs08:08 via King's CrossCircleMet 08:08 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 57m 55s On time Arrive09:04",
+   "Departs08:20 via Farringdon or St PancrasCircleMet 08:20 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 1h 9m Get off at St Pancras 08:59 or Farringdon 09:04 On time Arrive09:26",
+   "Departs08:30 via King's CrossCircleMet 08:30 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 1h 19m Stopping train On time Arrive09:49",
+   "Departs08:38 via King's CrossCircleMet 08:38 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 1h 27m On time Arrive09:34",
+   "Departs08:50 via Farringdon or St PancrasCircleMet 08:50 Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 1h 39m Get off at St Pancras 09:29 or Farringdon 09:34 On time Arrive09:56",
+   "Departs09:00 via King's CrossCircleMet 09:00 Great Northern · platform 2 · 52 min train · total 1h 30m · train departs in 1h 49m Stopping train On time Arrive10:19",
+   "Departs09:08 via King's CrossCircleMet 09:08 Great Northern · platform 2 · 29 min train · total 1h 07m · train departs in 1h 57m On time Arrive10:04"
   ],
   "diag": "Letchworth → King's Cross, live board: 8 trains: 07:30, 07:38, 08:00, 08:08, 08:30, 08:38, 09:00, 09:08.Letchworth → Farringdon, live board: 4 trains: 07:20, 07:50, 08:20, 08:50.Letchworth → St Pancras, live board: 4 trains: 07:20, 07:50, 08:20, 08:50."
  },
@@ -32,7 +32,8 @@
     "STP 07:20:00 leave 07:09:15 missed"
    ],
    "flags": [
-    "warn: Arrives first · if you run"
+    "warn: Arrives first · if you run",
+    "ok: On time"
    ],
    "legs": [
     "07:09:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -53,7 +54,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "07:19:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -75,7 +77,8 @@
    "alts": [],
    "flags": [
     "ok: Arrives first · walking",
-    "bad: Usually standing room only"
+    "bad: Usually standing room only",
+    "ok: On time"
    ],
    "legs": [
     "07:27:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -97,7 +100,9 @@
    "alts": [
     "STP 07:50:00 leave 07:39:15"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "07:39:15 Set off from where you are · about 8 min walk to Letchworth station",
     "07:50:00 07:50 Thameslink from Letchworth · platform 2",
@@ -117,7 +122,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "07:49:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -137,7 +143,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "07:57:15 Set off from where you are · about 8 min walk to Letchworth station",
     "08:08:00 08:08 Great Northern from Letchworth · platform 2",
@@ -158,7 +166,9 @@
    "alts": [
     "STP 08:20:00 leave 08:09:15"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "08:09:15 Set off from where you are · about 8 min walk to Letchworth station",
     "08:20:00 08:20 Thameslink from Letchworth · platform 2",
@@ -178,7 +188,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "08:19:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -198,7 +209,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "08:27:15 Set off from where you are · about 8 min walk to Letchworth station",
     "08:38:00 08:38 Great Northern from Letchworth · platform 2",
@@ -219,7 +232,9 @@
    "alts": [
     "STP 08:50:00 leave 08:39:15"
    ],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "08:39:15 Set off from where you are · about 8 min walk to Letchworth station",
     "08:50:00 08:50 Thameslink from Letchworth · platform 2",
@@ -239,7 +254,8 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "warn: Stopping train"
+    "warn: Stopping train",
+    "ok: On time"
    ],
    "legs": [
     "08:49:15 Set off from where you are · about 8 min walk to Letchworth station",
@@ -259,7 +275,9 @@
    "uncertain": false,
    "recommended": 0,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: On time"
+   ],
    "legs": [
     "08:57:15 Set off from where you are · about 8 min walk to Letchworth station",
     "09:08:00 09:08 Great Northern from Letchworth · platform 2",

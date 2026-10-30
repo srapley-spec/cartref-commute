@@ -476,7 +476,13 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   c.state.here = [51.9700, -0.2400]; c.state.locAcc = 20; c.state.onLine = false;
   c.render();
   const s = c.S(), walk = s.walkStationHomeAvg + s.letExit;
-  assert.match(app.text("#hero"), new RegExp(`Nearly home · 20:14 ?${hm(T("20:18") + walk * 1000)} ?at home On the 19:48 Great Northern Letchworth 20:18 expected`));
+  assert.match(app.text("#hero"), new RegExp(`Nearly home · 20:14 ?${hm(T("20:18") + walk * 1000)} ?at home On the 19:48 Great Northern About 2 min late Letchworth 20:18 expected`));
+  assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst warn", "2 min late is amber");
+  t.arr = T("20:17"); t.arrLate = 1; c.render();
+  assert.match(app.text("#hero"), /On the 19:48 Great Northern On time Letchworth 20:17 expected/, "1 min: green, on time");
+  assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok");
+  t.timetable = true; c.render();
+  assert.equal(app.w.document.querySelector("#hero .slackst"), null, "a timetable train is never claimed on time");
   c.state.here = null; c.state.trainLock = null;
   app.close();
 });
@@ -570,8 +576,19 @@ test("On the train card: arrival from Service Details; 'timetable' is the schedu
     { crs: "HAT", locationName: "Hatfield", st: "19:59", at: "20:02" }, { crs: "LET", locationName: "Letchworth Garden City", st: "20:16", et: "20:21" }] }] }, now) } };
   c.render();
   const hero = app.text("#hero");
-  assert.match(hero, /Letchworth 20:21 expected \(live\) · timetable 20:16 · about 5 min late/);
+  assert.match(hero, /Letchworth 20:21 expected \(live\) · timetable 20:16/);
+  assert.match(hero, /You're on the 19:48 Great Northern About 5 min late/, "status in the lozenge, from Service Details");
+  const st = app.w.document.querySelector("#hero .slackst");
+  assert.equal(st.className, "slackst warn", "5 min late is amber");
   assert.match(hero, /Last reported: Hatfield 20:02 · 3 min late · next Letchworth Garden City 20:21/);
+  assert.equal(app.w.document.querySelector("#hero .stat").className, "stat warn", "the last report's 3 min late is amber too");
+  c.state.progressById.S1.data = P.parseServiceDetails({ crs: "KGX", std: "19:48", atd: "19:50", subsequentCallingPoints: [{ callingPoint: [
+    { crs: "HAT", locationName: "Hatfield", st: "19:59", at: "20:16" }, { crs: "LET", locationName: "Letchworth Garden City", st: "20:16", et: "20:34" }] }] }, now);
+  c.render();
+  assert.match(app.text("#hero"), /About 18 min late/);
+  assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst bad", "15+ min late is red");
+  // The identity part of the lozenge is never a status colour.
+  assert.equal(app.w.document.querySelector("#hero .slack").className, "slack");
   c.state.onLine = false; c.state.here = null; c.state.trainLock = null; c.state.progressById = {}; app.close();
 });
 

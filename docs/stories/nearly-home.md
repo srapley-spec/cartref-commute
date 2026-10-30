@@ -6,6 +6,8 @@ As a commuter coming home, I want my home time from my train and then from where
 when I'll be in.
 
 ## Acceptance criteria
+- On your train, the lozenge carries the train's status for its expected Letchworth time (none for a timetable train
+  without Service Details). → [train-status](train-status.md)
 - On your train: home time = the train's expected Letchworth time + station exit + walk.
 - Once your home is set in Settings ("Home is where I am now"), the walk counts from where you are (straight line
   × 1.3 for streets); "You're home" within 100 m.

@@ -291,7 +291,10 @@ test("On the train: works out which train from your position and projects arriva
     const hero = app.text("#hero");
     assert.match(hero, new RegExp(`On the train · .*You're on the ${hm(fast.dep)} Great Northern`));
     assert.match(hero, /projected at office/);
-    assert.match(hero, /King's Cross \d\d:\d\d expected \(live\) · timetable \d\d:\d\d · on time/);
+    assert.match(hero, /King's Cross \d\d:\d\d expected \(live\) · timetable \d\d:\d\d/);
+    // Status lives in the train's lozenge, coloured by band (red, amber and green mean status only).
+    assert.match(hero, new RegExp(`You're on the ${hm(fast.dep)} Great Northern On time`));
+    assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok");
     // Same place 5 minutes later than expected (a fresh fix), live data: still the fast train (it's behind its
     // timetable), and the arrival is National Rail's live expected time.
     c.state.lastFixAt = now + 5 * m;
@@ -486,12 +489,12 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
   try {
     c.render();
     let hero = app.text("#hero");
-    assert.match(hero, /Probably the A1 Great Northern or the B2 Thameslink/);
+    assert.match(hero, /Probably the A1 Great Northern On time or the B2 Thameslink/);
     assert.match(hero, /Which train are you on\?A1 Great NorthernB2 Thameslink/);
     app.d.querySelector('[data-pick="Thameslink|B2|LET|SID-B2"]').click();
     assert.equal(c.state.trainLock.serviceId, "SID-B2", "your pick is remembered by service ID");
     hero = app.text("#hero");
-    assert.match(hero, /You're on the B2 Thameslink · you picked this/);
+    assert.match(hero, /You're on the B2 Thameslink On time · you picked this/);
     assert.match(hero, /On a different train\?A1 Great Northern/);
     const w = c.whichTrain(now + 8 * m);
     assert.equal(w.t, b, "kept even when the position fits less well");

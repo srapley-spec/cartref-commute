@@ -11,6 +11,8 @@ Hitchin on the 07:08, the app thought Sam was at home; with the late 07:00 and t
 to ask; Service Details needed its own key. Non-stop runs only report their two ends (passing points: #23).
 
 ## Acceptance criteria
+- The train you're on is one blue lozenge with its status inside it ("On time" / "About N min late"), banded green /
+  amber / red for the expected arrival at the change station. → [train-status](train-status.md)
 - Only departed trains count; a train that hasn't left is never yours, even if it fits best by timetable.
 - Where National Rail last reported each train (Service Details) settles which one you're on; between reported
   stops a train is placed in proportion to time. A train reported more than 6 min from you is ruled out.

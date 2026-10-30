@@ -27,3 +27,40 @@ export function isStopping(t: Train, profile: Profile): boolean {
 
 /** Only trains with known times can be recommended (they are still listed otherwise). */
 export const plannable = (t: Train): boolean => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
+
+// ---------- Train status: red, amber and green mean status only (Sam, 30 Oct) ----------
+/** Minutes late at which a train turns amber ("a bit late"), and red ("very late"). */
+export const LATE_WARN_MIN = 2;
+export const LATE_BAD_MIN = 15;
+export type DelayLevel = "ok" | "warn" | "bad";
+export interface TrainStatus { level: DelayLevel; text: string; }
+
+/** The band for minutes late (negative = early): green under 2 min, amber 2–14, red 15+. */
+export const delayLevel = (lateMin: number): DelayLevel =>
+  lateMin >= LATE_BAD_MIN ? "bad" : lateMin >= LATE_WARN_MIN ? "warn" : "ok";
+
+/**
+ * A delay as a word and minutes, coloured by band. `about`: a projection rather than a reported time, so anything
+ * inside the green band reads "On time" and the rest is "About N min late / early".
+ */
+export function delayStatus(lateMin: number, about = false): TrainStatus {
+  const level = delayLevel(lateMin);
+  if (about) return { level, text: Math.abs(lateMin) < LATE_WARN_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
+  return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
+}
+
+/**
+ * A train's status from the live feed: cancelled and no estimate are red; otherwise its delay band. Null when the
+ * data can't say: a timetable train, or a time worked out from another stop, is never claimed to be on time.
+ */
+export function trainStatus(t: Train): TrainStatus | null {
+  if (t.cancelled) return { level: "bad", text: "Cancelled" };
+  if (t.depUnknown || t.arrUnknown) return { level: "bad", text: "No estimate" };
+  const late = Math.max(t.depLate || 0, t.arrLate || 0);
+  if (late >= 1) return delayStatus(late);
+  return t.timetable || t.derived || t.estimated ? null : delayStatus(0);
+}
+
+/** Status of an expected arrival against the timetable (both ms), as a projection: "On time" / "About N min late". */
+export const arrivalStatus = (expected: number, scheduled: number): TrainStatus =>
+  delayStatus(Math.round((expected - scheduled) / 60e3), true);

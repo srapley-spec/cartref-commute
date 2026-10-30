@@ -70,4 +70,5 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 - [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
 
 ### Design and presentation
+- [Every live train says how late it is, in colour](train-status.md) · Done
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Planned (design and interaction policies agreed; implementation pending)

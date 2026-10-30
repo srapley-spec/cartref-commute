@@ -27,7 +27,7 @@ compared and contrasted on the same terms.
   tests) instead. → [presentation-model](../stories/presentation-model.md)
 - **Red, amber and green mean status only** (Sam, 30 Oct; critical): no problem / some problem / serious problem.
   Never brand, accent, identity ("You're on the…"), selection or tracking. Every live train shows its status as a
-  word with minutes, coloured by band. → [`../design-system.md`](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal).
+  word with minutes, coloured by band (green under 2 min late, amber 2–14, red 15+ / cancelled / no estimate). → [`../design-system.md`](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal).
   Existing proposals with an amber or green accent (original A, womble A and B) must retune before reuse.
 - **Phone first, used while walking to a station.** Glanceable; touch targets ≥ 44 px; small text ≥ 4.5:1 contrast;
   dark and light; iOS later (Live Activities, Dynamic Island, widgets, Watch are native extension points to design for,
@@ -70,6 +70,7 @@ Score each proposal 1–5 on every row. The first row is pass/fail and comes fir
 
 | Name | By | Shape | Status |
 |---|---|---|---|
+| [Panda](panda.md) | the live build | What `main` draws today (named 30 Oct): tokens, components, the status-colour rule as built. | **Live** until Signal is implemented. |
 | [original](proposals/original/) | Claude, 29 Oct | A restyle of the current layout (controls → status line → hero card → list) in two skins: dark "Signal" and light "Board". | Superseded: reviewed as too close to today's app; kept for its system board (tokens, components, drop/hide table) and its review. |
 | [womble](proposals/womble/) | Claude, 29 Oct | Two structures. **A**, Flighty-shaped: a line/time diagram on top, a sheet that leads with a status word, a record of changes. **B**, Commutative-shaped: saved journeys instead of mode/direction toggles, train cards with departure progress, platform tile, coaches, "Track this train" pinned to the bottom. | Draft for feedback. Arrive by / Leave around and the other live states not yet drawn (see its README). |
 | [Signal](#signal-selected) | 29 Oct | iPhone-first; automatic Planner/Live switching with a manual override; dynamic light/dark. Specification in [`../design-system.md`](../design-system.md), tokens in [`signal-tokens.json`](signal-tokens.json), interactive preview [`signal-preview.html`](signal-preview.html), review in [`review.md`](review.md). | **Selected by Sam, 29 Oct.** |

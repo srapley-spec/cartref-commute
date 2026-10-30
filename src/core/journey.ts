@@ -2,7 +2,7 @@
 // A route is described once, as segments with durations; every time on screen is computed from it.
 import type { Access, Board, Flag, Option, Profile, StationCode, Train } from "./types";
 import { dur, hhmm } from "./time";
-import { standingRoomOnly, isStopping } from "./rules";
+import { standingRoomOnly, isStopping, trainStatus } from "./rules";
 
 /** A step shown in "Journey steps", at the start or end of a segment. */
 export interface Step { at: "start" | "end"; d: string; note?: string; tube?: boolean; }
@@ -49,7 +49,7 @@ export function trainFlags(t: Train, profile: Profile): Flag[] {
   if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
   if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
   if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-  else if (t.depLate >= 1 || t.arrLate >= 1) f.push({ lvl: t.arrLate >= 10 || t.depLate >= 10 ? "bad" : "warn", txt: `+${Math.max(t.depLate, t.arrLate)} min` });
+  else if (!t.cancelled) { const s = trainStatus(t); if (s) f.push({ lvl: s.level, txt: s.text }); }
   if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
   return f;
 }

@@ -20,7 +20,8 @@
 /* Layout: one narrow column, a departure-board hero for "leave now", then a ranked list. */
 :root{
   --paper:#EDF0EC; --card:#F8F9F6; --ink:#17201B; --muted:#5B6760; --line:#D2D9D3;
-  --accent:#B0500C; --accent-ink:#FFFFFF;
+  --accent:#174EAC; --accent-ink:#FFFFFF;
+  --hero-accent:#9ABFFF; --hero-accent-ink:#0B1017; --hero-ok:#6CC08C; --hero-warn:#E3B04D; --hero-bad:#F2877A;
   --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318; --note:#B39B00;
   --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE; --note-bg:#FBF7DC;
   --circle:#FFD329; --circle-ink:#1A1A1A; --met:#9B0058; --met-ink:#FFFFFF; --hc:#F4A9BE; --hc-ink:#1A1A1A;
@@ -30,14 +31,16 @@
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
-  --accent:#EE9A45; --accent-ink:#1A1208;
+  --accent:#9ABFFF; --accent-ink:#0B1017;
+  --hero-accent:#174EAC; --hero-accent-ink:#FFFFFF; --hero-ok:#24603C; --hero-warn:#7A4D00; --hero-bad:#A11F15;
   --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
   --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
-  --accent:#EE9A45; --accent-ink:#1A1208;
+  --accent:#9ABFFF; --accent-ink:#0B1017;
+  --hero-accent:#174EAC; --hero-accent-ink:#FFFFFF; --hero-ok:#24603C; --hero-warn:#7A4D00; --hero-bad:#A11F15;
   --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
   --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
   color-scheme:dark;
@@ -88,7 +91,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .hero .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .hero .arr{font-family:var(--font-mono);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.02em}
 .hero .arrlbl{font-size:15px;opacity:.85}
-.hero .slack{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:800;border-radius:6px;padding:3px 8px;font-size:13px}
+.hero .slack{display:inline-block;background:var(--hero-accent);color:var(--hero-accent-ink);font-weight:800;border-radius:6px;padding:3px 8px;font-size:13px}
+/* Panda: red, amber and green mean status only. A train you're on is one blue lozenge with its status inside, in its band. */
+.hero .slack .slackst{display:inline-block;white-space:nowrap;margin:1px -4px 1px 6px;padding:0 6px;border-radius:4px}
+.hero .slackst.ok{background:var(--hero-ok)} .hero .slackst.warn{background:var(--hero-warn)} .hero .slackst.bad{background:var(--hero-bad)}
+.hero .stat.ok{color:var(--hero-ok)} .hero .stat.warn{color:var(--hero-warn)} .hero .stat.bad{color:var(--hero-bad)}
 .legs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:6px;font-size:14px}
 .legs .t{opacity:.95}
 .legs .d{min-width:0}
@@ -123,7 +130,8 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .optroute{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;padding-bottom:4px}
 .hero .optmeta{font-size:14px;opacity:.95}
 .hero .optmeta [data-cd]{opacity:.75}
-.hero .latetxt{color:var(--accent);font-weight:800}
+.hero .latetxt{color:var(--hero-bad);font-weight:800}
+.hero .latetxt.warn{color:var(--hero-warn)}
 .hero .steps summary{cursor:pointer;font-size:13px;opacity:.8;font-weight:600}
 .hero .steps .legs{margin-top:6px}
 .diag{font-size:13px;color:var(--muted)}
@@ -138,9 +146,9 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .verdict{border-radius:8px;padding:8px 10px;font-weight:800;font-size:16px}
 .verdict.ok{background:var(--ok-bg);color:var(--ok)}
 .verdict.bad{background:var(--bad-bg);color:var(--bad)}
-.hero .slack.bad{background:var(--bad);color:var(--paper)}
-.hero .slack.warn{background:var(--warn);color:var(--paper)}
-.hero .slack.ok{background:var(--ok);color:var(--paper)}
+.hero .slack.bad{background:var(--hero-bad);color:var(--hero-accent-ink)}
+.hero .slack.warn{background:var(--hero-warn);color:var(--hero-accent-ink)}
+.hero .slack.ok{background:var(--hero-ok);color:var(--hero-accent-ink)}
 
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
 .chip.rail{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
@@ -252,7 +260,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 08:18 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 08:54 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -370,6 +378,8 @@ var CommuteCore = (() => {
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
     FACILITY: () => FACILITY,
+    LATE_BAD_MIN: () => LATE_BAD_MIN,
+    LATE_WARN_MIN: () => LATE_WARN_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
     REUSE: () => REUSE,
@@ -380,6 +390,7 @@ var CommuteCore = (() => {
     addJourneys: () => addJourneys,
     aroundOptions: () => aroundOptions,
     aroundRounds: () => aroundRounds,
+    arrivalStatus: () => arrivalStatus,
     arriveByOptions: () => arriveByOptions,
     arriveByRounds: () => arriveByRounds,
     atOfficeTube: () => atOfficeTube,
@@ -392,6 +403,8 @@ var CommuteCore = (() => {
     clock: () => clock,
     compareWithBest: () => compareWithBest,
     countdown: () => countdown,
+    delayLevel: () => delayLevel,
+    delayStatus: () => delayStatus,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -465,6 +478,7 @@ var CommuteCore = (() => {
     trackLine: () => trackLine,
     trainFlags: () => trainFlags,
     trainFromTflJourney: () => trainFromTflJourney,
+    trainStatus: () => trainStatus,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
@@ -736,6 +750,22 @@ var CommuteCore = (() => {
     return t.arr - t.dep >= limit * 6e4;
   }
   var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
+  var LATE_WARN_MIN = 2;
+  var LATE_BAD_MIN = 15;
+  var delayLevel = (lateMin) => lateMin >= LATE_BAD_MIN ? "bad" : lateMin >= LATE_WARN_MIN ? "warn" : "ok";
+  function delayStatus(lateMin, about = false) {
+    const level = delayLevel(lateMin);
+    if (about) return { level, text: Math.abs(lateMin) < LATE_WARN_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
+    return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
+  }
+  function trainStatus(t) {
+    if (t.cancelled) return { level: "bad", text: "Cancelled" };
+    if (t.depUnknown || t.arrUnknown) return { level: "bad", text: "No estimate" };
+    const late = Math.max(t.depLate || 0, t.arrLate || 0);
+    if (late >= 1) return delayStatus(late);
+    return t.timetable || t.derived || t.estimated ? null : delayStatus(0);
+  }
+  var arrivalStatus = (expected, scheduled) => delayStatus(Math.round((expected - scheduled) / 6e4), true);
 
   // src/core/rank.ts
   function keepEveryRoute(sorted, n2) {
@@ -908,7 +938,10 @@ var CommuteCore = (() => {
     if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
     if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
     if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-    else if (t.depLate >= 1 || t.arrLate >= 1) f.push({ lvl: t.arrLate >= 10 || t.depLate >= 10 ? "bad" : "warn", txt: `+${Math.max(t.depLate, t.arrLate)} min` });
+    else if (!t.cancelled) {
+      const s = trainStatus(t);
+      if (s) f.push({ lvl: s.level, txt: s.text });
+    }
     if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
     return f;
   }
@@ -2483,8 +2516,8 @@ function renderOnTrain(now, m){
   const pg = progressFor(t.serviceId);
   const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
   if(pgAt) { m.projected = pgAt; m.live = true; }
-  const delay=Math.round((m.projected-sched)/60e3);
-  const lastLine = pg && pg.data && pg.data.last ? `<div style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span>${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+  const st=C.arrivalStatus(m.projected, sched);
+  const lastLine = pg && pg.data && pg.data.last ? `<div style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
@@ -2494,10 +2527,10 @@ function renderOnTrain(now, m){
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
-    <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)}</span>
+    <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(t.std)} ${esc(t.operator)} <span class="slackst ${st.level}">${esc(st.text)}</span></span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(m.other.t.std)} ${esc(m.other.t.operator)}`:""}${m.picked?" · you picked this":""}</span></div>
     ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(c.t.std)} ${esc(c.t.operator)}</button>`).join("")}</div>`:""}
-    <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span>${Math.abs(delay)>=2?` · <b>${delay>0?`about ${delay} min late`:`about ${-delay} min early`}</b>`:" · on time"}</div>
+    <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
     ${legs.length?`<ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
     ${statusStrip([...opLines({train:m.t}), ...(dir==="office"&&state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}
@@ -2518,7 +2551,7 @@ function renderNearlyHome(now){
   const e=C.nearlyHomeEta(now, state.here, letAt, state.saved.home||null, exit, walk, fast?"fast":"avg", PROFILE);
   if(e.kind==="train"){
     $("#hero").innerHTML=`${head}<div class="big"><span class="arr t">${hhmm(e.at)}</span><span class="arrlbl">at home</span></div>
-      <div><span class="slack">On the ${esc(t.std)} ${esc(t.operator)}</span></div>
+      <div><span class="slack">On the ${esc(t.std)} ${esc(t.operator)}${t.timetable&&!(pg&&pg.data)?"":(st=>` <span class="slackst ${st.level}">${esc(st.text)}</span>`)(C.arrivalStatus(e.stationAt, t.arr-(t.arrLate||0)*60e3))}</span></div>
       <div style="font-size:14px">Letchworth <span class="t">${hhmm(e.stationAt)}</span> expected · then a ${dur(walk)} walk</div>`;
     return;
   }
@@ -2543,7 +2576,7 @@ function tubesFromAldgate(now){
   const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
   if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{})}; save(); }
   const row=(t,mark)=>{ const o=t.leg.o;
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
+    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
   const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
   const btns=[...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)).slice(0,4)
     .map(t=>`<button type="button" class="pickbtn" data-tubepick="ALD|${t.t}|${esc(t.line)}|${esc(t.vehicle||"")}">${hhmm(t.t)} ${esc(t.line)}</button>`).join("");
