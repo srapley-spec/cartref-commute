@@ -275,3 +275,8 @@ Newest first. One line each; the story or issue holds the detail.
 - **28 Oct** Top-card rule. → [top-card](stories/top-card.md)
 - **28 Oct** Four-layer re-architecture, in steps that keep the live app unchanged and all tests green.
 - **28 Oct** People and trips requirements (Laura, nursery, day out). → [people-and-trips](stories/people-and-trips.md)
+
+## Journey simulator prototype (30 Oct 2026; branch only, NOT approved for release)
+The opt-in `#simulator` developer panel in the web shell injects validated geolocation-shaped fixes into the existing `onPosition` pathway. The standard location watch is suspended during simulation and reactivated on exit, with callback-generation guards. Simulated position changes retain actual time and existing transport data sources. The example route uses approximate straight-line waypoint interpolation; it cannot establish service correctness on real tracks.
+
+The prototype snapshots saved user state and suppresses `localStorage` writes during simulation; exit restores the snapshot, resets transient derived journey state, and restarts native location. This is **not** yet proved safe for all asynchronous changes, background transitions and settings. The UI is an opt-in gate, not secure authentication. Keep this work on a branch until independent review, automated integration tests, reproducible build, and GitHub CI pass, as required by `CLAUDE.md`. See `stories/journey-simulator.md` and issue #32.
