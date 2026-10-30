@@ -21,6 +21,9 @@ test('simulator dock starts hidden playback and preserves paused state while sho
  assert.equal(a.c.simClock.now(),instant);assert.deepEqual([...a.c.state.here],here);assert.equal(a.c.simulator.sim.index,0);
  assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),saved);assert.equal(a.c.S().simulatedFeeds,true);
  d.querySelector('#simAdvance').click();assert.notEqual(a.c.simulator.sim.timer,null);assert.equal(d.querySelector('#simAdvance').textContent,'Pause');
+ const timer=a.c.simulator.sim.timer;
+ d.querySelector('#simToggle').click();d.querySelector('#simToggle').click();
+ assert.equal(a.c.simulator.sim.timer,timer,'showing and hiding controls must preserve active playback too');
  d.querySelector('#simAdvance').click();assert.equal(a.c.simulator.sim.timer,null);assert.equal(d.querySelector('#simAdvance').textContent,'Continue');
  d.querySelector('#simToggle').click();assert.equal(d.querySelector('#simPanel').hidden,false);assert.equal(d.querySelector('#simToggle').getAttribute('aria-expanded'),'true');
  d.querySelector('#simExit').click();assert.equal(d.querySelector('#simPanel').hidden,true);assert.equal(d.querySelector('#simBar').hidden,true);
@@ -38,4 +41,14 @@ test('GPS-only opt-in exposes the dock before Start and disabling hides both con
   assert.equal(d.querySelector('#simToggle').getAttribute('aria-expanded'),String(enabled));
  }
  await sleep(350);assert.deepEqual(a.errors,[]);
+});
+
+test('Stop exits a ready GPS-only simulator before the journey has started',async()=>{
+ const a=await createApp({settle:80});const d=a.d;
+ d.querySelector('#settingsBtn').click();d.querySelector('#s_simulator').checked=true;
+ d.querySelector('#settingsForm').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
+ assert.equal(a.c.simulator.sim.active,false);assert.equal(d.querySelector('#simBar').hidden,false);
+ d.querySelector('#simExit').click();
+ assert.equal(a.c.S().simulatorEnabled,false);assert.equal(d.querySelector('#simBar').hidden,true);assert.equal(d.querySelector('#simPanel').hidden,true);
+ assert.equal(d.body.classList.contains('simControlsVisible'),false);await sleep(350);assert.deepEqual(a.errors,[]);
 });

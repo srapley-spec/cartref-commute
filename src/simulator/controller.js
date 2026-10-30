@@ -78,7 +78,7 @@ function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){sto
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
 function continuePlayback(){if(!sim.active||sim.startTime===null){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
-function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
+function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;

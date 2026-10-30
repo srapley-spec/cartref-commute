@@ -18,6 +18,7 @@ so that I can inspect inference and onward planning without travelling.
 - A compact bottom bar is visible whenever either simulator switch is enabled, including before Start. Start/Continue/Pause and Stop remain reachable with the controller hidden. Show/Hide controls only collapses the panel: it preserves the checkpoint, clock, settings and playback state. The panel and bar share layout space above the phone safe area, and all controls use explicit theme colours with readable contrast in light and dark modes.
 
 ## Tests
+- tests/simulator-controls.test.mjs: "Stop exits a ready GPS-only simulator before the journey has started"
 - tests/simulator-controls.test.mjs: "simulator dock starts hidden playback and preserves paused state while showing and hiding controls"
 - tests/simulator-controls.test.mjs: "GPS-only opt-in exposes the dock before Start and disabling hides both controls"
 - tests/simulator.test.mjs: "developer simulator defaults off and toggles from Settings"
