@@ -264,7 +264,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 15:45 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 16:28 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -399,6 +399,8 @@ var CommuteCore = (() => {
     arriveByRounds: () => arriveByRounds,
     atOfficeTube: () => atOfficeTube,
     bestConnections: () => bestConnections,
+    boardMins: () => boardMins,
+    boardSpot: () => boardSpot,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
     callsText: () => callsText,
@@ -1192,6 +1194,12 @@ var CommuteCore = (() => {
     if (!f.here || typeof f.acc !== "number" || !(f.acc <= 50) || f.at == null || now - f.at > 6e4) return false;
     return km(f.here, fromGeo) <= radiusKm;
   }
+  function boardSpot(deps, d, now) {
+    const shown = deps.filter((a) => a.t > now - 3e4).sort((a, b) => a.t - b.t);
+    const i = shown.findIndex((a) => d.vehicle && a.vehicle ? a.vehicle === d.vehicle : a.t === d.t && a.line === d.line);
+    return i < 0 ? null : { pos: i + 1, ms: shown[i].t - now };
+  }
+  var boardMins = (ms) => ms < 6e4 ? "due" : `${Math.floor(ms / 6e4)} min`;
 
   // src/core/refresh.ts
   var REUSE = { minGap: 3e4, timetable: 5 * 6e4, lineStatus: 2 * 6e4, nrStatus: 5 * 6e4, toOffice: 12e4 };
@@ -2336,6 +2344,13 @@ function officeLeg(hub, lineId){
     rideMs:(east?(kx?s.rideKxAde:s.rideFarAde):(kx?s.rideKxAld:s.rideFarAld))*1000,
     tailMs:(east?s.adePlatform+s.adeWalk:s.aldPlatform+s.aldWalk)*k*1000 };
 }
+// A tube as the platform's board shows it: place, line, destination, minutes (ticking). Tap to pick it.
+const lineChip = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"met";
+const boardDest = d => String(d||"").replace(/ \(Circle Line\)/i,"");
+function boardBtn(hub, a, all, now){
+  const sp=C.boardSpot(all||[], a, now);
+  return `<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${sp?`<b>${sp.pos}</b> `:""}<span class="chip ${lineChip(a.line)}">${esc(a.line)}</span> ${esc(boardDest(a.dest)||"Aldgate")} · <span data-boardmin="${a.t}">${C.boardMins(a.t-now)}</span></button>`;
+}
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
 // The line's colour class for a lozenge naming it; none for an unknown line.
 const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
@@ -2692,7 +2707,7 @@ function renderAtHub(now){
     if(chosen && pk && (pk.t!==n.t || pk.vehicle!==n.vehicle)){ state.saved.tubePick={...pk, t:n.t, ...(n.vehicle?{vehicle:n.vehicle}:{})}; save(); }
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
-    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)).slice(0,4).map(a=>`<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}">${hhmm(a.t)} ${esc(a.line)}</button>`).join("")}</div>`;
+    const pickBtns = `<div class="pick"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${[...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)).sort((a,b)=>a.t-b.t).slice(0,4).map(a=>boardBtn(hub, a, tube.arrivals, now)).join("")}</div>`;
     const nearly = early.length ? `<div class="alt">Near the platform already? The ${early.map(e=>`<span class="t">${hhmm(e.t)}</span> ${esc(e.line)} (office <span class="t">${hhmm(e.office)}</span>)`).join(" or the ")}.</div>` : "";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
@@ -3178,6 +3193,7 @@ function renderInner(){
 function tick(){
   const now=Date.now();
   document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"leave time passed"; });
+  document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
   document.querySelectorAll("[data-tube]").forEach(e=>{ const ms=+e.dataset.tube-now; e.textContent = ms>30e3?`in ${countdown(ms)}`:"due now"; });
   document.querySelectorAll("[data-dep]").forEach(e=>{ const ms=+e.dataset.dep-now; e.textContent = ms>0?`train departs in ${countdown(ms)}`:"train has departed"; });
 }

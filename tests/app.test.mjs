@@ -389,6 +389,26 @@ test("At King's Cross: the lozenge naming your tube is that line's colour (H&C p
   app.close();
 });
 
+test("At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes", async () => {
+  const t0 = Date.now(), at = (lineId, dest, mins, v) => ({ vehicleId: v, lineId, platformName: "Eastbound - Platform 2", destinationName: dest + " Underground Station",
+    expectedArrival: new Date(t0 + mins * 60e3).toISOString(), timeToStation: Math.round(mins * 60) });
+  const arrivals = [at("metropolitan", "Aldgate", 8.5, "m8"), at("circle", "Edgware Road (Circle Line)", 2.5, "c2"), at("hammersmith-city", "Barking", 3.5, "h3"),
+    { ...at("metropolitan", "Uxbridge", 4.5, "w4"), platformName: "Westbound - Platform 1" }, at("circle", "Edgware Road (Circle Line)", 12.5, "c12")];
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(arrivals) : undefined) });
+  await moveTo(app, AT_KINGS_CROSS);
+  const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")];
+  assert.deepEqual(btns.map((b) => b.textContent.replace(/\s+/g, " ").trim()),
+    ["1 Circle Edgware Road · 2 min", "2 H&C Barking · 3 min", "3 Met Aldgate · 8 min", "4 Circle Edgware Road · 12 min"],
+    "in board order, eastbound only (the westbound Met isn't on this platform's board)");
+  assert.equal(btns[1].querySelector(".chip").className, "chip hc", "the line in its colour");
+  assert.equal(btns[1].querySelector("[data-boardmin]").dataset.boardmin, String(t0 + 3.5 * 60e3), "the minutes tick down");
+  btns[1].click();
+  assert.match(app.text("#hero"), /You're getting the H&C to Barking/, "the tap still picks that tube");
+  const after = [...app.d.querySelectorAll("#hero [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  assert.deepEqual(after, ["1 Circle Edgware Road · 2 min", "3 Met Aldgate · 8 min", "4 Circle Edgware Road · 12 min"], "places stay as on the board");
+  app.close();
+});
+
 test("At King's Cross without live tube times: says so and estimates", async () => {
   const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/Arrivals/.test(u) ? json({}, 500) : undefined) });
   await moveTo(app, AT_KINGS_CROSS);
