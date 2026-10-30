@@ -24,4 +24,6 @@ locally first, GitHub's result on `main` is checked after every push, and nothin
 - None yet (gap). Proof would be a deliberately failing commit on a test branch that doesn't publish.
 
 ## Not yet / open questions
+- The built-page check (GitHub's and `npm run ci`) ignores any change on the footer line, because that line also
+  carries the build time; a stale footer would go unnoticed. Minor.
 - When: Sam's call, once cycle time matters less than change failure rate (e.g. when others use the app).
