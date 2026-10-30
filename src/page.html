@@ -351,6 +351,27 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </form>
 </dialog>
 
+<style>
+#simBar{position:fixed;z-index:9999;bottom:0;left:0;right:0;background:#44220d;color:#fff;padding:8px 12px;font:600 14px system-ui;text-align:center;box-shadow:0 -2px 15px #0005}
+#simPanel{position:fixed;z-index:9998;bottom:38px;left:8px;right:8px;max-width:580px;margin:auto;max-height:63vh;overflow:auto;padding:14px;border:2px solid #c87b38;border-radius:12px;background:#fff;color:#17201b;box-shadow:0 4px 24px #0007;font:14px system-ui}
+#simPanel label{display:block;margin:8px 0 3px}#simPanel input,#simPanel select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #777;border-radius:5px}
+#simPanel button,#simBar button{padding:7px 10px;margin:4px 3px 4px 0;border:1px solid #777;border-radius:6px;cursor:pointer}
+#simPanel .simRow{display:flex;gap:5px;flex-wrap:wrap}#simPanel .simRow button{flex:1}#simPanel small{display:block;color:#555}
+</style>
+<div id="simBar" hidden role="status">SIMULATED LOCATION — NOT YOUR REAL POSITION <button id="simExit" type="button">Stop &amp; reset</button></div>
+<section id="simPanel" hidden aria-label="Journey simulator">
+<strong>Journey simulator · development mode</strong>
+<small>GPS simulated · actual clock · transport feeds unchanged. Reload exits simulation.</small>
+<label for="simPreset">Jump to location</label><select id="simPreset">
+<option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate East</option><option value="office">Office</option>
+</select>
+<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Play Letchworth → office</button><button type="button" id="simPause">Pause</button></div>
+<label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
+<label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
+<small id="simStatus" aria-live="polite">Ready</small>
+</section>
 <script>
 (() => {
 "use strict";
@@ -436,7 +457,7 @@ const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number
 const LS = "cartrefCommute.v1";
 
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
-function save(){ try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
+function save(){ if(typeof sim!=="undefined" && sim.active)return; try{ localStorage.setItem(LS, JSON.stringify(state.saved)); }catch(e){} }
 const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
   lastHub:null, diag:{},
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
@@ -1817,15 +1838,97 @@ function onPositionError(e){
   render();
 }
 function locate(){
+  if(sim.active)return;
   if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
   if(!state.locStatus || state.locStatus!=="ok") state.locStatus = state.locStatus==="denied" ? "denied" : "pending";
   try{
     if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);   // restart after the app was in the background
-    state.watchId=navigator.geolocation.watchPosition(onPosition, onPositionError, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
+    const gen=sim.watchGeneration;
+    state.watchId=navigator.geolocation.watchPosition(p=>{if(!sim.active && gen===sim.watchGeneration)onPosition(p);}, e=>{if(!sim.active && gen===sim.watchGeneration)onPositionError(e);}, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
   }catch(e){ onPositionError(); }
 }
 // True when Auto is selected but the phone hasn't said where you are yet.
 const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
+
+// ---------- Developer journey simulator (real clock and feeds) ----------
+const sim = { active:false, timer:null, baseline:null, index:0, elapsed:0, watchGeneration:0 };
+// These are illustrative route waypoints, NOT a claimed track-level alignment.
+const SIM_POINTS = {
+  home:[51.975,-0.23],let:[51.98002,-0.22909],kgx:[51.53197,-0.12341],
+  far:[51.52036,-0.10514],ald:[51.5153,-0.0727],office:[51.5151,-0.072]
+};
+const SIM_ROUTE = [
+  {at:0,point:"home"}, {at:16,point:"let"}, {at:38,point:"kgx"},
+  {at:46,point:"far"}, {at:56,point:"ald"}, {at:64,point:"office"}
+]; // Minutes are example timings, not a validated service itinerary.
+function simStopTimer(){ if(sim.timer!=null) clearInterval(sim.timer); sim.timer=null; }
+function simStatus(message){ const e=document.getElementById("simStatus"); if(e)e.textContent=message; }
+function simResetContext(){
+  state.autoDir=null;state.autoSrc="";state.atHub=null;state.hubSince=null;state.lastAwayAt=null;
+  state.lastHub=null;state.inLondon=false;state.onLine=false;state.lineTrack=null;state.trainLock=null;
+  state.tube=null;state.lastFixAt=null;state.lastFixRecvAt=null;state.here=null;
+  state.boards=null;state.boardsDir=null;state.fetchedAt=null;state.london=null;
+  state.byCache={};state.atCache={};
+}
+function simStart(){
+  if(sim.active)return;
+  sim.baseline=JSON.parse(JSON.stringify(state.saved));
+  sim.active=true;sim.watchGeneration++;
+  if(state.watchId!=null){try{navigator.geolocation.clearWatch(state.watchId);}catch(e){}state.watchId=null;}
+  simResetContext();
+  document.getElementById("simBar").hidden=false;
+  simStatus("Simulation active. Nothing is saved to your normal journey context.");
+}
+function simFix(lat,lon,speed=0){
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180){simStatus("Invalid coordinates");return;}
+  simStart();
+  const p={coords:{latitude:lat,longitude:lon,accuracy:12,speed},timestamp:Date.now()};
+  document.getElementById("simLat").value=String(lat);
+  document.getElementById("simLon").value=String(lon);
+  onPosition(p); // Always enter via the app's real GPS handler and engine.
+  simStatus(lat.toFixed(5)+", "+lon.toFixed(5)+" · real clock / live feeds");
+}
+function simStop(){
+  simStopTimer();if(!sim.active)return;
+  sim.active=false;sim.watchGeneration++;
+  state.saved=sim.baseline;sim.baseline=null;
+  simResetContext();
+  document.getElementById("simBar").hidden=true;
+  state.locStatus="pending";
+  locate();render();refresh({force:true});
+  simStatus("Stopped; real GPS resumed, saved context restored.");
+}
+function simTick(){
+  const speed=Number(document.getElementById("simSpeed").value)||1;
+  sim.elapsed=Math.min(64,sim.elapsed+speed/60);
+  let a=SIM_ROUTE[0],b=SIM_ROUTE[1];
+  for(let i=1;i<SIM_ROUTE.length;i++){
+    if(sim.elapsed<=SIM_ROUTE[i].at){a=SIM_ROUTE[i-1];b=SIM_ROUTE[i];break;}
+  }
+  const frac=Math.max(0,Math.min(1,(sim.elapsed-a.at)/(b.at-a.at)));
+  const p=SIM_POINTS[a.point],q=SIM_POINTS[b.point];
+  // Speed is null: interpolation is only approximate and must not claim measured velocity.
+  simFix(p[0]+(q[0]-p[0])*frac,p[1]+(q[1]-p[1])*frac,null);
+  if(sim.elapsed>=64){simStopTimer();simStatus("Playback finished. Simulation remains active.");}
+}
+function simSetup(){
+  // Intentional opt-in on a development preview. This is a UI gate, not authentication.
+  if(!location.hash.includes("simulator"))return;
+  document.getElementById("simPanel").hidden=false;
+  document.getElementById("simJump").addEventListener("click",()=>{
+    simStopTimer();const p=SIM_POINTS[document.getElementById("simPreset").value];if(p)simFix(...p);
+  });
+  document.getElementById("simApply").addEventListener("click",()=>{
+    simStopTimer();simFix(Number(document.getElementById("simLat").value),Number(document.getElementById("simLon").value));
+  });
+  document.getElementById("simPlay").addEventListener("click",()=>{
+    simStopTimer();simResetContext();sim.elapsed=0;const p=SIM_POINTS.home;simFix(...p);
+    sim.timer=setInterval(simTick,1000);
+  });
+  document.getElementById("simPause").addEventListener("click",()=>{simStopTimer();simStatus("Paused");});
+  document.getElementById("simClear").addEventListener("click",()=>{simStopTimer();simStart();simResetContext();render();simStatus("Journey context cleared");});
+  document.getElementById("simExit").addEventListener("click",simStop);
+}
 
 // ---------- Settings ----------
 const dlg=$("#settings");
@@ -1881,15 +1984,15 @@ $("#refreshBtn").addEventListener("click",()=>refresh({force:true,manual:true}))
 const RELOCATE_MS = () => (window.COMMUTE_RELOCATE_MS ?? 5000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
   const back=Date.now();
-  if(state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable") locate();
+  if(!sim.active && (state.watchId==null || state.locStatus==="denied" || state.locStatus==="unavailable")) locate();
   // (When a position arrived, not when it was taken: iOS often hands over a cached one up to 30 s old.)
-  else setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
+  else if(!sim.active) setTimeout(()=>{ if(!document.hidden && !(state.lastFixRecvAt>=back)) locate(); }, RELOCATE_MS());
   if(!state.fetchedAt||Date.now()-state.fetchedAt>30e3) refresh(); } });
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
 if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
-locate(); render(); refresh({force:true}).then(()=>planView());
+simSetup(); locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
 // Every 30 s when minutes matter: at a London station, on the tube, at Letchworth station or on your way there.
