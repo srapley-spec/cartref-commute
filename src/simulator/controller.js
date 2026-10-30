@@ -3,16 +3,42 @@
 function createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document}) {
 // ---------- Developer journey simulator (real clock and feeds) ----------
 const sim = { active:false, timer:null, baseline:null, index:0, elapsed:0, watchGeneration:0 };
-// These are illustrative route waypoints, NOT a claimed track-level alignment.
+// Route templates are illustrative. Checkpoints are explicit test states, not live service timings.
 const SIM_POINTS = {
-  home:[51.975,-0.23],let:[51.98002,-0.22909],kgx:[51.53197,-0.12341],
-  far:[51.52036,-0.10514],ald:[51.5153,-0.0727],office:[51.5151,-0.072]
+ home:[51.975,-0.23],let:[51.98002,-0.22909],north:[51.9017,-0.2071],
+ approach:[51.5646,-0.1063],kgx:[51.53197,-0.12341],stp:[51.53062,-0.12594],
+ far:[51.52036,-0.10514], farTube:[51.5205,-0.1053], kxTube:[51.5307,-0.1237],
+ barbican:[51.5201,-0.0973],ald:[51.5142,-0.0755],officeWalk:[51.5140,-0.0733],office:[51.5139,-0.071]
 };
-const SIM_ROUTE = [
-  {at:0,point:"home"}, {at:16,point:"let"}, {at:38,point:"kgx"},
-  {at:46,point:"far"}, {at:56,point:"ald"}, {at:64,point:"office"}
-]; // Minutes are example timings, not a validated service itinerary.
-function simRoute(){ const forward=document.getElementById("simDirection").value!=="return"; return forward?SIM_ROUTE:SIM_ROUTE.slice().reverse().map(p=>({at:64-p.at,point:p.point})); }
+const SIM_ROUTES = {
+ kgx:[
+  ["home","Home",0],["let","Letchworth Garden City station",16],
+  ["north","On Great Northern train (Stevenage)",27],["approach","Approaching King's Cross",43],
+  ["kgx","Alight at King's Cross",49],["kxTube","Walk to King's Cross St Pancras Underground",55],
+  ["barbican","Metropolitan line — Barbican (GPS-visible section)",64],
+  ["ald","Alight at Aldgate",70],["officeWalk","Walking from Aldgate",74],["office","Office",78]
+ ],
+ far:[
+  ["home","Home",0],["let","Letchworth Garden City station",16],
+  ["north","On Thameslink train (Stevenage)",27],["approach","Approaching London / St Pancras",43],
+  ["stp","On train at St Pancras",49],["far","Alight at Farringdon",54],
+  ["farTube","Walk to Circle/H&C/Met platforms",58],
+  ["barbican","Underground — Barbican (GPS-visible section)",64],
+  ["ald","Alight at Aldgate",70],["officeWalk","Walking from Aldgate",74],["office","Office",78]
+ ]
+};
+function simRoute(){
+ const key=document.getElementById("simPath").value==="far"?"far":"kgx";
+ const raw=SIM_ROUTES[key].map(([point,label,at])=>({point,label,at}));
+ if(document.getElementById("simDirection").value!=="return")return raw;
+ const end=raw[raw.length-1].at;
+ return raw.reverse().map(p=>({...p,at:end-p.at,label:p.label}));
+}
+function simWaypoint(){
+ const route=simRoute(),index=Math.min(sim.index,route.length-1),p=route[index];
+ simStatus("Paused at "+p.label+" ("+(index+1)+"/"+route.length+"). Press Continue to next waypoint.");
+ const label=document.getElementById("simCheckpoint");if(label)label.textContent=p.label+" · "+(index+1)+"/"+route.length;
+}
 function simStopTimer(){ if(sim.timer!=null) clearInterval(sim.timer); sim.timer=null; }
 function simStatus(message){ const e=document.getElementById("simStatus"); if(e)e.textContent=message; }
 function simResetContext(){
@@ -52,19 +78,27 @@ function simStop(){
   simStatus("Stopped; real GPS resumed, saved context restored.");
 }
 function simTick(){
-  const speed=Number(document.getElementById("simSpeed").value)||1;
-  const route=simRoute(), end=route[route.length-1].at;
-  sim.elapsed=Math.min(end,sim.elapsed+speed/60);
-  let a=route[0],b=route[1];
-  for(let i=1;i<route.length;i++){
-    if(sim.elapsed<=route[i].at){a=route[i-1];b=route[i];break;}
-  }
-  if(sim.elapsed>=end){a=route[route.length-2];b=route[route.length-1];}
-  const frac=Math.max(0,Math.min(1,(sim.elapsed-a.at)/(b.at-a.at)));
-  const p=SIM_POINTS[a.point],q=SIM_POINTS[b.point];
-  // Speed is null: interpolation is only approximate and must not claim measured velocity.
-  simFix(p[0]+(q[0]-p[0])*frac,p[1]+(q[1]-p[1])*frac,null);
-  if(sim.elapsed>=end){simStopTimer();simStatus("Playback finished. Simulation remains active.");}
+ const route=simRoute(),speed=Number(document.getElementById("simSpeed").value)||1;
+ const next=route[Math.min(sim.index+1,route.length-1)];
+ sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);
+ const current=route[sim.index], start=SIM_POINTS[current.point],end=SIM_POINTS[next.point];
+ const duration=Math.max(0.001,next.at-current.at), f=Math.min(1,Math.max(0,(sim.elapsed-current.at)/duration));
+ simFix(start[0]+(end[0]-start[0])*f,start[1]+(end[1]-start[1])*f,null);
+ if(sim.elapsed>=next.at){
+   simStopTimer();sim.index++;
+   simFix(...SIM_POINTS[next.point]);
+   simWaypoint();
+ }
+}
+function simContinue(){
+ const route=simRoute();
+ if(!sim.active || !sim.index && !state.here){
+   simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;
+   simFix(...SIM_POINTS[route[0].point]);simWaypoint();return;
+ }
+ if(sim.index>=route.length-1){simStatus("Journey complete. Press Restart to repeat.");return;}
+ simStopTimer();sim.timer=setInterval(simTick,1000);
+ simStatus("Moving towards "+route[sim.index+1].label+" at "+document.getElementById("simSpeed").value+"×");
 }
 function simSetup(){
   // Intentional opt-in on a development preview. This is a UI gate, not authentication.
@@ -76,12 +110,12 @@ function simSetup(){
     simStopTimer();simFix(Number(document.getElementById("simLat").value),Number(document.getElementById("simLon").value));
   });
   document.getElementById("simPlay").addEventListener("click",()=>{
-    simStopTimer();simStart();simResetContext();sim.elapsed=0;const p=SIM_POINTS[simRoute()[0].point];simFix(...p);
-    sim.timer=setInterval(simTick,1000);
+    simStopTimer();simStart();simResetContext();sim.elapsed=0;sim.index=0;simFix(...SIM_POINTS[simRoute()[0].point]);simWaypoint();
   });
-  document.getElementById("simDirection").addEventListener("change",()=>{simStopTimer();sim.elapsed=0;simStatus("Direction changed. Press Play journey.");});
+  for(const id of ["simDirection","simPath"])document.getElementById(id).addEventListener("change",()=>{simStopTimer();sim.elapsed=0;sim.index=0;simResetContext();simStatus("Route changed. Press Restart.");});
+  document.getElementById("simContinue").addEventListener("click",simContinue);
   document.getElementById("simPause").addEventListener("click",()=>{simStopTimer();simStatus("Paused");});
-  document.getElementById("simClear").addEventListener("click",()=>{simStopTimer();simStart();simResetContext();render();simStatus("Journey context cleared");});
+  document.getElementById("simClear").addEventListener("click",()=>{simStopTimer();simStart();simResetContext();sim.index=0;sim.elapsed=0;render();simStatus("Journey context cleared");});
   document.getElementById("simExit").addEventListener("click",simStop);
 }
 
