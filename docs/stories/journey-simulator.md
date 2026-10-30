@@ -24,6 +24,13 @@ As a developer, I want to inject manual coordinates or replay a representative r
 - Gaps: stale callbacks, rapid provider toggling, async requests, GPS permission changes and refresh-count limits still require tests **before merge**.
 - Existing `npm run ci`, golden, mutation and GitHub Actions required before merge.
 
+## Modular implementation
+- `src/simulator/controller.js`: dependency-injected simulation lifecycle, GPS generation guards, playback, state reset and panel handlers.
+- `src/simulator/panel.html`: developer controls and styles.
+- `src/page.html`: settings switch, GPS handler integration, simulator factory initialization and two build placeholders.
+- `tools/build.mjs`: embeds the two simulator assets into the static `index.html` / preview build, preserving GitHub Pages deployment.
+- No simulator functionality is added to `src/core/`; the underlying inference engine remains reusable.
+
 ## Known risks / review blockers
 - Session-level in-memory persistence isolation must be independently tested across all user interactions and pending asynchronous callbacks.
 - The Settings feature switch is **not a security boundary**. It must default off; risk of accidental enablement requires review.
