@@ -834,7 +834,8 @@ function currentRide(now){
   if(r) return r;
   const pk=state.saved.tubePick && state.saved.tubePick.hub!=="ALD" ? state.saved.tubePick : null;
   if(pk && pk.t<=now+30e3){ r=active(rideFor(pk.hub, pk, {picked:true})); }   // (an old pick: rideActive says it's over)
-  else if(onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
+  // A tube you picked here that hasn't left yet wins over working out an earlier one (same as going home).
+  else if(!(pk && state.lastHub && pk.hub===state.lastHub.hub) && onTubeAuto(now)){ const w=whichTube(now); if(w) r=active(rideFor(state.lastHub.hub, w.best, {})); }
   if(r){ state.saved.tubeRide=r; state.saved.tubePick=null; save(); }
   return r;
 }

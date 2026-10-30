@@ -93,8 +93,6 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
   office. Accepted for now: loosening it brings the desk closer to counting as Aldgate.
 - At the desk with a still phone, a worked-out tube has no "No, still here" until a fresh fix arrives (that question
   needs a good fix under 1 min old); each tube that leaves can bring the card back. Known trade-off of the revert.
-- The morning tube has the same order as the evening had: a pick that hasn't left can be overridden by a worked-out
-  earlier tube. Not changed here.
 - The invented Aldgate feed in the going-home tests includes westbound Met departures that the real feed never has.
 - Live tab (Sam, 30 Oct evening): live tracking separate from Leave now / Arrive by / Leave around; planned.
 - Aldgate East (H&C) has no live departures in the app going home; the H&C stays a fallback.
