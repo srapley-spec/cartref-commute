@@ -357,6 +357,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <script>
 (() => {
 "use strict";
+const simClock=createJourneySimulationClock({NativeDate:window.Date});
+const Date=simClock.ClockDate;
 // ---------- Engine ----------
 // Planning logic lives in the engine (src/core, TypeScript), loaded just before this script.
 // This page supplies the profile, the safe HTML-to-text parser, and the screen.
@@ -1833,10 +1835,11 @@ function locate(){
 // True when Auto is selected but the phone hasn't said where you are yet.
 const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 
+/*__SIMULATION_CLOCK__*/
 /*__SIMULATED_FEEDS__*/
 /*__SIMULATOR_CONTROLLER__*/
-const {sim,simSetup,simStop}=createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document});
-const simulatedFeeds=createSimulatedTransportFeeds({scenario:()=>({route:document.getElementById("simPath")?.value||"kgx"})});
+const {sim,simSetup,simStop}=createJourneySimulator({state,S,onPosition,locate,render,refresh,navigator,document,clock:simClock});
+const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>({route:document.getElementById("simPath")?.value||"kgx"})});
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
@@ -1867,7 +1870,7 @@ $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
   state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
 $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(DEFAULTS[k]/60*100)/100; }); FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=DEFAULTS[k]; }); });
-$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); const next=readSettings(); const was=!!S().simulatorEnabled; const feedChanged=!!S().simulatedFeeds!==!!next.simulatedFeeds; if(was && !next.simulatorEnabled)simStop(); state.saved.settings=next; save(); dlg.close(); document.getElementById("simPanel").hidden=!next.simulatorEnabled; state.boards=null; state.byCache={}; if(feedChanged){state.progressById={};state.tube=null;state.ald=null;state.aldDeps=null;state.lastHub=null;state.status=null;state.nrStatus=null;state.fetchedAt=null;} refresh({force:true}); });
+$("#settingsForm").addEventListener("submit",e=>{ e.preventDefault(); const next=readSettings(); const was=!!S().simulatorEnabled; const feedChanged=!!S().simulatedFeeds!==!!next.simulatedFeeds; if(feedChanged){if(next.simulatedFeeds)simClock.start("2026-11-03T08:44:00Z");else simClock.stop();} if(was && !next.simulatorEnabled)simStop(); state.saved.settings=next; save(); dlg.close(); document.getElementById("simPanel").hidden=!next.simulatorEnabled; state.boards=null; state.byCache={}; if(feedChanged){state.progressById={};state.tube=null;state.ald=null;state.aldDeps=null;state.lastHub=null;state.status=null;state.nrStatus=null;state.fetchedAt=null;} refresh({force:true}); });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
 // ---------- Controls ----------
