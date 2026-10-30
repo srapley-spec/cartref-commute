@@ -1170,7 +1170,7 @@ test("Tube going home: a worked-out ride saved by an older build is dropped; a p
 
 test("30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you couldn't reach; then the H&C you caught, others nearest first", async () => {
   const t0 = T("08:39") + 20e3, app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
-  await app.fix(51.5420, -0.1180, 30, t0 - 90e3);                  // on the train, coming in: the app sees you arrive
+  await app.fix(51.5420, -0.1180, 30, t0 - 10e3);                  // on the train, coming in: fixes seconds apart
   await app.fix(...KX, 15, t0);                                      // in the station (still on the train): "arrived"
   const base = T("08:00"), deps = [tubeAt(base, 38 + 50 / 60, "H&C", "h38"), tubeAt(base, 40, "Circle", "c40"), tubeAt(base, 42, "Met", "m42"),
     tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 46, "Met", "m46"), tubeAt(base, 48, "Met", "m48")];
@@ -1178,7 +1178,7 @@ test("30 Oct: GPS goes quiet walking down at King's Cross: not on a tube you cou
   c.state.tube = { hub: "KGX", at: T("08:41"), arrivals: deps, err: null };
   c.state.lastHub = { hub: "KGX", seen: T("08:41"), arrivals: deps }; c.state.saved.lastHub = c.state.lastHub;
   assert.equal(c.state.hubSince.at, t0, "arrived when first seen in the station");
-  assert.equal(c.state.hubSince.seen, true, "and the app saw you arrive");
+  assert.equal(c.state.hubSince.away, t0 - 10e3, "and when it last saw you away from the station (on the train)");
   app.at(T("08:42") + 40e3); c.render();
   assert.equal(c.onTubeAuto(T("08:42") + 40e3), false, "the 08:40 Circle and 08:42 Met left before you could reach the platform");
   assert.match(app.text("#hero"), /^You're at King's Cross/);
@@ -1199,12 +1199,21 @@ const atKx = (c, deps, seen) => { c.state.tube = { hub: "KGX", at: seen, arrival
 test("Review: the app opened on the platform: no walk added (you may have arrived long before), so the tube you caught counts", async () => {
   const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
   await app.fix(...KX, 15, t0);                                      // the first fix this session: already at King's Cross
-  assert.equal(c.state.hubSince.seen, undefined, "arriving wasn't seen");
+  assert.equal(c.state.hubSince.away, undefined, "arriving wasn't seen");
   atKx(c, kxDeps(), t0);                                             // boards the 08:45 H&C; GPS goes quiet
   app.at(T("08:47")); c.render();
   assert.equal(c.onTubeAuto(T("08:47")), true);
   assert.match(app.text("#hero"), /Probably the 08:45 H&C/);
   assert.doesNotMatch(app.text("#hero"), /Probably the 08:4[02]/, "but not one that left before the app first saw you here (over a minute)");
+  app.close();
+});
+
+test("Review 2: opened on the platform, the earliest is when it first saw you, not 'anything that left'", async () => {
+  const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  const base = T("08:00"), deps = [tubeAt(base, 42.5, "Met", "m42"), tubeAt(base, 46, "H&C", "h46")];
+  await app.fix(...KX, 15, t0); atKx(c, deps, t0);
+  app.at(T("08:47")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:46 H&C/, "the 08:42:30 left 90 s before it first saw you");
   app.close();
 });
 
@@ -1223,6 +1232,19 @@ test("Review: after 'No, still here', a tube that had already left never becomes
   assert.equal(c.onTubeAuto(T("08:50") + 30e3), false, "the 08:48 Met had gone before you said no");
   app.at(T("08:53")); c.render();
   assert.match(app.text("#hero"), /Probably the 08:52 Circle/);
+  app.close();
+});
+
+test("Review 2: after 'No, still here' a tube leaving 30 s later is catchable (no slack, but no extra margin either)", async () => {
+  const t0 = T("08:44"), app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  const base = T("08:00"), deps = [tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 49, "Met", "m49"), tubeAt(base, 55, "Circle", "c55")];
+  await app.fix(...KX, 15, t0); atKx(c, deps, t0); c.render();
+  app.d.querySelector('[data-tubepick^="KGX|' + T("08:45") + '|H&C"]').click();
+  await app.fix(...KX, 15, T("08:48") + 30e3); atKx(c, deps, T("08:48") + 30e3);
+  app.d.querySelector('[data-ride="no"]').click();
+  await app.fix(...KX, 15, T("08:48") + 40e3); atKx(c, deps, T("08:48") + 40e3);
+  app.at(T("08:51")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:49 Met/);
   app.close();
 });
 
@@ -1246,12 +1268,41 @@ test("Review: going home, 'On a different tube?' at Aldgate lists the nearest to
   app.close();
 });
 
-test("Review: 'saw you arrive' needs a fix away from the station within 5 min; an older one (app asleep) doesn't count", async () => {
-  for (const [ago, seen] of [[4.9, true], [5.1, undefined]]) {
-    const t0 = T("08:44"), app = await open({ now: t0 - ago * MIN, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
-    await app.fix(51.5420, -0.1180, 30, t0 - ago * MIN);              // on the train, coming in
-    await app.fix(...KX, 15, t0);
-    assert.equal(c.state.hubSince.seen, seen, `last fix away ${ago} min before`);
-    app.close();
-  }
+test("Review 2: locked on the train, unlocked on the platform: the walk counts from when you were last seen away, so the tube you caught counts", async () => {
+  const app = await open({ now: T("08:39"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:39"));                  // last fix on the train; phone locked
+  await app.fix(...KX, 15, T("08:43"));                              // unlocked on the platform
+  assert.equal(c.state.hubSince.away, T("08:39"));
+  atKx(c, kxDeps(), T("08:43"));                                     // boards the 08:45 H&C; GPS goes quiet
+  app.at(T("08:47")); c.render();
+  assert.equal(c.onTubeAuto(T("08:47")), true, "the 08:45 is one you could have caught (08:39 + 4 min 55 s)");
+  app.at(T("08:50")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:45 H&C/);
+  app.close();
 });
+
+test("Review 2: the app asleep for a long time: no earlier than when it first saw you here; via Farringdon, the last fix away from any station", async () => {
+  let app = await open({ now: T("08:10"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.80, -0.20, 30, T("08:10"));                       // half an hour ago, near home
+  await app.fix(...KX, 15, T("08:44"));
+  atKx(c, kxDeps(), T("08:44"));
+  app.at(T("08:47")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:45 H&C/, "not the 08:42 Met (2 min before it first saw you)");
+  app.close();
+  // The floor decides it: a Met 70 s before it first saw you is nearer than the next H&C, but you weren't here yet.
+  app = await open({ now: T("08:10"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }); c = app.c;
+  await app.fix(51.80, -0.20, 30, T("08:10"));
+  await app.fix(...KX, 15, T("08:44") + 50e3);
+  const base = T("08:00"); atKx(c, [tubeAt(base, 43 + 40 / 60, "Met", "m43"), tubeAt(base, 46.5, "H&C", "h46")], T("08:44") + 50e3);
+  app.at(T("08:48")); c.render();
+  assert.match(app.text("#hero"), /Probably the 08:46 H&C/);
+  app.close();
+  app = await open({ now: T("08:30"), geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }); c = app.c;
+  await app.fix(51.5250, -0.1100, 30, T("08:30"));                   // between stations
+  await app.fix(...ZFD, 15, T("08:36"));                             // at Farringdon
+  await app.fix(...KX, 15, T("08:39"));                              // then King's Cross
+  assert.equal(c.state.hubSince.hub, "KGX"); assert.equal(c.state.hubSince.away, T("08:30"), "Farringdon isn't 'away'");
+  app.close();
+});
+
+

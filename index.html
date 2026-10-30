@@ -278,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 17:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 18:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2376,11 +2376,13 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
 // passing Farringdon, or a stray fix at the station you left, doesn't end it.
-// The earliest a tube you're on can have left (engine onTube/whichTube allow a minute's slack before it): when you
-// arrived plus the walk, if the app saw you arrive; else when it first saw you here (opened on the platform, say);
-// after "No, still here", that moment exactly. Null if it hasn't seen you at this station.
+// The earliest a tube you're on can have left (engine onTube/whichTube allow a minute's slack before it): you
+// can't have arrived before you were last seen away from a station, nor been at the station before it first saw you,
+// so the later of (last seen away + the walk) and (first seen here). Running all along, that's arrival + walk;
+// locked on the train and unlocked on the platform, or opened here, it's less. After "No, still here": that moment
+// exactly. Null if it hasn't seen you at this station.
 const tubeReady = hub => { const h=state.hubSince; if(!h || h.hub!==hub) return null;
-  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.seen ? h.at+onwardParts(hub).ic : h.at; };
+  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
 const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
@@ -3185,7 +3187,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   else if(r.from==="ALD"){ state.saved.tubeRide=null; state.saved.tubePick=null; state.saved.aldHome={ seen:Date.now(), deps:(state.aldDeps&&state.aldDeps.list)||[] }; }
   else { state.saved.tubeRide=null; state.saved.tubePick=null; state.lastHub=null; state.saved.lastHub=null;
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
-    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, seen:true, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
+    state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
   save(); render(); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
@@ -3377,14 +3379,13 @@ function onPosition(p){
   noteAldgate();
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
-  const prevFixRecvAt=state.lastFixRecvAt;
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   state.atHub=hubHere();
   const riding = !!currentRide(Date.now());
-  // Arriving was seen only if this session had a fix away from a station in the last 5 min; otherwise the app was
-  // opened (or woke) here, and you may have arrived long before (tubeReady then adds no walk).
-  const seen = prevHub==null && prevFixRecvAt!=null && Date.now()-prevFixRecvAt<5*60e3;
-  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(seen?{seen:true}:{})}; state.saved.hubSince=state.hubSince; save(); }
+  // With the station visit, the last time this session saw you away from any station: you can't have arrived
+  // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
+  if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
+  if(!state.atHub) state.lastAwayAt=state.lastFixAt;
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});

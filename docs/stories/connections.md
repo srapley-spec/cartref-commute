@@ -34,8 +34,9 @@ H&C on offer was the 08:38; picked, it said Aldgate East 08:49 (he was at Farrin
 at his desk 09:05). He caught the H&C due 08:45. Fixed the same day: only a tube you could have caught counts, and
 the others are nearest first. Whether the list was exactly that when he picked is inferred from the code, not seen.
 Independent review (30 Oct): "arrived" is the app's first fix at the station, which is late if the app was opened
-on the platform: adding the walk then hid the tube Sam was on ("Probably the 08:48 Met" for the 08:45 H&C). Fixed:
-the walk is added only when the app saw you arrive. Also: after "No, still here" a tube that had just left could
+on the platform: adding the walk then hid the tube Sam was on ("Probably the 08:48 Met" for the 08:45 H&C). Second
+round: the same with the phone locked on the train and unlocked on the platform. Fixed: the walk counts from the
+last fix away from a station, and never earlier than the first fix at the station. Also: after "No, still here" a tube that had just left could
 still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12 untested boundaries, now pinned.
 
 ## Acceptance criteria
@@ -67,9 +68,12 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   catchable. "On a different tube?" switches to one that has left.
 - Worked out (not picked): you're on a tube only once one **you could have caught** has left: leaving no more than
   1 minute before the earliest you could be on the platform. That earliest is:
-  - **the app saw you arrive** (a fix away from a station in the 5 min before the first fix there, this session):
-    that first fix + the walk, at your pace;
-  - **it didn't** (opened, or woke, at the station; you may have arrived long before): that first fix, no walk;
+  - the later of **(the last fix this session away from any station + the walk, at your pace)** and **(the first
+    fix at this station)**: you can't have arrived before you were last seen away, nor been here before the app
+    first saw you. Running all along (fixes seconds apart), that's arrival + walk. Locked on the train and unlocked
+    on the platform, the walk counts from the last fix on the train. Opened (or reloaded) at the station, or asleep
+    for longer than the walk: the first fix here, no walk. A gap before arriving (a tunnel) only ever makes earlier
+    tubes count, never hides one;
   - **after "No, still here"**: that moment exactly (no minute's slack);
   - **no visit to this station recorded** (or one at another station): any tube that has left counts (as before).
   The guess is the one of those leaving nearest to when you were last seen, or to the earliest you could be on the
@@ -116,7 +120,10 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Review: the app opened on the platform: no walk added (you may have arrived long before), so the tube you caught counts"
 - tests/rules.test.mjs: "Review: after 'No, still here', a tube that had already left never becomes your ride"
 - tests/rules.test.mjs: "Review: arrival at a different station (Farringdon) doesn't limit the tubes at King's Cross"
-- tests/rules.test.mjs: "Review: 'saw you arrive' needs a fix away from the station within 5 min; an older one (app asleep) doesn't count"
+- tests/rules.test.mjs: "Review 2: locked on the train, unlocked on the platform: the walk counts from when you were last seen away, so the tube you caught counts"
+- tests/rules.test.mjs: "Review 2: the app asleep for a long time: no earlier than when it first saw you here; via Farringdon, the last fix away from any station"
+- tests/rules.test.mjs: "Review 2: after 'No, still here' a tube leaving 30 s later is catchable (no slack, but no extra margin either)"
+- tests/rules.test.mjs: "Review 2: opened on the platform, the earliest is when it first saw you, not 'anything that left'"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"
 - tests/core/connections.test.mjs: "Ready: never sooner than a minute from now; arrival in the future counts as now"
