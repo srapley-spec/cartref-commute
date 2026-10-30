@@ -12,7 +12,7 @@ As a developer, I want to inject manual coordinates or replay a representative r
 - Enable in Settings. Jump among six sample positions or enter valid latitude/longitude.
 - GPS fixes pass through the existing `onPosition` handler. Browser GPS watch is stopped; late real watch callbacks must not override injected fixes.
 - Real clock and existing API endpoints remain in use; playback does **not** represent historical departures.
-- Replay a representative **illustrative** Letchworth→office route with 1×, 5×, 20×; the route is straight-line waypoint interpolation, NOT mapped tracks, and can cross unrealistic terrain.
+- Select and replay either direction (Letchworth→office and office→Letchworth), with 1×, 5×, 20× speeds for both; the route is straight-line waypoint interpolation, NOT mapped tracks, and can cross unrealistic terrain.
 - Visual bar must remain present while simulated and offer Stop & reset.
 - In simulation the normal `save()` is suppressed. On exit restore pre-simulation `state.saved`, clear transient inferred train/hub state and request a real GPS watch.
 - Reload exits simulation. No historical replay, virtual clock, map tap, recorded network data, fault injection or trace export yet.
@@ -20,6 +20,7 @@ As a developer, I want to inject manual coordinates or replay a representative r
 ## Tests
 - tests/simulator.test.mjs: "developer simulator defaults off and toggles from Settings"
 - tests/simulator.test.mjs: "simulated fixes do not overwrite persisted journey context"
+- tests/simulator.test.mjs: "playback starts at the selected end and supports multiple speeds"
 - Gaps: stale callbacks, rapid provider toggling, async requests, GPS permission changes and refresh-count limits still require tests **before merge**.
 - Existing `npm run ci`, golden, mutation and GitHub Actions required before merge.
 
