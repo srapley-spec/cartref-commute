@@ -2,10 +2,12 @@
 
 ## Journey observation
 - **Date:** Friday 30 October 2026
-- **Route:** Hammersmith & City line train → Aldgate East Underground station → office main entrance → Ciklum fifth-floor entrance
+- **Route:** Hammersmith & City line train → Aldgate East Underground station → office main entrance → Ciklum fifth-floor entrance → desk
 - **Start event:** Alighted from train at 08:59:43 GMT
-- **End event:** Outside Ciklum fifth-floor entrance at 09:04:44 GMT
-- **Observed total (train exit to fifth-floor entrance):** **5 min 01 sec** (301 s)
+- **End event:** At desk at 09:05:07 GMT
+- **Observed total (train exit to desk):** **5 min 24 sec** (324 s)
+- **Train exit to fifth-floor entrance:** **5 min 01 sec** (301 s)
+- **Fifth-floor entrance to desk:** **23 sec**
 - **Train exit to street:** **1 min 32 sec** (92 s)
 - **Street to office building main entrance:** **2 min 34 sec** (154 s)
 - **Office main entrance to lift (ground floor):** **14 sec**
@@ -23,7 +25,8 @@
 | 09:01:15 | Outside station, at top of stairs | 01:32 |
 | 09:03:49 | Outside office building main entrance | 04:06 |
 | 09:04:03 | Inside lift, ground floor | 04:20 |
-| 09:04:44 | Outside Ciklum office entrance, fifth floor | **05:01** |
+| 09:04:44 | Outside Ciklum office entrance, fifth floor | 05:01 |
+| 09:05:07 | **At desk (journey complete)** | **05:24** |
 
 ## Segment durations
 
@@ -35,7 +38,8 @@
 | Street → office building entrance | 154 s (2m 34s) |
 | Building entrance → inside ground-floor lift | 14 s |
 | Lift ground floor → Ciklum fifth-floor entrance | 41 s |
-| **Total (off train → fifth-floor entrance)** | **301 s (5m 01s)** |
+| Fifth-floor entrance → desk | 23 s |
+| **Total (off train → desk)** | **324 s (5m 24s)** |
 
 ## Operational delay and ETA interpretation
 The user reported a train delay outside Aldgate East at 08:59:16, before alighting at 08:59:43. The delay length, arrival time and original projected ETA were **not** recorded. Do not infer a precise delay duration from these observations.
