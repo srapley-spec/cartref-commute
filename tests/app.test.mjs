@@ -366,6 +366,29 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   app.close();
 });
 
+test("At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)", async () => {
+  const t0 = Date.now();
+  const app = await createApp({ geo: NEAR_LETCHWORTH,
+    route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(t0)) : undefined) });
+  await moveTo(app, AT_KINGS_CROSS);
+  const lozenge = () => app.d.querySelector("#hero .slack");
+  assert.match(lozenge().textContent, /^Get on the Met/);
+  assert.equal(lozenge().className, "slack met");
+  app.d.querySelector(`[data-tubepick^="KGX|${t0 + 3 * 60e3}|H&C"]`).click();
+  assert.match(lozenge().textContent, /^You're getting the H&C to Barking/);
+  assert.equal(lozenge().className, "slack hc");
+  app.d.querySelector(`[data-tubepick^="KGX|${t0 + 12 * 60e3}|Circle"]`).click();
+  assert.match(lozenge().textContent, /^You're getting the Circle/);
+  assert.equal(lozenge().className, "slack circle");
+  // Each class takes the line's own colour, the tokens the line chips use.
+  const css = [...app.d.querySelectorAll("style")].map((x) => x.textContent).join("\n");
+  for (const [cls, token] of [["circle", "circle"], ["met", "met"], ["hc", "hc"]])
+    assert.match(css, new RegExp(`\\.hero \\.slack\\.${cls}\\{background:var\\(--${token}\\);color:var\\(--${token}-ink\\)\\}`));
+  assert.match(css, /--hc:#F4A9BE/, "H&C is TfL's light pink");
+  assert.match(css, /--circle:#FFD329/, "Circle is TfL's yellow");
+  app.close();
+});
+
 test("At King's Cross without live tube times: says so and estimates", async () => {
   const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/Arrivals/.test(u) ? json({}, 500) : undefined) });
   await moveTo(app, AT_KINGS_CROSS);
@@ -433,6 +456,7 @@ test("On the tube: works out which one from when you left King's Cross and follo
     const hero = app.text("#hero");
     assert.match(hero, /On the tube · .*worked out from when you left King's Cross/);
     assert.match(hero, /Probably the \d\d:\d\d Met/);
+    assert.equal(app.d.querySelector("#hero .slack").className, "slack met", "the ride lozenge is the line's colour too");
     const office = t0 + 19 * 60e3 + (90 + 420) * 1000;
     assert.match(hero, new RegExp(`${hm(office)} ?at the office`), "uses the live Aldgate time for that train");
     assert.match(hero, /live arrival time for this train/);

@@ -13,6 +13,16 @@ any station with live departures ("generic engine, bespoke data").
 three bugs: back at King's Cross after minutes without a fix showed "on the tube" for a tube already gone; a picked
 tube was dropped when TfL moved its time by seconds; the card's tube and the list's highlighted row could differ.
 All fixed and tested. Going home now uses the same model (see [tube-home](tube-home.md)).
+30 Oct morning: Sam asked that the lozenge naming the tube to get on be that line's colour (H&C light pink, Circle
+yellow, Met magenta), as the line chips in the list already are.
+30 Oct morning, measured best case (Friday, quiet, front of the train, platform 6): stepping off the train to the
+subsurface platform took 3 min 05 s (log: [`data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md`](../../data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md)).
+**The model was not changed to 185 s**, because the walk here counts from "arrived": the first fix within 400 m of
+King's Cross, which comes while the train is still pulling in (that morning the app had "arrived 08:39"; Sam stepped
+off at about 08:40:45). From 08:39 the model at fast pace (6 min × 0.82 ≈ 4 min 55 s) gives about 08:43:55 to
+08:44:54; Sam reached the platform at about 08:43:50, so it was within a minute and slightly cautious. 185 s from
+08:39 would have put him on the platform at about 08:42, so the app would have recommended a Met that he missed by
+about 10 s. Options for using the measurement are with Sam (see "Open").
 
 ## Acceptance criteria
 - The walk to the platform counts from when you arrived at the station; you can be on the platform no sooner than
@@ -39,6 +49,15 @@ All fixed and tested. Going home now uses the same model (see [tube-home](tube-h
 - Planning before you reach London (no live tubes): Aldgate East only when Circle and Met are both closed; severe
   delays on both are a "bad" flag.
 - Without live tube times, the app says so and estimates.
+- The lozenge naming your tube ("Get on the H&C to Barking", "You're getting…", and on the tube "You're on / Probably
+  the … Met") is that line's colour, the same tokens as the line chips: Circle `--circle` (yellow), Met `--met`
+  (magenta), H&C `--hc` (light pink). A line the app doesn't know keeps the default lozenge; "Get on the next Circle
+  or Met" (no live times, two lines) keeps it too.
+
+## Open
+- King's Cross rail → subsurface platform: one best-case measurement of 185 s from stepping off (30 Oct). To use it,
+  the walk would need to count from when you step off (or the train stops), not from the first fix within 400 m.
+  Until Sam decides, the setting stays 6 min (fast ≈ 4 min 55 s from the first fix), which matched 29 and 30 Oct.
 
 ## Tests
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
@@ -48,6 +67,7 @@ All fixed and tested. Going home now uses the same model (see [tube-home](tube-h
 - tests/rules.test.mjs: "Tube ride: pick your tube at King's Cross; once it leaves you're on it, passing Farringdon or a stray fix doesn't undo it; asked if you're clearly still there"
 - tests/rules.test.mjs: "Aldgate East only when Circle and Met are both closed; severe delays on both are a 'bad' flag"
 - tests/app.test.mjs: "Morning at King's Cross: which tube to get on and when you'll be at the office"
+- tests/app.test.mjs: "At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)"
 - tests/app.test.mjs: "At King's Cross without live tube times: says so and estimates"
 - tests/app.test.mjs: "On the tube: works out which one from when you left King's Cross and follows it to Aldgate"
 - tests/rules.test.mjs: "On the tube: within 25 min of the station, a tube has left, and either you've left the station or the fix is over 90 s old"

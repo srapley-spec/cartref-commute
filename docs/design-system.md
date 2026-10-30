@@ -97,6 +97,10 @@ train" read as a warning while the train was close to on time.
   line keeps its own tiers (amber from 5 min): it answers "is my route disrupted", not "is this train late".
 - **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
   for amber.
+- **Tube line colours are identity, not status** (Sam, 30 Oct): a lozenge or chip naming one tube line uses TfL's
+  colour for that line (`--circle`, `--met`, `--hc`), always with the line's name in it. The Circle's yellow is
+  close to caution; the name and the lozenge shape keep it distinct. Don't extend this to a status colour that
+  isn't a line's own.
 - **Where the status sits on the live card (Sam, 30 Oct: option 2 of 4):** inside the train's identity lozenge. The
   train name is in accent blue, with the status chip inside it in its band: `[You're on the 08:00 Great Northern
   (About 2 min late)]`. Panda nests the chip inside the lozenge so it wraps as one piece on narrow screens. The Signal preview, whose

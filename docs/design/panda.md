@@ -64,6 +64,8 @@ side gutter (respecting safe areas).
   *inside* it as a chip (`.slackst ok|warn|bad`): `[You're on the 08:00 Great Northern (About 2 min late)]`. It
   wraps as one piece at 320 px. A lozenge whose meaning *is* a status (for example "At the station about …" on
   your way) takes `.slack ok|warn|bad` as a whole.
+  A lozenge naming one tube line takes that line's TfL colour (`.slack circle|met|hc`, Sam, 30 Oct): identity, not
+  status, always with the line's name in it. Circle yellow is close to caution; the name keeps it distinct.
 - **Status text on the hero** (`.stat ok|warn|bad`, `.latetxt` red, `.latetxt.warn` amber).
 - **Pills** (`.pill ok|warn|bad|info`): flags on options and rows. `info` is neutral (for example "Timetable only").
   Every live train has a delay pill.

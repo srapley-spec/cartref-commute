@@ -183,6 +183,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** A lozenge naming a tube line is that line's colour (Sam): line colours are identity, not status. King's
+  Cross rail → subsurface measured at 185 s from stepping off (best case); not applied, because the walk counts from
+  the first fix within 400 m, so 185 s would have recommended a Met Sam missed. The choice is with Sam.
+  → [connections](stories/connections.md), [design-system](design-system.md)
 - **30 Oct** Red, amber and green are reserved for status (Sam; critical, binding on this build, Signal and every
   proposal): never brand, accent, identity or selection; every live train shows on time / a bit late / very late as
   word, minutes and colour. Why: on the train the "You're on the 08:00" lozenge was orange and read as a warning.
