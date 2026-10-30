@@ -1904,6 +1904,7 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden){
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
 if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
+if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
 simSetup(); locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
 setInterval(()=>{ if(!document.hidden) refresh(); },60e3);
