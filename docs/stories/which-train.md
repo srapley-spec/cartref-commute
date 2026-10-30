@@ -21,7 +21,9 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 - "Sure" only if the next train is 4+ min further off; nothing within 10 min means no match.
 - Once sure it stays with your train, but lets go when you're more than 12 min from it.
 - When unsure it asks "Which train are you on?"; your pick is kept until you're off the line; if nothing fits you
-  can still pick.
+  can still pick. A fresh fix contradicting a pick (reported position more than6minutes away,
+  or timing fit more than12minutes away) retains the choice but marks low confidence, warns that the selected
+  train does not match current location and asks again. A fix older than2minutes cannot create a conflict.
 - On the line counts only when moving along it; near home (just past Letchworth to just past Hitchin) only when by
   the track at train speed; stays on while stopped at a station.
 - Trains are compared with where you were when the phone took the fix (the phone's own timestamp); "departed" means
@@ -45,6 +47,8 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 - Distinct known National Rail service IDs remain separate candidates even when their times are within one minute; time/operator deduplication is only a fallback when IDs are unavailable.
 
 ## Tests
+- tests/core/situation.test.mjs: "whichTrain: keep a confirmed train but warn on fresh contradictory evidence; stale fixes cannot create a conflict"
+- tests/simulator-integration.test.mjs: "simulator app: a confirmed train conflicting with reported position is retained with an explicit warning"
 - tests/core/situation.test.mjs: "whichTrain: distinct service IDs stay separate even a minute apart"
 - tests/core/situation.test.mjs: "whichTrain: departed trains only, the nearest fit, sure when the runner-up is 4+ min worse, then remembered"
 - tests/core/situation.test.mjs: "whichTrain: a reported position beats the timetable, and more than 6 min from you rules a train out"

@@ -133,6 +133,8 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
 export interface TrainFit {
   t: Train; hub: StationCode; mine: number; offMin: number; projected: number; live: boolean; reported: boolean; ruledOut: boolean;
   sure?: boolean; other?: TrainFit | null; others?: TrainFit[]; locked?: boolean; picked?: boolean;
+  /** A fresh location contradicts the selected service; retain the choice and ask again. */
+  conflict?: boolean;
   /** high: picked, or sure with a reported position; medium: sure from timing alone; low: unsure or position stale. */
   confidence?: "high" | "medium" | "low";
   stale?: boolean; fixAgeMin?: number;
@@ -195,7 +197,13 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   const age = { stale, fixAgeMin: Math.round(ageMin) };
   // Remembering the service ID once it's known (a train remembered before live data arrived).
   const withId = (l: TrainLock, t: Train): TrainLock => (!l.serviceId && t.serviceId ? { ...l, serviceId: t.serviceId } : l);
-  if (locked && lock!.picked) { Object.assign(locked, { sure: true, other: null, locked: true, picked: true, others: others(locked), confidence: "high", ...age }); return { result: locked, lock: withId(lock!, locked.t) }; }
+  if (locked && lock!.picked) {
+    // A choice remains the person's choice. Fresh contradictory evidence changes the confidence,
+    // rather than silently choosing a different train or presenting the selection as certain.
+    const conflict = !stale && (locked.ruledOut || locked.offMin > 12);
+    Object.assign(locked, { sure: !conflict, conflict, other: null, locked: true, picked: true, others: others(locked), confidence: stale || conflict ? "low" : "high", ...age });
+    return { result: locked, lock: withId(lock!, locked.t) };
+  }
   const keeps = locked && !locked.ruledOut && (stale || (locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)));
   if (locked && keeps) {
     Object.assign(locked, { sure: true, other: null, locked: true, others: others(locked), confidence: stale ? "low" : locked.reported ? "high" : "medium", ...age });

@@ -882,6 +882,7 @@ function finishRide(r,now){
  const pick=state.saved.tubePick;
  if(pick && pick.t<=now+30e3 && (pick.hub===(r.from||r.hub)))state.saved.tubePick=null;
  if(state.lastHub && state.lastHub.hub===(r.from||r.hub)){state.lastHub=null;state.saved.lastHub=null;}
+ if((r.from||r.hub)==="ALD")state.saved.aldHome=null;
  save();
 }
 function currentRide(now){
@@ -1096,6 +1097,7 @@ function renderOnTrain(now, m){
     <div class="big"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
+    ${m.conflict?`<div class="note"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
     ${(m.others||[]).length?`<div class="pick"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
     <div style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
@@ -1900,6 +1902,14 @@ function onPositionError(e){
   state.autoSrc = state.locStatus==="denied" ? "location is off for this app" : "can't get your location right now";
   render();
 }
+// Native fixes retain their device-clock age when only transport time is simulated.
+function receiveRealPosition(position){
+ if(S().simulatedFeeds && !S().simulatorEnabled){
+  const realNow=window.Date.now(),taken=Number.isFinite(position.timestamp)?position.timestamp:realNow;
+  const age=Math.max(0,realNow-taken);
+  onPosition({coords:position.coords,timestamp:simClock.now()-age});
+ }else onPosition(position);
+}
 function locate(){
   if(sim.active && S().simulatorEnabled)return;
   if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
@@ -1907,7 +1917,7 @@ function locate(){
   try{
     if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);   // restart after the app was in the background
     const gen=sim.watchGeneration;
-    state.watchId=navigator.geolocation.watchPosition(p=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)onPosition(p);}, e=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)onPositionError(e);}, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
+    state.watchId=navigator.geolocation.watchPosition(p=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)receiveRealPosition(p);}, e=>{if((!sim.active || !S().simulatorEnabled) && gen===sim.watchGeneration)onPositionError(e);}, {enableHighAccuracy:true, timeout:15000, maximumAge:30000});
   }catch(e){ onPositionError(); }
 }
 // True when Auto is selected but the phone hasn't said where you are yet.
@@ -1953,10 +1963,12 @@ $("#setHomeBtn").addEventListener("click",()=>{
 const CAPTURE_URLS = ["https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals",
   "https://api.tfl.gov.uk/trackernet/PredictionDetailed/M/ALD", "https://api.tfl.gov.uk/trackernet/PredictionDetailed/H/ALD"];
 async function captureAldgate(){
+  const epoch=sourceEpoch;
   const k=S().tflKey, hide=t=>k ? String(t).split(k).join("***") : String(t), out=[`Captured ${new Date().toISOString()} (${hhmm(Date.now())} London)`];
   for(const u of CAPTURE_URLS){
+    if(epoch!==sourceEpoch)return "Capture discarded because the transport source changed.";
     try{ const r=await fetchT(tflUrl(u)); const body=await r.text(); out.push(`== ${u}\nHTTP ${r.status}\n${body.slice(0,30000)}`); }
-    catch(e){ out.push(`== ${u}\nfailed: ${e.message}`); }
+    catch(e){ if(epoch!==sourceEpoch)return "Capture discarded because the transport source changed.";out.push(`== ${u}\nfailed: ${e.message}`); }
   }
   return hide(out.join("\n\n"));
 }
@@ -1972,7 +1984,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const modeChanged=!!S().simulatorEnabled!==!!next.simulatorEnabled || !!S().simulatedFeeds!==!!next.simulatedFeeds;
- if(modeChanged)simStop({resume:false});
+ if(modeChanged){simStop({resume:false});endSimulationSession();}
  invalidateSources();
  if(next.simulatorEnabled || next.simulatedFeeds)beginSimulationSession();
  state.saved.settings=next;

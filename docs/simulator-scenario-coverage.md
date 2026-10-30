@@ -26,6 +26,7 @@ Results record direct and focused integration runs on 30 October; final committe
 | Expected boarding | Production train inference | Normal SVG checkpoint and all competing trains | Identify GN0905 from GPS/Darwin; GN0917 remains available | `simulator app: normal identifies the passenger train from GPS and Darwin with competitors` | PASS (direct app integration run) |
 | Later train | Actual passenger service identity | +12min GPS itinerary | Identify GN0917 instead of GN0905 | `simulator app: later-train identifies the passenger train from GPS and Darwin with competitors` | PASS (direct app integration run) |
 | Different train | Production identification | Wrong-train later departure | Identify actual later service without simulator assigning a lock | `simulator app: wrong-train identifies the passenger train from GPS and Darwin with competitors` | PASS (direct app integration run) |
+| Confirmed wrong train | Selection contradicted by live progress | Wrong-train GPS at Stevenage, real pick of earlier0905 | Keep the selected service but flag conflict and warn on actual main card | `simulator app: a confirmed train conflicting with reported position is retained with an explicit warning` | PENDING verification |
 | Delayed train | Expected/scheduled times | Eight-minute delay in GPS and provider schedule | Correct delayed service identified and delay shown | `simulator app: delay identifies the passenger train from GPS and Darwin with competitors` | PASS (direct app integration run) |
 | Cancellation | Never hide cancelled trains, usable alternatives | Primary GN cancellation | Cancelled primary visible; planner retains usable alternative | `simulator app: cancelled departure stays visible and replans to an available service` | PASS (direct app integration run) |
 | Uncertain train and explicit choice | Ask when close candidates | Competitor two minutes after primary; initial rail GPS gap; real pick button | Uncertain identity, two choices, picked service remembered by ID | `simulator app: nearby departures remain uncertain and manual train selection uses real pick controls` | PASS (final 21-case run after withholding initial rail fixes) |
@@ -65,8 +66,8 @@ Aldgate arrival ends the ride and the real office card appears.
 
 ## Practical limits requiring explicit review
 
-- The wrong-train scenario establishes the actual later service through GPS. It does not claim the app can
-  determine that a traveller intended a different destination without a confirmed prior choice.
+- The wrong-train scenario establishes the actual later service through GPS. A separate regression confirms the earlier service using the actual train-pick button and requires
+  a visible warning when reported progress contradicts it, while retaining the user’s choice.
 - Delayed train coverage models a corridor signalling restriction delaying competitors too. A single GN delayed
   eight minutes can coincide with an on-time TL at Stevenage; continuous GPS may preserve a prior confident lock.
   This ambiguity must not be represented as proof that any overlapping trains can always be identified.

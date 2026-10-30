@@ -407,3 +407,11 @@ test('atOffice: uncertainty circle must fit inside the arrival radius, on any pr
  const duplicate=core.whichTrain(boards,here,"office",now,null,()=>null,testville,now);
  assert.equal(duplicate.result.sure,true);assert.equal(duplicate.result.other,null);
  });
+
+test('whichTrain: keep a confirmed train but warn on fresh contradictory evidence; stale fixes cannot create a conflict',()=>{
+ const now=T('08:00'),t=toCity('07:50',now-10*MIN,60,'Express Rail',{serviceId:'PICKED'}),boards={'RVS-CEN':{msgs:[],services:[t]}},lock={operator:t.operator,std:t.std,from:t.from,serviceId:t.serviceId,picked:true};
+ const run=(here,fixAt=now)=>core.whichTrain(boards,here,'office',now,lock,()=>null,testville,fixAt);
+ const wrong=run([50.05,-1.05]);assert.equal(wrong.result.t.serviceId,'PICKED');assert.equal(wrong.lock.picked,true);assert.equal(wrong.result.conflict,true);assert.equal(wrong.result.sure,false);assert.equal(wrong.result.confidence,'low');
+ const stale=run([50.05,-1.05],now-3*MIN);assert.equal(stale.result.conflict,false,'stale position cannot establish contradiction');assert.equal(stale.result.confidence,'low');assert.equal(stale.lock.serviceId,'PICKED');
+ const recovered=run([50.083333,-1.083333]);assert.equal(recovered.result.conflict,false);assert.equal(recovered.result.sure,true);assert.equal(recovered.result.confidence,'high');
+});

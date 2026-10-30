@@ -82,3 +82,13 @@ test('independent review: stale live JSON never writes a board during synthetic 
  const staleWrites=writes.flatMap(value=>Object.values(value||{})).flatMap(b=>b?.services||[]).filter(t=>t.serviceId==='STALE-LIVE');
  await sleep(400);assert.equal(staleWrites.length,0,'old JSON must never enter current session, even if a later refresh would replace it');assert.deepEqual(a.errors,[]);
 });
+test('independent review: feed-only native GPS preserves observation age in virtual time',async()=>{
+ const nativeNow=Date.parse('2026-11-03T10:00:00Z');
+ const a=await createApp({now:nativeNow,geoDelay:'manual',geo:{coords:{latitude:51.98002,longitude:-.22909,accuracy:12},timestamp:nativeNow-30000},settle:60});
+ a.d.querySelector('#simDate').value='2026-11-04T08:44';
+ a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_simulatedFeeds').checked=true;
+ a.d.querySelector('#settingsForm').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
+ a.giveLocation();
+ const age=a.c.simClock.now()-a.c.state.lastFixAt;
+ await sleep(400);assert.equal(age,30000,'native GPS age must be preserved across clock domains');assert.equal(a.c.state.locAcc,12);assert.deepEqual(a.errors,[]);
+});

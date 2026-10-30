@@ -25,7 +25,11 @@ built-page probes independently, without assigning service identity or inferred 
 5. **Coverage overstatement risk.** Traversing a simulator checkpoint proves that controls/time
    advance, but does not establish actual app tube identity, onward planning or presentation.
    The coverage matrix correctly lists these gaps. They must be closed before release.
-6. **Browser versus jsdom.** The existing application tests execute the built application in
+6. **Feed-only GPS used the wrong clock domain.** A real watch fix taken30seconds ago was
+   treated as81,870,000ms old when the selected virtual date was the next day. The existing
+   mock fixes omitted timestamps and hid this defect. An independent actual-watch-callback
+   regression now requires preservation of the observation age; implementation fix pending.
+7. **Browser versus jsdom.** The existing application tests execute the built application in
    jsdom. Chromium is installed, and actual browser execution remains a separate release gate.
 
 Independent regression file: `tests/simulator-review.test.mjs`. Latest rebuilt-page run: **7 passed,

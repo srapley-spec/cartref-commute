@@ -301,3 +301,15 @@ restart and Stop. Reload always restores real operation. See [journey simulator]
 [coverage](simulator-scenario-coverage.md), and [independent review](simulator-review.md) for verification
 and outstanding release gates. GitHub-first release applies because this changes location, timing,
 feed requests, saved-state isolation and generated build integration.
+
+### Simulator time audit
+The shell's lexical Date wrapper supplies current time to board parsing, service matching, direction
+memory, arrival/leave date inputs, stale-fix checks, request counts, cache ages, backoff and refresh
+throttling. Core functions receive current instants; their Date construction formats or derives dates
+from explicit inputs. No core function reads Date.now. Simulator provider times use the same supplied
+epoch and remain anchored across midnight. Native location timestamps carry observation age into the
+virtual epoch in feed-only mode. Browser intervals schedule work but do not themselves advance virtual
+time: only playback ticks do. A paused or backgrounded scenario does not catch up to wall time.
+Source changes, restart and Stop abort old requests, invalidate response-body epochs, invalidate planner
+tokens/retry timers, clear progress and all timestamped caches and reset throttles. Global browser Date
+and device time remain unchanged; old virtual timestamps never return to real cache reuse decisions.

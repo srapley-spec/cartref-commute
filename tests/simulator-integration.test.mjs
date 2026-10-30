@@ -224,3 +224,14 @@ test('simulator app: platform changes and Underground disruption reach normal ap
  select(a,'simScenario','disruption');click(a,'simPlay');await a.c.refresh({force:true,manual:true});await sleep(30);a.c.render();assert.ok(a.c.state.status.some(l=>l.id==='metropolitan'&&l.statuses.some(s=>s.sev===6)));assert.match(a.d.body.textContent,/Severe Delays|Synthetic signal failure/i);
  await sleep(350);a.close();
 });
+
+test('simulator app: a confirmed train conflicting with reported position is retained with an explicit warning',async()=>{
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:60});await settings(a,true,true);select(a,'simScenario','wrong-train');select(a,'simSpeed','20');const scheduler=playbackScheduler(a);click(a,'simPlay');
+ while(!a.text('#simCheckpoint').includes('Stevenage'))await nextCheckpoint(a,scheduler);
+ await a.c.refresh({force:true});await sleep(20);a.c.render();
+ assert.equal(a.c.whichTrain(a.c.simClock.now()).t.serviceId,'SIM-GN-LATER-0917');
+ const expected=[...a.d.querySelectorAll('[data-pick]')].find(b=>b.dataset.pick.endsWith('|SIM-GN-0905'));assert.ok(expected,'the expected earlier train remains available for explicit selection');expected.click();
+ const selected=a.c.whichTrain(a.c.simClock.now());assert.equal(selected.t.serviceId,'SIM-GN-0905','user selection is retained');assert.equal(selected.picked,true);
+ assert.equal(selected.conflict,true,'reported position contradicts the confirmed train');assert.match(a.text('#hero'),/does not match|doesn't match|conflict|contradict/i,'actual journey card warns about contradictory evidence');
+ await sleep(350);a.close();
+});

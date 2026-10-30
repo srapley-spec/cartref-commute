@@ -62,3 +62,35 @@ test('feed-only switch immediately displays active synthetic data and its frozen
  a.d.querySelector('#simExit').click();assert.equal(a.d.querySelector('#simBar').hidden,true);assert.equal(a.c.simClock.active,false);
  await sleep(350);a.close();
 });
+
+test('source changes discard an in-progress diagnostic capture before it can issue another request',async()=>{
+ let release;
+ const a=await createApp({settle:100,route:url=>{
+  if(url.includes('940GZZLUALD/Arrivals'))return {ok:true,status:200,text:()=>new Promise(resolve=>{release=()=>resolve('OLD LIVE CAPTURE');})};
+ }});
+ const result=a.c.captureAldgate();await sleep(20);assert.ok(release);
+ switches(a,false,true);const count=a.calls.length;release();
+ assert.match(await result,/discarded.*source changed/);assert.equal(a.calls.length,count,'old capture stops before requesting its next endpoint');
+ await sleep(350);a.close();
+});
+
+test('disabling GPS simulation before playback releases its persistence snapshot',async()=>{
+ const a=await createApp({settle:100});switches(a,true,false);
+ assert.equal(a.c.simulator.sim.active,false);switches(a,false,false);
+ a.d.querySelector('[data-pace="fast"]').click();
+ assert.equal(JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1')).pace,'fast','normal settings save again after unused simulation opt-in ends');
+ assert.equal(a.c.S().simulatorEnabled,false);assert.equal(a.c.simClock.active,false);
+ await sleep(350);a.close();
+});
+
+test('feed-only native GPS preserves fix age across virtual dates and clamps future device timestamps',async()=>{
+ const deviceNow=Date.parse('2026-11-03T10:00:00Z');
+ const geo={coords:{latitude:51.53197,longitude:-.12341,accuracy:15},timestamp:deviceNow-30000};
+ const a=await createApp({now:deviceNow,geo,geoDelay:'manual',settle:100});
+ a.d.querySelector('#simDate').value='2030-01-05T15:44';switches(a,false,true);
+ a.giveLocation();assert.equal(a.c.state.lastFixAt,a.c.simClock.now()-30000,'thirty-second-old native fix remains thirty seconds old in virtual time');
+ assert.equal(a.c.state.lastFixRecvAt,a.c.simClock.now());
+ geo.timestamp=deviceNow+60000;a.giveLocation();assert.equal(a.c.state.lastFixAt,a.c.simClock.now(),'future device fix is clamped to virtual now');
+ assert.equal(a.c.state.here[0],geo.coords.latitude);assert.equal(a.c.state.locAcc,15);
+ await sleep(350);a.close();
+});
