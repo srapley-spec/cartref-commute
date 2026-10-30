@@ -1,5 +1,5 @@
 # Follow a route
-Status: Implementation in progress (Sam selected 30 Oct; release verification pending) · Behind Settings → Experimental · Since: 30 Oct 2026 (evening)
+Status: Behind toggle (release verification pending) · Settings → Experimental · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have
@@ -24,9 +24,11 @@ Sam selected this newer behavior as the basis for Signal on 30 Oct, then authori
 independent reviews of behavior, tests and architecture. The selected route is shared by Panda and Signal; the
 Follow a route Experimental setting is independent of the Signal design switch. Both start off.
 
-The initial implementation follows the existing complete route snapshot and live rail service. Its planned Tube
-legs are estimates unless existing live evidence says otherwise; verified by-vehicle Tube following remains
-a separate feed-reliability gate. The full acceptance criteria below remain the target, not a claim that every
+The implementation follows the existing complete route snapshot and live rail service. A caught homeward Tube
+uses current connection readiness to test the chosen rail service, rather than restarting the journey from the
+office. After the rail leg, fresh Tube/walk evidence updates the onward arrival with a reason without retiming
+completed rail steps. Planned Tube legs remain estimates unless existing live evidence says otherwise; verified
+by-vehicle Tube following remains a separate feed-reliability gate. The full acceptance criteria below remain the target, not a claim that every
 criterion has already passed verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
@@ -79,7 +81,8 @@ criterion has already passed verification. See [Signal testing](../signal-testin
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
-- Implementation tests and independent review are in progress. Required evidence includes stable arrival despite
+- Implementation tests include the pure engine, real built-page integration and independent whole-journey probes.
+  Release verification and final review are pending. Required evidence includes stable arrival despite
   re-ranking, an explicit reason for live changes, cancellation/missed recovery without automatic replacement,
   the exact 5-minute alternative threshold, persistence validation, switch preservation, simulation isolation,
   and planning override expiry. See [verification record](../signal-testing.md).
@@ -96,6 +99,20 @@ criterion has already passed verification. See [Signal testing](../signal-testin
 - tests/core/follow.test.mjs: "follow: service ID survives delay and platform changes but cannot change boarding station or date"
 - tests/core/follow.test.mjs: "follow: persisted journey restores as independent data and rejects malformed browser state"
 - tests/core/viewControl.test.mjs: "view control: manual choice expires at exactly twenty minutes and immediately on a changed situation"
+
+- tests/follow.test.mjs: "follow page: chosen itinerary and arrival survive re-ranking, refreshed access and approach location"
+- tests/follow.test.mjs: "follow page: cancellation keeps selected service and offers an explicit way on; switching and Stop are deliberate"
+- tests/follow.test.mjs: "follow page: no-estimate null arrival remains selected through repeated renders and persisted reload"
+- tests/follow.test.mjs: "follow page: an actual departed selected train continues through movement inference, never becomes missed"
+- tests/follow.test.mjs: "follow page: Signal to Panda and reload retain route, full steps and planning question"
+- tests/follow.test.mjs: "follow page: simulator restart clears simulated selection and Stop restores the real followed route"
+- tests/independent-signal-review.test.mjs: "independent review: a Follow selection is saved immediately before any later interaction"
+- tests/independent-signal-review.test.mjs: "independent review: planning pin retains the followed-route cancellation alert"
+- tests/follow-journey-review.test.mjs: "journey review: a caught Circle still reaches the followed Thameslink, rather than replanning from the office"
+- tests/follow-journey-review.test.mjs: "journey review: final-walk following cannot offer original-origin trains or revive a completed rail cancellation"
+- tests/follow-journey-review.test.mjs: "journey review: a missed selected train no longer promises its old arrival"
+- tests/follow-journey-review.test.mjs: "journey review: stale Darwin boards are not called live, while a fresh Service Details report updates the followed ETA"
+- tests/follow-journey-review.test.mjs: "journey review: the home walk updates the followed ETA with a reason even when rail boards are old"
 
 ## Not yet / open questions
 - Whether TfL reports tube positions by vehicle reliably enough to follow a tube underground (check against a recorded

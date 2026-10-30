@@ -28,7 +28,7 @@ export { hubHere, awayFromHubs, onLine, trackLine, lockOf, nearOffice, atOffice,
 export type { Fix, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";
-export { compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
+export { segmentArrival, compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";
 import { samCommute } from "./profiles/sam";
 export { samRoutes, tubeHomeConnections } from "./profiles/samRoutes";
@@ -37,5 +37,5 @@ export const profiles = { samCommute };
 export const ENGINE_VERSION = "1";
 export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewControl } from './viewControl';
 export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
-export { FOLLOW_BETTER_MIN, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
+export { FOLLOW_BETTER_MIN, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
 export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';

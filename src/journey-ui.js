@@ -2,6 +2,7 @@
 // those results and adapts existing observations. Both designs share this single controller.
 const followChoices = new Map();
 const journeyEnabled = () => !!(S().signal || S().followRoute);
+const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'?r:null;};
 function applyJourneyAppearance(){
   document.documentElement.dataset.design=S().signal?'signal':'panda';
   const theme=S().appearance;
@@ -30,6 +31,7 @@ function journeyPresentation(now,s){
   if(!journeyEnabled())return auto;
   const current=journeySituation(now,s);
   const shown=C.resolveViewControl({auto,live:current.live,hasActiveJourney:current.active,plan:s.plan,
+    hasFollowedJourney:!!activeFollow(),
     override:state.saved.viewOverride,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
   if(JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
     state.saved.viewOverride=shown.override;save();
@@ -81,26 +83,56 @@ document.addEventListener('click',e=>{
 });
 function followedObservation(route,now){
   const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
-  let phase=route.phase, currentTrainArrival=null;
+  let phase=route.phase, currentTrainArrival=null,trainArrivalLive=false;
   const fit=state.onLine?whichTrain(now):null;
   if(fit?.t&&C.followMatchesService(route,{...route.option,train:fit.t,hub:fit.hub||route.option.hub})){
     phase='on-train';
     const pg=progressFor(fit.t.serviceId);
-    currentTrainArrival=pg?.data?.at(route.option.train.to)||fit.projected||fit.t.arr;
+    const reported=pg?.data?.at(route.option.train.to);
+    currentTrainArrival=reported||fit.projected||fit.t.arr;
+    const boardKey=`${route.option.train.from}-${route.option.train.to}`;
+    const freshBoard=!!state.boardsAt&&now-state.boardsAt<3*60e3&&!(state.followFailedBoards||[]).includes(boardKey)&&!state.routeFailed?.[boardKey];
+    trainArrivalLive=!!reported||(!fit.t.timetable&&freshBoard);
   }
   if(reliable){
-    if(route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
-    else if(route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
+    if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
+    else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
     else if(route.phase==='on-train'&&!state.onLine&&
       ((route.direction==='office'&&state.atHub)||(route.direction==='home'&&nearlyHome())))phase='after-train';
   }
-  return {phase,currentTrainArrival,hasReliableLocation:reliable};
+  let activeConnection=false,readyAt;
+  if(route.direction==='home'&&route.mode==='commute'&&phase==='before-train'){
+    const ride=homeRide(now);
+    if(ride){const connection=C.tubeHomeConnections(ride.t,S(),state.saved.pace==='fast'?'fast':'avg');readyAt=C.readyAtFromConnection(connection.reach,connection.ready);activeConnection=true;}
+  }
+  let currentArrival=null,onwardFresh=false,onwardSource='';
+  if(phase==='after-train'&&route.mode==='commute'){
+    const pace=state.saved.pace==='fast'?'fast':'avg';
+    if(route.direction==='home'&&reliable&&state.here){
+      const e=C.nearlyHomeEta(now,state.here,null,state.saved.home||null,S().letExit*1000,
+        (pace==='fast'?S().walkStationHomeFast:S().walkStationHomeAvg)*1000,pace,PROFILE);
+      if('at' in e){currentArrival=e.at;onwardFresh=true;onwardSource='Walk from your current location';}
+    } else if(route.direction==='office'){
+      const ride=currentRide(now);
+      if(ride){
+        const leg=officeLeg(ride.hub,lineIdOf(ride.line))||officeLeg(ride.hub,'circle');
+        const live=leg?.stop==='Aldgate'&&state.ald&&now-state.ald.at<3*60e3?
+          state.ald.arrivals?.find(a=>a.vehicle&&a.vehicle===ride.vehicle):null;
+        if(leg){currentArrival=C.segmentArrival(live?live.t:ride.t,[...(live?[]:[{kind:'ride',secs:leg.rideMs/1000}]),{kind:'walk',secs:leg.tailMs/1000}]);
+          onwardFresh=true;onwardSource=live?'Live Tube arrival and measured onward walk':'Estimated Tube ride and measured onward walk';}
+      } else if(reliable&&nearOffice()){
+        currentArrival=C.segmentArrival(now,[{kind:'walk',secs:C.walkSecs(state.here,PROFILE.places.office,pace,PROFILE)}]);onwardFresh=true;onwardSource='Walk from your current location';
+      } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
+    }
+  }
+  return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,
+    hasReliableLocation:reliable&&(!state.onLine||phase==='on-train')};
 }
 function renderFollowPanel(){
   const panel=$('#followPanel');
   const route=C.restoreFollowRoute(state.saved.followRoute);
-  panel.hidden=!S().followRoute||!route;
-  if(panel.hidden){panel.innerHTML='';return;}
+  panel.hidden=!S().followRoute||!route||route.phase==='arrived';
+  if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
   // supplies the reachable alternatives without giving the shell a second planning algorithm.
@@ -117,25 +149,27 @@ function renderFollowPanel(){
   }
   const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
   const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
-    !(state.routeFailed&&state.routeFailed[selectedBoard]);
+    !(state.routeFailed&&state.routeFailed[selectedBoard])&&!(state.followFailedBoards||[]).includes(selectedBoard);
   const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation});
   state.followUpdate=result;
   if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
-  const r=result.route,t=r.lastTrain, alt=result.alternative,st=C.trainStatus(t);
-  const unknown=result.status==='cancelled'||(result.status==='unknown'&&result.level==='bad');
+  const r=result.route,t=r.lastTrain, alt=result.alternative,st=result.trainStatus;
+  const unknown=result.status==='missed'||result.status==='cancelled'||(result.status==='unknown'&&result.level==='bad');
   const notice=result.notice;
   const delta=result.deltaMin;
-  panel.innerHTML=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+  const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
     <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
     <div class="follow-status ${result.level}">${esc(result.text)}</div>
-    ${!dataFresh?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
+    ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
+    ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
     ${alt?`<div class="follow-alternative"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}${pills(alt.flags,true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
+  if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
 }
 function renderSignalStatus(){
@@ -143,6 +177,7 @@ function renderSignalStatus(){
   const failed=Object.keys(state.routeFailed||{}).map(k=>HUB_NAME[hubOfKey(k)]||k);
   const result=C.statusLine({errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
     tubeFallback:aldgateUnusable(),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+    statusUnavailable:!state.status?.length||!state.nrStatus?.length,
     planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'});
   if(!state.boards&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;

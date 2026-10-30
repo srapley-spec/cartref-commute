@@ -62,7 +62,7 @@ from that description.
 
 ## Signal presentation architecture (29 Oct 2026)
 
-Status: implementation in progress, behind Settings → Experimental. See [design system](design-system.md) and
+Status: behind Settings → Experimental; release verification pending. See [design system](design-system.md) and
 [acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
 
 ### Agreed by Sam
@@ -116,6 +116,13 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   does not stop tracking or hide an important alert about the followed journey.
 - New saved fields must be validated on restore, preserved when switching designs, and included in simulator
   reset/isolation: simulated following must not write to the real phone journey, and Stop restores its snapshot.
+- Signal live templates emit semantic block boundaries; `src/presentation-blocks.js` renders their existing
+  nodes in the engine-supplied canonical order without a second priority table or dropping unknown content.
+  Panda's feature-off layout remains unchanged. Signal draws the tested status summary and qualifies missing
+  live line-status evidence.
+- Following a caught Tube uses current connection readiness for rail catchability. After rail, fresh onward
+  Tube/walk evidence can revise the arrival with a visible reason without changing completed rail-step times.
+  Fresh Service Details arrival evidence remains authoritative even if departure boards are stale.
 - Following a Tube by a verified live vehicle remains a separate feed-reliability gate. Planned Tube legs or
   inferred existing Tube rides must not be presented as confirmed vehicle tracking.
 - Saved-state and build integration changes take the GitHub-first release path in `CLAUDE.md`. Independent
@@ -203,7 +210,7 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); implementation in progress behind an Experimental switch. Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (release verification pending). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.

@@ -1,5 +1,5 @@
 # Signal design system and automatic journey presentation
-Status: Implementation in progress (Experimental switch; release verification pending) · Since: 29 Oct 2026
+Status: Behind toggle (release verification pending) · Since: 29 Oct 2026
 
 ## Story
 As a commuter, I want the appropriate planning or live journey view to appear automatically, with a manual override, so I can act quickly without losing control or information.
@@ -39,10 +39,14 @@ Sam selected Signal after reviewing two iPhone-first mockups, requested dynamic 
   train status, correction controls, Aldgate platform planning, interchange timings and simulator survive.
 
 ## Tests
-Implementation verification is in progress. [Signal testing](../signal-testing.md) records the required evidence
+Production implementation is behind the switch; release verification is in progress. [Signal testing](../signal-testing.md) records the required evidence
 and hands-on morning checks; do not treat the standalone mockup as regression evidence.
 
-Before implementation acceptance: run existing engine/app/golden suites, typecheck, build and check-docs. Add focused UI coverage for automatic transitions, manual pinning, Return to Auto following the latest situation, state/focus preservation, no-active/uncertain identity and light/dark accessibility. Add tests for the three approved policies, including refresh/reopen persistence, the 20-minute boundary and situation-change expiry, interaction deferral and active-journey alert visibility while Planner is pinned. Test real iPhone, large text and VoiceOver. See specification for browser checks already performed on the mockup.
+Before release acceptance: run existing engine/app/golden suites, typecheck, build and check-docs on the committed
+implementation. Focused UI tests now cover automatic transitions, manual pinning, Return to Auto following the
+latest situation, state/focus preservation, no-active/uncertain identity, persistence, exact expiry, interaction
+deferral and alert visibility while planning is pinned. Run the production-browser layout/theme checks; real
+iPhone Safari and VoiceOver remain hardware acceptance. See [verification](../signal-testing.md).
 
 - tests/core/viewControl.test.mjs: "view control: planning pins the selected question without changing the live situation or deadline"
 - tests/core/viewControl.test.mjs: "view control: manual choice expires at exactly twenty minutes and immediately on a changed situation"
@@ -50,3 +54,13 @@ Before implementation acceptance: run existing engine/app/golden suites, typeche
 - tests/core/viewControl.test.mjs: "view control: requesting Live without an active journey is explicit and never fabricates a service"
 - tests/core/viewControl.test.mjs: "view control: automatic transitions wait during editing, selection or notice reading and then catch up"
 - tests/core/viewControl.test.mjs: "view control: malformed or future saved overrides cannot trap the app in a pinned view"
+
+- tests/signal.test.mjs: "Signal off preserves the default design and keeps new controls hidden"
+- tests/signal.test.mjs: "Signal uses identical journey content and requests to Panda when following is off"
+- tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
+- tests/signal.test.mjs: "manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation"
+- tests/signal.test.mjs: "planning override expires exactly at twenty minutes and on a reliable situation change"
+- tests/signal.test.mjs: "GPS loss does not expire a planning pin or clear a confirmed train"
+- tests/signal.test.mjs: "expanded journey steps defer navigation and keep disclosure and focus through refresh"
+- tests/signal.test.mjs: "appearance and design settings persist independently of journey state"
+- tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"

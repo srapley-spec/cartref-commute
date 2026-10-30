@@ -35,6 +35,8 @@ export function callsText(t: Train, profile?: Profile): string {
 }
 
 const total = (segs: Segment[]): number => segs.reduce((s, x) => s + x.secs, 0) * 1000;
+/** Arrival after supplied route segments, from an observed or planned start instant. */
+export const segmentArrival = (start: number, segments: Segment[]): number => start + total(segments);
 /** Time from leaving to standing on the platform (ms). */
 export const timeToTrain = (r: Route): number => total(r.before);
 /** Time from stepping off the train to arriving (ms). */

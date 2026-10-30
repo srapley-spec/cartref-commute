@@ -24,7 +24,7 @@ test("view control: manual choice expires at exactly twenty minutes and immediat
   assert.equal(resolve({ override, now: now + 20 * MIN - 1 }).mode, "plan");
   const expired = resolve({ override, now: now + 20 * MIN });
   assert.equal(expired.mode, "auto"); assert.equal(expired.override, null); assert.equal(expired.view, "on-train");
-  assert.equal(resolve({ override, situationKey: "office:at-hub", auto: presentation("at-hub") }).view, "at-hub");
+  assert.equal(resolve({ override, situationKey: "office:at-hub", auto: presentation("at-hub"), live: presentation("at-hub") }).view, "at-hub");
   assert.equal(resolve({ override, situationKey: "home:on-train" }).override, null, "direction change is a new situation");
 });
 
@@ -111,4 +111,56 @@ test("view control: returned block arrays are independent of both input and cano
   const i = input(), shown = core.resolveViewControl(i);
   shown.blocks.splice(0);
   assert.ok(i.auto.blocks.length); assert.ok(core.BLOCKS["on-train"].length);
+});
+
+test("view control: a followed route at the origin is an active journey in Auto and explicit Live", () => {
+  for (const override of [null, pin("live")]) {
+    const shown = resolve({ override, auto: presentation("plan-now"), live: presentation("plan-now"),
+      hasActiveJourney: false, hasFollowedJourney: true });
+    assert.equal(shown.view, "following"); assert.equal(shown.noActiveJourney, false);
+    assert.deepEqual(shown.blocks, ["label", "headline", "which", "progress", "then", "lines", "source"]);
+    assert.equal(core.headlineKind(shown.view, { atStation: false, onWay: false }), "arrive");
+  }
+});
+
+test("view control: following retains inferred live context and an applicable arrival deadline", () => {
+  const live = resolve({ hasFollowedJourney: true, override: pin("live") });
+  assert.equal(live.view, "on-train");
+  const automatic = resolve({ hasFollowedJourney: true, auto: presentation("on-train", true) });
+  assert.equal(automatic.view, "on-train"); assert.equal(automatic.underWay, true);
+});
+
+test("view control: planning remains available while following and resuming Auto reveals the chosen journey", () => {
+  const origin = { auto: presentation("plan-now"), live: null, hasFollowedJourney: true };
+  const planning = resolve({ ...origin, override: pin(), plan: "by" });
+  assert.equal(planning.view, "plan-by"); assert.equal(planning.mode, "plan");
+  assert.equal(planning.noActiveJourney, false);
+  const resumed = resolve({ ...origin, override: null });
+  assert.equal(resumed.view, "following"); assert.equal(resumed.mode, "auto");
+});
+
+test("view control: a saved followed journey survives location loss without inventing train identity", () => {
+  for (const override of [null, pin("live")]) {
+    const shown = resolve({ override, hasFollowedJourney: true, auto: presentation("awaiting-location"), live: null });
+    assert.equal(shown.view, "following"); assert.equal(shown.noActiveJourney, false);
+  }
+  assert.equal(resolve({ override: pin(), hasFollowedJourney: true, auto: presentation("awaiting-location"), live: null }).view,
+    "awaiting-location", "manual planning still needs a known starting direction");
+});
+
+test("view control: the automatic transition to following waits while a planning interaction is active", () => {
+  const shown = resolve({ hasFollowedJourney: true, hasActiveJourney: false, live: null,
+    auto: presentation("plan-now"), previous: presentation("plan-by"), interacting: true });
+  assert.equal(shown.view, "plan-by"); assert.equal(shown.pending, true); assert.equal(shown.noActiveJourney, false);
+});
+
+test("view control: an expired planning pin returns to current Live even when the saved question is Arrive by", () => {
+  for (const hasFollowedJourney of [false,true]) {
+    const shown = resolve({ override: pin("plan",now-20*MIN), auto:presentation("plan-by"),
+      live:presentation("on-train"), plan:"by", hasFollowedJourney });
+    assert.equal(shown.mode,"auto");assert.equal(shown.override,null);assert.equal(shown.view,"on-train");
+  }
+  const station=resolve({ auto:presentation("plan-at"),live:presentation("plan-now"),hasActiveJourney:true,plan:"at" });
+  assert.equal(station.view,"plan-now","station departures are the current live view");
+  assert.equal(resolve({ auto:presentation("on-train",true),live:presentation("on-train") }).underWay,true);
 });

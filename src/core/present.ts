@@ -12,6 +12,7 @@ import type { Effort } from "./types";
 export type View =
   | "awaiting-location"   // Auto direction, no fix yet (or denied): nothing can be planned
   | "plan-now" | "plan-by" | "plan-at"
+  | "following"           // a chosen route exists, without inventing a current train or location
   | "on-train"            // on the line between home and London, which train worked out or asked
   | "at-hub"              // at a London station going to work: the tube connection
   | "on-tube"             // on the tube to work
@@ -84,6 +85,7 @@ export const BLOCKS: Record<View, Block[]> = {
   "plan-now": ["label", "way", "headline", "options", "right-now", "hurry", "tubes-home", "lines", "board", "why", "source"],
   "plan-by": ["label", "headline", "options", "hurry", "lines", "board", "why", "source"],
   "plan-at": ["label", "headline", "options", "lines", "board", "why", "source"],
+  "following": ["label", "headline", "which", "progress", "then", "lines", "source"],
   "on-train": ["label", "headline", "which", "progress", "then", "lines", "source"],
   "at-hub": ["label", "headline", "which", "then", "lines", "board"],
   "on-tube": ["label", "headline", "which", "then", "lines"],
@@ -116,6 +118,8 @@ export interface StatusInput {
   planLater: boolean;
   demo: boolean;
   timetableOnly: boolean;
+  /** One or more required live line/operator status responses are absent or unusable. */
+  statusUnavailable?: boolean;
 }
 export interface StatusLine { level: StatusLevel; text: string; detail: string[]; }
 
@@ -144,6 +148,7 @@ export function statusLine(i: StatusInput): StatusLine {
   for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${l.statuses[0] ? worstDesc(l) : "status unknown"}`);
   if (i.demo) detail.push("example data");
   if (i.timetableOnly) detail.push("timetable, not live");
+  if (i.statusUnavailable) detail.push("live line status unavailable");
 
   if (i.errors.length) return { level: "bad", text: i.errors[0], detail };
   if (i.notLoaded.length) return { level: "bad", text: `${i.notLoaded.join(" and ")} trains not loaded`, detail };
@@ -159,6 +164,7 @@ export function statusLine(i: StatusInput): StatusLine {
   if (t && t.onRoute.length) return { level: "note", text: `${n(t.onRoute.length, "notice")} on your route, no train affected yet`, detail };
   if (i.demo) return { level: "info", text: "Example trains", detail };
   if (i.timetableOnly) return { level: "info", text: "Timetable times, not live", detail };
+  if (i.statusUnavailable) return { level: "info", text: "Live line status unavailable", detail };
   return { level: "ok", text: "Good service on your lines", detail };
 }
 

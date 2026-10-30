@@ -110,3 +110,13 @@ test('corrupt view persistence is ignored without changing existing saved prefer
   assert.equal(a.c.state.presentation.mode,'auto');assert.equal(a.c.state.saved.pace,'fast');
   assert.deepEqual(a.errors,[]);a.close();
 });
+
+test('unchanged followed-route refresh preserves the existing disclosure and action nodes',async()=>{
+  const a=await app({signal:true,followRoute:true});
+  a.d.querySelector('[data-follow]:not([disabled])').click();
+  const action=a.d.querySelector('[data-follow-action="stop"]'),detail=a.d.querySelector('#followPanel details');
+  detail.open=true;a.c.render();
+  assert.equal(a.d.querySelector('[data-follow-action="stop"]'),action);
+  assert.equal(a.d.querySelector('#followPanel details'),detail);assert.equal(detail.open,true);
+  assert.deepEqual(a.errors,[]);a.close();
+});

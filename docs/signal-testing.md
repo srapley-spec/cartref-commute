@@ -1,6 +1,7 @@
 # Signal and Follow a route: verification and morning checks
 
-Status: implementation and independent review in progress. This is a test plan and handoff, not release approval.
+Status: behind Experimental switches; release verification and final independent review pending. This record is
+a test plan and handoff, not release approval.
 
 ## Starting point
 
@@ -67,6 +68,33 @@ number of tests is not a substitute for checking the paths below.
 Saved-state and build integration changes require GitHub green on the branch before merging (`CLAUDE.md`).
 Check latest main is green, bring it into the implementation branch, reread changed stories and rerun the full
 checks. After merge, verify Tests and Pages deployment for the exact merged commit before saying Signal is live.
+
+## Implemented test coverage and browser evidence
+
+The implementation now includes focused suites in addition to the existing engine, application, golden and
+simulator tests:
+
+| Suite | Main evidence |
+| --- | --- |
+| `tests/core/follow.test.mjs` | Immutable chosen itinerary, service matching/date/boarding identity, explained ETA changes, cancellation/recovery, 5-minute alternatives, stale data and persistence validation |
+| `tests/core/viewControl.test.mjs` | Pure Plan/Live resolution, exact 20-minute expiry, situation change, interaction deferral, no-active state and malformed overrides |
+| `tests/follow.test.mjs` | Real page controls, immediate persistence, live updates, correction, design/reload preservation and simulator isolation |
+| `tests/signal.test.mjs` | Feature-off compatibility, semantic/request parity, status-summary precedence, manual views, expiry, GPS loss, focus/disclosure and appearance |
+| `tests/presentation-ui.test.mjs` | Actual live-template block boundaries consume engine order; reordering retains content, listeners, disclosures and focus |
+| `tests/follow-journey-review.test.mjs` | Caught Tube→chosen rail continuity, final-walk context, uncertain missed arrival, arrival-based status, unavailable line data, Leisure destination and fresh Service Details with stale boards |
+| `tests/independent-signal-review.test.mjs` | Independent probes for immediate save, stale evidence, route stability, uncertain boarding, active chosen journey, source isolation and pinned cancellation alert |
+
+`tests/browser-signal.py` has passed on an earlier integration snapshot: Chromium rendered 12 System/appearance/
+width combinations (two system themes × System/Light/Dark × two phone widths), plus a 320 px enlarged-text stress
+case. It exercised saved appearance/route persistence, engine parity, manual views, simulator entry/exit and
+returning to Panda, with no page errors. The final committed implementation must rerun this script after the
+latest review fixes; this earlier pass is not final release evidence. Light/dark screenshots are produced by the
+script for inspection. Chromium coverage does not replace Safari/iPhone/VoiceOver acceptance.
+
+Canonical block rendering now closes the old Signal live-order coverage gap: tests mutate the engine order and
+check that the actual rendered DOM follows it. Panda retains its existing feature-off content. Full CI results,
+reviewed commit and mutation review evidence must be recorded after final verification; independent reviewers'
+separate evidence documents are authoritative for their findings.
 
 ## Morning test sequence
 

@@ -1,6 +1,6 @@
 # Cartref — Signal design system
 
-Signal selected by Sam, 29 October 2026; production implementation in progress behind Settings → Experimental. iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
+Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (release verification pending). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Signal selected by Sam, 29 October 2026; production implementation in progress b
 - [Semantic tokens](design/signal-tokens.json)
 - [Independent review and resolution notes](design/review.md)
 
-The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. No production code changes are included.
+The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
 ## Evidence and scope
 

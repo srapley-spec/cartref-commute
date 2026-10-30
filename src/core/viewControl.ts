@@ -15,6 +15,8 @@ export interface ViewControlInput {
   live: Presentation | null;
   /** Station/on-the-way departure boards use plan-now geometry but are active live situations. */
   hasActiveJourney?: boolean;
+  /** A validated chosen route is active evidence even before a train/Tube can be inferred. */
+  hasFollowedJourney?: boolean;
   plan: "now" | "by" | "at";
   override?: unknown;
   now: number;
@@ -60,13 +62,24 @@ export function resolveViewControl(i: ViewControlInput): ViewControlResult {
   const mode = override?.mode ?? "auto";
   let desired = i.auto;
   let noActiveJourney = false;
+  const available = i.hasActiveJourney ?? isLive(i.live);
+  const currentLive = available && i.live && i.live.view !== "awaiting-location" ? i.live : null;
+  const following: Presentation = { view: "following", underWay: false, blocks: BLOCKS.following };
+  // Once a manual planning pin expires, an old planning question must not keep hiding the actual
+  // live situation. Retain a current arrival-deadline verdict when the existing model supplies one.
+  if (mode === "auto" && currentLive && !i.auto.underWay) desired = currentLive;
+  if (mode === "auto" && i.hasFollowedJourney) {
+    // Retain a richer inferred view and any current deadline verdict. At the origin, render the
+    // chosen route instead of pretending that no journey exists or that a particular train is boarded.
+    desired = isLive(i.auto) ? i.auto : currentLive ?? following;
+  }
   if (mode === "plan") {
     // Manual planning cannot invent a direction when location has not established one.
     const view = i.auto.view === "awaiting-location" ? "awaiting-location" : planViews[i.plan];
     desired = { view, underWay: false, blocks: BLOCKS[view] };
   } else if (mode === "live") {
-    const available = i.hasActiveJourney ?? isLive(i.live);
-    if (available && i.live && i.live.view !== "awaiting-location") desired = i.live;
+    if (currentLive) desired = currentLive;
+    else if (i.hasFollowedJourney) desired = following;
     else {
       noActiveJourney = true;
       const view = i.auto.view === "awaiting-location" ? "awaiting-location" : "plan-now";

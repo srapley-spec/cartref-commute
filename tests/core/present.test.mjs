@@ -148,3 +148,16 @@ test("wayLevel: on your way, green with 3+ min to spare at your pace; amber when
   assert.equal(core.wayLevel(0, "fast"), "bad");
   for (const e of ["run", "car", "none"]) assert.equal(core.wayLevel(10, e), "bad", `${e}: more than a fast walk`);
 });
+
+test("statusLine: missing required status never claims good service and cannot hide a train problem", () => {
+  const unavailable = line({ tubeLines: [], operators: [], statusUnavailable: true });
+  assert.equal(unavailable.level, "info"); assert.equal(unavailable.text, "Live line status unavailable");
+  assert.ok(unavailable.detail.includes("live line status unavailable"));
+  assert.equal(line({ statusUnavailable: false }).level, "ok");
+  assert.match(line({ statusUnavailable: true, tiers: tiers([tr({ cancelled: true })]) }).text, /cancelled/);
+  assert.match(line({ statusUnavailable: true, tiers: tiers([tr({ depLate: 6 })]) }).text, /6 min/);
+  assert.match(line({ statusUnavailable: true, stale: true }).text, /out of date/);
+  assert.equal(line({ statusUnavailable: true, errors: ["Feed refused"] }).text, "Feed refused");
+  assert.equal(line({ statusUnavailable: true, timetableOnly: true }).text, "Timetable times, not live");
+  assert.equal(line({ statusUnavailable: true, demo: true }).text, "Example trains");
+});

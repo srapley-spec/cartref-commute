@@ -3,6 +3,7 @@
 import type { Direction, Option, Train } from './types';
 import type { Leg } from './journey';
 import { hhmm } from './time';
+import { arrivalStatus, trainStatus, type TrainStatus } from './rules';
 
 const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
@@ -21,20 +22,39 @@ export interface FollowInput {
   now: number; options: Option[]; dataFresh?: boolean; phase?: FollowPhase;
   /** Existing Service Details/connection engine's door-to-door arrival, when available. */
   currentArrival?: number | null;
+  /** Fresh onward GPS/vehicle observations are independent of the old rail board's age. */
+  onwardFresh?: boolean;
   /** Expected rail-stop time from Service Details; original onward segments supply the tail. */
   currentTrainArrival?: number | null;
+  /** True only for a fresh live rail-stop report, not a position-derived timetable projection. */
+  trainArrivalLive?: boolean;
   /** Already graded/ranked alternatives; options above retain departed/cancelled chosen services. */
   availableOptions?: Option[];
+  /** Rail-ready instants from the existing connection engine, keyed by boarding hub. */
+  readyAt?: Record<string, number>;
+  /** Already riding an approach leg: do not plan the office/home walk again. */
+  activeConnection?: boolean;
+  /** Optional current-connection steps already timed by the existing connection engine. */
+  connectionSteps?: Record<string, Leg[]>;
   /** A missing/rough location must not turn a vanished departure into a missed connection. */
   hasReliableLocation?: boolean;
 }
 export interface FollowUpdate {
   route: FollowRoute; status: 'on-track' | 'hurry' | 'missed' | 'cancelled' | 'unknown' | 'arrived';
   level: 'ok' | 'warn' | 'bad' | 'info'; text: string; nextStep: Leg | null;
-  notice: FollowNotice | null; alternative: Option | null; deltaMin: number | null;
+  notice: FollowNotice | null; alternative: Option | null; deltaMin: number | null; trainStatus: TrainStatus | null;
 }
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const record = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+/** Convert an existing connection model's arrival + interchange allowance into rail-ready instants. */
+export function readyAtFromConnection(reach: Record<string, number>, ready: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const hub of Object.keys(reach)) {
+    const allowance = ready[hub] ?? 0;
+    if (finite(reach[hub]) && finite(allowance) && allowance >= 0) result[hub] = reach[hub] + allowance;
+  }
+  return result;
+}
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const day = (t: Train): string => new Date(t.dep - (t.depLate || 0) * MIN).toISOString().slice(0, 10);
 /** Expected departure can move; the scheduled service and selected boarding point cannot. */
@@ -91,8 +111,25 @@ export function dismissFollowAlternative(route: FollowRoute, option: Option): Fo
 function legsFor(route: FollowRoute): Leg[] {
   const before = route.option.train, after = route.lastTrain;
   const departureShift = after.dep - before.dep;
-  const arrivalShift = route.expectedArrival - route.plannedArrival;
-  return (route.option.legs as Leg[]).map(l => ({ ...l, t: l.t == null ? null : l.train ? l.t + departureShift : l.t >= (before.arr as number) ? l.t + arrivalShift : l.t }));
+  const railShift = finite(after.arr) ? after.arr - (before.arr as number) : route.expectedArrival - route.plannedArrival;
+  const source = route.option.legs as Leg[];
+  const lastTimed = source.reduce((last, leg, index) => leg.t != null && !leg.calls ? index : last, -1);
+  return source.map((leg, index) => {
+    const l = { ...leg };
+    if (l.train) {
+      l.t = l.t == null ? null : l.t + departureShift;
+      // Keep the scheduled service name; refresh factual expected time and platform only.
+      const base = l.d.replace(/\s*\(exp \d\d:\d\d\)/, '');
+      if (base.startsWith(before.std)) l.d = `${before.std}${hhmm(after.dep) !== before.std ? ` (exp ${hhmm(after.dep)})` : ''}${base.slice(before.std.length)}`;
+      const platform = after.platform ? `platform ${after.platform}` : 'platform unannounced';
+      l.note = /\bplatform\s+[^,·]+/i.test(l.note || '') ? (l.note || '').replace(/\bplatform\s+[^,·]+/i, platform)
+        : [l.note, platform].filter(Boolean).join(', ');
+    } else if (l.t != null && l.t >= (before.arr as number)) {
+      // A slower final walk changes its arrival, never the completed rail arrival/interchange history.
+      l.t = index === lastTimed && l.t > (before.arr as number) ? route.expectedArrival : l.t + railShift;
+    }
+    return l;
+  });
 }
 /** The full saved itinerary, with observed rail changes reflected without replanning its walks/tube. */
 export const followedLegs = (route: FollowRoute): Leg[] => legsFor(route);
@@ -103,8 +140,18 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   const order: FollowPhase[] = ['before-train', 'on-train', 'after-train', 'arrived'];
   route.phase = order[Math.max(order.indexOf(route.phase), order.indexOf(phase))];
   const fresh = input.dataFresh !== false;
-  const suppliedArrival = finite(input.currentTrainArrival) ? input.currentTrainArrival + (route.plannedArrival - (route.option.train.arr as number)) : input.currentArrival;
-  const selected = fresh ? input.options.find(o => sameService(o, route.option)) : undefined;
+  const onward = route.phase === 'after-train' || route.phase === 'arrived';
+  const suppliedArrival = !onward && finite(input.currentTrainArrival) ? input.currentTrainArrival + (route.plannedArrival - (route.option.train.arr as number)) : input.currentArrival;
+  const connectionReady = input.readyAt?.[route.option.hub];
+  const connectionKnown = !!input.activeConnection && finite(connectionReady);
+  const liveRailReport = route.phase === 'on-train' && input.trainArrivalLive === true && finite(input.currentTrainArrival);
+  const arrivalFresh = fresh || liveRailReport;
+  const sourceSelected = fresh ? input.options.find(o => sameService(o, route.option)) : undefined;
+  const reportedTrain = (train: Train): Train => liveRailReport ? { ...train, arr: input.currentTrainArrival as number,
+    arrLate: Math.round(((input.currentTrainArrival as number) - ((route.option.train.arr as number) - route.option.train.arrLate * MIN)) / MIN),
+    cancelled: false, depUnknown: false, arrUnknown: false } : train;
+  const selected = sourceSelected ? { ...sourceSelected, train: reportedTrain(sourceSelected.train) } : undefined;
+  if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
   let status: FollowUpdate['status'] = 'on-track', level: FollowUpdate['level'] = 'ok', text = 'On track';
   const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number) => {
     const id = `${route.id}|${kind}|${key}`;
@@ -113,7 +160,14 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
       route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...(deltaMin != null ? { deltaMin } : {}) }].slice(-100);
     }
   };
-  if (selected) {
+  if (onward) {
+    // Completed rail is history. Only current onward observations may change the final walk/tube ETA.
+    if ((input.onwardFresh ?? fresh) && finite(suppliedArrival) && suppliedArrival !== previous.expectedArrival) {
+      const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
+      if(Math.floor(suppliedArrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(suppliedArrival), `Your onward journey has changed; arriving ${hhmm(suppliedArrival)}`, delta);
+      route.expectedArrival = suppliedArrival;
+    }
+  } else if (selected) {
     route.lastTrain = clone(selected.train);
     if (selected.train.platform !== previous.lastTrain.platform && selected.train.platform) addNotice('platform', selected.train.platform, `Your train now leaves from platform ${selected.train.platform}`);
     if (selected.train.cancelled) {
@@ -127,44 +181,72 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
       if (arrival !== previous.expectedArrival) {
         const delta = Math.round((arrival - previous.expectedArrival) / MIN);
         const late = Math.max(selected.train.depLate, selected.train.arrLate);
-        const reason = delta > 0 ? `Your train${late > 0 ? ` is ${late} min late` : ' is running later'}; arriving ${hhmm(arrival)}` : `Your train is running earlier; arriving ${hhmm(arrival)}`;
-        addNotice('arrival', String(arrival), reason, delta); route.expectedArrival = arrival;
+        const reason = arrival > previous.expectedArrival ? `Your train${late > 0 ? ` is ${late} min late` : ' is running later'}; arriving ${hhmm(arrival)}` : `Your train is running earlier; arriving ${hhmm(arrival)}`;
+        if(Math.floor(arrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(arrival), reason, delta); route.expectedArrival = arrival;
       }
     }
-  } else if (fresh && finite(suppliedArrival)) {
+  } else if (arrivalFresh && finite(suppliedArrival)) {
     if (suppliedArrival !== previous.expectedArrival) {
       const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
-      addNotice('arrival', String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
+      if(Math.floor(suppliedArrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
       route.expectedArrival = suppliedArrival;
     }
   } else { level = 'info'; text = 'Last known journey · waiting for fresh data'; }
   if (route.phase === 'arrived') { status = 'arrived'; level = 'ok'; text = 'Arrived'; }
-  else if (route.phase === 'before-train' && status === 'on-track' && input.hasReliableLocation !== false && fresh) {
-    const missed = selected ? selected.missed || ['none', 'run', 'car'].includes(selected.effort || '') || (selected.train.dep < input.now)
-      : route.lastTrain.dep < input.now;
+  else if (route.phase === 'before-train' && status === 'on-track' && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
+    const departure = selected?.train.dep ?? route.lastTrain.dep;
+    const missed = input.activeConnection ? connectionKnown && connectionReady! > departure
+      : selected ? selected.missed || ['none', 'run', 'car'].includes(selected.effort || '') || departure < input.now : departure < input.now;
     if (missed) {
       status = 'missed'; level = 'bad'; text = `You can no longer make your ${route.option.train.std}`;
       addNotice('missed', 'missed', text);
-    } else if (selected?.effort === 'fast') { status = 'hurry'; level = 'warn'; text = 'Behind · fast walk needed'; }
+    } else if (connectionKnown) {
+      const spare = Math.floor(((selected?.train.dep ?? route.lastTrain.dep) - connectionReady!) / MIN);
+      text = spare > 0 ? `On track · ${spare} min at your connection` : 'On track · connection is tight';
+    } else if (!input.activeConnection && selected?.effort === 'fast') { status = 'hurry'; level = 'warn'; text = 'Behind · fast walk needed'; }
     else if (selected) {
       const spare = Math.floor((selected.leave - input.now) / MIN);
       text = spare > 0 ? `On track · ${spare} min to spare` : 'On track';
     }
   }
-  if (route.phase === 'before-train' && input.hasReliableLocation === false && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Location unavailable · keeping your chosen journey'; }
+  if (route.phase === 'before-train' && input.activeConnection && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Checking your connection · keeping your chosen journey'; }
+  if (route.phase === 'before-train' && input.hasReliableLocation === false && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Location unavailable · keeping your chosen journey'; }
   // Alternatives always come from the normal engine. Never invent a departure or bypass its effort checks.
   const recovery = status === 'missed' || status === 'cancelled' || (status === 'unknown' && level === 'bad') || route.lastTrain.arrLate >= 15;
-  const alternative = route.phase !== 'arrived' && fresh ? (input.availableOptions || input.options).filter(o => !sameService(o, route.option)
-    && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && !o.missed
-    && (o.effort ? ['walk', 'fast'].includes(o.effort) : o.leave >= input.now)
+  const candidate = !onward && route.phase !== 'on-train' && fresh ? (input.availableOptions || input.options).filter(o => !sameService(o, route.option)
+    && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain
+    && (input.activeConnection ? finite(input.readyAt?.[o.hub]) && o.train.dep >= input.readyAt![o.hub]
+      : !o.missed && (o.effort ? ['walk', 'fast'].includes(o.effort) : o.leave >= input.now))
     && o.train.dep >= input.now && !route.dismissedAlternatives.includes(followServiceKey(o))
     && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN))
     .sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null : null;
+  let alternative = candidate;
+  if (candidate && input.activeConnection) {
+    const ready = input.readyAt![candidate.hub];
+    const sourceLegs = candidate.legs as Leg[];
+    const railIndex = sourceLegs.findIndex(l => l.train);
+    const onwardLegs = railIndex >= 0 ? sourceLegs.slice(railIndex) : sourceLegs.filter(l => l.t != null && l.t >= candidate.train.dep);
+    const approach = input.connectionSteps?.[candidate.hub] || [{ t: ready, d: 'Ready at the rail platform', note: 'From your current connection' }];
+    alternative = { ...candidate, leave: input.now, leaveBy: input.now, effort: 'walk', missed: false, firstAt: undefined, offer: false,
+      flags: candidate.flags.filter(f => !/^(Fast walk|Run$|Car needed|Can't make it|Leave time passed|Leaving in under a minute|Arrives first)/.test(f.txt)),
+      before: [], access: { walk: 0, walkAvg: 0, walkFast: 0, fixed: Math.max(0, ready - input.now) / 1000, home: false },
+      legs: [...approach, ...onwardLegs] };
+  }
+  let railStatus: TrainStatus | null = null;
+  if (!onward && (fresh || input.trainArrivalLive)) {
+    const t = route.lastTrain;
+    if (route.phase !== 'on-train' || t.cancelled || t.depUnknown || t.arrUnknown || t.arr == null) {
+      railStatus = t.arr == null && !t.cancelled ? { level: 'bad', text: 'No estimate' } : trainStatus(t);
+    } else if ((!t.timetable && !t.derived && !t.estimated) || input.trainArrivalLive) {
+      const expected = finite(input.currentTrainArrival) ? input.currentTrainArrival : t.arr as number;
+      railStatus = arrivalStatus(expected, (route.option.train.arr as number) - route.option.train.arrLate * MIN);
+    }
+  }
   const legs = legsFor(route).filter(l => l.t != null && !l.calls);
   const nextStep = route.phase === 'arrived' ? null : route.phase === 'before-train'
-    ? legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null
+    ? (input.activeConnection ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null
     : legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null;
-  return { route, status, level, text, nextStep, notice: route.notices[0] || null, alternative,
+  return { route, status, level, text, nextStep, trainStatus: railStatus, notice: route.notices[0] || null, alternative,
     deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null };
 }
