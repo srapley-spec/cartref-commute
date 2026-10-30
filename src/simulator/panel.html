@@ -13,7 +13,9 @@
 <option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate East</option><option value="office">Office</option>
 </select>
 <label for="simDirection">Playback direction</label><select id="simDirection"><option value="outbound">Letchworth → office</option><option value="return">Office → Letchworth</option></select>
-<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Play journey</button><button type="button" id="simPause">Pause</button></div>
+<label for="simPath">Rail route</label><select id="simPath"><option value="kgx">Great Northern → King’s Cross → Metropolitan</option><option value="far">Thameslink → Farringdon → Underground</option></select>
+<div class="simRow"><button type="button" id="simJump">Jump</button><button type="button" id="simPlay">Restart at first waypoint</button><button type="button" id="simContinue">Continue to next waypoint</button><button type="button" id="simPause">Pause now</button></div>
+<strong id="simCheckpoint" aria-live="polite">Not started</strong>
 <label for="simLat">Latitude</label><input type="number" step="any" id="simLat" value="51.98002">
 <label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
 <div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
