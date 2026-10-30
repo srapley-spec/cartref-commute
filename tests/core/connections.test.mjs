@@ -112,3 +112,10 @@ test("The platform board: a tube's place (1 = next) among those still shown, and
   assert.equal(core.boardMins(59.9e3), "due"); assert.equal(core.boardMins(0), "due"); assert.equal(core.boardMins(-20e3), "due");
   assert.equal(core.boardMins(60e3), "1 min"); assert.equal(core.boardMins(179e3), "2 min"); assert.equal(core.boardMins(180e3), "3 min");
 });
+
+test("On the tube the board is gone: a tube that left is told by how long ago (rounded down); platform numbers from TfL's names", () => {
+  assert.equal(core.leftAgo(-20e3), "leaving now"); assert.equal(core.leftAgo(0), "just left"); assert.equal(core.leftAgo(59.9e3), "just left");
+  assert.equal(core.leftAgo(60e3), "left 1 min ago"); assert.equal(core.leftAgo(4.9 * 60e3), "left 4 min ago");
+  assert.equal(core.platformNo("Westbound - Platform 3"), "3"); assert.equal(core.platformNo("Eastbound - Platform 2"), "2");
+  assert.equal(core.platformNo("Westbound"), null); assert.equal(core.platformNo(""), null); assert.equal(core.platformNo(undefined), null);
+});

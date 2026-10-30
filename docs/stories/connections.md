@@ -17,7 +17,8 @@ All fixed and tested. Going home now uses the same model (see [tube-home](tube-h
 yellow, Met magenta), as the line chips in the list already are.
 30 Oct: Sam asked that tubes you pick be identified by their order on the platform's dot-matrix board and minutes
 until arrival, "the only real way to identify them that a user has access to"; clock times like "08:42 Met" aren't
-on the board.
+on the board. Once on the tube, "left 4 min ago" works (Sam). Aldgate has a single combined list as well as
+per-platform boards, and each train's countdown is unique (Sam).
 30 Oct morning, measured best case (Friday, quiet, front of the train, platform 6): stepping off the train to the
 subsurface platform took 3 min 05 s (log: [`data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md`](../../data/interchanges/2026-10-30-kings-cross-to-sub-surface-lines.md)).
 **The model was not changed to 185 s**, because the walk here counts from "arrived": the first fix within 400 m of
@@ -42,9 +43,13 @@ about 10 s. Options for using the measurement are with Sam (see "Open").
   isn't offered. A pick earlier than we'd expect you can reach is said ("tight"), not overruled.
 - "Which one are you getting?" (King's Cross, Farringdon) reads like the platform's dot-matrix board, the only
   way to tell tubes apart on the platform: place on the board (1 = next, among the eastbound tubes still shown,
-  i.e. leaving no more than 30 s ago), the line in its colour, destination ("(Circle Line)" dropped), and minutes,
-  rounded down, "due" under a minute, ticking every second. Up to 4, in board order. The board's own rounding
-  (down vs nearest, when "due" shows) is unverified: Sam to compare on the platform.
+  i.e. leaving no more than 30 s ago), the line in its colour, destination (a "(… Line)" suffix dropped), and
+  minutes, rounded down, "due" under a minute, ticking every second. The first 4 you could pick, in board order.
+  When they're on more than one platform, each says "Platform N:" first. The board's own rounding (down vs
+  nearest, when "due" shows) is unverified: Sam to compare on the platform.
+- Once you're on the tube the board is gone: "On a different tube?" buttons say the line (coloured), destination
+  and how long ago it left ("left 4 min ago", rounded down; "just left" under a minute; "leaving now" if due in
+  the next 30 s), ticking (Sam, 30 Oct). Going home the same.
 - Once it leaves you're on it until within 300 m of your stop, or 10 minutes after the ride time; passing stations
   (e.g. Farringdon) or a stray fix don't end it or change which station you arrived at. A ride clears the pick.
 - "Did you get it?" only on a good (≤50 m), fresh (≤1 min) fix within the station's radius, 3+ minutes after it
@@ -78,6 +83,7 @@ about 10 s. Options for using the measurement are with Sam (see "Open").
 - tests/app.test.mjs: "At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)"
 - tests/app.test.mjs: "At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes"
 - tests/core/connections.test.mjs: "The platform board: a tube's place (1 = next) among those still shown, and its minutes rounded down; under 1 is 'due'"
+- tests/core/connections.test.mjs: "On the tube the board is gone: a tube that left is told by how long ago (rounded down); platform numbers from TfL's names"
 - tests/app.test.mjs: "At King's Cross without live tube times: says so and estimates"
 - tests/app.test.mjs: "On the tube: works out which one from when you left King's Cross and follows it to Aldgate"
 - tests/rules.test.mjs: "On the tube: within 25 min of the station, a tube has left, and either you've left the station or the fix is over 90 s old"

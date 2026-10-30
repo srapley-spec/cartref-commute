@@ -822,7 +822,7 @@ test("Review: tapping a tube that's leaving now makes it your ride; picks expire
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Met"]').click();
   await app.fix(51.5260, -0.1110, 30, t0 + 3 * MIN);                // between stations
   assert.match(app.text("#hero"), /You're on the 07:52 Met · you picked this/);
-  assert.match(app.text("#hero"), /On a different tube\?.*07:50 Circle/);
+  assert.match(app.text("#hero"), /On a different tube\?\s*Circle Aldgate · left 2 min ago/, "the board is gone: told by how long ago it left");
   // Tapping a tube that has already left: it's your ride, confirmed.
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 0.4 * MIN) + '|Circle"]').click();
   assert.equal(c.state.saved.tubeRide.vehicle, "c0"); assert.equal(c.state.saved.tubeRide.confirmed, true);
@@ -1105,6 +1105,8 @@ test("Going home 2: 'On a different tube?' switches you to one that has left; af
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
   app.at(T("16:48")); c.render();
   assert.match(app.text("#hero"), /You're on the Circle that left Aldgate at 16:46/);
+  assert.match(app.text("#hero"), /On a different tube\?\s*Met Edgware Road · left 7 min ago/, "told by how long ago it left, not the clock");
+  assert.equal(app.d.querySelector("#hero [data-leftago]").dataset.leftago, String(T("16:41")), "ticks");
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
   assert.equal(c.state.saved.tubeRide.from, "ALD");
   assert.match(app.text("#hero"), /You're on the Met that left Aldgate at 16:41/);
