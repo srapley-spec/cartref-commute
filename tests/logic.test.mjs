@@ -436,11 +436,25 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.equal(in2.recommended, 1, "and it's the best");
     assert.equal(stp.missed, true, "St Pancras in 3 min: the walk there is real");
     c.render();
-    assert.match(app.text("#hero"), new RegExp(`Departs ?${hm(now + 2 * m)} → Arrive home.*go to the platform now`));
+    assert.match(app.text("#hero"), new RegExp(`Train ?${hm(now + 2 * m)} Expected ?On time At home.*go to the platform now`));
     c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
     const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
     assert.equal(soon.missed, true); assert.equal(soon.effort, "none"); assert.equal(soon.flags[0].txt, "Can't make it");
   } finally { c.state.atHub = null; c.state.here = null; c.state.saved.view = "now"; }
+});
+
+test("At King's Cross, a St Pancras train on the card says 'Train from St Pancras'", () => {
+  const now = Date.now(), m = 60e3;
+  const gn = svc({ from: "KGX", to: "LET", dep: now + 20 * m, arr: now + 52 * m });
+  const tl = svc({ from: "STP", to: "LET", dep: now + 12 * m, arr: now + 50 * m, operator: "Thameslink" });
+  useBoards({ "KGX-LET": { msgs: [], services: [gn] }, "STP-LET": { msgs: [], services: [tl] }, "ZFD-LET": { msgs: [], services: [] } }, { dirMode: "home", view: "now" });
+  c.state.atHub = "KGX"; c.state.here = [51.5308, -0.1238]; c.state.locAcc = 15;
+  try {
+    c.render();
+    const hero = app.text("#hero");
+    assert.match(hero, new RegExp(`Train from St Pancras ?${hm(now + 12 * m)} Expected ?On time`), hero.slice(0, 200));
+    assert.match(hero, new RegExp(`Train ?${hm(now + 20 * m)} Expected`), "a King's Cross train is just 'Train'");
+  } finally { c.state.atHub = null; c.state.here = null; }
 });
 
 test("On the train home, the list doesn't talk about the onward tube", () => {

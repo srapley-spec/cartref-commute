@@ -6,7 +6,7 @@ export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
 export { stationOf, stationLabel, trainFromTflJourney, tflDropReason, tflPickPlaces } from "./adapters/tfl";
 export type { PlaceMatch } from "./adapters/tfl";
-export { busyDay, standingRoomOnly, isStopping, plannable, trainStatus, delayStatus, delayLevel, arrivalStatus, LATE_WARN_MIN, LATE_BAD_MIN } from "./rules";
+export { busyDay, standingRoomOnly, isStopping, plannable, trainStatus, delayStatus, delayLevel, arrivalStatus, departureStatus, LATE_WARN_MIN, LATE_BAD_MIN, PROJECTION_ON_TIME_MIN } from "./rules";
 export type { DelayLevel, TrainStatus } from "./rules";
 export { keepEveryRoute, topPicks, mergeSameTrain } from "./rank";
 export { addCallingAlternatives } from "./alternatives";

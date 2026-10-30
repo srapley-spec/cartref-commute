@@ -96,6 +96,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .hero .slack .slackst{display:inline-block;white-space:nowrap;margin:1px -4px 1px 6px;padding:0 6px;border-radius:4px}
 .hero .slackst.ok{background:var(--hero-ok)} .hero .slackst.warn{background:var(--hero-warn)} .hero .slackst.bad{background:var(--hero-bad)}
 .hero .stat.ok{color:var(--hero-ok)} .hero .stat.warn{color:var(--hero-warn)} .hero .stat.bad{color:var(--hero-bad)}
+/* Departure board (Sam, 30 Oct): Train (timetabled) · Expected · At destination, same size; Expected carries the status band. */
+.hero .optrow.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.hero .optrow.board .optroute{grid-column:1/-1;margin-left:0;padding-bottom:0}
+.hero .optbig.word{font-size:22px;line-height:1.5}
+.hero .exp.ok{color:var(--hero-ok)} .hero .exp.warn{color:var(--hero-warn)} .hero .exp.bad{color:var(--hero-bad)}
+@media (max-width:370px){ .hero .optrow.board .optbig{font-size:25px} .hero .optrow.board .optbig.word{font-size:17px;line-height:1.5} }
 .legs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:6px;font-size:14px}
 .legs .t{opacity:.95}
 .legs .d{min-width:0}
@@ -114,10 +120,18 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .row .mid{min-width:0;display:flex;flex-direction:column;gap:4px}
 .row .route{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:600}
 .row .meta{font-size:12px;color:var(--muted)}
+.row.board{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:6px}
+.row.board .mid{grid-column:1/-1;grid-row:2}
+.row .exp small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.row .exp .t{font-size:18px;font-weight:600}
+.row .exp .word{font-size:15px;font-weight:600;line-height:1.6}
+.row .exp .ok{color:var(--ok)} .row .exp .warn{color:var(--warn)} .row .exp .bad{color:var(--bad)}
 .row .meta b{color:var(--ink);font-weight:800}
 .row.best{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .row.gone{opacity:.5}
 .row.missed .leave .t{text-decoration:line-through;color:var(--bad)}
+/* On a departure board the timetabled time is the train's name: never struck through; "Can't make it" says it (Sam, 30 Oct). */
+.row.board.missed .leave .t{text-decoration:none;color:var(--muted)}
 .row.late .leave .t,.row.late .arrive .t{color:var(--muted)}
 .hero .alt{border-top:1px solid color-mix(in srgb,var(--paper) 25%,transparent);padding-top:10px;font-size:14px;opacity:.95}
 .hero .alt [data-cd]{opacity:.75;font-size:13px}
@@ -264,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 15:45 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 16:09 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -386,6 +400,7 @@ var CommuteCore = (() => {
     LATE_WARN_MIN: () => LATE_WARN_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
+    PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
@@ -409,6 +424,7 @@ var CommuteCore = (() => {
     countdown: () => countdown,
     delayLevel: () => delayLevel,
     delayStatus: () => delayStatus,
+    departureStatus: () => departureStatus,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -752,12 +768,13 @@ var CommuteCore = (() => {
     return t.arr - t.dep >= limit * 6e4;
   }
   var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
-  var LATE_WARN_MIN = 2;
+  var LATE_WARN_MIN = 5;
   var LATE_BAD_MIN = 15;
   var delayLevel = (lateMin) => lateMin >= LATE_BAD_MIN ? "bad" : lateMin >= LATE_WARN_MIN ? "warn" : "ok";
+  var PROJECTION_ON_TIME_MIN = 2;
   function delayStatus(lateMin, about = false) {
     const level = delayLevel(lateMin);
-    if (about) return { level, text: Math.abs(lateMin) < LATE_WARN_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
+    if (about) return { level, text: Math.abs(lateMin) < PROJECTION_ON_TIME_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
     return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
   }
   function trainStatus(t) {
@@ -766,6 +783,15 @@ var CommuteCore = (() => {
     const late = Math.max(t.depLate || 0, t.arrLate || 0);
     if (late >= 1) return delayStatus(late);
     return t.timetable || t.derived || t.estimated ? null : delayStatus(0);
+  }
+  function departureStatus(t) {
+    if (t.cancelled) return { level: "bad", text: "Cancelled", showTime: false };
+    if (t.depUnknown) return { level: "bad", text: "No estimate", showTime: false };
+    if ((t.depLate || 0) >= 1) return { ...delayStatus(t.depLate), showTime: true };
+    if (hhmm(t.dep) !== t.std) return { level: "ok", text: "Early", showTime: true };
+    if (t.timetable) return { level: "info", text: "Not live", showTime: false };
+    if (t.derived || t.estimated) return { level: "info", text: "Estimated", showTime: false };
+    return { ...delayStatus(0), showTime: false };
   }
   var arrivalStatus = (expected, scheduled) => delayStatus(Math.round((expected - scheduled) / 6e4), true);
 
@@ -887,14 +913,14 @@ var CommuteCore = (() => {
     const corridor = new RegExp(`\\b(${p.corridorPattern})\\b`, "i");
     const svcs = keys.flatMap((k) => boards[k] ? boards[k].services : []).filter((t) => t.dep >= now - 5 * 6e4);
     const cancelled = svcs.filter((t) => t.cancelled);
-    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.depLate >= 5 || t.arrLate >= 5).length;
+    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.depLate >= LATE_WARN_MIN || t.arrLate >= LATE_WARN_MIN).length;
     const msgs = [...new Set(keys.flatMap((k) => boards[k] ? boards[k].msgs : []))];
     const facilities = msgs.filter(facilityOnly);
     const onRoute = msgs.filter((m) => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
     const other = msgs.filter((m) => !facilityOnly(m) && !onRoute.includes(m));
     const uncertain = svcs.filter((t) => !t.cancelled && (t.depUnknown || t.arrUnknown) && t.dep >= now - 5 * 6e4);
     const late = Math.max(0, ...svcs.filter((t) => !t.cancelled).map((t) => Math.max(t.depLate || 0, t.arrLate || 0)));
-    const level = cancelled.length || uncertain.length || late >= 15 ? "red" : late >= 5 ? "amber" : "none";
+    const level = cancelled.length || uncertain.length || late >= LATE_BAD_MIN ? "red" : late >= LATE_WARN_MIN ? "amber" : "none";
     return { cancelled, uncertain, affected, total: svcs.length, hit: affected >= 2, onRoute, other, facilities, level, late };
   }
   function noticeTitle(m) {
@@ -942,7 +968,7 @@ var CommuteCore = (() => {
     if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
     else if (!t.cancelled) {
       const s = trainStatus(t);
-      if (s) f.push({ lvl: s.level, txt: s.text });
+      if (s) f.push({ lvl: s.level, txt: s.text, status: true });
     }
     if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
     return f;
@@ -2481,6 +2507,13 @@ function vsBest(j, best, dest){
   return `${slow}; ${esc(dest)} <span class="t">${hhmm(j.arrive)}</span>, ${cmp}`;
 }
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
+// Departure board, Expected column: the engine's departure status, as the time (when it differs) or a word.
+function expectedHtml(t, cls){
+  const s=C.departureStatus(t);
+  return s.showTime ? `<span class="t ${cls} exp ${s.level}">${hhmm(t.dep)}</span>` : `<span class="${cls} word exp ${s.level}">${esc(s.text)}</span>`;
+}
+// On a departure board an "On time" status pill repeats the Expected column; any delay still says its minutes.
+const boardFlags = flags => flags.filter(f=>!(f.status && f.txt==="On time"));
 const stdExp = t => `<span class="t">${esc(t.std)}</span>${t.depLate>=1?` exp <span class="t">${hhmm(t.dep)}</span>`:""}`;
 // Effort levels: a train that needs a run or a car and arrives sooner than the card's best (engine marks it).
 function effortLine(j, dest, best){
@@ -2491,15 +2524,20 @@ function effortLine(j, dest, best){
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt">
-    <div class="optrow">
-      ${opt.board ? `<div><small>Departs${depStation(j)!==opt.board?` ${esc(depStation(j))}`:""}${j.train.depLate>=1?` · ${j.train.depLate} min late`:""}</small><span class="t optbig">${hhmm(j.train.dep)}</span></div>` : `<div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>`}
+    ${opt.board ? `<div class="optrow board">
+      <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
+      <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
+      <div class="optroute">${chips(j)}</div>
+    </div>` : `<div class="optrow">
+      <div><small>Leave</small><span class="t optbig">${hhmm(j.leave)}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
-    </div>
-    <div class="optmeta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    </div>`}
+    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
-    ${j.flags.length?`<div class="flags">${pills(j.flags,false)}</div>`:""}
+    ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
   </section>`;
 }
@@ -2808,14 +2846,15 @@ function renderList(list, now, opts){
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
+  const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
-      ${departsFirst() ? `<div class="leave"><small>Departs</small><span class="t">${hhmm(j.train.dep)}</span></div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
+    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
+      ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${stdExp(j.train)} ${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||departsFirst()?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
-        ${j.flags.length?`<div>${pills(j.flags,true)}</div>`:""}
+        ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");

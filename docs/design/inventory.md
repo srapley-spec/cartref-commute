@@ -22,7 +22,7 @@ Everything below is what the current screen shows. A redesign must either keep e
 8. Hero card (dark block):
    - Label line: context + time (+ "timetable" when not live) + "best, and the next best".
    - One or two option blocks (best; next best within 20 min window; Arrive by: latest on-time + earlier with margin):
-     big Leave time (or Departs time + departure station + "N min late" when at a station / on the way) → big Arrive
+     big Leave time → big Arrive (at a station / on the way: Train · Expected · At office/home columns, 30 Oct)
      <dest> time; route chips (via King's Cross / Farringdon ("or St Pancras"), Circle, Met, or H&C fallback;
      leisure: "to <station>" + TfL summary); meta line: std (+ "exp hh:mm" when late), operator, platform,
      train duration, total door-to-door, timing text ("on track · 3 min to spare" / "walk to the platform by hh:mm" /
@@ -42,7 +42,7 @@ Everything below is what the current screen shows. A redesign must either keep e
    - Empty states: loading; add key / pick example data; nothing catchable (+ hurry lines); no trains for that time;
      no direct train by then; errors.
 9. List title ("Next trains, in leaving order" / "Trains around hh:mm" / "On the train" / "Trains home" / "Nearly home"…).
-10. List rows: Leave (or Departs) time; route chips; meta (std exp, operator, platform, train duration, total, countdown);
+10. List rows: Leave time (at a station / on the way: Train · Expected · Arrive columns); route chips; meta (std exp, operator, platform, train duration, total, countdown);
     "Board at / Get off at" alt line; short pills (long reasons hidden); Arrive time. Best row highlighted; late rows
     muted; uncertain rows dimmed; missed rows strike-through red. Arrive by: a row saying "No Farringdon train gets you
     there by hh:mm". Empty: "Nothing catchable in the next two hours."

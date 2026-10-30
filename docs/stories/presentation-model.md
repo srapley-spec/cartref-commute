@@ -33,7 +33,7 @@ orders (below).
   late > a tube line with delays > an operator not on good service > a notice on your route with no impact yet >
   timetable-only / example data > good service. Lower tiers are counted in the detail, so a cancellation can never
   hide behind "minor delays". When the plan on screen is for later, train warnings say they're about trains now.
-- `src/page.html` dispatches on `chooseView`, uses `headlineKind` for Departs/Leave, and draws the Leave now card's
+- `src/page.html` dispatches on `chooseView`, uses `headlineKind` for the departure board (Train · Expected) or Leave, and draws the Leave now card's
   blocks in `BLOCKS["plan-now"]` order. It does not re-decide any of these.
 - What is shown does not change: the golden recordings are identical in content (the only diff when this landed was
   a space between two adjacent block `<div>`s in the extracted text).

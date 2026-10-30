@@ -16,16 +16,26 @@ option, focus or tracking. Full rule and history:
 
 | Band | Colour (`ok` / `warn` / `bad`) | When |
 |---|---|---|
-| On time | green | under 2 min late, or early |
-| A bit late | amber | 2–14 min late |
+| On time | green | under 5 min late, or early |
+| A bit late | amber | 5–14 min late (Sam, 30 Oct; was 2) |
 | Very late | red | 15+ min late, cancelled, no estimate |
 
 Each band is shown as a word plus minutes, never colour alone. A timetable train, or a time worked out from another
 stop, gets no status: it is never claimed to be on time. → [train-status](../stories/train-status.md)
 
-The route-wide status line has its own tiers (amber from 5 min): it answers "is my route disrupted", not "is this
+The route-wide status line uses the same thresholds but answers "is my route disrupted", not "is this
 train late" (→ [warnings](../stories/warnings.md)). Other status uses follow the same meaning, for example the time
 to spare on your way to the station (`wayLevel`, → [on-the-way-to-the-station](../stories/on-the-way-to-the-station.md)).
+
+## Departure board
+At a station, or on your way to one, the card and list show **Train · Expected · At office/home** (list: Arrive), the
+same size: Overpass Mono 34 px on the card (25 px under 370 px wide), 18 px in the list. Train is the timetabled time
+(the train's name), never struck through. Expected is the engine's `departureStatus`: the expected time whenever it
+differs from the timetable, else "On time" / "Not live" / "Estimated" / "No estimate" / "Cancelled" (22 px on the
+card); coloured `--hero-ok/warn/bad` on the hero, `--ok/warn/bad` in the list, neutral for "Not live" and "Estimated".
+Route chips on their own line below. No "On time" pill on a board (Expected says it). Leave mode is unchanged.
+→ [rule](../design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal),
+[late-trains](../stories/late-trains.md)
 
 ## Tokens
 Each cell is light / dark. Dark applies with the system setting, or with `data-theme="dark"`.

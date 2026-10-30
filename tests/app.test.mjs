@@ -402,11 +402,11 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · departures · \d\d:\d\d/);
-  assert.match(hero, /^You're at King's Cross · departures · .*?Departs ?\d\d:\d\d → Arrive home/, "the big time is the departure");
+  assert.match(hero, /^You're at King's Cross · departures · .*?Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/, "a departure board: the train, Expected (TfL timetable: not live), arrival");
   assert.match(hero, /walk to the platform by \d\d:\d\d|go to the platform now/);
   assert.match(hero, /train departs in \d+m/); assert.doesNotMatch(hero, /leave in \d/, "countdown is to the departure");
   assert.ok(!app.rows().some((r) => /leave in \d/.test(r)), app.rows().join("\n"));
-  assert.ok(app.rows().filter((r) => /^(Leave|Departs)/.test(r)).every((r) => /^Departs/.test(r)), app.rows().join("\n"));
+  assert.ok(app.rows().filter((r) => /^(Leave|Train)/.test(r)).every((r) => /^Train/.test(r)), app.rows().join("\n"));
   assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
   // Farringdon trains are planned with the tube hop from King's Cross (whether or not one makes the card).
   const zfd = app.c.buildJourneys("home", Date.now(), { here: true }).find((j) => j.hub === "ZFD");
@@ -671,4 +671,39 @@ test("Coming back with a cached position (taken before you came back) doesn't re
   await sleep(300);
   assert.equal(starts, 0);
   app.close();
+});
+
+test("Departure board on TfL timetable data: Expected says 'Not live', never 'On time'; a delay TfL reports shows its expected time, coloured", async () => {
+  // At the office first (leave mode): rows are Leave → Arrive, not the board.
+  const plain = await createApp({ geo: IN_LONDON });
+  assert.ok(plain.d.querySelectorAll("#list .row").length > 0);
+  assert.equal(plain.d.querySelectorAll("#list .row.board").length, 0, "leave mode: no board columns");
+  await moveTo(plain, AT_KINGS_CROSS);
+  const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector(".leave"));
+  assert.ok(rows.length > 0 && rows.every((r) => r.classList.contains("board")), "at the station: every train row is a board row");
+  assert.match(plain.text("#hero"), /Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/);
+  assert.doesNotMatch(plain.text("#hero") + plain.text("#list"), /On time/, "timetable data is never claimed on time");
+  const word = plain.d.querySelector("#hero .exp");
+  assert.equal(word.className, "optbig word exp info");
+  // The page's stylesheet colours the Expected column by band, on the card and in the list.
+  const css = [...plain.d.querySelectorAll("style")].map((x) => x.textContent).join("\n");
+  for (const l of ["ok", "warn", "bad"]) {
+    assert.match(css, new RegExp(`\\.hero \\.exp\\.${l}\\{color:var\\(--hero-${l}\\)\\}`), `card ${l}`);
+    assert.match(css, new RegExp(`\\.row \\.exp \\.${l}\\{color:var\\(--${l}\\)\\}`), `list ${l}`);
+  }
+  plain.close();
+  for (const [late, level] of [[3, "ok"], [6, "warn"]]) {
+    const base = tflTimetable();
+    const journeys = (q) => { const r = base(q); for (const j of r.journeys) { const l = j.legs[0], d = new Date(l.departureTime).getTime();
+      l.scheduledDepartureTime = l.departureTime; l.departureTime = iso(d + late * 60e3); } return r; };
+    const app = await createApp({ geo: IN_LONDON, journeys });
+    await moveTo(app, AT_KINGS_CROSS);
+    const hero = app.text("#hero"), m = hero.match(/Train ?(\d\d:\d\d) Expected ?(\d\d:\d\d) At home/);
+    assert.ok(m, `TfL ${late} min late: the expected time, not 'Not live' — ${hero.slice(0, 200)}`);
+    const [h, mm] = m[1].split(":").map(Number), exp = new Date(2026, 10, 3, h, mm + late);
+    assert.equal(m[2], hm(exp.getTime()), "timetabled plus TfL's delay");
+    assert.equal(app.d.querySelector("#hero .exp").className, `t optbig exp ${level}`, `${late} min: ${level}`);
+    assert.match(app.rows()[0], new RegExp(`^Train ?\\d\\d:\\d\\d ?Expected ?\\d\\d:\\d\\d`), "list too");
+    app.close();
+  }
 });

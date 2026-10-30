@@ -55,7 +55,7 @@
    "flags": [
     "warn: Arrives first · fast walk",
     "bad: Usually standing room only",
-    "warn: 4 min late",
+    "ok: 4 min late",
     "warn: This train has been delayed by a signalling problem"
    ],
    "legs": [

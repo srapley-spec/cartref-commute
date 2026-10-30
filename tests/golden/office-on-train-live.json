@@ -22,7 +22,7 @@
    ],
    "flags": [
     "bad: Can't make it",
-    "warn: 3 min late",
+    "ok: 3 min late",
     "warn: This train has been delayed by a late running train in front"
    ],
    "legs": [

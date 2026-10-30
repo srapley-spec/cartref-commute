@@ -183,6 +183,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** A train's timetabled time is as prominent as its expected time (Sam): at a station or on the way, card
+  and list show Train · Expected · At destination, platform-board order (option A of three), in Panda and Signal.
+  Amber now starts at 5 min late (was 2): one rule for trains, the Expected column and route warnings. TfL's
+  reported delays show as expected times, coloured. One expected arrival; no timetabled door-to-door arrival. Why:
+  on the way to Letchworth a big "08:03" hid that the train was the 08:00.
+  → [late-trains](stories/late-trains.md), [design-system](design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal)
 - **30 Oct** The tube home is only one you picked; never worked out (Sam). At 15:37 at his desk the app said he was on
   the 15:29 Circle: the desk (313 m from Aldgate) read as Aldgate, a tube left, and a still phone going quiet was
   taken as underground. Regression exposed by the 300 m office rule below, which made the desk "heading home".

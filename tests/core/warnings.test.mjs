@@ -18,6 +18,9 @@ test("railWarnings: red for a cancellation, no estimate or 15+ min; amber 5–14
   assert.equal(g([t({ depLate: 30, dep: now - 6 * MIN })]).level, "none", "trains gone over 5 min ago don't count");
   const w = g([t({ depLate: 6 }), t({ cancelled: true }), t({})]);
   assert.equal(w.affected, 2); assert.equal(w.total, 3); assert.equal(w.hit, true); assert.equal(w.late, 6);
+  const edge = g([t({ depLate: 5 }), t({ arrLate: 5 }), t({ depLate: 4 })]);
+  assert.equal(edge.affected, 2, "exactly 5 min late counts as affected; 4 doesn't (the train bands' amber, Sam 30 Oct)");
+  assert.equal(edge.hit, true);
 });
 
 test("railWarnings: notices split into your route, elsewhere, and station facilities", () => {
