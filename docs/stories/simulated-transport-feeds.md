@@ -20,3 +20,8 @@ As a developer I need coordinated synthetic train boards, train progress and TfL
 - Explicit validation of both route forks, both directions, train identity, competing services and zero network requests is outstanding.
 - In-flight live fetch requests initiated before a mode switch can still resolve after the mode switch; response generation/caching must be isolated.
 - Never merge until this work passes review and the generator rebuilds `index.html`.
+
+## Virtual-clock implementation and audit
+- `src/simulator/clock.js` now supplies scoped simulated time; `src/page.html` uses its Date wrapper, `src/simulator/controller.js` advances it at playback checkpoints, and `src/simulator/feeds.js` consumes the same timestamp.
+- `tests/simulation-clock.test.mjs` tests clock advance/freeze/reset (not executed).
+- Full scenario coverage audit: [docs/simulator-scenario-coverage.md](../simulator-scenario-coverage.md). Significant cases remain gaps; this is not yet an end-to-end verified harness.
