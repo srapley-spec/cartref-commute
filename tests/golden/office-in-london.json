@@ -17,7 +17,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 18 min short at walking pace, run or bike"
+    "warn: Arrives first · by car"
    ],
    "legs": [
     "08:42:43 Leave Cartref · walk 22 min",
@@ -40,7 +40,7 @@
     "STP 09:20:00 leave 08:54:43 missed"
    ],
    "flags": [
-    "bad: Leave time passed: 6 min short at walking pace, run or bike"
+    "warn: Car needed"
    ],
    "legs": [
     "08:54:43 Leave Cartref · walk 22 min",
@@ -81,7 +81,9 @@
    "uncertain": false,
    "recommended": 1,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: Arrives first · walking"
+   ],
    "legs": [
     "09:12:43 Leave Cartref · walk 22 min",
     "09:38:00 09:38 Great Northern from Letchworth · platform 2",

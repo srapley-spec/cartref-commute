@@ -9,7 +9,7 @@ don't board a slow train when a fast one is a few minutes behind.
 28 Oct evening trip home: a stopping train looked like the obvious choice in "Leaving right now?".
 
 ## Acceptance criteria
-- In "Leaving right now?", "Next train" and "Still possible if you hurry", a slow train is named with its train
+- In "Leaving right now?", "Next train" and "Arrives first if you run / by car", a slow train is named with its train
   time and how its arrival compares with the best option, e.g. "stopping train, 54 min; home 20:40, 5 min later
   than the 19:48".
 - Stopping thresholds come from the profile (Sam: King's Cross 45 min, St Pancras 45, Farringdon 52).

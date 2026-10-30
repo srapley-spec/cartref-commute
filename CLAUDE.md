@@ -29,7 +29,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.
 - Don't overwhelm the interface: detail replaces a line or folds away.
-- New capabilities ship behind a toggle (Settings → Experimental, off by default), tested both off and on.
+- Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
+  off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
+  on, and he's told it exists and where.
 
 ## Code rules
 - `src/core` is pure: no DOM, no network, no clock reads, no hard-coded places. Data sources are injected.

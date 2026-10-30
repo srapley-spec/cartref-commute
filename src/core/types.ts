@@ -45,7 +45,7 @@ export interface Option {
   missed?: boolean;
   uncertain?: boolean;
   alts?: Option[];         // same train at other stations
-  /** Effort levels (Settings → Experimental): what it takes to catch it, and "Arrives first" per level. */
+  /** Effort levels: what it takes to catch it, and "Arrives first" per level. */
   effort?: Effort;
   firstAt?: Exclude<Effort, "none">;
   leaveBy?: number;        // latest set-off at its level (walk: = leave)

@@ -2,11 +2,11 @@
  "load": {
   "dirNote": "Heading home · you're at King's Cross (±15 m)",
   "banners": [],
-  "hero": "You're at King's Cross · departures · 17:00 · best, and the next best Departs17:18 → Arrive home18:09 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · walk to the platform by 17:14 · train departs in 17m 55s Journey steps17:14You're at King's Cross: go to the King's Cross platform · about 3 min17:1817:18 Great Northern from King's Cross · platform 9Calls at · King's Cross 17:18 · Finsbury Park 17:24 · Stevenage 17:38 · Hitchin 17:42 · Letchworth 17:4617:46Arrive Letchworth · 28 min on the train18:09Arrive Cartref · walk 22 min Next train: the 17:06 Great Northern from King's Cross — stopping train, 55 min; home 18:24, 15 min later than the 17:18 (home 18:09). Still possible if you hurry: the 17:01 Thameslink leaves St Pancras, train departs in 0m 55s — 38 min train; home 18:02, 7 min sooner than the 17:18. At walking pace you're 6 min short. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "You're at King's Cross · departures · 17:00 · best, and the next best Departs17:18 → Arrive home18:09 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · walk to the platform by 17:14 · train departs in 17m 55s Arrives first Journey steps17:14You're at King's Cross: go to the King's Cross platform · about 3 min17:1817:18 Great Northern from King's Cross · platform 9Calls at · King's Cross 17:18 · Finsbury Park 17:24 · Stevenage 17:38 · Hitchin 17:42 · Letchworth 17:4617:46Arrive Letchworth · 28 min on the train18:09Arrive Cartref · walk 22 min Next train: the 17:06 Great Northern from King's Cross — stopping train, 55 min; home 18:24, 15 min later than the 17:18 (home 18:09). Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
   "rows": [
-   "Departs17:01 via St PancrasCircleMet 17:01 Thameslink · platform B · 38 min train · total 1h 08m · train departs in 0m 55s Leave time passed: 6 min short at walking pace, run or bike Arrive18:02",
+   "Departs17:01 via St PancrasCircleMet 17:01 Thameslink · platform B · 38 min train · total 1h 08m · train departs in 0m 55s Can't make it Arrive18:02",
    "Departs17:06 via King's CrossCircleMet 17:06 Great Northern · platform 9 · 55 min train · total 1h 23m · train departs in 5m 55s Stopping train Arrive18:24",
-   "Departs17:18 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · train departs in 17m 55s Arrive18:09",
+   "Departs17:18 via King's CrossCircleMet 17:18 Great Northern · platform 9 · 28 min train · total 56 min · train departs in 17m 55s Arrives first Arrive18:09",
    "Departs17:31 via St Pancras or FarringdonCircleMet 17:31 Thameslink · 38 min train · total 1h 08m · train departs in 30m 55s Board at Farringdon 17:26 platform 4 or St Pancras 17:31 platform B Arrive18:32",
    "Departs17:36 via King's CrossCircleMet 17:36 Great Northern · platform 9 · 55 min train · total 1h 23m · train departs in 35m 55s Stopping train Arrive18:54",
    "Departs17:48 via King's CrossCircleMet 17:48 Great Northern · platform 9 · 28 min train · total 56 min · train departs in 47m 55s Arrive18:39",
@@ -31,7 +31,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 6 min short at walking pace, run or bike"
+    "bad: Can't make it"
    ],
    "legs": [
     "16:55:00 You're at King's Cross: go to the St Pancras platform · about 5 min",
@@ -70,7 +70,9 @@
    "uncertain": false,
    "recommended": 1,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: Arrives first"
+   ],
    "legs": [
     "17:14:00 You're at King's Cross: go to the King's Cross platform · about 3 min",
     "17:18:00 17:18 Great Northern from King's Cross · platform 9",

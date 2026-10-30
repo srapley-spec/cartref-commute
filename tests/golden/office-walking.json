@@ -17,7 +17,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 16 min short at walking pace, run or bike",
+    "warn: Car needed",
     "warn: Stopping train"
    ],
    "legs": [
@@ -39,7 +39,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 8 min short at walking pace, run or bike"
+    "warn: Arrives first · by car"
    ],
    "legs": [
     "08:12:43 Leave Cartref · walk 22 min",
@@ -61,7 +61,9 @@
    "alts": [
     "STP 08:50:00 leave 08:24:43"
    ],
-   "flags": [],
+   "flags": [
+    "ok: Arrives first · walking"
+   ],
    "legs": [
     "08:24:43 Leave Cartref · walk 22 min",
     "08:50:00 08:50 Thameslink from Letchworth · platform 2",

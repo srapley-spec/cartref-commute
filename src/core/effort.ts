@@ -66,7 +66,7 @@ export const effortKey = (o: Option) =>
 /**
  * Leave now (live): every train that hasn't left, graded. Sets `effort`, `missed` (anything harder than a fast walk:
  * never on the top card), `leaveBy` (latest set-off at its level) and the lozenge. Cancelled and no-estimate
- * trains are `uncertain` and get no lozenge. Replaces liveAdjust's "Leave time passed" when the toggle is on.
+ * trains are `uncertain` and get no lozenge. Replaces liveAdjust's "Leave time passed" when the caller asks for effort levels.
  */
 export function gradeEffort<T extends Option>(opts: T[], now: number, ep: EffortProfile,
   atStation: string | null, depStation: (o: T) => string, plannable: (o: T) => boolean, prev: Record<string, Effort> = {}): T[] {

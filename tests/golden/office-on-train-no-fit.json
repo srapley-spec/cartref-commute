@@ -19,7 +19,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 21 min short at walking pace, run or bike",
+    "bad: Can't make it",
     "warn: Stopping train"
    ],
    "legs": [
@@ -41,7 +41,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 13 min short at walking pace, run or bike",
+    "warn: Arrives first · by car",
     "bad: Usually standing room only"
    ],
    "legs": [
@@ -56,19 +56,19 @@
   {
    "hub": "ZFD",
    "train": "07:50 Thameslink LET-ZFD",
-   "leave": "07:24:43",
+   "leave": "07:28:54",
    "arrive": "08:56:30",
-   "missed": true,
+   "missed": false,
    "uncertain": false,
-   "recommended": 0,
+   "recommended": 1,
    "alts": [
-    "STP 07:50:00 leave 07:24:43 missed"
+    "STP 07:50:00 leave 07:28:54"
    ],
    "flags": [
-    "bad: Leave time passed: 1 min short at walking pace, run or bike"
+    "warn: Arrives first · fast walk"
    ],
    "legs": [
-    "07:24:43 Leave Cartref · walk 22 min",
+    "07:28:54 Leave Cartref · walk 22 min · fast walk 18 min",
     "07:50:00 07:50 Thameslink from Letchworth · platform 2",
     "- Calls at · Letchworth 07:50 · Hitchin 07:55 · Stevenage 08:00 · Finsbury Park 08:22 · St Pancras 08:29 · Farringdon 08:34",
     "08:34:00 Arrive Farringdon · 44 min on the train, change 4 min",
@@ -104,9 +104,11 @@
    "arrive": "09:04:30",
    "missed": false,
    "uncertain": false,
-   "recommended": 1,
+   "recommended": 2,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: Arrives first · walking"
+   ],
    "legs": [
     "07:42:43 Leave Cartref · walk 22 min",
     "08:08:00 08:08 Great Northern from Letchworth · platform 2",

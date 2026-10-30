@@ -7,11 +7,11 @@
    "Circle: Service ClosedNo details given.",
    "Metropolitan: Service ClosedNo details given."
   ],
-  "hero": "If you leave now · 07:00 · timetable · best, and the next best Leave07:12 → Arrive office08:34 via King's CrossH&C 07:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Usually standing room only Via Aldgate East: Circle and Met closed Journey steps07:12Leave Cartref · walk 22 min07:3807:38 Great Northern from LetchworthCalls at · Letchworth 07:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 6 min08:16H&C to Aldgate East · ~11 min, allows 3 min wait08:34Arrive office · walk 6 min Leaving right now? The 07:30 Great Northern — stopping train, 52 min; office 08:49, 15 min later than the 07:38 (office 08:34). Still possible if you hurry: the 07:20 Thameslink leaves Letchworth, train departs in 19m 55s — 44 min train; office 08:26, 8 min sooner than the 07:38. At walking pace you're 6 min short. Your lines Great Northern: Good Service Circle: Service Closed Met: Service Closed",
+  "hero": "If you leave now · 07:00 · timetable · best, and the next best Leave07:12 → Arrive office08:34 via King's CrossH&C 07:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Arrives first · walking Usually standing room only Via Aldgate East: Circle and Met closed Journey steps07:12Leave Cartref · walk 22 min07:3807:38 Great Northern from LetchworthCalls at · Letchworth 07:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 6 min08:16H&C to Aldgate East · ~11 min, allows 3 min wait08:34Arrive office · walk 6 min Leaving right now? The 07:30 Great Northern — stopping train, 52 min; office 08:49, 15 min later than the 07:38 (office 08:34). Arrives first by car: the 07:20 Thameslink leaves Letchworth, train departs in 19m 55s — 44 min train; office 08:26, 8 min sooner than the 07:38. Your lines Great Northern: Good Service Circle: Service Closed Met: Service Closed",
   "rows": [
-   "Leave06:54 via Farringdon or St PancrasH&C 07:20 Thameslink · 44 min train · total 1h 32m · train departs in 19m 55s Get off at St Pancras 07:59 or Farringdon 08:04 Leave time passed: 6 min short at walking pace, run or bike Via Aldgate East: Circle and Met closed Arrive08:26",
+   "Leave06:54 via Farringdon or St PancrasH&C 07:20 Thameslink · 44 min train · total 1h 32m · train departs in 19m 55s Get off at St Pancras 07:59 or Farringdon 08:04 Arrives first · by car Via Aldgate East: Circle and Met closed Arrive08:26",
    "Leave07:04 via King's CrossH&C 07:30 Great Northern · 52 min train · total 1h 45m · leave in 4m 38s Stopping train Via Aldgate East: Circle and Met closed Arrive08:49",
-   "Leave07:12 via King's CrossH&C 07:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Usually standing room only Via Aldgate East: Circle and Met closed Arrive08:34",
+   "Leave07:12 via King's CrossH&C 07:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Arrives first · walking Usually standing room only Via Aldgate East: Circle and Met closed Arrive08:34",
    "Leave07:24 via Farringdon or St PancrasH&C 07:50 Thameslink · 44 min train · total 1h 32m · leave in 24m 38s Get off at St Pancras 08:29 or Farringdon 08:34 Via Aldgate East: Circle and Met closed Arrive08:56",
    "Leave07:34 via King's CrossH&C 08:00 Great Northern · 52 min train · total 1h 45m · leave in 34m 38s Stopping train Via Aldgate East: Circle and Met closed Arrive09:19",
    "Leave07:42 via King's CrossH&C 08:08 Great Northern · 29 min train · total 1h 22m · leave in 42m 38s Via Aldgate East: Circle and Met closed Arrive09:04",
@@ -39,7 +39,7 @@
     "STP 07:20:00 leave 06:54:43 missed"
    ],
    "flags": [
-    "bad: Leave time passed: 6 min short at walking pace, run or bike",
+    "warn: Arrives first · by car",
     "warn: Via Aldgate East: Circle and Met closed"
    ],
    "legs": [
@@ -83,6 +83,7 @@
    "recommended": 1,
    "alts": [],
    "flags": [
+    "ok: Arrives first · walking",
     "bad: Usually standing room only",
     "warn: Via Aldgate East: Circle and Met closed"
    ],

@@ -35,7 +35,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Arrive by](arrive-by.md) · Done (earlier trains: #14)
 - [Same train from several stations](same-train.md) · Done
 - [Slow trains say so](slow-trains.md) · Done
-- [Extra effort to catch a train (effort levels)](effort-levels.md) · Built, behind Experimental toggle
+- [Extra effort to catch a train (effort levels)](effort-levels.md) · Done
 - [Late trains say so](late-trains.md) · Done
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done

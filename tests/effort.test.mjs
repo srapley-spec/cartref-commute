@@ -1,5 +1,6 @@
-// Feature toggle: effort levels (Settings → Experimental). Off = exactly as before. The engine grades the trains
-// (tests/core/effort.test.mjs); these check the page asks for it, draws it, and that off changes nothing.
+// Effort levels: always on (the Experimental toggle was removed 30 Oct). The engine grades the trains
+// (tests/core/effort.test.mjs); these check the page asks for it and draws it. Older tests still pass
+// `effort: true` in settings, as the toggle once needed; it no longer changes anything.
 // Story: docs/stories/effort-levels.md
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
@@ -29,13 +30,14 @@ async function app(settings, saved = {}) {
 }
 const row = (a, std) => [...a.d.querySelectorAll("#list .row")].find((r) => r.textContent.includes(`${std} Great Northern`));
 
-test("Effort levels off: unchanged — trains you'd hurry for are 'Still possible if you hurry', the walkable train tops the card", async () => {
-  const a = await app({});
+test("Effort levels always on: no toggle, and a phone that saved the toggle off still gets them", async () => {
+  const a = await app({ effort: false });
   const best = a.c.ranked(now).find((o) => o.recommended === 1);
-  assert.equal(best.train.std, T.V.std);
-  assert.match(a.text("#hero"), /Still possible if you hurry/);
-  assert.doesNotMatch(a.text("#hero") + a.text("#list"), /Arrives first|Fast walk|Car needed|Can't make it/);
-  assert.equal(a.d.querySelector("#s_effort").checked, false);
+  assert.equal(best.train.std, T.X.std, "the fast-walk train tops the card");
+  assert.match(a.text("#hero"), /Arrives first · fast walk/);
+  assert.doesNotMatch(a.text("#hero") + a.text("#list"), /Still possible if you hurry|Leave time passed/);
+  assert.match(row(a, T.Z.std).textContent, /Arrives first · by car/);
+  assert.equal(a.d.querySelector("#s_effort"), null, "no toggle in Settings");
   a.close();
 });
 
@@ -98,21 +100,19 @@ test("Effort levels on: your car is only at home; on your way it's a cab (10 min
   a.close(); b.close();
 });
 
-test("Effort levels: Settings show and save the toggle, running speed and distance, car and cab times", async () => {
+test("Effort levels: Settings show and save running speed and distance, car and cab times", async () => {
   const a = await app({ effort: true, runFactor: 2.2, runM: 600, carFromHome: 300, cabWait: 480 });
   a.d.querySelector("#settingsBtn").click();
-  assert.equal(a.d.querySelector("#s_effort").checked, true);
   assert.equal(a.d.querySelector("#s_runFactor").value, "2.2");
   assert.equal(a.d.querySelector("#s_runM").value, "600");
   assert.equal(a.d.querySelector("#s_carFromHome").value, "5", "shown in minutes");
   assert.equal(a.d.querySelector("#s_cabWait").value, "8");
   a.d.querySelector("#s_runFactor").value = "1.5"; a.d.querySelector("#s_runM").value = "200";
   a.d.querySelector("#s_carFromHome").value = "3"; a.d.querySelector("#s_cabWait").value = "12";
-  a.d.querySelector("#s_effort").checked = false;
   a.d.querySelector("#settingsForm").dispatchEvent(new a.w.Event("submit", { cancelable: true }));
   await sleep(50);
   const s = a.c.state.saved.settings;
-  assert.deepEqual([s.runFactor, s.runM, s.carFromHome, s.cabWait, !!s.effort], [1.5, 200, 180, 720, false]);
+  assert.deepEqual([s.runFactor, s.runM, s.carFromHome, s.cabWait], [1.5, 200, 180, 720]);
   a.close();
 });
 
@@ -129,16 +129,15 @@ test("Effort levels: the engine gets your settings (running speed and distance, 
   b.close();
 });
 
-test("Effort levels on: Arrive by's pick says 'Latest for' the time you set; off, it doesn't", async () => {
-  for (const effort of [true, false]) {
-    const a = await app({ effort }, { view: "by" });
+test("Effort levels: Arrive by's pick says 'Latest for' the time you set", async () => {
+  {
+    const a = await app({}, { view: "by" });
     const Tby = now + 3 * 60 * MIN;
     const late = svc({ dep: now + 120 * MIN, arr: now + 150 * MIN }), early = svc({ dep: now + 90 * MIN, arr: now + 120 * MIN });
     a.c.state.by = { T: Tby, boards: { "LET-KGX": { msgs: [], services: [early, late] }, "LET-ZFD": { msgs: [], services: [] } }, failed: {}, live: false };
     a.c.render();
     const hero = a.text("#hero");
-    if (effort) { assert.match(hero, new RegExp(`Latest for ${hm(Tby)}`)); assert.match(a.text("#list"), /Arrives first/); }
-    else assert.doesNotMatch(hero + a.text("#list"), /Latest for|Arrives first/);
+    assert.match(hero, new RegExp(`Latest for ${hm(Tby)}`)); assert.match(a.text("#list"), /Arrives first/);
     a.close();
   }
 });
@@ -197,11 +196,9 @@ test("Effort levels on: Arrive by's card says which run / car train gets you the
   a.close();
 });
 
-test("Effort levels: the running and car settings only show when the toggle is on", async () => {
+test("Effort levels: the running and car settings are always shown", async () => {
   const a = await app({});
   a.d.querySelector("#settingsBtn").click();
-  assert.equal(a.d.querySelector("#effortFields").hidden, true);
-  a.d.querySelector("#s_effort").checked = true; a.d.querySelector("#s_effort").dispatchEvent(new a.w.Event("change"));
   assert.equal(a.d.querySelector("#effortFields").hidden, false);
   a.close();
 });

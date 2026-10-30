@@ -16,7 +16,9 @@ does it leave?". GPS can't tell the concourse from the platform, so the walk to 
 - A train from that station stays catchable until a minute before it leaves; trains from another station (e.g. St
   Pancras when at King's Cross) keep the walk.
 - Plans start from the station, never from the office.
-- "Leave time passed" starts 30 s before the leave time, and is a flag, not removal.
+- A train you'd have to set off for within 30 s is graded by effort (fast walk, run, car needed, can't make it), a
+  label, not removal ([effort-levels](effort-levels.md)). At the station it leaves from, under a minute to go is
+  "Can't make it".
 - The last London station you were seen at survives reopening the app.
 
 ## Tests
@@ -25,6 +27,6 @@ does it leave?". GPS can't tell the concourse from the platform, so the walk to 
 - tests/logic.test.mjs: "At King's Cross: a train from King's Cross stays on the card until a minute before it leaves; St Pancras trains keep the walk"
 - tests/rules.test.mjs: "At Letchworth station going to work, Leave now is a departure board too"
 - tests/app.test.mjs: "Evening at King's Cross: trains home planned from the station, no walk from the office"
-- tests/rules.test.mjs: "liveAdjust: departed trains drop out; 'leave time passed' starts 30 s before the leave time"
+- tests/rules.test.mjs: "liveAdjust: departed trains drop out; a train you'd have to set off within 30 s for can't be made"
 - tests/app.test.mjs: "The last London station you were seen at survives reopening the app"
 - tests/golden.test.mjs: "golden: at King's Cross in the evening, live"

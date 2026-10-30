@@ -13,7 +13,7 @@ import type { Direction } from "./types";
  */
 export function liveAdjust<T extends Option>(opts: T[], now: number, atStation: string | null, depStation: (o: T) => string,
   effort?: { ep: EffortProfile; prev?: Record<string, Effort> } | null): T[] {
-  // Effort levels (toggle): each train graded by what it takes to catch it, instead of "leave time passed".
+  // Effort levels (the page always asks for them): each train graded by what it takes to catch it, instead of "leave time passed".
   if (effort) return gradeEffort(opts, now, effort.ep, atStation, depStation, j => plannable(j.train), effort.prev);
   const t0 = now + 30e3;
   const keep = opts.filter(j => j.train.dep >= now);
@@ -41,7 +41,7 @@ export function rankNow<T extends Option>(opts: T[], dir: Direction, p: Profile,
   }
   const picks = topPicks(list, "now", p.topWindowMin);
   picks.forEach((j, i) => { (j as Option).recommended = i + 1; });
-  // Effort levels (toggle): "Arrives first" per level, and the run / car trains the card mentions.
+  // Effort levels: "Arrives first" per level, and the run / car trains the card mentions.
   if (effort) effortOffers(markArrivesFirst(list), picks[0]).forEach(j => { (j as Option).offer = true; });
   return list;
 }

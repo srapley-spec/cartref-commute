@@ -52,13 +52,13 @@ const journeyCalls = (calls) => calls.map(parseJourneyUrl).filter((q) => q && q.
 const tr = (o) => Object.assign({ std: hm(o.dep), depLate: 0, arrLate: 0, depUnknown: false, arrUnknown: false, platform: null, operator: "Great Northern", cancelled: false, reason: "" }, o);
 
 // ---------- Leave now: what's kept, what's "missed" ----------
-test("liveAdjust: departed trains drop out; 'leave time passed' starts 30 s before the leave time", async () => {
+test("liveAdjust: departed trains drop out; a train you'd have to set off within 30 s for can't be made", async () => {
   const now = T("16:30"), app = await open({ now });
   const opt = (dep, leave) => ({ train: tr({ from: "KGX", to: "LET", dep, arr: dep + 30 * MIN }), leave, arrive: dep + 50 * MIN, flags: [] });
   const out = app.c.liveAdjust([opt(now - MIN, now - 20 * MIN), opt(now + 40 * MIN, now + 20e3), opt(now + 40 * MIN, now + 40e3)], now);
   assert.equal(out.length, 2, "the train that left a minute ago is gone");
   assert.equal(out[0].missed, true, "leave in 20 s: too late at walking pace");
-  assert.match(out[0].flags[0].txt, /^Leave time passed: 1 min short/);
+  assert.equal(out[0].flags[0].txt, "Can't make it", "no walk to speed up (no route detail): can't make it");
   assert.equal(out[1].missed, false, "leave in 40 s: still makeable");
   app.close();
 });

@@ -48,7 +48,9 @@ from that description.
   station-specific rules are commute-specific.
 - **Fix what real trips find in the current structure, with tests, before re-architecting** (28 Oct evening);
   since then, **fix forward on the new architecture** rather than reverting (28 Oct night).
-- **New capabilities ship behind feature toggles** (Settings → Experimental, off by default).
+- **Toggles only when Sam chooses one** (30 Oct, replacing "new capabilities ship behind toggles"). For a very complex
+  or experimental change, recommend a toggle (Settings → Experimental, off by default) and let Sam decide; otherwise
+  ship it on. A toggle is tested both off and on.
 - **Don't overwhelm the interface**: extra detail replaces a line or folds away rather than adding banners
   (29 Oct).
 - **The engine decides priority; the shell decides geometry** (29 Oct). Which view is on screen, what the big
@@ -129,7 +131,7 @@ draws.
 - End-to-end tests (simulated phone, mocked feeds), including real trips replayed as scenarios.
 - Golden tests: fixed situations on a deterministic railway at a frozen clock record everything requested and
   shown; changed only deliberately, with each diff checked.
-- Rule tests: each threshold pinned at its edge. Proxy tests. Feature toggles tested both off (unchanged) and on.
+- Rule tests: each threshold pinned at its edge. Proxy tests. Feature toggles (when Sam chooses one) tested both off (unchanged) and on.
 - All tests run on a virtual clock (Tue 3 Nov 2026 10:00, ticking).
 - Mutation testing: 60/60 (28 Oct afternoon); 46/46 (28 Oct night); 37/37 over the new engine modules after
   closing 5 gaps (29 Oct). 29 Oct afternoon, independent review by a separate agent that hadn't written the code:
@@ -169,6 +171,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** Toggles are Sam's call: recommend one for a very complex or experimental change, never add one by
+  default. Why: effort levels went behind a toggle Sam hadn't asked for and didn't know about, so he thought the
+  feature was missing. The effort-levels toggle removed (always on). → [effort-levels](stories/effort-levels.md)
 - **30 Oct** "Extra effort to catch a train" (effort levels) built behind a toggle after two independent reviews; Leave
   around graded too, so near now its card shows the next train you can still make (first: one bug, 15 test gaps, all
   fixed; second: merge). → [effort-levels](stories/effort-levels.md)

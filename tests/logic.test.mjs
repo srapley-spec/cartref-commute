@@ -130,8 +130,9 @@ test("ranked() lists catchable trains in leaving order and marks the fastest", (
   try {
     const list = c.ranked(now);
     assert.deepEqual(plain(list.map((j) => hm(j.train.dep))), ["07:10", "07:30", "07:40"], "leaving order; nothing hidden");
-    assert.equal(list[0].missed, true, "07:10 is kept, flagged as needing a run or bike");
-    assert.match(list[0].flags[0].txt, /Leave time passed: \d+ min short at walking pace, run or bike/);
+    assert.equal(list[0].missed, true, "07:10 is kept: too late to walk");
+    assert.equal(list[0].effort, "car", "about 15 min short on a 22 min walk: you'd need the car");
+    assert.equal(list[0].flags[0].txt, "Arrives first · by car");
     assert.ok(!list[0].recommended);
     assert.equal(list[1].first, true, "07:30 stopper is the one you'd catch by leaving now");
     assert.equal(list[2].fastest, true, "07:40 fast gets there first");
@@ -240,8 +241,8 @@ test("A train you'd have to hurry for stays on the list and the card, with a dep
   c.state.here = null;
   c.render();
   const rows = app.rows();
-  assert.ok(rows.some((r) => /Thameslink.*Leave time passed.*run or bike.*|Leave time passed.*Thameslink/.test(r)), rows.join("\n"));
-  assert.match(app.text("#hero"), /Still possible if you hurry: the \d\d:\d\d Thameslink leaves Letchworth, train departs in \d+m/);
+  assert.ok(rows.some((r) => /Thameslink.*Arrives first · by car|Arrives first · by car.*Thameslink/.test(r)), rows.join("\n"));
+  assert.match(app.text("#hero"), /Arrives first by car: the \d\d:\d\d Thameslink leaves Letchworth, train departs in \d+m/);
   assert.ok(app.d.querySelector("#list .row.missed"));
 });
 
@@ -435,7 +436,7 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.match(app.text("#hero"), new RegExp(`Departs ?${hm(now + 2 * m)} → Arrive home.*go to the platform now`));
     c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
     const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
-    assert.equal(soon.missed, true); assert.equal(soon.flags[0].txt, "Leaving in under a minute");
+    assert.equal(soon.missed, true); assert.equal(soon.effort, "none"); assert.equal(soon.flags[0].txt, "Can't make it");
   } finally { c.state.atHub = null; c.state.here = null; c.state.saved.view = "now"; }
 });
 

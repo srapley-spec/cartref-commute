@@ -1,5 +1,5 @@
 # Extra effort to catch a train (effort levels): what it would take to make each train
-Status: Built, behind Settings → Experimental → "Extra effort to catch a train" (off by default) · Since: 29 Oct 2026 (evening)
+Status: Done (always on; the Experimental toggle was removed 30 Oct) · Since: 29 Oct 2026 (evening)
 
 ## Story
 As a commuter running late, I want each train labelled with what it would take to catch it (walking, a fast walk,
@@ -13,6 +13,11 @@ are. Sam: 1 min behind on a 10 min walk is doable without running; 5 min behind 
 legs (the car), still worth showing; 9 min behind is impossible. Sam can run at about 1.8× his walking pace for about
 a quarter of a mile, and wants that configurable ("I'd like to get fitter"). The car is available but rarely
 realistic; worth flagging. On an unusually long walk a cab is an option.
+
+30 Oct: Sam hadn't known it was behind a toggle and hadn't asked for one ("The trains below should have a lozenge
+on them"); the toggle was removed so it's always on. The running, car and cab times moved to Settings → "Catching a
+train". The old "Still possible if you hurry… N min short" and "Leave time passed … run or bike" wording is gone from
+the screen; the engine keeps it only for a caller that doesn't ask for effort levels.
 
 ## Acceptance criteria (agreed 29 Oct; thresholds are settings)
 Engine: `src/core/effort.ts`. The page passes where you are, remembers last refresh's grades and draws the result.
@@ -47,7 +52,7 @@ Engine: `src/core/effort.ts`. The page passes where you are, remembers last refr
 - Arrive by: the pick says "Latest for 08:30" (the time set), or "Least late for 08:30" when nothing is on time;
   "Arrives first" per level as above.
 - Leave around: "Arrives first" among the card's window (leaving from 10 min before your time), so it's the card's
-  best. With the toggle on, Leave around's trains are graded too (near now, leave times are passing): the card shows
+  best. Leave around's trains are graded too (near now, leave times are passing): the card shows
   the next train you can still make, with a fast walk if need be (Sam, 30 Oct); a run, car or can't-make-it train is
   never the pick or "Arrives first" and is labelled in the list. If nothing is makeable even with a fast walk, the
   card says "Nothing around 07:00 you can still make, even with a fast walk." Grades are kept per view (Leave now,
@@ -55,7 +60,6 @@ Engine: `src/core/effort.ts`. The page passes where you are, remembers last refr
 - Worked examples (10 min walk, nothing fixed, from home): 1 min short → fast walk; 3 → run; 5 → car; 9 → can't
   make it; away from home, 5 → can't make it (a cab takes 10 min). From home in the real data (22 min walk + 3 min
   fixed): fast walk to ≈ 4.2 min short, run to ≈ 5.4, car to ≈ 18.3.
-- Off (default): the app exactly as before (every golden recording unchanged).
 
 ## Review
 Independent review (29 Oct night, a separate agent): 108 deliberate breakages, 82 caught; 15 real gaps and 11 that
@@ -92,14 +96,14 @@ near now with the toggle off, Arrive by's own grades). Left: three boundaries th
 - tests/core/effort.test.mjs: "samRoutes: from home the walk is your measured walk at both paces, from home; the rest is fixed"
 - tests/core/effort.test.mjs: "samRoutes: on your way, the same share of your walk at both paces; your car is at home only if you are"
 - tests/core/effort.test.mjs: "samRoutes going home: the walk to the tube at both paces, not from home; at a London station the platform walk"
-- tests/effort.test.mjs: "Effort levels off: unchanged — trains you'd hurry for are 'Still possible if you hurry', the walkable train tops the card"
+- tests/effort.test.mjs: "Effort levels always on: no toggle, and a phone that saved the toggle off still gets them"
 - tests/effort.test.mjs: "Effort levels on: a fast walk tops the card with its lozenge and the time to leave at a fast walk"
 - tests/effort.test.mjs: "Effort levels on: the card says which run / car trains arrive sooner; the list labels every train"
 - tests/effort.test.mjs: "Effort levels on: last refresh's grade holds a train back from an easier level until it's 30 s inside it"
 - tests/effort.test.mjs: "Effort levels on: your car is only at home; on your way it's a cab (10 min to get one)"
-- tests/effort.test.mjs: "Effort levels: Settings show and save the toggle, running speed and distance, car and cab times"
+- tests/effort.test.mjs: "Effort levels: Settings show and save running speed and distance, car and cab times"
 - tests/effort.test.mjs: "Effort levels: the engine gets your settings (running speed and distance, car, cab)"
-- tests/effort.test.mjs: "Effort levels on: Arrive by's pick says 'Latest for' the time you set; off, it doesn't"
+- tests/effort.test.mjs: "Effort levels: Arrive by's pick says 'Latest for' the time you set"
 - tests/effort.test.mjs: "Effort levels on: Leave around's best says 'Arrives first'"
 - tests/effort.test.mjs: "Extra effort on: Leave around near now shows the next train you can still make (a fast walk), and says so when there's none"
 - tests/core/effort.test.mjs: "aroundOptions with effort, graded: Leave around near now picks the next train you can still make, with a fast walk if need be"
@@ -119,10 +123,9 @@ near now with the toggle off, Arrive by's own grades). Left: three boundaries th
 - tests/effort.test.mjs: "Effort levels on: a fast-walk pick's total time and steps are at a fast walk too; no 'leave now' while there's time"
 - tests/effort.test.mjs: "Effort levels on: on your way, a train that needs a fast walk says 'walk fast'"
 - tests/effort.test.mjs: "Effort levels on: Arrive by's card says which run / car train gets you there sooner"
-- tests/effort.test.mjs: "Effort levels: the running and car settings only show when the toggle is on"
+- tests/effort.test.mjs: "Effort levels: the running and car settings are always shown"
 - tests/golden.test.mjs: "golden: effort levels on: at home and late for the 07:38, live; Arrive by 08:30 and Leave around 07:40"
 - tests/golden.test.mjs: "golden: effort levels on: on your way to Letchworth, live"
-- Toggle off: every other golden recording is unchanged.
 
 ## Not yet / open questions
 - Learn fast / run pace from real trips later, instead of settings only.

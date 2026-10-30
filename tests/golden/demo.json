@@ -5,11 +5,11 @@
    "Example trainsTimes below are made up to show the layout. Choose a live source in Settings.",
    "1 of your trains cancelled07:51 Letchworth → Farringdon: This train has been cancelled because of a shortage of train crew (example)"
   ],
-  "hero": "If you leave now · 07:00 · best, and the next best Leave07:11 → Arrive office08:39 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Journey steps07:11Leave Cartref · walk 22 min07:3707:37 Great Northern from Letchworth · platform 108:12Arrive King's Cross · 35 min on the train, change 6 min08:21Circle or Met to Aldgate · ~10 min, allows 3 min wait08:39Arrive office · walk 7 min Still possible if you hurry: the 07:21 Thameslink leaves Letchworth, train departs in 20m 55s — 47 min train; office 08:30, 9 min sooner than the 07:37. At walking pace you're 5 min short.Still possible if you hurry: the 07:07 Great Northern leaves Letchworth, train departs in 6m 55s — 35 min train; office 08:09, 30 min sooner than the 07:37. At walking pace you're 19 min short. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "If you leave now · 07:00 · best, and the next best Leave07:11 → Arrive office08:39 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Arrives first · walking Journey steps07:11Leave Cartref · walk 22 min07:3707:37 Great Northern from Letchworth · platform 108:12Arrive King's Cross · 35 min on the train, change 6 min08:21Circle or Met to Aldgate · ~10 min, allows 3 min wait08:39Arrive office · walk 7 min Arrives first if you run: the 07:21 Thameslink leaves Letchworth, train departs in 20m 55s — 47 min train; office 08:30, 9 min sooner than the 07:37. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
   "rows": [
-   "Leave06:41 via King's CrossCircleMet 07:07 Great Northern · platform 1 · 35 min train · total 1h 28m · train departs in 6m 55s Leave time passed: 19 min short at walking pace, run or bike Arrive08:09",
-   "Leave06:55 via Farringdon or St PancrasCircleMet 07:21 Thameslink · platform 1 · 47 min train · total 1h 35m · train departs in 20m 55s Get off at St Pancras 08:04 or Farringdon 08:08 Leave time passed: 5 min short at walking pace, run or bike Arrive08:30",
-   "Leave07:11 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Arrive08:39",
+   "Leave06:41 via King's CrossCircleMet 07:07 Great Northern · platform 1 · 35 min train · total 1h 28m · train departs in 6m 55s Can't make it Arrive08:09",
+   "Leave06:55 via Farringdon or St PancrasCircleMet 07:21 Thameslink · platform 1 · 47 min train · total 1h 35m · train departs in 20m 55s Get off at St Pancras 08:04 or Farringdon 08:08 Arrives first · if you run Arrive08:30",
+   "Leave07:11 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Arrives first · walking Arrive08:39",
    "Leave07:25 via St Pancras or FarringdonCircleMet 07:51 Thameslink · platform 1 · 43 min train · total 1h 37m · leave in 25m 38s Get off at St Pancras 08:34 or Farringdon 08:38 Arrive09:02",
    "Leave07:41 via King's CrossCircleMet 08:07 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 41m 38s Arrive09:09",
    "Leave07:55 via Farringdon or St PancrasCircleMet 08:21 Thameslink · platform 1 · 47 min train · total 1h 35m · leave in 55m 38s Get off at St Pancras 09:04 or Farringdon 09:08 Arrive09:30",
@@ -33,7 +33,7 @@
    "recommended": 0,
    "alts": [],
    "flags": [
-    "bad: Leave time passed: 19 min short at walking pace, run or bike"
+    "bad: Can't make it"
    ],
    "legs": [
     "06:41:43 Leave Cartref · walk 22 min",
@@ -55,7 +55,7 @@
     "STP 07:21:00 leave 06:55:43 missed"
    ],
    "flags": [
-    "bad: Leave time passed: 5 min short at walking pace, run or bike"
+    "warn: Arrives first · if you run"
    ],
    "legs": [
     "06:55:43 Leave Cartref · walk 22 min",
@@ -74,7 +74,9 @@
    "uncertain": false,
    "recommended": 1,
    "alts": [],
-   "flags": [],
+   "flags": [
+    "ok: Arrives first · walking"
+   ],
    "legs": [
     "07:11:43 Leave Cartref · walk 22 min",
     "07:37:00 07:37 Great Northern from Letchworth · platform 1",

@@ -12,7 +12,8 @@ untrustworthy: a train he could see on the platform wasn't in the app.
 ## Acceptance criteria
 - Every loaded train for the routes in play is listed, in leaving order.
 - Problems are flags, not removal: stopping train, usually standing room only, cutting it fine, late by N min,
-  delays, cancelled, delayed with no estimate, leave time passed, timetable only.
+  delays, cancelled, delayed with no estimate, what it would take to catch it (fast walk, run, car needed, can't
+  make it; see [effort-levels](effort-levels.md)), timetable only.
 - The only trains left out are ones already out of reach (already departed, or you'd have had to leave already
   and it isn't a station you're at).
 - Cancelled and "Delayed, no estimate" trains are listed but never recommended, and are not used for planning.
