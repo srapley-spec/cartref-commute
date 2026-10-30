@@ -183,6 +183,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct** Office arrival also counts after staying within 300 m for 10 minutes (Sam). At his desk the phone read
+  217 m (±15 m) for over an hour, outside the 150 m circle, so the app kept saying "Walking to the office". 150 m /
+  5 min still decides "you've arrived"; the wider, slower rule only turns the journey round. Office point unverified
+  (geocoders blocked from the build machine); to be replaced with the phone's reading at the desk.
+  → [direction-and-arrival](stories/direction-and-arrival.md)
 - **30 Oct** A lozenge naming a tube line is that line's colour (Sam): line colours are identity, not status. King's
   Cross rail → subsurface measured at 185 s from stepping off (best case); not applied, because the walk counts from
   the first fix within 400 m, so 185 s would have recommended a Met Sam missed. The choice is with Sam.

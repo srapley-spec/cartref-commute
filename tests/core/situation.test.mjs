@@ -49,6 +49,24 @@ test("inferDirection: setting off, arriving home, after the office, mid-journey,
   assert.equal(core.inferDirection([50.1, -1.1], now, D, {}, testville).dir, "office");
 });
 
+test("inferDirection: staying within 300 m of the office for 10 minutes counts as being there (indoor GPS at the desk read 217 m)", () => {
+  const now = T("09:10"), morning = { trip: { dir: "office", at: now - 3600e3 } }, desk = [51.5139 + 0.00195, -0.0710];   // 217 m
+  let r = core.inferDirection(desk, now, D, morning, sam);
+  assert.equal(r.dir, "office"); assert.equal(r.mem.officeSince, null); assert.equal(r.mem.officeNearSince, now);
+  r = core.inferDirection(desk, now + 9 * MIN, D, r.mem, sam);
+  assert.equal(r.dir, "office", "9 min: not yet"); assert.equal(r.mem.officeNearSince, now);
+  r = core.inferDirection(desk, now + 10 * MIN, D, r.mem, sam);
+  assert.equal(r.dir, "home", "10 min within 300 m: the journey turns round"); assert.equal(r.mem.officeVisit, D);
+  // Walking across the circle (290 m one side, 7 min later 290 m the other) isn't arriving.
+  const a = core.inferDirection([51.5139 + 0.0026, -0.0710], now, D, morning, sam);
+  assert.equal(core.inferDirection([51.5139 - 0.0026, -0.0710], now + 7 * MIN, D, a.mem, sam).dir, "office");
+  // Leaving the circle resets the clock; so does a time from another day.
+  const out = core.inferDirection([51.5139 + 0.003, -0.0710], now + 5 * MIN, D, a.mem, sam);     // 330 m
+  assert.equal(out.mem.officeNearSince, null);
+  const y = core.inferDirection(desk, now, D, { ...morning, officeNearSince: now - 20 * 3600e3 }, sam);
+  assert.equal(y.dir, "office"); assert.equal(y.mem.officeNearSince, now);
+});
+
 const toCity = (std, dep, len, op = "Express Rail", extra = {}) => train({ from: "RVS", to: "CEN", std, dep, arr: dep + len * MIN, operator: op, ...extra });
 
 test("whichTrain: departed trains only, the nearest fit, sure when the runner-up is 4+ min worse, then remembered", () => {

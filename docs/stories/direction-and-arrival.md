@@ -1,5 +1,5 @@
 # Direction and arriving
-Status: Done · Since: 27 Oct 2026; office arrival 29 Oct
+Status: Done · Since: 27 Oct 2026; office arrival 29 Oct; nearby-for-10-minutes 30 Oct
 
 ## Story
 As a commuter, I want the app to know whether I'm going to work or home from where I am and what I've done today,
@@ -8,7 +8,8 @@ not the time of day, so that it plans the right journey without me telling it.
 ## Where it came from
 27 Oct: no time-of-day guessing. 28 Oct evening: near Letchworth after heading home must mean arriving ("Nearly
 home"), not setting off. 29 Oct morning: reaching the office should say "you've arrived", and the journey
-shouldn't turn round the moment GPS puts you near it.
+shouldn't turn round the moment GPS puts you near it. 30 Oct 10:16: at his desk for 80 minutes, the phone put Sam
+217 m (±15 m) from the office point, outside 150 m, so the app still said "Walking to the office · about 3 min walk".
 
 ## Acceptance criteria
 - With no trip, the nearest end decides; a trip keeps its direction for 3 hours.
@@ -19,6 +20,11 @@ shouldn't turn round the moment GPS puts you near it.
 - Within 150 m of the office (Sam, 30 Oct: 150 m with the 5-minute wait is right; he had suggested 20 m): "you've arrived" (200 m is still walking, and isn't "you're at the office"); still
   the morning journey until you've been there 5 minutes, then it turns round and reloads trains. An office arrival
   from another calendar day is forgotten, so the next morning's 5 minutes start again (independent review, 29 Oct).
+- Staying within 300 m of the office for 10 minutes also counts as having been there (Sam, 30 Oct), because indoor GPS
+  can sit outside 150 m all day. Walking across that circle takes about 7 minutes, so passing by doesn't count;
+  leaving 300 m, or a time from another day, starts the 10 minutes again. It only turns the journey round: "you've
+  arrived" still needs 150 m. Known trade-off: 10+ minutes in a café within 300 m before work also turns it round
+  (use "To office"). Saved as `officeNearSince`.
 - Location denied: the app says so and offers a manual choice, which works.
 - Missing GPS accuracy means unknown, not perfect.
 
@@ -35,5 +41,7 @@ shouldn't turn round the moment GPS puts you near it.
 - tests/core/situation.test.mjs: "Missing GPS accuracy means unknown, not perfect"
 - tests/rules.test.mjs: "Review: office arrival — 120 m is 'you've arrived', 200 m is still walking"
 - tests/rules.test.mjs: "Review 2: 200 m from the office isn't 'you're at the office'"
+- tests/core/situation.test.mjs: "inferDirection: staying within 300 m of the office for 10 minutes counts as being there (indoor GPS at the desk read 217 m)"
+- tests/rules.test.mjs: "At the desk with GPS reading 217 m: after 10 minutes within 300 m the journey turns round"
 - tests/core/situation.test.mjs: "whichTrain: a stale fix keeps the remembered train even when it no longer fits; an office arrival from yesterday is forgotten"
 - tests/core/situation.test.mjs: "Rough fixes and office days: a rough fix while standing doesn't put you on a train; an arrival from yesterday evening is forgotten"

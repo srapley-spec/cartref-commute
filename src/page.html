@@ -1731,10 +1731,10 @@ function onPosition(p){
   // at King's Cross) keep the direction of the journey you started, for up to 3 hours.
   // (engine: near Letchworth setting off unless arriving home; at the office today → home; else the trip you started.)
   const today=new Date().toDateString();
-  const d=C.inferDirection(here, Date.now(), today, {trip:state.saved.trip, officeVisit:state.saved.officeVisit, officeSince:state.saved.officeSince}, PROFILE);
+  const d=C.inferDirection(here, Date.now(), today, {trip:state.saved.trip, officeVisit:state.saved.officeVisit, officeSince:state.saved.officeSince, officeNearSince:state.saved.officeNearSince}, PROFILE);
   state.autoDir=d.dir;
-  if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null) || (d.mem.officeSince||null)!==(state.saved.officeSince||null)){
-    state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; state.saved.officeSince=d.mem.officeSince||undefined; save(); }
+  if(JSON.stringify(d.mem.trip||null)!==JSON.stringify(state.saved.trip||null) || (d.mem.officeVisit||null)!==(state.saved.officeVisit||null) || (d.mem.officeSince||null)!==(state.saved.officeSince||null) || (d.mem.officeNearSince||null)!==(state.saved.officeNearSince||null)){
+    state.saved.trip=d.mem.trip||undefined; state.saved.officeVisit=d.mem.officeVisit||undefined; state.saved.officeSince=d.mem.officeSince||undefined; state.saved.officeNearSince=d.mem.officeNearSince||undefined; save(); }
   noteAldgate();
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.

@@ -919,6 +919,18 @@ test("Review: at Letchworth station a late train says 'Departs · N min late'; r
   app.close();
 });
 
+test("At the desk with GPS reading 217 m: after 10 minutes within 300 m the journey turns round", async () => {
+  const now = T("09:10"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("08:00") } } });
+  await app.moveTo(51.5139 + 0.00195, -0.0710, 15);                  // 217 m, ±15 m (30 Oct screenshot)
+  assert.match(app.text("#hero"), /^Walking to the office/);
+  app.at(T("09:19")); await app.moveTo(51.5139 + 0.00196, -0.0710, 15);
+  assert.match(app.text("#dirNote"), /^Heading to the office/, "9 min: still arriving");
+  app.at(T("09:21")); await app.moveTo(51.5139 + 0.00195, -0.0711, 15);
+  assert.match(app.text("#dirNote"), /^Heading home/, "11 min nearby: heading home");
+  assert.doesNotMatch(app.text("#hero"), /Walking to the office/);
+  app.close();
+});
+
 test("Review: office arrival — 120 m is 'you've arrived', 200 m is still walking", async () => {
   const now = T("08:04"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "auto", trip: { dir: "office", at: T("07:00") } } });
   await app.fix(51.5139 + 0.0018, -0.0710, 15, now);                 // 200 m

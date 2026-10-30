@@ -73,10 +73,12 @@ export const nearOffice = (here: LatLon | null, p: Profile) =>
   !!here && (km(here, p.places.office) < 1.2 || km(here, p.places.officeTube) < 1.0);
 
 /** What the screen remembers between position updates for working out direction. */
-export interface DirectionMemory { trip?: { dir: Direction; at: number } | null; officeVisit?: string | null; officeSince?: number | null; }
+export interface DirectionMemory { trip?: { dir: Direction; at: number } | null; officeVisit?: string | null; officeSince?: number | null; officeNearSince?: number | null; }
 /** At the office: within 150 m (indoor GPS is often ±15–50 m). Counted as having been there (so anywhere else is
- *  heading home) only after 5 minutes there; arriving, or passing by, doesn't turn the journey round. */
-export const AT_OFFICE_KM = 0.15, OFFICE_DWELL_MS = 5 * 60e3;
+ *  heading home) only after 5 minutes there; arriving, or passing by, doesn't turn the journey round.
+ *  Indoor GPS can sit further out all day (30 Oct: 217 m at the desk), so staying within 300 m for 10 minutes
+ *  also counts; walking across that circle takes about 7. */
+export const AT_OFFICE_KM = 0.15, OFFICE_DWELL_MS = 5 * 60e3, NEAR_OFFICE_KM = 0.3, NEAR_OFFICE_DWELL_MS = 10 * 60e3;
 
 /**
  * Which way you're heading, from where you are. Near the home station you're setting off for work, unless you've
@@ -86,13 +88,17 @@ export const AT_OFFICE_KM = 0.15, OFFICE_DWELL_MS = 5 * 60e3;
  */
 export function inferDirection(here: LatLon, now: number, today: string, mem: DirectionMemory, p: Profile): { dir: Direction; mem: DirectionMemory } {
   const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
-  const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null };
-  if (km(here, p.places.office) < AT_OFFICE_KM) {
-    // An arrival time from another day (no fix since you left): start again.
-    if (out.officeSince && new Date(out.officeSince).toDateString() !== new Date(now).toDateString()) out.officeSince = null;
-    out.officeSince = out.officeSince || now;
-    if (out.officeVisit !== today && now - out.officeSince >= OFFICE_DWELL_MS) out.officeVisit = today;
-  } else out.officeSince = null;
+  const out: DirectionMemory = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null, officeNearSince: mem.officeNearSince || null };
+  // Time you've been within `radius` of the office since; an arrival time from another day (no fix since you
+  // left) starts again; leaving resets it. Returns whether you've stayed `dwell`.
+  const dOff = km(here, p.places.office), sameDay = (t: number) => new Date(t).toDateString() === new Date(now).toDateString();
+  const stayed = (key: "officeSince" | "officeNearSince", radius: number, dwell: number) => {
+    if (dOff >= radius) { out[key] = null; return false; }
+    const since = out[key] && sameDay(out[key] as number) ? out[key] as number : now;
+    out[key] = since; return now - since >= dwell;
+  };
+  const atDesk = stayed("officeSince", AT_OFFICE_KM, OFFICE_DWELL_MS), nearby = stayed("officeNearSince", NEAR_OFFICE_KM, NEAR_OFFICE_DWELL_MS);
+  if (out.officeVisit !== today && (atDesk || nearby)) out.officeVisit = today;
   const trip = out.trip, recent = !!trip && now - trip.at < 3 * 3600e3;
   let dir: Direction;
   if (dHome < 3 && recent && trip!.dir === "home") dir = "home";
