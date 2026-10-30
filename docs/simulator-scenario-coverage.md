@@ -1,6 +1,6 @@
 # Journey simulator scenario coverage
 
-Status: strengthened application integration **22/22 passed**, including actual train/tube identity, displayed arrival states and poor-fix protection. Independent review and committed CI remain release gates.
+Status: strengthened application integration **22/22 passed**, including actual train/tube identity, displayed arrival states and poor-fix protection. Final implementation is independently approved; committed local and GitHub CI remain release gates.
 
 The integration suite loads the generated `index.html` in jsdom, submits the actual Settings form,
 clicks simulator controls and advances the actual playback interval callback. It does not assign trains,
@@ -98,3 +98,11 @@ An independent overnight DST probe exposed Darwin's date-less HH:mm ambiguity du
 London hour. Ordinary midnight journeys are covered and pass; playback through the repeated autumn hour
 is not supported reliably and must not be used to validate exact service identity. Daytime commute scenarios
 are unaffected. London local Journey Planner fixtures use illustrative durations, not real scheduled services.
+
+Final source review approved implementation `d296c1c` (unchanged by documentation-only main merge
+`0491dae`). A fresh independent reviewer reran30 baseline tests, Chromium and six representative
+mutations after the first reviewer exhausted its account quota. All passed/caught respectively;
+see [independent review](simulator-review.md). The initial full CI correctly failed a page teardown
+with pending refresh callbacks. Tests now wait for the actual loading state to settle before close;
+the focused cleanup suite passes4/4. Final committed CI and merge evidence are recorded in
+[PR33](https://github.com/srapley-spec/cartref-commute/pull/33) and its GitHub Actions checks.

@@ -1,7 +1,7 @@
 # Independent simulator review
 
-Reviewer: separate `/root/review` agent, which did not write the implementation.
-Status: **release approval withheld pending final source/commit review and coverage closure**.
+Reviewers: separate `/root/review` and final `/root/final_review` agents; neither wrote the implementation.
+Status: **independent source review approved for `d296c1c` (unchanged source in `0491dae`), conditional on local and GitHub CI gates**.
 
 ## Scope and findings
 
@@ -28,11 +28,11 @@ built-page probes independently, without assigning service identity or inferred 
 6. **Feed-only GPS used the wrong clock domain.** A real watch fix taken30seconds ago was
    treated as81,870,000ms old when the selected virtual date was the next day. The existing
    mock fixes omitted timestamps and hid this defect. An independent actual-watch-callback
-   regression now requires preservation of the observation age; implementation fix pending.
+   regression now requires preservation of the observation age; native observations are translated by age into virtual time and the regression passes.
 7. **Browser versus jsdom.** The existing application tests execute the built application in
-   jsdom. Chromium is installed, and actual browser execution remains a separate release gate.
+   jsdom. Both reviewers separately executed the actual Chromium verification successfully.
 
-Independent regression file: `tests/simulator-review.test.mjs`. Latest rebuilt-page run: **7 passed,
+Independent regression file: `tests/simulator-review.test.mjs`. Final rebuilt-page run: **10 passed,
 0 failed**, including preservation of the browser's actual Date constructor, completed-journey restart,
 restoration of saved real journey memory and observation of stale board writes.
 
@@ -67,8 +67,51 @@ These results establish sensitivity for those behaviors on the reviewed working 
 are not a claim of complete mutation coverage or review approval for a later commit. The release
 must rerun relevant mutants against the final reviewed SHA and record results below.
 
-## Final review gate
+## Final independent review
 
-Pending: final committed SHA, regenerated build, full test/CI results, complete actual application
-scenario matrix, actual Chromium test results, final network/persistence review, review of fixes
-and final mutation rerun. No independent release sign-off has been given.
+Final reviewer: `/root/final_review`, which did not implement the feature. Reviewed implementation
+commit `d296c1c`; the subsequent `0491dae` merge changes documentation only and preserves that source.
+Read the architecture, simulator stories, coverage matrix, extraction/build integration and source diff.
+Reviewed pure engine changes, native GPS timestamps, explicit train conflicts, session switches,
+saved-state snapshots, stale-body/retry guards and configured-home endpoints.
+
+Additional unexpected-transition finding: clearing the scenario date then enabling synthetic feeds
+threw `RangeError: Invalid time value`, leaving feeds enabled with no virtual clock and a hidden panel.
+The author fixed Settings preflight to visibly restore the displayed default before changing sources.
+The new independent regression passes and observes no browser error or partially switched state.
+Configured-home playback and real home-arrival presentation also pass independently.
+
+Executed on final implementation source:
+
+- **30/30** independent/provider/isolation tests pass (24.07 seconds): ten independent built-page
+  regressions, eight source-isolation regressions and twelve production-adapter contracts.
+- Independently reran `python3 tests/browser-simulator.py`: all four complete route/direction
+  combinations pass, every checkpoint freezes, all three speeds advance correctly, zero page errors,
+  zero external requests during simulation, Stop restores real operation.
+- Six representative temporary mutations rerun in an isolated `/tmp/cartref-final-review` copy:
+
+| ID | Deliberate final-source defect | Result |
+| --- | --- | --- |
+| R1 | Force the extracted GPS provider's accuracy to12m | CAUGHT: real app coarse-station inference assertion |
+| R2 | Prevent source epoch increment | CAUGHT: independent stale-board-write observer |
+| R3 | Forward device timestamps without virtual-age translation | CAUGHT: independent native-watch30second-age regression |
+| R4 | Ignore configured home in scenario endpoints | CAUGHT: actual endpoint/home-arrival regression |
+| R5 | Suppress fresh contradiction against a confirmed train | CAUGHT: actual picked-train conflict warning regression |
+| R6 | Include current time in TfL vehicle identity | CAUGHT: explicit same-vehicle continuity assertion |
+
+R6 initially failed by dereferencing a missing vehicle. The provider test now explicitly asserts
+that the same vehicle remains identifiable; rerunning the mutant fails that meaningful assertion.
+Passing final baseline proves the stronger assertion works without the mutation. Shared implementation
+files were never mutated. These are representative sensitivity checks, not exhaustive mutation coverage.
+
+**Verdict: no significant remaining implementation or documented scenario-coverage blocker found.**
+Approve the reviewed source for release after committed-code local CI and required GitHub branch
+checks pass. This verdict does not replace those gates or verification of the merged commit.
+
+Residual limits are explicit: approximate synthetic geometry and local London journey durations,
+no claim of Safari permission/background fidelity, ambiguous overlapping trains may require a user
+choice, and Darwin's date-less HH:mm cannot reliably represent the repeated autumn London hour.
+Midnight playback is tested; the rare repeated-hour overnight case remains unsupported. The normal
+commute scenarios and daylight return journeys are covered. Actual TfL vehicle observations can
+correct the profile's fallback ride durations, so fixture dwell/running variability is acceptable.
+

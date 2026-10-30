@@ -1,5 +1,5 @@
 # Developer journey simulator
-Status: Partly done (release verification in progress) · Since: 30 Oct 2026 · Issues: #32, #34
+Status: Behind toggle (independently reviewed; release CI gates required) · Since: 30 Oct 2026 · Issues: #32, #34
 
 ## Story
 As a developer I want to replay coherent location, Darwin and TfL inputs through the real application,

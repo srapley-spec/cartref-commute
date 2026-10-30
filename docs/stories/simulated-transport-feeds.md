@@ -1,5 +1,5 @@
 # Synthetic Darwin and TfL feeds
-Status: Partly done (final release gates pending) · Since: 30 Oct 2026 · Issues: #34
+Status: Behind toggle (independently reviewed; release CI gates required) · Since: 30 Oct 2026 · Issues: #34
 
 ## Story
 As a developer I need coordinated synthetic boards, service progress and Underground predictions,
