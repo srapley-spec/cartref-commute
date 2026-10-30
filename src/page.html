@@ -627,7 +627,9 @@ async function fetchAldgateDepartures(){
   if(!r.ok) throw new Error(`TfL tube departures error (HTTP ${r.status}).`);
   const now=Date.now();
   return (await r.json())
-    .filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
+    // Aldgate is the Met's terminus: every Met leaving it heads west, whatever its platform is called (30 Oct 18:24: a
+    // Met due in 2 min on the board was missing). The Circle runs both ways through it, so it must say westbound.
+    .filter(a=>(a.lineId==="metropolitan" || (a.lineId==="circle" && /westbound/i.test(a.platformName||""))) && !/^aldgate\b/i.test(a.destinationName||""))
     .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }))
     .filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);
@@ -716,7 +718,7 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 function routesFor(dir, mode, opts){
   return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
     london:state.london||null, dest:outTo(dir, mode),
-    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome() } : null });
+    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome(), atOfficeTube: C.atOfficeTube(dir, fix(), PROFILE) } : null });
 }
 // Any start and end point, going out: the place, and TfL's legs to it once planned.
 const outTo = (dir, mode) => anyPlace() && mode==="leisure" && dir==="office" && (state.saved.dest||"").trim()
@@ -1056,7 +1058,7 @@ function renderNearlyHome(now){
 function tubesFromAldgate(now){
   const d=state.aldDeps;
   if(direction()!=="home" || state.saved.mode==="leisure" || !nearOffice() || !d || !d.list || Date.now()-d.at>3*60e3) return "";
-  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=state.here && km(state.here,GEO.ALD)<0.15;
+  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=C.atOfficeTube("home", fix(), PROFILE);
   const walkMs=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
   const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
   // Engine planConnection: what you can catch from here (the office, or Aldgate), getting off where you're home soonest.
@@ -1798,7 +1800,7 @@ function onPosition(p){
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
-  const where = !state.atHub && km(here,OFFICE)<C.AT_OFFICE_KM ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
+  const where = !state.atHub && km(here,OFFICE)<C.AT_OFFICE_KM ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? "you're near Letchworth" : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?"Letchworth":"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
   if(moved && state.saved.mode==="leisure" && !state.origin && (!state.londonAt || Date.now()-state.londonAt>60e3)){ state.londonAt=Date.now(); refreshLondon().then(render); }
