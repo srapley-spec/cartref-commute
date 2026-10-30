@@ -183,6 +183,16 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct evening** Revert 15:48: the tube home is worked out again (picks still win), because on the 18:24 trip
+  the Met he took wasn't pickable and the app timed his journey from the office at Moorgate. The two mistakes aren't
+  equal: a false alarm at the desk is harmless, missing that you're travelling isn't. Sam's direction (planned, not
+  built): follow a chosen route (one tap): ahead/behind, a stable arrival, every change announced with its reason
+  (cancelled, delayed, missed, better option), tube followed by its vehicle. Without a chosen route, live mode works
+  out where you are (this revert), switching on by itself when you seem to be on the move; you can switch back to
+  planning and that choice lapses after 20 min or a change of situation. Leave now stays as now minus the "on a
+  train/tube" views. Both directions, eventually any location. Behind Settings → Experimental first. → [tube-home](stories/tube-home.md)
+- **30 Oct evening** TfL's Aldgate arrivals have no Met departures (recorded feed in `tests/fixtures/`); test data
+  must come from recorded feeds where possible, marked as such. → [tube-home](stories/tube-home.md)
 - **30 Oct** Working out which tube you're on counts only tubes you could have caught (the later of last-seen-away +
   walk and first seen there; 1 min slack), and "On a different tube?" is nearest first. Why: GPS went quiet underground and Sam was put on the 08:40 Circle
   while still walking down; the office time was 9 min early. → [connections](stories/connections.md)
@@ -198,10 +208,8 @@ Newest first. One line each; the story or issue holds the detail.
 - **30 Oct** Status colour follow-ups (Sam): 10–14 min late is amber (red from 15 everywhere); the route-wide status
   line stays amber from 5 min; "Arrives first · walking" and "Latest for HH:MM" stay green (status: you can make
   it). → [train-status](stories/train-status.md)
-- **30 Oct** The tube home is only one you picked; never worked out (Sam). At 15:37 at his desk the app said he was on
-  the 15:29 Circle: the desk (313 m from Aldgate) read as Aldgate, a tube left, and a still phone going quiet was
-  taken as underground. Regression exposed by the 300 m office rule below, which made the desk "heading home".
-  → [tube-home](stories/tube-home.md)
+- **30 Oct** The tube home is only one you picked; never worked out (Sam, 15:48), after the desk read as Aldgate at
+  15:37. **Reverted the same evening** (see above). → [tube-home](stories/tube-home.md)
 - **30 Oct** Office arrival also counts after staying within 300 m for 10 minutes (Sam). At his desk the phone read
   217 m (±15 m) for over an hour, outside the 150 m circle, so the app kept saying "Walking to the office". 150 m /
   5 min still decides "you've arrived"; the wider, slower rule only turns the journey round. Office point unverified

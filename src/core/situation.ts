@@ -10,6 +10,8 @@ export type Pace = "avg" | "fast";
 export interface TubeDep { line?: string; t: number; [k: string]: unknown; }
 /** The last London station you were seen at, and the tubes due there then. */
 export interface HubVisit { hub: StationCode; seen: number; arrivals: TubeDep[] | null; }
+/** The last time you were seen at the office's tube station going home, and the tubes due then. */
+export interface TubeStopVisit { seen: number; deps: TubeDep[]; }
 /** The train you're on, once sure (or picked). */
 export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; serviceId?: string; }
 /** Where National Rail last reported a train (Service Details, parsed). */
@@ -268,11 +270,26 @@ export function inLondonToOffice(dir: Direction, f: Fix, atHub: StationCode | nu
   return km(here, p.places.homeStation) > 15 && km(here, p.places.office) < 25;
 }
 
-/** Going home and at the office's tube station (within 150 m, fix good to 150 m): worth remembering for the tubes
- *  due then. Never evidence that you're on a tube: the office can read as here (30 Oct). */
+/** Going home and at the office's tube station (within 150 m, fix good to 150 m): worth remembering. */
 export const atOfficeTube = (dir: Direction, f: Fix, p: Profile) => {
   const here = pos(f, 150); return dir === "home" && !!here && km(here, p.places.officeTube) <= 0.15;
 };
+
+/** On the tube going home: at the office's tube station in the last 25 min, a tube has left since, and you've left
+ *  (or the fix is stale). At the station with a fresh fix counts as near the office. */
+export function onTubeHome(visit: TubeStopVisit | null, dir: Direction, mode: Mode, now: number, f: Fix, onTheLine: boolean, atHub: StationCode | null, p: Profile): boolean {
+  if (!visit || dir !== "home" || mode === "leisure" || now - visit.seen > 25 * 60e3 || onTheLine || atHub) return false;
+  if (!(visit.deps || []).some(d => d.t >= visit.seen - 60e3 && d.t <= now)) return false;
+  return stale(f, now) || !nearOffice(f.here, p);
+}
+
+/** Which tube home: the first to leave after you were last seen at the station; another within 3 min is "or". */
+export function whichTubeHome(visit: TubeStopVisit, now: number): { best: TubeDep; other?: TubeDep } | null {
+  const gone = (visit.deps || []).filter(d => d.t >= visit.seen - 60e3 && d.t <= now + 30e3).sort((x, y) => x.t - y.t);
+  if (!gone.length) return null;
+  const best = gone[0], other = gone.find(d => d !== best && d.t - best.t < 3 * 60e3);
+  return { best, other };
+}
 
 /** Nearly home: heading home (commute) within 3 km of the home station and not on the line. */
 export const nearlyHome = (dir: Direction, mode: Mode, here: LatLon | null, onTheLine: boolean, p: Profile) =>

@@ -728,3 +728,23 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     app.close();
   }
 });
+
+test("Capture Aldgate (Settings): three TfL requests only when tapped, bodies shown, the key never shown", async () => {
+  const route = (u) => /trackernet\/PredictionDetailed\/M\/ALD/.test(u) ? new Response("<ROOT><P N='Platform 1'><T SetNo='431' Destination='Uxbridge' TimeTo='2:00'/></P></ROOT>", { status: 200 })
+    : /trackernet\/PredictionDetailed\/H\/ALD/.test(u) ? new Response("denied", { status: 401 })
+    : /StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? new Response(JSON.stringify([{ lineId: "metropolitan", destinationName: "Aldgate Underground Station" }]), { status: 200 }) : undefined;
+  const app = await createApp({ settings: { provider: "tfl", tflKey: "SECRETKEY123" }, route });
+  const before = app.calls.length;
+  assert.equal(app.calls.filter(u => /trackernet/.test(u)).length, 0, "nothing fetched until you tap");
+  app.d.querySelector("#captureAldBtn").click();
+  await sleep(300);
+  const out = app.d.querySelector("#captureOut").value, mine = app.calls.slice(before).filter(u => /940GZZLUALD|trackernet/.test(u));
+  assert.equal(mine.length, 3);
+  assert.match(out, /== https:\/\/api\.tfl\.gov\.uk\/trackernet\/PredictionDetailed\/M\/ALD\nHTTP 200\n<ROOT>.*Uxbridge/);
+  assert.match(out, /PredictionDetailed\/H\/ALD\nHTTP 401\ndenied/);
+  assert.match(out, /StopPoint\/940GZZLUALD\/Arrivals\nHTTP 200\n\[\{"lineId":"metropolitan"/);
+  assert.doesNotMatch(out, /SECRETKEY123/);
+  assert.ok(mine.every(u => /app_key=SECRETKEY123/.test(u)), "the key is sent");
+  assert.equal(app.d.querySelector("#captureShareBtn").hidden, false);
+  app.close();
+});
