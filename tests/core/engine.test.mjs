@@ -232,6 +232,9 @@ test("departureStatus: the Expected column; the time whenever it differs from th
   assert.equal(st({ timetable: true, depLate: 6, dep: T + 6 * MIN }), "warn: time", "TfL reporting a delay: its time, coloured (Sam, 30 Oct)");
   assert.equal(st({ derived: true }), "info: Estimated");
   assert.equal(st({ estimated: true }), "info: Estimated");
+  assert.equal(st({ timetable: true, derived: true }), "info: Not live", "another stop of a timetable train: still not live");
+  const s1 = core.departureStatus(train({ from: "RVS", to: "CEN", std: "06:55", dep: T + MIN, arr: T + 17 * MIN, depLate: 1 }));
+  assert.equal(s1.text, "1 min late", "1 min late is late, not early");
 });
 
 test("bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never", () => {

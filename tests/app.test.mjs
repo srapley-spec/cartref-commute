@@ -691,6 +691,7 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     assert.match(css, new RegExp(`\\.hero \\.exp\\.${l}\\{color:var\\(--hero-${l}\\)\\}`), `card ${l}`);
     assert.match(css, new RegExp(`\\.row \\.exp \\.${l}\\{color:var\\(--${l}\\)\\}`), `list ${l}`);
   }
+  assert.match(css, /\.row\.board\.missed \.leave \.t\{text-decoration:none/, "a missed train's name is never struck through on a board");
   plain.close();
   for (const [late, level] of [[3, "ok"], [6, "warn"]]) {
     const base = tflTimetable();
