@@ -97,6 +97,10 @@ train" read as a warning while the train was close to on time.
   matters; departure delay is history.
 - **Caution (yellow `note`)** stays for a notice on your route with no observed impact; it must not be mistaken
   for amber.
+- **Tube line colours are identity, not status** (Sam, 30 Oct): a lozenge or chip naming one tube line uses TfL's
+  colour for that line (`--circle`, `--met`, `--hc`), always with the line's name in it. The Circle's yellow is
+  close to caution; the name and the lozenge shape keep it distinct. Don't extend this to a status colour that
+  isn't a line's own.
 - **Where the status sits on the live card: awaiting Sam.** Options put to him 30 Oct: (A) a status chip beside
   the hero arrival time; (B) the identity lozenge split, neutral train name plus a coloured status segment;
   (C) the hero time itself coloured, with the status word in its label; (D) a full-width coloured status strip
@@ -104,7 +108,7 @@ train" read as a warning while the train was close to on time.
 
 **Known violations in the live build (`src/page.html`, 30 Oct):** `--accent` is orange (`#B0500C` light,
 `#EE9A45` dark, close to `--warn` `#E3B04D` in dark) and is used for the identity lozenge (`.slack`: "You're on",
-"Probably", "Get on", "You're getting"), for late text (`.latetxt`), the best-row tint and the focus ring.
+"Probably", "Get on", "You're getting") on rail trains (tube lozenges take their line's colour since 30 Oct), for late text (`.latetxt`), the best-row tint and the focus ring.
 Late text must take its band colour; the rest must move to a non-status accent (recommended: Signal's blue).
 Compliant: "At the station about" on your way is green / amber / red by minutes to spare (`wayLevel`, 30 Oct), which
 is status, not identity.

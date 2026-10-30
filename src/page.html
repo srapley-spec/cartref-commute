@@ -128,6 +128,10 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .slack.bad{background:var(--bad);color:var(--paper)}
 .hero .slack.warn{background:var(--warn);color:var(--paper)}
 .hero .slack.ok{background:var(--ok);color:var(--paper)}
+/* A lozenge naming one tube line takes that line's colour (Sam, 30 Oct), as the line chips do. */
+.hero .slack.circle{background:var(--circle);color:var(--circle-ink)}
+.hero .slack.met{background:var(--met);color:var(--met-ink)}
+.hero .slack.hc{background:var(--hc);color:var(--hc-ink)}
 
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.6}
 .chip.rail{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
@@ -765,6 +769,8 @@ function officeLeg(hub, lineId){
     tailMs:(east?s.adePlatform+s.adeWalk:s.aldPlatform+s.aldWalk)*k*1000 };
 }
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
+// The line's colour class for a lozenge naming it; none for an unknown line.
+const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
 // A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
 const rideFor = (hub, d, extra) => { const leg=officeLeg(hub, d.lineId||lineIdOf(d.line))||officeLeg(hub,"circle");
   return { hub, from:hub, t:d.t, line:d.line, vehicle:d.vehicle, rideMs:leg.rideMs, stop:leg.stop, stopGeo:leg.stopGeo, ...extra }; };
@@ -1029,7 +1035,7 @@ function renderOnTubeHome(now){
   const off = `<div class="pick"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
-    <div><span class="slack">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
     <div class="note" style="color:inherit;opacity:.75">Tube times: live departures from Aldgate plus typical ride times (Settings).</div>`;
@@ -1059,7 +1065,7 @@ function renderOnTube(now){
   const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
   $("#hero").innerHTML=`${head}
     <div class="big"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
-    <div><span class="slack">${r.picked||r.confirmed?"You're on":"Probably"} the ${hhmm(w.best.t)} ${esc(w.best.line||"tube")}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${hhmm(w.other.t)} ${esc(w.other.line)}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${hhmm(w.best.t)} ${esc(w.best.line||"tube")}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${hhmm(w.other.t)} ${esc(w.other.line)}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
     ${ask}
     <ol class="legs">
       <li class="t">${hhmm(aldT)}</li><li class="d">${esc(leg.stop)} <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
@@ -1124,7 +1130,7 @@ function renderAtHub(now){
     const nearly = early.length ? `<div class="alt">Near the platform already? The ${early.map(e=>`<span class="t">${hhmm(e.t)}</span> ${esc(e.line)} (office <span class="t">${hhmm(e.office)}</span>)`).join(" or the ")}.</div>` : "";
     hero=`${head}
       <div class="big"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
-      <div><span class="slack">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
+      <div><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs">
         <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when you arrived (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
