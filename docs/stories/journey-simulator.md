@@ -8,8 +8,8 @@ As a developer, I want to inject manual coordinates or replay a representative r
 30 Oct 2026: repeated physical commuting is too slow for validating GPS-dependent app transitions. Existing deterministic jsdom and golden tests remain essential.
 
 ## Acceptance criteria
-- Only enabled in a session when URL fragment includes `simulator`; this is an **opt-in UI gate**, not authentication. The panel is intentionally absent from normal UI. It is not production-grade access control.
-- Enter via `#simulator` on a development preview. Jump among six sample positions or enter valid latitude/longitude.
+- Settings → Experimental → Developer journey simulator enables the panel, off by default. Disabling ends any active simulation and returns to real GPS. This is a user-facing feature switch, not authentication.
+- Enable in Settings. Jump among six sample positions or enter valid latitude/longitude.
 - GPS fixes pass through the existing `onPosition` handler. Browser GPS watch is stopped; late real watch callbacks must not override injected fixes.
 - Real clock and existing API endpoints remain in use; playback does **not** represent historical departures.
 - Replay a representative **illustrative** Letchworth→office route with 1×, 5×, 20×; the route is straight-line waypoint interpolation, NOT mapped tracks, and can cross unrealistic terrain.
@@ -23,7 +23,7 @@ As a developer, I want to inject manual coordinates or replay a representative r
 
 ## Known risks / review blockers
 - Session-level in-memory persistence isolation must be independently tested across all user interactions and pending asynchronous callbacks.
-- `#simulator` is an explicit discoverability gate, **not a security boundary**; restricting the feature to a dedicated development deployment is recommended before any public release.
+- The Settings feature switch is **not a security boundary**. It must default off; risk of accidental enablement requires review.
 - Location interpolation is a crude approximation; inference accuracy cannot be validated against track geometry.
 - App time is actual current time, so speeding coordinates will not speed timetable or real train movement.
 - Review all pending in-flight API responses and retry timers for contamination after reset.
