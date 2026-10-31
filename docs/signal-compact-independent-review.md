@@ -2,9 +2,9 @@
 
 Reviewed 31 October 2026 against exact source commit **`12ef7b94c1ab02866cda263d2184f8d8999a1bc8`**. This includes latest main `8789a50` and the guided simulator release `0ca7d3c`.
 
-**Focused source review passed; release remains pending full CI.** The independent reviewer did not implement production code. Review tests, separate detached worktrees, deliberate mutations, and the evidence below were owned independently of the implementation.
+**Independent review passed. Full-suite and deployment gates are recorded separately.** The independent reviewer did not implement production code. Review tests, separate detached worktrees, deliberate mutations, and the evidence below were owned independently of the implementation.
 
-The first full integrated run at `9bed703` passed 696/697 tests. `tests/simulator-journey-ux.test.mjs:124`, "Signal Journey verification: outbound far evaluates real checkpoints through completion", timed out waiting for "Next advances one adjacent checkpoint". That failure is under investigation; this focused review does not override it. The final committed head must pass full CI after resolution. This record's exact source/targeted/mutation evidence remains bound to `12ef7b9`.
+Production source is unchanged from `12ef7b9` through integrated commit `0556ad5`. The subsequent test/docs changes, including latest main `6aa5e2f`, Follow coverage `e505692`, and simulator test-readiness fix `1f903a7`, were independently reviewed. The exact source/44-targeted-test/20-layout/11-mutation evidence below remains bound to `12ef7b9`; final committed-head full CI is recorded by the release owner.
 
 ## Architecture and latest-code preservation
 
@@ -12,6 +12,7 @@ The first full integrated run at `9bed703` passed 696/697 tests. `tests/simulato
 - Planning, route choice, train identity, GPS inference, freshness, and Follow timing remain in their existing engine/controller paths. The engine change is an optional status-presentation input qualifying an unavailable Tube fallback. No feed requests or server/API contracts changed.
 - Existing Panda golden files were not regenerated. Signal content parity checks preserve every original journey field and the same requests while allowing the intended presentation changes.
 - Reviewed the incoming `8789a50` diff. Its six real UI scenarios protect both designs' train-stop walking allowance, line-coloured Tube identity, board-order pick buttons, inferred H&C underground, departure-relative alternative labels, and Aldgate's combined platform list. All six pass against the reviewed commit.
+- Reviewed later test-only main updates `6aa5e2f` and `e505692`. The former re-runs at least 14 existing Aldgate/going-home scenarios with Signal enabled and asserts the actual design. The latter retains all nine Follow scenarios and runs each in Panda and Signal, including cancellation, reopening, alternatives, Tube vehicle identity, planning expiry, missing/stale data, confirmed boarding, and feature-off behavior. These remain part of the final full-suite gate.
 - Simulator source is unchanged. Existing independent integration cases still pass for genuine inference while Planner is pinned, followed Thameslink remaining on rail through St Pancras, actual Follow-panel report evidence/redaction, and technical simulator focus not pinning the commuter application.
 
 ## Findings resolved before approval
@@ -41,6 +42,16 @@ python tests/browser-signal-compact.py
 **44 targeted tests passed:** 8 compact review, 13 Signal, 13 prior independent Follow, 4 independent Signal/simulator, and 6 latest-main Tube scenarios. **All 20 Chromium layout/appearance cases passed**, including 320/393 px, light/dark/system overrides, cancelled trains remaining listed, complete notices, existing adjustments, future planning controls, changing the followed train, refresh/reload persistence, explicit boarding, and 200% of every visible element's computed font size. No horizontal overflow or time-label collisions were found. Measured visible control heights were at least 44 px; sampled text contrast was at least 5.81:1 in light and 8.02:1 in dark.
 
 This is additional independent evidence; the release owner records the full suite, documentation/type checks, committed-head CI, and deployed Pages checks separately.
+
+## Full-suite simulator harness failure: resolved
+
+The first full integrated local run at `9bed703` passed 696/697 tests. "Signal Journey verification: outbound far evaluates real checkpoints through completion" in `tests/simulator-journey-ux.test.mjs` timed out waiting for the next adjacent checkpoint. It was investigated before release.
+
+A real Tube selection queues asynchronous verification and legitimately disables Next. The old test clicked that disabled control, so the click was ignored. An independent reproduction held the real verification for only 150 ms after the actual Tube choice: immediately before the old click, checkpoint 8 had `disabled:true`, `pending:true`; after the original six-second timeout, both were false but checkpoint 8 and elapsed time 80 were unchanged. This reproduces a lost test click, rather than slow checkpoint movement.
+
+Reviewed fix `1f903a7` waits for the actual enabled button, no stepping, and no pending verification, then clicks synchronously inside the successful predicate. Readiness and movement share the original total six-second deadline. It still requires exactly one adjacent checkpoint and settled verification. Production simulator code is unchanged.
+
+Independently reran all three cases: **old helper with the 150 ms hold fails its intended adjacent-checkpoint assertion; fixed helper with the identical hold passes; the actual normal Signal outbound-far scenario passes.** The fix is approved. Logs are `/workspace/scratch/independent-journey-next-{old-hold,fixed-hold,actual}.log`. This targeted proof complements the required final full-suite run.
 
 ## Measured improvement
 

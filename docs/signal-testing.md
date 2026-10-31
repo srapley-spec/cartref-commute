@@ -198,8 +198,9 @@ identity, and full-width departure rows. Auto/Plan/Live and the planning questio
 and line/data detail remain native disclosures; train-specific warnings and additional surviving-line problems
 stay visible. Example and timetable provenance remain visible when worse warnings take priority.
 
-Implementation was reconciled with `8789a50`, retaining the latest guided simulator and six both-design Tube
-regressions. No route timing, ranking, feed request policy or saved preference shape changed. Panda restores
+Implementation was reconciled with `6aa5e2f`, retaining the latest guided simulator, `8789a50`'s six both-design
+Tube regressions, all nine preserved Follow scenarios in both designs, and the additional Signal Aldgate/going-home
+rules run. No route timing, ranking, feed request policy or saved preference shape changed. Panda restores
 the original nodes, handlers, values and root order. No Panda golden recordings changed.
 
 The final production-browser checks passed 20 compact phone/theme layouts and the 12 existing Signal layouts.
@@ -215,6 +216,9 @@ records exact source commits, focused capability checks, edge cases, and deliber
 and closed focus loss, Panda order changes, hidden explicit Plan, hidden nested-alert deferral, missing future
 plan failures, misleading closed-fallback copy, lost additional line warnings, undersized targets, and enlarged
 text collisions. These were fixed and retested; an earlier failed candidate was not counted as release evidence.
+Full CI also exposed an ignored test click on the correctly disabled simulator Next control. A 150 ms verification
+hold reproduced it; the corrected test waits for the real enabled control and retains the original shared
+six-second readiness/movement deadline. Production simulator behaviour is unchanged.
 
 Release uses the GitHub-first path because interaction-sensitive page tests changed. The committed-HEAD full
 CI, current-main green result, branch Tests, and exact merged Tests/Pages deployment remain separate gates.
