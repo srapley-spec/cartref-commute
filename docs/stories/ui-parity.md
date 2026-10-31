@@ -49,7 +49,8 @@ enforced, that all supported design systems and UIs advance concurrently until a
 
 ## Mandatory SDLC gate
 - `config/ui-parity.json` is the supported-design/surface registry. Its surfaces cover every key in the pure
-  presentation model's `BLOCKS`, plus the explicit Live departures surface. Settings and geometry may vary by
+  presentation model's `BLOCKS`, plus the explicit Live departures and Along the line surfaces. The Along the line companion
+  retains current journey duration facts, significant disruption and stale/unknown qualifications in both designs. Settings and geometry may vary by
   design; a fixture must reach the real production view rather than insert matching HTML.
   A production-source inventory also checks actual CSS/HTML design selectors and explicit design assignments
   against the registry. A third implemented design cannot silently lack coverage, and a retired design's live

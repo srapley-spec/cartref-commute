@@ -387,6 +387,7 @@ html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
     <fieldset>
       <legend>Experimental</legend>
       <label class="f wide"><span><input type="checkbox" id="s_signal"> Signal design — the new light/dark journey screen. Off by default.</span></label>
+      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
       <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
@@ -484,7 +485,7 @@ function whichTrain(now,remember=true){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,signal:false,followRoute:false,appearance:"system",
+  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,signal:false,followRoute:false,appearance:"system",
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -1193,7 +1194,7 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
@@ -2244,6 +2245,7 @@ $("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey')
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
+  $("#s_alongLine").checked=s.alongLine===true;
   $("#s_signal").checked=!!s.signal; $("#s_followRoute").checked=!!s.followRoute;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
@@ -2260,6 +2262,7 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_signal").checked) o.signal=true;
+  if($("#s_alongLine").checked) o.alongLine=true;
   if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
@@ -2302,7 +2305,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["signal","followRoute","appearance","follow"]);
+ const presentationKeys=new Set(["signal","followRoute","appearance","follow","alongLine"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

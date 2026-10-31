@@ -393,15 +393,19 @@ function signalNetworkLine(context=signalDisruptionEvidence()){
     fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),
     tubeLines:context.tubeLines,operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false,policy:PROFILE.disruption});
 }
-function renderSignalStatus(){
-  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+function journeyDisruptions(){
   const context=signalDisruptionEvidence();
   const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
   const input={errors:state.errors||[],notLoaded:context.railComplete?[]:failed,stale:!context.railComplete&&!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
     tubeFallback:context.fallback,fallbackUnavailable:context.fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),tiers:context.tiers,tubeLines:context.tubeLines,operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
     planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl',policy:PROFILE.disruption};
-  const items=C.visibleDisruptions(input);state.signalDisruptionItems=items;
+  return {context,failed,input,items:C.visibleDisruptions(input)};
+}
+function renderSignalStatus(){
+  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const {context,failed,input,items}=journeyDisruptions();
+  state.signalDisruptionItems=items;
   const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
   region.innerHTML=items.map(item=>{
     const preview=item.detail.length?C.noticeTitle(item.detail[0]):'';
@@ -439,7 +443,7 @@ function renderSignalLocation(){
   const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
 }
-function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   if(!journeyEnabled()&&!signalActive)return null;

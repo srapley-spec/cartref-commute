@@ -62,6 +62,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Shared by Panda and Signal; Leisure going out: all departures not yet
 
 ### Beyond the commute
+- [Along the line: discover the journey outside your window](along-the-line.md) · Behind toggle (#24, #16)
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
 - [Discovered alternatives](discovered-alternatives.md) · Planned (#13)
 - [People and trips](people-and-trips.md) · Planned
@@ -69,7 +70,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Family day out](family-day-out.md) · Planned
 
 ### Ideas (issues only, not yet stories)
-Passing points #23 · Along the line / nerd mode #24 · Searchable place picker #25 · Proxy #17 · National Rail
+Passing points #23 · Searchable place picker #25 · Proxy #17 · National Rail
 timetable #18 · Early platforms #19 · Structured incidents #20 · Train length and crowding #21 · Native iPhone
 #2–#7, #10–#12.
 

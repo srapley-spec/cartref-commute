@@ -106,6 +106,12 @@ claim for every configured intermediate station.
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: Tube headline and progress share vehicle, target-platform and freshness guards"
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: an otherwise fresh arrival report preserves a current cancellation until the board explicitly recovers"
 
+## Shared model for Along the line
+When Along the line is enabled, Panda computes this same qualified model for commentary station times and
+significant current-service disruption. It returns before creating diagram DOM. This prevents a newer delayed
+Service Details report being hidden behind an older on-time board, while retaining the existing identity,
+freshness, cancellation and no-estimate guards. With both features off, Panda remains on its original path.
+
 ## Limits
 - Calling-point reports are not continuous location reports. Passing points still require the separate data
   capability described in [which train](which-train.md); this visualisation does not deliver it.
