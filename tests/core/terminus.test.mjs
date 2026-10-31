@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { core, fixture, MIN } from "./helpers.mjs";
 
-test("Met departures from Aldgate, from TfL's real Liverpool Street arrivals (recorded 30 Oct 22:43): each westbound Met less the 2-min run", () => {
+test("terminusDepartures on TfL's real Liverpool Street arrivals (recorded 30 Oct 22:43): each westbound Met less the run given (here the timetable's 2 min; the app uses the measured 90 s)", () => {
   const now = Date.parse("2026-10-30T22:43:19Z"), lvt = fixture("tfl-2026-10-30T2243Z/LVT.json");
   const deps = core.terminusDepartures(lvt, { lineId: "metropolitan", outbound: /westbound/i, runMs: 2 * MIN, now, terminus: /^aldgate\b/i });
   assert.deepEqual(deps.map((d) => [d.vehicle, d.dest, new Date(d.t).toISOString().slice(11, 19)]), [
@@ -95,10 +95,13 @@ test("terminusDepartures platform: only 'At <terminus> Platform N' for the named
   const a = (v, loc) => ({ lineId: "metropolitan", platformName: "Westbound - Platform 2", vehicleId: v, expectedArrival: at(300 + +v), currentLocation: loc });
   const feed = [a("1", "At Aldgate Platform 3"), a("2", "at aldgate platform 2 "), a("3", "At Aldgate East Platform 1"), a("4", "Approaching Aldgate Platform 2"),
     a("5", "Left Aldgate"), a("6", "At Aldgate"), a("7", undefined), a("8", "At Platform"), a("9", "At Aldgate Platform A")];
+  // Review 31 Oct: a two-digit platform; wording TfL isn't known to send gives none (the train still shows).
+  feed.push(a("10", "At Aldgate Platform 10"), a("11", "Waiting at Aldgate Platform 2"), a("12", "At Aldgate Platform 3 (bay)"), a("13", "At  Aldgate  Platform 3"));
   const o = { lineId: "metropolitan", outbound: /westbound/i, runMs: 90e3, now, terminus: /^aldgate\b/i };
   assert.deepEqual(core.terminusDepartures(feed, { ...o, terminusName: "Aldgate" }).map((d) => [d.vehicle, d.platform]),
-    [["1", "Platform 3"], ["2", "Platform 2"], ["3", ""], ["4", ""], ["5", ""], ["6", ""], ["7", ""], ["8", ""], ["9", "Platform A"]]);
-  assert.deepEqual(core.terminusDepartures(feed, o).map((d) => d.platform), Array(9).fill(""), "no terminus name: no platform");
+    [["1", "Platform 3"], ["2", "Platform 2"], ["3", ""], ["4", ""], ["5", ""], ["6", ""], ["7", ""], ["8", ""], ["9", "Platform A"],
+      ["10", "Platform 10"], ["11", ""], ["12", ""], ["13", "Platform 3"]]);
+  assert.deepEqual(core.terminusDepartures(feed, o).map((d) => d.platform), Array(13).fill(""), "no terminus name: no platform");
   assert.deepEqual(core.terminusDepartures(feed, { ...o, terminusName: "Aldgate East" }).map((d) => d.platform),
-    ["", "", "Platform 1", "", "", "", "", "", ""], "generic: any terminus by name");
+    ["", "", "Platform 1", "", "", "", "", "", "", "", "", "", ""], "generic: any terminus by name");
 });

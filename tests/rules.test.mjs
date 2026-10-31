@@ -1107,6 +1107,15 @@ test("Met platform at Aldgate (recorded 31 Oct 08:59, Saturday): the Mets standi
   assert.ok(btns.includes("Platform 2: 3 Met Chesham · 4 min"), btns.join(" | "));
   assert.ok(btns.includes("4 Met · 8 min"), `a Met still arriving: no platform, no destination yet (${btns.join(" | ")})`);
   assert.equal(btns.length, 3, "the Circle at the platform 10 s ago has gone from the buttons");
+  // Review 31 Oct: when the only buttons are a Met at platform 2 and a Met still arriving, the platform still shows:
+  // the arriving one could use either bay, so an unknown platform counts as another board.
+  const only = rec("LVT").filter(a => a.vehicleId === "406" || a.vehicleId === "432");
+  const app2 = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json([]) : /940GZZLULVT\/Arrivals/.test(u) ? json(only) : undefined) });
+  await app2.fix(...ALD, 10, t0); await app2.c.refresh({ force: true }); await sleep(300);
+  assert.deepEqual([...app2.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim()),
+    ["Platform 2: 1 Met Chesham · 4 min", "2 Met · 8 min"]);
+  app2.close();
   // Picking the platform 3 Met follows it by its vehicle.
   app.d.querySelector('#hero [data-tubepick*="|431|"]').click();
   assert.deepEqual([app.c.state.saved.tubePick.vehicle, app.c.state.saved.tubePick.line, app.c.state.saved.tubePick.dest], ["431", "Met", "Uxbridge"]);
