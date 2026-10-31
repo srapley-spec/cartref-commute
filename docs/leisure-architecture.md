@@ -83,6 +83,10 @@ type Station = { crs: string; name: string; geo: [number, number]; carPark: "yes
 further requests like the others.
 
 ## 5. Google: Maps JS now, proxy later (one adapter + a setting)
+APIs enabled on Sam's key (31 Oct night; full list in [architecture.md → Data sources](architecture.md#data-sources)):
+Trip uses **Maps JavaScript API**, **Places API (New)** and **Routes API**. The key should be restricted to the site
+(`https://srapley-spec.github.io/*`) and to those three APIs; the proxy's key, when used, to Places API (New) and
+Routes API by the Worker's address instead.
 - `google-mapsjs.js`: loads the library on first Trip use (`ensureLoaded()`, inside the adapter only), keeps a
   `Map<sessionId, AutocompleteSessionToken>`, converts SDK objects to the plain shapes above, returns matrix results in
   input order with whole seconds, maps errors.

@@ -225,6 +225,20 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   matched to the best guess. Searchable picker considered (#25).
 - **Planned/considered**: proxy with offsets and Service Details (#17), staff board for early platforms (#19),
   structured incidents (#20), train length and crowding (#21), passing points via Darwin real-time (#23).
+- **Google Maps Platform** (Trip mode; Sam's key, set up 31 Oct night; the key lives only in the phone's Settings or,
+  later, as the proxy's `GOOGLE_KEY` secret, never in the repo or chat). APIs enabled on the key:
+  - **Used by Trip now**: Maps JavaScript API (loads the library in the browser), Places API (New) (address search
+    and place details), Routes API (walk / cycle / drive times to and from stations, route matrix).
+  - **Used by Trip via the proxy later**: the same Places API (New) and Routes API, as web services
+    ([leisure architecture §5](leisure-architecture.md#5-google-maps-js-now-proxy-later-one-adapter--a-setting)).
+  - **Enabled, not used**: Address Validation, Aerial View, Air Quality, Geocoding, Geolocation, Isochrones, Map
+    Management, Map Tiles, Maps 3D SDK for Android, Maps 3D SDK for iOS, Maps Elevation, Maps Embed, Maps Experience
+    agent tools, Maps Platform Datasets, Maps SDK for Android, Maps SDK for iOS, Maps Static, Navigation Connect,
+    Navigation SDK, Places Aggregate, Places UI Kit, Pollen, Roads, Route Optimization, Solar, Street View Publish,
+    Street View Static, Time Zone, Weather. Candidates later: Maps SDK for iOS / Navigation SDK (native app #2–#7),
+    Time Zone (none needed in the region), Weather (a day out). Use one only with a story; each is billed separately.
+  - Not yet verified from code: no session has the key, so class names and limits in `src/trip-adapters.js` are from
+    Google's documentation until a check on the phone (or a session given the key as an environment secret).
 - **Lift status**: TfL lift outages are available for TfL stations; no known live lift feed for National Rail
   stations (step-free access is known, outages are not).
 
