@@ -14,9 +14,20 @@ test('Signal off preserves the default design and keeps new controls hidden',asy
   assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
   assert.deepEqual(a.errors,[]);a.close();
 });
-test('Signal uses identical journey content and requests to Panda when following is off',async()=>{
+test('Signal preserves every journey field and request while compacting Panda content',async()=>{
   const a=await app(),b=await app({signal:true});
-  for(const id of ['#hero','#list','#banners','#dirNote','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  for(const id of ['#list','#banners','#dirNote','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  // Geometry changes, but every original text node survives: fallback timing moves
+  // into its summary and the line strip moves into the full network disclosure.
+  const fields=(page,selectors)=>selectors.flatMap(selector=>{
+    const node=page.d.querySelector(selector);if(!node)return [];
+    const walker=page.d.createTreeWalker(node,4),out=[];
+    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service')){
+      const text=walker.currentNode.textContent.replace(/\s+/g,' ').trim();if(text)out.push(text);
+    }
+    return out;
+  }).sort();
+  assert.deepEqual(fields(a,['#hero']),fields(b,['#hero','#signalCurrentLines']));
   assert.deepEqual(a.calls,b.calls);
   assert.equal(b.d.documentElement.dataset.design,'signal');
   assert.equal(b.d.querySelector('#journeyViewControl').hidden,false);

@@ -87,11 +87,12 @@ test('Signal dispatch enforces the canonical order on the actual live hero',asyn
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('Signal planning keeps the primary answer ahead of the line-status strip',async()=>{
+test('Signal planning keeps the primary answer ahead of the accessible line-status strip',async()=>{
  const a=await app(),hero=a.d.querySelector('#hero');
  assert.equal(a.c.state.presentation.view,'plan-now');
  assert.ok(hero.firstElementChild.classList.contains('lbl'),'planning context remains first');
- const children=[...hero.children],option=hero.querySelector('.opt'),strip=hero.querySelector('.strip');
- assert.ok(option&&strip);assert.ok(children.indexOf(option)<children.indexOf(strip),'the journey answer precedes line status');
+ const option=hero.querySelector('.opt'),strip=a.d.querySelector('#signalCurrentLines .strip');
+ assert.ok(option&&strip);assert.ok(option.compareDocumentPosition(strip)&4,'the journey answer precedes line status');
+ assert.equal(strip.closest('details').id,'signalNetwork','full line status remains available through the labelled disclosure');
  assert.deepEqual(a.errors,[]);a.close();
 });

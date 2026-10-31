@@ -109,6 +109,7 @@ export interface StatusInput {
   notLoaded: string[];           // routes whose trains didn't load, by name
   stale: boolean;                // no successful refresh for 3 min
   tubeFallback: boolean;         // Circle and Met both closed: H&C to Aldgate East
+  fallbackUnavailable?: boolean; // the fallback's own current service is unavailable too
   /** Your trains and notices, graded by impact (railWarnings), or null before boards load. */
   tiers: RailWarnings | null;
   /** Tube lines a commute journey uses, and National Rail operators, with their status. */
@@ -156,6 +157,7 @@ export function statusLine(i: StatusInput): StatusLine {
   if (t && t.cancelled.length) return { level: "bad", text: `${n(t.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
   if (t && t.uncertain.length) return { level: "bad", text: `${n(t.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
   if (t && t.late >= 15) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+  if (i.tubeFallback && i.fallbackUnavailable) return { level: "bad", text: "Tube lines closed now · check onward travel", detail };
   if (i.tubeFallback) return { level: "bad", text: "Circle and Met closed: via Aldgate East", detail };
   if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${worstDesc(tubeBad[0])}`, detail };
   if (t && t.late >= 5) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };

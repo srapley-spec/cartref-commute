@@ -168,7 +168,7 @@ try:
                 for width in [320, 393]:
                     page.set_viewport_size({"width": width, "height": 852})
                     check = assert_layout(page, (system, appearance, width))
-                    assert check["canvas"] == ("rgb(11, 16, 23)" if expected == "dark" else "rgb(241, 244, 247)")
+                    assert check["canvas"] == ("rgb(9, 15, 22)" if expected == "dark" else "rgb(242, 245, 248)")
                     results.append({"system": system, "appearance": appearance, "width": width})
                 if system == appearance:
                     page.screenshot(path=str(ARTIFACTS / f"signal-{appearance}.png"), full_page=True)
