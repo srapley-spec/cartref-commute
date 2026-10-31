@@ -56,10 +56,32 @@ with sync_playwright() as p:
    assert point.locator('details').evaluate('e=>e.open&&e===window.__accessReading'),'a new location must preserve the article being read'
    assert point.is_visible()
    page.locator('#alongClose').click()
+   # Initial focus comes from reliable location even when no topics are selected.
+   page.evaluate("""() => {
+    const c=__commute,s=c.state,n=c.simClock.active?c.simClock.now():Date.now();
+    const t={from:'LET',to:'KGX',std:'09:05',dep:n-15*60000,arr:n+20*60000,operator:'Great Northern',serviceId:'access-initial-focus',depLate:0,arrLate:0,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',calls:[{code:'LET',t:n-15*60000},{code:'KGX',t:n+20*60000}]};
+    Object.assign(s,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:n,railSource:'darwin',boardsDir:'office',here:[51.8158,-.1972],locAcc:10,locStatus:'ok',lastFixAt:n,lastFixRecvAt:n,onLine:true,atHub:null,inLondon:false,progressById:{},trainLock:{from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true}});
+    s.saved.alongLinePreferences={interests:[],depth:'discover'};c.render();
+   }""")
+   def position_is_visible():
+    return page.evaluate("""() => {
+     const marker=document.querySelector('#alongPosition'),sc=document.querySelector('#alongScroll'),dlg=document.querySelector('#alongLine');
+     const m=marker.getBoundingClientRect(),r=sc.getBoundingClientRect(),d=dlg.getBoundingClientRect();
+     return !marker.hidden&&m.bottom>Math.max(0,r.top,d.top)&&m.top<Math.min(innerHeight,r.bottom,d.bottom);
+    }""")
+   page.locator('#alongEntry').click()
+   assert position_is_visible(),(signal,'empty interests must not leave the reliable marker below the initial viewport')
+   page.locator('[data-point="digswell"] details').evaluate('e=>e.open=true')
+   page.locator('#alongClose').click()
+   page.evaluate("""()=>{const c=__commute,s=c.state;s.here=[51.7638,-.2156];s.lastFixAt=c.simClock.active?c.simClock.now():Date.now();c.render();}""")
+   page.locator('#alongEntry').click()
+   assert position_is_visible(),(signal,'reopening must focus the new location even with an old article open')
+   assert page.locator('#alongPosition').evaluate("e=>['hatfield','station-HAT'].includes(e.nextElementSibling?.dataset.point)"),(signal,'reopening must not reuse the previous marker')
+   page.locator('#alongClose').click()
    assert page.evaluate('__commute.S().followRoute') is False
    assert not errors,errors
   finally:
    context.close();server.shutdown()
  browser.close()
 (ART/'along-access-results.json').write_text(json.dumps(results,indent=2))
-print('PASS: real opt-in and simulator checkpoints 0-4; both designs; 320/390px; visible access, browse/onboard transition, passed-point reading across GPS progress, focus and 44px targets')
+print('PASS: real opt-in and simulator checkpoints 0-4; both designs; 320/390px; visible access, browse/onboard transition, passed-point reading across GPS progress, empty-interest/reopen initial position, focus and 44px targets')
