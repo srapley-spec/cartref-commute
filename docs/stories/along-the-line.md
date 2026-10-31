@@ -127,4 +127,6 @@ harness; production ranking and timing rules are unchanged.
   observed passing timestamps are deferred. The profile corridor and article anchors are approximate.
 - Real iPhone Safari, VoiceOver and physical journeys in both directions still need device acceptance. Chromium
   geometry and simulated fixes cannot establish actual visibility from a seat or native screen-reader behaviour.
-- Independent test review remains required before merge under the repository's release rules.
+- Independent review approved source `476ed04` after four fixes; the [review record](../along-line-independent-review.md)
+  contains the findings, 37-test replay, mutation evidence and limits. Full repository CI/release gates remain
+  required before merge.
