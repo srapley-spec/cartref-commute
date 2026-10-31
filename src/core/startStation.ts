@@ -1,5 +1,6 @@
-// Starting from another station on your line (31 Oct 2026: a demo somewhere in Hitchin, not at home).
-// Generic: the profile lists stations you may start from (`startStations`, positions in `stationGeo`); this
+// Starting from another station on your line (31 Oct 2026: a demo away from home, first Hitchin, then Fairfield
+// between Arlesey and Letchworth). Generic: the profile lists stations you may start from (`startStations`, each with
+// its position or one in `stationGeo`); this
 // derives the same profile with that station as the local one. Nothing here reads a clock, the DOM or storage.
 import type { LatLon, Profile, StationCode } from "./types";
 import { km } from "./geo";
@@ -7,10 +8,10 @@ import { km } from "./geo";
 /** How far from a station you can be for it to count as the nearest one to start from (km). */
 export const START_STATION_MAX_KM = 10;
 
-/** Where a station is: the profile's own station position, or the home station's. */
+/** Where a station is: the home station's position, the start station's own, or the one along the line. */
 function stationAt(p: Profile, code: StationCode): LatLon | null {
   if (code === p.home) return p.places.homeStation;
-  return (p.stationGeo && p.stationGeo[code]) || null;
+  return (p.startStations && p.startStations[code] && p.startStations[code].geo) || (p.stationGeo && p.stationGeo[code]) || null;
 }
 
 /** The stations you can start from (the home station first), with their names and positions. */
@@ -21,6 +22,12 @@ export function startStationChoices(p: Profile): { code: StationCode; name: stri
     if (geo && code !== p.home) out.push({ code, name: s.name, geo });
   }
   return out;
+}
+
+/** The start stations within START_STATION_MAX_KM of `here`, nearest first, with the distance. */
+export function startStationsNear(here: LatLon, p: Profile): { code: StationCode; name: string; km: number }[] {
+  return startStationChoices(p).map(s => ({ code: s.code, name: s.name, km: km(here, s.geo) }))
+    .filter(s => s.km <= START_STATION_MAX_KM).sort((a, b) => a.km - b.km);
 }
 
 /** The start station nearest to `here`, within START_STATION_MAX_KM; null if none is that close. */
@@ -64,14 +71,19 @@ export function profileFromStation(p: Profile, code: StationCode | null | undefi
   if (!s || !geo) return p;
   const lines: Record<StationCode, LatLon[]> = {};
   for (const [hub, line] of Object.entries(p.lines)) lines[hub] = lineFrom(line, geo);
+  // The home station stays a choice (to switch back to it while away); notices naming the new station are yours.
+  const startStations = { ...p.startStations, [p.home]: { name: p.stationNames[p.home] || p.home, pattern: p.stationPatterns[p.home] || p.home, geo: p.places.homeStation } };
   return {
     ...p,
     home: code,
+    startStations,
+    corridorPattern: new RegExp(p.corridorPattern, "i").test(s.name) ? p.corridorPattern : `${p.corridorPattern}|${s.pattern}`,
     stationNames: { ...p.stationNames, [code]: s.name },
     stationPatterns: { ...p.stationPatterns, [code]: s.pattern },
     coords: { ...p.coords, [code]: `${geo[0]},${geo[1]}` },
     lines,
     places: { ...p.places, homeStation: geo },
+    stationGeo: { ...p.stationGeo, [code]: geo },
     busy: p.busy.from === p.home ? { ...p.busy, from: code } : p.busy,
   };
 }

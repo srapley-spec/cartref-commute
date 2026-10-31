@@ -301,7 +301,9 @@ Newest first. One line each; the story or issue holds the detail.
   profile, not a constant. The engine derives the profile for a start station (`startStation.ts`, generic; the
   stations offered are profile data, only Hitchin so far, checked against live times); the page uses `PROFILE.home`
   instead of `LET` throughout. Opt-in from the header for today only, so not an Experimental toggle: the default
-  commute is unchanged. Walk from where you are is the straight line × 1.3. → [start-from-another-station](stories/start-from-another-station.md)
+  commute is unchanged. Walk from where you are is the straight line × 1.3. Same day: Arlesey added (a demo in
+  Fairfield, between Arlesey and Letchworth); nearest is by distance, with the other nearby stations one tap away.
+  → [start-from-another-station](stories/start-from-another-station.md)
 - **31 Oct** TrackerNet proved unusable with Sam's TfL key (401 on every endpoint; a separate "TrackernetFeedPublic"
   product, probably its own key), so Met departures from Aldgate stay derived from Liverpool Street, improved only
   where 25 minutes of live polling justify it: run 90 s (measured; was the timetable's 2 min, ~30 s early) and the

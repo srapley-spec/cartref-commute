@@ -2165,7 +2165,14 @@ $("#s_provider").addEventListener("change",showProviderFields);
 function renderStartRow(){
   const el=$("#startRow"); if(!el) return;
   if(AWAY){
-    el.innerHTML=`Starting from ${esc(HOME_NAME)} today, walking from where you are · <button type="button" class="linkbtn" data-start="home">Back to home</button>`;
+    // Other stations nearby, with the walk from here, so the nearest by distance isn't the only answer (31 Oct:
+    // Fairfield is about as far from Arlesey as from Letchworth).
+    const pace=state.saved.mode==="leisure"?"leisure":state.saved.pace==="fast"?"fast":"avg";
+    const others=state.here ? C.startStationsNear(state.here, PROFILE).filter(s=>s.code!==HOME).slice(0,2) : [];
+    const alt=others.map(s=>{ const g=C.startStationChoices(PROFILE).find(c=>c.code===s.code).geo;
+      return `<button type="button" class="linkbtn" data-start="${esc(s.code)}">${esc(s.name)} instead (about ${Math.round(C.walkSecs(state.here,g,pace,PROFILE)/60)} min walk)</button> · `; }).join("");
+    const here=state.here && walkFromHere()!=null ? ` (about ${Math.round(walkFromHere()/60)} min walk)` : "";
+    el.innerHTML=`Starting from ${esc(HOME_NAME)}${here} today, walking from where you are · ${alt}<button type="button" class="linkbtn" data-start="home">Back to home</button>`;
   }else if(state.startChoose){
     const msg=state.startChoose.msg?`${esc(state.startChoose.msg)} `:"";
     el.innerHTML=`${msg}Start from: ${C.startStationChoices(PROFILE).map(c=>`<button type="button" class="linkbtn" data-start="${esc(c.code)}">${esc(c.name)}</button>`).join(" · ")} · <button type="button" class="linkbtn" data-start="cancel">Cancel</button>`;

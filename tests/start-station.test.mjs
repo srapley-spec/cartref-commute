@@ -1,4 +1,5 @@
-// Starting from the nearest station instead of home (31 Oct 2026: a demo somewhere in Hitchin).
+// Starting from the nearest station instead of home (31 Oct 2026: a demo somewhere in Hitchin, then in Fairfield,
+// between Arlesey and Letchworth).
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,6 +16,16 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 // Values from the page are jsdom-realm objects: compare as plain data.
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/darwin-hit-2026-10-31T1130Z.json", import.meta.url)));
+const ARL_FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/darwin-arl-2026-10-31.json", import.meta.url)));
+const ARLESEY_STATION = [52.0260, -0.2663];   // TfL 910GARLSEY
+// Around Fairfield (approximate, not geocoded): ~2.5 km from Arlesey station, ~3.2 km from Letchworth station.
+const FAIRFIELD = [52.0065, -0.2480], IN_FAIRFIELD = { coords: { latitude: FAIRFIELD[0], longitude: FAIRFIELD[1], accuracy: 20 } };
+const dayOf = (t) => { const x = new Date(t); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+const replay = (fx) => (u) => {
+  const m = /GetDepBoardWithDetails\/(\w+)\?.*filterCrs=(\w+)/.exec(u);
+  if (m) return json(fx.boards[`${m[1]}-${m[2]}`] || { trainServices: [] });
+  return undefined;
+};
 
 test("Start station: the nearest station you can start from, within 10 km; none in London", () => {
   assert.equal(C.nearestStartStation([51.9490, -0.2790], P).code, "HIT");
@@ -23,7 +34,26 @@ test("Start station: the nearest station you can start from, within 10 km; none 
   // 10 km is the limit: 0.085° of latitude south of Hitchin station is ~9.5 km, 0.095° ~10.6 km.
   assert.equal(C.nearestStartStation([HITCHIN_STATION[0] - 0.085, HITCHIN_STATION[1]], P).code, "HIT");
   assert.equal(C.nearestStartStation([HITCHIN_STATION[0] - 0.095, HITCHIN_STATION[1]], P), null);
-  assert.deepEqual(C.startStationChoices(P).map(c => c.code), ["LET", "HIT"]);
+  assert.deepEqual(C.startStationChoices(P).map(c => c.code), ["LET", "HIT", "ARL"]);
+  // Fairfield: Arlesey is nearer than Letchworth; both are listed, nearest first. Nearer Letchworth, Letchworth.
+  assert.equal(C.nearestStartStation(FAIRFIELD, P).code, "ARL");
+  assert.deepEqual(C.startStationsNear(FAIRFIELD, P).map(s => s.code), ["ARL", "LET", "HIT"]);
+  assert.equal(C.nearestStartStation([51.995, -0.235], P).code, "LET");
+});
+
+test("Start station: Arlesey's profile joins the line at Hitchin; the home station stays a choice while away", () => {
+  const a = C.profileFromStation(P, "ARL");
+  assert.equal(a.home, "ARL");
+  assert.deepEqual(a.places.homeStation, ARLESEY_STATION);
+  assert.deepEqual(a.stationGeo.ARL, ARLESEY_STATION);
+  for (const hub of ["KGX", "STP", "ZFD"]) {
+    assert.deepEqual(a.lines[hub][0], ARLESEY_STATION);
+    assert.deepEqual(a.lines[hub][1], P.stationGeo.HIT, "Arlesey trains run to Hitchin, not via Letchworth");
+  }
+  assert.ok(new RegExp(a.corridorPattern, "i").test("Arlesey"), "notices naming Arlesey are about your route");
+  assert.ok(!new RegExp(P.corridorPattern, "i").test("Arlesey"), "the default profile is unchanged");
+  assert.deepEqual(C.startStationChoices(a).map(c => c.code), ["ARL", "HIT", "LET"]);
+  assert.equal(C.startStationsNear(FAIRFIELD, a)[1].name, "Letchworth");
 });
 
 test("Start station: Hitchin's profile has trains from Hitchin and the line from Hitchin; home and unknown codes leave it unchanged", () => {
@@ -99,7 +129,7 @@ test("Without a location, or with none near, the header lets you pick the statio
   const app = await createApp({ settings: { provider: "demo" }, geo: null });
   let reloads = 0; app.w.__commuteReload = () => { reloads++; };
   app.d.querySelector('[data-start="nearest"]').click();
-  assert.equal(app.text("#startRow"), "Your location isn't known yet. Start from: Letchworth · Hitchin · Cancel");
+  assert.equal(app.text("#startRow"), "Your location isn't known yet. Start from: Letchworth · Hitchin · Arlesey · Cancel");
   assert.equal(reloads, 0);
   assert.equal(app.c.state.saved.startFrom, undefined);
   app.d.querySelector('[data-start="cancel"]').click();
@@ -122,7 +152,9 @@ test("Starting from Hitchin: trains from Hitchin, the walk from where you are, a
   let reloads = 0; app.w.__commuteReload = () => { reloads++; };
   const c = app.c;
   assert.equal(app.text("#routeLabel"), "Near Hitchin → 20 Mansfield Street");
-  assert.equal(app.text("#startRow"), "Starting from Hitchin today, walking from where you are · Back to home");
+  const mins = (g) => Math.round(C.walkSecs([51.9490, -0.2790], g, "avg", P) / 60);
+  assert.equal(app.text("#startRow"), `Starting from Hitchin (about 18 min walk) today, walking from where you are · Letchworth instead (about ${mins(P.places.homeStation)} min walk) · Arlesey instead (about ${mins(ARLESEY_STATION)} min walk) · Back to home`);
+  assert.equal(mins(P.places.homeStation), 76);
   assert.equal(c.direction(), "office");
   assert.deepEqual(plain(c.boardKeys()), ["HIT-KGX", "HIT-ZFD"]);
   // The walk: straight line × 1.3 at 5 km/h from where you are, even though the saved home is in Letchworth.
@@ -190,7 +222,53 @@ test("Starting from Hitchin works in the Signal design too: the header line stay
   const app = await createApp({ settings: { provider: "demo", signal: true }, saved: { startFrom: { code: "HIT", day: today() } }, geo: IN_HITCHIN });
   const row = app.d.querySelector("#startRow");
   for (let n = row; n; n = n.parentElement) assert.ok(!n.hidden && !(n.tagName === "DETAILS" && !n.open), "not hidden or folded");
-  assert.equal(app.text("#startRow"), "Starting from Hitchin today, walking from where you are · Back to home");
+  assert.match(app.text("#startRow"), /^Starting from Hitchin \(about 18 min walk\) today, walking from where you are · .* · Back to home$/);
   assert.match(app.text("#routeLabel"), /Near Hitchin/);
+  app.close();
+});
+
+test("In Fairfield: the nearest is Arlesey, Letchworth is offered with its walk, and one tap switches", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, geo: IN_FAIRFIELD });
+  let reloads = 0; app.w.__commuteReload = () => { reloads++; };
+  app.d.querySelector('[data-start="nearest"]').click();
+  assert.deepEqual(plain(app.c.state.saved.startFrom), { code: "ARL", day: today() });
+  app.close();
+  const arl = await createApp({ settings: { provider: "demo" }, saved: { startFrom: { code: "ARL", day: today() } }, geo: IN_FAIRFIELD });
+  arl.w.__commuteReload = () => { reloads++; };
+  const walkTo = (g) => Math.round(C.walkSecs(FAIRFIELD, g, "avg", P) / 60);
+  assert.equal(arl.text("#startRow"), `Starting from Arlesey (about ${walkTo(ARLESEY_STATION)} min walk) today, walking from where you are · Letchworth instead (about ${walkTo(P.places.homeStation)} min walk) · Hitchin instead (about ${walkTo(P.stationGeo.HIT)} min walk) · Back to home`);
+  assert.equal(walkTo(ARLESEY_STATION), 39);
+  assert.equal(arl.text("#routeLabel"), "Near Arlesey → 20 Mansfield Street");
+  assert.match(arl.text("#hero"), /^On your way to Arlesey/);
+  arl.d.querySelector('[data-start="LET"]').click();
+  assert.deepEqual(plain(arl.c.state.saved.startFrom), { code: "LET", day: today() });
+  assert.equal(reloads, 2);
+  arl.close();
+  // Letchworth while away from home: trains from Letchworth, the walk from Fairfield, never from Cartref.
+  const let_ = await createApp({ settings: { provider: "demo" }, saved: { startFrom: { code: "LET", day: today() } }, geo: IN_FAIRFIELD });
+  assert.deepEqual(plain(let_.c.boardKeys()), ["LET-KGX", "LET-ZFD"]);
+  assert.equal(let_.text("#routeLabel"), "Near Letchworth → 20 Mansfield Street");
+  assert.ok(Math.abs(let_.c.walkFromHere() - C.walkSecs(FAIRFIELD, P.places.homeStation, "avg", P)) < 1);
+  assert.equal(let_.c.atHome(), false);
+  assert.match(let_.text("#hero"), /^On your way to Letchworth/);
+  assert.doesNotMatch(let_.text("#hero"), /Cartref/);
+  assert.match(let_.text("#startRow"), /^Starting from Letchworth \(about \d+ min walk\) today, walking from where you are · Arlesey instead/);
+  let_.close();
+});
+
+test("Starting from Arlesey: boards from Arlesey, real Thameslink trains planned (31 Oct recording)", async () => {
+  const now = Date.parse(ARL_FIXTURE.recorded);
+  const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120" };
+  const app = await createApp({ now, settings: RDM, saved: { dirMode: "office", startFrom: { code: "ARL", day: dayOf(now) } }, geo: IN_FAIRFIELD, route: replay(ARL_FIXTURE), settle: 800 });
+  const boards = app.calls.filter(u => /GetDepBoardWithDetails/.test(u));
+  assert.ok(boards.length > 0 && boards.every(u => /GetDepBoardWithDetails\/ARL\?/.test(u)), boards.join("\n"));
+  const opts = app.c.ranked(now);
+  assert.ok(opts.length > 0);
+  assert.ok(opts.every(o => o.train.from === "ARL"));
+  // The 12:05 Thameslink (Peterborough): 39 min to St Pancras, 44 to Farringdon: not stopping trains.
+  const t = opts.find(o => o.train.std === "12:05");
+  assert.ok(t, "12:05 Thameslink is planned");
+  assert.ok(!app.c.isStopping(t.train));
+  assert.match(app.text("#hero"), /^On your way to Arlesey/);
   app.close();
 });
