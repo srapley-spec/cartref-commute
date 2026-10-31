@@ -115,13 +115,15 @@ test('Live board rows: a cancelled train has no countdown, nor does a delayed on
   const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
   const late=text.find(t=>/09:50/.test(t));
   assert.ok(late,'the delayed train is listed'); assert.match(late,/Delayed/);
-  assert.doesNotMatch(late,/has departed|departs in/);
+  assert.equal(rows[text.indexOf(late)].querySelector('[data-dep]'),null,'no countdown: its time has passed but it has not left');
   assert.equal(reach(rows[text.indexOf(late)]),'unknown');
   a.close();
   const b=await createApp({now:MORNING,settings:{provider:'demo',signal:true}});
   live(b);
-  const cancelled=boardRows(b).map(r=>r.textContent.replace(/\s+/g,' ')).find(t=>/10:51/.test(t));
-  assert.match(cancelled,/Cancelled/); assert.doesNotMatch(cancelled,/departs in|has departed/);
+  const brows=boardRows(b), at=std=>brows.find(r=>r.querySelector('.leave .t').textContent===std);
+  assert.match(at('10:51').textContent,/Cancelled/);
+  assert.equal(at('10:51').querySelector('[data-dep]'),null,'a cancelled train has no countdown');
+  assert.ok(at('10:37').querySelector('[data-dep]'),'a running train keeps its countdown');
   assert.deepEqual([...a.errors,...b.errors],[]);b.close();
 });
 
@@ -188,7 +190,23 @@ test('Live board Follow: each row follows that train from that station',async()=
   for(const section of b.d.querySelectorAll('#list .live-board')){
     const name=section.querySelector('.live-board-name').textContent;
     for(const f of section.querySelectorAll('[data-follow]'))
-      assert.match(f.getAttribute('aria-label'),new RegExp(`via ${name==='St Pancras'?"(St Pancras|King's Cross)":name}`),`${name}: ${f.getAttribute('aria-label')}`);
+      assert.match(f.getAttribute('aria-label'),new RegExp(`via ${name}`),`${name}: ${f.getAttribute('aria-label')}`);
   }
   assert.deepEqual([...a.errors,...b.errors],[]);b.close();
+});
+
+test('Live in Leisure going home: Farringdon still lists the Thameslinks when only St Pancras\'s board has them (from their calling points)',async()=>{
+  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true},saved:{dirMode:'home',mode:'leisure'}});
+  // St Pancras trains that call at Farringdon first (as Darwin lists them); Farringdon's own board missing.
+  const stp=a.c.state.boards['STP-LET'].services;
+  for(const t of stp) t.calls=[{name:'London St Pancras International',code:'STP',t:t.dep},{name:'Farringdon',code:'ZFD',t:t.dep-4*MIN},{name:'Letchworth Garden City',code:'LET',t:t.arr}];
+  for(const t of stp) t.calls.sort((x,y)=>x.t-y.t);
+  delete a.c.state.boards['ZFD-LET'];
+  live(a);
+  const zfd=a.d.querySelector('#liveboard-ZFD');
+  assert.ok(zfd,'Farringdon still has a section');
+  const times=[...zfd.querySelectorAll('.row.board .leave .t')].map(e=>e.textContent);
+  assert.ok(times.length>0,'derived from the St Pancras trains\' stops');
+  assert.ok(times.every(t=>stp.some(s=>{const d=new Date(s.dep-4*MIN);return t===`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;})),times.join(','));
+  assert.deepEqual(a.errors,[]);a.close();
 });

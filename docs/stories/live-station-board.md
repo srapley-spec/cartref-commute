@@ -31,6 +31,8 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
   home (Aldgate East when the Circle and Met are both closed); Leisure going home: King's Cross, St Pancras and
   Farringdon. At a London station going home the next stop is that station (already a live view).
 - **Rail stations** (engine `railStationBoard`): every train from that station on your routes, in departure order.
+  - Trains worked out from another station's calling points count (engine `addCallingAlternatives`), so a station
+    whose own board is missing a train still lists it.
   - A train that left more than 30 s ago drops off; "Delayed" with no estimate stays whatever its time.
   - One train on two boards from the same station (one Thameslink to St Pancras and Farringdon) is one row, naming
     both ("to Farringdon or St Pancras").
@@ -88,6 +90,7 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 - tests/live-station-board.test.mjs: "Live Aldgate board: leave-by time at your pace, greyed when you cannot make it, and from Aldgate itself the walk is just the platform"
 - tests/live-station-board.test.mjs: "Live Aldgate board says why when the departures fail to load or are over 3 minutes old"
 - tests/live-station-board.test.mjs: "Live board Follow: each row follows that train from that station"
+- tests/live-station-board.test.mjs: "Live in Leisure going home: Farringdon still lists the Thameslinks when only St Pancras's board has them (from their calling points)"
 - tests/signal.test.mjs: "manual Live with no active journey is explicit and does not invent a train"
 
 ## Not yet / open questions
@@ -103,7 +106,9 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 - Reach for a tube is walk / near the platform / can't make it; effort levels (fast walk, run) aren't applied to tubes.
 - Independent review (31 Oct): 47 deliberate breakages, 21 unnoticed at first, plus two bugs (Follow on a row
   followed the train's main option at another station; cancelled and no-estimate rows showed a countdown) and a
-  missing 3-minute staleness check on Aldgate. All fixed with the tests above. One survivor is equivalent:
+  missing 3-minute staleness check on Aldgate. All fixed with the tests above; re-review: all caught, including 9
+  new breakages, after the countdown test was made to check the element, not its not-yet-written text. One
+  survivor is equivalent:
   building the stops' routes without "from where you are" changes the stops only by dropping the Aldgate first stop
   at a London station going home in Commute, which is already a live view (the station's departure board); Leisure
   routes have no tube first stop. Whether you can make each train always comes from the planner from where you are.
