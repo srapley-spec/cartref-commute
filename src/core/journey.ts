@@ -24,6 +24,9 @@ export interface Route {
   noPlatform?: string;         // shown when no platform is known
   extra?: Record<string, unknown>;   // carried onto each option (screen-specific data)
   startsAtHome?: boolean;      // the route starts at your home (effort levels: your car is there)
+  /** Where the route first boards when that isn't the train's station (e.g. the tube from the office). Default:
+   *  the train's station (the board key's origin). Used for the Live board before a journey (stationBoard.ts). */
+  firstStop?: { code: StationCode; name: string; kind: "rail" | "tube" };
 }
 
 export interface Leg { t: number | null; d: string; note?: string; tube?: boolean; train?: boolean; calls?: boolean; }

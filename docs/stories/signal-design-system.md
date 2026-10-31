@@ -81,6 +81,7 @@ content-sized time columns. Existing layout/data preservation constraints and th
 
 ## Acceptance criteria — agreed direction and existing constraints
 - Automatic is the default view selection; manual Planner/Live and Return to Auto are available.
+- Live with no journey under way shows the next stop's departure board, not an empty state (Sam, 31 Oct). → [Live before a journey](live-station-board.md)
 - Situation, service identity, confidence, ranking and times come from the engine; view selection does not change trip direction or train identity.
 - Uncertain identity asks for confirmation. Live without an active journey is explicit, not invented.
 - Follow the device appearance by default; manual light/dark choices are available.

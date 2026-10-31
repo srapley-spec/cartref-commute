@@ -235,7 +235,7 @@ tube home, nearly home, office arrival), `connections.ts` (generic connection at
 `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave around /
 Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing), `warnings.ts`
 (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the status line's
-precedence, block order per view, the on-your-way colour), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
+precedence, block order per view, the on-your-way colour), `stationBoard.ts` (Live before a journey: next stops and their departure boards with reach), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
 `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route stations) and
 `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`) fetches, caches and
 draws.
@@ -297,6 +297,13 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct, Live before a journey** Sam: with no journey selected or detected, Live is the departure board at the
+  next stop of the journey (Letchworth from home, Aldgate from the office); Auto still answers when to leave. Every
+  train listed with whether you can make it and by which route; several boarding stations grouped, with station
+  lozenges; Commute in your direction only; Leisure all departures until a destination is chosen (not yet: needs an
+  unfiltered board request and a proxy change); no toggle. The next stop comes from the routes (`Route.firstStop`,
+  else the train's station), reach from the existing options and connection plan: no second timing model, no new
+  requests. → [Live before a journey](stories/live-station-board.md)
 - **31 Oct** TrackerNet proved unusable with Sam's TfL key (401 on every endpoint; a separate "TrackernetFeedPublic"
   product, probably its own key), so Met departures from Aldgate stay derived from Liverpool Street, improved only
   where 25 minutes of live polling justify it: run 90 s (measured; was the timetable's 2 min, ~30 s early) and the
