@@ -452,7 +452,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:09 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:13 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2691,7 +2691,19 @@ var CommuteCore = (() => {
       const baselineRail = legacy.planned - legacy.afterMs;
       const shift = baselineRail - found.train.arr;
       const lastTimed = snapshot.legs.reduce((last, l, index) => l.t != null && !l.calls ? index : last, -1);
-      snapshot.legs = snapshot.legs.map((l, index) => ({ ...l, t: l.t == null || l.train || l.t < found.train.arr ? l.t : index === lastTimed && l.t > found.train.arr ? legacy.planned : l.t + shift }));
+      const storedTailMatches = Math.abs(found.arrive - found.train.arr - legacy.afterMs) < 1;
+      const unknownTiming = "Earlier version did not save onward step timings";
+      snapshot.legs = snapshot.legs.map((l, index) => {
+        if (l.t == null || l.train || l.t < found.train.arr) return { ...l };
+        if (index === lastTimed && l.t > found.train.arr) return { ...l, t: legacy.planned };
+        if (l.t > found.train.arr && (!storedTailMatches || l.t + shift > legacy.planned)) {
+          return { ...l, t: null, note: [l.note, unknownTiming].filter(Boolean).join(" \xB7 ") };
+        }
+        return { ...l, t: l.t + shift };
+      });
+      if (legacy.afterMs > 0 && !found.legs.some((l) => l.t != null && l.t > found.train.arr)) {
+        snapshot.legs.push({ t: legacy.planned, d: "Arrive at destination", note: unknownTiming });
+      }
       snapshot.arrive = legacy.planned;
       snapshot.train.arr = baselineRail;
       snapshot.train.arrLate = Math.round((baselineRail - (found.train.arr - found.train.arrLate * MIN2)) / MIN2);

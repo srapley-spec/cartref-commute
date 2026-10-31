@@ -86,6 +86,10 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/core/refresh.test.mjs: "tubeHomeConnections: arrival at each London station and the time needed there, at your pace"
 
 ## Not yet / open questions
+- **Found 30 Oct 22:43** (recorded in `tests/fixtures/tfl-2026-10-30T2243Z/`): a Met waiting at Aldgate shows at
+  Aldgate only while "At Platform" (destination Uxbridge, but on a "Northbound" platform), and in the westbound
+  arrivals further on (Liverpool Street, Moorgate, Farringdon, King's Cross) with "At Aldgate Platform 2". That is a
+  live source for Met departures from Aldgate; not used yet.
 - **Met departures from Aldgate are missing** (TfL's arrivals don't have them). Proposed: TfL's Met timetable from
   Aldgate (fetched once a day), confirmed by arriving vehicles. A new request: Sam to agree; GitHub-first merge.
   Until then, a worked-out tube can be the wrong one when you took a Met.

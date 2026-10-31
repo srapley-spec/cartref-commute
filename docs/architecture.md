@@ -374,3 +374,13 @@ and device time remain unchanged; old virtual timestamps never return to real ca
 Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
 progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
 ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.
+
+### Reconcile the released Follow controller (31 Oct)
+`main` released Follow a route at `be1e58e` during Signal implementation. Both designs now consume one shared
+pure follower and presentation controller; the older internal API/HTML assertions are translated into the seven
+engine and nine page regression scenarios in `tests/core/follow-main-regression.test.mjs` and
+`tests/follow-main-regression.test.mjs`. There is no parallel legacy planner. Saved `settings.follow`, `follow`,
+and planning-pin metadata have a validated compatibility boundary; old records are retained until actual loaded
+itineraries can restore them. Source freshness, current 5/15-minute bands, explicit boarding-point consent and
+observed completion take precedence over the old implementation's conflicting assumptions. All original scenario
+boundaries remain tested; see the reconciliation record below.

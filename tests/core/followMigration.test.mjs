@@ -67,3 +67,12 @@ test('follow migration: declined options absent during restoration remain declin
  assert.ok(core.updateFollowRoute(r,{now:t,options:[option(),tomorrow]}).alternative,'a decline does not apply to the same timetable name tomorrow');
  assert.equal(core.isLegacyFollowRoute(legacy({declined:['broken-key']})),false);
 });
+
+test('follow migration: missing historical onward timings stay unknown rather than running past the saved arrival',()=>{
+ const old=legacy(),o=option({arrive:t+100*MIN});
+ o.legs.splice(-1,0,{t:t+90*MIN,d:'Tube to final destination',tube:true,note:'Current route allows a long change'});o.legs.at(-1).t=t+100*MIN;
+ const r=migrate(old,[o]);assert.ok(r);assert.equal(r.plannedArrival,old.planned);assert.equal(r.expectedArrival,old.arrive);assert.equal(r.option.arrive-r.option.train.arr,old.afterMs);
+ const legs=core.followedLegs(r),tube=legs.find(l=>l.d==='Tube to final destination');assert.equal(tube.t,null);assert.match(tube.note,/Earlier version did not save onward step timings/);
+ assert.equal(legs.find(l=>l.d==='Arrive Riverside').t,t+60*MIN);assert.equal(legs.at(-1).t,old.planned);
+ const timed=legs.filter(l=>l.t!=null).map(l=>l.t);assert.ok(timed.every((instant,index)=>index===0||instant>=timed[index-1]));assert.ok(timed.every(instant=>instant<=old.planned));
+});

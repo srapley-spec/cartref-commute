@@ -184,3 +184,6 @@ Original planned/expected arrival, onward duration, boarding identity, acknowled
 survive migration. Old planning-pin age and reliable situation changes are preserved while question/time remain
 separate from the displayed view. See `tests/core/followMigration.test.mjs`, `tests/follow-migration.test.mjs`,
 `tests/core/follow-main-regression.test.mjs` and `tests/follow-main-regression.test.mjs`.
+When the previous version did not store detailed onward times and current timings differ, restored intermediate
+step times are explicitly unknown. Saved rail/final arrival facts are retained; migration cannot create a Tube
+step after the saved destination arrival.

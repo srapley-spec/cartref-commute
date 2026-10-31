@@ -64,8 +64,19 @@ export function migrateFollowRoute(value: unknown, options: Option[], ctx: { now
     // afterMs/planned are saved observations, not a newly modelled onward route.
     // Keep current real approach steps; only establish the historical rail/tail baseline for stable ETA updates.
     const lastTimed = (snapshot.legs as Leg[]).reduce((last, l, index) => l.t != null && !l.calls ? index : last, -1);
-    snapshot.legs = (snapshot.legs as Leg[]).map((l, index) => ({ ...l, t: l.t == null || l.train || l.t < (found.train.arr as number) ? l.t
-      : index === lastTimed && l.t > (found.train.arr as number) ? legacy.planned : l.t + shift }));
+    const storedTailMatches = Math.abs(found.arrive - (found.train.arr as number) - legacy.afterMs) < 1;
+    const unknownTiming = 'Earlier version did not save onward step timings';
+    snapshot.legs = (snapshot.legs as Leg[]).map((l, index) => {
+      if (l.t == null || l.train || l.t < (found.train.arr as number)) return { ...l };
+      if (index === lastTimed && l.t > (found.train.arr as number)) return { ...l, t: legacy.planned };
+      if (l.t > (found.train.arr as number) && (!storedTailMatches || l.t + shift > legacy.planned)) {
+        return { ...l, t: null, note: [l.note, unknownTiming].filter(Boolean).join(' · ') };
+      }
+      return { ...l, t: l.t + shift };
+    });
+    if (legacy.afterMs > 0 && !(found.legs as Leg[]).some(l => l.t != null && l.t > (found.train.arr as number))) {
+      (snapshot.legs as Leg[]).push({ t: legacy.planned, d: 'Arrive at destination', note: unknownTiming });
+    }
     snapshot.arrive = legacy.planned;
     snapshot.train.arr = baselineRail;
     snapshot.train.arrLate = Math.round((baselineRail - ((found.train.arr as number) - found.train.arrLate * MIN)) / MIN);
