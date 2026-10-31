@@ -256,6 +256,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct** API keys may also live in the Claude Code cloud environment's secrets (Sam), so sessions can call TfL
+  (incl. TrackerNet) and Rail Data Marketplace directly to prove endpoints and record real feeds; never in chat, the
+  repo or recorded data. Names in CLAUDE.md.
 - **31 Oct** Met departures from Aldgate come from TfL's westbound arrivals at Liverpool Street less the timetabled
   2-minute run (TfL lists the Met at Aldgate only as arriving; Sam: it must be available). One extra request per Aldgate
   fetch. Generic engine rule: departures from a terminus from the next stop's arrivals. → [tube-home](stories/tube-home.md)

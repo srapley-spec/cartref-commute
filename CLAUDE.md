@@ -101,5 +101,8 @@ tests are good enough); this decides when to merge. The fast path is accepted te
 ## Working with Sam
 - Direct, evidence-based; state confidence and what's unverified. Investigate root causes from code and data
   before proposing fixes. Run the tests before saying something works.
-- Never ask for or handle raw API keys; they live in the phone's Settings (or GitHub secrets).
+- Never ask for or handle raw API keys: never in chat, the repo, test data, logs or commit messages. They live in the
+  phone's Settings, GitHub secrets, or (Sam, 31 Oct) the Claude Code cloud environment's secrets, so a session can call
+  the live feeds to prove data instead of guessing: `TFL_APP_KEY`, `RDM_API_KEY`, `RDM_SD_API_KEY`, `RDM_BASE_URL`,
+  `RDM_SD_BASE_URL`. Read them from the environment; strip them from anything saved (e.g. recorded feeds).
 - Backlog lives in GitHub issues; anything worth keeping from an issue gets a story.
