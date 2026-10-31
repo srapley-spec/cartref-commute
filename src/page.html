@@ -196,7 +196,6 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .sheet .hint{font-size:12px;color:var(--muted);margin:0}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
-.linkbtn{background:none;border:0;padding:4px 0;color:var(--accent);font:inherit;text-decoration:underline;cursor:pointer}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
 /*__SIGNAL_STYLES__*/
@@ -215,7 +214,6 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div>
       <h1>Cartref Commute</h1>
       <div class="sub" id="routeLabel">Cartref ⇄ 20 Mansfield Street</div>
-      <div class="sub" id="startRow"></div>
     </div>
     <div class="controls"><button class="iconbtn" id="journeySimulatorBtn" type="button">Simulator</button><button class="iconbtn" id="settingsBtn" type="button">Settings</button></div>
   </header>
@@ -400,17 +398,9 @@ const Date=simClock.ClockDate;
 // ---------- Engine ----------
 // Planning logic lives in the engine (src/core, TypeScript), loaded just before this script.
 // This page supplies the profile, the safe HTML-to-text parser, and the screen.
-const C = window.CommuteCore, LS = "cartrefCommute.v1";
-// Not at home (31 Oct: a demo in Hitchin): start from another station on the line, for today only. Chosen with the
-// "Start from the nearest station" button; the profile is derived once at load (choosing reloads the page).
-const START = (()=>{ try{ const s=JSON.parse(localStorage.getItem(LS)||"{}").startFrom;
-  return s && typeof s.code==="string" && s.day===C.isoDay(Date.now()) ? s : null; }catch(e){ return null; } })();
-const PROFILE = C.profileFromStation(C.profiles.samCommute, START && START.code);
-// AWAY: you're not at home, so plans start where you are. HOME: the station trains go from (Letchworth unless AWAY).
-const AWAY = !!START && (START.code===PROFILE.home), HOME = PROFILE.home, HOME_NAME = PROFILE.stationNames[HOME];
-// Going back while away, the trip ends at the station you started from, not at home (independent review, 31 Oct:
-// the arrival said "Arrive home" while it was the time at Hitchin).
-const HOME_DEST = AWAY ? HOME_NAME : "home", AT_HOME = AWAY ? `at ${HOME_NAME}` : "at home";
+const C = window.CommuteCore, PROFILE = C.profiles.samCommute;
+// HOME: the station your trains go from and to (the profile's, Letchworth), never written as a literal.
+const HOME = PROFILE.home, HOME_NAME = PROFILE.stationNames[HOME];
 const { pad, hhmm, mins, dur, countdown, km, clock, resolve, plannable, keepEveryRoute, topPicks } = C;
 const STATIONS = PROFILE.stationNames, HUB_NAME = PROFILE.hubNames, COORDS = PROFILE.coords;
 const LINE = PROFILE.lines, MAX_TRAIN_MIN = PROFILE.maxTrainMin;
@@ -456,7 +446,7 @@ async function completePairs(boards, diag){
   return n;
 }
 const TFL_HUBS = { KXSP:"940GZZLUKSX", FAR:"940GZZLUFCN" };
-// Places (profile): your station (Letchworth, or where you're starting from), Aldgate, the office.
+// Places (profile): your station (Letchworth), Aldgate, the office.
 const GEO = { HOME:PROFILE.places.homeStation, ALD:PROFILE.places.officeTube }, OFFICE=PROFILE.places.office;
 const TUBE_STOP = { KGX:"940GZZLUKSX", ZFD:"940GZZLUFCN" };
 // What you're doing (on the line, at a station, which train…) is worked out by the engine (src/core/situation.ts).
@@ -489,6 +479,7 @@ const DEFAULTS = {
 };
 const FACTOR_KEYS = ["fastFactor","leisureFactor","runFactor","runM"];
 const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
+const LS = "cartrefCommute.v1";
 
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
 let simulationSnapshot=null,simulationInputSnapshot=null;
@@ -841,7 +832,7 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 // timings from these. Nothing else in the page encodes journey timings.
 function routesFor(dir, mode, opts){
   return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
-    london:state.london||null, dest:outTo(dir, mode), start:{ code:HOME, name:HOME_NAME, away:AWAY },
+    london:state.london||null, dest:outTo(dir, mode), start:{ code:HOME, name:HOME_NAME },
     here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome(), atOfficeTube: C.atOfficeTube(dir, fix(), PROFILE) } : null });
 }
 // Any start and end point, going out: the place, and TfL's legs to it once planned.
@@ -886,9 +877,6 @@ function buildLeisure(dir, now, o){
 function walkFromHere(){
   if(direction()!=="office" || !state.here || !(state.locAcc<=200)) return null;
   const d=km(state.here,GEO.HOME), s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
-  // Away from home (starting from the nearest station): always the straight line × 1.3 from where you are, up to
-  // START_WALK_MAX_KM; your saved home and its measured walk don't apply.
-  if(AWAY) return d<=START_WALK_MAX_KM ? C.walkSecs(state.here, GEO.HOME, leisure?"leisure":fast?"fast":"avg", PROFILE) : null;
   if(d>3) return null;
   // With your home saved: your measured walk, scaled by how much of the way is left (more accurate than a
   // straight-line estimate). Otherwise the straight line × 1.3 at your walking speed.
@@ -897,9 +885,6 @@ function walkFromHere(){
   const est = C.walkSecs(state.here, GEO.HOME, leisure?"leisure":fast?"fast":"avg", PROFILE);
   return est<homeWalk() ? est : null;
 }
-// The same limit as the station search, so a station it offers always gets a walk from where you are (review 31 Oct:
-// between 5 and 10 km the step said "until your location is known" while it was known).
-const START_WALK_MAX_KM = C.START_STATION_MAX_KM;
 // Your usual walk from home to Letchworth station at the current pace (seconds).
 function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
   return leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg); }
@@ -911,11 +896,11 @@ function onWay(physical=false){
   if((!live&&(state.saved.view||"now")!=="now") || atStation(physical)) return null;
   const w=walkFromHere(); if(w==null) return null;
   // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
-  if(!AWAY && !C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk())) return null;
+  if(!C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk())) return null;
   return { walk:w };
 }
 // Still at home (for effort levels: your car is there). Without a usable fix the plan starts at home anyway.
-function atHome(){ if(AWAY) return false; const w=walkFromHere(); return w==null || !C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk()); }
+function atHome(){ const w=walkFromHere(); return w==null || !C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk()); }
 const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // On the tube to work. A ride starts when a tube you picked leaves, or when the app works out you've left the
 // station on one (engine onTube), and lasts until Aldgate or the ride time is clearly over (engine rideActive):
@@ -1134,7 +1119,7 @@ function effortLine(j, dest, best){
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
-  const dest=j.dest||(direction()==="office"?"office":HOME_DEST);
+  const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
@@ -1195,8 +1180,7 @@ function renderOnTrain(now, m){
 // The train you're on (as remembered), from the loaded boards.
 const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
-// Away from home the trip back ends at the station you started from: there's no walk home to count.
-const nearlyHome = () => !AWAY && C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
+const nearlyHome = () => C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
   const lock=state.trainLock;
@@ -1234,7 +1218,7 @@ function tubesFromAldgate(now){
   const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
   if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{}), ...(plan.best.dest?{dest:boardDest(plan.best.dest)}:{})}; save(); }
   const row=(t,mark)=>{ const o=t.leg.o;
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||HOME_DEST)} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
+    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
   const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
   const btns=boardBtns("ALD", [...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)), d.list, now, "");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
@@ -1258,7 +1242,7 @@ function renderOnTubeHome(now){
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
-    <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">${esc(AT_HOME)}</span></div>
+    <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
     <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -1437,7 +1421,7 @@ function renderHero(list, now){
     return;
   }
   const picks=list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended), first=list.find(o=>o.first);
-  const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":HOME_DEST);
+  const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
   // Only the run / car trains that arrive sooner than the card's best (engine: offer).
   const hurryOpts=list.filter(o=>o.offer);
   const hurryHtml=(o,best)=>effortLine(o,dest,best);
@@ -1514,10 +1498,10 @@ function renderLiveBoard(now){
       <div class="leave"><small>${esc(r.dep.line)}</small><span class="t">${hhmm(r.dep.t)}</span></div>
       <div class="mid">
         <div class="meta">${esc(r.dep.dest||"")}${C.platformNo(r.dep.platform)?` · <b class="plat">platform ${esc(C.platformNo(r.dep.platform))}</b>`:""} · <span data-dep="${r.dep.t}"></span></div>
-        <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:`No train ${AWAY?`to ${esc(HOME_NAME)}`:"home"} connects with this one`}</div>
+        <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:"No train home connects with this one"}</div>
         <div>${pill(r.reach)}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
       </div>
-      <div class="arrive"><small>${AWAY?esc(HOME_NAME):"Home"}</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
+      <div class="arrive"><small>Home</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
     </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No westbound Circle or Met departures listed at Aldgate right now.</div><div></div></div>`;
       }
       groups.push({ id, name:stop.name, html:body });
@@ -1668,11 +1652,9 @@ function renderControls(){
   $("#dirOutBtn").textContent = leisure ? "To London" : "To office";
   const dir=direction();
   const out=leisure && outTo(dir,"leisure");
-  const base=AWAY ? `Near ${HOME_NAME}` : "Cartref", back=AWAY ? HOME_NAME : "Cartref";
   $("#routeLabel").textContent = leisure
-    ? (dir==="office" ? (out ? `${base} → ${out.name}` : `${base} → King's Cross or St Pancras`) : `Wherever you are → ${back}`)
-    : (dir==="office" ? `${base} → 20 Mansfield Street` : `20 Mansfield Street → ${back}`);
-  renderStartRow();
+    ? (dir==="office" ? (out ? `Cartref → ${out.name}` : "Cartref → King's Cross or St Pancras") : "Wherever you are → Cartref")
+    : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
   const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
   const automaticNote=state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
   // This is the existing inference diagnostic, independent of the chosen direction.
@@ -1828,7 +1810,7 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.offer).map(o=>effortLine(o, o.dest||(dir==="office"?"office":HOME_DEST), picks[0])).join("")}
+    ${opts.filter(o=>o.offer).map(o=>effortLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
@@ -1906,7 +1888,7 @@ function renderInner(){
   if(shown.underWay){
     const arr = view==="in-london" ? renderInLondon(now) : view==="on-tube" ? renderOnTube(now) : view==="on-train" ? renderOnTrain(now, whichTrain(now)) : renderAtHub(now);
     if(arr) $("#hero").insertAdjacentHTML("afterbegin", verdictHtml(arr, T));
-    if(view==="on-train"){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?"At the London station the app switches to the onward tube and live departures.":(AWAY?`The rest of the way: ${HOME_NAME}.`:`The rest of the way home: ${HOME_NAME}, then the walk.`)}</div><div></div></div>`; }
+    if(view==="on-train"){ $("#listTitle").textContent="On the train"; $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?"At the London station the app switches to the onward tube and live departures.":`The rest of the way home: ${HOME_NAME}, then the walk.`}</div><div></div></div>`; }
   } else if(view==="plan-at"){
     const opts=atOptions(); renderAtHero(opts);
     const a=state.at||{};
@@ -1936,7 +1918,7 @@ function renderInner(){
   } else if(view==="on-train"){
     const m=whichTrain(now); renderOnTrain(now, m);
     $("#listTitle").textContent="On the train";
-    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?`At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.`:(AWAY?`The rest of the way: ${HOME_NAME}.`:`The rest of the way home: ${HOME_NAME}, then the walk.`)}</div><div></div></div>`;
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">${direction()==="office"?`At ${m&&m.hub?esc(HUB_NAME[m.hub]):"the London station"} the app switches to the onward tube and live departures.`:`The rest of the way home: ${HOME_NAME}, then the walk.`}</div><div></div></div>`;
   } else {
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
@@ -2143,7 +2125,7 @@ const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 /*__SIMULATOR_CONTROLLER__*/
 const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onResetPresentation:()=>{
  state.rendered=null;state.pendingView=null;state.journeyLivePresentation=null;state.signalDisruptionItems=[];signalProgressMemory=null;
- state.origin='';document.getElementById('originInput').value='';state.startChoose=false;
+ state.origin='';document.getElementById('originInput').value='';
 },onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
@@ -2244,53 +2226,6 @@ $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(
 $("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;});
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
-// ---------- Starting from another station (not at home) ----------
-// One small line in the header. At home: "Not at home? Start from the nearest station". Away: which station, and the
-// way back. The choice lasts for today (saved with the date; tomorrow the app starts from home again).
-function renderStartRow(){
-  const el=$("#startRow"); if(!el) return;
-  if(AWAY){
-    // Other stations nearby, with the walk from here, so the nearest by distance isn't the only answer (31 Oct:
-    // Fairfield is about as far from Arlesey as from Letchworth).
-    const pace=state.saved.mode==="leisure"?"leisure":state.saved.pace==="fast"?"fast":"avg";
-    const others=state.here ? C.startStationsNear(state.here, PROFILE).filter(s=>s.code!==HOME).slice(0,2) : [];
-    const alt=others.map(s=>{ const g=C.startStationChoices(PROFILE).find(c=>c.code===s.code).geo;
-      return `<button type="button" class="linkbtn" data-start="${esc(s.code)}">${esc(s.name)} instead (about ${Math.round(C.walkSecs(state.here,g,pace,PROFILE)/60)} min walk)</button> · `; }).join("");
-    const here=state.here && walkFromHere()!=null ? ` (about ${Math.round(walkFromHere()/60)} min walk)` : "";
-    el.innerHTML=`Starting from ${esc(HOME_NAME)}${here} today, walking from where you are · ${alt}<button type="button" class="linkbtn" data-start="home">Back to home</button>`;
-  }else if(state.startChoose){
-    const msg=state.startChoose.msg?`${esc(state.startChoose.msg)} `:"";
-    el.innerHTML=`${msg}Start from: ${C.startStationChoices(PROFILE).map(c=>`<button type="button" class="linkbtn" data-start="${esc(c.code)}">${esc(c.name)}</button>`).join(" · ")} · <button type="button" class="linkbtn" data-start="cancel">Cancel</button>`;
-  }else{
-    el.innerHTML=`<button type="button" class="linkbtn" data-start="nearest">Not at home? Start from the nearest station</button>`;
-  }
-}
-// Saving reloads the page: the station is part of the profile the whole page is built on.
-function setStartStation(code){
-  if(code) state.saved.startFrom={ code, day:C.isoDay(Date.now()) }; else delete state.saved.startFrom;
-  save();
-  try{ window.__commuteReload ? window.__commuteReload() : location.reload(); }catch(e){}
-}
-function chooseNearestStart(){
-  // A rough fix is enough to tell stations ~5 km apart.
-  const near = state.here && state.locAcc<=1000 ? C.nearestStartStation(state.here, PROFILE) : null;
-  // At home (within 500 m of your saved home) the nearest is your own station: the normal commute already plans it,
-  // with your measured walk and the car. Say so rather than switch (review 31 Oct). Picking a station still works.
-  const home=state.saved.home;
-  if(near && near.code===PROFILE.home && !AWAY && home && km(state.here,home)<0.5){
-    state.startChoose={ msg:"You're at home: the commute already starts here." }; renderStartRow(); return; }
-  if(near){ setStartStation(near.code); return; }
-  state.startChoose={ msg: state.here ? `No station within ${C.START_STATION_MAX_KM} km that the app can start from.` : "Your location isn't known yet." };
-  renderStartRow();
-}
-document.addEventListener("click",e=>{
-  const b=e.target && e.target.closest && e.target.closest("[data-start]"); if(!b) return;
-  const v=b.dataset.start;
-  if(v==="nearest") chooseNearestStart();
-  else if(v==="home") setStartStation(null);
-  else if(v==="cancel"){ state.startChoose=null; renderStartRow(); }
-  else setStartStation(v);
-});
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }

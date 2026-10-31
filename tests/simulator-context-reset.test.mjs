@@ -184,13 +184,13 @@ test('GPS-only cold Reset preserves a live TfL 429 deadline and real request acc
  assert.ok(a.calls.filter(u=>u.includes('api.tfl.gov.uk')).length>calls);await stop(a);
 });
 
-test('cold Reset preserves the selected station profile and explains fixture mismatch',async()=>{
+test('cold Reset leaves retired demo origins ignored and preserves saved data',async()=>{
  const choice={code:'HIT',day:'2026-11-03'};
  const a=await start({now:Date.parse('2026-11-03T10:00:00Z'),saved:{startFrom:choice},geo:{coords:{latitude:51.949,longitude:-.279,accuracy:12}}});
- assert.equal(a.c.readSimulationActual().homeStation,'HIT');
+ assert.equal(a.c.readSimulationActual().homeStation,'LET');
  click(a,'simToggle');click(a,'journeyResetState');await checked(a);
- assert.deepEqual(plain(a.c.state.saved.startFrom),choice);assert.equal(a.c.readSimulationActual().homeStation,'HIT');
- assert.equal(view(a).verification.current.assertions.find(row=>row.id==='recovery-profile')?.status,'INCONCLUSIVE');
+ assert.deepEqual(plain(a.c.state.saved.startFrom),choice);assert.equal(a.c.readSimulationActual().homeStation,'LET');
+ assert.equal(view(a).verification.current.assertions.find(row=>row.id==='recovery-profile'),undefined,'retired demo data cannot reactivate a different profile');
  assert.equal(view(a).verification.current.assertions.find(row=>row.id==='journey-context-cleared')?.status,'PASS');await stop(a);
 });
 

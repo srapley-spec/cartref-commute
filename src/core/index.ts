@@ -2,7 +2,6 @@
 export * from "./types";
 export { pad, hhmm, mins, isoDay, dur, countdown, clock, resolve } from "./time";
 export { km, lineProgress, reportedFrac } from "./geo";
-export { START_STATION_MAX_KM, startStationChoices, startStationsNear, nearestStartStation, lineFrom, profileFromStation } from "./startStation";
 export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
 export { stationOf, stationLabel, trainFromTflJourney, tflDropReason, tflPickPlaces, terminusDepartures } from "./adapters/tfl";

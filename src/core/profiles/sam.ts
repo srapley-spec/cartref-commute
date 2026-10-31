@@ -48,14 +48,6 @@ export const samCommute: Profile = {
     HDW: [51.6685, -0.1762], NBA: [51.6486, -0.1730], OKL: [51.6378, -0.1663], NSG: [51.6141, -0.1431], AAP: [51.5983, -0.1201],
     HGY: [51.5865, -0.1119], HRY: [51.5772, -0.1050], FPK: [51.5646, -0.1063], KGX: [51.5308, -0.1238], STP: [51.5307, -0.1257], ZFD: [51.5203, -0.1053],
   },
-  // Stations you can start from instead of Letchworth (31 Oct: a demo in Hitchin). Measured 31 Oct (Saturday
-  // boards): Hitchin → King's Cross 49 min (stopping Great Northern), → St Pancras 33–34, → Farringdon 38–39 min
-  // (Thameslink); the stopping thresholds above classify these correctly, so they are shared. Add a station only
-  // after checking its live times against stoppingMin (Stevenage not checked: its stoppers may be under 45 min).
-  // Arlesey (31 Oct, a demo in Fairfield, between Arlesey and Letchworth): on the line to Peterborough, joining
-  // ours at Hitchin. Measured 31 Oct (Saturday boards): Thameslink every 30 min, St Pancras 39 min, Farringdon 44;
-  // no direct King's Cross train in the 2 hours shown. Position from TfL (910GARLSEY).
-  startStations: { HIT: { name: "Hitchin", pattern: "hitchin" }, ARL: { name: "Arlesey", pattern: "arlesey", geo: [52.0260, -0.2663] } },
   corridorPattern: "baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\\.? pancras|farringdon",
   places: {
     homeStation: [51.9799, -0.2290],

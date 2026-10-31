@@ -235,7 +235,7 @@ tube home, nearly home, office arrival), `connections.ts` (generic connection at
 `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave around /
 Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing), `warnings.ts`
 (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the status line's
-precedence, block order per view, the on-your-way colour), `stationBoard.ts` (Live before a journey: next stops and their departure boards with reach), `startStation.ts` (the profile for starting from another station on the line), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
+precedence, block order per view, the on-your-way colour), `stationBoard.ts` (Live before a journey: next stops and their departure boards with reach), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
 `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route stations) and
 `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`) fetches, caches and
 draws.
@@ -297,6 +297,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
+  the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
+  point. Next for that: National Rail's journey planner (Sam has access; key and docs pending) for multi-train
+  journeys, with Darwin live times on each leg. → [start-from-another-station](stories/start-from-another-station.md)
 - **31 Oct** Starting from another station (Sam, for a demo in Hitchin): the local station is a parameter of the
   profile, not a constant. The engine derives the profile for a start station (`startStation.ts`, generic; the
   stations offered are profile data, only Hitchin so far, checked against live times); the page uses `PROFILE.home`
@@ -479,8 +483,8 @@ Back is a cold-start experiment, not a replay of prior decisions: it pauses, inv
 and observation epochs, moves the shared synthetic inputs to the previous waypoint and discards inferred
 journey state. Reset journey state performs the same discard without moving the clock or raw fix.
 The shell captures raw observations with their original age and clears rendered/presentation/progress
-evidence before the normal location handler runs again. Unavailable GPS remains unavailable. Selected
-station profiles and permanent settings are configuration; real session snapshots remain untouched.
+evidence before the normal location handler runs again. Unavailable GPS remains unavailable. The configured
+profile and permanent settings are preserved; real session snapshots remain untouched.
 The observational verifier distinguishes missing historical evidence from failures and resumes ordinary
 checks after fresh movement/context. Reports archive bounded sanitized attempts, including earlier failures,
 without treating future checkpoints as verified after rewind. No simulation decisions enter `src/core`.

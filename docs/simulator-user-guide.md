@@ -78,7 +78,7 @@ With live feeds, Reset preserves real TfL backoff and request accounting; it doe
 Both controls discard train locks, boarding and tube choices, Follow, inferred direction, station/office
 visits, movement history, presentation pins and cached transport results. A transient typed London origin
 is cleared so the app can plan from its actual current GPS. Permanent settings, home, destination and
-the chosen starting-station profile are preserved. Stop still restores the real pre-simulation context.
+the configured Letchworth profile are preserved. Stop still restores the real pre-simulation context.
 
 This tests whether the real app can pick up a journey with no earlier evidence. It may ask for a direction
 or service choice, offer a different route, or wait for GPS. The simulator does not supply those answers.
@@ -93,9 +93,8 @@ Copy results and Export JSON include them too. The last ten attempts are retaine
 and a truncation count if older attempts exceed that limit. Export before repeated resets to keep a full
 investigation history.
 
-If you selected a starting station other than Letchworth in the real app, Reset preserves that profile.
-The built-in route fixtures still describe Letchworth journeys, so profile-specific recovery assertions
-are inconclusive rather than pretending that Reset changed your configured origin.
+The temporary nearest-station demo has been removed from the application. Old saved demo origins
+remain ignored; Reset does not reactivate them or change the configured Letchworth profile.
 Leisure mode is preserved too; its real planning response remains visible, while commute-specific
 checkpoint assertions are inconclusive until you choose Commute again.
 
