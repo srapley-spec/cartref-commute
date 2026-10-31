@@ -137,4 +137,8 @@ The commentary header consumes the same canonical option, expected rail endpoint
 whole-journey arrival through `journeyFactsMarkup`; no second timing calculation is introduced.
 The mandatory registry includes `along-the-line`, exercised for both Panda and Signal with default-off,
 visible duration/disruption/story facts, stale location and unknown timing. The earlier independent source
-approval remains recorded above; the reconciled head requires its own follow-up review and CI.
+approval remains recorded above. The follow-up independently approved reconciled source `76db650`; its
+12 facts/composition checks, both new parity tuples and Chromium checks are recorded in the same
+[review report](../along-line-independent-review.md). The
+[current/unknown duration probes](../../tests/along-line-composition-review.test.mjs) are retained as regressions.
+Final committed-head local and GitHub CI remain required before merge.

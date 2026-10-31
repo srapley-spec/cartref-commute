@@ -23,3 +23,27 @@ Artifacts: /workspace/scratch/along-independent-mutations.json (original compari
 
 Limits:
 This is an independent code and focused regression review, not a full repository CI run. Real iPhone Safari, VoiceOver and actual window visibility in both directions remain the explicit device/content acceptance limits documented in the story. No merge, deployment or external review comment was performed by this reviewer.
+
+
+## Reconciliation with PR #43
+
+Along the line reconciliation review addendum
+Reviewed source: 76db650c7c639ac99f1606eb267fe0dcc3d18c98
+Merged main: 3c5d161474f08f51d298cef4b23626a81eff3df0 (PR #43)
+Verdict: APPROVE the reconciled source. No blocking composition or new-header finding.
+
+Scope and findings:
+- PR43's CLAUDE parity rule, CI/gate machinery, journey-facts helper, connection/station rules and shared CSS are preserved unchanged. Core exports are additive. Existing Auto/Plan/Live controls remain shared by both designs.
+- The new header uses the existing journeyFactsMarkup and canonical on-train option, observed expected rail endpoint and already-computed final arrival. No production timing arithmetic or replacement journey start was introduced.
+- Independently seeded a newer matching Service Details report (09:40 timetable, 10:00 expected) over a 09:40 board. Both Panda and Signal commentary show 55 minutes from 09:05 departure, matching the current main hero rather than the stale 35-minute board duration. Total duration matches the same canonical leave/final-arrival as the hero, with no added requests.
+- Explicit null whole-journey arrival preserves known train duration while showing Total time unavailable. Explicit null rail endpoint exposes neither a retained train nor total duration. These nullable-context checks use the real commentary adapter via its Back to now action; no matching HTML is injected.
+- The registry adds along-the-line without removing existing designs/surfaces. Both new real-page tuples independently passed, exercising default-off, visible stories/disruption/facts, stale location and unknown timing.
+
+Executed focused validation:
+- 12/12: two independent real-page composition probes plus the ten shared journeyFacts unit cases.
+- 2/2: new Along UI-parity contracts (Panda and Signal). This was a focused tuple run, not a claim to have independently rerun the full mandatory matrix.
+- Committed Chromium Along checks passed at 320/390px, manual/device light/dark, 15/30px text, 44px targets, no dialog overflow, focus return and no page errors.
+- Original independent source/mutation approval is retained. No exhaustive mutation or full repository suite was repeated for this small composition review. Final committed-head CI/release gates remain required.
+
+Evidence: /workspace/scratch/along-reconciliation-facts-tests.log; /workspace/scratch/along-reconciliation-matrix-tests.log; /workspace/scratch/along-reconciliation-browser/along-browser.json; isolated tests/review-along-composition.test.mjs.
+Real iPhone/VoiceOver and physical window-visibility acceptance remain the documented limits. No push, merge or deployment was performed by this reviewer.
