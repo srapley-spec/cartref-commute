@@ -236,6 +236,7 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
    const container=row(a,option.train.std),flags=[...container.querySelectorAll('.pill')].filter(node=>visible(a,node)).map(node=>node.textContent.trim());
    assert.equal(flags.filter(text=>text.startsWith('Arrives first')).length,1);
    assert.equal(flags.filter(text=>text===plain).length,0,'the qualified arrival-first label replaces its plain effort label in '+mode);
+   if(mode==='live')assert.equal(container.querySelector('[data-reach]')?.dataset.reach,effort,'the visible reach state must agree with its qualified arrival-first effort');
   }
  }
  assert.deepEqual(a.errors,[]);a.close();

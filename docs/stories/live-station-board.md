@@ -1,5 +1,5 @@
 # Live before a journey: the next stop's departure board
-Status: Implemented for Commute and Leisure going home; parity refinement/release validation in progress · Leisure going out still shows trains to London only (see Not yet) · Since: 31 Oct 2026
+Status: Implemented in both designs for Commute and Leisure going home · Leisure going out still shows trains to London only (see Not yet) · Since: 31 Oct 2026 · Release checks: [PR #43](https://github.com/srapley-spec/cartref-commute/pull/43)
 
 ## Story
 As a commuter at home or in the office with no journey under way, when I tap Live I want to see what's actually

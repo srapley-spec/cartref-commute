@@ -1,5 +1,5 @@
 # Supported UIs advance together
-Status: Implemented; committed-code review and release validation pending · Since: 31 Oct 2026
+Status: Implemented · Since: 31 Oct 2026 · Release checks: [PR #43](https://github.com/srapley-spec/cartref-commute/pull/43)
 
 ## Story
 As a commuter, I want every supported design and view to give me the same journey facts and actions, so that
@@ -74,6 +74,10 @@ enforced, that all supported design systems and UIs advance concurrently until a
   browser, independent review, unknown-source, accessibility and release checks optional.
 
 ## Tests
+The implemented checkpoint has separate [independent mutation evidence](../journey-facts-parity-independent-review.md)
+and [hash-bound browser evidence](../journey-facts-parity-browser-review.md). Exact committed-code CI,
+post-merge Tests/Pages and the public-build smoke are recorded in [PR #43](https://github.com/srapley-spec/cartref-commute/pull/43).
+
 The runtime contract is [ui-parity.test.mjs](../../tests/ui-parity.test.mjs); the separate reviewer owns
 [ui-parity-review.test.mjs](../../tests/ui-parity-review.test.mjs). Guarded duration unit tests live beside the
 pure helper, and the gate has its own enforcement tests. Native Chromium checks in
