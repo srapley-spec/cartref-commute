@@ -238,6 +238,9 @@ be inconclusive, while an unsupported confident inference can still fail.
 Applying manual coordinates or jumping leaves ordinary guided checkpoint history unsupported. Use the
 new **Reset journey state** to test fresh inference at that manual position, or restart a coherent
 scenario. Subsequent normal playback can restore applicable verification as new evidence arrives.
+Repeated resets retain the manual-position marker; they cannot silently turn arbitrary coordinates
+into a verified scenario waypoint. The dock says Manual location until a new playback fix arrives,
+Towards the next checkpoint when paused between steps, and Real GPS for independent real location.
 
 Advanced **Reset and restart** retains the older reset capability: it applies the selected configuration
 and starts at its first waypoint. It changes the simulated time and position, unlike Reset journey state.

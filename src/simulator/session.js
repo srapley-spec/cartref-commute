@@ -52,7 +52,7 @@ function createJourneySimulationSession({simulator,reporter,evaluate,readActual,
    const v=simulator.getView();refreshPrivacy();
    if(v.startTime!==null){
     reporter.resetAttempt({...v.config,sessionId:sim.sessionId,sources:v.sources,speed:Number(document.getElementById('simSpeed').value),accuracyMode:document.getElementById('simAccuracyMode').value,totalCheckpoints:v.checkpoints.length,initialCheckpoint:v.index,recoveryReason:reason},{reason,fromTime,at:v.clockNow});
-    event('context-reset',`${reason==='back'?'Back from checkpoint '+(fromIndex+1)+'. ':''}Journey state deliberately discarded; cold recovery at checkpoint ${v.index+1}`);
+    event('context-reset',`${reason==='back'?'Back from checkpoint '+(fromIndex+1)+'. ':''}Journey state deliberately discarded; cold recovery ${v.recovery?.manualPosition?'at the current manual GPS position, scenario pointer':'at checkpoint'} ${v.index+1}`);
    }
   } else if(type==='context-ready'){
    if(sim.active&&sim.startTime!==null)void verifyCurrentCheckpoint({refresh:true});

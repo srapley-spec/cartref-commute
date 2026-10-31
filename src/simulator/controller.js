@@ -8,7 +8,11 @@ function notify(type,extra={}){for(const fn of [...listeners])fn({type,...extra}
 function getView(){const checkpoints=route(),config=getScenario(),summary=api.reporter?.summary()||null;
  const report=!sim.active&&summary?.finished?api.reporter.getReport():null;
  const historicalTimeline=report?{config:report.config,startTime:report.config.startTime,checkpoints:route(report.config),index:Math.max(-1,...report.checkpoints.map(item=>item.index)),results:report.checkpoints,reason:report.reason,finished:true}:null;
- return {historicalTimeline,recovery:sim.recovery,canBack:canGoBack(),diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
+ const current=checkpoints[Math.min(sim.index,checkpoints.length-1)],next=checkpoints[sim.index+1];
+ const manual=sim.manualOverride||sim.recovery?.manualPosition&&sim.recovery.observations<=1;
+ const moving=sim.timer!==null||sim.stepping||sim.elapsed>(current?.at||0);
+ const location=!S().simulatorEnabled?'Real GPS':manual?'Manual location':moving&&next?'Towards '+next.label:current?.label;
+ return {historicalTimeline,recovery:sim.recovery,canBack:canGoBack(),diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
 
 const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
 const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
@@ -116,12 +120,12 @@ function resetJourneyState({back=false}={}){
  if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;
  if(sim.pendingRestart||back&&!canGoBack())return false;
  const observation=state.lastPosition?JSON.parse(JSON.stringify(state.lastPosition)):null,locationStatus=state.locStatus;
- const fromIndex=sim.index,fromTime=clock.now(),wasManual=sim.manualOverride;
+ const fromIndex=sim.index,fromTime=clock.now(),wasManual=!!(sim.manualOverride||sim.recovery?.manualPosition&&sim.recovery.observations<=1);
  stopTimer();if(!start({preserveRateLimits:!S().simulatedFeeds}))return false;
  if(back){if(sim.elapsed===route()[sim.index].at)sim.index--;sim.elapsed=route()[sim.index].at;}
  const atCheckpoint=(back||!wasManual)&&sim.startTime!==null&&sim.elapsed===route()[sim.index].at;
  sim.sessionId++;sim.manualOverride=false;sim.verification={current:null,results:[],pending:false};
- sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint};
+ sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint,manualPosition:wasManual&&!back};
  clearJourneyMemory();
  state.saved.dirMode='auto';state.saved.view='now';
  resetContext(false,{preserveRateLimits:!S().simulatedFeeds});onResetPresentation();
