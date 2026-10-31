@@ -73,3 +73,31 @@ export function tflPickPlaces(json: unknown): { from: PlaceMatch | null; to: Pla
   };
   return { from: pick(j.fromLocationDisambiguation), to: pick(j.toLocationDisambiguation) };
 }
+
+/** One TfL arrival prediction (StopPoint/{id}/Arrivals), the fields used here. */
+export interface TflArrival { vehicleId?: string; lineId?: string; platformName?: string; destinationName?: string; towards?: string;
+  expectedArrival?: string; timeToStation?: number; currentLocation?: string; }
+/** A departure from a terminus, worked out from the next station's arrivals. */
+export interface TerminusDeparture { vehicle: string; lineId: string; dest: string; t: number; atNext: number; currentLocation: string; }
+
+/**
+ * Departures from a terminus that TfL lists only as trains arriving there (30 Oct: the Met at Aldgate). Every train
+ * leaving the terminus calls next at the following station, where TfL predicts it (turnaround included), so the
+ * departure is that prediction less the scheduled run between them (`runMs`, from TfL's timetable). Only the line and
+ * direction given; trains already past (more than 30 s ago) are dropped. Destination: TfL's, else its "towards",
+ * never the terminus itself or "Check Front of Train".
+ */
+export function terminusDepartures(nextArrivals: TflArrival[], o: { lineId: string; outbound: RegExp; runMs: number; now: number; terminus: RegExp }): TerminusDeparture[] {
+  const name = (s?: string) => String(s || "").replace(/ Underground Station/i, "").trim();
+  const ok = (s: string) => !!s && !o.terminus.test(s) && !/check front of train/i.test(s);
+  const out: TerminusDeparture[] = [];
+  for (const a of nextArrivals || []) {
+    if (a.lineId !== o.lineId || !o.outbound.test(a.platformName || "")) continue;
+    const atNext = a.expectedArrival ? new Date(a.expectedArrival).getTime() : o.now + (a.timeToStation || 0) * 1000;
+    if (!isFinite(atNext)) continue;
+    const t = atNext - o.runMs; if (t < o.now - 30e3) continue;
+    const d = name(a.destinationName), tw = name(a.towards);
+    out.push({ vehicle: String(a.vehicleId || ""), lineId: o.lineId, dest: ok(d) ? d : ok(tw) ? tw : "", t, atNext, currentLocation: a.currentLocation || "" });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}

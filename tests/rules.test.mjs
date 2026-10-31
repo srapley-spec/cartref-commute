@@ -1063,7 +1063,27 @@ test("Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; M
   const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" }, extra: (u, now) => (/940GZZLUALD\/Arrivals/.test(u) ? json(feed(now)) : undefined) });
   await app.fix(...OFFICE_PT, 15, t0); await app.c.refresh({ force: true }); await sleep(300);
   const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest} ${Math.floor((d.t - t0) / MIN)}`);
-  assert.deepEqual(list, ["Circle Hammersmith (H&C Line) 7", "Circle Hammersmith (H&C Line) 15"], "no Met: TfL gives no Met departures from Aldgate");
+  assert.deepEqual(list, ["Circle Hammersmith (H&C Line) 7", "Circle Hammersmith (H&C Line) 15"], "Aldgate's own feed has no Met departure (and Liverpool Street wasn't recorded then)");
+  app.close();
+});
+
+test("Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals less 2 min, recorded 30 Oct 22:43 with Aldgate's; offered like the board", async () => {
+  const t0 = T("16:30"), cap = Date.parse("2026-10-30T22:43:19Z");
+  const rec = (n) => JSON.parse(readFileSync(new URL(`./fixtures/tfl-2026-10-30T2243Z/${n}.json`, import.meta.url), "utf8"))
+    .map(a => ({ ...a, expectedArrival: new Date(t0 + (Date.parse(a.expectedArrival) - cap)).toISOString() }));
+  let lvtFails = false;
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(rec("ALD")) : /940GZZLULVT\/Arrivals/.test(u) ? (lvtFails ? json({}, 500) : json(rec("LVT"))) : undefined) });
+  await app.fix(...ALD, 10, t0); await app.c.refresh({ force: true }); await sleep(300);
+  const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest || "?"} ${Math.round((d.t - t0) / 1e3)}`);
+  // Circle 205 to Hammersmith from Aldgate's own feed; Met 441 (waiting at the platform), 435 (still arriving) and 474.
+  assert.deepEqual(list, ["Met Uxbridge 52", "Circle Hammersmith (H&C Line) 317", "Met ? 562", "Circle Hammersmith (H&C Line) 917", "Met ? 1283", "Circle Hammersmith (H&C Line) 1517"]);
+  assert.ok(app.calls.some(u => /940GZZLULVT\/Arrivals/.test(u)), "Liverpool Street is asked");
+  const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim());
+  assert.match(btns.join(" | "), /Met Uxbridge · due/, "the Met waiting at the platform is offered first, like the board");
+  // Liverpool Street failing: the Circles from Aldgate still come through.
+  lvtFails = true; app.at(t0 + 60e3); await app.c.refresh({ force: true }); await sleep(300);
+  assert.deepEqual(app.c.state.aldDeps.list.map(d => d.line), ["Circle", "Circle", "Circle"]);
   app.close();
 });
 

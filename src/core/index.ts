@@ -4,7 +4,8 @@ export { pad, hhmm, mins, isoDay, dur, countdown, clock, resolve } from "./time"
 export { km, lineProgress, reportedFrac } from "./geo";
 export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
-export { stationOf, stationLabel, trainFromTflJourney, tflDropReason, tflPickPlaces } from "./adapters/tfl";
+export { stationOf, stationLabel, trainFromTflJourney, tflDropReason, tflPickPlaces, terminusDepartures } from "./adapters/tfl";
+export type { TflArrival, TerminusDeparture } from "./adapters/tfl";
 export type { PlaceMatch } from "./adapters/tfl";
 export { busyDay, standingRoomOnly, isStopping, plannable, trainStatus, delayStatus, delayLevel, arrivalStatus, departureStatus, LATE_WARN_MIN, LATE_BAD_MIN, PROJECTION_ON_TIME_MIN } from "./rules";
 export type { DelayLevel, TrainStatus } from "./rules";

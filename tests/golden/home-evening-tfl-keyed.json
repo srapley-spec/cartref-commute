@@ -453,7 +453,8 @@
   "https://api.tfl.gov.uk/Journey/JourneyResults/51.53197,-0.12341/to/51.98002,-0.22909?mode=national-rail&timeIs=Departing&date=20261104&time=1849&journeyPreference=leasttime&app_key=K",
   "https://api.tfl.gov.uk/Line/Mode/national-rail/Status?app_key=K",
   "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status?app_key=K",
-  "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals?app_key=K"
+  "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals?app_key=K",
+  "https://api.tfl.gov.uk/StopPoint/940GZZLULVT/Arrivals?app_key=K"
  ],
  "errors": []
 }

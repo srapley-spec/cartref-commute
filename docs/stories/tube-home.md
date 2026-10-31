@@ -29,7 +29,16 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - Near the office: the next westbound tubes from Aldgate you can make, each with where to get off, its train home,
   home time and when to leave. At Aldgate, tubes you might just make are offered "if you're near the platform".
 - Which tubes count: westbound platform only (the Circle runs both ways through Aldgate), never one ending at
-  Aldgate. With the real feed that is only the Circle (see Not yet).
+  Aldgate. That gives the Circle only: TfL lists the Met at Aldgate only as arriving.
+- **Met departures from Aldgate (31 Oct; Sam: "I do not accept this isn't available from TfL")**: every westbound Met
+  at Liverpool Street (the next stop) came from Aldgate, and TfL predicts it there with its turnaround included. Each
+  such prediction less the timetabled 2-minute run (TfL's Met timetable from Aldgate) is a Met departure from Aldgate,
+  with TfL's destination (or "towards"), never "Aldgate" or "Check Front of Train". One extra request (Liverpool
+  Street) each time Aldgate is fetched; if it fails, the Circles from Aldgate still show. A Met already in Aldgate's own
+  westbound list isn't added twice. Engine: `terminusDepartures` (generic: any terminus and its next stop).
+  Checked against TfL's recorded feeds (30 Oct 22:43): Met 441 waiting at Aldgate platform 2 → leaves 22:44:11;
+  435 still arriving → leaves 22:52:41 (TfL's turnaround); 474 → 23:04:42. Not yet checked against the board on the
+  platform (capture includes Liverpool Street now).
 - Where to get off: Farringdon or King's Cross, whichever gets you home soonest with the trains loaded; ties go to
   the earlier stop. Arrival at each London station and the time needed there are worked out at your pace.
 - **At Aldgate going home** (within 150 m, fix good to 150 m): every commute option plans from the platform: the walk
@@ -64,6 +73,9 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - A ride home is never treated as a ride to work, or the reverse.
 
 ## Tests
+- tests/core/terminus.test.mjs: "Met departures from Aldgate, from TfL's real Liverpool Street arrivals (recorded 30 Oct 22:43): each westbound Met less the 2-min run"
+- tests/core/terminus.test.mjs: "terminusDepartures: only the line and outbound direction; past trains dropped (30 s grace); destination never the terminus or 'Check Front of Train'"
+- tests/rules.test.mjs: "Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals less 2 min, recorded 30 Oct 22:43 with Aldgate's; offered like the board"
 - tests/both-designs.test.mjs: "Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal too" (re-runs this story's rules tests with the Signal design on; the whole-evening test checks which design is on screen)
 - tests/rules.test.mjs: "Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office"
 - tests/rules.test.mjs: "Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not"
@@ -89,17 +101,15 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/core/refresh.test.mjs: "tubeHomeConnections: arrival at each London station and the time needed there, at your pace"
 
 ## Not yet / open questions
-- **Found 30 Oct 22:43** (recorded in `tests/fixtures/tfl-2026-10-30T2243Z/`): a Met waiting at Aldgate shows at
-  Aldgate only while "At Platform" (destination Uxbridge, but on a "Northbound" platform), and in the westbound
-  arrivals further on (Liverpool Street, Moorgate, Farringdon, King's Cross) with "At Aldgate Platform 2". That is a
-  live source for Met departures from Aldgate; not used yet.
-- **Met departures from Aldgate are missing** (TfL's arrivals don't have them). Proposed: TfL's Met timetable from
-  Aldgate (fetched once a day), confirmed by arriving vehicles. A new request: Sam to agree; GitHub-first merge.
-  Until then, a worked-out tube can be the wrong one when you took a Met.
+- Met departures (31 Oct): to confirm against the board on the platform at a busy time (Settings → Capture now also
+  fetches Liverpool Street). The 2-minute run is the timetable's; a slow departure shows the Met slightly early. No
+  platform number for a Met from Liverpool Street's data. Without a TfL key, the extra request uses more of TfL's
+  keyless limit.
 - A rough fix at Aldgate (worse than 150 m) isn't noted, so underground afterwards the card still times from the
   office. Accepted for now: loosening it brings the desk closer to counting as Aldgate.
 - At the desk with a still phone, a worked-out tube has no "No, still here" until a fresh fix arrives (that question
   needs a good fix under 1 min old); each tube that leaves can bring the card back. Known trade-off of the revert.
-- The invented Aldgate feed in the going-home tests includes westbound Met departures that the real feed never has.
+- The invented Aldgate feed in the going-home tests includes westbound Met departures that the real feed never has
+  (the real recorded feeds are tested separately).
 - Live tab (Sam, 30 Oct evening): live tracking separate from Leave now / Arrive by / Leave around; planned.
 - Aldgate East (H&C) has no live departures in the app going home; the H&C stays a fallback.

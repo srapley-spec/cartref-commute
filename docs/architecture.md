@@ -225,6 +225,9 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct** Met departures from Aldgate come from TfL's westbound arrivals at Liverpool Street less the timetabled
+  2-minute run (TfL lists the Met at Aldgate only as arriving; Sam: it must be available). One extra request per Aldgate
+  fetch. Generic engine rule: departures from a terminus from the next stop's arrivals. → [tube-home](stories/tube-home.md)
 - **30 Oct night, latest-code reconciliation** Premerge review found concurrent `origin/follow-a-route`
   (`d330e95`). Port its current journey improvements selectively: visible original arrival, incident recovery,
   explicit boarding correction, same-train observation continuity, explicit run/car choice, quiet Tube-approach

@@ -128,7 +128,8 @@
   "https://api.tfl.gov.uk/Journey/JourneyResults/51.53197,-0.12341/to/51.98002,-0.22909?mode=national-rail&timeIs=Departing&date=20261103&time=1640&journeyPreference=leasttime",
   "https://api.tfl.gov.uk/Line/Mode/national-rail/Status",
   "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status",
-  "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals"
+  "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals",
+  "https://api.tfl.gov.uk/StopPoint/940GZZLULVT/Arrivals"
  ],
  "errors": []
 }
