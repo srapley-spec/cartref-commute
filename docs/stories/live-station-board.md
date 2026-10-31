@@ -90,7 +90,7 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 - tests/live-station-board.test.mjs: "Live Aldgate board: leave-by time at your pace, greyed when you cannot make it, and from Aldgate itself the walk is just the platform"
 - tests/live-station-board.test.mjs: "Live Aldgate board says why when the departures fail to load or are over 3 minutes old"
 - tests/live-station-board.test.mjs: "Live board Follow: each row follows that train from that station"
-- tests/live-station-board.test.mjs: "Live in Leisure going home: Farringdon still lists the Thameslinks when only St Pancras's board has them (from their calling points)"
+- tests/live-station-board.test.mjs: "Live in Leisure going home: Farringdon still lists the Thameslinks when only the St Pancras board has them (from their calling points)"
 - tests/signal.test.mjs: "manual Live with no active journey is explicit and does not invent a train"
 
 ## Not yet / open questions

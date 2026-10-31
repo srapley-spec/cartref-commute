@@ -195,7 +195,7 @@ test('Live board Follow: each row follows that train from that station',async()=
   assert.deepEqual([...a.errors,...b.errors],[]);b.close();
 });
 
-test('Live in Leisure going home: Farringdon still lists the Thameslinks when only St Pancras\'s board has them (from their calling points)',async()=>{
+test('Live in Leisure going home: Farringdon still lists the Thameslinks when only the St Pancras board has them (from their calling points)',async()=>{
   const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true},saved:{dirMode:'home',mode:'leisure'}});
   // St Pancras trains that call at Farringdon first (as Darwin lists them); Farringdon's own board missing.
   const stp=a.c.state.boards['STP-LET'].services;
