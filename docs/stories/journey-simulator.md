@@ -36,6 +36,7 @@ so that I can inspect inference and onward planning without travelling.
   rewound clock. It is disabled at the first waypoint, with independent/live sources, or pending Restart.
 - Reset journey state pauses at the current raw observation and time, preserving accuracy, observation
   age and GPS unavailability. Either source may be independent. Neither source enabled is a no-op.
+  With live feeds it retains provider backoff and actual request accounting while invalidating old work.
 - Clear train/tube choices, Follow, inferred direction, visits, movement, rendered train/ride evidence,
   presentation/progress memory, transient London origin and provider caches. Abort old source work and
   invalidate playback and verifier generations. Keep settings/home, target and fixed station profile.

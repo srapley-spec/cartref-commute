@@ -73,6 +73,7 @@ To test the same loss of memory **without moving**, use **Show controls → Rese
 This pauses playback but keeps the current position, accuracy and time. It preserves the observation’s
 original age: a stale fix stays stale, and unavailable Underground GPS stays unavailable. It works with
 independent simulation sources too; real GPS and device time continue naturally in those combinations.
+With live feeds, Reset preserves real TfL backoff and request accounting; it does not reset API allowances.
 
 Both controls discard train locks, boarding and tube choices, Follow, inferred direction, station/office
 visits, movement history, presentation pins and cached transport results. A transient typed London origin
@@ -95,6 +96,8 @@ investigation history.
 If you selected a starting station other than Letchworth in the real app, Reset preserves that profile.
 The built-in route fixtures still describe Letchworth journeys, so profile-specific recovery assertions
 are inconclusive rather than pretending that Reset changed your configured origin.
+Leisure mode is preserved too; its real planning response remains visible, while commute-specific
+checkpoint assertions are inconclusive until you choose Commute again.
 
 At the final checkpoint you can inspect **Journey results**, export the report, or restart. **Restart**
 starts a fresh run from its first checkpoint and clears simulated journey choices and results. Export

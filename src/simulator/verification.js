@@ -16,9 +16,12 @@ function evaluateSimulationCheckpoint(context={}) {
  if(app.loading){unknown('pending-observation','Evaluate the settled application response','The application is still loading transport data');return result();}
  if(c.recovery){
   const recovery=c.recovery,memory=recovery.clearedMemory,values=memory&&Object.values(memory);
-  const cleared=values?.length&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
+  const memoryKeys=['origin','directionPin','planningView','trainLock','pickedTrain','tubeRide','tubePick','follow','followChoices','trip','officeVisit','stationVisit','aldgateVisit','movement','rendered','presentation','direction','pin'];
+  const complete=memory&&memoryKeys.every(key=>typeof memory[key]==='boolean');
+  const cleared=complete&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
   add('journey-context-cleared','Discard earlier train choices, rides, visits, direction and rendered journey evidence',cleared===null?'Clear-state observation unavailable':cleared?'Earlier journey evidence was cleared':'Surviving context: '+Object.keys(memory).filter(key=>memory[key]).join(', '),cleared,{contextCleared:cleared});
   if(app.homeStation&&app.homeStation!=='LET'){unknown('recovery-profile','Inspect recovery under the selected starting-station profile',`The app is configured for ${app.homeStation}; these journey fixtures start at Letchworth. The selected profile is preserved.`);return result();}
+  if(app.travelMode==='leisure'){unknown('recovery-mode','Inspect recovery of the real leisure plan','Leisure mode is preserved; commute-specific checkpoint assertions are not applied to a different planning question.');return result();}
   if(app.fixAgeMs>90000){unknown('recovery-stale-location','Wait for fresh location evidence after losing journey state',`The retained observation is ${Math.round(app.fixAgeMs/1000)} seconds old; resetting did not make it fresh.`);return result();}
   const wanted=config.direction==='return'||point==='office'&&/Office dwell/i.test(label)?'home':'office';
   const recovered=recovery.observations>=2&&app.direction===wanted&&(app.journeyMemory?.trip||app.directionExplicit||app.train?.picked||app.ride)&&(!['rail','tube'].includes(c.mode)||c.mode==='rail'&&app.onLine||c.mode==='tube'&&app.ride)&&(point!=='barbican'||app.ride);
@@ -32,7 +35,10 @@ function evaluateSimulationCheckpoint(context={}) {
     const precise=typeof app.locAcc==='number'&&app.locAcc<=250;
     if(!precise)add('recovery-accuracy','Avoid a confident station from a rough fix',`Accuracy: ${app.locAcc??'unknown'} m; station: ${app.atHub||'unknown'}`,!app.atHub,{locAcc:app.locAcc});
     const hub={kgx:'KGX',kxTube:'KGX',far:'ZFD',farTube:'ZFD'}[point];
-    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-home-station','Recognise the configured home station from fresh GPS',app.atStation);
+    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride){
+     if(app.direction==='home'||app.travelMode==='leisure')unknown('recovery-home-station','Inspect the current homeward arrival or leisure plan','A commute departure-board classification is not applicable to this view');
+     else bool('recovery-home-station','Recognise the configured home station in the actual departure view',app.atStation);
+    }
     if(precise&&recovery.atCheckpoint&&!c.manualOverride&&hub&&c.mode!=='rail')add('recovery-station',`Recognise the current ${hub} station from fresh GPS`,app.atHub||'No station recognised',app.atHub===hub,{atHub:app.atHub||null});
     if(precise&&point==='office'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-office','Recognise the office geofence without a remembered trip',app.nearOffice);
     if(precise&&point==='home'&&recovery.atCheckpoint&&!c.manualOverride&&app.hasConfiguredHome)bool('recovery-home','Recognise the configured home without a remembered trip',app.atHome);

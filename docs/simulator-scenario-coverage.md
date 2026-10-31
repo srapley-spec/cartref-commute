@@ -93,6 +93,7 @@ while future checkpoints do not count as verified in the new attempt.
 | Rewind after completion | Reopen a cold attempt, preserve earlier report, and remove future completion claims | `Back after completion reopens a cold attempt and retains prior failures and results` | PASS |
 | Stale async work | Interrupt actual Next while synthetic JSON waits; release old work and invoke a queued old timer; no new-context writes or clock movement | `Back interrupts sequential work, rejects stale JSON and cancels old interval callbacks` | PASS |
 | Independent switches | GPS-only/feed-only reset preserves source/time semantics; Back is unavailable; both disabled is a no-op | Independent-source and rough-GPS cases in the same file | PASS |
+| Live provider allowance | GPS-only Reset cannot bypass an actual mocked TfL429 deadline or erase sent requests; normal fetching resumes after the deadline | `GPS-only cold Reset preserves a live TfL 429 deadline and real request accounting` | PASS (focused regression) |
 | Accuracy and age | Preserve rough/stale fixes; wait for fresh evidence and allow subsequent normal verification | Manual/stale and rough-GPS cases in the same file | PASS |
 | Real state isolation | Real Follow and form drafts survive; transient simulated origin/choices are cleared | `Reset clears transient origin and Follow choices while Stop restores real drafts and saved journey` | PASS |
 | Assertion sensitivity and report epochs | Retained memory and wrong recovered identity fail; insufficient history stays inconclusive; old callbacks rejected; archived failures remain redacted; dropped-history limit disclosed | `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs` | PASS |
@@ -102,6 +103,13 @@ The focused app/report/assertion/compatibility run passed **78/78** before final
 Chromium simulator check also passed its 36 design/theme/mobile combinations and eight journeys with
 all three speeds. These are executed checks, not a claim that playback alone proves recovery. Full
 committed-code CI and independent mutation review remain separate release gates.
+
+Independent mutation review caught two initial test gaps: an automatic lock could survive without
+being observed, and live-source Back guards were tested only where the first-waypoint guard already
+blocked rewind. The clear-state contract now requires all observed memory flags, including automatic
+locks, return Aldgate visits and presentation pins. Independent-source tests advance before checking
+the guard. Return Underground resets are exercised on both corridors. Final verification and exact
+release evidence are tracked in [PR #41](https://github.com/srapley-spec/cartref-commute/pull/41).
 
 ## User-guide follow-up: checkpoint test synchronization
 

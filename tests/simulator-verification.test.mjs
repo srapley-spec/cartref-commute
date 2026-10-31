@@ -8,12 +8,13 @@ const evaluate=input=>JSON.parse(JSON.stringify(context.evaluate(input)));
 const base=(extra={})=>({sessionId:7,index:4,point:'north',label:'On train at Stevenage',mode:'rail',now:Date.parse('2026-11-03T09:16:00Z'),source:{gps:true,feeds:true},config:{route:'kgx',direction:'outbound',scenario:'normal',startTime:Date.parse('2026-11-03T08:44:00Z')},app:{loading:false,direction:'office',locStatus:'ok',locAcc:45,onLine:true,atHub:null,view:'on-train',heroText:'On the train · You are on the 09:05 Great Northern',train:{serviceId:'SIM-GN-0905',sure:true,others:[{serviceId:'SIM-GN-LATER-0917'}]},boards:[{id:'SIM-GN-0905',depLate:0},{id:'SIM-GN-LATER-0917',depLate:0}]},...extra});
 const row=(result,id)=>result.assertions.find(a=>a.id===id);
 
-const clearedMemory=()=>({pickedTrain:false,tubeRide:false,follow:false,trip:false,stationVisit:false,rendered:false,direction:false});
+const clearedMemory=()=>Object.fromEntries(['origin','directionPin','planningView','trainLock','pickedTrain','tubeRide','tubePick','follow','followChoices','trip','officeVisit','stationVisit','aldgateVisit','movement','rendered','presentation','direction','pin'].map(key=>[key,false]));
 test('cold verification detects retained history and does not pass a single-fix boarding assumption',()=>{
  const c=base({recovery:{observations:1,index:4,atCheckpoint:true,clearedMemory:clearedMemory()}});
  c.app.journeyMemory={trip:false};c.app.onLine=false;c.app.train=null;
  let result=evaluate(c);assert.equal(result.status,'INCONCLUSIVE');assert.equal(row(result,'journey-context-cleared').status,'PASS');assert.equal(row(result,'rail-identity'),undefined);
- c.recovery.clearedMemory.rendered=true;result=evaluate(c);assert.equal(row(result,'journey-context-cleared').status,'FAIL');assert.equal(result.status,'FAIL');
+ c.recovery.clearedMemory.trainLock=true;assert.equal(row(evaluate(c),'journey-context-cleared').status,'FAIL','automatic as well as picked locks must be observed');c.recovery.clearedMemory.trainLock=false;
+ c.recovery.clearedMemory.rendered=true;result=evaluate(c);assert.equal(row(result,'journey-context-cleared').status,'FAIL');assert.equal(result.status,'FAIL');delete c.recovery.clearedMemory.trainLock;assert.equal(row(evaluate(c),'journey-context-cleared').status,'INCONCLUSIVE','missing evidence cannot establish a pass');
 });
 test('cold verification uses actual home-station GPS and rejects a fabricated Underground ride',()=>{
  const c=base({point:'let',mode:null,recovery:{observations:1,index:4,atCheckpoint:true,clearedMemory:clearedMemory()}});
@@ -33,6 +34,7 @@ test('a cold manual position can resume ordinary assertions at a later coherent 
  const c=base({recovery:{observations:3,index:3,atCheckpoint:false,clearedMemory:clearedMemory()}});c.app.journeyMemory={trip:true};
  assert.equal(row(evaluate(c),'rail-identity').status,'PASS');
  c.recovery.index=c.index;assert.equal(row(evaluate(c),'rail-identity'),undefined,'the arbitrary original manual position cannot claim fixture identity');
+ c.app.travelMode='leisure';assert.equal(row(evaluate(c),'recovery-mode').status,'INCONCLUSIVE','preserved user planning modes are not overwritten to satisfy commute fixtures');
 });
 
 test('checkpoint verification reads actual rail inference and detects real output mismatches',()=>{

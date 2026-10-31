@@ -24,11 +24,21 @@ test('cold report attempts retain old failures but cannot count future results o
 
 test('cold report archives remain redacted and disclose dropped history at their limit',()=>{
  const r=create();r.start(config);r.recordCheckpoint(check(2,'FAIL',{label:'Private Landmark',actualDisplay:{mainCard:'Private Landmark at 51.12345,-0.23456'}}));
- for(let sessionId=2;sessionId<=13;sessionId++)r.resetAttempt({...config,sessionId,recoveryReason:'reset'},{at:sessionId,fromTime:sessionId});
+ r.resetAttempt({...config,sessionId:2,recoveryReason:'reset'},{at:2,fromTime:2});
  r.setPrivateValues(['Private Landmark']);
+ const retained=r.getReport().previousAttempts[0].checkpoints[0];
+ assert.equal(retained.label,'[redacted]','late privacy values protect an attempt which is still archived');
+ assert.equal(retained.assertions[0].expected,'Identify the 09:05 Great Northern','public diagnostic evidence is retained');
+ assert.ok(!r.serialize().includes('Private Landmark'));assert.ok(!r.serialize().includes('51.12345'));
+ for(let sessionId=3;sessionId<=13;sessionId++)r.resetAttempt({...config,sessionId,recoveryReason:'reset'},{at:sessionId,fromTime:sessionId});
  const out=r.getReport();assert.equal(out.previousAttempts.length,10);assert.equal(out.truncated.attempts,2);
  assert.ok(!r.serialize().includes('Private Landmark'));assert.ok(!r.serialize().includes('51.12345'));
  r.start(config);assert.equal(r.getReport().previousAttempts,undefined);assert.equal(r.getReport().truncated.attempts,undefined);
+});
+
+test('recovery reason metadata remains typed when a private value matches a public enum',()=>{
+ const r=create({privateValues:['back']});r.start(config);r.resetAttempt({...config,sessionId:2,recoveryReason:'back'},{reason:'back'});
+ assert.equal(r.getReport().config.recoveryReason,'back');assert.equal(r.getReport().previousAttempts[0].reason,'[redacted]');
 });
 
 test('simulator reports count actual assertions separately from completed checkpoints',()=>{

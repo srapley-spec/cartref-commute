@@ -645,7 +645,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 15:34 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 15:49 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -3808,12 +3808,13 @@ let sourceEpoch=0;
 const pendingRequests=new Set();
 const staleSource=()=>Object.assign(new Error("Transport source changed"),{staleSource:true});
 function assertSource(epoch){if(epoch!==sourceEpoch)throw staleSource();}
-function invalidateSources(){
+function invalidateSources({preserveRateLimits=false}={}){
+ const backoff=preserveRateLimits?state.tflBackoffUntil:null;
  sourceEpoch++; for(const controller of pendingRequests)controller.abort(); pendingRequests.clear();
  clearTimeout(state.retryTimer);state.retryTimer=null;
  state.byToken={};state.atToken={};state.loading=false;state.again=false;
  for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
- state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();reqLog.length=0;
+ state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();if(preserveRateLimits)state.tflBackoffUntil=backoff;else reqLog.length=0;
 }
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
@@ -5612,9 +5613,12 @@ function evaluateSimulationCheckpoint(context={}) {
  if(app.loading){unknown('pending-observation','Evaluate the settled application response','The application is still loading transport data');return result();}
  if(c.recovery){
   const recovery=c.recovery,memory=recovery.clearedMemory,values=memory&&Object.values(memory);
-  const cleared=values?.length&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
+  const memoryKeys=['origin','directionPin','planningView','trainLock','pickedTrain','tubeRide','tubePick','follow','followChoices','trip','officeVisit','stationVisit','aldgateVisit','movement','rendered','presentation','direction','pin'];
+  const complete=memory&&memoryKeys.every(key=>typeof memory[key]==='boolean');
+  const cleared=complete&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
   add('journey-context-cleared','Discard earlier train choices, rides, visits, direction and rendered journey evidence',cleared===null?'Clear-state observation unavailable':cleared?'Earlier journey evidence was cleared':'Surviving context: '+Object.keys(memory).filter(key=>memory[key]).join(', '),cleared,{contextCleared:cleared});
   if(app.homeStation&&app.homeStation!=='LET'){unknown('recovery-profile','Inspect recovery under the selected starting-station profile',`The app is configured for ${app.homeStation}; these journey fixtures start at Letchworth. The selected profile is preserved.`);return result();}
+  if(app.travelMode==='leisure'){unknown('recovery-mode','Inspect recovery of the real leisure plan','Leisure mode is preserved; commute-specific checkpoint assertions are not applied to a different planning question.');return result();}
   if(app.fixAgeMs>90000){unknown('recovery-stale-location','Wait for fresh location evidence after losing journey state',`The retained observation is ${Math.round(app.fixAgeMs/1000)} seconds old; resetting did not make it fresh.`);return result();}
   const wanted=config.direction==='return'||point==='office'&&/Office dwell/i.test(label)?'home':'office';
   const recovered=recovery.observations>=2&&app.direction===wanted&&(app.journeyMemory?.trip||app.directionExplicit||app.train?.picked||app.ride)&&(!['rail','tube'].includes(c.mode)||c.mode==='rail'&&app.onLine||c.mode==='tube'&&app.ride)&&(point!=='barbican'||app.ride);
@@ -5628,7 +5632,10 @@ function evaluateSimulationCheckpoint(context={}) {
     const precise=typeof app.locAcc==='number'&&app.locAcc<=250;
     if(!precise)add('recovery-accuracy','Avoid a confident station from a rough fix',`Accuracy: ${app.locAcc??'unknown'} m; station: ${app.atHub||'unknown'}`,!app.atHub,{locAcc:app.locAcc});
     const hub={kgx:'KGX',kxTube:'KGX',far:'ZFD',farTube:'ZFD'}[point];
-    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-home-station','Recognise the configured home station from fresh GPS',app.atStation);
+    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride){
+     if(app.direction==='home'||app.travelMode==='leisure')unknown('recovery-home-station','Inspect the current homeward arrival or leisure plan','A commute departure-board classification is not applicable to this view');
+     else bool('recovery-home-station','Recognise the configured home station in the actual departure view',app.atStation);
+    }
     if(precise&&recovery.atCheckpoint&&!c.manualOverride&&hub&&c.mode!=='rail')add('recovery-station',`Recognise the current ${hub} station from fresh GPS`,app.atHub||'No station recognised',app.atHub===hub,{atHub:app.atHub||null});
     if(precise&&point==='office'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-office','Recognise the office geofence without a remembered trip',app.nearOffice);
     if(precise&&point==='home'&&recovery.atCheckpoint&&!c.manualOverride&&app.hasConfiguredHome)bool('recovery-home','Recognise the configured home without a remembered trip',app.atHome);
@@ -5980,14 +5987,14 @@ function updateTime(){
  const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';notify('frame');}
 function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;sim.stepping=false;playbackGeneration++;}
 function pause(){stopTimer();status('Paused');notify('pause');}
-function resetContext(preserveLiveLocation=!S().simulatorEnabled){
- invalidateSources();
+function resetContext(preserveLiveLocation=!S().simulatorEnabled,{preserveRateLimits=false}={}){
+ invalidateSources({preserveRateLimits});
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
  for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','lastPosition','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
 function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
-function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
+function start({preserveRateLimits=false}={}){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
  sim.baseline=JSON.parse(JSON.stringify(state.saved));
  const home=sim.baseline.home;
  if(Array.isArray(home)&&home.length===2&&home.every(Number.isFinite)&&Math.abs(home[0])<=90&&Math.abs(home[1])<=180){
@@ -5995,7 +6002,7 @@ function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(s
   points.nearHome=[home[0]+(points.let[0]-home[0])*.25,home[1]+(points.let[1]-home[1])*.25];
  }sim.active=true;if(S().simulatorEnabled)sim.watchGeneration++;
  if(S().simulatorEnabled&&state.watchId!=null){try{navigator.geolocation.clearWatch(state.watchId);}catch(e){}state.watchId=null;}
- clearJourneyMemory();resetContext();$("simBar").hidden=false;return true;
+ clearJourneyMemory();resetContext(undefined,{preserveRateLimits});$("simBar").hidden=false;return true;
 }
 function syncClock(){if(S().simulatedFeeds){if(!clock.active)clock.start(new Date(sim.startTime).toISOString());clock.set(sim.startTime+sim.elapsed*60000);}updateTime();}
 function accuracy(p){const mode=$("simAccuracyMode").value;if(mode==='manual')return Number($("simAccuracy").value);
@@ -6059,14 +6066,14 @@ function resetJourneyState({back=false}={}){
  if(sim.pendingRestart||back&&!canGoBack())return false;
  const observation=state.lastPosition?JSON.parse(JSON.stringify(state.lastPosition)):null,locationStatus=state.locStatus;
  const fromIndex=sim.index,fromTime=clock.now(),wasManual=sim.manualOverride;
- stopTimer();if(!start())return false;
+ stopTimer();if(!start({preserveRateLimits:!S().simulatedFeeds}))return false;
  if(back){if(sim.elapsed===route()[sim.index].at)sim.index--;sim.elapsed=route()[sim.index].at;}
  const atCheckpoint=(back||!wasManual)&&sim.startTime!==null&&sim.elapsed===route()[sim.index].at;
  sim.sessionId++;sim.manualOverride=false;sim.verification={current:null,results:[],pending:false};
  sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint};
  clearJourneyMemory();
  state.saved.dirMode='auto';state.saved.view='now';
- resetContext(false);onResetPresentation();
+ resetContext(false,{preserveRateLimits:!S().simulatedFeeds});onResetPresentation();
  if(back)syncClock();
  // New observation/report epochs precede GPS: no future output may seed fresh inference.
  notify('context-reset',{reason:sim.recovery.reason,fromIndex,fromTime});
@@ -6345,11 +6352,11 @@ simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,directio
 // Simulator integration observes normal rendering; no extra inference calls are made for verification.
 function readSimulationActual(){
  const model=state.rendered||{},m=model.train,r=model.ride;
- const journeyMemory={pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!state.saved.viewOverride};
+ const journeyMemory={origin:!!state.origin,directionPin:state.saved.dirMode!=='auto',planningView:(state.saved.view||'now')!=='now',trainLock:!!state.trainLock,aldgateVisit:!!state.saved.aldHome,followChoices:followChoices.size>0,pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!(state.saved.viewOverride||state.saved.viewAt||state.saved.viewKey||state.saved.planInputs)};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
- return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,directionExplicit:['home','office'].includes(state.saved.dirMode),locStatus:state.locStatus,locAcc:state.locAcc,fixAgeMs:Number.isFinite(state.lastFixAt)?Math.max(0,Date.now()-state.lastFixAt):null,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+ return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,directionExplicit:['home','office'].includes(state.saved.dirMode),locStatus:state.locStatus,locAcc:state.locAcc,fixAgeMs:Number.isFinite(state.lastFixAt)?Math.max(0,Date.now()-state.lastFixAt):null,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:!!atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
   ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
-  homeStation:HOME,journeyMemory,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  homeStation:HOME,travelMode:state.saved.mode,journeyMemory,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
   errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
   followText:!$("#followPanel").hidden?$("#followPanel").textContent.replace(/\s+/g,' ').trim():'',heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
 }

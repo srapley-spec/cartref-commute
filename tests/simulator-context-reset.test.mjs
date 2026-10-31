@@ -10,8 +10,8 @@ const click=(a,id)=>a.d.querySelector('#'+id).click();
 function select(a,id,value){const e=a.d.querySelector('#'+id);e.value=value;e.dispatchEvent(new a.w.Event('change',{bubbles:true}));}
 async function until(predicate,message,timeout=60000){const end=performance.now()+timeout;while(!predicate()){assert.ok(performance.now()<end,message);await sleep(10);}}
 async function checked(a){await until(()=>!view(a).verification.pending&&view(a).verification.current?.index===view(a).index,'cold checkpoint verification settles');return view(a).verification.current;}
-async function start({direction='outbound',route='kgx',signal=false,scenario='normal',...options}={}){
- const a=await createApp({settings:{provider:'rdm',rdmKey:'test',signal,followRoute:true},settle:100,...options});apps.push(a);
+async function start({direction='outbound',route='kgx',signal=false,scenario='normal',fetchRoute,...options}={}){
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'test',signal,followRoute:true},settle:100,...(fetchRoute?{route:fetchRoute}:{}),...options});apps.push(a);
  a.original=a.w.localStorage.getItem('cartrefCommute.v1');
  click(a,'journeySimulatorBtn');select(a,'journeyDirection',direction);select(a,'journeyRoute',route);select(a,'journeyScenario',scenario);click(a,'journeyStart');
  await until(()=>view(a).active&&a.d.querySelector('#simPanel').hidden,'guided start');await checked(a);return a;
@@ -34,6 +34,7 @@ for(const signal of [false,true])for(const direction of ['outbound','return'])fo
  test(`cold Back and Reset: ${signal?'Signal':'Panda'} ${direction} ${route}`,async()=>{
   const a=await start({signal,direction,route});await reach(a,p=>p.point==='north');
   assert.equal(a.c.state.onLine,true,'real journey engine establishes movement before losing state');
+  if(route==='kgx'&&direction==='outbound')assert.ok(a.c.state.trainLock,'the real app has an automatic lock which must be discarded');
   const old=view(a),oldReport=a.c.simulationReporter.getReport(),target=old.index-1;
   assert.equal(a.d.querySelector('#journeyBack').disabled,false);click(a,'journeyBack');
   assert.equal(view(a).index,target);assert.equal(a.c.simClock.now(),old.startTime+old.checkpoints[target].at*60000);
@@ -47,7 +48,7 @@ for(const signal of [false,true])for(const direction of ['outbound','return'])fo
   const before={time:a.c.simClock.now(),fix:plain(a.c.state.lastPosition),index:view(a).index};
   click(a,'simToggle');click(a,'journeyResetState');await checked(a);
   assert.equal(a.c.simClock.now(),before.time);assert.equal(view(a).index,before.index);assert.deepEqual(plain(a.c.state.lastPosition),before.fix);
-  assert.equal(a.c.simulationReporter.getReport().previousAttempts.length,2);
+  assert.equal(a.c.simulationReporter.getReport().previousAttempts.length,2);assert.match(a.text('#journeyResultsSummary'),/2 previous attempt/);
   if(direction==='return')a.d.querySelector('[data-dir="home"]').click();
   await next(a);
   assert.equal(a.c.state.onLine,true,'normal new GPS movement re-establishes a real rail journey');
@@ -87,13 +88,14 @@ test('Reset retains rough GPS uncertainty and never acts when both simulation so
  const saved=plain(a.c.state.saved);assert.equal(a.c.simulator.resetJourneyState(),false);assert.deepEqual(plain(a.c.state.saved),saved);
 });
 
-test('Reset underground loses the ride and does not fabricate a fresh station fix',async()=>{
- const a=await start();await reach(a,p=>p.label==='Walk to Underground platforms');await next(a);
+for(const [direction,route]of [['outbound','kgx'],['outbound','far'],['return','kgx'],['return','far']])test('Reset underground loses the ride and does not fabricate a fresh station fix'+(direction==='outbound'&&route==='kgx'?'':` (${direction} ${route})`),async()=>{
+ const a=await start({direction,route});await reach(a,p=>direction==='return'?/At Aldgate.*platforms/.test(p.label):p.label==='Walk to Underground platforms');await next(a);
+ if(direction==='return')assert.ok(a.c.state.saved.aldHome,'a genuine return departure visit exists before reset');
  assert.ok(a.c.state.saved.tubePick||a.c.state.saved.tubeRide,'actual platform choice existed');
  assert.equal(a.c.state.locStatus,'unavailable');
  const instant=a.c.simClock.now();click(a,'simToggle');click(a,'journeyResetState');await checked(a);
  assert.equal(a.c.simClock.now(),instant);assert.equal(a.c.state.here,null);assert.equal(a.c.state.locStatus,'unavailable');
- assert.equal(a.c.state.saved.tubePick,undefined);assert.equal(a.c.state.saved.tubeRide,undefined);assert.equal(a.c.readSimulationActual().ride,null);
+ assert.equal(a.c.state.saved.tubePick,undefined);assert.equal(a.c.state.saved.tubeRide,undefined);assert.equal(a.c.state.saved.aldHome,undefined);assert.equal(a.c.readSimulationActual().ride,null);
  assert.equal(view(a).verification.current.assertions.find(row=>row.id==='recovery-no-fabricated-position')?.status,'PASS');
  assert.equal(view(a).verification.current.status,'INCONCLUSIVE');await stop(a);
 });
@@ -130,11 +132,12 @@ test('Back interrupts sequential work, rejects stale JSON and cancels old interv
 for(const sources of [{gps:true,feeds:false},{gps:false,feeds:true}])test(`independent reset is safe; Back unavailable (GPS ${sources.gps}, feeds ${sources.feeds})`,async()=>{
  const a=await start();click(a,'simToggle');
  const source=a.d.querySelector(sources.gps?'#simAdvancedFeeds':'#simAdvancedGPS');source.checked=false;source.dispatchEvent(new a.w.Event('change'));
- click(a,'simPlay');await checked(a);
+ click(a,'simPlay');await checked(a);a.c.simulator.tick(60);await until(()=>!a.c.state.loading&&!a.c.state.again,'independent playback has moved beyond the initial instant');
+ assert.ok(view(a).elapsed>0,'live-source guard is exercised where rewind would otherwise be possible');
  const before={time:a.c.simClock.now(),fix:a.c.state.lastPosition&&plain(a.c.state.lastPosition)};
  assert.equal(a.d.querySelector('#journeyBack').disabled,true);assert.equal(a.c.simulator.previousCheckpoint(),false);
  a.c.simulator.resetJourneyState();await checked(a);
- if(sources.feeds)assert.equal(a.c.simClock.now(),before.time);else assert.ok(Math.abs(a.c.simClock.now()-before.time)<1000,'device clock continues normally');
+ if(sources.feeds)assert.equal(a.c.simClock.now(),before.time);else {const low=a.w.Date.now(),current=a.c.simClock.now(),high=a.w.Date.now();assert.ok(current>=low&&current<=high,'GPS-only uses the current device clock, regardless of verification duration');assert.equal(a.c.simClock.active,false);}
  if(before.fix)assert.deepEqual(plain(a.c.state.lastPosition),before.fix);
  assert.equal(a.c.S().simulatorEnabled,sources.gps);assert.equal(a.c.S().simulatedFeeds,sources.feeds);await stop(a);
 });
@@ -147,6 +150,29 @@ test('manual and stale GPS reset preserves the observation age, then normal play
  assert.equal(a.c.state.lastFixAt,taken);assert.equal(a.c.simClock.now(),instant);assert.equal(a.c.simulator.sim.manualOverride,false);
  assert.equal(view(a).verification.current.assertions.find(row=>row.id==='recovery-stale-location')?.status,'INCONCLUSIVE');
  await next(a);assert.ok(a.c.state.lastFixAt>taken);assert.equal(view(a).verification.current.assertions.find(row=>row.id==='journey-context-cleared')?.status,'PASS');await stop(a);
+});
+
+test('GPS-only cold Reset preserves a live TfL 429 deadline and real request accounting',async()=>{
+ let throttled=true;
+ const a=await start({now:Date.parse('2026-11-03T10:00:00Z'),settings:{provider:'tfl'},fetchRoute:u=>/api\.tfl\.gov\.uk/.test(u)&&throttled?{ok:false,status:429,json:async()=>({})}:undefined});
+ click(a,'simToggle');const feeds=a.d.querySelector('#simAdvancedFeeds');feeds.checked=false;feeds.dispatchEvent(new a.w.Event('change'));click(a,'simPlay');
+ await until(()=>a.c.state.tflBackoffUntil&&!a.c.state.loading&&!a.c.state.again,'actual live fixture returns a provider 429');
+ const deadline=a.c.state.tflBackoffUntil,calls=a.calls.filter(u=>u.includes('api.tfl.gov.uk')).length,counts=a.c.requestCounts().tfl;
+ assert.ok(counts>0,'real provider requests have already consumed allowance');
+ click(a,'journeyResetState');await checked(a);
+ assert.equal(a.c.state.tflBackoffUntil,deadline);assert.equal(a.calls.filter(u=>u.includes('api.tfl.gov.uk')).length,calls,'reset cannot bypass provider backoff');assert.equal(a.c.requestCounts().tfl,counts,'already-sent requests are not erased');
+ throttled=false;a.setNow(deadline+1);await a.c.refresh({force:true});await until(()=>!a.c.state.loading&&!a.c.state.again,'normal refresh recovers after deadline');
+ assert.ok(a.calls.filter(u=>u.includes('api.tfl.gov.uk')).length>calls);await stop(a);
+});
+
+test('cold Reset preserves the selected station profile and explains fixture mismatch',async()=>{
+ const choice={code:'HIT',day:'2026-11-03'};
+ const a=await start({now:Date.parse('2026-11-03T10:00:00Z'),saved:{startFrom:choice},geo:{coords:{latitude:51.949,longitude:-.279,accuracy:12}}});
+ assert.equal(a.c.readSimulationActual().homeStation,'HIT');
+ click(a,'simToggle');click(a,'journeyResetState');await checked(a);
+ assert.deepEqual(plain(a.c.state.saved.startFrom),choice);assert.equal(a.c.readSimulationActual().homeStation,'HIT');
+ assert.equal(view(a).verification.current.assertions.find(row=>row.id==='recovery-profile')?.status,'INCONCLUSIVE');
+ assert.equal(view(a).verification.current.assertions.find(row=>row.id==='journey-context-cleared')?.status,'PASS');await stop(a);
 });
 
 test('Reset clears transient origin and Follow choices while Stop restores real drafts and saved journey',async()=>{

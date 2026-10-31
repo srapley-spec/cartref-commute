@@ -38,14 +38,14 @@ function updateTime(){
  const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';notify('frame');}
 function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;sim.stepping=false;playbackGeneration++;}
 function pause(){stopTimer();status('Paused');notify('pause');}
-function resetContext(preserveLiveLocation=!S().simulatorEnabled){
- invalidateSources();
+function resetContext(preserveLiveLocation=!S().simulatorEnabled,{preserveRateLimits=false}={}){
+ invalidateSources({preserveRateLimits});
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
  for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','lastPosition','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
 function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
-function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
+function start({preserveRateLimits=false}={}){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
  sim.baseline=JSON.parse(JSON.stringify(state.saved));
  const home=sim.baseline.home;
  if(Array.isArray(home)&&home.length===2&&home.every(Number.isFinite)&&Math.abs(home[0])<=90&&Math.abs(home[1])<=180){
@@ -53,7 +53,7 @@ function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(s
   points.nearHome=[home[0]+(points.let[0]-home[0])*.25,home[1]+(points.let[1]-home[1])*.25];
  }sim.active=true;if(S().simulatorEnabled)sim.watchGeneration++;
  if(S().simulatorEnabled&&state.watchId!=null){try{navigator.geolocation.clearWatch(state.watchId);}catch(e){}state.watchId=null;}
- clearJourneyMemory();resetContext();$("simBar").hidden=false;return true;
+ clearJourneyMemory();resetContext(undefined,{preserveRateLimits});$("simBar").hidden=false;return true;
 }
 function syncClock(){if(S().simulatedFeeds){if(!clock.active)clock.start(new Date(sim.startTime).toISOString());clock.set(sim.startTime+sim.elapsed*60000);}updateTime();}
 function accuracy(p){const mode=$("simAccuracyMode").value;if(mode==='manual')return Number($("simAccuracy").value);
@@ -117,14 +117,14 @@ function resetJourneyState({back=false}={}){
  if(sim.pendingRestart||back&&!canGoBack())return false;
  const observation=state.lastPosition?JSON.parse(JSON.stringify(state.lastPosition)):null,locationStatus=state.locStatus;
  const fromIndex=sim.index,fromTime=clock.now(),wasManual=sim.manualOverride;
- stopTimer();if(!start())return false;
+ stopTimer();if(!start({preserveRateLimits:!S().simulatedFeeds}))return false;
  if(back){if(sim.elapsed===route()[sim.index].at)sim.index--;sim.elapsed=route()[sim.index].at;}
  const atCheckpoint=(back||!wasManual)&&sim.startTime!==null&&sim.elapsed===route()[sim.index].at;
  sim.sessionId++;sim.manualOverride=false;sim.verification={current:null,results:[],pending:false};
  sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint};
  clearJourneyMemory();
  state.saved.dirMode='auto';state.saved.view='now';
- resetContext(false);onResetPresentation();
+ resetContext(false,{preserveRateLimits:!S().simulatedFeeds});onResetPresentation();
  if(back)syncClock();
  // New observation/report epochs precede GPS: no future output may seed fresh inference.
  notify('context-reset',{reason:sim.recovery.reason,fromIndex,fromTime});
