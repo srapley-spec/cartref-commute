@@ -52,3 +52,5 @@ export type { RailWarningContext } from './warnings';
 export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent } from './journeyProgress';
 export type { ProgressKind, JourneyProgressLeg, JourneyProgressCall, JourneyProgressEvidence, JourneyProgressInput, JourneyProgressModel, ProgressItineraryInput, JourneyTimingShiftInput } from './journeyProgress';
 export type { ServiceCall, ServiceProgress } from './adapters/darwin';
+export { journeyFacts, connectionJourneyFacts } from './journeyFacts';
+export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

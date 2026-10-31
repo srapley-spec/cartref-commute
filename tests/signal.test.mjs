@@ -6,10 +6,11 @@ const NOW=Date.parse('2026-11-03T10:00:00Z');
 const app=(settings={},saved={})=>createApp({now:NOW,settings:{provider:'demo',...settings},saved});
 const click=(a,mode)=>a.d.querySelector(`[data-journey-view="${mode}"]`).click();
 
-test('Signal off preserves the default design and keeps new controls hidden',async()=>{
+test('Signal off preserves Panda and exposes the shared Auto Plan Live controls',async()=>{
   const a=await app();
   assert.equal(a.d.documentElement.dataset.design,'panda');
-  assert.equal(a.d.querySelector('#journeyViewControl').hidden,true);
+  assert.equal(a.d.querySelector('#journeyViewControl').hidden,false);
+  for(const mode of ['auto','plan','live'])assert.ok(a.d.querySelector(`[data-journey-view="${mode}"]`));
   assert.equal(a.d.querySelector('#signalStatus').hidden,true);
   assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
   assert.deepEqual(a.errors,[]);a.close();
@@ -30,7 +31,7 @@ test('Signal preserves every journey field and request while compacting Panda co
   const fields=(page,selectors)=>selectors.flatMap(selector=>{
     const node=page.d.querySelector(selector);if(!node)return [];
     const walker=page.d.createTreeWalker(node,4),out=[];
-    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service')){
+    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service,.signal-alt-facts,.signal-alt-comparison')){
       const text=walker.currentNode.textContent.replace(/\s+/g,' ').trim();if(text)out.push(text);
     }
     return out;
@@ -80,7 +81,7 @@ test('manual Plan retains tracking, selection and deadline; Return to Auto uses 
 test('manual Live with no active journey is explicit and does not invent a train',async()=>{
   const a=await app({signal:true});click(a,'live');
   assert.equal(a.c.state.presentation.noActiveJourney,true);
-  assert.match(a.text('#hero'),/No journey under way/);
+  assert.equal(a.text('#hero .live-note'),'Auto shows when to leave.');
   assert.match(a.text('#hero'),/departures from Letchworth/,'the next stop\'s board, not a planned train');
   assert.equal(a.c.state.trainLock||null,null);
   assert.deepEqual(a.errors,[]);a.close();

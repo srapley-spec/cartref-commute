@@ -75,9 +75,10 @@ content-sized time columns. Existing layout/data preservation constraints and th
   warning precedence is retained for more important feed or train problems, with the onward-travel qualification
   still visible. Future Arrive by/Leave around missing-route status comes from the displayed plan, even while
   its full alerts are folded.
-- Signal stays off by default. With Signal off, Panda's original DOM placement, control behavior, requests,
-  ranking, content and selected journey are restored. Switching on/off moves the same live elements back to
-  their recorded homes, retaining their handlers and values; it does not replace the production application.
+- Signal stays off by default. With Signal off, Panda's own DOM placement and geometry, source requests, ranking
+  and selected journey are restored. Shared capabilities added under the later parity rule, including Auto /
+  Plan / Live and duration facts, remain available. Switching on/off moves the same live elements back to their
+  recorded homes, retaining their handlers and values; it does not replace the production application.
 
 ## Acceptance criteria — agreed direction and existing constraints
 - Automatic is the default view selection; manual Planner/Live and Return to Auto are available.
@@ -109,6 +110,11 @@ content-sized time columns. Existing layout/data preservation constraints and th
 
 ## Feature switch and preservation
 - Settings → Experimental → Signal design starts off. Panda remains available by disabling it.
+- Sam's 31 Oct evening [parity decision](ui-parity.md) requires shared information/actions across both supported
+  designs and every applicable view. Panda receives the same Auto / Plan / Live controls even with Follow off;
+  selecting Signal changes geometry. Train/total duration and the existing arrival-first indication remain
+  visible in planning, station lists, Live and Follow. This supersedes the earlier control-hidden preservation
+  contract; it does not introduce another timing/ranking policy or couple the Follow switch to a design.
 - Follow a route is a separate Experimental setting. Selecting Signal checks it as a convenience; it can be
   configured independently, and both designs share the chosen route and normal engine.
 - Switching design retains direction, deadline, selected train/Tube, followed route and ordinary saved settings.
@@ -154,7 +160,7 @@ iPhone Safari and VoiceOver remain hardware acceptance. See [verification](../si
 - tests/core/viewControl.test.mjs: "view control: automatic transitions wait during editing, selection or notice reading and then catch up"
 - tests/core/viewControl.test.mjs: "view control: malformed or future saved overrides cannot trap the app in a pinned view"
 
-- tests/signal.test.mjs: "Signal off preserves the default design and keeps new controls hidden"
+- tests/signal.test.mjs: "Signal off preserves Panda and exposes the shared Auto Plan Live controls"
 - tests/signal.test.mjs: "Signal preserves every journey field and request while compacting Panda content"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
 - tests/signal.test.mjs: "manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation"

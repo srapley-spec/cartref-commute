@@ -29,6 +29,10 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.
 - Don't overwhelm the interface: detail replaces a line or folds away.
+- **Maintain every supported UI concurrently (Sam, 31 Oct).** A feature, bug fix, shared rule or new journey fact
+  ships in every supported design and applicable view in the same change. Geometry may differ; availability,
+  meaning, values, status and actions must remain equivalent. Do not defer another design as follow-up work.
+  Reuse shared renderers and engine facts rather than duplicating calculations or making artificial file edits.
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.
@@ -41,6 +45,20 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Build and test
 - `npm ci` once. `npm test` builds and runs everything (≈2–3 min). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
+- **UI parity is a mandatory release gate, without a waiver.** `config/ui-parity.json` registers supported designs
+  and surfaces. `tests/ui-parity.test.mjs` exercises their actual visible semantic contracts. `npm test`, the clean
+  committed-HEAD CI and GitHub all require every design/surface tuple to pass; missing, skipped, TODO, duplicate
+  or failed cases block release. `Docs: none` does not waive parity. `npm run check-ui-parity` runs this matrix alone.
+  Add a surface and its actual-page cases when adding a view; all engine views must be represented. Extend the
+  shared contract when adding information or actions, including appropriate missing/stale/unknown states.
+  Production `data-design` selectors and assignments under `src/` must match the registry. Select design IDs
+  through explicit literals/conditional branches; opaque computed assignments fail the gate rather than evade
+  inventory. Historical design proposals under `docs/` are outside the production inventory.
+- A UI leaves the matrix **only after Sam explicitly retires it and the implementation is removed**. In the same
+  change, retain a `retired` record (`kind`, `id`, `decision`) and a decision under `docs/` containing the exact lines
+  `Approved by: Sam` and `Retired UI: design:<id>` (or `surface:<id>`). Record the real decision and its context;
+  do not invent approval. CI rejects silent registry shrinkage or removed retirement history. A design being old,
+  experimental or temporarily inconvenient is not retirement.
 - `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
   committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
 - After editing `src/`, run `npm run build` and commit `index.html`; CI fails if it's stale.

@@ -31,11 +31,11 @@ const steps = [
   ["type-check the engine", "npm", ["run", "typecheck"]],
   ["index.html is built from src/", "sh", ["-c", `npm run build && git diff --exit-code -I 'id="build"' index.html`]],
   ["context kept current (docs/, CLAUDE.md)", "node", base && base !== head ? ["tools/check-docs.mjs", "--since", base] : ["tools/check-docs.mjs"]],
-  ["all tests (npm test)", "npm", ["test"]],
+  ["all tests and required UI parity", "node", ["tools/run-tests.mjs"]],
 ];
 let failed = null;
 for (const [name, cmd, args] of steps) {
-  const t0 = Date.now(), r = spawnSync(cmd, args, { cwd: copy, encoding: "utf8", maxBuffer: 1 << 28 });
+  const t0 = Date.now(), r = spawnSync(cmd, args, { cwd: copy, encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env, UI_PARITY_BASE: base } });
   const out = (r.stdout || "") + (r.stderr || "");
   log.push(`=== ${name}\n${out}`);
   const secs = Math.round((Date.now() - t0) / 1000);

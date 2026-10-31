@@ -46,6 +46,15 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - Departures you can make: those leaving at or after you can reach the platform, at most 6 (configurable). Best =
   earliest arrival at your destination (a later departure on a faster line can win); equal arrivals go to the
   earlier departure. Minutes to spare are whole minutes, rounded down.
+- **Fastest and selected are separate facts** (Sam's UI-parity refinement, 31 Oct evening). The connection model
+  exposes the existing earliest reachable arrival as `fastest`; a slower explicit pick stays the selected `best`
+  without acquiring an arrival-first label. The generic `max` window and equal-arrival tie stay unchanged.
+  Homeward Auto choices and Live departures use the same full loaded eligible set (`max: Infinity`); compact
+  Auto geometry shows the first three plus the fastest and chosen departure, so trimming cannot hide the winner.
+- A specific connection's total duration uses its own projected origin `leaveBy` to timed final arrival through
+  `connectionJourneyFacts`. Do not reuse a generic rail option's inferred access start when that start was rebuilt
+  after the selected Tube left. Conditional early departures without an established origin start have no claimed
+  total. Train-only duration and cancellation/no-estimate qualifications remain the shared journey-facts rules.
 - A departure can offer several stops to get off at; the earliest arrival is used (ties: the earlier stop) and the
   others are kept.
 - Departures before you can reach the platform, but not within 30 s, are offered "if you're near the platform".

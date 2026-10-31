@@ -135,7 +135,7 @@ scenario('main Follow preservation: confirmed boarding prevents better offers, w
  await off.fix(ALD,T('16:44'));const button=off.d.querySelector(`[data-tubepick^="ALD|${T('16:46')}|Circle"]`);assert.ok(button);button.click();off.at(T('16:48'));await off.c.refresh({force:true});await settle(off);
  assert.ok(off.c.homeRide(T('16:48')));assert.equal(off.d.querySelector('#followPanel').hidden,true);
  assert.equal(off.calls.filter(u=>/940GZZLUKSX\/Arrivals|940GZZLUFCN\/Arrivals/.test(u)).length,0);
- off.d.querySelector('[data-view="by"]').click();await settle(off);if(!SIGNAL)assert.equal(off.c.state.saved.viewOverride,undefined);assert.equal(off.c.state.saved.viewAt,undefined);assert.equal(off.c.state.saved.viewKey,undefined);
+ off.d.querySelector('[data-view="by"]').click();await settle(off);assert.equal(off.c.state.saved.viewOverride.mode,'plan','planning pins consistently in both supported designs even with Follow off');assert.equal(off.c.state.saved.viewAt,undefined);assert.equal(off.c.state.saved.viewKey,undefined);
  assert.deepEqual(off.errors,[]);off.close();
 });
 

@@ -51,6 +51,10 @@ not a claim that every criterion has already passed release verification. See [S
 ### What the card shows while following
 - One headline: **arriving HH:MM** for the followed route, and the next step ("Walk to Aldgate: leave by 18:27",
   "Circle from Aldgate 18:34, platform 2", "Change at King's Cross: 10 min", "18:54 Great Northern, platform 10").
+- Train duration and whole-journey duration use the same shared facts as planning and Live. The total starts at
+  the chosen option's canonical leave time, never the Follow-tap time. A current expected arrival updates the
+  duration without rewriting that start; uncertain arrival stays unknown. A followed route keeps its identity
+  and is not relabelled as a different fastest route merely because the alternatives have re-ranked.
 - **Ahead / on track / behind** for the step you're on, in whole minutes, coloured as elsewhere (green on track or
   ahead, amber 1–2 min behind or only at a fast walk, red if you'd miss the next connection):
   - Walking: your position against the planned walk at your pace (the rule already used on the way to Letchworth).
@@ -100,7 +104,10 @@ not a claim that every criterion has already passed release verification. See [S
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
-- Every scenario in tests/follow-main-regression.test.mjs runs twice: Panda, then Signal ("(Signal)" in the name; Sam, 31 Oct). In Signal, tapping Arrive by with Follow off saves Signal's own view override (its design), which Panda doesn't.
+- Every scenario in tests/follow-main-regression.test.mjs runs twice: Panda, then Signal ("(Signal)" in the name;
+  Sam, 31 Oct). The later same-evening [parity rule](ui-parity.md) supersedes the old design-specific override
+  distinction: with Follow off, Arrive by saves the shared planning override in both designs. View pins do not
+  enable Follow, reset the selected train, change direction or pause tracking.
 - Implementation tests include the pure engine, real built-page integration and independent whole-journey probes.
   Release verification and final review are pending. Required evidence includes stable arrival despite
   re-ranking, an explicit reason for live changes, cancellation/missed recovery without automatic replacement,

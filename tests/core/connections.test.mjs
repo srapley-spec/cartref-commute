@@ -55,6 +55,42 @@ test("Your pick: matched on line, by vehicle when known, and kept when the live 
   assert.equal(p.chosen, false);
 });
 
+test('Connection fastest: a slower explicit pick stays selected without being relabelled earliest arrival',()=>{
+  const departures=Object.freeze([Object.freeze(dep(2,'Green','conditional-early')),
+    Object.freeze(dep(6,'Blue','chosen-slow')),Object.freeze(dep(7,'Green','fastest'))]);
+  let calls=0;
+  const result=core.planConnection({now,arrivedAt:null,walkMs:5*m,departures,
+    leg:d=>{calls++;return d.line==='Blue'?{stop:'Market',rideMs:20*m,tailMs:5*m}:leg(d);},
+    pick:{t:now+6*m,line:'Blue',vehicle:'chosen-slow'}});
+  assert.equal(result.chosen,true);assert.equal(result.best.vehicle,'chosen-slow');
+  assert.equal(result.fastest.vehicle,'fastest');assert.equal(result.fastest.arrive,now+22*m);
+  assert.equal(result.fastest,result.next.find(d=>d.vehicle==='fastest'),'the winner is the existing timed object');
+  assert.notEqual(result.fastest,result.early[0],'a near-platform conditional departure cannot become the reachable winner');
+  assert.equal(calls,departures.length,'exposing the existing winner does not rerun the leg planner');
+  assert.equal(departures[0].vehicle,'conditional-early','source departures remain untouched');
+});
+
+test('Connection fastest: unpicked and selected-fastest identities agree while an early pick cannot invent a reachable winner',()=>{
+  const departures=[dep(6,'Blue','b6'),dep(7,'Green','g7')];
+  const automatic=plan({departures});assert.equal(automatic.fastest,automatic.best);assert.equal(automatic.chosen,false);
+  const selected=plan({departures,pick:{t:departures[0].t,line:'Blue',vehicle:'b6'}});
+  assert.equal(selected.fastest,selected.best);assert.equal(selected.chosen,true);
+  const early=dep(2,'Blue','early'),conditional=plan({departures:[early],pick:early});
+  assert.equal(conditional.chosen,true);assert.equal(conditional.best.vehicle,'early');
+  assert.equal(conditional.fastest,null);assert.equal(plan({}).fastest,null);
+});
+
+test('Connection fastest: the existing max window and equal-arrival departure tie remain unchanged',()=>{
+  const departures=[dep(5,'Blue','first'),dep(6,'Green','quicker')];
+  const routes=d=>d.line==='Blue'?{stop:'Market',rideMs:20*m,tailMs:5*m}:{stop:'Quay',rideMs:2*m,tailMs:3*m};
+  const limited=plan({departures,leg:routes,max:1});
+  assert.equal(limited.next.length,1);assert.equal(limited.fastest,limited.best);assert.equal(limited.fastest.vehicle,'first');
+  assert.equal(plan({departures,leg:routes,max:Infinity}).fastest.vehicle,'quicker');
+  const tied=plan({departures:[dep(6,'Blue','later'),dep(5,'Green','earlier')],
+    leg:d=>d.line==='Blue'?{stop:'Market',rideMs:10*m,tailMs:5*m}:{stop:'Quay',rideMs:12*m,tailMs:4*m}});
+  assert.equal(tied.fastest.vehicle,'earlier');assert.equal(tied.fastest,tied.best);
+});
+
 test("Rides end 10 min after the ride time (not before); 'did you get it?' only within the station radius", () => {
   const r = { from: "X", t: now, rideMs: 10 * m, stopGeo: [50.2, -1.2] }, here = [50.05, -1.05];
   const fx = (h, acc = 20, t = now) => ({ here: h, acc, at: t });

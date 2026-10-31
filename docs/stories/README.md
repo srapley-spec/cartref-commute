@@ -59,7 +59,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
 - [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
-- [Live before a journey: the next stop's departure board](live-station-board.md) · Done (Signal); Leisure going out: all departures not yet
+- [Live before a journey: the next stop's departure board](live-station-board.md) · Shared by Panda and Signal; Leisure going out: all departures not yet
 
 ### Beyond the commute
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
@@ -77,5 +77,6 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 - [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
 
 ### Design and presentation
+- [Supported UIs advance together](ui-parity.md) · Implemented; mandatory design/view parity gate; release evidence in PR #43
 - [Every live train says how late it is, in colour](train-status.md) · Done
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Behind toggle; compact v2 review approved, release gates recorded
