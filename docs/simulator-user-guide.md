@@ -148,7 +148,7 @@ Back and Reset create a fresh attempt, retaining those earlier failures under Pr
 
 Common reasons for an inconclusive result include rough or missing GPS, unresolved train identity,
 missing boarding/alighting evidence, a manually pinned Plan or Live view, independent simulation sources,
-or manually edited coordinates/context. Use **Return to Auto** in the real app when you want its automatic
+or manually edited coordinates/context. Use **Auto** in the real app when you want its automatic
 current-journey presentation again. A deliberately uncertain scenario need not produce a PASS at every
 checkpoint to be useful.
 
@@ -333,7 +333,7 @@ when real GPS resumes; a simulated denial does not change the browser’s actual
 | Back is disabled. | It needs both synthetic sources, an earlier reachable waypoint, and no pending configuration restart. |
 | The app no longer knows which train or tube I am on after Back/Reset. | Expected: earlier evidence was deliberately discarded. Inspect the actual response, continue for new fixes, or use the app’s normal choices. |
 | The app recommends a different route. | The selector controls passenger movements, not recommendations. Inspect the real board and use the app’s normal choice/alighting controls. |
-| The app keeps showing a planning view. | Check whether you pinned Plan or Live. Use **Return to Auto** for automatic journey presentation. |
+| The app keeps showing a planning view. | Check whether you pinned Plan or Live. Use **Auto** for automatic journey presentation. |
 | Home arrival is inconclusive. | A saved home is required for that assertion. Configure it outside simulation, then start again. |
 | Many checks became inconclusive. | Read **Expected and actual**. Check source switches, accuracy, missing passenger choices and manual overrides; restart for a clean comparison. |
 | A checkpoint fails, then the app recovers. | The earlier failure remains recorded. Export before restarting so the evidence is retained. |
