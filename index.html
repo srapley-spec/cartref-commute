@@ -643,7 +643,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 10:56 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 11:43 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2845,7 +2845,7 @@ var CommuteCore = (() => {
           if (EASE.indexOf(r) < EASE.indexOf(cur) || r === row.reach && row.arrive != null && x.arrive < row.arrive) {
             row.reach = r;
             row.arrive = x.arrive;
-            row.option = o;
+            row.option = x;
           }
         }
       }
@@ -2858,7 +2858,7 @@ var CommuteCore = (() => {
     };
     return groups.map((g, k) => ({ g, k })).sort((a, b) => first(a.g) - first(b.g) || a.k - b.k).map((x) => x.g);
   }
-  function tubeStationBoard(departures, plan, now, atStop = false) {
+  function tubeStationBoard(departures, plan, now, walkMs, atStop = false) {
     const same = (a, b) => {
       var _a, _b;
       return a.t === b.t && a.line === b.line && ((_a = a.vehicle) != null ? _a : "") === ((_b = b.vehicle) != null ? _b : "");
@@ -2866,7 +2866,7 @@ var CommuteCore = (() => {
     return departures.filter((d) => Number.isFinite(d.t) && d.t >= now - 3e4).sort((a, b) => a.t - b.t).map((dep) => {
       const next = plan.next.find((x) => same(x, dep)), early = plan.early.find((x) => same(x, dep));
       const reach = dep.t >= plan.ready ? "walk" : early && atStop ? "early" : "none";
-      return { dep, reach, timed: next || early || null };
+      return { dep, reach, timed: next || early || null, leaveBy: reach === "walk" ? dep.t - walkMs : null };
     });
   }
   function reachFlag(r) {
@@ -4361,11 +4361,13 @@ function renderNearlyHome(now){
     <div data-block="then" style="font-size:14px">${atStationNow?`At Letchworth: about a ${dur(walk)} walk home.`:"Near Letchworth on the way home. Set your home in Settings to see when you'll be there."}</div>`;
 }
 // Going home from the office: the next tubes from Aldgate (live) and the train each one gets you to.
+// From where you are to Aldgate's platform (ms): the office walk (unless you're at Aldgate) and the platform, at your pace.
+function aldWalkMs(atAld){ const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1; return ((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000; }
+const ALD_STALE_MS=3*60e3;
 function tubesFromAldgate(now){
   const d=state.aldDeps;
-  if(direction()!=="home" || state.saved.mode==="leisure" || !nearOffice() || !d || !d.list || Date.now()-d.at>3*60e3) return "";
-  const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=C.atOfficeTube("home", fix(), PROFILE);
-  const walkMs=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
+  if(direction()!=="home" || state.saved.mode==="leisure" || !nearOffice() || !d || !d.list || Date.now()-d.at>ALD_STALE_MS) return "";
+  const atAld=C.atOfficeTube("home", fix(), PROFILE), walkMs=aldWalkMs(atAld);
   const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
   // Engine planConnection: what you can catch from here (the office, or Aldgate), getting off where you're home soonest.
   const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
@@ -4641,18 +4643,18 @@ function renderLiveBoard(now){
       else if(!nearOffice()) body=`<div class="row"><div></div><div class="mid meta">Live departures from Aldgate load when you're near the office.</div><div></div></div>`;
       else if(!d || (!d.list && !d.err)) body=`<div class="row"><div></div><div class="mid meta">Loading live departures from Aldgate…</div><div></div></div>`;
       else if(!d.list) body=`<div class="row"><div></div><div class="mid meta">${esc(d.err||"Couldn't load Aldgate departures.")}</div><div></div></div>`;
+      else if(now-d.at>ALD_STALE_MS) body=`<div class="row"><div></div><div class="mid meta">Aldgate's departures are over 3 minutes old: waiting for an update.</div><div></div></div>`;
       else {
-        const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=C.atOfficeTube("home", fix(), PROFILE);
-        const walkMs=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
+        const atAld=C.atOfficeTube("home", fix(), PROFILE), walkMs=aldWalkMs(atAld);
         const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), max:Infinity });
-        const rows=C.tubeStationBoard(d.list, plan, now, atAld);
+        const rows=C.tubeStationBoard(d.list, plan, now, walkMs, atAld);
         body=rows.length ? rows.map(r=>{ const t=r.timed, o=t&&t.leg.o;
           return `<div class="row board live-row${r.reach==="none"?" gone":""}">
       <div class="leave"><small>${esc(r.dep.line)}</small><span class="t">${hhmm(r.dep.t)}</span></div>
       <div class="mid">
         <div class="meta">${esc(r.dep.dest||"")}${C.platformNo(r.dep.platform)?` · <b class="plat">platform ${esc(C.platformNo(r.dep.platform))}</b>`:""} · <span data-dep="${r.dep.t}"></span></div>
         <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:"No train home connects with this one"}</div>
-        <div>${pill(r.reach)}${r.reach==="walk"?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.dep.t-walkMs)}</span></small>`:""}</div>
+        <div>${pill(r.reach)}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
       </div>
       <div class="arrive"><small>Home</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
     </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No westbound Circle or Met departures listed at Aldgate right now.</div><div></div></div>`;
@@ -4672,7 +4674,7 @@ function renderLiveBoard(now){
       <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
       <div class="mid">
         <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
-        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}${t.timetable?" · timetable":""} · <span data-dep="${t.dep}"></span></div>
+        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
         <div>${[pill(r.reach),pills(boardFlags(C.trainFlags(t,PROFILE)),true)].filter(Boolean).join(" ")}</div>
         ${r.option?followButton(r.option):""}
       </div>

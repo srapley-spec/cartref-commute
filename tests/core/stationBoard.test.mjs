@@ -85,16 +85,61 @@ test("railStationBoard: several stations are grouped, the best option's station 
 });
 
 test("tubeStationBoard: every departure still to come, what each connects to, and whether you can make it (early only at the stop)", () => {
-  const deps = [-1, 0.4, 2, 5, 9].map((m, i) => ({ t: now + m * MIN, line: i % 2 ? "Met" : "Circle", vehicle: `v${i}` }));
+  const walkMs = 4 * MIN;
+  const deps = [-31 / 60, -29 / 60, 0.4, 2, 5, 9].map((m, i) => ({ t: now + m * MIN, line: i % 2 ? "Met" : "Circle", vehicle: `v${i}` }));
   const leg = d => (d.t === now + 9 * MIN ? null : { stop: "Central", rideMs: 7 * MIN, tailMs: 30 * MIN });
-  const plan = core.planConnection({ now, departures: deps, arrivedAt: null, walkMs: 4 * MIN, leg, max: Infinity });
-  const rows = core.tubeStationBoard(deps, plan, now, true);
-  assert.deepEqual(rows.map(r => r.dep.vehicle), ["v1", "v2", "v3", "v4"], "left over 30 s ago: gone");
-  assert.deepEqual(rows.map(r => r.reach), ["none", "early", "walk", "walk"], "at the stop: one before you'd usually make it, only if you're near the platform");
-  assert.deepEqual(core.tubeStationBoard(deps, plan, now).map(r => r.reach), ["none", "none", "walk", "walk"], "from anywhere else it's can't make it");
-  assert.equal(rows[2].timed.leg.stop, "Central"); assert.equal(rows[2].timed.arrive, now + 42 * MIN);
-  assert.equal(rows[3].timed, null, "no connection: still listed");
-  assert.equal(rows[0].timed, null);
+  const plan = core.planConnection({ now, departures: deps, arrivedAt: null, walkMs, leg, max: Infinity });
+  const rows = core.tubeStationBoard(deps, plan, now, walkMs, true);
+  assert.deepEqual(rows.map(r => r.dep.vehicle), ["v1", "v2", "v3", "v4", "v5"], "left 31 s ago: gone; 29 s ago: still listed");
+  assert.deepEqual(rows.map(r => r.reach), ["none", "none", "early", "walk", "walk"], "at the stop: one before you'd usually make it, only if you're near the platform");
+  assert.deepEqual(core.tubeStationBoard(deps, plan, now, walkMs).map(r => r.reach), ["none", "none", "none", "walk", "walk"], "from anywhere else it's can't make it");
+  assert.equal(rows[2].timed.leg.stop, "Central", "an early one keeps its connection");
+  assert.equal(rows[3].timed.leg.stop, "Central"); assert.equal(rows[3].timed.arrive, now + 42 * MIN);
+  assert.equal(rows[4].timed, null, "no connection: still listed");
+  assert.deepEqual(rows.map(r => r.leaveBy), [null, null, null, now + 1 * MIN, now + 5 * MIN], "leave by = departure − the walk, only when you can make it");
+  // Exactly when you'd reach the platform: you can make it.
+  const edge = [{ t: plan.ready, line: "Circle", vehicle: "e" }];
+  assert.equal(core.tubeStationBoard(edge, core.planConnection({ now, departures: edge, arrivedAt: null, walkMs, leg, max: Infinity }), now, walkMs)[0].reach, "walk");
+});
+
+test("railStationBoard: different trains at the same time stay apart; a real train beats its derived copy; other stations' trains and no-estimate reach stay out", () => {
+  const gn = t({ std: "10:10", operator: "Express Rail", to: "CEN" });
+  const tl = t({ std: "10:10", operator: "Metro Rail", to: "MKT" });
+  const derived = t({ std: "10:20", dep: now + 20 * MIN, to: "MKT", derived: true, estimated: true });
+  const real = t({ std: "10:20", dep: now + 20 * MIN, to: "CEN" });
+  const stray = train({ from: "CEN", to: "RVS", std: "10:15", dep: now + 15 * MIN });
+  const noEst = t({ std: "10:30", dep: now + 30 * MIN, depUnknown: true });
+  const options = [option({ train: { ...noEst }, hub: "CEN", arrive: now + 70 * MIN })];
+  const [g] = core.railStationBoard({ stops: [{ code: "RVS", name: "Riverside", kind: "rail" }],
+    boards: { "RVS-MKT": { services: [tl, derived, stray], msgs: [] }, "RVS-CEN": { services: [gn, real, noEst], msgs: [] } }, options, now });
+  assert.deepEqual(g.rows.map(r => `${r.train.std} ${r.train.operator}`).sort(), ["10:10 Express Rail", "10:10 Metro Rail", "10:20 Express Rail", "10:30 Express Rail"], "same time, different operators: two trains; another station's train on this board: left out");
+  const r20 = g.rows.find(r => r.train.std === "10:20");
+  assert.equal(r20.train.derived, undefined, "the real train, not the copy worked out from its stops");
+  assert.deepEqual(r20.routes, ["MKT", "CEN"]);
+  assert.equal(g.rows.find(r => r.train.std === "10:30").reach, "unknown", "no estimate: never a reach, even when an option matches");
+});
+
+test("railStationBoard: a train matched through another option's stop takes that stop's option; equal reach takes the earlier arrival", () => {
+  const x = t({ std: "10:10", to: "CEN" });
+  const atMkt = option({ train: { ...x, to: "MKT" }, hub: "MKT", arrive: now + 55 * MIN });
+  const main = option({ train: train({ from: "CEN", to: "RVS", std: "09:00", dep: now + 5 * MIN }), hub: "CEN", arrive: now + 80 * MIN, alts: [atMkt] });
+  const direct = option({ train: { ...x }, hub: "CEN", arrive: now + 50 * MIN });
+  const stops = [{ code: "RVS", name: "Riverside", kind: "rail" }], boards = { "RVS-CEN": { services: [x], msgs: [] } };
+  let [g] = core.railStationBoard({ stops, boards, options: [main], now });
+  assert.equal(g.rows[0].option, atMkt, "Follow from this row follows this train, not the main option elsewhere");
+  assert.equal(g.rows[0].arrive, now + 55 * MIN);
+  [g] = core.railStationBoard({ stops, boards, options: [main, direct], now });
+  assert.equal(g.rows[0].arrive, now + 50 * MIN, "both walk: the earlier arrival");
+  assert.equal(g.rows[0].option, direct);
+  [g] = core.railStationBoard({ stops, boards, options: [direct, main], now });
+  assert.equal(g.rows[0].arrive, now + 50 * MIN, "whatever order the options come in");
+});
+
+test("railStationBoard: the best option's station comes first even when it boards there only as another stop", () => {
+  const cen = train({ from: "CEN", to: "RVS", std: "10:10", dep: now + 10 * MIN }), mkt = train({ from: "MKT", to: "RVS", std: "10:05", dep: now + 5 * MIN });
+  const stops = [{ code: "CEN", name: "Central", kind: "rail" }, { code: "MKT", name: "Market Street", kind: "rail" }];
+  const best = option({ train: train({ from: "OTH", to: "RVS", std: "10:00", dep: now }), hub: "OTH", arrive: now + 30 * MIN, alts: [option({ train: { ...mkt }, hub: "MKT", arrive: now + 35 * MIN })] });
+  assert.deepEqual(core.railStationBoard({ stops, boards: { "CEN-RVS": { services: [cen], msgs: [] }, "MKT-RVS": { services: [mkt], msgs: [] } }, options: [best], now }).map(g => g.stop.code), ["MKT", "CEN"]);
 });
 
 test("reachFlag: what each reach says on the board", () => {

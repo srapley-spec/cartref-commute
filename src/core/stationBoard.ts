@@ -22,7 +22,7 @@ export interface BoardRow {
   reach: Reach | null;
   /** When you'd arrive on this train (door to door), when a plan covers it. */
   arrive: number | null;
-  /** The option it was matched to, if any. */
+  /** The option for this train at this station (an option's own train, or one of its other stops), if any. */
   option: Option | null;
 }
 export interface StationBoardGroup { stop: BoardStop; rows: BoardRow[]; }
@@ -74,7 +74,7 @@ export function railStationBoard(i: { stops: BoardStop[]; boards: Record<string,
         if (!sameTrain(x.train, row.train)) continue;
         const r = reachOf(x), cur = row.reach ?? "unknown";
         if (EASE.indexOf(r) < EASE.indexOf(cur) || (r === row.reach && row.arrive != null && x.arrive < row.arrive)) {
-          row.reach = r; row.arrive = x.arrive; row.option = o;
+          row.reach = r; row.arrive = x.arrive; row.option = x;   // this station's option, not the main one elsewhere
         }
       }
     }
@@ -96,20 +96,23 @@ export interface TubeBoardRow<D extends Departure> {
   reach: "walk" | "early" | "none";
   /** Where to get off and the train home it connects to, when one does. */
   timed: Timed<D> | null;
+  /** The latest you can set off for it from where you are (departure − the walk to the platform), when reachable. */
+  leaveBy: number | null;
 }
 
 /**
  * Every departure from a tube stop that hasn't left (30 s grace), soonest first, with what it connects to and
- * whether you can make it, from the connection plan for where you are (planConnection with no limit). One leaving
+ * whether you can make it, from the connection plan for where you are (planConnection with no limit, and the same
+ * `walkMs` to the platform). One leaving
  * before you'd normally reach the platform is "early" only when you're already at the stop (`atStop`), as Auto
  * offers it; from anywhere else it's "none".
  */
-export function tubeStationBoard<D extends Departure>(departures: D[], plan: ConnectionPlan<D>, now: number, atStop = false): TubeBoardRow<D>[] {
+export function tubeStationBoard<D extends Departure>(departures: D[], plan: ConnectionPlan<D>, now: number, walkMs: number, atStop = false): TubeBoardRow<D>[] {
   const same = (a: Departure, b: Departure) => a.t === b.t && a.line === b.line && (a.vehicle ?? "") === (b.vehicle ?? "");
   return departures.filter(d => Number.isFinite(d.t) && d.t >= now - 30e3).sort((a, b) => a.t - b.t).map(dep => {
     const next = plan.next.find(x => same(x, dep)), early = plan.early.find(x => same(x, dep));
     const reach: TubeBoardRow<D>["reach"] = dep.t >= plan.ready ? "walk" : early && atStop ? "early" : "none";
-    return { dep, reach, timed: next || early || null };
+    return { dep, reach, timed: next || early || null, leaveBy: reach === "walk" ? dep.t - walkMs : null };
   });
 }
 

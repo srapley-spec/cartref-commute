@@ -83,7 +83,10 @@ test('Live in Leisure going home: each London station grouped, with station loze
   live(a);
   assert.equal(a.c.state.presentation.noActiveJourney,true);
   const names=[...a.d.querySelectorAll('#list .live-board-name')].map(h=>h.textContent);
-  assert.deepEqual([...names].sort(),["Farringdon","King's Cross","St Pancras"]);
+  // The way to the station is planned (TfL mock), so the stop the best option boards at comes first; the rest in route order.
+  const best=a.c.state.presentation&&[...a.d.querySelectorAll('#list .live-board')][0].querySelector('[data-reach="walk"]');
+  assert.ok(best,'the first station has a train you can make');
+  assert.deepEqual(names,['St Pancras','Farringdon',"King's Cross"]);
   assert.equal(a.text('#listTitle'),'Departures by station');
   const jumps=[...a.d.querySelectorAll('#hero [data-board-jump]')];
   assert.deepEqual(jumps.map(b=>b.textContent),names,'one lozenge per station, in the list order');
@@ -102,4 +105,90 @@ test('Live without a location keeps asking where you are and never assumes home'
   assert.match(a.text('#hero'),/Location needed|Finding your location/);
   assert.equal(a.d.querySelectorAll('#list .live-board').length,0);
   assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Live board rows: a cancelled train has no countdown, nor does a delayed one with no estimate whose time has passed',async()=>{
+  const lateNoEstimate=u=>/GetDepBoardWithDetails\/LET/.test(u)?json({trainServices:[{std:'09:50',etd:'Delayed',operator:'Great Northern',platform:'2',serviceID:'x1',
+    destination:[{locationName:'London Kings Cross',crs:'KGX'}],subsequentCallingPoints:[{callingPoint:[{locationName:'London Kings Cross',crs:'KGX',st:'10:30',et:'Delayed'}]}]}]}):undefined;
+  const a=await createApp({now:MORNING,settings:{provider:'rdm',rdmKey:'k',rdmBase:'https://darwin.test/LDBWS/api/20220120',signal:true},route:lateNoEstimate});
+  live(a);
+  const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
+  const late=text.find(t=>/09:50/.test(t));
+  assert.ok(late,'the delayed train is listed'); assert.match(late,/Delayed/);
+  assert.doesNotMatch(late,/has departed|departs in/);
+  assert.equal(reach(rows[text.indexOf(late)]),'unknown');
+  a.close();
+  const b=await createApp({now:MORNING,settings:{provider:'demo',signal:true}});
+  live(b);
+  const cancelled=boardRows(b).map(r=>r.textContent.replace(/\s+/g,' ')).find(t=>/10:51/.test(t));
+  assert.match(cancelled,/Cancelled/); assert.doesNotMatch(cancelled,/departs in|has departed/);
+  assert.deepEqual([...a.errors,...b.errors],[]);b.close();
+});
+
+test('Live with the timetable source says so in its heading',async()=>{
+  const a=await createApp({now:MORNING,settings:{provider:'tfl',signal:true}});
+  live(a);
+  assert.match(a.text('#hero'),/Live · departures from Letchworth · 10:00 · timetable/);
+  assert.ok(boardRows(a).length>0);
+  assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Live Aldgate board: leave-by time at your pace, greyed when you cannot make it, and from Aldgate itself the walk is just the platform',async()=>{
+  const by=row=>(row.textContent.match(/leave (the office|for the platform) by\s*(\d\d:\d\d)/)||[]).slice(1).join(' ');
+  const office=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  live(office);
+  let rows=boardRows(office);
+  assert.ok(rows[0].classList.contains('gone')); assert.ok(!rows[1].classList.contains('gone'));
+  // Settings defaults: office walk 420 s + platform 90 s. 17:39 − 8.5 min = 17:30:30; 17:45 → 17:36:30.
+  assert.deepEqual(rows.map(by),['','the office 17:30','the office 17:36']);
+  office.close();
+  // Fast pace (× 0.82): 418 s. 17:39 → 17:32:02.
+  const fast=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home',pace:'fast'},route:aldgate(EVENING)});
+  live(fast);
+  assert.deepEqual(boardRows(fast).map(by),['','the office 17:32','the office 17:38']);
+  fast.close();
+  // At Aldgate: only the platform (90 s), so the 17:33 is within reach.
+  const atAld=await createApp({now:EVENING,geo:{coords:{latitude:51.5143,longitude:-0.0755,accuracy:10}},settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  live(atAld);
+  assert.equal(atAld.c.state.presentation.noActiveJourney,true);
+  rows=boardRows(atAld);
+  assert.deepEqual(rows.map(reach),['walk','walk','walk']);
+  assert.deepEqual(rows.map(by),['for the platform 17:31','for the platform 17:37','for the platform 17:43']);
+  assert.deepEqual(atAld.errors,[]);atAld.close();
+});
+
+test('Live Aldgate board says why when the departures fail to load or are over 3 minutes old',async()=>{
+  const fail=u=>/940GZZLUALD\/Arrivals/.test(u)?json({},500):undefined;
+  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:fail});
+  live(a);
+  assert.match(a.text('#list'),/TfL tube departures error \(HTTP 500\)/);
+  a.close();
+  const b=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  live(b);
+  assert.equal(boardRows(b).length,3);
+  b.c.state.aldDeps.at=EVENING-3*MIN-1;b.c.render();
+  assert.match(b.text('#list'),/over 3 minutes old/);
+  assert.equal(boardRows(b).length,0,'old departures never say you can make it');
+  assert.deepEqual([...a.errors,...b.errors],[]);b.close();
+});
+
+test('Live board Follow: each row follows that train from that station',async()=>{
+  const a=await createApp({now:MORNING,settings:{provider:'demo',signal:true,followRoute:true}});
+  live(a);
+  const rows=boardRows(a);
+  assert.equal(rows[0].querySelector('[data-follow]')?.disabled,true,'one you cannot make cannot be followed');
+  const btn=rows[2].querySelector('[data-follow]');
+  assert.match(btn.getAttribute('aria-label'),/Follow the 10:37 Great Northern via King's Cross/);
+  btn.click();
+  assert.equal(a.c.state.saved.followRoute.id,'2026-11-03|Great Northern|10:37|LET|KGX|KGX');
+  assert.equal(a.c.state.presentation.view,'following');
+  a.close();
+  const b=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:'home',mode:'leisure'}});
+  live(b);
+  for(const section of b.d.querySelectorAll('#list .live-board')){
+    const name=section.querySelector('.live-board-name').textContent;
+    for(const f of section.querySelectorAll('[data-follow]'))
+      assert.match(f.getAttribute('aria-label'),new RegExp(`via ${name==='St Pancras'?"(St Pancras|King's Cross)":name}`),`${name}: ${f.getAttribute('aria-label')}`);
+  }
+  assert.deepEqual([...a.errors,...b.errors],[]);b.close();
 });
