@@ -104,8 +104,8 @@
     ],
     "meaning": "good = no problem, warn = some problem, bad = serious problem. Never accent, brand, identity, selection, best option, focus or tracking (Sam, 30 Oct 2026).",
     "bands": {
-      "good": "under 2 min late, or early",
-      "warn": "2–14 min late",
+      "good": "under 5 min late, or early",
+      "warn": "5\u201314 min late",
       "bad": "15+ min late, cancelled, or no estimate"
     },
     "spec": "../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal",
