@@ -76,3 +76,12 @@ test('follow migration: missing historical onward timings stay unknown rather th
  assert.equal(legs.find(l=>l.d==='Arrive Riverside').t,t+60*MIN);assert.equal(legs.at(-1).t,old.planned);
  const timed=legs.filter(l=>l.t!=null).map(l=>l.t);assert.ok(timed.every((instant,index)=>index===0||instant>=timed[index-1]));assert.ok(timed.every(instant=>instant<=old.planned));
 });
+
+test('independent migration review: the original destination hub disambiguates one train from the same origin',()=>{
+ const chosen={operator:'Express',std:'18:30',from:'START',serviceId:'chosen'};
+ const old=legacy({dir:'office',hub:'MKT',train:chosen,calls:[chosen]});
+ const wrong=option({hub:'CEN'},{from:'START',to:'CEN'});
+ const correct=option({hub:'MKT'},{from:'START',to:'MKT'});
+ assert.equal(migrate(old,[wrong]),null,'another stop of the same train cannot invent the saved original destination');
+ const imported=migrate(old,[wrong,correct]);assert.ok(imported);assert.equal(imported.option.hub,'MKT');assert.equal(imported.option.train.to,'MKT');
+});

@@ -62,7 +62,7 @@ from that description.
 
 ## Signal presentation architecture (29 Oct 2026)
 
-Status: behind Settings → Experimental; release verification pending. See [design system](design-system.md) and
+Status: behind Settings → Experimental; independent review approved; release gates recorded in docs/signal-testing.md. See [design system](design-system.md) and
 [acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
 
 ### Agreed by Sam
@@ -221,7 +221,7 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (release verification pending). Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (independent review approved; release gates recorded in docs/signal-testing.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.

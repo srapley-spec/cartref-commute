@@ -1,7 +1,7 @@
 # Signal and Follow a route: verification and morning checks
 
-Status: behind Experimental switches; release verification and final independent review pending. This record is
-a test plan and handoff, not release approval.
+Status: behind Experimental switches; independent review approved. The exact committed-code release checks are
+required before publication and are visible on [PR #36](https://github.com/srapley-spec/cartref-commute/pull/36).
 
 ## Starting point
 
@@ -166,3 +166,25 @@ and new controls rather than obsolete HTML wording. Their deliberate corrections
 train status bands, require real arrival evidence, and offer a boarding-point change explicitly. Migration has
 separate pure-engine and whole-page regressions. The chosen route keeps the existing Tube-pick controls and an
 inert Following marker, so redrawing or tapping the selected row cannot reset the original arrival/reasons.
+
+
+## Final automated review and release gates
+
+Independent reviews approved the merged implementation and final context/TfL fixes. The reviewer caught all
+80 deliberate breakages after closing 11 meaningful coverage gaps. See [signed review](signal-review.md) and
+[machine-readable evidence](signal-review-mutations.json). The full merged baseline passed 572 tests; final
+coverage-only additions and the two narrowly reviewed guards are included in the exact-commit CI gate.
+
+The final gate is `npm run ci -- --keep` on the committed code, followed by green GitHub Tests on the branch,
+confirmation that current main is green, and verification of Tests plus Pages deployment for the exact merge
+commit. Chromium Signal and simulator checks cover phone widths, appearance, enlarged text, contrast, keyboard,
+persistence, provider isolation and all four route/direction combinations. The legacy release's seven engine and
+nine page scenario groups remain covered. No Panda golden recordings were changed.
+
+An initial long execution session ended before reporting a CI result; it was not counted as a pass. A durable
+run with an explicit retained log and exit result completed the merged baseline (572/572, exit 0). The final
+committed-code gate uses the same durable execution method. There was no memory/disk failure or waived test failure.
+
+Real iPhone Safari, VoiceOver, closed-Safari/background behavior and provider-wide live reliability remain outside
+these automated checks. The morning sequence above is the device check; both experimental options remain off by
+default for new users. Existing Follow users keep their switch and saved selection through migration.

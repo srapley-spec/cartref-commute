@@ -81,7 +81,7 @@ function followButton(option){
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
   const selected=C.restoreFollowRoute(state.saved.followRoute);
-  if(selected&&selected.phase!=='arrived'&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
+  if(selected&&selected.phase!=='arrived'&&selected.direction===direction()&&selected.mode===currentMode()&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
 }

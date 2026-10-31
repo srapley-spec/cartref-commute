@@ -5,8 +5,8 @@ after(closeAll);
 const NOW=Date.parse('2026-11-03T10:00:00Z'),MIN=60000;
 const plain=x=>JSON.parse(JSON.stringify(x));
 const id=t=>({operator:t.operator,std:t.std,from:t.from,...(t.serviceId?{serviceId:t.serviceId}:{})});
-async function oldSelection(){
- const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',followRoute:true},saved:{dirMode:'home'}});
+async function oldSelection(provider='demo'){
+ const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider,followRoute:true},saved:{dirMode:'home'}});
  const o=[...a.c.followChoices.values()].find(o=>o.recommended===1);
  assert.ok(o);const calls=[o.train,...(o.alts||[]).map(a=>a.train)];
  const legacy={dir:'home',train:id(o.train),calls:calls.map(id),hub:o.hub,lastDep:Math.max(...calls.map(t=>t.dep)),
@@ -58,4 +58,32 @@ test('a released planning pin expires on a reliably changed station instead of r
   saved:{dirMode:'home',view:'by',byTime:'18:30',viewAt:NOW-5*MIN,viewKey:'home||false|false|false|false'}});
  assert.equal(a.c.state.presentation.mode,'auto');assert.equal(a.c.state.saved.viewOverride,null);
  assert.equal(a.d.querySelector('#byTime').value,'18:30');assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('independent migration review: feed-only opt-in isolates legacy and new saved routes before playback',async()=>{
+ const old=await oldSelection();
+ const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',follow:true},saved:{dirMode:'home',follow:old}});
+ assert.ok(a.c.state.saved.followRoute,'real itinerary has restored the released selection');
+ const selected=a.c.state.saved.followRoute.id,storage=a.w.localStorage.getItem('cartrefCommute.v1');
+ a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_simulatedFeeds').checked=true;
+ a.d.querySelector('#settingsForm').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
+ assert.equal(a.c.simulator.sim.active,false,'assertions happen before pressing Start');
+ assert.equal(a.c.state.saved.follow,undefined,'legacy selection cannot be migrated into a simulated feed session');
+ assert.equal(a.c.state.saved.followRoute,undefined,'new selection is isolated too');
+ assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),storage);
+ a.d.querySelector('#simExit').click();await sleep(350);
+ assert.deepEqual(plain(a.c.state.saved.follow),old);assert.equal(a.c.state.saved.followRoute.id,selected);
+ assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),storage);assert.deepEqual(a.errors,[]);a.close();
+});
+
+
+test('released timetable selection restores while its planning question remains pinned',async()=>{
+ const old=await oldSelection('tfl');
+ const a=await createApp({now:NOW,geo:IN_LONDON,settle:700,settings:{provider:'tfl',follow:true},
+  saved:{dirMode:'home',follow:old,view:'by',byTime:'18:30',viewAt:NOW-5*MIN,viewKey:'home||false|false|false|false'}});
+ assert.ok(a.c.state.boards,'actual current timetable loads independently of Arrive by searches');
+ assert.ok(a.c.state.saved.followRoute,'saved real selection can restore without manually returning to Leave now');
+ assert.equal(a.c.state.saved.followRoute.option.train.std,old.train.std);
+ assert.equal(a.d.querySelector('#byTime').value,'18:30');
+ assert.deepEqual(a.errors,[]);a.close();
 });

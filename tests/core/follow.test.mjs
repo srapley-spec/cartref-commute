@@ -328,3 +328,11 @@ test('follow: newer arrival reasons replace obsolete ETA wording and returning t
  const seen=core.acknowledgeFollowNotice(three.route),again=update(seen,[late]);assert.match(again.notice.text,/5 min late/);assert.equal(again.route.notices.filter(n=>n.kind==='arrival').length,1);
  const platform=update(r,[option({}, {platform:'12'})]);const delayed=update(platform.route,[option({}, {platform:'12',arr:t+65*MIN,arrLate:5})]);assert.ok(delayed.route.notices.some(n=>n.kind==='platform'));
 });
+
+test('tracking refresh: a pinned planning question cannot suppress a stale current timetable',()=>{
+ const s={now:t,force:true,manual:false,source:'tfl',dir:'home',mode:'commute',view:'by',awaitingLocation:false,
+  inLondonToOffice:false,onTube:false,atHubToOffice:false,onTheLine:false,nearOffice:false,
+  boards:{at:t-6*MIN,source:'tfl',fit:true},toOffice:null,statusAt:t,nrAt:t};
+ assert.equal(core.refreshPlan(s).rail,'none','an ordinary independent planning question keeps its current behavior');
+ assert.equal(core.refreshPlan({...s,following:true}).rail,'timetable','tracking or restoring an active route needs current trains');
+});

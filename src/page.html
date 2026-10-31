@@ -1832,7 +1832,7 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },

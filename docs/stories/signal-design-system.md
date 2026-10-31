@@ -1,5 +1,5 @@
 # Signal design system and automatic journey presentation
-Status: Behind toggle (release verification pending) · Since: 29 Oct 2026
+Status: Behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Since: 29 Oct 2026
 
 ## Story
 As a commuter, I want the appropriate planning or live journey view to appear automatically, with a manual override, so I can act quickly without losing control or information.

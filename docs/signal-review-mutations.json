@@ -1,0 +1,692 @@
+{
+  "reviewer": "Independent agent; no production source authored",
+  "mutation_policy": "One source mutation per rebuild; only assertion failures counted; no build or teardown failures counted",
+  "total_mutations": 80,
+  "total_caught_after_regressions": 80,
+  "initial_test_gaps": 11,
+  "rounds": [
+    {
+      "name": "Initial implementation",
+      "source_commit": "75ad60c",
+      "mutations": [
+        {
+          "id": "F01",
+          "mutation": "F01 better boundary 4min",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F02",
+          "mutation": "F02 exact five rejected",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F03",
+          "mutation": "F03 rebuild ETA from fresh access",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F04",
+          "mutation": "F04 switch boarding hub",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F05",
+          "mutation": "F05 match wrong service ID",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F06",
+          "mutation": "F06 stale data used",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "F07",
+          "mutation": "F07 phase regresses",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F08",
+          "mutation": "F08 boarded called missed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F09",
+          "mutation": "F09 acknowledged reason repeats",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F10",
+          "mutation": "F10 auto replace chosen option",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "F11",
+          "mutation": "F11 cancellation ignored",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "F12",
+          "mutation": "F12 location loss called missed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "V01",
+          "mutation": "V01 expiry21 minutes",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "V02",
+          "mutation": "V02 exact20 retained",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "V03",
+          "mutation": "V03 changed situation retained",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "V04",
+          "mutation": "V04 no interaction deferral",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "V05",
+          "mutation": "V05 fabricate Live",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P01",
+          "mutation": "P01 follow always visible",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P02",
+          "mutation": "P02 pin clears tube choice",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P03",
+          "mutation": "P03 follow not immediately persisted",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "P04",
+          "mutation": "P04 simulator route leaks into new session",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "P05",
+          "mutation": "P05 hide cancellation while Plan pinned",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        }
+      ]
+    },
+    {
+      "name": "Connections and presentation",
+      "source_commit": "8fe80ee",
+      "mutations": [
+        {
+          "id": "C01",
+          "mutation": "C01 approach redoes office walk",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C02",
+          "mutation": "C02 unknown connection treated known",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C03",
+          "mutation": "C03 replacement retains old office steps",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C04",
+          "mutation": "C04 completed rail disruption revived",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C05",
+          "mutation": "C05 fresh onward report requires rail freshness",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C06",
+          "mutation": "C06 stale rail board overrides fresh details",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C07",
+          "mutation": "C07 onboard uses departure status",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C08",
+          "mutation": "C08 final-walk delay shifts rail history",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C09",
+          "mutation": "C09 stale platform note retained",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "C10",
+          "mutation": "C10 unchanged display repeatedly announced",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "J01",
+          "mutation": "J01 completed journey stays active",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "J02",
+          "mutation": "J02 failed selected board looks fresh",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "J03",
+          "mutation": "J03 uncertain onboard called missed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "J04",
+          "mutation": "J04 initial destination completes route",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "U01",
+          "mutation": "U01 dispatch ignores engine block ordering",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "U02",
+          "mutation": "U02 canonical sorter ignores model",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        }
+      ]
+    },
+    {
+      "name": "Latest route and Tube preservation",
+      "source_commit": "4749540",
+      "mutations": [
+        {
+          "id": "T01",
+          "mutation": "T01 wrong Tube vehicle accepted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T02",
+          "mutation": "T02 wrong Tube line accepted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T03",
+          "mutation": "T03 opposite direction accepted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T04",
+          "mutation": "T04 wrong explicit target stop accepted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T05",
+          "mutation": "T05 exact cache expiry accepted",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "T06",
+          "mutation": "T06 old provider timestamp accepted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T07",
+          "mutation": "T07 interchange allowance omitted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "T08",
+          "mutation": "T08 direction hardcoded westbound",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R01",
+          "mutation": "R01 recovery reason never emitted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R02",
+          "mutation": "R02 run and car called missed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R03",
+          "mutation": "R03 known alternate call not recognized onboard",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R04",
+          "mutation": "R04 known boarding recovery suppressed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R05",
+          "mutation": "R05 gone grace removed",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R06",
+          "mutation": "R06 better offer while Tube onboard",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R07",
+          "mutation": "R07 seconds-level ETA churn restored",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R08",
+          "mutation": "R08 corrupt alternatives accepted from storage",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "R09",
+          "mutation": "R09 boarding correction does not mark onboard",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "N01",
+          "mutation": "N01 disabled follow still fetches predictions",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "N02",
+          "mutation": "N02 duplicate concurrent target requests",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "N03",
+          "mutation": "N03 provider timestamp lost in real adapter",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "N04",
+          "mutation": "N04 explicit stop lost in real adapter",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "N05",
+          "mutation": "N05 production refresh omits selected vehicle request",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        }
+      ]
+    },
+    {
+      "name": "Fresh cancellation precedence",
+      "source_commit": "f793867",
+      "mutations": [
+        {
+          "id": "FRESH-CANCEL",
+          "mutation": "Recent live arrival silently erases a fresh selected cancellation",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        }
+      ]
+    },
+    {
+      "name": "Released main merge, saved journeys and context selection",
+      "source_commit": "7e10208 plus reviewed one-line mode/direction selected-row guard",
+      "mutations": [
+        {
+          "id": "M01",
+          "mutation": "M01 daily service reused for old journey",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "M02",
+          "mutation": "M02 migration ignores original hub",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "M03",
+          "mutation": "M03 saved expected arrival overwritten",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "M04",
+          "mutation": "M04 absent declined options forgotten",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "M05",
+          "mutation": "M05 invented historical onward times",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "M06",
+          "mutation": "M06 legacy acknowledgements forgotten",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P01",
+          "mutation": "P01 released setting ignored",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P02",
+          "mutation": "P02 explicit opt-out overridden by legacy setting",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P03",
+          "mutation": "P03 original saved record deleted on conversion",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P04",
+          "mutation": "P04 Stop leaves old record active",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P05",
+          "mutation": "P05 old pin lifetime restarted",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "P06",
+          "mutation": "P06 old pin ignores changed station",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "S01",
+          "mutation": "S01 legacy route leaks into feed-only activation",
+          "initial": "SURVIVED",
+          "final": "CAUGHT after regression",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "A01",
+          "mutation": "A01 obsolete arrival notice remains first",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "A02",
+          "mutation": "A02 return to previously seen ETA not announced",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "U01",
+          "mutation": "U01 selecting followed row resets journey",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": null,
+          "mutated_recheck_exit": null
+        },
+        {
+          "id": "MODE-GUARD",
+          "mutation": "Same rail service cannot be selected as a distinct Leisure journey",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        }
+      ]
+    },
+    {
+      "name": "Pinned timetable tracking and released TfL restoration",
+      "source_commit": "7e10208 plus reviewed mode/direction and timetable-dispatch fixes",
+      "mutations": [
+        {
+          "id": "TF01",
+          "mutation": "TF01 engine ignores followed timetable under pin",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        },
+        {
+          "id": "TF02",
+          "mutation": "TF02 page omits tracking fact",
+          "initial": "CAUGHT",
+          "final": "CAUGHT",
+          "green_baseline_before_recheck": true,
+          "mutated_recheck_exit": 1
+        }
+      ]
+    }
+  ],
+  "latest_main_merge_review": "APPROVED: be1e58e integrated at7e10208 with reviewed mode/direction guard and pinned-timetable tracking fix; final local/GitHub CI gates remain required",
+  "reviewed_journey_ui_sha256": "8bbfd55f7b1b5eeffa7648cfc30db88d759ec23da4693bb9a2fe2d5792103eac",
+  "reviewed_source_files_sha256": {
+    "src/journey-ui.js": "8bbfd55f7b1b5eeffa7648cfc30db88d759ec23da4693bb9a2fe2d5792103eac",
+    "src/core/refresh.ts": "f3fb81adc76c086795c325b233229e54139700e9e58a3b67ac73a6af20be8f8d",
+    "src/page.html": "655db4e5ec1bc2ccafb5eca222fc68c5a1a327f3be6832b06d78b5a74b08d369"
+  }
+}

@@ -452,7 +452,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:13 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:25 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1525,7 +1525,7 @@ var CommuteCore = (() => {
     else if (s.source === "demo") rail = "demo";
     else if (s.source === "tfl") {
       const reuse = !s.force && !s.onTheLine && s.boards.fit && !!s.boards.at && s.now - s.boards.at < REUSE.timetable && s.boards.source === "tfl";
-      rail = s.awaitingLocation || reuse || (s.view === "by" || s.view === "at") && !s.onTheLine ? "none" : "timetable";
+      rail = s.awaitingLocation || reuse || (s.view === "by" || s.view === "at") && !s.onTheLine && !s.following ? "none" : "timetable";
     } else rail = s.awaitingLocation ? "none" : "live";
     return {
       rail,
@@ -4200,7 +4200,7 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },
@@ -4769,7 +4769,7 @@ function followButton(option){
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
   const selected=C.restoreFollowRoute(state.saved.followRoute);
-  if(selected&&selected.phase!=='arrived'&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
+  if(selected&&selected.phase!=='arrived'&&selected.direction===direction()&&selected.mode===currentMode()&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
 }

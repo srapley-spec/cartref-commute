@@ -103,3 +103,16 @@ test('independent review: explicit direction and mode changes expire a pin despi
   assert.equal(a.c.state.presentation.mode,'auto');await sleep(350);assert.deepEqual(a.errors,[]);a.close();
  }
 });
+
+test('independent review: the same rail service remains selectable as a different Leisure journey',async()=>{
+ const a=await app();
+ const entry=[...a.c.followChoices].find(([,o])=>o.hub==='KGX'&&o.effort==='walk');assert.ok(entry);
+ const first=[...a.d.querySelectorAll('[data-follow]:not([disabled])')].find(b=>b.dataset.follow===entry[0]);assert.ok(first);first.click();
+ assert.equal(a.c.state.saved.followRoute.mode,'commute');
+ a.d.querySelector('[data-mode="leisure"]').click();await sleep(100);
+ assert.equal(a.c.state.saved.mode,'leisure');assert.ok(a.c.followChoices.has(entry[0]),'same service is available for the Leisure destination');
+ const leisure=[...a.d.querySelectorAll('[data-follow]:not([disabled])')].find(b=>b.dataset.follow===entry[0]);
+ assert.ok(leisure,'a different destination/mode is not the already-selected journey');leisure.click();
+ assert.equal(a.c.state.saved.followRoute.mode,'leisure');assert.equal(a.c.state.saved.followRoute.id,entry[0]);
+ assert.equal(a.d.querySelector('#followPanel').hidden,false);assert.deepEqual(a.errors,[]);a.close();
+});

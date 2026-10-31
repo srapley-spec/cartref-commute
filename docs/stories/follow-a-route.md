@@ -1,5 +1,5 @@
 # Follow a route
-Status: Behind toggle (release verification pending) · Settings → Experimental · Since: 30 Oct 2026 (evening)
+Status: Behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Settings → Experimental · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have
@@ -187,3 +187,8 @@ separate from the displayed view. See `tests/core/followMigration.test.mjs`, `te
 When the previous version did not store detailed onward times and current timings differ, restored intermediate
 step times are explicitly unknown. Saved rail/final arrival facts are retained; migration cannot create a Tube
 step after the saved destination arrival.
+A selected-row Following marker applies only to the same mode and direction as the active saved journey. The same
+rail service remains selectable for a different Leisure or Commute journey; changing mode never traps that row.
+Current timetable refresh is independent of a pinned planning question while following/restoring a journey. This
+also allows the released saved selection to restore while Arrive by is selected; future planning searches do not
+stand in for current route data. Tests cover both the pure refresh decision and the real page restoration path.

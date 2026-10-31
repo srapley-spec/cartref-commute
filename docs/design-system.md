@@ -1,6 +1,6 @@
 # Cartref — Signal design system
 
-Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (release verification pending). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
+Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (independent review approved; release gates recorded in docs/signal-testing.md). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
 
 ## Start here
 
