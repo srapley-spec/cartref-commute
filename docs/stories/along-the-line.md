@@ -142,3 +142,12 @@ approval remains recorded above. The follow-up independently approved reconciled
 [review report](../along-line-independent-review.md). The
 [current/unknown duration probes](../../tests/along-line-composition-review.test.mjs) are retained as regressions.
 Final committed-head local and GitHub CI remain required before merge.
+
+## Release validation: prediction timestamp boundary
+The combined Auto-label release run passed932/933tests but exposed another pre-existing test-clock assumption
+in the King's Cross arrival assertion: the mocked feed and the expected office time read a ticking clock at
+different instants. Crossing the half-minute rounding boundary made the assertion one minute late. The fixture
+and assertion now share the captured feed time; a frozen10:00:29.900prediction test explicitly advances the
+clock across that boundary and verifies the actual arrival remains10:26. Production timing is unchanged.
+
+- tests/app.test.mjs: "At King's Cross: a minute boundary after fetching cannot change the expected office arrival"
