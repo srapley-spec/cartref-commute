@@ -643,7 +643,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:12 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -913,6 +913,7 @@ var CommuteCore = (() => {
     TFL_TRIP_MODES: () => TFL_TRIP_MODES,
     TRAIN_MOVING_MPS: () => TRAIN_MOVING_MPS,
     TRIP_DEFAULTS: () => TRIP_DEFAULTS,
+    TRIP_VIEWS: () => TRIP_VIEWS,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
@@ -922,6 +923,7 @@ var CommuteCore = (() => {
     addCallingAlternatives: () => addCallingAlternatives,
     addJourneys: () => addJourneys,
     afterSegments: () => afterSegments,
+    applyLive: () => applyLive,
     aroundOptions: () => aroundOptions,
     aroundRounds: () => aroundRounds,
     arrivalStatus: () => arrivalStatus,
@@ -941,18 +943,21 @@ var CommuteCore = (() => {
     callsText: () => callsText,
     candidates: () => candidates,
     changeStatus: () => changeStatus,
+    chooseTripView: () => chooseTripView,
     chooseView: () => chooseView,
     clampOffset: () => clampOffset,
     cleanName: () => cleanName,
     clock: () => clock,
     compareWithBest: () => compareWithBest,
     confirmFollowBoarding: () => confirmFollowBoarding,
+    confirmTripRide: () => confirmTripRide,
     countdown: () => countdown,
     createViewOverride: () => createViewOverride,
     delayLevel: () => delayLevel,
     delayStatus: () => delayStatus,
     departureStatus: () => departureStatus,
     dismissFollowAlternative: () => dismissFollowAlternative,
+    dismissTripAlternative: () => dismissTripAlternative,
     disruptionLineLevel: () => disruptionLineLevel,
     disruptionTrainObservation: () => disruptionTrainObservation,
     dur: () => dur,
@@ -993,6 +998,7 @@ var CommuteCore = (() => {
     lineOk: () => lineOk,
     lineProgress: () => lineProgress,
     liveAdjust: () => liveAdjust,
+    liveBudget: () => liveBudget,
     liveCovers: () => liveCovers,
     liveHorizon: () => liveHorizon,
     lockOf: () => lockOf,
@@ -1001,6 +1007,7 @@ var CommuteCore = (() => {
     markArrivesFirst: () => markArrivesFirst,
     markLatestFor: () => markLatestFor,
     markTimetable: () => markTimetable,
+    matchRide: () => matchRide,
     mergeBeyond: () => mergeBeyond,
     mergeSameTrain: () => mergeSameTrain,
     migrateFollowRoute: () => migrateFollowRoute,
@@ -1044,6 +1051,7 @@ var CommuteCore = (() => {
     resolveDisruptionPolicy: () => resolveDisruptionPolicy,
     resolveViewControl: () => resolveViewControl,
     restoreFollowRoute: () => restoreFollowRoute,
+    restoreFollowTrip: () => restoreFollowTrip,
     restoreViewOverride: () => restoreViewOverride,
     retimeProgressLeg: () => retimeProgressLeg,
     rideActive: () => rideActive,
@@ -1059,6 +1067,7 @@ var CommuteCore = (() => {
     significantLineDisruption: () => significantLineDisruption,
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
+    startFollowTrip: () => startFollowTrip,
     stationIndex: () => stationIndex,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
@@ -1079,12 +1088,14 @@ var CommuteCore = (() => {
     trainStatus: () => trainStatus,
     travelSecs: () => travelSecs,
     tripConfig: () => tripConfig,
+    tripPhase: () => tripPhase,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
     tubeName: () => tubeName,
     tubeStationBoard: () => tubeStationBoard,
     updateFollowRoute: () => updateFollowRoute,
+    updateFollowTrip: () => updateFollowTrip,
     visibleDisruptions: () => visibleDisruptions,
     walkSecs: () => walkSecs,
     walkSteps: () => walkSteps,
@@ -2520,8 +2531,22 @@ var CommuteCore = (() => {
     "on-tube": ["label", "headline", "which", "then", "lines"],
     "in-london": ["label", "headline", "then", "lines"],
     "on-tube-home": ["label", "headline", "which", "then", "lines", "board"],
-    "nearly-home": ["label", "headline", "then"]
+    "nearly-home": ["label", "headline", "then"],
+    "plan-trip-now": ["label", "headline", "options", "others", "board", "why", "source"],
+    "plan-trip-by": ["label", "headline", "options", "others", "board", "why", "source"],
+    "plan-trip-at": ["label", "headline", "options", "others", "board", "why", "source"],
+    "trip-follow": ["label", "headline", "which", "then", "source"],
+    "trip-access": ["label", "way", "headline", "then", "source"],
+    "trip-ride": ["label", "headline", "which", "progress", "then", "source"],
+    "trip-change": ["label", "headline", "which", "then", "source"],
+    "trip-final": ["label", "headline", "then"]
   };
+  var TRIP_VIEWS = { plan: { now: "plan-trip-now", by: "plan-trip-by", at: "plan-trip-at" }, following: "trip-follow" };
+  function chooseTripView(s) {
+    const phaseView = { access: "trip-access", ride: "trip-ride", change: "trip-change", final: "trip-final" };
+    const v = s.following && s.phase && phaseView[s.phase] ? phaseView[s.phase] : s.following && s.phase === "before" ? "trip-follow" : TRIP_VIEWS.plan[s.plan];
+    return { view: v, underWay: false, blocks: BLOCKS[v] };
+  }
   function headlineKind(view, ctx) {
     if (view === "plan-now") return ctx.atStation || ctx.onWay ? "departs" : "leave";
     if (view === "plan-by" || view === "plan-at") return "leave";
@@ -2964,7 +2989,7 @@ var CommuteCore = (() => {
     return restoreViewOverride({ mode, at: now, situationKey });
   }
   function resolveViewControl(i) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     let override = restoreViewOverride(i.override);
     if (override && (!Number.isFinite(i.now) || override.at > i.now || i.now - override.at >= VIEW_OVERRIDE_MS || override.situationKey !== i.situationKey)) override = null;
     const mode = (_a = override == null ? void 0 : override.mode) != null ? _a : "auto";
@@ -2972,20 +2997,21 @@ var CommuteCore = (() => {
     let noActiveJourney = false;
     const available = (_b = i.hasActiveJourney) != null ? _b : isLive(i.live);
     const currentLive = available && i.live && i.live.view !== "awaiting-location" ? i.live : null;
-    const following = { view: "following", underWay: false, blocks: BLOCKS.following };
+    const plans = (_d = (_c = i.views) == null ? void 0 : _c.plan) != null ? _d : planViews, followView = (_f = (_e = i.views) == null ? void 0 : _e.following) != null ? _f : "following";
+    const following = { view: followView, underWay: false, blocks: BLOCKS[followView] };
     if (mode === "auto" && currentLive && !i.auto.underWay) desired = currentLive;
     if (mode === "auto" && i.hasFollowedJourney) {
       desired = isLive(i.auto) ? i.auto : currentLive != null ? currentLive : following;
     }
     if (mode === "plan") {
-      const view = i.auto.view === "awaiting-location" ? "awaiting-location" : planViews[i.plan];
+      const view = i.auto.view === "awaiting-location" ? "awaiting-location" : plans[i.plan];
       desired = { view, underWay: false, blocks: BLOCKS[view] };
     } else if (mode === "live") {
       if (currentLive) desired = currentLive;
       else if (i.hasFollowedJourney) desired = following;
       else {
         noActiveJourney = true;
-        const view = i.auto.view === "awaiting-location" ? "awaiting-location" : "plan-now";
+        const view = i.auto.view === "awaiting-location" ? "awaiting-location" : plans.now;
         desired = { view, underWay: false, blocks: BLOCKS[view] };
       }
     }
@@ -4162,6 +4188,161 @@ var CommuteCore = (() => {
     onStage == null ? void 0 : onStage(done);
     return done;
   }
+
+  // src/core/trip/tripLive.ts
+  var keyOf2 = (r) => `${r.from.crs}-${r.to.crs}`;
+  var boardable = (r, now, cfg) => r.kind === "rail" && !!r.from.crs && !!r.to.crs && r.arr > now && r.schedDep - now <= cfg.live.boardWindowMin * 6e4;
+  function liveBudget(journeys, followed, now, cfg) {
+    const out = [], seen = /* @__PURE__ */ new Set();
+    const add = (r) => {
+      if (!r || !boardable(r, now, cfg)) return;
+      const k = keyOf2(r);
+      if (seen.has(k) || out.length >= cfg.live.maxBoards) return;
+      seen.add(k);
+      out.push({ from: r.from.crs, to: r.to.crs, key: k });
+    };
+    if (followed) mainRides(followed.rides).filter((r) => r.arr > now).slice(0, 2).forEach(add);
+    journeys.filter((j) => j.recommended).sort((a, b) => a.recommended - b.recommended).forEach((j) => add(mainRides(j.rides)[0]));
+    journeys.filter((j) => !j.recommended).forEach((j) => {
+      const r = mainRides(j.rides)[0];
+      if (r && r.schedDep - now <= cfg.live.firstWithinMin * 6e4) add(r);
+    });
+    return out;
+  }
+  function matchRide(r, board) {
+    if (!board) return null;
+    const std = hhmm(r.schedDep);
+    const same = board.services.filter((s) => s.std === std);
+    const byDest = r.destination ? same.filter((s) => !s.destination || s.destination.toLowerCase().includes(r.destination.toLowerCase()) || r.destination.toLowerCase().includes(s.destination.toLowerCase())) : same;
+    return byDest.length === 1 ? byDest[0] : null;
+  }
+  function applyLive(j, boards, cfg) {
+    const rides = j.rides.map((r) => {
+      if (!isMain(r) || r.kind !== "rail") return r;
+      const t2 = matchRide(r, boards[keyOf2(r)]);
+      if (!t2) return { ...r, live: { dep: false, arr: false } };
+      const arrKnown = t2.arr != null && !t2.arrUnknown;
+      return {
+        ...r,
+        dep: t2.dep,
+        arr: arrKnown ? t2.arr : r.arr,
+        live: { dep: !t2.depUnknown, arr: arrKnown },
+        platform: t2.platform,
+        cancelled: t2.cancelled,
+        train: { ...t2, from: r.from.crs, to: r.to.crs }
+      };
+    });
+    const { leave, arrive } = journeyTimes(j.before, rides, j.after);
+    const changes = journeyChanges(rides, cfg);
+    const next = { ...j, rides, leave, arrive, changes };
+    next.flags = [...journeyFlags(next), ...j.flags.filter((f) => /^Nearest station/.test(f.txt))];
+    next.uncertain = mainRides(rides).some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
+    next.missed = changes.some((c) => c.missed);
+    return next;
+  }
+
+  // src/core/trip/followTrip.ts
+  var clone2 = (x) => JSON.parse(JSON.stringify(x));
+  function startFollowTrip(j, now) {
+    return {
+      version: 1,
+      kind: "trip",
+      id: j.id,
+      startedAt: now,
+      journey: clone2(j),
+      plannedArrival: j.arrive,
+      expectedArrival: j.arrive,
+      confirmed: [],
+      notices: [],
+      dismissed: []
+    };
+  }
+  var num = (x) => typeof x === "number" && Number.isFinite(x);
+  function restoreFollowTrip(x) {
+    if (!x || typeof x !== "object") return null;
+    const r = x, j = r.journey;
+    if (r.version !== 1 || r.kind !== "trip" || typeof r.id !== "string" || !num(r.startedAt) || !num(r.plannedArrival) || !num(r.expectedArrival)) return null;
+    if (!j || !Array.isArray(j.rides) || !j.rides.length || !Array.isArray(j.before) || !Array.isArray(j.after) || !num(j.leave) || !num(j.arrive) || j.id !== r.id) return null;
+    if (!j.rides.every((d) => !!d && typeof d === "object" && num(d.dep) && num(d.arr))) return null;
+    if (!Array.isArray(r.confirmed) || !Array.isArray(r.notices) || !Array.isArray(r.dismissed)) return null;
+    return x;
+  }
+  function tripPhase(j, now, confirmed = []) {
+    const last = Math.max(-1, ...confirmed);
+    const rides = j.rides;
+    if (now >= j.arrive) return { phase: "arrived", ride: rides.length - 1 };
+    if (last < 0 && now < j.leave) return { phase: "before", ride: 0 };
+    if (last < 0 && now < rides[0].dep) return { phase: "access", ride: 0 };
+    for (let i = Math.max(0, last); i < rides.length; i++) {
+      const r = rides[i];
+      if (now < r.dep && i > 0) return { phase: "change", ride: i };
+      if (now < r.arr) return { phase: "ride", ride: i };
+    }
+    return { phase: "final", ride: rides.length - 1 };
+  }
+  function updateFollowTrip(route, i) {
+    var _a;
+    const r = clone2(route);
+    const notices = [];
+    const say = (kind, id, text3) => {
+      if (!r.notices.some((n2) => n2.id === id)) {
+        const n2 = { id, kind, text: text3, at: i.now };
+        r.notices.push(n2);
+        notices.push(n2);
+      }
+    };
+    if (i.current && i.current.id === r.id) {
+      const cur = i.current;
+      mainRides(cur.rides).forEach((x) => {
+        if (x.cancelled) say("cancelled", `cancel:${x.from.crs}:${x.schedDep}`, `The ${hhmm(x.schedDep)} from ${x.from.name} is cancelled`);
+      });
+      cur.changes.forEach((c) => {
+        if (c.missed) say("missed", `missed:${c.at}`, c.text);
+        else if (c.level === "bad") say("connection", `risk:${c.at}`, `${c.text} at ${c.at}`);
+      });
+      if (Math.abs(cur.arrive - r.expectedArrival) >= FOLLOW_CHANGE_MS) {
+        const d = Math.round((cur.arrive - r.expectedArrival) / 6e4);
+        const why = i.accessReason || (() => {
+          const late = mainRides(cur.rides).find((x) => x.dep !== x.schedDep || x.arr !== x.schedArr);
+          return late ? `the ${hhmm(late.schedDep)} from ${late.from.name} is ${late.arr > late.schedArr ? "running late" : "running early"}` : "times changed";
+        })();
+        say(i.accessReason ? "traffic" : "arrival", `arr:${cur.arrive}`, `Now arriving ${hhmm(cur.arrive)} (${d > 0 ? `${d} min later` : `${-d} min sooner`}): ${why}`);
+        r.expectedArrival = cur.arrive;
+      }
+      r.journey = clone2(cur);
+    }
+    const j = r.journey;
+    const { phase } = tripPhase(j, i.now, r.confirmed);
+    const broken = j.missed || mainRides(j.rides).some((x) => x.cancelled);
+    const deltaMin = Math.round((r.expectedArrival - r.plannedArrival) / 6e4);
+    const alternative = (i.options || []).filter((o) => o.id !== r.id && !r.dismissed.includes(o.id) && !o.uncertain && !o.missed && o.leave >= i.now).filter((o) => broken || o.arrive <= r.expectedArrival - FOLLOW_BETTER_MIN * 6e4).sort((a, b) => a.arrive - b.arrive)[0] || null;
+    const steps = journeySteps(j), nextStep = steps.find((s) => s.t != null && s.t >= i.now) || null;
+    let status = "on-track", level = "ok", text2 = `Arriving ${hhmm(r.expectedArrival)}`;
+    if (phase === "arrived") {
+      status = "arrived";
+      level = "info";
+      text2 = `Arrived ${hhmm(r.expectedArrival)}`;
+    } else if (mainRides(j.rides).some((x) => x.cancelled)) {
+      status = "cancelled";
+      level = "bad";
+      text2 = "A train on your trip is cancelled";
+    } else if (j.missed) {
+      status = "missed";
+      level = "bad";
+      text2 = ((_a = j.changes.find((c) => c.missed)) == null ? void 0 : _a.text) || "Connection missed";
+    } else if (j.changes.some((c) => c.level === "bad")) {
+      status = "at-risk";
+      level = "bad";
+      text2 = `Arriving ${hhmm(r.expectedArrival)} \xB7 ${j.changes.find((c) => c.level === "bad").text}`;
+    } else if (deltaMin >= 1) {
+      status = "late";
+      level = deltaMin >= 15 ? "bad" : deltaMin >= 5 ? "warn" : "ok";
+      text2 = `Arriving ${hhmm(r.expectedArrival)} \xB7 ${deltaMin} min later than planned`;
+    }
+    return { route: r, phase, status, level, text: text2, deltaMin, nextStep, notice: notices[0] || null, alternative };
+  }
+  var confirmTripRide = (route, ride) => ({ ...clone2(route), confirmed: [.../* @__PURE__ */ new Set([...route.confirmed, ride])] });
+  var dismissTripAlternative = (route, id) => ({ ...clone2(route), dismissed: [.../* @__PURE__ */ new Set([...route.dismissed, id])] });
 
   // src/core/index.ts
   var profiles = { samCommute };

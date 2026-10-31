@@ -232,3 +232,16 @@ test("Other stations: each other station's best journey with what it costs; a be
   assert.equal(core.betterOption(best, mk("BIG", "ZZZ", now, now + 55 * MIN), 5), true);
   assert.equal(core.betterOption(best, mk("BIG", "ZZZ", now, now + 56 * MIN), 5), false);
 });
+
+test("TfL journeys: Winchester → Norwich crosses London by Tube; the Tube is the way across the change, not a ride", () => {
+  const body = fixture("trip/tfl-winchester-norwich.json").body;
+  const r = core.tflRailJourneys(body, st("WIN"), st("NRW"), idx, cfg.endMatchM);
+  assert.equal(r.journeys.length, 3);
+  const j = r.journeys[0];
+  assert.deepEqual(j.rides.map(x => x.kind), ["rail", "tube", "tube", "rail"]);
+  const c = core.journeyChanges(j.rides, cfg);
+  assert.equal(c.length, 1); assert.equal(c[0].via.length, 2);
+  assert.match(c[0].at, /Waterloo → .*Liverpool Street/);
+  const steps = core.journeySteps(core.buildJourney(j, null, null, { from: "walk", to: "walk" }, [], [], cfg, now));
+  assert.ok(steps.some(s => s.tube), "the Tube rides are in the steps");
+});

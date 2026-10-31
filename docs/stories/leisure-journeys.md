@@ -156,7 +156,7 @@ Minutes are whole minutes, rounded down.
 | TfL station lookups | 0 (bundled) |
 
 ## Tests
-Built so far (engine, step 3 of the build order; screen, Google, live and Follow still to come):
+Built so far (see the build log in the architecture for what is and isn't on screen yet):
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Letchworth and Brighton in, Birmingham out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"
@@ -179,6 +179,16 @@ Built so far (engine, step 3 of the build order; screen, Google, live and Follow
 - tests/core/trip.test.mjs: "planTrip: a place outside the region is refused with the region named; places within 1.5 km say no train needed"
 - tests/core/trip.test.mjs: "Ranking: Arrive by flags late journeys with whole minutes; the pick is the latest leave that arrives in time"
 - tests/core/trip.test.mjs: "Other stations: each other station's best journey with what it costs; a better option needs 5 min"
+- tests/core/trip.test.mjs: "TfL journeys: Winchester → Norwich crosses London by Tube; the Tube is the way across the change, not a ride"
+- tests/core/trip-live.test.mjs: "Live budget: at most 6 boards, shared by station pair; the followed trip's next two rides come first"
+- tests/core/trip-live.test.mjs: "Live budget: rides more than 119 min away get no board (Not live)"
+- tests/core/trip-live.test.mjs: "Live: a ride matches its board by timetabled time and destination; two candidates with no way to tell them apart match none"
+- tests/core/trip-live.test.mjs: "Live: a late first train re-times the journey, eats into the change and says so; rides without a board say Not live"
+- tests/core/trip-live.test.mjs: "Live: a cancelled next train makes the connection missed; the journey is never dropped"
+- tests/core/trip-live.test.mjs: "Trip views: planning views start plan- (never an active journey); a followed trip's phase picks its view"
+- tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
+- tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
+- tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
 - Still planned: Google contract suite (Maps JS, proxy, simulator adapters); page tests (switch off unchanged, Trip
   without key, combobox keyboard / stale reply, full plan, live budget, Follow through a change); goldens for
   Brighton → Canterbury West and Winchester → Norwich incl. request counts.
