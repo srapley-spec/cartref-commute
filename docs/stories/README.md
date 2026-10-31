@@ -58,8 +58,9 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [People and trips](people-and-trips.md) · Planned
 - [Laura's commute](laura-commute.md) · Planned
 - [Family day out](family-day-out.md) · Planned
+- [Along the line (nerd mode)](along-the-line.md) · Planned (#24; passing points #23 first)
 
 ### Ideas (issues only, not yet stories)
-Passing points #23 · Along the line / nerd mode #24 · Searchable place picker #25 · Proxy #17 · National Rail
+Passing points #23 · Searchable place picker #25 · Proxy #17 · National Rail
 timetable #18 · Early platforms #19 · Structured incidents #20 · Train length and crowding #21 · Native iPhone
 #2–#7, #10–#12.
