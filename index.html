@@ -711,7 +711,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:40 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:42 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4641,7 +4641,7 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
@@ -7373,7 +7373,9 @@ function alongContext(){
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
   const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
-  return {train,hub,onboard,arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
+  return {train,hub,onboard,option:progress?.kind==='rail'?progress.option:followed?.option,
+    finalArrival:progress?.kind==='rail'?progress.finalArrival:followed?.expectedArrival,
+    arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
 function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
@@ -7404,6 +7406,11 @@ function renderAlongLine(resumePosition=false){
   const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
   const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
+  if(context.onboard){
+    const facts=document.createElement('div');facts.className='al-journey-facts';
+    facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
+    $('#alongJourney').append(facts);
+  }
   const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;
   $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');

@@ -16,7 +16,8 @@
     { "id": "in-london", "view": "in-london" },
     { "id": "on-tube-home", "view": "on-tube-home" },
     { "id": "nearly-home", "view": "nearly-home" },
-    { "id": "live-departures", "view": "plan-now" }
+    { "id": "live-departures", "view": "plan-now" },
+    { "id": "along-the-line", "view": "on-train" }
   ],
   "retired": []
 }

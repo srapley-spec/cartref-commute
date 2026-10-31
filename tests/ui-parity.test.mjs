@@ -155,6 +155,37 @@ const factories={
   assert.ok(shown(a,'#hero [data-block="headline"]').length);
   assert.equal(s.trainLock||null,null,'the walk home does not invent rail identity');
  },
+ 'along-the-line':async a=>{
+  const s=a.c.state,t={from:'LET',to:'KGX',std:'09:45',dep:NOW-15*MIN,arr:NOW+20*MIN,
+   serviceId:'parity-along',operator:'Great Northern',depLate:0,arrLate:20,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'A significant current delay',
+   calls:[{code:'LET',name:'Letchworth',t:NOW-15*MIN},{code:'KGX',name:'King’s Cross',t:NOW+20*MIN}]};
+  Object.assign(s,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:NOW,railSource:'darwin',boardsDir:'office',
+   here:[51.8158,-.1972],locAcc:10,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:true,atHub:null,inLondon:false,
+   trainLock:{from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true}});
+  s.saved.settings.alongLine=false;a.c.render();
+  assert.equal(a.d.querySelector('#alongEntry').hidden,true,'default-off access is equivalent');
+  s.saved.settings.alongLine=true;a.c.render();
+  assert.ok(visible(a,a.d.querySelector('#alongEntry')));a.d.querySelector('#alongEntry').click();
+  const dialog=a.d.querySelector('#alongLine'),progress=s.rendered.progress;
+  assert.ok(dialog.open&&visible(a,dialog),'the same story view is available in both designs');
+  assert.match(a.text('#alongJourney'),/09:45 Great Northern/);
+  assertDuration(a,dialog,progress.option,{train:{...t,arr:progress.expectedArrival},arrival:progress.finalArrival});
+  assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
+  assert.ok(visible(a,a.d.querySelector('#alongImpact')),'significant current impact stays exposed');
+  assert.match(a.text('#alongImpact'),/20 min|late|delay/i);
+  const story=a.d.querySelector('[data-point="digswell"] details');story.open=true;
+  assert.ok(visible(a,story.querySelector('.al-discover')),'the discovery is readable at the default depth');
+  assert.match(norm(story.textContent),/Mimram/);
+  s.lastFixAt=NOW-120001;a.c.render();
+  assert.match(a.text('#alongEvidence'),/unavailable or uncertain/);
+  assert.equal(a.d.querySelector('#alongStrip [data-featured="true"]'),null,'stale location does not retain a current highlight');
+  assert.equal(story.open,true,'source uncertainty does not close the story');
+  assert.equal(a.d.querySelector('[data-point="digswell"] .al-location').textContent,'Route discovery');
+  s.lastFixAt=NOW;s.boards['LET-KGX'].services[0].arrUnknown=true;a.c.render();
+  assert.equal(dialog.querySelector('[data-fact][data-ms]'),null,'unknown service timing cannot advertise a retained duration');
+  a.d.querySelector('#alongClose').click();s.boards['LET-KGX'].services[0].arrUnknown=false;
+  s.trainLock={from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true};a.c.render();
+ },
  'live-departures':async a=>{
   a.d.querySelector('[data-journey-view="live"]').click();
   assert.equal(a.c.state.presentation.noActiveJourney,true);

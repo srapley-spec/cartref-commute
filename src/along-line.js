@@ -54,7 +54,9 @@ function alongContext(){
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
   const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
-  return {train,hub,onboard,arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
+  return {train,hub,onboard,option:progress?.kind==='rail'?progress.option:followed?.option,
+    finalArrival:progress?.kind==='rail'?progress.finalArrival:followed?.expectedArrival,
+    arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
 function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
@@ -85,6 +87,11 @@ function renderAlongLine(resumePosition=false){
   const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
   const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
+  if(context.onboard){
+    const facts=document.createElement('div');facts.className='al-journey-facts';
+    facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
+    $('#alongJourney').append(facts);
+  }
   const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;
   $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');

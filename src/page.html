@@ -1194,7 +1194,7 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>

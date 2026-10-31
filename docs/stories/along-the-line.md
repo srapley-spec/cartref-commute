@@ -69,7 +69,7 @@ conflict explains the flyover without claiming that a London-bound service trave
   even when a story is open. Ordinary refresh continues to preserve the open story. Automatic refresh does not rebuild an open
   article, collapse it, steal focus or scroll while any story is open. Source epoch, train/corridor or direction
   changes reset the strip so old simulation/journey state cannot be reused as current evidence.
-- Keep train identity and expected endpoint arrival in the view; use the shared disruption model to retain
+- Keep train identity, expected endpoint arrival and the current canonical train/total durations in the view; use the shared disruption model to retain
   significant journey disruption text in both Signal and Panda, and
   access to the main journey. No commentary notifications, sound or live regions repeatedly announce landmarks.
 - No new requests, dependencies, API keys, GPS watches or background polling. Once the app has loaded, stories
@@ -130,3 +130,11 @@ harness; production ranking and timing rules are unchanged.
 - Independent review approved source `476ed04` after four fixes; the [review record](../along-line-independent-review.md)
   contains the findings, 37-test replay, mutation evidence and limits. Full repository CI/release gates remain
   required before merge.
+
+## Reconciliation with the 31 October UI-parity release
+PR #43 landed during validation. Its shared Auto/Plan/Live controls and journey facts are retained.
+The commentary header consumes the same canonical option, expected rail endpoint and already-computed
+whole-journey arrival through `journeyFactsMarkup`; no second timing calculation is introduced.
+The mandatory registry includes `along-the-line`, exercised for both Panda and Signal with default-off,
+visible duration/disruption/story facts, stale location and unknown timing. The earlier independent source
+approval remains recorded above; the reconciled head requires its own follow-up review and CI.
