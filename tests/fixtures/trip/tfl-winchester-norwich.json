@@ -1,0 +1,34 @@
+{
+ "recorded": "2026-10-31T20:45:14.692Z",
+ "request": "Journey/JourneyResults/910GWINCHSTR/to/910GNRCH?date=20261103&time=1000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": 300,
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.DisambiguationResult, Tfl.Api.Presentation.Entities",
+  "toLocationDisambiguation": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Disambiguation, Tfl.Api.Presentation.Entities",
+   "matchStatus": "identified"
+  },
+  "fromLocationDisambiguation": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Disambiguation, Tfl.Api.Presentation.Entities",
+   "matchStatus": "notidentified"
+  },
+  "viaLocationDisambiguation": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Disambiguation, Tfl.Api.Presentation.Entities",
+   "matchStatus": "empty"
+  },
+  "recommendedMaxAgeMinutes": 1440,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-03T10:00:00",
+   "dateTimeType": "Departing"
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "910GWINCHSTR",
+   "to": "90005280",
+   "via": "",
+   "uri": "/journey/journeyresults/910gwinchstr/to/910gnrch?date=20261103&time=1000&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL; app_key removed; leg path geometry removed (unused)"
+}

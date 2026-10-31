@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Planned (design revision 3: approved with changes by the second independent review; not built) · Behind toggle when built
+Status: Partly built (engine; design revision 3 approved with changes by independent review) · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
 Architecture: [leisure-architecture.md](../leisure-architecture.md). Design-system additions:
@@ -156,14 +156,32 @@ Minutes are whole minutes, rounded down.
 | TfL station lookups | 0 (bundled) |
 
 ## Tests
-- None yet (planned). Engine: region; candidates incl. the Chilham pin and the nearest fallback; pair rounds (9 / 30
-  min / 18 caps, promotion); access segments and allowances; journey timing from segments; change rule at 5 and 2 min (both
-  edges), planned-gap erosion, one live side; TfL adapter from recorded replies (end check, Feltham refusal, dropped station walks,
-  cross-London transfer, bus flag, Tomorrow); ranking and Other stations; trip views; drive re-check at 2 min; follow
-  across rides. Page: switch off unchanged (no script, no request); Trip without key; combobox keyboard / stale reply;
-  full plan with fixture ports; live budget; follow through a change; speed (causal depth from the call log); Google contract suite run against the Maps JS, proxy and
-  simulator adapters; goldens
-  for Brighton → Canterbury West and Winchester → Norwich incl. request counts.
+Built so far (engine, step 3 of the build order; screen, Google, live and Follow still to come):
+- tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Letchworth and Brighton in, Birmingham out"
+- tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
+- tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"
+- tests/core/trip.test.mjs: "Station candidates: reach is 3 / 10 / 25 km; none within reach gives the nearest, flagged with its distance"
+- tests/core/trip.test.mjs: "Station candidates: a station a journey changes at, within reach, is promoted from live planner data"
+- tests/core/trip.test.mjs: "Round 1 searches: nearest From × every To, every From × nearest To, at most 9"
+- tests/core/trip.test.mjs: "Changes: under 2 min red at risk; under 5 and below the planned change amber; a planner's own short change neutral"
+- tests/core/trip.test.mjs: "Changes: whole minutes rounded down; a negative spare is missed; a cancelled next train is missed"
+- tests/core/trip.test.mjs: "Changes: one live side still counts (12 min late against a 7-min change is red); the other end says Not live"
+- tests/core/trip.test.mjs: "Changes: a Tube ride across London is taken off the spare"
+- tests/core/trip.test.mjs: "TfL journeys: Brighton → Canterbury West from a recorded reply; TfL's walk out of the station dropped; three changes"
+- tests/core/trip.test.mjs: "TfL journeys: ends are checked; a reply for other stations is refused, not shown as the asked trip"
+- tests/core/trip.test.mjs: "TfL journeys: a 23:00 search returns tomorrow's first trains, flagged Tomorrow with the date"
+- tests/core/trip.test.mjs: "Recorded fixtures and station data hold no keys"
+- tests/core/trip.test.mjs: "Access: walking is Google's distance at your leisure pace plus 3 min to the platform; driving adds 10 min to park"
+- tests/core/trip.test.mjs: "Journey times come from the segments and rides: leave = first train − the way there; arrive = last train + the way on"
+- tests/core/trip.test.mjs: "planTrip: plans door to door, picks by the top-card rule and lists every journey in leaving order"
+- tests/core/trip.test.mjs: "planTrip: first answer after at most 2 steps one after another (round 1 alongside the station times)"
+- tests/core/trip.test.mjs: "planTrip: one station pair failing still plans the others; a refusal is reported with the pair"
+- tests/core/trip.test.mjs: "planTrip: a place outside the region is refused with the region named; places within 1.5 km say no train needed"
+- tests/core/trip.test.mjs: "Ranking: Arrive by flags late journeys with whole minutes; the pick is the latest leave that arrives in time"
+- tests/core/trip.test.mjs: "Other stations: each other station's best journey with what it costs; a better option needs 5 min"
+- Still planned: Google contract suite (Maps JS, proxy, simulator adapters); page tests (switch off unchanged, Trip
+  without key, combobox keyboard / stale reply, full plan, live budget, Follow through a change); goldens for
+  Brighton → Canterbury West and Winchester → Norwich incl. request counts.
 
 ## Not yet / open questions
 - National Rail journey planner: licensed SOAP; built from documentation, unverified until access; likely needs the

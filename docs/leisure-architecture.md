@@ -189,7 +189,19 @@ reports. Simulator snapshot / restore covers all of them. Release: GitHub-first 
 Convergence later: `journeyOfOption` adapter, then commute Follow / planner on `Journey`, each proven by goldens.
 Independent mutation review before merging (CLAUDE.md).
 
-## 14. Review history
+## 14. Build log
+- Station data (31 Oct night): 1,092 stations, 1,084 with TfL IDs (8 TfL doesn't know: Dorking Deepdene, Kenilworth,
+  Reading Green Park, Soham, Southampton Town Quay, Thanet Parkway, Upper Warlingham, Windsor & Eton Riverside);
+  matching is whole-name (a subset is not a match: Catford ≠ Catford Bridge, Waterloo ≠ Waterloo East) with LL / ELL /
+  XR parts kept as the same station; one override (Seer Green & Jordans). Car park known for 335. Service levels
+  measured Saturday 31 Oct ~21:00 (low; re-run on a weekday with `node tools/stations.mjs` and diff).
+- `runRounds` is shared with Trip only for now: moving `searchRoutes` onto it changed the golden "leisure, home from
+  Soho" because the page's `earliestCatch` reads the London leg (`state.london`), which loads at the same time as the
+  searches; two extra microtask hops flipped that race (St Pancras searched from 15:11 instead of 15:00). That is a
+  race in the page, not in the runner; reported to Sam, and `searchRoutes` stays on its own loop until it is fixed.
+- `serviceFlags` extracted from `trainFlags` with the flag order unchanged (all goldens unchanged).
+
+## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live
   boards; two tight-change rules; budget gaps; untested edges; Google claims; commute-specific views. → revision 2.
 - Review 2 (approve with changes): `followRules` not a pure move → `followNotices` refactor (§3); `viewControl` treats

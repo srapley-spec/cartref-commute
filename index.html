@@ -643,7 +643,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 16:14 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -904,19 +904,24 @@ var CommuteCore = (() => {
     LATE_WARN_MIN: () => LATE_WARN_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
+    OUTSIDE_REGION: () => OUTSIDE_REGION,
     PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
     STOPPED_MPS: () => STOPPED_MPS,
     STOP_WITHIN_MS: () => STOP_WITHIN_MS,
+    TFL_TRIP_MODES: () => TFL_TRIP_MODES,
     TRAIN_MOVING_MPS: () => TRAIN_MOVING_MPS,
+    TRIP_DEFAULTS: () => TRIP_DEFAULTS,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
+    TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
     accessOf: () => accessOf,
     acknowledgeFollowNotice: () => acknowledgeFollowNotice,
     addCallingAlternatives: () => addCallingAlternatives,
     addJourneys: () => addJourneys,
+    afterSegments: () => afterSegments,
     aroundOptions: () => aroundOptions,
     aroundRounds: () => aroundRounds,
     arrivalStatus: () => arrivalStatus,
@@ -925,14 +930,20 @@ var CommuteCore = (() => {
     atOffice: () => atOffice,
     atOfficeTube: () => atOfficeTube,
     awayFromHubs: () => awayFromHubs,
+    beforeSegments: () => beforeSegments,
     bestConnections: () => bestConnections,
+    betterOption: () => betterOption,
     boardMins: () => boardMins,
     boardSpot: () => boardSpot,
+    buildJourney: () => buildJourney,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
     callsText: () => callsText,
+    candidates: () => candidates,
+    changeStatus: () => changeStatus,
     chooseView: () => chooseView,
     clampOffset: () => clampOffset,
+    cleanName: () => cleanName,
     clock: () => clock,
     compareWithBest: () => compareWithBest,
     confirmFollowBoarding: () => confirmFollowBoarding,
@@ -962,11 +973,17 @@ var CommuteCore = (() => {
     hubHere: () => hubHere,
     hubOfKey: () => hubOfKey,
     inLondonToOffice: () => inLondonToOffice,
+    inRegion: () => inRegion,
     inferDirection: () => inferDirection,
     isLegacyFollowRoute: () => isLegacyFollowRoute,
+    isMain: () => isMain,
     isStopping: () => isStopping,
     isoDay: () => isoDay,
+    journeyChanges: () => journeyChanges,
+    journeyFlags: () => journeyFlags,
     journeyProgress: () => journeyProgress,
+    journeySteps: () => journeySteps,
+    journeyTimes: () => journeyTimes,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
     leaveBy: () => leaveBy,
@@ -980,6 +997,7 @@ var CommuteCore = (() => {
     liveHorizon: () => liveHorizon,
     lockOf: () => lockOf,
     lockedTrain: () => lockedTrain,
+    mainRides: () => mainRides,
     markArrivesFirst: () => markArrivesFirst,
     markLatestFor: () => markLatestFor,
     markTimetable: () => markTimetable,
@@ -998,21 +1016,25 @@ var CommuteCore = (() => {
     onLine: () => onLine,
     onTube: () => onTube,
     onTubeHome: () => onTubeHome,
+    otherStations: () => otherStations,
     otherTubes: () => otherTubes,
     pad: () => pad,
     parseDarwinBoard: () => parseDarwinBoard,
     parseServiceDetails: () => parseServiceDetails,
     planConnection: () => planConnection,
+    planTrip: () => planTrip,
     plannable: () => plannable,
     platformNo: () => platformNo,
     profiles: () => profiles,
     progressContextCurrent: () => progressContextCurrent,
     progressLegsFromSteps: () => progressLegsFromSteps,
+    promote: () => promote,
     railDelayLevel: () => railDelayLevel,
     railStationBoard: () => railStationBoard,
     railTrackingContext: () => railTrackingContext,
     railWarnings: () => railWarnings,
     rankNow: () => rankNow,
+    rankTrips: () => rankTrips,
     reachFlag: () => reachFlag,
     readyAtFromConnection: () => readyAtFromConnection,
     refreshDue: () => refreshDue,
@@ -1027,19 +1049,26 @@ var CommuteCore = (() => {
     rideActive: () => rideActive,
     rideDoubtful: () => rideDoubtful,
     rideEnded: () => rideEnded,
+    roundOnePairs: () => roundOnePairs,
     routeCount: () => routeCount,
+    runRounds: () => runRounds,
     samRoutes: () => samRoutes,
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
+    serviceFlags: () => serviceFlags,
     significantLineDisruption: () => significantLineDisruption,
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
+    stationIndex: () => stationIndex,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
     statusLine: () => statusLine,
+    stopsRequests: () => stopsRequests,
     terminusDepartures: () => terminusDepartures,
     tflDropReason: () => tflDropReason,
     tflPickPlaces: () => tflPickPlaces,
+    tflRailJourneys: () => tflRailJourneys,
+    tflStation: () => tflStation,
     timeFromTrain: () => timeFromTrain,
     timeToTrain: () => timeToTrain,
     topPicks: () => topPicks,
@@ -1048,6 +1077,8 @@ var CommuteCore = (() => {
     trainFromTflJourney: () => trainFromTflJourney,
     trainName: () => trainName,
     trainStatus: () => trainStatus,
+    travelSecs: () => travelSecs,
+    tripConfig: () => tripConfig,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
@@ -1056,6 +1087,7 @@ var CommuteCore = (() => {
     updateFollowRoute: () => updateFollowRoute,
     visibleDisruptions: () => visibleDisruptions,
     walkSecs: () => walkSecs,
+    walkSteps: () => walkSteps,
     watchStop: () => watchStop,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
@@ -1067,13 +1099,13 @@ var CommuteCore = (() => {
 
   // src/core/time.ts
   var pad = (n2) => String(n2).padStart(2, "0");
-  var hhmm = (t) => {
-    const d = new Date(t);
+  var hhmm = (t2) => {
+    const d = new Date(t2);
     return pad(d.getHours()) + ":" + pad(d.getMinutes());
   };
   var mins = (ms) => Math.round(ms / 6e4);
-  var isoDay = (t) => {
-    const d = new Date(t);
+  var isoDay = (t2) => {
+    const d = new Date(t2);
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
   function dur(ms) {
@@ -1090,10 +1122,10 @@ var CommuteCore = (() => {
     if (!m) return null;
     const d = new Date(now);
     d.setHours(+m[1], +m[2], 0, 0);
-    let t = d.getTime();
-    if (t - now < -6 * 36e5) t += 864e5;
-    else if (t - now > 18 * 36e5) t -= 864e5;
-    return t;
+    let t2 = d.getTime();
+    if (t2 - now < -6 * 36e5) t2 += 864e5;
+    else if (t2 - now > 18 * 36e5) t2 -= 864e5;
+    return t2;
   }
   function resolve(sched, est, now) {
     const base = clock(sched, now);
@@ -1127,9 +1159,9 @@ var CommuteCore = (() => {
     let run = 0;
     for (let i = 0; i < line.length - 1; i++) {
       const A = xy(line[i]), B = xy(line[i + 1]), dx = B[0] - A[0], dy = B[1] - A[1], len2 = dx * dx + dy * dy;
-      const t = Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / (len2 || 1)));
-      const off = Math.hypot(P[0] - (A[0] + t * dx), P[1] - (A[1] + t * dy));
-      if (off < best.off) best = { off, at: run + t * seg2[i] };
+      const t2 = Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dy) / (len2 || 1)));
+      const off = Math.hypot(P[0] - (A[0] + t2 * dx), P[1] - (A[1] + t2 * dy));
+      if (off < best.off) best = { off, at: run + t2 * seg2[i] };
       run += seg2[i];
     }
     return { frac: total2 ? best.at / total2 : 0, offKm: best.off };
@@ -1338,14 +1370,14 @@ var CommuteCore = (() => {
       if (a.lineId !== o.lineId || !o.outbound.test(a.platformName || "")) continue;
       const atNext = a.expectedArrival ? new Date(a.expectedArrival).getTime() : o.now + (a.timeToStation || 0) * 1e3;
       if (!isFinite(atNext)) continue;
-      const t = atNext - o.runMs;
-      if (t < o.now - 3e4) continue;
+      const t2 = atNext - o.runMs;
+      if (t2 < o.now - 3e4) continue;
       const d = name(a.destinationName), tw = name(a.towards);
       out.push({
         vehicle: String(a.vehicleId || ""),
         lineId: o.lineId,
         dest: ok(d) ? d : ok(tw) ? tw : "",
-        t,
+        t: t2,
         atNext,
         currentLocation: a.currentLocation || "",
         platform: plat(String(a.currentLocation || ""))
@@ -1425,7 +1457,7 @@ var CommuteCore = (() => {
     };
   }
   var count = (n2, singular) => `${n2} ${singular}${n2 === 1 ? "" : "s"}`;
-  var trainDetail = (t) => `${t.std} ${t.operator}${t.reason ? ": " + t.reason : ""}`;
+  var trainDetail = (t2) => `${t2.std} ${t2.operator}${t2.reason ? ": " + t2.reason : ""}`;
   var unique = (values) => [...new Set(values.filter(Boolean))];
   var encodedMessage = (message) => {
     try {
@@ -1444,9 +1476,9 @@ var CommuteCore = (() => {
       const level = tiers.cancelled.length || tiers.uncertain.length || tiers.late >= p.rail.badMin ? "bad" : "warn";
       const title = tiers.cancelled.length ? `${count(tiers.cancelled.length, "train")} cancelled on your route` : tiers.uncertain.length ? `${count(tiers.uncertain.length, "train")} delayed with no estimate` : `Delays up to ${tiers.late} min on your route`;
       const services = [
-        ...tiers.cancelled.map((t) => ({ train: t, text: "Cancelled: " + trainDetail(t) })),
-        ...tiers.uncertain.map((t) => ({ train: t, text: "No estimate: " + trainDetail(t) })),
-        ...(tiers.delayed || []).map((t) => ({ train: t, text: `${Math.max(t.depLate || 0, t.arrLate || 0)} min late: ${trainDetail(t)}` }))
+        ...tiers.cancelled.map((t2) => ({ train: t2, text: "Cancelled: " + trainDetail(t2) })),
+        ...tiers.uncertain.map((t2) => ({ train: t2, text: "No estimate: " + trainDetail(t2) })),
+        ...(tiers.delayed || []).map((t2) => ({ train: t2, text: `${Math.max(t2.depLate || 0, t2.arrLate || 0)} min late: ${trainDetail(t2)}` }))
       ];
       const detail = unique([
         ...services.filter((item) => item.train.reason.trim()).map((item) => item.text),
@@ -1478,26 +1510,26 @@ var CommuteCore = (() => {
   }
 
   // src/core/rules.ts
-  function busyDay(t, rule) {
-    const d = new Date(t), day2 = isoDay(t);
+  function busyDay(t2, rule) {
+    const d = new Date(t2), day2 = isoDay(t2);
     return rule.days.includes(d.getDay()) && !rule.holidays.some(([a, b]) => day2 >= a && day2 <= b);
   }
-  function standingRoomOnly(t, rule) {
-    if (t.from !== rule.from || t.to !== rule.to || !new RegExp(rule.operator, "i").test(t.operator || "")) return false;
-    if (t.arr == null || t.arr - t.dep > rule.maxMins * 6e4) return false;
-    if (t.origin && !new RegExp(rule.origins, "i").test(t.origin)) return false;
-    const a = hhmm(t.arr);
+  function standingRoomOnly(t2, rule) {
+    if (t2.from !== rule.from || t2.to !== rule.to || !new RegExp(rule.operator, "i").test(t2.operator || "")) return false;
+    if (t2.arr == null || t2.arr - t2.dep > rule.maxMins * 6e4) return false;
+    if (t2.origin && !new RegExp(rule.origins, "i").test(t2.origin)) return false;
+    const a = hhmm(t2.arr);
     if (a < rule.arrFrom || a > rule.arrTo) return false;
-    return busyDay(t.arr, rule);
+    return busyDay(t2.arr, rule);
   }
-  function isStopping(t, profile) {
-    if (t.arr == null || t.dep == null) return false;
-    const london = t.from === profile.home ? t.to : t.from;
+  function isStopping(t2, profile) {
+    if (t2.arr == null || t2.dep == null) return false;
+    const london = t2.from === profile.home ? t2.to : t2.from;
     const limit = profile.stoppingMin[london];
     if (!limit) return false;
-    return t.arr - t.dep >= limit * 6e4;
+    return t2.arr - t2.dep >= limit * 6e4;
   }
-  var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
+  var plannable = (t2) => !t2.cancelled && t2.arr != null && t2.dep != null && !t2.depUnknown && !t2.arrUnknown;
   var LATE_WARN_MIN = DEFAULT_DISRUPTION_POLICY.rail.warnMin;
   var LATE_BAD_MIN = DEFAULT_DISRUPTION_POLICY.rail.badMin;
   var delayLevel = (lateMin, policy) => railDelayLevel(lateMin, policy);
@@ -1507,20 +1539,20 @@ var CommuteCore = (() => {
     if (about) return { level, text: Math.abs(lateMin) < PROJECTION_ON_TIME_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
     return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
   }
-  function trainStatus(t, policy) {
-    if (t.cancelled) return { level: "bad", text: "Cancelled" };
-    if (t.depUnknown || t.arrUnknown) return { level: "bad", text: "No estimate" };
-    const late = Math.max(t.depLate || 0, t.arrLate || 0);
+  function trainStatus(t2, policy) {
+    if (t2.cancelled) return { level: "bad", text: "Cancelled" };
+    if (t2.depUnknown || t2.arrUnknown) return { level: "bad", text: "No estimate" };
+    const late = Math.max(t2.depLate || 0, t2.arrLate || 0);
     if (late >= 1) return delayStatus(late, false, policy);
-    return t.timetable || t.derived || t.estimated ? null : delayStatus(0, false, policy);
+    return t2.timetable || t2.derived || t2.estimated ? null : delayStatus(0, false, policy);
   }
-  function departureStatus(t, policy) {
-    if (t.cancelled) return { level: "bad", text: "Cancelled", showTime: false };
-    if (t.depUnknown) return { level: "bad", text: "No estimate", showTime: false };
-    if ((t.depLate || 0) >= 1) return { ...delayStatus(t.depLate, false, policy), showTime: true };
-    if (hhmm(t.dep) !== t.std) return { level: "ok", text: "Early", showTime: true };
-    if (t.timetable) return { level: "info", text: "Not live", showTime: false };
-    if (t.derived || t.estimated) return { level: "info", text: "Estimated", showTime: false };
+  function departureStatus(t2, policy) {
+    if (t2.cancelled) return { level: "bad", text: "Cancelled", showTime: false };
+    if (t2.depUnknown) return { level: "bad", text: "No estimate", showTime: false };
+    if ((t2.depLate || 0) >= 1) return { ...delayStatus(t2.depLate, false, policy), showTime: true };
+    if (hhmm(t2.dep) !== t2.std) return { level: "ok", text: "Early", showTime: true };
+    if (t2.timetable) return { level: "info", text: "Not live", showTime: false };
+    if (t2.derived || t2.estimated) return { level: "info", text: "Estimated", showTime: false };
     return { ...delayStatus(0, false, policy), showTime: false };
   }
   var arrivalStatus = (expected, scheduled, policy) => delayStatus(Math.round((expected - scheduled) / 6e4), true, policy);
@@ -1593,8 +1625,8 @@ var CommuteCore = (() => {
     var _a;
     const hubs = profile.mergeHubs;
     const all = Object.values(boards).flatMap((b) => b ? b.services : []);
-    const hubOf = (t) => dir === "office" ? t.to : t.from;
-    const timeAt = (t) => dir === "office" ? t.arr : t.dep;
+    const hubOf = (t2) => dir === "office" ? t2.to : t2.from;
+    const timeAt = (t2) => dir === "office" ? t2.arr : t2.dep;
     const same = (a, b) => a.operator === b.operator && a.arr != null && b.arr != null && Math.abs(dir === "office" ? a.dep - b.dep : a.arr - b.arr) <= 6e4;
     const gaps = {};
     for (const a of all) for (const b of all) {
@@ -1610,10 +1642,10 @@ var CommuteCore = (() => {
     };
     const out = {};
     for (const [k, b] of Object.entries(boards)) out[k] = b ? { services: b.services.slice(), msgs: b.msgs } : b;
-    for (const t of all) {
-      const hub = hubOf(t), ht = timeAt(t);
-      if (!hubs.includes(hub) || !t.calls || ht == null || t.arr == null) continue;
-      t.calls.forEach((c, i) => {
+    for (const t2 of all) {
+      const hub = hubOf(t2), ht = timeAt(t2);
+      if (!hubs.includes(hub) || !t2.calls || ht == null || t2.arr == null) continue;
+      t2.calls.forEach((c, i) => {
         var _a2;
         if (!c.code || c.code === hub || !hubs.includes(c.code)) return;
         let at = (_a2 = c.t) != null ? _a2 : null, estimated = false;
@@ -1623,9 +1655,9 @@ var CommuteCore = (() => {
           at = ht + g;
           estimated = true;
         }
-        const from = dir === "office" ? t.from : c.code, to = dir === "office" ? c.code : t.to;
+        const from = dir === "office" ? t2.from : c.code, to = dir === "office" ? c.code : t2.to;
         const key = keyOf(from, to), board = out[key] || (out[key] = { services: [], msgs: [] });
-        const d = dir === "office" ? { ...t, to, arr: at, arrLate: 0, calls: t.calls.slice(0, i + 1), estimated, derived: true } : { ...t, from, dep: at, std: hhmm(at), depLate: 0, platform: null, calls: t.calls.slice(i), estimated, derived: true };
+        const d = dir === "office" ? { ...t2, to, arr: at, arrLate: 0, calls: t2.calls.slice(0, i + 1), estimated, derived: true } : { ...t2, from, dep: at, std: hhmm(at), depLate: 0, platform: null, calls: t2.calls.slice(i), estimated, derived: true };
         if (board.services.some((s) => same(s, d))) return;
         board.services.push(d);
       });
@@ -1639,10 +1671,10 @@ var CommuteCore = (() => {
   var SERVICE = /\b(delay\w*|cancel\w*|disrupt\w*|suspend\w*|reduced service|special service|amended|alter\w* (service|timetable)|trains? (are|is|will|may|run|running|not)|services? (are|is|will|may|between)|line(s)? (is|are) (closed|blocked)|bus(es)? replace\w*|replacement bus\w*|engineering|signal\w*|track|power|strike|industrial action)\b/i;
   var NETWORK_WIDE = /\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
   var facilityOnly = (m) => FACILITY.test(m) && !SERVICE.test(m);
-  var scheduledServiceDay = (t) => {
+  var scheduledServiceDay = (t2) => {
     var _a;
-    const anchor = t.dep - (t.depLate || 0) * 6e4;
-    return isoDay((_a = clock(t.std, anchor)) != null ? _a : anchor);
+    const anchor = t2.dep - (t2.depLate || 0) * 6e4;
+    return isoDay((_a = clock(t2.std, anchor)) != null ? _a : anchor);
   };
   var sameObservedService = (a, b) => a === b || a.from === b.from && a.to === b.to && a.std === b.std && scheduledServiceDay(a) === scheduledServiceDay(b) && (a.serviceId || b.serviceId ? !!a.serviceId && a.serviceId === b.serviceId : a.operator === b.operator);
   function railWarnings(boards, keys, now, p, context = {}) {
@@ -1651,28 +1683,28 @@ var CommuteCore = (() => {
     const fromBoards = keys.flatMap((k) => boards[k] ? boards[k].services : []);
     const active = [];
     for (const observation of context.activeTrains || []) {
-      const previous = active.findIndex((t) => sameObservedService(t, observation));
+      const previous = active.findIndex((t2) => sameObservedService(t2, observation));
       if (previous < 0) active.push(observation);
       else active[previous] = observation;
     }
-    const overlaid = fromBoards.map((t) => active.find((observation) => sameObservedService(t, observation)) || t);
-    const additional = active.filter((observation) => !fromBoards.some((t) => sameObservedService(t, observation)));
-    const svcs = [...overlaid, ...additional].filter((t) => active.includes(t) || t.dep >= now - policy.lookbackMin * 6e4);
-    const cancelled = svcs.filter((t) => t.cancelled);
-    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.arrUnknown || t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin).length;
+    const overlaid = fromBoards.map((t2) => active.find((observation) => sameObservedService(t2, observation)) || t2);
+    const additional = active.filter((observation) => !fromBoards.some((t2) => sameObservedService(t2, observation)));
+    const svcs = [...overlaid, ...additional].filter((t2) => active.includes(t2) || t2.dep >= now - policy.lookbackMin * 6e4);
+    const cancelled = svcs.filter((t2) => t2.cancelled);
+    const affected = svcs.filter((t2) => t2.cancelled || t2.depUnknown || t2.arrUnknown || t2.depLate >= policy.warnMin || t2.arrLate >= policy.warnMin).length;
     const msgs = [...new Set(keys.flatMap((k) => boards[k] ? boards[k].msgs : []))];
     const facilities = msgs.filter(facilityOnly);
     const onRoute = msgs.filter((m) => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
     const other = msgs.filter((m) => !facilityOnly(m) && !onRoute.includes(m));
-    const uncertain = svcs.filter((t) => !t.cancelled && (t.depUnknown || t.arrUnknown));
-    const delayed = svcs.filter((t) => !t.cancelled && !t.depUnknown && !t.arrUnknown && t.arr != null && (t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin));
-    const late = Math.max(0, ...svcs.filter((t) => !t.cancelled).map((t) => Math.max(t.depLate || 0, t.arrLate || 0)));
+    const uncertain = svcs.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown));
+    const delayed = svcs.filter((t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null && (t2.depLate >= policy.warnMin || t2.arrLate >= policy.warnMin));
+    const late = Math.max(0, ...svcs.filter((t2) => !t2.cancelled).map((t2) => Math.max(t2.depLate || 0, t2.arrLate || 0)));
     const delay = railDelayLevel(late, p.disruption);
     const level = cancelled.length || uncertain.length || delay === "bad" ? "red" : delay === "warn" ? "amber" : "none";
     return { cancelled, uncertain, delayed, affected, total: svcs.length, hit: affected >= policy.affectedTrainCount, onRoute, other, facilities, level, late };
   }
   function noticeTitle(m) {
-    const t = String(m).replace(/\s+/g, " ").trim(), first = (t.match(/^.*?[.!?](\s|$)/) || [t])[0].trim();
+    const t2 = String(m).replace(/\s+/g, " ").trim(), first = (t2.match(/^.*?[.!?](\s|$)/) || [t2])[0].trim();
     return first.length > 90 ? first.slice(0, 87).replace(/\s+\S*$/, "") + "\u2026" : first.replace(/\.$/, "");
   }
   var BAD_SEV = new Set(DEFAULT_DISRUPTION_POLICY.tube.closedSeverities);
@@ -1698,26 +1730,31 @@ var CommuteCore = (() => {
   }
 
   // src/core/journey.ts
-  function callsText(t, profile) {
+  function callsText(t2, profile) {
     const name = (c) => profile && c.code && profile.stationNames[c.code] || c.name;
-    return (t.calls || []).map((c) => c.t != null ? `${name(c)} ${hhmm(c.t)}` : name(c)).join(" \xB7 ");
+    return (t2.calls || []).map((c) => c.t != null ? `${name(c)} ${hhmm(c.t)}` : name(c)).join(" \xB7 ");
   }
   var total = (segs) => segs.reduce((s, x) => s + x.secs, 0) * 1e3;
   var segmentArrival = (start, segments) => start + total(segments);
   var timeToTrain = (r) => total(r.before);
   var timeFromTrain = (r) => total(r.after);
   var minTimeToTrain = (r) => total(r.before.filter((s) => s.kind !== "wait"));
-  function trainFlags(t, profile) {
+  function serviceFlags(t2, policy) {
     const f = [];
-    if (t.cancelled) f.push({ lvl: "bad", txt: "Cancelled" });
-    if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
-    if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
-    if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-    else if (!t.cancelled) {
-      const s = trainStatus(t, profile.disruption);
+    if (t2.cancelled) f.push({ lvl: "bad", txt: "Cancelled" });
+    if (t2.depUnknown || t2.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
+    else if (!t2.cancelled) {
+      const s = trainStatus(t2, policy);
       if (s) f.push({ lvl: s.level, txt: s.text, status: true });
     }
-    if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
+    if (t2.reason) f.push({ lvl: "warn", txt: t2.reason, long: true });
+    return f;
+  }
+  function trainFlags(t2, profile) {
+    const f = serviceFlags(t2, profile.disruption), at = t2.cancelled ? 1 : 0, own = [];
+    if (standingRoomOnly(t2, profile.busy)) own.push({ lvl: "bad", txt: "Usually standing room only" });
+    if (isStopping(t2, profile)) own.push({ lvl: "warn", txt: "Stopping train" });
+    f.splice(at, 0, ...own);
     return f;
   }
   function walkSteps(segs, from, legs) {
@@ -1738,7 +1775,7 @@ var CommuteCore = (() => {
     return [...pre, ...o.legs.slice(before.filter((s) => s.step).length)];
   }
   function accessOf(r) {
-    const walks = r.before.filter((s) => s.kind === "walk"), sum = (f, xs) => xs.reduce((t, s) => t + f(s), 0);
+    const walks = r.before.filter((s) => s.kind === "walk"), sum = (f, xs) => xs.reduce((t2, s) => t2 + f(s), 0);
     return {
       walk: sum((s) => s.secs, walks),
       walkAvg: sum((s) => {
@@ -1758,17 +1795,17 @@ var CommuteCore = (() => {
     for (const r of routes) {
       const b = boards[r.board];
       if (!b) continue;
-      for (const t of b.services) {
-        if (t.arr == null || t.dep == null) continue;
-        const leave = t.dep - timeToTrain(r), arrive = t.arr + timeFromTrain(r);
+      for (const t2 of b.services) {
+        if (t2.arr == null || t2.dep == null) continue;
+        const leave = t2.dep - timeToTrain(r), arrive = t2.arr + timeFromTrain(r);
         const legs = [];
         walkSteps(r.before, leave, legs);
-        const depNote = [r.depNotePrefix || "", t.platform ? `platform ${t.platform}` : r.noPlatform || ""].filter(Boolean).join(", ");
-        legs.push({ t: t.dep, d: `${t.std}${t.depLate ? ` (exp ${hhmm(t.dep)})` : ""} ${t.operator || "train"} from ${r.fromName}`, note: depNote, train: true });
-        if (t.calls && t.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t, profile), calls: true });
-        legs.push({ t: t.arr, d: r.arriveLabel, note: `${dur(t.arr - t.dep)} on the train${r.arriveExtra || ""}` });
-        walkSteps(r.after, t.arr, legs);
-        out.push({ ...r.extra || {}, hub: r.hub, train: t, leave, arrive, legs, flags: trainFlags(t, profile), access: accessOf(r), before: r.before });
+        const depNote = [r.depNotePrefix || "", t2.platform ? `platform ${t2.platform}` : r.noPlatform || ""].filter(Boolean).join(", ");
+        legs.push({ t: t2.dep, d: `${t2.std}${t2.depLate ? ` (exp ${hhmm(t2.dep)})` : ""} ${t2.operator || "train"} from ${r.fromName}`, note: depNote, train: true });
+        if (t2.calls && t2.calls.length > 2) legs.push({ t: null, d: "Calls at", note: callsText(t2, profile), calls: true });
+        legs.push({ t: t2.arr, d: r.arriveLabel, note: `${dur(t2.arr - t2.dep)} on the train${r.arriveExtra || ""}` });
+        walkSteps(r.after, t2.arr, legs);
+        out.push({ ...r.extra || {}, hub: r.hub, train: t2, leave, arrive, legs, flags: trainFlags(t2, profile), access: accessOf(r), before: r.before });
       }
     }
     return out;
@@ -1784,8 +1821,8 @@ var CommuteCore = (() => {
     return Object.values(per).sort((a, b) => a.arrive - b.arrive || a.train.dep - b.train.dep);
   }
   function compareWithBest(o, best, profile) {
-    const t = o.train;
-    return { stopping: isStopping(t, profile), trainMs: t.arr - t.dep, deltaMin: !best || best === o ? null : Math.round((o.arrive - best.arrive) / 6e4) };
+    const t2 = o.train;
+    return { stopping: isStopping(t2, profile), trainMs: t2.arr - t2.dep, deltaMin: !best || best === o ? null : Math.round((o.arrive - best.arrive) / 6e4) };
   }
 
   // src/core/effort.ts
@@ -1798,7 +1835,7 @@ var CommuteCore = (() => {
     const run = Math.min(F, F - p * fastRatio + p / ep.runFactor);
     const km2 = W / 3600 * ep.walkKmh;
     const car = W <= 0 ? Infinity : a.home ? ep.carFromHomeSecs : ep.cabWaitSecs + km2 / ep.cabKmh * 3600;
-    const ms = (secs) => isFinite(secs) ? Math.round(secs * 1e3) : Infinity;
+    const ms = (secs2) => isFinite(secs2) ? Math.round(secs2 * 1e3) : Infinity;
     return {
       walk: ms(fixed + a.walk),
       fast: ms(fixed + Math.min(a.walk, F)),
@@ -2186,9 +2223,9 @@ var CommuteCore = (() => {
     const same = (a, b) => a.operator === b.operator && a.arr != null && b.arr != null && Math.abs(dir === "office" ? a.dep - b.dep : a.arr - b.arr) <= 6e4;
     const svc = (h) => (boards[key(h)] || { services: [] }).services;
     const asks = [];
-    for (const h of hubs) for (const t of svc(h)) for (const o of hubs) {
-      if (o === h || svc(o).some((x) => same(x, t))) continue;
-      const at = dir === "office" ? t.dep - 6e4 : t.dep - 15 * 6e4;
+    for (const h of hubs) for (const t2 of svc(h)) for (const o of hubs) {
+      if (o === h || svc(o).some((x) => same(x, t2))) continue;
+      const at = dir === "office" ? t2.dep - 6e4 : t2.dep - 15 * 6e4;
       if (!asks.some((q) => q.key === key(o) && Math.abs(q.at - at) < 10 * 6e4)) asks.push({ key: key(o), at });
     }
     return asks.slice(0, 6);
@@ -2224,7 +2261,7 @@ var CommuteCore = (() => {
     const pr = lineProgress(here, line);
     return pr.offKm < 1 && pr.frac > 0.1 && pr.frac < 0.97;
   }
-  var lineKm = (line) => line.slice(1).reduce((t, q, i) => t + km(line[i], q), 0);
+  var lineKm = (line) => line.slice(1).reduce((t2, q, i) => t2 + km(line[i], q), 0);
   function railTrackingContext(i, p) {
     var _a;
     const atHub = hubHere(i.fix, p), known = i.train;
@@ -2233,9 +2270,9 @@ var CommuteCore = (() => {
     if (!known) {
       const visit = i.departingHub, here2 = pos(i.fix, 250), at2 = i.fix.at;
       if (i.dir !== "home" || i.onTube !== false || !visit || !here2 || i.fix.acc < 0 || at2 == null || !Number.isFinite(at2) || !Number.isFinite(i.now) || at2 > i.now || i.now - at2 > 6e4 || !Number.isFinite(visit.seen) || at2 < visit.seen || at2 - visit.seen > 6e5 || i.speed == null || !Number.isFinite(i.speed) || i.speed < 12 || !awayFromHubs(i.fix, p)) return ordinary;
-      const departures = (i.trains || []).filter((t) => {
+      const departures = (i.trains || []).filter((t2) => {
         var _a2;
-        return !t.cancelled && t.to === p.home && (t.from === visit.hub || ((_a2 = p.sharesTubeWith) == null ? void 0 : _a2[t.from]) === visit.hub) && Number.isFinite(t.dep) && t.dep <= at2 && at2 - t.dep <= 6e5 && t.arr != null && Number.isFinite(t.arr) && t.arr >= at2;
+        return !t2.cancelled && t2.to === p.home && (t2.from === visit.hub || ((_a2 = p.sharesTubeWith) == null ? void 0 : _a2[t2.from]) === visit.hub) && Number.isFinite(t2.dep) && t2.dep <= at2 && at2 - t2.dep <= 6e5 && t2.arr != null && Number.isFinite(t2.arr) && t2.arr >= at2;
       });
       if (!departures.length) return ordinary;
       const line2 = p.lines[visit.hub] || p.lines[departures[0].from];
@@ -2244,7 +2281,7 @@ var CommuteCore = (() => {
       return progress.offKm < 0.3 && progress.frac > 0.97 && progress.frac < 1 ? { atHub: null, line: line2, continuing: true, passingHub: false } : ordinary;
     }
     if (known.cancelled || (i.dir === "office" ? known.from !== p.home : known.to !== p.home)) return ordinary;
-    const codes = (t) => (t.calls || []).map((call) => call.code).filter((code) => typeof code === "string" && !!code);
+    const codes = (t2) => (t2.calls || []).map((call) => call.code).filter((code) => typeof code === "string" && !!code);
     const knownCalls = codes(known);
     let train = known, count2 = knownCalls.length;
     if (known.serviceId && knownCalls.length && knownCalls[0] === known.from && knownCalls[count2 - 1] === known.to) {
@@ -2305,7 +2342,7 @@ var CommuteCore = (() => {
     const dHome = km(here, p.places.homeStation), dTube = km(here, p.places.officeTube);
     const out = { trip: mem.trip || null, officeVisit: mem.officeVisit || null, officeSince: mem.officeSince || null, officeNearSince: mem.officeNearSince || null };
     const uncertainty = accuracy === void 0 ? 0 : typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy >= 0 ? accuracy / 1e3 : Infinity;
-    const dOff = km(here, p.places.office), sameDay = (t) => new Date(t).toDateString() === new Date(now).toDateString();
+    const dOff = km(here, p.places.office), sameDay = (t2) => new Date(t2).toDateString() === new Date(now).toDateString();
     const stayed = (key, radius, dwell) => {
       if (dOff + uncertainty >= radius) {
         out[key] = null;
@@ -2332,7 +2369,7 @@ var CommuteCore = (() => {
     return { dir, mem: out };
   }
   function findLocked(items, train, lock) {
-    const byFields = (t) => t.operator === lock.operator && t.std === lock.std && t.from === lock.from;
+    const byFields = (t2) => t2.operator === lock.operator && t2.std === lock.std && t2.from === lock.from;
     if (lock.serviceId) {
       const ids = items.filter((x) => train(x).serviceId === lock.serviceId);
       const hit = ids.find((x) => train(x).from === lock.from) || ids[0];
@@ -2340,31 +2377,31 @@ var CommuteCore = (() => {
     }
     return items.find((x) => byFields(train(x)));
   }
-  var lockOf = (t, picked) => ({ operator: t.operator, std: t.std, from: t.from, ...t.serviceId ? { serviceId: t.serviceId } : {}, ...picked ? { picked } : {} });
+  var lockOf = (t2, picked) => ({ operator: t2.operator, std: t2.std, from: t2.from, ...t2.serviceId ? { serviceId: t2.serviceId } : {}, ...picked ? { picked } : {} });
   function whichTrain(boards, here, dir, now, lock, progress, p, fixAt) {
     const at = fixAt != null && fixAt <= now ? fixAt : now, ageMin = (now - at) / 6e4, stale2 = ageMin > 2;
     const cands = [];
     for (const B of Object.values(boards)) {
-      for (const t of B && B.services || []) {
-        if (t.cancelled || t.dep == null || t.arr == null) continue;
-        const toLondon = t.from === p.home, hub = toLondon ? t.to : t.from;
+      for (const t2 of B && B.services || []) {
+        if (t2.cancelled || t2.dep == null || t2.arr == null) continue;
+        const toLondon = t2.from === p.home, hub = toLondon ? t2.to : t2.from;
         if (dir === "office" !== toLondon || !p.lines[hub]) continue;
-        if (t.dep > now + 6e4 || t.arr < now - 12e4) continue;
-        const len = t.arr - t.dep, pr = lineProgress(here, p.lines[hub]);
+        if (t2.dep > now + 6e4 || t2.arr < now - 12e4) continue;
+        const len = t2.arr - t2.dep, pr = lineProgress(here, p.lines[hub]);
         const mine = toLondon ? pr.frac : 1 - pr.frac;
-        if (mine > 0.03 && t.dep > at) continue;
-        let expected = Math.max(0, Math.min(1, (at - t.dep) / len)), reported = false;
-        const pg = progress(t.serviceId);
+        if (mine > 0.03 && t2.dep > at) continue;
+        let expected = Math.max(0, Math.min(1, (at - t2.dep) / len)), reported = false;
+        const pg = progress(t2.serviceId);
         if (pg) {
-          const rf = reportedFrac(pg.last, pg.next, t.from, at, p.lines[hub], p.stationGeo || {});
+          const rf = reportedFrac(pg.last, pg.next, t2.from, at, p.lines[hub], p.stationGeo || {});
           if (rf != null) {
             expected = toLondon ? rf : 1 - rf;
             reported = true;
           }
         }
-        const projected = t.timetable ? at + (1 - mine) * len : t.arr;
+        const projected = t2.timetable ? at + (1 - mine) * len : t2.arr;
         const offMin = Math.abs(expected - mine) * len / 6e4;
-        cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: reported && offMin > 6 });
+        cands.push({ t: t2, hub, mine, offMin, projected, live: !t2.timetable, reported, ruledOut: reported && offMin > 6 });
       }
     }
     cands.sort((a, b) => a.offMin - b.offMin);
@@ -2372,7 +2409,7 @@ var CommuteCore = (() => {
     const locked = lock ? findLocked(cands, (c) => c.t, lock) : void 0;
     const others = (c0) => cands.filter((c, i) => !same(c, c0) && cands.findIndex((x) => same(x, c)) === i).slice(0, 3);
     const age = { stale: stale2, fixAgeMin: Math.round(ageMin) };
-    const withId = (l, t) => !l.serviceId && t.serviceId ? { ...l, serviceId: t.serviceId } : l;
+    const withId = (l, t2) => !l.serviceId && t2.serviceId ? { ...l, serviceId: t2.serviceId } : l;
     if (locked && lock.picked) {
       const conflict = !stale2 && (locked.ruledOut || locked.offMin > 12);
       Object.assign(locked, { sure: !conflict, conflict, other: null, locked: true, picked: true, others: others(locked), confidence: stale2 || conflict ? "low" : "high", ...age });
@@ -2398,7 +2435,7 @@ var CommuteCore = (() => {
   }
   function lockedTrain(boards, lock) {
     if (!lock || !boards) return null;
-    return findLocked(Object.values(boards).flatMap((b) => b ? b.services : []), (t) => t, lock) || null;
+    return findLocked(Object.values(boards).flatMap((b) => b ? b.services : []), (t2) => t2, lock) || null;
   }
   var stale = (f, now) => !f.at || now - f.at > 9e4;
   var TUBE_REACH_SLACK_MS = 6e4;
@@ -2449,8 +2486,8 @@ var CommuteCore = (() => {
     if (stationAt && stationAt > now - 6e4 && !atHome) return { kind: "train", at: stationAt + exitMs + walkMs, stationAt };
     if (home) {
       if (atHome) return { kind: "home" };
-      const secs = walkSecs(here, home, pace, p);
-      return { kind: "walk", at: now + secs * 1e3, secs };
+      const secs2 = walkSecs(here, home, pace, p);
+      return { kind: "walk", at: now + secs2 * 1e3, secs: secs2 };
     }
     return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
   }
@@ -2493,7 +2530,7 @@ var CommuteCore = (() => {
   var n = (k, one, many = one + "s") => `${k} ${k === 1 ? one : many}`;
   function statusLine(i) {
     const detail = [];
-    const t = i.tiers;
+    const t2 = i.tiers;
     const policy = resolveDisruptionPolicy(i.policy).rail;
     const describe = (l) => {
       var _a;
@@ -2503,12 +2540,12 @@ var CommuteCore = (() => {
     const tubeBad = notOk(i.tubeLines).filter((l) => lineLevel(l, i.policy) === "bad"), tubeWarn = notOk(i.tubeLines).filter((l) => lineLevel(l, i.policy) === "warn");
     const ops = notOk(i.operators);
     const nowNote = i.planLater ? " (trains now, not your plan)" : "";
-    if (t) {
-      if (t.cancelled.length) detail.push(n(t.cancelled.length, "train", "trains") + " cancelled");
-      if (t.uncertain.length) detail.push(n(t.uncertain.length, "train", "trains") + " delayed with no estimate");
-      if (t.hit) detail.push(`${t.affected} of ${t.total} delayed ${policy.warnMin}+ min or cancelled`);
-      else if (t.late >= policy.warnMin) detail.push(`worst delay ${t.late} min`);
-      if (t.onRoute.length) detail.push(n(t.onRoute.length, "notice") + " on your route");
+    if (t2) {
+      if (t2.cancelled.length) detail.push(n(t2.cancelled.length, "train", "trains") + " cancelled");
+      if (t2.uncertain.length) detail.push(n(t2.uncertain.length, "train", "trains") + " delayed with no estimate");
+      if (t2.hit) detail.push(`${t2.affected} of ${t2.total} delayed ${policy.warnMin}+ min or cancelled`);
+      else if (t2.late >= policy.warnMin) detail.push(`worst delay ${t2.late} min`);
+      if (t2.onRoute.length) detail.push(n(t2.onRoute.length, "notice") + " on your route");
     }
     for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${describe(l)}`);
     if (i.demo) detail.push("example data");
@@ -2517,23 +2554,23 @@ var CommuteCore = (() => {
     if (i.errors.length) return { level: "bad", text: i.errors[0], detail };
     if (i.notLoaded.length) return { level: "bad", text: `${i.notLoaded.join(" and ")} trains not loaded`, detail };
     if (i.stale) return { level: "bad", text: "Train times may be out of date", detail };
-    if (t && t.cancelled.length) return { level: "bad", text: `${n(t.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
-    if (t && t.uncertain.length) return { level: "bad", text: `${n(t.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
-    if (t && t.late >= policy.badMin) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+    if (t2 && t2.cancelled.length) return { level: "bad", text: `${n(t2.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
+    if (t2 && t2.uncertain.length) return { level: "bad", text: `${n(t2.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
+    if (t2 && t2.late >= policy.badMin) return { level: "bad", text: `Delays up to ${t2.late} min on your route${nowNote}`, detail };
     if (i.tubeFallback && i.fallbackUnavailable) return { level: "bad", text: "Tube lines closed now \xB7 check onward travel", detail };
     if (i.tubeFallback) return { level: "bad", text: "Circle and Met closed: via Aldgate East", detail };
     if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${describe(tubeBad[0])}`, detail };
-    if (t && t.late >= policy.warnMin) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+    if (t2 && t2.late >= policy.warnMin) return { level: "warn", text: `Delays up to ${t2.late} min on your route${nowNote}`, detail };
     if (tubeWarn.length) return { level: "warn", text: `${tubeWarn[0].name}: ${describe(tubeWarn[0])}`, detail };
     if (ops.length) return { level: "note", text: `${ops[0].name}: ${describe(ops[0])}`, detail };
-    if (t && t.onRoute.length) return { level: "note", text: `${n(t.onRoute.length, "notice")} on your route, no train affected yet`, detail };
+    if (t2 && t2.onRoute.length) return { level: "note", text: `${n(t2.onRoute.length, "notice")} on your route, no train affected yet`, detail };
     if (i.demo) return { level: "info", text: "Example trains", detail };
     if (i.timetableOnly) return { level: "info", text: "Timetable times, not live", detail };
     if (i.statusUnavailable) return { level: "info", text: "Live line status unavailable", detail };
     return { level: "ok", text: "Good service on your lines", detail };
   }
-  function trainName(t) {
-    return `${t.std} ${t.operator}${t.destination ? ` to ${t.destination}` : ""}`.trim();
+  function trainName(t2) {
+    return `${t2.std} ${t2.operator}${t2.destination ? ` to ${t2.destination}` : ""}`.trim();
   }
   function tubeName(timeHHMM, line, dest) {
     const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();
@@ -2682,8 +2719,8 @@ var CommuteCore = (() => {
   var NAMES = { KGX: "King's Cross", STP: "St Pancras", ZFD: "Farringdon" };
   var PLATFORM_WALK = { KGX: 180, STP: 300, ZFD: 120 };
   var HUB_HOP = 240;
-  var seg = (kind, secs, step) => ({ kind, secs, step: step || null });
-  var walkSeg = (secs, avg, fast, step) => ({ kind: "walk", secs, step: step || null, avg, fast });
+  var seg = (kind, secs2, step) => ({ kind, secs: secs2, step: step || null });
+  var walkSeg = (secs2, avg, fast, step) => ({ kind: "walk", secs: secs2, step: step || null, avg, fast });
   var sec = (x) => x * 1e3;
   var paceFactor = (i) => i.mode === "leisure" ? i.timings.leisureFactor : i.pace === "fast" ? i.timings.fastFactor : 1;
   function samRoutes(i) {
@@ -2816,10 +2853,10 @@ var CommuteCore = (() => {
       }
     }
   }
-  function tubeHomeConnections(t, s, pace) {
+  function tubeHomeConnections(t2, s, pace) {
     const k = pace === "fast" ? s.fastFactor : 1;
     return {
-      reach: { ZFD: t + s.rideFarAld * 1e3, KGX: t + s.rideKxAld * 1e3, STP: t + s.rideKxAld * 1e3 },
+      reach: { ZFD: t2 + s.rideFarAld * 1e3, KGX: t2 + s.rideKxAld * 1e3, STP: t2 + s.rideKxAld * 1e3 },
       ready: { ZFD: (s.farInterchange * k + s.catchMargin) * 1e3, KGX: (s.kxInterchange * k + s.catchMargin) * 1e3, STP: (s.stpInterchange * k + s.catchMargin) * 1e3 }
     };
   }
@@ -2846,16 +2883,16 @@ var CommuteCore = (() => {
       const rows = [];
       for (const [key, b] of Object.entries(i.boards)) {
         if (!b || key.split("-")[0] !== stop.code) continue;
-        for (const t of b.services) {
-          if (t.from !== stop.code) continue;
-          if (!t.depUnknown && t.dep < i.now - 3e4) continue;
-          const row = rows.find((r) => sameTrain(r.train, t));
+        for (const t2 of b.services) {
+          if (t2.from !== stop.code) continue;
+          if (!t2.depUnknown && t2.dep < i.now - 3e4) continue;
+          const row = rows.find((r) => sameTrain(r.train, t2));
           if (row) {
-            if (!row.routes.includes(t.to)) row.routes.push(t.to);
-            if (row.train.derived && !t.derived) row.train = t;
+            if (!row.routes.includes(t2.to)) row.routes.push(t2.to);
+            if (row.train.derived && !t2.derived) row.train = t2;
             continue;
           }
-          rows.push({ train: t, routes: [t.to], reach: "unknown", arrive: null, option: null });
+          rows.push({ train: t2, routes: [t2.to], reach: "unknown", arrive: null, option: null });
         }
       }
       for (const row of rows) {
@@ -2982,10 +3019,10 @@ var CommuteCore = (() => {
     );
   }
   var clone = (x) => JSON.parse(JSON.stringify(x));
-  var day = (t) => new Date(t.dep - (t.depLate || 0) * MIN).toISOString().slice(0, 10);
+  var day = (t2) => new Date(t2.dep - (t2.depLate || 0) * MIN).toISOString().slice(0, 10);
   function followServiceKey(o) {
-    const t = o.train;
-    return `${day(t)}|${t.serviceId ? `id:${t.serviceId}` : `${t.operator}|${t.std}`}|${t.from}|${t.to}|${o.hub}`;
+    const t2 = o.train;
+    return `${day(t2)}|${t2.serviceId ? `id:${t2.serviceId}` : `${t2.operator}|${t2.std}`}|${t2.from}|${t2.to}|${o.hub}`;
   }
   function sameService(a, b) {
     const x = a.train, y = b.train;
@@ -3009,8 +3046,8 @@ var CommuteCore = (() => {
       seenEvents: [...route.seenEvents.filter((id) => id !== notice.id), notice.id].slice(-100)
     };
   }
-  function validTrain(t, allowNullArrival = false) {
-    return record(t) && typeof t.from === "string" && t.from.length <= 100 && typeof t.to === "string" && t.to.length <= 100 && typeof t.std === "string" && /^\d\d:\d\d$/.test(t.std) && finite2(t.dep) && (finite2(t.arr) || allowNullArrival && t.arr === null) && Math.abs(t.dep) < 864e13 && (t.arr === null || Math.abs(t.arr) < 864e13) && finite2(t.depLate) && Math.abs(t.depLate) < 1e6 && finite2(t.arrLate) && Math.abs(t.arrLate) < 1e6 && typeof t.operator === "string" && t.operator.length <= 500 && typeof t.cancelled === "boolean" && typeof t.depUnknown === "boolean" && typeof t.reason === "string" && t.reason.length <= 1e4 && (t.serviceId == null || typeof t.serviceId === "string" && t.serviceId.length <= 500) && (t.platform == null || typeof t.platform === "string" && t.platform.length <= 100);
+  function validTrain(t2, allowNullArrival = false) {
+    return record(t2) && typeof t2.from === "string" && t2.from.length <= 100 && typeof t2.to === "string" && t2.to.length <= 100 && typeof t2.std === "string" && /^\d\d:\d\d$/.test(t2.std) && finite2(t2.dep) && (finite2(t2.arr) || allowNullArrival && t2.arr === null) && Math.abs(t2.dep) < 864e13 && (t2.arr === null || Math.abs(t2.arr) < 864e13) && finite2(t2.depLate) && Math.abs(t2.depLate) < 1e6 && finite2(t2.arrLate) && Math.abs(t2.arrLate) < 1e6 && typeof t2.operator === "string" && t2.operator.length <= 500 && typeof t2.cancelled === "boolean" && typeof t2.depUnknown === "boolean" && typeof t2.reason === "string" && t2.reason.length <= 1e4 && (t2.serviceId == null || typeof t2.serviceId === "string" && t2.serviceId.length <= 500) && (t2.platform == null || typeof t2.platform === "string" && t2.platform.length <= 100);
   }
   function validOption(o, depth = 0) {
     if (depth > 4) return false;
@@ -3252,11 +3289,11 @@ var CommuteCore = (() => {
     }
     let railStatus = null;
     if (!onward && (fresh || input.trainArrivalLive)) {
-      const t = route.lastTrain;
-      if (route.phase !== "on-train" || t.cancelled || t.depUnknown || t.arrUnknown || t.arr == null) {
-        railStatus = t.arr == null && !t.cancelled ? { level: "bad", text: "No estimate" } : trainStatus(t, input.policy);
-      } else if (!t.timetable && !t.derived && !t.estimated || input.trainArrivalLive) {
-        const expected = finite2(input.currentTrainArrival) ? input.currentTrainArrival : t.arr;
+      const t2 = route.lastTrain;
+      if (route.phase !== "on-train" || t2.cancelled || t2.depUnknown || t2.arrUnknown || t2.arr == null) {
+        railStatus = t2.arr == null && !t2.cancelled ? { level: "bad", text: "No estimate" } : trainStatus(t2, input.policy);
+      } else if (!t2.timetable && !t2.derived && !t2.estimated || input.trainArrivalLive) {
+        const expected = finite2(input.currentTrainArrival) ? input.currentTrainArrival : t2.arr;
         railStatus = arrivalStatus(expected, route.option.train.arr - route.option.train.arrLate * MIN, input.policy);
       }
     }
@@ -3282,8 +3319,8 @@ var CommuteCore = (() => {
   var parsedTime = (v) => {
     if (finite3(v)) return v;
     if (typeof v !== "string" || !v) return null;
-    const t = Date.parse(v);
-    return finite3(t) ? t : null;
+    const t2 = Date.parse(v);
+    return finite3(t2) ? t2 : null;
   };
   function followTubeArrival(predictions, i) {
     var _a, _b, _c, _d, _e, _f;
@@ -3318,7 +3355,7 @@ var CommuteCore = (() => {
   function trainId(x) {
     return record3(x) && text(x.operator) && text(x.from, 100) && typeof x.std === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x.std) && (x.serviceId === void 0 || text(x.serviceId));
   }
-  var idKey = (t) => `${t.operator}|${t.std}|${t.from}`;
+  var idKey = (t2) => `${t2.operator}|${t2.std}|${t2.from}`;
   function sameId(a, b) {
     return a.operator === b.operator && a.std === b.std && a.from === b.from && (!(a.serviceId && b.serviceId) || a.serviceId === b.serviceId);
   }
@@ -3335,8 +3372,8 @@ var CommuteCore = (() => {
     }
     return out;
   }
-  function matches(t, id, legacy) {
-    return sameId(t, id) && finite4(t.dep) && finite4(t.depLate) && Math.abs(t.dep - legacy.lastDep) < DAY / 2;
+  function matches(t2, id, legacy) {
+    return sameId(t2, id) && finite4(t2.dep) && finite4(t2.depLate) && Math.abs(t2.dep - legacy.lastDep) < DAY / 2;
   }
   function migrateFollowRoute(value, options, ctx) {
     var _a, _b, _c, _d;
@@ -3509,8 +3546,8 @@ var CommuteCore = (() => {
   }
   function progressLegsFromSteps(i) {
     var _a;
-    const o = i.option, t = i.train || o.train, names = i.names || {};
-    if (!finite5(o.leave) || !finite5(t.dep)) return [];
+    const o = i.option, t2 = i.train || o.train, names = i.names || {};
+    if (!finite5(o.leave) || !finite5(t2.dep)) return [];
     const before = Array.isArray(o.before) ? o.before : ((_a = i.route) == null ? void 0 : _a.before) || [];
     const steps = i.steps || (Array.isArray(o.legs) ? o.legs : []);
     const railStep = steps.findIndex((l) => l.train);
@@ -3518,7 +3555,7 @@ var CommuteCore = (() => {
     const movementKinds = before.filter((s) => ["walk", "ride", "planned"].includes(s.kind));
     const legs = beforeSteps.flatMap((step, index) => {
       var _a2;
-      const start = step.t, end = index + 1 < beforeSteps.length ? beforeSteps[index + 1].t : t.dep;
+      const start = step.t, end = index + 1 < beforeSteps.length ? beforeSteps[index + 1].t : t2.dep;
       if (end <= start) return [];
       const mode = (_a2 = movementKinds[index]) == null ? void 0 : _a2.kind;
       const kind = step.tube || mode === "ride" ? "tube" : mode === "planned" ? "connection" : "walk";
@@ -3532,21 +3569,21 @@ var CommuteCore = (() => {
         travelEnd: kind === "tube" && finite5(i.tubeRideSecs) && i.tubeRideSecs > 0 ? Math.min(end, start + i.tubeRideSecs * 1e3) : end
       }];
     });
-    if (!legs.length && o.leave < t.dep) legs.push({ id: "before-0", kind: "connection", label: "Access", start: o.leave, end: t.dep });
+    if (!legs.length && o.leave < t2.dep) legs.push({ id: "before-0", kind: "connection", label: "Access", start: o.leave, end: t2.dep });
     legs.push({
       id: "rail",
       kind: "rail",
       label: "Train",
-      start: t.dep,
-      end: finite5(t.arr) ? t.arr : null,
-      travelStart: t.dep,
-      travelEnd: finite5(t.arr) ? t.arr : null,
-      from: names[t.from] || t.from,
-      to: names[t.to] || t.to,
-      fromCode: t.from,
-      toCode: t.to
+      start: t2.dep,
+      end: finite5(t2.arr) ? t2.arr : null,
+      travelStart: t2.dep,
+      travelEnd: finite5(t2.arr) ? t2.arr : null,
+      from: names[t2.from] || t2.from,
+      to: names[t2.to] || t2.to,
+      fromCode: t2.from,
+      toCode: t2.to
     });
-    const railEnd = finite5(t.arr) ? t.arr : finite5(o.train.arr) ? o.train.arr : null;
+    const railEnd = finite5(t2.arr) ? t2.arr : finite5(o.train.arr) ? o.train.arr : null;
     if (railEnd === null) return legs;
     if (i.route) {
       return [...legs, ...segmentLegs(i.route.after, railEnd, "after")];
@@ -3568,6 +3605,562 @@ var CommuteCore = (() => {
   function progressContextCurrent(legs, observedAt, departure) {
     const ends = legs.map((l) => l.end).filter(finite5);
     return finite5(observedAt) && finite5(departure) && departure >= observedAt && ends.length > 0 && departure <= Math.max(...ends);
+  }
+
+  // src/core/rounds.ts
+  var stopsRequests = (e) => !!(e && (e.rateLimited || e.timeout || e.network || e.refused));
+  async function runRounds(items, rounds, exec, opts = {}) {
+    var _a;
+    const conc = Math.max(1, opts.concurrency || 1), max = (_a = opts.maxRequests) != null ? _a : Infinity;
+    const ok = /* @__PURE__ */ new Set(), why = /* @__PURE__ */ new Map();
+    let stopped = null, requests = 0;
+    const one = async (k, q) => {
+      requests++;
+      try {
+        await exec(k, q);
+        ok.add(k);
+      } catch (e) {
+        const err = e;
+        why.set(k, err.message);
+        if (stopsRequests(err) && !stopped) stopped = err.message;
+      }
+    };
+    for (const round of rounds) {
+      if (conc === 1) {
+        for (const k of items) {
+          if (stopped) {
+            if (!why.has(k)) why.set(k, stopped);
+            continue;
+          }
+          if (requests >= max) break;
+          const q = round(k);
+          if (q == null) continue;
+          await one(k, q);
+        }
+      } else {
+        if (stopped) {
+          items.forEach((k) => {
+            if (!why.has(k)) why.set(k, stopped);
+          });
+          continue;
+        }
+        const batch = [];
+        for (const k of items) {
+          if (requests + batch.length >= max) break;
+          const q = round(k);
+          if (q != null) batch.push([k, q]);
+        }
+        for (let i = 0; i < batch.length; i += conc) await Promise.all(batch.slice(i, i + conc).map(([k, q]) => one(k, q)));
+      }
+    }
+    return { ok, why, stopped, requests };
+  }
+
+  // src/core/trip/config.ts
+  var TRIP_DEFAULTS = {
+    region: { s: 50.55, w: -1.95, n: 52.75, e: 1.8 },
+    // London, the South East, the East of England
+    reachKm: { walk: 3, cycle: 10, drive: 25 },
+    nearest: 3,
+    wellServed: 2,
+    wellServedFactor: 2,
+    round1Max: 9,
+    totalMax: 18,
+    behindMin: 30,
+    laterPairs: 3,
+    windowMin: 100,
+    closeKm: 1.5,
+    atStationM: 400,
+    endMatchM: 300,
+    replanMovedM: 500,
+    change: { riskMin: 2, tightMin: 5 },
+    live: { maxBoards: 6, firstWithinMin: 30, boardWindowMin: 119, refreshMs: 3e4 },
+    betterMin: 5,
+    otherStationsMax: 4,
+    topWindowMin: 20,
+    drive: { recheckMs: 5 * 6e4, withinMin: 60, moveMin: 2 },
+    allow: { parkMin: 10, lockMin: 4, stationMin: 3, exitMin: 3, carBackMin: 5 }
+  };
+  function tripConfig(over = {}) {
+    const allow = { ...TRIP_DEFAULTS.allow, ...over.allow || {} };
+    Object.keys(allow).forEach((k) => {
+      const v = Number(allow[k]);
+      allow[k] = Number.isFinite(v) ? Math.min(60, Math.max(0, v)) : TRIP_DEFAULTS.allow[k];
+    });
+    return {
+      ...TRIP_DEFAULTS,
+      ...over,
+      allow,
+      change: { ...TRIP_DEFAULTS.change, ...over.change || {} },
+      live: { ...TRIP_DEFAULTS.live, ...over.live || {} },
+      drive: { ...TRIP_DEFAULTS.drive, ...over.drive || {} },
+      reachKm: { ...TRIP_DEFAULTS.reachKm, ...over.reachKm || {} }
+    };
+  }
+  var inRegion = (geo, r) => Array.isArray(geo) && Number.isFinite(geo[0]) && Number.isFinite(geo[1]) && geo[0] >= r.s && geo[0] <= r.n && geo[1] >= r.w && geo[1] <= r.e;
+  var OUTSIDE_REGION = "Outside the area this plans: London, the South East and the East of England.";
+
+  // src/core/trip/journeyCore.ts
+  var secs = (xs) => xs.reduce((s, x) => s + x.secs, 0) * 1e3;
+  var isMain = (r) => r.kind === "rail" || r.kind === "bus" || r.kind === "other";
+  var mainRides = (rides) => rides.filter(isMain);
+  function journeyTimes(before, rides, after) {
+    const first = rides[0], last = rides[rides.length - 1];
+    return { leave: first.dep - secs(before), arrive: last.arr + secs(after) };
+  }
+  function changeStatus(prev, next, via, cfg) {
+    const across = via.reduce((s, r) => s + (r.schedArr - r.schedDep), 0);
+    const spare = Math.floor((next.dep - prev.arr - across) / 6e4);
+    const plannedSpare = Math.floor((next.schedDep - prev.schedArr - across) / 6e4);
+    const at = via.length ? `${prev.to.name} \u2192 ${next.from.name}` : next.from.name;
+    const notLive = [...prev.live.arr ? [] : ["arr"], ...next.live.dep ? [] : ["dep"]];
+    const base = { at, spare, plannedSpare, notLive, via };
+    if (next.cancelled) return { ...base, level: "bad", missed: true, text: `Connection missed: the ${hhmm(next.schedDep)} from ${next.from.name} is cancelled` };
+    if (spare < 0) return { ...base, level: "bad", missed: true, text: `Connection missed at ${next.from.name}` };
+    if (spare < cfg.change.riskMin) return { ...base, level: "bad", missed: false, text: `Connection at risk, ${spare} min` };
+    if (spare < cfg.change.tightMin && spare < plannedSpare) return { ...base, level: "warn", missed: false, text: `Tight change, ${spare} min` };
+    return { ...base, level: "ok", missed: false, text: `Change ${spare} min` };
+  }
+  function journeyChanges(rides, cfg) {
+    const out = [];
+    let prev = null, via = [];
+    for (const r of rides) {
+      if (!isMain(r)) {
+        if (prev) via.push(r);
+        continue;
+      }
+      if (prev) out.push(changeStatus(prev, r, via, cfg));
+      prev = r;
+      via = [];
+    }
+    return out;
+  }
+  function journeyFlags(j, extra = {}) {
+    var _a, _b;
+    const f = [];
+    const mains = mainRides(j.rides);
+    mains.forEach((r, i) => {
+      if (r.kind === "bus") f.push({ lvl: "warn", txt: `Bus between ${r.from.name} and ${r.to.name}` });
+      if (!r.train) return;
+      serviceFlags(r.train).forEach((x) => f.push(i === 0 ? x : { ...x, txt: `${hhmm(r.schedDep)} from ${r.from.name}: ${x.txt}` }));
+    });
+    j.changes.forEach((c) => {
+      if (c.level !== "ok") f.push({ lvl: c.level, txt: c.text });
+    });
+    if (j.tomorrow) f.push({ lvl: "info", txt: `Tomorrow \xB7 ${new Date((_b = (_a = mains[0]) == null ? void 0 : _a.dep) != null ? _b : j.rides[0].dep).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}` });
+    if (j.modes.from === "drive") {
+      if (j.fromStation.carPark === "no") f.push({ lvl: "warn", txt: "No station car park" });
+      else if (j.fromStation.carPark === "unknown") f.push({ lvl: "info", txt: "Car park not known" });
+    }
+    const far = extra.farKm || {};
+    if (far.from != null) f.push({ lvl: "info", txt: `Nearest station is ${far.from.toFixed(1)} km away` });
+    if (far.to != null) f.push({ lvl: "info", txt: `Nearest station to where you're going is ${far.to.toFixed(1)} km away` });
+    return f;
+  }
+  function buildJourney(rail, from, to, modes, before, after, cfg, now, extra = {}) {
+    const rides = rail.rides, mains = mainRides(rides);
+    const fromStation = rides[0].from, toStation = rides[rides.length - 1].to;
+    const { leave, arrive } = journeyTimes(before, rides, after);
+    const changes = journeyChanges(rides, cfg);
+    const tomorrow = isoDay((mains[0] || rides[0]).schedDep) !== isoDay(now);
+    const id = [fromStation.crs, toStation.crs, ...mains.map((r) => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
+    const j = { id, from, to, fromStation, toStation, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
+    j.flags = journeyFlags(j, extra);
+    j.uncertain = mains.some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
+    j.missed = changes.some((c) => c.missed);
+    return j;
+  }
+  function journeySteps(j) {
+    const legs = [];
+    walkSteps(j.before, j.leave, legs);
+    let ci = 0, prevMain = null;
+    for (const r of j.rides) {
+      if (isMain(r)) {
+        if (prevMain) {
+          const c = j.changes[ci++];
+          if (c) legs.push({ t: null, d: c.text.startsWith("Change") ? `Change at ${c.at} \xB7 ${c.spare} min` : c.text, note: c.notLive.length ? "Not live" : void 0 });
+        }
+        const late = r.dep !== r.schedDep ? ` (exp ${hhmm(r.dep)})` : "";
+        legs.push({ t: r.dep, d: `${hhmm(r.schedDep)}${late} ${r.label} from ${r.from.name}`, note: [r.platform ? `platform ${r.platform}` : "", r.live.dep ? "" : "Not live"].filter(Boolean).join(" \xB7 ") || void 0, train: r.kind === "rail" });
+        legs.push({ t: r.arr, d: `Arrive ${r.to.name}`, note: `${dur(r.arr - r.dep)} on the ${r.kind === "bus" ? "bus" : "train"}` });
+        prevMain = r;
+      } else {
+        legs.push({ t: r.dep, d: r.kind === "walk" ? `Walk to ${r.to.name}` : `${r.label}: ${r.from.name} \u2192 ${r.to.name}`, note: dur(r.schedArr - r.schedDep), tube: r.kind === "tube" });
+      }
+    }
+    walkSteps(j.after, j.arrive - secs(j.after), legs);
+    return legs;
+  }
+
+  // src/core/trip/stations.ts
+  function stationIndex(list) {
+    const byCrs = new Map(list.map((s) => [s.crs, s]));
+    const byId = /* @__PURE__ */ new Map();
+    list.forEach((s) => Object.entries(s.ids || {}).forEach(([p, ids]) => ids.forEach((id) => byId.set(`${p}:${id}`, s))));
+    return {
+      near: (geo, k) => list.map((s) => ({ s, d: km(geo, s.geo) })).filter((x) => x.d <= k).sort((a, b) => a.d - b.d).map((x) => x.s),
+      byCrs: (crs) => byCrs.get(String(crs).toUpperCase()) || null,
+      byId: (p, id) => byId.get(`${p}:${id}`) || null,
+      nearestTo: (geo, m) => {
+        let best = null, bd = Infinity;
+        for (const s of list) {
+          const d = km(geo, s.geo) * 1e3;
+          if (d < bd) {
+            bd = d;
+            best = s;
+          }
+        }
+        return bd <= m ? best : null;
+      },
+      all: () => list
+    };
+  }
+  function candidates(geo, mode, idx, cfg) {
+    const reach = cfg.reachKm[mode];
+    const within = idx.near(geo, reach).map((s) => ({ station: s, km: km(geo, s.geo) }));
+    if (!within.length) {
+      const all = idx.all().map((s) => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km);
+      return all.length ? { list: [{ ...all[0], why: "fallback" }], farKm: all[0].km } : { list: [] };
+    }
+    const nearest = within.slice(0, cfg.nearest).map((c) => ({ ...c, why: "nearest" }));
+    const bar = Math.max(0, ...nearest.map((c) => c.station.servicePerHour || 0)) * cfg.wellServedFactor;
+    const served = within.slice(cfg.nearest).filter((c) => (c.station.servicePerHour || 0) > 0 && (c.station.servicePerHour || 0) >= bar).sort((a, b) => b.station.servicePerHour - a.station.servicePerHour || a.km - b.km).slice(0, cfg.wellServed).map((c) => ({ ...c, why: "served" }));
+    return { list: [...nearest, ...served] };
+  }
+  function promote(geo, mode, current, seen, cfg) {
+    const have = new Set(current.map((c) => c.station.crs)), out = [];
+    for (const s of seen) {
+      if (have.has(s.crs)) continue;
+      const d = km(geo, s.geo);
+      if (d > cfg.reachKm[mode]) continue;
+      have.add(s.crs);
+      out.push({ station: s, km: d, why: "promoted" });
+    }
+    return out;
+  }
+  function roundOnePairs(from, to, cfg) {
+    if (!from.length || !to.length) return [];
+    const out = [], seen = /* @__PURE__ */ new Set();
+    const add = (a, b) => {
+      const k = `${a.crs}-${b.crs}`;
+      if (a.crs === b.crs || seen.has(k) || out.length >= cfg.round1Max) return;
+      seen.add(k);
+      out.push([a, b]);
+    };
+    to.forEach((t2) => add(from[0].station, t2.station));
+    from.forEach((f) => add(f.station, to[0].station));
+    return out;
+  }
+
+  // src/core/trip/access.ts
+  var MODE_WORD = { walk: "Walk", cycle: "Cycle", drive: "Drive" };
+  function travelSecs(mode, t2, leisureKmh) {
+    if (mode === "walk") return Math.round(t2.metres / 1e3 / leisureKmh * 3600);
+    return Math.round(t2.secs);
+  }
+  function beforeSegments(mode, t2, st, a, leisureKmh, atStation = false) {
+    const plat = { kind: "station", secs: a.stationMin * 60, step: null };
+    if (atStation) return [{ kind: "station", secs: a.stationMin * 60, step: { at: "start", d: `At ${st.name}: to the platform`, note: `${a.stationMin} min` } }];
+    const s = travelSecs(mode, t2, leisureKmh);
+    const go = { kind: mode === "walk" ? "walk" : mode, secs: s, step: { at: "start", d: `${MODE_WORD[mode]} to ${st.name}`, note: dur(s * 1e3) } };
+    if (mode === "walk") return [go, plat];
+    const extra = mode === "drive" ? a.parkMin : a.lockMin;
+    return [go, { kind: "station", secs: extra * 60, step: { at: "start", d: mode === "drive" ? "Park and reach the platform" : "Lock the bike and reach the platform", note: `${extra} min` } }];
+  }
+  function afterSegments(mode, t2, st, a, leisureKmh, here = false) {
+    if (here) return [{ kind: "station", secs: a.exitMin * 60, step: { at: "end", d: `Out of ${st.name}`, note: `${a.exitMin} min` } }];
+    const s = travelSecs(mode, t2, leisureKmh);
+    const off = mode === "drive" ? a.carBackMin : a.exitMin;
+    return [
+      { kind: "station", secs: off * 60, step: { at: "end", d: mode === "drive" ? "Back to the car" : `Out of ${st.name}`, note: `${off} min` } },
+      { kind: mode === "walk" ? "walk" : mode, secs: s, step: { at: "end", d: `${MODE_WORD[mode]} to your destination`, note: dur(s * 1e3) } }
+    ];
+  }
+
+  // src/core/trip/tflJourney.ts
+  var KIND = {
+    "national-rail": "rail",
+    "elizabeth-line": "rail",
+    overground: "rail",
+    tube: "tube",
+    dlr: "tube",
+    tram: "tube",
+    walking: "walk",
+    bus: "bus",
+    coach: "bus",
+    "replacement-bus": "bus"
+  };
+  var TFL_TRIP_MODES = "national-rail,tube,overground,elizabeth-line,dlr,walking";
+  var cleanName = (n2) => String(n2 || "").replace(/\s+(Rail|Railway|Underground|DLR)?\s*Station$/i, "").replace(/^London\s+(?=\S)/, "").trim();
+  function tflStation(p, idx, m) {
+    var _a, _b;
+    const s = p && p.naptanId && idx.byId("tfl", p.naptanId) || p && p.icsCode && idx.byId("tflIcs", String(p.icsCode)) || (p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? idx.nearestTo([p.lat, p.lon], m) : null);
+    if (s) return { station: s, known: true };
+    return { station: { crs: "", name: cleanName(p && p.commonName), geo: [(_a = p == null ? void 0 : p.lat) != null ? _a : 0, (_b = p == null ? void 0 : p.lon) != null ? _b : 0], carPark: "unknown", servicePerHour: 0, ids: {} }, known: false };
+  }
+  var t = (s) => s ? new Date(s).getTime() : NaN;
+  function rideOf(l, idx, m) {
+    const kind = KIND[l.mode && l.mode.id] || "other";
+    const dep = t(l.departureTime), arr = t(l.arrivalTime);
+    if (!Number.isFinite(dep) || !Number.isFinite(arr)) return null;
+    const sDep = Number.isFinite(t(l.scheduledDepartureTime)) ? t(l.scheduledDepartureTime) : dep;
+    const sArr = Number.isFinite(t(l.scheduledArrivalTime)) ? t(l.scheduledArrivalTime) : arr;
+    const from = tflStation(l.departurePoint, idx, m).station, to = tflStation(l.arrivalPoint, idx, m).station;
+    const opt = (l.routeOptions || [])[0] || {};
+    const operator = String(opt.name || l.mode && l.mode.name || "");
+    const destination = cleanName((opt.directions || [])[0] || "") || void 0;
+    const label = kind === "rail" ? `${operator || "Train"}${destination ? ` to ${destination}` : ""}` : String(l.instruction && l.instruction.summary || operator || kind);
+    const ride = { kind, from, to, dep, arr, schedDep: sDep, schedArr: sArr, live: { dep: false, arr: false }, label, operator, destination, platform: null };
+    if (kind === "rail") {
+      const train = {
+        from: from.crs,
+        to: to.crs,
+        std: hhmm(sDep),
+        dep,
+        arr,
+        depLate: Math.max(0, mins(dep - sDep)),
+        arrLate: Math.max(0, mins(arr - sArr)),
+        depUnknown: false,
+        platform: null,
+        operator,
+        cancelled: false,
+        reason: "",
+        timetable: true,
+        ...destination ? { destination } : {}
+      };
+      ride.train = train;
+    }
+    return ride;
+  }
+  function tflRailJourneys(body, from, to, idx, endMatchM) {
+    const out = [], refused = [];
+    for (const j of body && body.journeys || []) {
+      const notes = [];
+      let rides = (j.legs || []).map((l) => rideOf(l, idx, endMatchM)).filter((r) => !!r);
+      while (rides.length && rides[0].kind === "walk") {
+        notes.push(`Dropped TfL's walk: ${rides[0].label}`);
+        rides = rides.slice(1);
+      }
+      while (rides.length && rides[rides.length - 1].kind === "walk") {
+        notes.push(`Dropped TfL's walk: ${rides[rides.length - 1].label}`);
+        rides = rides.slice(0, -1);
+      }
+      const mains = rides.filter(isMain);
+      if (!mains.length) {
+        refused.push("No train in TfL's journey");
+        continue;
+      }
+      if (rides[0].from.crs !== from.crs || rides[rides.length - 1].to.crs !== to.crs) {
+        refused.push(`TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${rides[rides.length - 1].to.name || "?"})`);
+        continue;
+      }
+      (j.legs || []).forEach((l) => (l.disruptions || []).forEach((d) => {
+        if (d && d.description) notes.push(String(d.description));
+      }));
+      out.push({ rides, source: "tfl", notes });
+    }
+    return { journeys: out, refused };
+  }
+
+  // src/core/trip/tripRank.ts
+  var asRankable = (js) => js;
+  function rankTrips(js, q, now, cfg) {
+    for (const j of js) {
+      j.flags = j.flags.filter((f) => !/^(Leave time passed|Late by|Leave \d+ min before)/.test(f.txt));
+      j.late = false;
+      delete j.recommended;
+      if (j.leave < now) j.flags.unshift({ lvl: "warn", txt: "Leave time passed" });
+      if (q.kind === "by" && j.arrive > q.t) {
+        j.late = true;
+        j.flags.unshift({ lvl: "bad", txt: `Late by ${Math.max(1, Math.floor((j.arrive - q.t) / 6e4))} min` });
+      }
+      if (q.kind === "at" && j.leave < q.t) j.flags.unshift({ lvl: "warn", txt: `Leave ${Math.max(1, Math.round((q.t - j.leave) / 6e4))} min before ${new Date(q.t).toTimeString().slice(0, 5)}` });
+    }
+    const usable = js.filter((j) => j.leave >= now - 3e4 || q.kind === "by");
+    const picks = topPicks(asRankable(usable), q.kind === "by" ? "by" : "now", cfg.topWindowMin);
+    picks.forEach((j, i) => {
+      j.recommended = i + 1;
+    });
+    return js.slice().sort((a, b) => a.leave - b.leave || a.arrive - b.arrive);
+  }
+  function otherStations(js, best, max) {
+    if (!best) return [];
+    const out = [];
+    const bestPer = (key) => {
+      const m = /* @__PURE__ */ new Map();
+      for (const j of js) {
+        if (j.uncertain || j.missed) continue;
+        const k = key(j);
+        const c = m.get(k);
+        if (!c || j.arrive < c.arrive || j.arrive === c.arrive && j.leave > c.leave) m.set(k, j);
+      }
+      return m;
+    };
+    const say = (end, j) => {
+      const a = Math.round((j.arrive - best.arrive) / 6e4), l = Math.round((best.leave - j.leave) / 6e4);
+      const name = end === "from" ? j.fromStation.name : j.toStation.name;
+      const arr = a === 0 ? "arrive at the same time" : a > 0 ? `arrive ${a} min later` : `arrive ${-a} min sooner`;
+      const lv = l === 0 ? "" : l > 0 ? `, leave ${l} min earlier` : `, leave ${-l} min later`;
+      return { end, station: name, crs: end === "from" ? j.fromStation.crs : j.toStation.crs, journey: j, arriveMin: a, leaveMin: l, text: `${end === "from" ? "From" : "To"} ${name}: ${arr}${lv}` };
+    };
+    bestPer((j) => j.fromStation.crs).forEach((j, crs) => {
+      if (crs !== best.fromStation.crs) out.push(say("from", j));
+    });
+    bestPer((j) => j.toStation.crs).forEach((j, crs) => {
+      if (crs !== best.toStation.crs) out.push(say("to", j));
+    });
+    return out.sort((a, b) => a.arriveMin - b.arriveMin).slice(0, max);
+  }
+  function betterOption(prev, next, betterMin) {
+    return !!(prev && next && prev.id !== next.id && prev.arrive - next.arrive >= betterMin * 6e4);
+  }
+
+  // src/core/trip/tripPlan.ts
+  var TripError = class extends Error {
+    constructor(msg, code) {
+      super(msg);
+      this.code = code;
+    }
+  };
+  var pairKey = (a, b) => `${a.crs}-${b.crs}`;
+  async function planTrip(req, ports, onStage) {
+    const { from, to, modes, question: q, now, cfg } = req;
+    if (!inRegion(from.geo, cfg.region) || !inRegion(to.geo, cfg.region)) throw new TripError(OUTSIDE_REGION, "outside");
+    const cf = candidates(from.geo, modes.from, ports.stations, cfg), ct = candidates(to.geo, modes.to, ports.stations, cfg);
+    if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
+    const close = km(from.geo, to.geo) <= cfg.closeKm;
+    const requests = { planner: 0, access: 0 }, failed = [], notes = [];
+    const accFrom = /* @__PURE__ */ new Map(), accTo = /* @__PURE__ */ new Map();
+    const setOff = q.kind === "by" ? q.t - 3 * 36e5 : q.kind === "at" ? q.t : now;
+    const timeAccess = async (place, list, mode, dir, into) => {
+      const todo = list.filter((c) => !into.has(c.station.crs));
+      if (!todo.length) return;
+      requests.access++;
+      const res = await ports.access.matrix(place, todo.map((c) => c.station.geo), mode, setOff, dir);
+      todo.forEach((c, i) => {
+        var _a;
+        return into.set(c.station.crs, (_a = res[i]) != null ? _a : null);
+      });
+    };
+    const rail = /* @__PURE__ */ new Map();
+    const search = async (pair, t2, timeIs2) => {
+      requests.planner++;
+      const r = await ports.planner.plan(pair[0], pair[1], t2, timeIs2);
+      const k = pairKey(pair[0], pair[1]);
+      const have = rail.get(k) || [], ids = new Set(have.map((j) => mainRides(j.rides).map((x) => x.schedDep).join(",")));
+      r.journeys.forEach((j) => {
+        const id = mainRides(j.rides).map((x) => x.schedDep).join(",");
+        if (!ids.has(id)) {
+          ids.add(id);
+          have.push(j);
+        }
+      });
+      rail.set(k, have);
+      if (!r.journeys.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
+    };
+    const timeIs = q.kind === "by" ? "Arriving" : "Departing";
+    const t0 = q.kind === "now" ? now : q.t;
+    const p1 = roundOnePairs(cf.list, ct.list, cfg);
+    const runPairs = async (pairs, at, ti) => {
+      const res = await runRounds(pairs, [() => true], (p) => search(p, at(p), ti), { concurrency: pairs.length || 1, maxRequests: cfg.totalMax - requests.planner });
+      res.why.forEach((why, p) => failed.push({ pair: `${p[0].name} \u2192 ${p[1].name}`, why }));
+      return res;
+    };
+    await Promise.all([
+      timeAccess(from.geo, cf.list, modes.from, "to", accFrom).catch((e) => {
+        notes.push(`Times to the stations: ${e.message}`);
+      }),
+      timeAccess(to.geo, ct.list, modes.to, "from", accTo).catch((e) => {
+        notes.push(`Times from the stations: ${e.message}`);
+      }),
+      runPairs(p1, () => t0, timeIs)
+    ]);
+    if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
+    const assemble = (stage) => {
+      const js = [];
+      const fromKm = cf.farKm, toKm = ct.farKm;
+      rail.forEach((list2) => list2.forEach((rj) => {
+        const a = rj.rides[0].from, b = rj.rides[rj.rides.length - 1].to;
+        const ta = accFrom.get(a.crs), tb = accTo.get(b.crs);
+        if (!ta || !tb) return;
+        const atStation = from.kind === "current" && km(from.geo, a.geo) * 1e3 <= cfg.atStationM;
+        const before = beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation);
+        const after = afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh);
+        js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm } }));
+      }));
+      const list = rankTrips(js, q, now, cfg);
+      const picks = list.filter((j) => j.recommended).sort((x, y) => x.recommended - y.recommended);
+      return {
+        stage,
+        journeys: list,
+        picks,
+        others: otherStations(list, picks[0], cfg.otherStationsMax),
+        candidates: { from: cf.list, to: ct.list },
+        failed: failed.slice(),
+        close,
+        requests: { ...requests },
+        notes: notes.slice()
+      };
+    };
+    const first = assemble("timetable");
+    onStage == null ? void 0 : onStage(first);
+    const seenFrom = [], seenTo = [];
+    rail.forEach((list) => list.forEach((rj) => mainRides(rj.rides).forEach((r) => {
+      if (r.from.crs) seenFrom.push(r.from);
+      if (r.to.crs) seenTo.push(r.to);
+    })));
+    const pf = promote(from.geo, modes.from, cf.list, seenFrom, cfg), pt = promote(to.geo, modes.to, ct.list, seenTo, cfg);
+    cf.list.push(...pf);
+    ct.list.push(...pt);
+    await Promise.all([
+      timeAccess(from.geo, cf.list, modes.from, "to", accFrom).catch((e) => {
+        notes.push(`Times to the stations: ${e.message}`);
+      }),
+      timeAccess(to.geo, ct.list, modes.to, "from", accTo).catch((e) => {
+        notes.push(`Times from the stations: ${e.message}`);
+      })
+    ]);
+    const ranked = first.journeys.filter((j) => !j.uncertain);
+    const best = ranked.reduce((b, j) => !b || j.arrive < b.arrive ? j : b, void 0);
+    const bestBy = (key) => {
+      const m = /* @__PURE__ */ new Map();
+      ranked.forEach((j) => {
+        var _a;
+        const k = key(j);
+        m.set(k, Math.min((_a = m.get(k)) != null ? _a : Infinity, j.arrive));
+      });
+      return m;
+    };
+    const fromRank = bestBy((j) => j.fromStation.crs), toRank = bestBy((j) => j.toStation.crs);
+    const good = (crs, m, promoted) => {
+      var _a;
+      return promoted || (best ? ((_a = m.get(crs)) != null ? _a : Infinity) - best.arrive <= cfg.behindMin * 6e4 : true);
+    };
+    const fromGood = cf.list.filter((c) => good(c.station.crs, fromRank, c.why === "promoted")), toGood = ct.list.filter((c) => good(c.station.crs, toRank, c.why === "promoted"));
+    const tried = new Set(p1.map(([a, b]) => pairKey(a, b)));
+    const p2 = [];
+    for (const a of fromGood) for (const b of toGood) {
+      const k = pairKey(a.station, b.station);
+      if (a.station.crs !== b.station.crs && !tried.has(k) && accFrom.get(a.station.crs) && accTo.get(b.station.crs)) {
+        tried.add(k);
+        p2.push([a.station, b.station]);
+      }
+    }
+    if (p2.length) await runPairs(p2, () => t0, timeIs);
+    const bestPairs = [...new Map(assemble("timetable").journeys.filter((j) => !j.uncertain).sort((x, y) => x.arrive - y.arrive).map((j) => [pairKey(j.fromStation, j.toStation), [j.fromStation, j.toStation]])).values()].slice(0, cfg.laterPairs);
+    const later = (p) => {
+      const deps = (rail.get(pairKey(p[0], p[1])) || []).map((j) => mainRides(j.rides)[0].schedDep);
+      if (q.kind === "by") return Math.max(now, q.t - cfg.windowMin * 6e4);
+      return deps.length ? Math.max(...deps) + 6e4 : t0;
+    };
+    const need = bestPairs.filter((p) => {
+      const deps = (rail.get(pairKey(p[0], p[1])) || []).map((j) => mainRides(j.rides)[0].schedDep);
+      return q.kind === "by" ? !deps.some((d) => d <= q.t - cfg.windowMin * 6e4 + 30 * 6e4) : !deps.some((d) => d >= t0 + cfg.windowMin * 6e4);
+    });
+    if (need.length) await runPairs(need, later, "Departing");
+    const done = assemble("complete");
+    onStage == null ? void 0 : onStage(done);
+    return done;
   }
 
   // src/core/index.ts

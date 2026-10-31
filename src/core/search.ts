@@ -16,7 +16,7 @@ export interface Converter<J> { train(j: J): { key: string; msgs: string[]; svc:
 /** A round asks for at most one search per route: given the route's trains so far (and every route's). */
 export type Round = (key: string, board: Board, all: Record<string, Board>) => { t: number; timeIs: "Departing" | "Arriving" } | null;
 /** A search failure. `stop` = stop making requests (refused, timed out, unreachable). */
-export interface SearchError extends Error { rateLimited?: boolean; timeout?: boolean; network?: boolean; }
+export interface SearchError extends Error { rateLimited?: boolean; timeout?: boolean; network?: boolean; refused?: boolean; }
 
 /** The London station a board key is about ("LET-KGX" → "KGX"). */
 export const hubOfKey = (k: string, p: Profile) => { const [a, b] = k.split("-"); return a === p.home ? b : a; };

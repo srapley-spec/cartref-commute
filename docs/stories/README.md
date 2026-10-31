@@ -63,7 +63,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 
 ### Beyond the commute
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
-- [Trip: door to door by rail, anywhere in the region](leisure-journeys.md) · Planned (design rev 3, approved with changes by independent review)
+- [Trip: door to door by rail, anywhere in the region](leisure-journeys.md) · Partly built (engine), behind toggle when complete
 - [Discovered alternatives](discovered-alternatives.md) · Planned (#13)
 - [People and trips](people-and-trips.md) · Planned
 - [Laura's commute](laura-commute.md) · Planned
