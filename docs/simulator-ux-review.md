@@ -167,3 +167,7 @@ service/vehicle identifiers, generation and request counts, with no credentials 
 Outage evidence: `/tmp/cartref-ux-review-outage.log` and `/tmp/cartref-ux-wiring-regressions.log`.
 The release lead must record the reviewed commit, full committed-code local CI, required branch checks,
 current green main, and exact merged-commit CI/deployment. Independent review does not replace those gates.
+
+## Reviewed implementation CI evidence
+
+The release lead pinned the approved source and final oracle correction as `c965e04`. Its [GitHub push check](https://github.com/srapley-spec/cartref-commute/actions/runs/41149135000) and [PR check](https://github.com/srapley-spec/cartref-commute/actions/runs/41149141080) both passed: **499/499 tests**, including all eleven independent regressions together. This records the executed follow-up to the focused review, not a replacement for independent review. Exact fresh-copy local CI and merged-commit/deployment evidence belongs to [PR #37](https://github.com/srapley-spec/cartref-commute/pull/37), so the report can link stable evidence without a self-referential commit hash.
