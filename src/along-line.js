@@ -35,7 +35,8 @@ $('#alongScroll').addEventListener('keydown',e=>{if(['ArrowDown','ArrowUp','Page
 $('#alongScroll').addEventListener('scroll',()=>{if(!alongAutoScrolling)alongPause();});
 let alongAutoScrolling=false;
 function alongScrollToNow(){
-  const target=$('#alongStrip [data-featured="true"]');
+  const marker=$('#alongPosition');
+  const target=marker&&!marker.hidden?marker:$('#alongStrip [data-featured="true"]');
   if(!target)return;
   alongAutoScrolling=true;
   // Scroll just the strip, never the page or the open article into a new position.

@@ -686,7 +686,7 @@ html[data-theme="dark"] .along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 16:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 16:43 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7264,7 +7264,8 @@ $('#alongScroll').addEventListener('keydown',e=>{if(['ArrowDown','ArrowUp','Page
 $('#alongScroll').addEventListener('scroll',()=>{if(!alongAutoScrolling)alongPause();});
 let alongAutoScrolling=false;
 function alongScrollToNow(){
-  const target=$('#alongStrip [data-featured="true"]');
+  const marker=$('#alongPosition');
+  const target=marker&&!marker.hidden?marker:$('#alongStrip [data-featured="true"]');
   if(!target)return;
   alongAutoScrolling=true;
   // Scroll just the strip, never the page or the open article into a new position.

@@ -16,6 +16,7 @@ test('Along UI: default off and enabled on-train entry work independently of Sig
   a.d.querySelector('#alongEntry').click();assert.equal(a.d.querySelector('#alongLine').open,true);
   assert.match(a.text('#alongJourney'),/Great Northern/);assert.match(a.text('#alongEvidence'),/Approximate position/);
   assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
+  assert.equal(a.d.querySelector('#alongPosition').hidden,false);assert.match(a.text('#alongPosition'),/approximate/);
   assert.equal(a.d.querySelector('[data-point="hitchin"]').hidden,true);
   assert.equal(a.c.state.saved.settings.followRoute,false);
   assert.ok(a.d.querySelector('.al-station'));assert.ok(a.d.querySelector('a[href="https://en.wikipedia.org/wiki/Digswell_Viaduct"]'));

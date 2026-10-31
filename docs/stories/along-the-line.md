@@ -94,6 +94,9 @@ removed. Native dialog state and manual following are session-only.
 
 - tests/along-line.test.mjs: "Along UI: travel disruption remains visible, stale arrival is qualified and changed journeys reset the strip"
 
+Chromium geometry checks: [browser-along-line.py](../../tests/browser-along-line.py), run after building.
+These exercise 320/390px, light/dark, 15/30px body text, touch targets, dialog overflow and focus return.
+
 ## Not yet / open questions
 - Any-route discovery, Wikipedia/OSM runtime lookup and generated prose remain later stages; the first release
   is curated Letchworth–King's Cross/St Pancras/Farringdon, both directions. Newark flat crossing is outside this
