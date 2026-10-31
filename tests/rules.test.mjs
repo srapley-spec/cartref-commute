@@ -1708,3 +1708,25 @@ test("Follow review: a planning tab is kept at 19 min on the move, back to live 
   await app.fix(...KX, 15, T("18:20") + 1e3); assert.equal(c.state.saved.view, "now", "just over 20 min");
   app.close();
 });
+
+test("Train stop review 2: timed by when the phone took the fix, so a fix that arrives late can't make the stop late", async () => {
+  const app = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+  await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
+  await app.fix(...KX, 20, T("08:39") + 30e3, 8, T("08:39"));          // taken 08:39:00, arrived 30 s later
+  await app.fix(...KX, 20, T("08:40") + 25e3, 0);                     // 85 s after the train-speed reading was taken
+  assert.equal(c.state.hubSince.stopped, undefined, "more than a minute after train speed: no stop");
+  app.close();
+  const app2 = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c2 = app2.c;
+  await app2.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
+  await app2.fix(...KX, 20, T("08:39"), 8);
+  await app2.fix(...KX, 20, T("08:39") + 50e3, 0, T("08:39") + 30e3); // stopped 08:39:30, arrived 20 s later
+  assert.equal(c2.state.hubSince.stopped, T("08:39") + 30e3, "the stop is when the fix was taken");
+  app2.close();
+  // The first fix in the station is the stop, taken 20 s before it arrived: still this visit's stop.
+  const app3 = await open({ now: T("08:38") + 50e3, geo: null, settings: RDM, saved: { dirMode: "office", pace: "fast" } }), c3 = app3.c;
+  await app3.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 8);
+  await app3.fix(...KX, 20, T("08:39") + 30e3, 0, T("08:39") + 10e3);
+  assert.equal(c3.state.hubSince.at, T("08:39") + 30e3);
+  assert.equal(c3.state.hubSince.stopped, T("08:39") + 10e3);
+  app3.close();
+});

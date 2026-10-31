@@ -36,12 +36,13 @@ const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && 
  *  doesn't. No speed: nothing changes. */
 export interface StopWatch { moving: boolean; stoppedAt: number | null; fastAt?: number; }
 export const TRAIN_MOVING_MPS = 5, STOPPED_MPS = 0.5, STOP_WITHIN_MS = 60e3;
+/** `at`: when the phone took the fix (not when it arrived: a fix can arrive up to 30 s old). */
 export function watchStop(prev: StopWatch | null, speed: number | null, at: number): StopWatch {
   const w: StopWatch = prev || { moving: false, stoppedAt: null };
   if (speed == null || !(speed >= 0)) return w;
   if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
   if (speed > STOPPED_MPS || !w.moving) return w;
-  const recent = w.fastAt != null && at - w.fastAt <= STOP_WITHIN_MS;
+  const recent = w.fastAt != null && at >= w.fastAt && at - w.fastAt <= STOP_WITHIN_MS;
   return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
 }
 

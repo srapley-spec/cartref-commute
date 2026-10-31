@@ -113,7 +113,7 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 
 ## When the walk starts: the train stopping (Sam, 30 Oct evening)
 - At the station, the walk to the tube counts from **when your train stopped**, seen from GPS speed: ≤ 0.5 m/s
-  within a minute of a reading at ≥ 5 m/s (faster than you can run). The real stop came after that reading, so a
+  within a minute of a reading at ≥ 5 m/s (faster than you can run), both timed by when the phone took the fix. The real stop came after that reading, so a
   stop is never more than a minute late, the slack the earliest-platform rule allows: a stop never hides the tube
   you caught. The card says "from when your train stopped (08:40)".
 - More than a minute after train speed (locked on the train and unlocked standing on the platform; the real stop
@@ -166,6 +166,7 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Train stop review: locked on the train, unlocked on the platform 4 min later at 0 m/s: not a stop; the tube you caught counts"
 - tests/rules.test.mjs: "Train stop review: the real stop missed under the roof, then a queue at the gateline: not a stop"
 - tests/rules.test.mjs: "Train stop review: a saved stop survives a reload and fixes with no speed; riding, 'No, still here' or another station don't add one"
+- tests/rules.test.mjs: "Train stop review 2: timed by when the phone took the fix, so a fix that arrives late can't make the stop late"
 - tests/core/situation.test.mjs: "awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"

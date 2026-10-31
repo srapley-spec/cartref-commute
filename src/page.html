@@ -1978,10 +1978,11 @@ function onPosition(p){
   // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
   // A stop is only taken in the station you're visiting; moving again at train speed there clears it (held at a
   // signal). Nothing else clears a saved stop (a reload starts the watch afresh but keeps it).
-  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, Date.now());
+  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, state.lastFixAt);
   const hs=state.hubSince, sw=state.stopWatch;
   if(!riding && hs && state.atHub===hs.hub && !hs.still){
-    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at ? sw.stoppedAt : null;
+    // (Stops are timed by when the phone took the fix, up to 30 s before it arrived; the visit by its arrival.)
+    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at-30e3 ? sw.stoppedAt : null;
     if(st!=null && st!==hs.stopped){ hs.stopped=st; state.saved.hubSince=hs; save(); }
     else if(sw.moving && hs.stopped!=null){ delete hs.stopped; state.saved.hubSince=hs; save(); }
   }

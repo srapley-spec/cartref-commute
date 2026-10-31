@@ -286,7 +286,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:36 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1638,7 +1638,7 @@ var CommuteCore = (() => {
     if (speed == null || !(speed >= 0)) return w;
     if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
     if (speed > STOPPED_MPS || !w.moving) return w;
-    const recent = w.fastAt != null && at - w.fastAt <= STOP_WITHIN_MS;
+    const recent = w.fastAt != null && at >= w.fastAt && at - w.fastAt <= STOP_WITHIN_MS;
     return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
   }
   function awayFromHubs(f, p) {
@@ -3778,10 +3778,11 @@ function onPosition(p){
   // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
   // A stop is only taken in the station you're visiting; moving again at train speed there clears it (held at a
   // signal). Nothing else clears a saved stop (a reload starts the watch afresh but keeps it).
-  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, Date.now());
+  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, state.lastFixAt);
   const hs=state.hubSince, sw=state.stopWatch;
   if(!riding && hs && state.atHub===hs.hub && !hs.still){
-    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at ? sw.stoppedAt : null;
+    // (Stops are timed by when the phone took the fix, up to 30 s before it arrived; the visit by its arrival.)
+    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at-30e3 ? sw.stoppedAt : null;
     if(st!=null && st!==hs.stopped){ hs.stopped=st; state.saved.hubSince=hs; save(); }
     else if(sw.moving && hs.stopped!=null){ delete hs.stopped; state.saved.hubSince=hs; save(); }
   }

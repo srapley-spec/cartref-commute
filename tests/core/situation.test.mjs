@@ -207,6 +207,7 @@ test("watchStop: the train stopping is speed ≤ 0.5 m/s after ≥ 5 m/s; moving
   assert.equal(late.moving, false, "and later zeros don't count either");
   assert.equal(core.watchStop(late, 0, 70e3).stoppedAt, null);
   assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 0, 1).stoppedAt, null, "moving with no time seen: no stop");
+  assert.equal(core.watchStop({ moving: true, stoppedAt: null, fastAt: 10e3 }, 0, 5e3).stoppedAt, null, "a stop before the train-speed reading (clock jumped back): none");
 });
 
 test("Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one", () => {
