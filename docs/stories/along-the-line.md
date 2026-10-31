@@ -80,7 +80,9 @@ conflict explains the flyover without claiming that a London-bound service trave
 `src/core/profiles/samAlongLine.ts` supplies bespoke content/route anchors; `src/along-line.js` only adapts the
 existing journey/phone state and renders the model. `src/along-line.css` is an isolated Signal surface, including
 when Panda surrounds it. `settings.alongLine` is additive; validated interests/depth live in the separate
-`alongLinePreferences` saved field. Existing save/simulation snapshot rules apply; old data is not migrated or
+`alongLinePreferences` saved field. With Along the line enabled, Panda also computes the existing qualified
+journey-progress model for station times and current-service disruption evidence, but draws no Signal diagram.
+Signal and Along the line both off preserve the original Panda model path. Existing save/simulation snapshot rules apply; old data is not migrated or
 removed. Native dialog state and manual following are session-only.
 
 ## Tests
@@ -102,6 +104,11 @@ removed. Native dialog state and manual following are session-only.
 - tests/along-line-review.test.mjs: "independent: one glance article can reveal the full story without changing global depth"
 - tests/core/alongLine-review.test.mjs: "independent: approximate landmark areas include nearby positions rather than just exact anchors"
 - tests/core/alongLine-review.test.mjs: "independent: the GPS uncertainty buffer changes only the nearby boundary within the accepted fix limit"
+
+- tests/along-line-review.test.mjs: "independent: Panda commentary promotes a fresh delayed Service Details report over its older on-time board"
+
+- tests/along-line-review.test.mjs: "independent: a northbound journey reverses the strip and a corridor change resets tunnel content"
+- tests/along-line-review.test.mjs: "independent: Panda commentary rejects stale and mismatched reports and preserves explicit current incidents"
 
 Chromium geometry checks: [browser-along-line.py](../../tests/browser-along-line.py), run after building.
 These exercise 320/390px, explicit and device light/dark (with actual palette assertions), 15/30px body text,

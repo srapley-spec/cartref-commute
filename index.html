@@ -686,7 +686,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 19:04 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 19:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6667,7 +6667,8 @@ function progressHtml(model){
 function renderJourneyProgress(){
   document.querySelectorAll('.journey-progress').forEach(node=>node.remove());
   if(state.rendered){state.rendered.progressModel=null;state.rendered.activeRailDisruption=null;}
-  if(!S().signal)return;
+  const drawProgress=!!S().signal;
+  if(!drawProgress&&S().alongLine!==true)return;
   const now=Date.now(),dir=direction(),mode=currentMode();
   if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
   const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
@@ -6765,6 +6766,8 @@ function renderJourneyProgress(){
   }
   if(context.kind==='tube'&&model.status.deltaMin!==null)model.status.text=model.status.text.replace('ahead','ahead of plan').replace('behind','behind plan');
   state.rendered.progressModel=model;
+  // Along the line shares validated reports in Panda without drawing the Signal diagram.
+  if(!drawProgress)return;
   const section=document.createElement('section');section.className='journey-progress';section.dataset.block='progress';section.dataset.source=model.source;section.setAttribute('aria-label','Journey progress');section.innerHTML=progressHtml(model);
   // Keep full legacy report/expected/timetable/error diagnostics accessible once,
   // without repeating their prose above the visual progress view.
@@ -7314,7 +7317,9 @@ function renderAlongLine(resumePosition=false){
   alongDialog.querySelectorAll('[name="alongInterest"]').forEach(el=>{el.checked=preferences.interests.includes(el.value);});
   $('#alongDepth').value=preferences.depth;
   const timingSource=state.rendered?.progressModel?.source;
-  const arrivalLabel=timingSource==='stale'||!state.boardsAt||Date.now()-state.boardsAt>=180000?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
+  const currentReport=timingSource==='reported'||timingSource==='prediction';
+  const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
+  const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
   const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;

@@ -81,7 +81,9 @@ function renderAlongLine(resumePosition=false){
   alongDialog.querySelectorAll('[name="alongInterest"]').forEach(el=>{el.checked=preferences.interests.includes(el.value);});
   $('#alongDepth').value=preferences.depth;
   const timingSource=state.rendered?.progressModel?.source;
-  const arrivalLabel=timingSource==='stale'||!state.boardsAt||Date.now()-state.boardsAt>=180000?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
+  const currentReport=timingSource==='reported'||timingSource==='prediction';
+  const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
+  const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
   const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;
