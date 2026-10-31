@@ -147,3 +147,44 @@ test("reachFlag: what each reach says on the board", () => {
     { lvl: "ok", txt: "You can make it" }, { lvl: "warn", txt: "Fast walk" }, { lvl: "warn", txt: "Run" }, { lvl: "warn", txt: "Car needed" },
     { lvl: "warn", txt: "Only if you're near the platform" }, { lvl: "bad", txt: "Can't make it from here" }, { lvl: "info", txt: "Can't tell yet if you can make it" }]);
 });
+
+test('railStationBoard: graded run and car remain possible despite being missed at walking pace',()=>{
+  const trains=['10:10','10:20','10:30','10:40'].map((std,index)=>t({std,dep:now+(10+index*10)*MIN}));
+  const options=trains.map((train,index)=>Object.freeze(option({train,hub:'CEN',leave:now+(index-2)*MIN,
+    arrive:now+(50+index*10)*MIN,missed:true,...(index<3?{effort:['run','car','none'][index]}:{}),
+    flags:index===0?[{lvl:'warn',txt:'Arrives first · if you run'}]:[]})));
+  const [group]=core.railStationBoard({stops:[{code:'RVS',name:'Riverside',kind:'rail'}],
+    boards:{'RVS-CEN':{services:trains,msgs:[]}},options,now});
+  assert.deepEqual(group.rows.map(row=>row.reach),['run','car','none','none']);
+  for(let index=0;index<options.length;index++)assert.equal(group.rows[index].option,options[index]);
+  assert.equal(group.rows[0].option.flags[0].txt,'Arrives first · if you run','preserve the existing qualified winner');
+  assert.equal(core.reachFlag(group.rows[0].reach).txt,'Run');
+  assert.equal(core.reachFlag(group.rows[1].reach).txt,'Car needed');
+});
+
+test('railStationBoard: the easier graded route wins without reranking run and car options by arrival',()=>{
+  const train=t({std:'10:10'});
+  const car=option({train,hub:'CEN',effort:'car',missed:true,arrive:now+45*MIN});
+  const run=option({train:{...train,to:'MKT'},hub:'MKT',effort:'run',missed:true,arrive:now+55*MIN});
+  for(const options of [[car,run],[run,car]]){
+    const [group]=core.railStationBoard({stops:[{code:'RVS',name:'Riverside',kind:'rail'}],
+      boards:{'RVS-CEN':{services:[train],msgs:[]}},options,now});
+    assert.equal(group.rows[0].reach,'run');assert.equal(group.rows[0].option,run);
+    assert.equal(group.rows[0].arrive,run.arrive,'projection keeps the chosen easiest option intact');
+  }
+});
+
+test('railStationBoard: alternate boarding preserves its own effort and facts without inheriting the main winner',()=>{
+  const mainTrain=train({from:'CEN',to:'RVS',std:'10:10',dep:now+10*MIN,arr:now+40*MIN});
+  const otherTrain=train({from:'MKT',to:'RVS',std:'10:15',dep:now+15*MIN,arr:now+40*MIN});
+  const alternate=Object.freeze(option({train:otherTrain,hub:'MKT',effort:'car',missed:true,
+    leave:now-5*MIN,arrive:now+50*MIN,flags:Object.freeze([{lvl:'warn',txt:'Car needed'}])}));
+  const main=Object.freeze(option({train:mainTrain,hub:'CEN',effort:'walk',firstAt:'walk',
+    leave:now+5*MIN,arrive:now+45*MIN,flags:Object.freeze([{lvl:'ok',txt:'Arrives first'}]),alts:[alternate]}));
+  const groups=core.railStationBoard({stops:[{code:'CEN',name:'Central',kind:'rail'},{code:'MKT',name:'Market Street',kind:'rail'}],
+    boards:{'CEN-RVS':{services:[mainTrain],msgs:[]},'MKT-RVS':{services:[otherTrain],msgs:[]}},options:[main],now});
+  const row=groups.find(group=>group.stop.code==='MKT').rows[0];
+  assert.equal(row.option,alternate);assert.equal(row.reach,'car');assert.equal(row.arrive,alternate.arrive);
+  assert.equal(row.option.firstAt,undefined);assert.deepEqual(row.option.flags,[{lvl:'warn',txt:'Car needed'}]);
+  assert.equal(main.firstAt,'walk');assert.equal(main.flags[0].txt,'Arrives first');
+});

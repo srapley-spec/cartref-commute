@@ -1,5 +1,5 @@
 # Live before a journey: the next stop's departure board
-Status: Done for Commute and Leisure going home (Signal design); Leisure going out still shows trains to London only (see Not yet) · Since: 31 Oct 2026
+Status: Implemented in both designs for Commute and Leisure going home · Leisure going out still shows trains to London only (see Not yet) · Since: 31 Oct 2026 · Release checks: [PR #43](https://github.com/srapley-spec/cartref-commute/pull/43)
 
 ## Story
 As a commuter at home or in the office with no journey under way, when I tap Live I want to see what's actually
@@ -21,8 +21,14 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 5. Plan still being the same as Auto when the question is Leave now is fine.
 6. No toggle.
 
+Later the same evening, Sam's live screenshot exposed missing durations and the arrival-first indication, despite
+their presence in planning. He required the same information in every view and an always-enforced SDLC rule that
+all supported designs advance together. That decision supersedes this story's original Signal-only delivery:
+Panda and Signal share Auto / Plan / Live, with the Follow setting still independent. The long explanation of
+“No journey under way” is replaced by the short hint “Auto shows when to leave.”
+
 ## Acceptance criteria
-- **When it shows:** Live (Signal's Auto / Plan / Live control) with no followed journey and no detected journey
+- **When it shows:** Live (the shared Auto / Plan / Live control) with no followed journey and no detected journey
   (on the way to the station, at a station, on a train or tube, in London to the office, nearly home all keep their
   own live views). Auto and Plan are unchanged. The Live choice lasts as before (20 minutes or a change of situation).
 - **The next stop comes from the routes, not from a list of places** (engine `nextStops`): each route's first
@@ -42,11 +48,18 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
     (none for cancelled or "Delayed" with no estimate) · the train's own flags (cancelled, late, stopping, standing
     room, reason) · Arrive (door to door) · Follow, which follows that train from that station (the matched stop's
     option, not the main option at another station).
+  - Keep the matched option's train duration, total journey duration and canonical “Arrives first” indication
+    visible, with the same values and effort qualifier as planning. Use the option for this boarding station,
+    including when the train appears as another option's stop. Retain the train's own incident/status flags when
+    no usable option exists; unknown timing must not produce an invented total or fastest claim.
   - **Can you make it from here** comes from the same options Auto plans from where you are (no second timing
     model): "You can make it", "Fast walk", "Run", "Car needed", or "Can't make it from here" (missed). Where several
     options match the train at this station, the easiest counts, then the earliest arrival. A train no plan covers says "Can't tell yet if you can make
     it" (e.g. Leisure home before the way to the station is planned). Cancelled: no reach label (Cancelled says it).
     No estimate: can't tell. A train you can't make is greyed, never removed.
+    A known run/car grade remains that grade even when the walking leave time has passed. “Missed at walking
+    pace” is not a second rule that makes an otherwise graded option impossible; genuine none/unknown remains
+    unchanged. Alternate boarding points retain their own effort, facts and flags.
 - **Aldgate** (engine `tubeStationBoard`, connections from `planConnection`): every westbound Circle and Met still
   to come (30 s grace), soonest first: line, time, destination, platform, countdown; where to get off and the train
   home it connects to, and the home time; "You can make it · leave the office by HH:MM" (or "leave for the platform"
@@ -54,6 +67,12 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
   plan uses: office walk 420 s + platform 90 s by default, × 0.82 fast; at Aldgate the platform only), "Can't make it from here", or, only when you're already at Aldgate, "Only if you're near the platform"
   for one leaving before you'd usually reach it (as Auto offers it). A tube no train home connects with is listed and
   says so.
+  - A connected itinerary keeps the same train/whole-journey duration facts and arrival-first meaning as the
+    corresponding option. Departure order, reach and connection choice remain engine decisions; the shell does
+    not rank Tube departures by a new shortest-duration rule. No connection means no invented home duration.
+    Its total uses this departure's actual `leaveBy` and timed home arrival, not a later generic rail-option
+    access start. An early conditional departure without an established start has no claimed total. A selected
+    slower departure remains selected while “Arrives first” stays on the engine's earliest reachable connection.
   - Aldgate's departures load near the office only (the existing request): away from the office Live says "Live
     departures from Aldgate load when you're near the office". No new requests.
   - Circle and Met closed: "No live departures for Aldgate East in the app".
@@ -63,10 +82,11 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
   train or another of its stops); stations no option boards at follow in route order,
   each headed with its name, and a lozenge per station at the top (44 px tall) that scrolls to its section. One
   station: no lozenges, no heading; the list title says "Departures from <station>".
-- **Heading:** "Live · departures from <stations> · HH:MM" (· timetable when not live) and "No journey under way:
-  what's leaving your next stop now, and whether you can make it from here. Auto shows when to leave."
+- **Heading:** "Live · departures from <stations> · HH:MM" (· timetable when not live), with the short hint
+  "Auto shows when to leave." Do not repeat a paragraph explaining what the departures board is.
 - **Location unknown:** unchanged: "Finding your location" / "Location needed"; no board, never assumes home.
-- No new requests, saved data or settings. Signal only (Panda has no Live control). No toggle (Sam, 31 Oct).
+- No new requests, saved data or settings. Auto / Plan / Live and the board behavior are shared by Panda and
+  Signal; Follow remains independently configurable. No new toggle (Sam, 31 Oct).
 
 ## Tests
 - tests/core/stationBoard.test.mjs: "nextStops: each route's first boarding point, once each, in route order"
@@ -92,6 +112,12 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 - tests/live-station-board.test.mjs: "Live board Follow: each row follows that train from that station"
 - tests/live-station-board.test.mjs: "Live in Leisure going home: Farringdon still lists the Thameslinks when only the St Pancras board has them (from their calling points)"
 - tests/signal.test.mjs: "manual Live with no active journey is explicit and does not invent a train"
+
+The duration/ranking/copy refinement is also covered by the mandatory real-page
+[design × surface contract](../../tests/ui-parity.test.mjs), its
+[independent regressions](../../tests/ui-parity-review.test.mjs) and the shared
+[journey-facts unit tests](../../tests/core/journeyFacts.test.mjs). Executed release evidence is recorded separately;
+the new contract's presence alone is not a passing result.
 
 ## Not yet / open questions
 - **Leisure going out: all departures from Letchworth until a destination is chosen** (Sam's rule 3). Today it lists

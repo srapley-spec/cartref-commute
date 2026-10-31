@@ -42,7 +42,9 @@ export function nextStops(routes: Route[]): BoardStop[] {
 
 const sameTrain = (a: Train, b: Train) => a.from === b.from && a.std === b.std && a.operator === b.operator;
 const EASE: Reach[] = ["walk", "fast", "run", "car", "none", "unknown"];
-const reachOf = (o: Option): Reach => (o.missed ? "none" : o.effort ?? "walk");
+// Graded `missed` means unsuitable for the ordinary walking recommendation;
+// run/car can still be real ways to catch it. Preserve that canonical effort.
+const reachOf = (o: Option): Reach => o.effort ?? (o.missed ? "none" : "walk");
 
 /**
  * Every train leaving each rail stop, grouped by stop, in departure order. A train on two boards from the same

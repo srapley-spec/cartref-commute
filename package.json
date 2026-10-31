@@ -6,8 +6,9 @@
     "build": "node tools/build.mjs",
     "typecheck": "tsc -p .",
     "check-docs": "node tools/check-docs.mjs",
+    "check-ui-parity": "node tools/build.mjs && node tools/run-tests.mjs --ui-parity-only",
     "ci": "node tools/ci-local.mjs",
-    "test": "node tools/build.mjs && TZ=Europe/London node --import ./tests/clock.mjs --test tests/*.test.mjs tests/core/*.test.mjs"
+    "test": "node tools/build.mjs && node tools/run-tests.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

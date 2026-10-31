@@ -337,10 +337,13 @@ test("Arrive by on the train: says whether this train gets you there on time; a 
     assert.match(app.text("#hero"), /^Late for \d\d:\d\d by about (9|10|11) min/);
     assert.equal(app.text("#listTitle"), "On the train", "under way, the list is the rest of the journey, not a board");
     // The same deadline tomorrow isn't this journey: the plan for tomorrow, no verdict.
-    setTarget(office + 24 * 60 * m); c.render();
+    setTarget(office + 24 * 60 * m);
+    // Planning is an explicit shared UI choice in both designs. Auto continues
+    // tracking the current journey; choosing Plan exposes tomorrow's deadline.
+    app.d.querySelector('[data-journey-view="plan"]').click();
     assert.doesNotMatch(app.text("#hero"), /^(On time|Late) for/);
     assert.notEqual(app.text("#listTitle"), "On the train");
-  } finally { c.state.here = null; c.state.onLine = false; c.state.saved.view = "now"; }
+  } finally { c.state.here = null; c.state.onLine = false; c.state.saved.view = "now"; c.state.saved.viewOverride = null; }
 });
 
 test("The same Thameslink from Farringdon and St Pancras is one option with both boarding points", () => {

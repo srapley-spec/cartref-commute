@@ -197,6 +197,27 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
+/* Panda keeps the same readable time order when enlarged text needs more room.
+   One shared container reflows the main card and every departure/list row together. */
+html[data-design="panda"] .wrap{min-width:0;container-type:inline-size}
+html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
+@container (max-width:18em){
+  html[data-design="panda"] :is(.hero .optrow,.hero .optrow.board,.row){display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
+  html[data-design="panda"] .hero .optrow>div:not(.optarrow){grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
+  html[data-design="panda"] .hero .optrow .optarrow{display:none}
+  html[data-design="panda"] .hero .optrow .optroute{margin-left:0;padding-bottom:0}
+  html[data-design="panda"] .row>:is(.leave,.exp,.arrive){grid-column:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
+  html[data-design="panda"] .row>.leave{grid-row:1}
+  html[data-design="panda"] .row>.arrive{grid-row:2}
+  html[data-design="panda"] .row.board>.exp{grid-row:2}
+  html[data-design="panda"] .row.board>.arrive{grid-row:3}
+  html[data-design="panda"] .row>.mid{grid-column:1;grid-row:3}
+  html[data-design="panda"] .row.board>.mid{grid-row:4}
+  html[data-design="panda"] .row:has(>.mid.meta){display:block}
+  html[data-design="panda"] .seg{max-width:100%;flex-wrap:wrap}
+  html[data-design="panda"] :is(.pill,.chip){max-width:100%;white-space:normal;overflow-wrap:break-word}
+  html[data-design="panda"] :is(.hero,.list,#followPanel){overflow-wrap:break-word}
+}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
 /*__SIGNAL_STYLES__*/
 /* Follow controls also work in Panda; status colours retain their usual meaning. */
@@ -204,6 +225,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .follow-btn,.follow-action{min-height:44px;font:inherit;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--accent)}
 #followPanel .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
 #journeyViewControl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#journeyViewControl button{min-height:44px;min-width:44px}
 #followPanel .follow-actions{display:flex;gap:8px;flex-wrap:wrap}
 #signalStatus{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent)}
 #signalStatus.bad{border-color:var(--bad)} #signalStatus.warn{border-color:var(--warn)} #signalStatus.note{border-color:var(--note)}
@@ -1081,7 +1103,15 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.txt.startsWith('Arrives first')?' data-fact="arrives-first"':''}${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
+}
+// The same itinerary facts are drawn in every skin and planning/live surface.
+// This key identifies displayed information only; it never selects a service.
+const journeyServiceKey = train => [train.from,train.to,train.std,train.operator].join('|');
+function journeyFactsMarkup(option,context={}){
+  const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
+  const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
+  return `<span class="journey-facts">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'} · ${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span>`;
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -1121,7 +1151,7 @@ function effortLine(j, dest, best){
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
+  return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -1133,7 +1163,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>`}
-    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)}${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -1169,6 +1199,7 @@ function renderOnTrain(now, m){
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
+    <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${m.conflict?`<div class="note" data-block="which"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
     ${(m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
@@ -1216,12 +1247,18 @@ function tubesFromAldgate(now){
   const atAld=C.atOfficeTube("home", fix(), PROFILE), walkMs=aldWalkMs(atAld);
   const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
   // Engine planConnection: what you can catch from here (the office, or Aldgate), getting off where you're home soonest.
-  const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
+  const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:Infinity });
   if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{}), ...(plan.best.dest?{dest:boardDest(plan.best.dest)}:{})}; save(); }
-  const row=(t,mark)=>{ const o=t.leg.o;
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
-  const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
-  const btns=boardBtns("ALD", [...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)), d.list, now, "");
+  const board=C.tubeStationBoard(d.list,plan,now,walkMs,atAld);
+  const row=(t,mark)=>{ const o=t.leg.o, connection=board.find(row=>row.timed===t);
+    return `<div class="tuberow" data-journey-service="${esc(journeyServiceKey(o.train))}"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:connection?.leaveBy!=null?`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(connection.leaveBy)}</span>`:''}${mark?` · <b>you're getting this one</b>`:""}<div class="meta">${journeyFactsMarkup(o,{connection:{leaveBy:connection?.leaveBy??null,arrive:t.arrive}})}${t===plan.fastest?' · '+pills([{lvl:'ok',txt:'Arrives first'}],true):''}</div></div>`; };
+  // Keep the compact choice list, always including the fastest connection and
+  // the person's selection even when either is beyond the first three Tubes.
+  const shown=plan.next.slice(0,3);
+  for(const special of [plan.fastest,plan.chosen?plan.best:null])if(special&&!shown.includes(special)&&!special.early)shown.push(special);
+  const choices=[...(atAld?plan.early:[]),...shown];
+  const rows=choices.map(t=>row(t,plan.chosen&&t===plan.best));
+  const btns=boardBtns("ALD",choices.filter(t=>!(plan.chosen&&t===plan.best)),d.list,now,"");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
@@ -1245,6 +1282,7 @@ function renderOnTubeHome(now){
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
     <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
     <div class="note" data-block="source" style="color:inherit;opacity:.75">Tube times: live departures from Aldgate plus typical ride times (Settings).</div>`;
@@ -1280,6 +1318,7 @@ function renderOnTube(now){
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
     <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${ride}">~${dur(ride)} Tube</span></div>
     ${ask}
     <ol class="legs" data-block="then">
       <li class="t">${hhmm(aldT)}</li><li class="d">${esc(leg.stop)} <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
@@ -1461,11 +1500,11 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
+    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)} · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}
@@ -1495,12 +1534,13 @@ function renderLiveBoard(now){
         const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), max:Infinity });
         const rows=C.tubeStationBoard(d.list, plan, now, walkMs, atAld);
         body=rows.length ? rows.map(r=>{ const t=r.timed, o=t&&t.leg.o;
-          return `<div class="row board live-row${r.reach==="none"?" gone":""}">
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}"${o?` data-journey-service="${esc(journeyServiceKey(o.train))}"`:''}>
       <div class="leave"><small>${esc(r.dep.line)}</small><span class="t">${hhmm(r.dep.t)}</span></div>
       <div class="mid">
         <div class="meta">${esc(r.dep.dest||"")}${C.platformNo(r.dep.platform)?` · <b class="plat">platform ${esc(C.platformNo(r.dep.platform))}</b>`:""} · <span data-dep="${r.dep.t}"></span></div>
         <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:"No train home connects with this one"}</div>
-        <div>${pill(r.reach)}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
+        ${o?`<div class="meta">${journeyFactsMarkup(o,{connection:{leaveBy:r.leaveBy,arrive:t.arrive}})}</div>`:''}
+        <div>${pill(r.reach)}${t&&t===plan.fastest&&r.reach==='walk'?' '+pills([{lvl:'ok',txt:'Arrives first'}],true):''}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
       </div>
       <div class="arrive"><small>Home</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
     </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No westbound Circle or Met departures listed at Aldgate right now.</div><div></div></div>`;
@@ -1516,12 +1556,17 @@ function renderLiveBoard(now){
       const opts=ranked(now);
       for(const g of C.railStationBoard({ stops:railStops, boards:C.addCallingAlternatives(state.boards, dir, PROFILE), options:opts, now })){
         const html=g.rows.length ? g.rows.map(r=>{ const t=r.train;
-          return `<div class="row board live-row${r.reach==="none"?" gone":""}${t.cancelled?" missed":""}">
+          const flags=boardFlags(r.option?.flags||C.trainFlags(t,PROFILE));
+          const reach=r.reach==null?null:C.reachFlag(r.reach);
+          const qualified=r.reach!=='walk'&&r.option?.firstAt===r.reach?flags.find(flag=>flag.txt.startsWith('Arrives first')):null;
+          const reachMarkup=qualified?`<span class="pill ${qualified.lvl}" data-reach="${esc(r.reach)}" data-fact="arrives-first">${esc(qualified.txt)}</span>`:pill(r.reach);
+          const uniqueFlags=flags.filter(flag=>flag!==qualified&&(!reach||flag.txt!==reach.txt&&!(r.reach==='none'&&flag.txt==="Can't make it")));
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}${t.cancelled?" missed":""}" data-journey-service="${esc(journeyServiceKey(r.option?.train||t))}">
       <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
       <div class="mid">
         <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
-        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
-        <div>${[pill(r.reach),pills(boardFlags(C.trainFlags(t,PROFILE)),true)].filter(Boolean).join(" ")}</div>
+        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""} · ${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
+        <div>${[reachMarkup,pills(uniqueFlags,true)].filter(Boolean).join(" ")}</div>
         ${r.option?followButton(r.option):""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${r.arrive!=null?hhmm(r.arrive):"–"}</span></div>
@@ -1532,7 +1577,7 @@ function renderLiveBoard(now){
   }
   const where=groups.map(g=>g.name).join(", ");
   const jumps=groups.length>1?`<div class="live-stops" role="navigation" aria-label="Stations">${groups.map(g=>`<button type="button" class="pill info live-stop" data-board-jump="${esc(g.id)}">${esc(g.name)}</button>`).join(" ")}</div>`:"";
-  $("#hero").innerHTML=`<div class="lbl">Live · departures from ${esc(where||"your next stop")} · ${esc(hhmm(now))}${state.railSource==="tfl"?" · timetable":""}</div><div class="meta live-note">No journey under way: what's leaving your next stop now, and whether you can make it from here. Auto shows when to leave.</div>${jumps}`;
+  $("#hero").innerHTML=`<div class="lbl">Live · departures from ${esc(where||"your next stop")} · ${esc(hhmm(now))}${state.railSource==="tfl"?" · timetable":""}</div><div class="meta live-note">Auto shows when to leave.</div>${jumps}`;
   $("#listTitle").textContent=groups.length>1?"Departures by station":`Departures from ${where}`;
   $("#list").innerHTML=groups.map(g=>`<section class="live-board" id="${esc(g.id)}" aria-label="${esc(g.name)}">${groups.length>1?`<h3 class="live-board-name">${esc(g.name)}</h3>`:""}${g.html}</section>`).join("");
   state.rendered.liveBoard={ stops:groups.map(g=>g.name) };

@@ -14,6 +14,24 @@ The HTML is a review simulation. Consume the tokens and component contracts; do 
 
 ## Current compact production revision — 31 October 2026
 
+### Binding parity and glanceability (Sam, 31 October, evening)
+
+Every supported design and applicable UI view receives a feature or correction in the same change. Designs may
+use different geometry, but must expose the same journey identity, timing, duration, ranking meaning, warnings,
+uncertainty and actions. A design switch is not a waiver. A UI remains supported until Sam explicitly retires it;
+the [mandatory parity gate](stories/ui-parity.md) covers the registered designs and surfaces on every release.
+
+Show train duration and total journey duration from the same existing itinerary wherever that journey is shown:
+planning, Live departures, station cards/lists and Follow. “Arrives first” retains the engine's existing earliest
+usable arrival and effort qualifiers. A later train with a shorter ride must not acquire the badge simply because
+its duration is lower. Do not invent a total duration for an unplanned connection, cancellation or unknown arrival.
+The shared pure `journeyFacts` helper supplies duration facts; the shell formats them and retains canonical flags.
+
+Commuter copy must make sense at a glance: state the time, result or action in plain language. A departures heading
+already explains what is shown. Do not add a paragraph explaining that no journey is underway or narrating how
+the app chooses views. A short hint may explain that Auto shows when to leave. These are information/copy rules
+for all supported designs, not a new visual theme.
+
 Sam authorised a substantial Flighty/Railboard-inspired redesign after comparing the live designs. The compact
 revision supersedes the older prototype's sizing and always-exposed direction/pace controls below. The effective
 direction and pace remain visible in a labelled context disclosure containing the actual Commute/Leisure,
@@ -90,7 +108,7 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 | Leaving right now / hurry | Explicit consequence, train duration and arrival comparison | slow-trains; top-card |
 | Leave / depart / arrive distinction | Context changes the primary time, with an explicit label | at-the-station; on-the-way-to-the-station |
 | Scheduled plus expected times | Both shown wherever a delayed service appears | late-trains |
-| Train duration and total journey duration | Visible option metadata; steps available on expansion | page optionBlock/renderList |
+| Train duration and total journey duration | Shared facts remain visible across planning, Live, station cards/lists and Follow; steps remain available | journeyFacts; UI parity; page optionBlock/renderList/renderLiveBoard |
 | Platforms | Inline, never only in expansion; unknown shown as unannounced | same-train; page platMeta |
 | Same train, multiple boarding points | One service; both station/time/platform choices visible, unreachable marked | same-train |
 | Slow, standing, tight, late, cancelled, uncertain, passed, timetable flags | Inline text with semantic colour; never silently filter | never-hide-a-train; standing-room |

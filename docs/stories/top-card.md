@@ -19,6 +19,10 @@ was a different route.
 - One card is fine when nothing qualifies. The list always has everything.
 - Leave now also says which train you'd catch by setting off this minute, if it's a different one.
 - Cancelled and "Delayed, no estimate" are never on the card.
+- Train duration, total journey duration and the existing “Arrives first” meaning are shared facts, not separate
+  choices made by each design or view. Live departures, station lists, planning and Follow consume the same
+  itinerary and retain effort qualifiers. The fastest-to-arrive option need not have the shortest train ride or
+  total duration. → [UI parity](ui-parity.md)
 
 ## Tests
 - tests/core/engine.test.mjs: "topPicks: best, then the next best on any route; strictly worse options are never the alternative"

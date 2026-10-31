@@ -46,6 +46,10 @@ Engine: `src/core/effort.ts`. The page passes where you are, remembers last refr
   (ties: the later leave, as the card) is marked, only when it arrives sooner than the earliest at every easier level:
   "Arrives first" (green), "Arrives first · fast walk", "· if you run", "· by car" (amber; one lozenge, replacing
   the plain effort lozenge). When a harder level is marked too, the walking one says "Arrives first · walking".
+- **All supported views/designs use this same result** (Sam, 31 Oct, evening). Live departures preserve the matched
+  option's canonical arrival-first flag and effort qualifier instead of rebuilding only the train's status flags.
+  Cancelled, no-estimate and impossible trains cannot inherit a fastest badge. A shorter journey duration alone
+  is not “Arrives first”; existing arrival ordering and per-question eligibility remain unchanged.
 - Card: "Still possible if you hurry" and "Leave time passed … run or bike" are replaced by one line per run / car
   train marked "Arrives first" that arrives sooner than the card's best, soonest first: "Arrives first if you run: the
   07:20 Great Northern leaves Letchworth, … — 4 min sooner than the 07:23".

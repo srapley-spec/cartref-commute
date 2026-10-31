@@ -58,6 +58,11 @@ from that description.
   order of the blocks are decided once, in the engine (`src/core/present.ts`), from engine outputs. The web page, a
   widget, a Live Activity or a Watch face draws that order in its own shape; none re-decides it. A design proposal
   proposes how to draw the blocks, never which comes first. → [presentation-model](stories/presentation-model.md)
+- **Supported UIs advance together** (Sam, 31 Oct, evening). A feature or correction ships across every supported
+  design and applicable view in the same change. Layout may differ; journey facts, meaning, actions and uncertainty
+  may not drift. Being behind a design switch does not permit leaving another supported UI behind. Only Sam's
+  explicit retirement of a UI ends that obligation. The mandatory design × surface contract gate enforces this on
+  every test/release run. → [UI parity](stories/ui-parity.md)
 
 
 ## Signal presentation architecture (29 Oct 2026)
@@ -188,8 +193,9 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   reset/isolation: simulated following must not write to the real phone journey, and Stop restores its snapshot.
 - Signal live templates emit semantic block boundaries; `src/presentation-blocks.js` renders their existing
   nodes in the engine-supplied canonical order without a second priority table or dropping unknown content.
-  Panda's feature-off layout remains unchanged. Signal draws the tested status summary and qualifies missing
-  live line-status evidence.
+  Panda retains its own geometry. The later parity decision shares Auto / Plan / Live access and journey facts
+  even when Follow and Signal are off; the earlier feature-off control-hidden rule no longer applies. Signal
+  draws the tested status summary and qualifies missing live line-status evidence.
 - Following a caught Tube uses current connection readiness for rail catchability. After rail, fresh onward
   Tube/walk evidence can revise the arrival with a visible reason without changing completed rail-step times.
   Fresh Service Details arrival evidence remains authoritative even if departure boards are stale.
@@ -235,7 +241,7 @@ tube home, nearly home, office arrival), `connections.ts` (generic connection at
 `plan.ts` (Leave now list), `search.ts` (timetable searches per plan against an injected planner; Leave around /
 Arrive by lists), `refresh.ts` (what each refresh loads), `live.ts` (live + timetable mixing), `warnings.ts`
 (grading, notices, line status), `present.ts` (presentation model: which view, headline kind, the status line's
-precedence, block order per view, the on-your-way colour), `stationBoard.ts` (Live before a journey: next stops and their departure boards with reach), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
+precedence, block order per view, the on-your-way colour), `stationBoard.ts` (Live before a journey: next stops and their departure boards with reach), `journeyFacts.ts` (guarded train and whole-journey durations from the existing option), `journey.ts`, `rank.ts`, `rules.ts`, `alternatives.ts`, `geo.ts`, `time.ts`,
 `adapters/`, `profiles/sam.ts` (data incl. places, office stops and their lines, walking speeds, route stations) and
 `profiles/samRoutes.ts` (Sam's routes as segments from his timings). The page (`src/page.html`) fetches, caches and
 draws.
@@ -256,6 +262,12 @@ draws.
   (29 Oct evening, incl. 3 for the docs check); 303 with effort levels (30 Oct).
 - Test cases kept as data files are the contract any future native (Swift) engine must also pass.
 - Stories link the tests that prove them; CI checks the links exist.
+- `config/ui-parity.json` lists supported designs and every presentation surface. The mandatory parity runner
+  checks real-page semantic contracts for every design × surface tuple, rejecting failures, missing cases,
+  duplicates, skips and TODOs. `npm test`, local committed-head CI and GitHub all enforce it; `Docs: none` does
+  not bypass it. A shared renderer can satisfy both designs without artificial edits to separate files. A
+  retirement requires Sam's explicit decision and its retained machine-checked record. This verifies the
+  maintained contract matrix, not every possible combination of future features. → [UI parity](stories/ui-parity.md)
 
 ## Release
 GitHub Pages, same URL, single page. A build step compiles the engine and inlines it into the page; CI
@@ -303,6 +315,15 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   watches. Preferences are additive saved data, with existing simulation isolation.
   → [Along the line](stories/along-the-line.md).
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct, evening, UI parity** Sam: Live must show the same duration and fastest-route information as every
+  other view, and all supported designs/UIs must be updated together until explicitly retired. Duration comes
+  from the same canonical option or concrete connection projection, not a second Live calculation. Existing “Arrives first” means earliest usable
+  arrival at each achievable effort level, not the shortest elapsed trip; ranking and catchability stay shared.
+  An existing run/car grade survives a missed walking leave time. Tube `fastest` remains distinct from an explicit
+  selected `best`; actual connection totals use projected leave-by to timed final arrival.
+  Add an unconditional design × surface contract gate and concise glanceable commuter copy. This supersedes any
+  earlier preservation-only interpretation that allowed a new feature to remain exclusive to one supported UI.
+  → [UI parity](stories/ui-parity.md), [Live board](stories/live-station-board.md)
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
   point. Next for that: National Rail's journey planner (Sam has access; key and docs pending) for multi-train
