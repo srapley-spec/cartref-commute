@@ -40,7 +40,7 @@ const tripAdapters = (() => {
     }
     const lib = async name => { await ensureLoaded(); return google.maps.importLibrary(name); };
     const guarded = async (what, url, fn) => { const epoch = net.epoch(); net.logRequest(url);
-      try { const v = await fn(); net.assertEpoch(epoch); return v; } catch (e) { if (e && e.sourceChanged) throw e; throw googleError(e, what); } };
+      try { const v = await fn(); net.assertEpoch(epoch); return v; } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw googleError(e, what); } };
     return {
       attribution: ATTRIBUTION, ensureLoaded,
       newSession() { const id = newId(); tokens.set(id, null); return id; },
@@ -86,7 +86,7 @@ const tripAdapters = (() => {
     async function call(what, path, init) {
       if (!base()) throw err("Set your proxy's address in Settings.", { refused: true });
       const epoch = net.epoch(); let r;
-      try { r = await net.fetchT(`${base()}/google/${path}`, init); } catch (e) { if (e && e.sourceChanged) throw e; throw googleError(e, what); }
+      try { r = await net.fetchT(`${base()}/google/${path}`, init); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw googleError(e, what); }
       net.assertEpoch(epoch);
       if (!r.ok) throw httpError(r.status, `Google ${what}`);
       return r.json();
@@ -131,7 +131,7 @@ const tripAdapters = (() => {
         const key = getKey();
         const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
         const epoch = net.epoch(); let r;
-        try { r = await net.fetchT(url); } catch (e) { if (e && e.sourceChanged) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
+        try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
         net.assertEpoch(epoch);
         if (r.status === 404) return { journeys: [], refused: [`TfL found no journey from ${from.name} to ${to.name}`] };
         if (r.status === 300) return { journeys: [], refused: [`TfL couldn't pin down ${from.name} or ${to.name}`] };

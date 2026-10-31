@@ -339,3 +339,38 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
 @media(prefers-reduced-motion:reduce) {
   html[data-design="signal"] *,html[data-design="signal"] *::before,html[data-design="signal"] *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+/* ---------- Trip mode (leisure journeys): design-system additions L1–L17 (docs/design-system.md). Signal tokens only;
+   red / amber / green stay status-only. Functional drafts for the designer's review. ---------- */
+html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):not(footer) {display:none!important}
+html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
+html[data-design="signal"] .trip {display:grid;gap:10px;min-width:0}
+html[data-design="signal"] .trip-form {display:grid;grid-template-columns:1fr;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+html[data-design="signal"] .trip-field label {display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+html[data-design="signal"] .trip-combo {position:relative}
+html[data-design="signal"] .trip-combo input {width:100%;box-sizing:border-box;min-height:44px;font-size:16px;padding:8px 10px;border:1px solid var(--signal-control-line);border-radius:10px;background:var(--card);color:var(--ink)}
+html[data-design="signal"] .trip-suggest {position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px #0000001f}
+html[data-design="signal"] .trip-suggest [role=option] {min-height:44px;padding:8px 10px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;cursor:pointer}
+html[data-design="signal"] .trip-suggest [role=option] span {font-size:13px;color:var(--muted)}
+html[data-design="signal"] .trip-suggest [aria-selected=true] {background:var(--signal-soft)}
+html[data-design="signal"] :is(.trip-suggest-note,.trip-attrib) {padding:6px 10px;font-size:12px;color:var(--muted)}
+html[data-design="signal"] .trip-swap {justify-self:end}
+html[data-design="signal"] .trip-modes {display:grid;gap:6px}
+html[data-design="signal"] .trip-when {display:flex;gap:8px;align-items:center;font-size:14px}
+html[data-design="signal"] .trip-when input {min-height:44px}
+html[data-design="signal"] .trip-stage {margin:0;font-size:13px;color:var(--muted);min-height:1em}
+html[data-design="signal"] :is(.trip-setup,.trip-card) {background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+html[data-design="signal"] .trip-headline {display:grid;gap:2px;background:var(--hero-accent);border-radius:16px;padding:12px}
+html[data-design="signal"] .trip-headline .big {font-size:36px;line-height:1.05;font-variant-numeric:tabular-nums}
+html[data-design="signal"] .trip-headline.bad {background:var(--bad-bg)} html[data-design="signal"] .trip-headline.warn {background:var(--warn-bg)}
+html[data-design="signal"] .trip-h {font-size:14px;margin:6px 0 0;color:var(--muted)}
+html[data-design="signal"] .trip-row {display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+html[data-design="signal"] .trip-row.best {border-color:var(--accent)}
+html[data-design="signal"] .trip-times {display:grid;grid-template-columns:repeat(3,1fr);gap:var(--signal-time-gap)}
+html[data-design="signal"] .trip-times b {display:block;font-size:24px;font-variant-numeric:tabular-nums}
+html[data-design="signal"] .trip-times div:last-child {text-align:right}
+html[data-design="signal"] .trip-times .exp {display:block;font-size:12px;color:var(--warn)}
+html[data-design="signal"] .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+html[data-design="signal"] .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
+html[data-design="signal"] .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
+html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}

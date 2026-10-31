@@ -201,6 +201,12 @@ Independent mutation review before merging (CLAUDE.md).
   race in the page, not in the runner; reported to Sam, and `searchRoutes` stays on its own loop until it is fixed.
 - `serviceFlags` extracted from `trainFlags` with the flag order unchanged (all goldens unchanged).
 
+- Screen (31 Oct night): `src/trip-ui.js` mounted into `#tripRoot`; the page's hooks are the Trip button, early returns in
+  `render()` / `refresh()`, the Experimental switch and a Trip settings section, and `html[data-trip]` CSS that hides the
+  commute while Trip is shown. Saved state is one validated key `tripMode` (the commute's `trip` key already exists).
+  Adapters in `src/trip-adapters.js`; build inserts both at `/*__TRIP_UI__*/`. Station list fetched on first use.
+- Not built yet: see the story's "Not yet".
+
 ## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live
   boards; two tight-change rules; budget gaps; untested edges; Google claims; commute-specific views. → revision 2.

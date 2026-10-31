@@ -1,5 +1,6 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Partly built (engine; design revision 3 approved with changes by independent review) · Behind toggle when built
+Status: Behind toggle (Settings → Experimental → Trip, off by default; needs Signal). Built 31 Oct night; independent
+mutation review before merging; Google unverified until Sam has a key · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
 Architecture: [leisure-architecture.md](../leisure-architecture.md). Design-system additions:
@@ -189,19 +190,36 @@ Built so far (see the build log in the architecture for what is and isn't on scr
 - tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
+- tests/trip-page.test.mjs: "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
+- tests/trip-page.test.mjs: "Trip switch on without Signal: no Trip button; a saved Trip screen falls back to the commute"
+- tests/trip-page.test.mjs: "Trip without a Google key: the setup card, nothing planned, no Google script or request"
+- tests/trip-page.test.mjs: "Trip: address drop-down after 3 characters and 250 ms; keyboard choose; a late reply for older text is ignored"
+- tests/trip-page.test.mjs: "Trip: Brighton → Canterbury plans door to door from TfL, every journey listed, and makes no commute requests"
+- tests/trip-page.test.mjs: "Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it"
+- tests/trip-page.test.mjs: "Trip: back to Commute restores the commute screen and Trip's places are kept"
 - tests/proxy.test.mjs: "Proxy (Trip): any station's board only with ALLOW_ANY_STATION=yes; still only well-formed codes"
 - tests/proxy.test.mjs: "Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field masks, the key sent upstream only"
 - tests/trip-google.test.mjs: the contract suite in tests/contracts/google-ports.mjs, run against the Maps JS, proxy and
   fixture (simulator) adapters (8 checks each; generated names, so not linked one by one)
-- Still planned: Google contract suite (Maps JS, proxy, simulator adapters); page tests (switch off unchanged, Trip
-  without key, combobox keyboard / stale reply, full plan, live budget, Follow through a change); goldens for
-  Brighton → Canterbury West and Winchester → Norwich incl. request counts.
+- Still planned: goldens for Brighton → Canterbury West and Winchester → Norwich incl. request counts; a page test for live
+  boards within the budget and for Follow through a change with live data; the drive re-check at its 2-min edge.
 
 ## Not yet / open questions
+Built differently from the text above, or not yet (31 Oct night):
+- Saved state is one validated key, `tripMode` (active, from, to, ways, question, recent places, followed trip), not
+  separate keys: the commute already uses `trip` for its direction memory, and one key keeps Trip off the ~40 places
+  the page checks `mode`. Settings: `trip`, `googleKey`, `googleVia`, `tripParkMin`… (minutes; engine defaults).
+- Not yet: National Rail journey planner adapter (no access); simulator providers for Trip (the contract suite has a
+  fixture adapter, but the journey simulator doesn't drive Trip); Auto / Plan / Live buttons for Trip (the view follows
+  the followed trip's phase); asking which ride you're on (time and answers only, no GPS check yet); re-planning when
+  the current location moves 500 m; "Plan from <station>" after a missed connection (the alternative offer covers it
+  partly); Service Details for the ride you're on.
+- The drive re-check is the 5-min re-plan with drive times per 5-min slot; the leave-time change is announced when ≥ 2 min.
 - National Rail journey planner: licensed SOAP; built from documentation, unverified until access; likely needs the
   proxy.
-- Google: class names, limits and cycling coverage in the UK are unverified until Sam has a key.
+- Google: class names, limits and cycling coverage in the UK are unverified until Sam has a key; only
+  `src/trip-adapters.js` depends on them.
 - Station data: CRS and positions from the open UK stations list (ODbL); TfL IDs, car parks and departures per hour
-  measured once by a tool.
+  measured once by `tools/stations.mjs` (service levels from a Saturday evening: re-run on a weekday).
 - Out of scope: bus / tube / taxi to the station, fares, step-free routing ([family day out](family-day-out.md)),
   outside the region, Panda.
