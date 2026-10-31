@@ -121,8 +121,8 @@ test('explicit planning views are inconclusive without hiding an unintended pres
 });
 
 test('office dwell verifies the legitimate homeward plan after the arrival acknowledgement',()=>{
- const c=base({point:'office',label:'Office dwell',mode:undefined});c.app.direction='home';c.app.nearOffice=true;c.app.onLine=false;c.app.ride=null;c.app.view='plan-now';c.app.heroText='If you leave now · Tubes from Aldgate · home at 17:20';const result=evaluate(c);assert.equal(result.status,'PASS');assert.equal(row(result,'office-presentation'),undefined,'the earlier arrival acknowledgement no longer applies');assert.equal(row(result,'office-dwell-plan').status,'PASS');
- for(const patch of [{direction:'office'},{onLine:true},{ride:{vehicle:'OLD-TUBE'},view:'on-tube-home',heroText:'On the tube towards home'},{view:'on-train',heroText:'On the train home'},{heroText:'On the tube · old arrival at home'}]){
+ const c=base({point:'office',label:'Office dwell',mode:undefined});c.app.direction='home';c.app.nearOffice=true;c.app.onLine=false;c.app.ride=null;c.app.view='plan-now';c.app.heroText="If you leave now · 10:21 · best, and the next best Leave15:47 → Arrive home17:16 via King's Cross · Journey steps 16:53 Arrive Letchworth · 36 min on the train";const result=evaluate(c);assert.equal(result.status,'PASS');assert.equal(row(result,'office-presentation'),undefined,'the earlier arrival acknowledgement no longer applies');assert.equal(row(result,'office-dwell-plan').status,'PASS');
+ for(const patch of [{direction:'office'},{onLine:true},{ride:{vehicle:'OLD-TUBE'},view:'on-tube-home',heroText:'On the tube towards home'},{view:'on-train',heroText:'On the train home'},{heroText:'On the tube · old arrival at home'},{heroText:'On the train · old arrival at home'}]){
   const wrong=base({point:'office',label:'Office dwell',mode:undefined});wrong.app={...c.app,...patch};assert.equal(evaluate(wrong).status,'FAIL',JSON.stringify(patch));
  }
 });

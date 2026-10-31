@@ -292,7 +292,7 @@ Newest first. One line each; the story or issue holds the detail.
 - **28 Oct** Four-layer re-architecture, in steps that keep the live app unchanged and all tests green.
 - **28 Oct** People and trips requirements (Laura, nursery, day out). → [people-and-trips](stories/people-and-trips.md)
 
-## Journey simulator (release verification in progress)
+## Journey simulator
 The web shell injects independent session-only GPS and transport providers from `src/simulator`.
 The simulator clock supplies a scoped Date wrapper; the global browser clock is unchanged. GPS-only
 playback uses device time; feed simulation uses a selectable frozen virtual epoch advanced only by
@@ -306,8 +306,8 @@ and no-fix scenarios exercise the normal location and inference paths.
 Simulation sessions snapshot saved journey memory, suppress persistence and reset transient caches.
 A source epoch guards requests, response bodies, asynchronous callbacks and retries across switches,
 restart and Stop. Reload always restores real operation. See [journey simulator](stories/journey-simulator.md),
-[coverage](simulator-scenario-coverage.md), and [independent review](simulator-review.md) for verification
-and outstanding release gates. GitHub-first release applies because this changes location, timing,
+[coverage](simulator-scenario-coverage.md), and [independent UX review](simulator-ux-review.md) for verification;
+[PR #37](https://github.com/srapley-spec/cartref-commute/pull/37) records exact release evidence. GitHub-first release applies because this changes location, timing,
 feed requests, saved-state isolation and generated build integration.
 
 ### Simulator time audit
@@ -330,3 +330,5 @@ ride durations remain fallback estimates; live vehicle predictions correct the e
 Journey Mode and Advanced are presentations of one existing simulator controller. Guided setup is draft state; only Start atomically enables the coordinated sources and resets the scenario. Active provider configuration is immutable until an explicit restart, preserving coherence while draft controls are edited. Remembered choices live in a separate validated preference key, without active state.
 
 `catalog.js` describes grouped scenarios; `journey-ui.js` renders guided setup, the compact overlay, timeline and progressive Advanced diagnostics. `session.js` observes the real shell's already-computed presentation after refresh, invokes pure simulator assertions from `verification.js`, and records bounded allowlisted results in `report.js`. No expected identity is injected into the production engine. Session/playback tokens guard asynchronous observations, and export sanitization retains all private values encountered during the session even after Stop. The actual app remains the main interface.
+
+The subsequent main-branch Follow-a-route capability shares these safeguards: original followed-route and planning-lifetime memory are snapshot/restored, synthetic Follow choices remain in memory, and follow-option/vehicle-ETA caches are cleared at source boundaries. Diagnostics observe the normal rendered Follow model; they never call the production follower or train inference a second time. Its cache ages, planning expiry and event timestamps use the same lexical clock as the rest of the web shell.

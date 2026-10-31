@@ -175,3 +175,33 @@ test('independent review: through-service movement cannot override uncertainty o
  const context=core.railTrackingContext({fix,speed:25,track:{at:now-10000,km:50,moving:true},train:service,dir:'office',now,onTube:false},profile);
  assert.equal(context.continuing,false,'known service identity cannot convert an ambiguous destination arrival into definite continued travel');
 });
+
+test('independent review: Follow planning metadata and caches stay isolated while observing Follow is read-only',async()=>{
+ const a=await createApp({settings:{provider:'demo',follow:true},settle:120});
+ await waitReview(()=>!!a.d.querySelector('[data-follow]'),'ordinary application offers Follow');
+ a.d.querySelector('[data-follow]').click();
+ const originalFollow=JSON.parse(JSON.stringify(a.c.state.saved.follow));assert.ok(originalFollow);
+ a.d.querySelector('[data-view="by"]').click();await sleep(50);
+ const originalViewAt=a.c.state.saved.viewAt,originalViewKey=a.c.state.saved.viewKey,originalLS=a.w.localStorage.getItem('cartrefCommute.v1');
+ assert.ok(originalViewAt);assert.ok(originalViewKey);
+ // Sentinels represent cache entries from a different provider/time session, not journey inputs.
+ a.c.state.followable['STALE-REVIEW-FOLLOW']={sentinel:true};
+ a.c.state.tubeEta={vehicle:'STALE-REVIEW-VEHICLE',hub:'KGX',at:Date.now(),t:Date.now()+600000};
+ await begin(a);
+ assert.equal(a.c.S().follow,true,'user feature preference remains enabled');
+ for(const key of ['follow','viewAt','viewKey'])assert.equal(a.c.state.saved[key],undefined,key+' does not carry into simulation');
+ assert.equal(a.c.state.followable?.['STALE-REVIEW-FOLLOW'],undefined);assert.equal(a.c.state.tubeEta,null);
+ await waitReview(()=>!!a.d.querySelector('[data-follow]'),'genuine Follow remains available with synthetic providers');
+ a.d.querySelector('[data-follow]').click();assert.ok(a.c.state.saved.follow);assert.match(a.d.getElementById('hero').textContent,/Following/);
+ const snapshot=()=>JSON.stringify({saved:a.c.state.saved,lock:a.c.state.trainLock,rendered:a.c.state.rendered}),before=snapshot();
+ assert.ok(a.c.readSimulationActual().follow);assert.equal(a.c.readSimulationActual().following,true);
+ for(let n=0;n<5;n++)a.c.readSimulationActual();assert.equal(snapshot(),before,'diagnostics do not execute Follow inference or mutate its state');
+ click(a,'simPlay');await sleep(80);assert.equal(a.c.state.saved.follow,undefined,'Restart clears only the synthetic followed journey');
+ assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),originalLS,'simulation and Restart never save synthetic Follow/planning metadata');
+ click(a,'simExit');await sleep(100);
+ assert.deepEqual(JSON.parse(JSON.stringify(a.c.state.saved.follow)),originalFollow);
+ assert.equal(a.c.state.saved.viewAt,originalViewAt);assert.equal(a.c.state.saved.viewKey,originalViewKey);
+ assert.deepEqual(JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1')).follow,originalFollow,'resumed real GPS can advance ordinary trip timestamps, while the real followed journey remains intact');
+ assert.equal(a.c.state.tubeEta,null);assert.equal(a.c.state.followable?.['STALE-REVIEW-FOLLOW'],undefined);
+ await sleep(350);assert.deepEqual(a.errors,[]);
+});

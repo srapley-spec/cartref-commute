@@ -109,7 +109,7 @@ function evaluateSimulationCheckpoint(context={}) {
    add('office-dwell-ride','End any old Underground ride before offering a new homeward journey',app.ride?'An Underground ride is still active':app.ride===null?'No Underground ride is active':'Ride state not observed',app.ride===null?true:app.ride?false:null,{rideActive:app.ride===null?false:app.ride?true:null});
    const planViews=['plan-now','plan-by','plan-at'];
    add('office-dwell-plan','Offer a new homeward planning view after the office dwell',app.view?`Application view: ${app.view}`:'Application view not observed',typeof app.view==='string'?planViews.includes(app.view):null,{view:app.view||null});
-   const planned=!!text&&/home|Aldgate|leave/i.test(text)&&!/On the (train|tube)/i.test(text);
+   const planned=!!text&&/home|Aldgate|leave/i.test(text)&&!/^\s*On the (train|tube)\b/i.test(text);
    add('office-dwell-presentation','Display a genuine homeward plan rather than the completed outbound train or tube',text?(planned?'Homeward planning wording observed':'Homeward planning wording not observed'):'Main card not observed',text?planned:null,{screenMatch:text?planned:null});
   }else screen('office-presentation','Show arrival at the office rather than an old train or tube ride',/At the office|arrived/i);
  } else if(point==='office'&&ret){screen('return-plan','Offer a genuine homeward journey from the office',/home|Aldgate|leave|tube/i);

@@ -2,7 +2,8 @@
 
 Reviewer: `/root/ux_review`, separate from the feature implementation authors. The reviewer owns this
 report and `tests/simulator-ux-review.test.mjs`; no feature implementation was written by this reviewer.
-Reviewed base: `47c82c7`; integrated implementation reviewed through the 31 October 00:03 UTC build.
+Reviewed base: `47c82c7`; initial integrated implementation reviewed through the 31 October 00:03 UTC build.
+Final focused integration review: `a23e31d`, incorporating current main `be1e58e` and its Follow-a-route feature.
 **Independent UX and technical review approved.** Release remains conditional on committed-code CI and
 GitHub release gates; this approval does not claim those have already completed.
 
@@ -94,9 +95,10 @@ run, clear a newer pending flag or revise a finished report.
 
 ## Independent retained tests and mutation evidence
 
-`tests/simulator-ux-review.test.mjs` contains **10 tests**. The first nine passed together on the integrated
+`tests/simulator-ux-review.test.mjs` contains **11 tests**. The first nine passed together on the integrated
 built source (21.69 s); the added destination-uncertainty boundary test passed separately. Final committed CI
-must execute all ten together. Tests use actual generated app handlers, DOM and normal inference where
+must execute all eleven together. The final Follow integration regression also passed separately (2.71 s).
+Tests use actual generated app handlers, DOM and normal inference where
 app behavior is under review; pure async/report tests isolate specific adverse contracts.
 
 | Deliberate defect | Independent evidence that detects it | Result |
@@ -107,6 +109,7 @@ app behavior is under review; pure async/report tests isolate specific adverse c
 | Disable report privacy refresh | Rotate actual Settings credential, Stop, Copy | Retained privacy test fails because the temporary credential is exported |
 | Revert through-station production helper | Normal Thameslink GPS still passes St Pancras | Actual app prematurely leaves rail state; rail-progress assertion and visible badge become FAIL |
 | Remove destination uncertainty guard | GPS centre 419.7 m from Farringdon with ±45 m accuracy overlaps its 445 m confidence radius | Independent boundary test fails: continuation true versus required false |
+| Remove clearing of saved Follow/planning metadata | Actual real Follow selection and Arrive-by metadata precede Start | Independent retained Follow isolation test fails because the real followed journey survives into simulation |
 
 All mutations use isolated HTML strings or temporary copied workspaces. Shared production source is restored
 and contains no mutation. A mutation counts only when the intended assertion fails, not a setup/import error.
@@ -115,6 +118,40 @@ Evidence: `/tmp/cartref-ux-review-final-nine.log`, `/tmp/cartref-ux-review-desti
 `/tmp/cartref-ux-always-pass-mutant.log`, `/tmp/cartref-ux-stale-guard-mutant.log`,
 `/tmp/cartref-ux-privacy-mutant.log`, `/tmp/cartref-ux-review-through-station-retry.log`,
 `/tmp/cartref-ux-review-through-station.log`, `/tmp/cartref-ux-destination-mutant.log`.
+
+## Final current-main integration review
+
+**Approved for `a23e31d` and the final scoped office-dwell correction**, with final committed CI still
+required after the newly retained regression. No significant independent review findings remain open.
+The reviewer re-read the merged Follow story, production integration and simulator transaction, and ran
+focused tests rather than repeating the heavy browser suite during the release lead's full test run.
+
+- `saved.follow`, `viewAt` and `viewKey` are cleared when entering/restarting simulation; the complete original
+  settings/journey snapshot restores them on Stop. The user's Follow feature preference remains enabled.
+- Source invalidation clears `followable` and `tubeEta`. A pending `refreshTubeEta` result checks its source
+  epoch after parsing, and the existing response-body guard rejects stale responses across source changes.
+- Actual Follow controls remain usable in the synthetic journey. Repeated `readSimulationActual()` calls
+  read the already rendered Follow result without changing saved state, train lock or rendered model.
+- The independent retained actual-page regression selects a real Follow route and Arrive-by view, seeds
+  stale cache sentinels, starts simulation, uses the genuine Follow control, restarts and stops. It verifies
+  exact original Follow/planning metadata restoration, no synthetic storage writes, cache clearing and
+  observational purity. Baseline PASS; removing metadata clearing in an isolated built page causes the
+  same test to fail on the unintended real Follow state. No shared source was mutated.
+- The office-dwell oracle now accepts the legitimate new homeward plan after direction turns home, while
+  the initial office arrival still requires arrival acknowledgement. Independently executed focused
+  positive and negative cases pass (2/2), including stale Underground/rail state and insufficient evidence.
+  A subsequent strengthened full-route check exposed incidental future itinerary text, `36 min on the train`,
+  incorrectly matching the stale-ride phrase check. The independently reviewed correction checks the primary
+  heading instead. Its positive test uses the actual homeward itinerary text; explicit stale On the train and
+  On the tube headings still fail even with a spoofed planning view and no active ride. The initial arrival
+  requirement, actual view, direction, active ride and rail-state guards remain unchanged. Focused final
+  oracle cases pass (2/2). All four actual normal journeys were rerun against the final built oracle:
+  **4/4 PASS, zero runtime assertion FAILs**, 51.21 s. The reviewer inspected the strengthened retained
+  test, which requires zero actual failures across every checkpoint, rather than merely correct totals.
+
+Evidence: `/tmp/cartref-ux-review-follow-regression.log`, `/tmp/cartref-ux-follow-mutation.log`,
+`/tmp/cartref-ux-review-follow-oracles.log`, `/tmp/cartref-ux-review-follow-oracles-final.log`,
+`/tmp/cartref-ux-normal-runtime-dwell-fixed.log`, and `/tmp/cartref-follow-review.log`.
 
 ## Remaining limits and release gate
 

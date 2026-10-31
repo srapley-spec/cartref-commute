@@ -45,7 +45,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 
 ### Where you are
 - [Synthetic Darwin and TfL feeds](simulated-transport-feeds.md) · Partly done, branch only
-- [Developer journey simulator](journey-simulator.md) · Partly done, branch only (review pending)
+- [Developer journey simulator](journey-simulator.md) · Implemented and independently reviewed: guided Journey Mode, Advanced diagnostics and real-app checkpoint verification ([release #37](https://github.com/srapley-spec/cartref-commute/pull/37))
 - [Direction and arriving](direction-and-arrival.md) · Done
 - [On your way to the station](on-the-way-to-the-station.md) · Done
 - [At the station: departure board](at-the-station.md) · Done
