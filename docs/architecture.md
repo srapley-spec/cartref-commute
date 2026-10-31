@@ -296,6 +296,12 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+- **31 Oct** Sam authorises Along the line as a Signal-based journey companion, with a separate Experimental
+  toggle off by default. Interests and reading depth are independent. Start with bundled curated
+  Letchworth–London stories and approximate phone-led cues, never exact position from timetable interpolation.
+  The pure model consumes injected evidence and profile content; the shell starts no extra feeds or location
+  watches. Preferences are additive saved data, with existing simulation isolation.
+  → [Along the line](stories/along-the-line.md).
 Newest first. One line each; the story or issue holds the detail.
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end

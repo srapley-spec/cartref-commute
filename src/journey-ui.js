@@ -427,7 +427,7 @@ function renderSignalLocation(){
   const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
 }
-function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   if(!journeyEnabled()&&!signalActive)return null;
