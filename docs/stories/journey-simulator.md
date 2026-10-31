@@ -77,5 +77,11 @@ Test lifecycle cleanup waits for native GPS and the resulting refresh to settle 
 Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides in both Panda and Signal (36 combinations). Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
 
 Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.
+The Journey UX Next helper waits for the actual enabled control, clicks once and requires monotonic
+progress to exactly the adjacent checkpoint. It rejects six seconds without progress and caps the
+whole action at 60 seconds, rather than treating six seconds of normal processing as a playback failure.
+A delayed real Thameslink segment exceeds the old total deadline while preserving every inference
+assertion; a deliberately stalled UI action must still be rejected. This fixes the timeout exposed by
+the guide PR's same-head GitHub run (679/680, while the other run passed 680/680).
 Signal/current-main integration adds independent `tests/simulator-signal-review.test.mjs`; the eight complete normal-journey cases verify all route/direction combinations under both real designs.
 Train-stop/current-main integration adds independent `tests/simulator-stop-review.test.mjs`: four route/direction cases check provider/GPS/clock agreement, predeparture waiting, freeze/reset and the return stop's station; a fifth checks restoration through both exit paths. Broken approach speed must cause a visible runtime stop-clock failure.
