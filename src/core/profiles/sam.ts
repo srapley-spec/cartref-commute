@@ -37,7 +37,11 @@ export const samCommute: Profile = {
     hubGeo: { KGX: [51.5308, -0.1238], ZFD: [51.5203, -0.1053] },
     atHubKm: 0.4,
     officeStops: [
-      { id: "ALD", name: "Aldgate", geo: [51.5142, -0.0755], lines: ["circle", "metropolitan"] },
+      // The Met starts at Aldgate. runMs: measured 31 Oct 09:00–09:25 (5 Mets, tests/fixtures/tfl-lvt-westbound-met-
+      // 2026-10-31T0900Z-0925Z.json): TfL predicts Liverpool Street 90–95 s after the Met leaves; the timetable's 2 min
+      // made every departure ~30 s early.
+      { id: "ALD", name: "Aldgate", geo: [51.5142, -0.0755], lines: ["circle", "metropolitan"],
+        startsHere: { lineId: "metropolitan", nextStopId: "940GZZLULVT", runMs: 90e3 } },
       { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"] },
     ],
   },

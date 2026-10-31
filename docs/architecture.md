@@ -161,7 +161,8 @@ is not evidence of production tracking, alert delivery or interaction deferral.
 - `src/follow-transport.js` adds at most one existing target-stop arrivals request per refresh only for an enabled
   followed homeward Tube with a known vehicle, before rail boarding. Concurrent work is shared; source epochs
   and route/vehicle/target identity guard the response. Absent/stale/nonmatching data keeps the explicit modelled
-  fallback. Missing Met departures at Aldgate are still unsolved; no Tube identity is invented.
+  fallback. Met departures at Aldgate come from Liverpool Street's predictions ([tube-home](stories/tube-home.md)); no
+  Tube identity is invented.
 - Chosen arrival stability uses a one-minute threshold; the original plan remains visible after a change.
   Incident recovery supersedes obsolete cancellation/no-estimate/missed notices. Explicit “I’m on it” confirms
   boarding; known same-train call evidence can track progress without changing chosen boarding. A person can
@@ -179,7 +180,8 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   ends; passing points are #23).
 - **Timetable**: TfL Journey Planner (keyed). Planned: National Rail timetable via a daily GitHub job (#18).
 - **Tube**: TfL arrivals (King's Cross/Farringdon eastbound Circle, Met and H&C to work; Aldgate westbound going
-  home) and line status.
+  home, the Met from Liverpool Street's westbound predictions less a measured 90 s, with its platform once it's standing
+  at Aldgate) and line status. TrackerNet (per-platform) refuses the key we have (31 Oct, 401): a separate TfL product.
 - **Places** (Any start and end point toggle): TfL Journey Planner, its "which place did you mean?" replies
   matched to the best guess. Searchable picker considered (#25).
 - **Planned/considered**: proxy with offsets and Service Details (#17), staff board for early platforms (#19),
@@ -256,6 +258,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct** TrackerNet proved unusable with Sam's TfL key (401 on every endpoint; a separate "TrackernetFeedPublic"
+  product, probably its own key), so Met departures from Aldgate stay derived from Liverpool Street, improved only
+  where 25 minutes of live polling justify it: run 90 s (measured; was the timetable's 2 min, ~30 s early) and the
+  platform for a Met standing at Aldgate (TfL's location "At Aldgate Platform N"). TfL's timetable from Aldgate exists
+  but adds nothing a live train doesn't. TrackerNet becomes primary only once a key gets it and live data proves it.
+  → [tube-home](stories/tube-home.md)
 - **31 Oct** API keys may also live in the Claude Code cloud environment's secrets (Sam), so sessions can call TfL
   (incl. TrackerNet) and Rail Data Marketplace directly to prove endpoints and record real feeds; never in chat, the
   repo or recorded data. Names in CLAUDE.md.

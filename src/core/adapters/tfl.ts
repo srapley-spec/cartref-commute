@@ -78,17 +78,24 @@ export function tflPickPlaces(json: unknown): { from: PlaceMatch | null; to: Pla
 export interface TflArrival { vehicleId?: string; lineId?: string; platformName?: string; destinationName?: string; towards?: string;
   expectedArrival?: string; timeToStation?: number; currentLocation?: string; }
 /** A departure from a terminus, worked out from the next station's arrivals. */
-export interface TerminusDeparture { vehicle: string; lineId: string; dest: string; t: number; atNext: number; currentLocation: string; }
+export interface TerminusDeparture { vehicle: string; lineId: string; dest: string; t: number; atNext: number; currentLocation: string;
+  /** "Platform 3" while the train stands at the terminus and TfL says which platform ("At Aldgate Platform 3"), else "". */
+  platform: string; }
 
 /**
  * Departures from a terminus that TfL lists only as trains arriving there (30 Oct: the Met at Aldgate). Every train
  * leaving the terminus calls next at the following station, where TfL predicts it (turnaround included), so the
  * departure is that prediction less the scheduled run between them (`runMs`, from TfL's timetable). Only the line and
  * direction given; trains already past (more than 30 s ago) are dropped. Destination: TfL's, else its "towards",
- * never the terminus itself or "Check Front of Train".
+ * never the terminus itself or "Check Front of Train". Platform: while the train stands at the terminus, TfL's
+ * location at the next stop names it ("At Aldgate Platform 3", recorded 30 Oct 22:43 and 31 Oct 09:00, every Met
+ * standing there); `terminusName` is the station as TfL writes it there ("Aldgate", never "Aldgate East"). A train
+ * not yet at the terminus has no platform: TfL lists an arriving Met under both bays (31 Oct: 432, arrived at 3).
  */
-export function terminusDepartures(nextArrivals: TflArrival[], o: { lineId: string; outbound: RegExp; runMs: number; now: number; terminus: RegExp }): TerminusDeparture[] {
+export function terminusDepartures(nextArrivals: TflArrival[], o: { lineId: string; outbound: RegExp; runMs: number; now: number; terminus: RegExp; terminusName?: string }): TerminusDeparture[] {
   const name = (s?: string) => String(s || "").replace(/ Underground Station/i, "").trim();
+  const plat = (loc: string) => { const m = /^At (.+) Platform (\w+)$/i.exec(loc.trim());
+    return m && o.terminusName && m[1].trim().toLowerCase() === o.terminusName.toLowerCase() ? `Platform ${m[2]}` : ""; };
   const ok = (s: string) => !!s && !o.terminus.test(s) && !/check front of train/i.test(s);
   const out: TerminusDeparture[] = [];
   for (const a of Array.isArray(nextArrivals) ? nextArrivals : []) {
@@ -97,7 +104,8 @@ export function terminusDepartures(nextArrivals: TflArrival[], o: { lineId: stri
     if (!isFinite(atNext)) continue;
     const t = atNext - o.runMs; if (t < o.now - 30e3) continue;
     const d = name(a.destinationName), tw = name(a.towards);
-    out.push({ vehicle: String(a.vehicleId || ""), lineId: o.lineId, dest: ok(d) ? d : ok(tw) ? tw : "", t, atNext, currentLocation: a.currentLocation || "" });
+    out.push({ vehicle: String(a.vehicleId || ""), lineId: o.lineId, dest: ok(d) ? d : ok(tw) ? tw : "", t, atNext, currentLocation: a.currentLocation || "",
+      platform: plat(String(a.currentLocation || "")) });
   }
   return out.sort((a, b) => a.t - b.t);
 }

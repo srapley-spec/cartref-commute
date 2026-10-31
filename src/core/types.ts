@@ -127,6 +127,9 @@ export interface Places {
   hubGeo: Record<StationCode, LatLon>;                // London stations where rail meets tube ("at" = within atHubKm)
   /** Stops by the office and the lines that reach them from the London stations (e.g. Aldgate: Circle and Met;
    *  Aldgate East: H&C). `fallback`: used going home only when the main lines are closed. */
-  officeStops?: { id: string; name: string; geo: LatLon; lines: string[] }[];
+  officeStops?: { id: string; name: string; geo: LatLon; lines: string[];
+    /** A line that starts here and is listed only as arriving (the Met at Aldgate): its departures come from the next
+     *  stop's arrivals (TfL StopPoint id) less `runMs`, the gap between leaving here and TfL's prediction there. */
+    startsHere?: { lineId: string; nextStopId: string; runMs: number } }[];
   atHubKm: number;
 }

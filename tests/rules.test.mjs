@@ -1067,7 +1067,7 @@ test("Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; M
   app.close();
 });
 
-test("Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals less 2 min, recorded 30 Oct 22:43 with Aldgate's; offered like the board", async () => {
+test("Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals less the measured 90 s, recorded 30 Oct 22:43 with Aldgate's; offered like the board", async () => {
   const t0 = T("16:30"), cap = Date.parse("2026-10-30T22:43:19Z");
   const rec = (n) => JSON.parse(readFileSync(new URL(`./fixtures/tfl-2026-10-30T2243Z/${n}.json`, import.meta.url), "utf8"))
     .map(a => ({ ...a, expectedArrival: new Date(t0 + (Date.parse(a.expectedArrival) - cap)).toISOString() }));
@@ -1077,13 +1077,36 @@ test("Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals
   await app.fix(...ALD, 10, t0); await app.c.refresh({ force: true }); await sleep(300);
   const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest || "?"} ${Math.round((d.t - t0) / 1e3)}`);
   // Circle 205 to Hammersmith from Aldgate's own feed; Met 441 (waiting at the platform), 435 (still arriving) and 474.
-  assert.deepEqual(list, ["Met Uxbridge 52", "Circle Hammersmith (H&C Line) 317", "Met ? 562", "Circle Hammersmith (H&C Line) 917", "Met ? 1283", "Circle Hammersmith (H&C Line) 1517"]);
+  assert.deepEqual(list, ["Met Uxbridge 82", "Circle Hammersmith (H&C Line) 317", "Met ? 592", "Circle Hammersmith (H&C Line) 917", "Met ? 1313", "Circle Hammersmith (H&C Line) 1517"]);
   assert.ok(app.calls.some(u => /940GZZLULVT\/Arrivals/.test(u)), "Liverpool Street is asked");
   const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim());
-  assert.match(btns.join(" | "), /Met Uxbridge · due/, "the Met waiting at the platform is offered first, like the board");
+  assert.equal(btns[0], "Platform 2: 1 Met Uxbridge · 1 min", `the Met waiting at platform 2 is offered first, like the board (${btns.join(" | ")})`);
   // Liverpool Street failing: the Circles from Aldgate still come through.
   lvtFails = true; app.at(t0 + 60e3); await app.c.refresh({ force: true }); await sleep(300);
   assert.deepEqual(app.c.state.aldDeps.list.map(d => d.line), ["Circle", "Circle", "Circle"]);
+  app.close();
+});
+
+test("Met platform at Aldgate (recorded 31 Oct 08:59, Saturday): the Mets standing at platforms 3 and 2 show them, like the board; a Met still arriving shows none", async () => {
+  const t0 = T("16:30"), cap = Date.parse("2026-10-31T08:59:22Z");
+  const rec = (n) => JSON.parse(readFileSync(new URL(`./fixtures/tfl-2026-10-31T0859Z/${n}.json`, import.meta.url), "utf8"))
+    .map(a => ({ ...a, expectedArrival: new Date(t0 + (Date.parse(a.expectedArrival) - cap)).toISOString() }));
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(rec("ALD")) : /940GZZLULVT\/Arrivals/.test(u) ? json(rec("LVT")) : undefined) });
+  await app.fix(...ALD, 10, t0); await app.c.refresh({ force: true }); await sleep(300);
+  const list = app.c.state.aldDeps.list.map(d => `${d.line} ${d.dest || "?"} ${d.platform || "-"} ${Math.round((d.t - t0) / 1e3)}`);
+  // Liverpool Street less the measured 90 s: 431 at 09:01:20, 406 at 09:03:51 (they left 09:02:29–09:03:08 and 09:04:47–09:05:29).
+  assert.deepEqual(list.slice(0, 5), ["Circle Hammersmith (H&C Line) Westbound - Platform 4 -10", "Met Uxbridge Platform 3 118", "Met Chesham Platform 2 269",
+    "Met ? - 509", "Circle Hammersmith (H&C Line) Westbound - Platform 4 538"]);
+  assert.equal(app.calls.filter(u => /trackernet/i.test(u)).length, 0, "TrackerNet isn't asked (it refuses the key)");
+  const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim());
+  assert.ok(btns.includes("Platform 3: 2 Met Uxbridge · 1 min"), btns.join(" | "));
+  assert.ok(btns.includes("Platform 2: 3 Met Chesham · 4 min"), btns.join(" | "));
+  assert.ok(btns.includes("4 Met · 8 min"), `a Met still arriving: no platform, no destination yet (${btns.join(" | ")})`);
+  assert.equal(btns.length, 3, "the Circle at the platform 10 s ago has gone from the buttons");
+  // Picking the platform 3 Met follows it by its vehicle.
+  app.d.querySelector('#hero [data-tubepick*="|431|"]').click();
+  assert.deepEqual([app.c.state.saved.tubePick.vehicle, app.c.state.saved.tubePick.line, app.c.state.saved.tubePick.dest], ["431", "Met", "Uxbridge"]);
   app.close();
 });
 
@@ -1107,7 +1130,7 @@ test("Met departures from Aldgate, review: Liverpool Street refusing (429), hang
   const l = rec("LVT"), m441 = l.find(a => a.vehicleId === "441" && /westbound/i.test(a.platformName));
   lvt = () => json([...l, { ...m441, platformName: "Westbound - Platform 3", expectedArrival: new Date(Date.parse(m441.expectedArrival) + 60e3).toISOString() }]);
   let list = (await lines(), app.c.state.aldDeps.list);
-  assert.equal(list.filter(d => d.vehicle === "441").length, 1); assert.equal(list.find(d => d.vehicle === "441").t, Date.parse(m441.expectedArrival) - 2 * MIN);
+  assert.equal(list.filter(d => d.vehicle === "441").length, 1); assert.equal(list.find(d => d.vehicle === "441").t, Date.parse(m441.expectedArrival) - 90e3);
   // Aldgate's own feed listing that Met westbound: Aldgate's entry is kept, not added again.
   ald = () => json([...rec("ALD"), { vehicleId: "441", lineId: "metropolitan", platformName: "Westbound - Platform 1", destinationName: "Uxbridge Underground Station", expectedArrival: new Date(t0 + 30e3).toISOString(), timeToStation: 30 }]);
   list = (await lines(), app.c.state.aldDeps.list);
