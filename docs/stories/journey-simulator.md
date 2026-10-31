@@ -1,6 +1,8 @@
 # Developer journey simulator
 Status: Implemented and independently reviewed (Journey Mode UX redesign; [release evidence in PR #37](https://github.com/srapley-spec/cartref-commute/pull/37)) · Since: 30 Oct 2026 · Issues: #32, #34
 
+Operating instructions and practical limitations: [Journey simulator user guide](../simulator-user-guide.md).
+
 ## Story
 As a developer I want to replay coherent location, Darwin and TfL inputs through the real application,
 so that I can inspect inference and onward planning without travelling.
