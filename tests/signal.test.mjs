@@ -80,7 +80,8 @@ test('manual Plan retains tracking, selection and deadline; Return to Auto uses 
 test('manual Live with no active journey is explicit and does not invent a train',async()=>{
   const a=await app({signal:true});click(a,'live');
   assert.equal(a.c.state.presentation.noActiveJourney,true);
-  assert.match(a.text('#hero'),/No active journey yet/);
+  assert.match(a.text('#hero'),/No journey under way/);
+  assert.match(a.text('#hero'),/departures from Letchworth/,'the next stop\'s board, not a planned train');
   assert.equal(a.c.state.trainLock||null,null);
   assert.deepEqual(a.errors,[]);a.close();
 });

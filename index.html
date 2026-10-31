@@ -173,6 +173,11 @@ h2{font-family:var(--font-display);font-size:14px;text-transform:uppercase;lette
 .hero .chip.rail{background:transparent;border-color:color-mix(in srgb,var(--paper) 35%,transparent);color:var(--paper)}
 .chip.circle{background:var(--circle);color:var(--circle-ink)}
 .chip.met{background:var(--met);color:var(--met-ink)}
+.live-stops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 2px}
+.live-stop{min-height:44px;padding:0 14px;border:0;cursor:pointer;font:inherit;font-weight:700}
+.live-note{margin-top:4px}
+.live-board{scroll-margin-top:12px}
+.live-board-name{margin:14px 0 4px;font-size:15px}
 .chip.hc{background:var(--hc);color:var(--hc-ink)}
 .pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
@@ -638,7 +643,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 09:36 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 10:56 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -986,6 +991,7 @@ var CommuteCore = (() => {
     nearOffice: () => nearOffice,
     nearlyHome: () => nearlyHome,
     nearlyHomeEta: () => nearlyHomeEta,
+    nextStops: () => nextStops,
     noticeTitle: () => noticeTitle,
     nowRounds: () => nowRounds,
     onLine: () => onLine,
@@ -1002,9 +1008,11 @@ var CommuteCore = (() => {
     progressContextCurrent: () => progressContextCurrent,
     progressLegsFromSteps: () => progressLegsFromSteps,
     railDelayLevel: () => railDelayLevel,
+    railStationBoard: () => railStationBoard,
     railTrackingContext: () => railTrackingContext,
     railWarnings: () => railWarnings,
     rankNow: () => rankNow,
+    reachFlag: () => reachFlag,
     readyAtFromConnection: () => readyAtFromConnection,
     refreshDue: () => refreshDue,
     refreshPlan: () => refreshPlan,
@@ -1043,6 +1051,7 @@ var CommuteCore = (() => {
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
     tubeName: () => tubeName,
+    tubeStationBoard: () => tubeStationBoard,
     updateFollowRoute: () => updateFollowRoute,
     visibleDisruptions: () => visibleDisruptions,
     walkSecs: () => walkSecs,
@@ -2700,7 +2709,8 @@ var CommuteCore = (() => {
           after: [seg("station", s.letExit * k), seg("walk", walkBack, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walkBack))}` })],
           arriveLabel: "Arrive Letchworth",
           noPlatform: "platform not yet shown",
-          extra: { tube }
+          extra: { tube },
+          firstStop: { code: tube.fallback ? "ADE" : "ALD", name: tube.stop, kind: "tube" }
         });
       }
     } else if (dir === "office" && i.dest) {
@@ -2773,6 +2783,7 @@ var CommuteCore = (() => {
           seg("margin", s.catchMargin)
         ];
         r.extra = { ...r.extra, fromHere: true, planned: true };
+        delete r.firstStop;
       } else if (dir === "home" && i.here.atOfficeTube && i.mode !== "leisure" && r.extra && r.extra.tube && !r.extra.tube.fallback) {
         const plat = r.before[1];
         r.before.splice(0, 2, { ...plat, step: { at: "start", d: "You're at Aldgate: go to the platform", note: `about ${dur(sec(plat.secs))}` } });
@@ -2786,6 +2797,95 @@ var CommuteCore = (() => {
       reach: { ZFD: t + s.rideFarAld * 1e3, KGX: t + s.rideKxAld * 1e3, STP: t + s.rideKxAld * 1e3 },
       ready: { ZFD: (s.farInterchange * k + s.catchMargin) * 1e3, KGX: (s.kxInterchange * k + s.catchMargin) * 1e3, STP: (s.stpInterchange * k + s.catchMargin) * 1e3 }
     };
+  }
+
+  // src/core/stationBoard.ts
+  function nextStops(routes) {
+    const out = [];
+    for (const r of routes) {
+      const s = r.firstStop ? { ...r.firstStop } : { code: r.board.split("-")[0], name: r.fromName, kind: "rail" };
+      if (!out.some((x) => x.code === s.code && x.kind === s.kind)) out.push(s);
+    }
+    return out;
+  }
+  var sameTrain = (a, b) => a.from === b.from && a.std === b.std && a.operator === b.operator;
+  var EASE = ["walk", "fast", "run", "car", "none", "unknown"];
+  var reachOf = (o) => {
+    var _a;
+    return o.missed ? "none" : (_a = o.effort) != null ? _a : "walk";
+  };
+  function railStationBoard(i) {
+    const rail = i.stops.filter((s) => s.kind === "rail");
+    const groups = rail.map((stop) => {
+      var _a;
+      const rows = [];
+      for (const [key, b] of Object.entries(i.boards)) {
+        if (!b || key.split("-")[0] !== stop.code) continue;
+        for (const t of b.services) {
+          if (t.from !== stop.code) continue;
+          if (!t.depUnknown && t.dep < i.now - 3e4) continue;
+          const row = rows.find((r) => sameTrain(r.train, t));
+          if (row) {
+            if (!row.routes.includes(t.to)) row.routes.push(t.to);
+            if (row.train.derived && !t.derived) row.train = t;
+            continue;
+          }
+          rows.push({ train: t, routes: [t.to], reach: "unknown", arrive: null, option: null });
+        }
+      }
+      for (const row of rows) {
+        if (row.train.cancelled) {
+          row.reach = null;
+          continue;
+        }
+        if (row.train.depUnknown) continue;
+        for (const o of i.options) for (const x of [o, ...o.alts || []]) {
+          if (!sameTrain(x.train, row.train)) continue;
+          const r = reachOf(x), cur = (_a = row.reach) != null ? _a : "unknown";
+          if (EASE.indexOf(r) < EASE.indexOf(cur) || r === row.reach && row.arrive != null && x.arrive < row.arrive) {
+            row.reach = r;
+            row.arrive = x.arrive;
+            row.option = o;
+          }
+        }
+      }
+      rows.sort((a, b) => a.train.dep - b.train.dep || a.train.std.localeCompare(b.train.std));
+      return { stop, rows };
+    });
+    const first = (g) => {
+      const k = i.options.findIndex((o) => [o, ...o.alts || []].some((x) => x.train.from === g.stop.code));
+      return k < 0 ? Infinity : k;
+    };
+    return groups.map((g, k) => ({ g, k })).sort((a, b) => first(a.g) - first(b.g) || a.k - b.k).map((x) => x.g);
+  }
+  function tubeStationBoard(departures, plan, now, atStop = false) {
+    const same = (a, b) => {
+      var _a, _b;
+      return a.t === b.t && a.line === b.line && ((_a = a.vehicle) != null ? _a : "") === ((_b = b.vehicle) != null ? _b : "");
+    };
+    return departures.filter((d) => Number.isFinite(d.t) && d.t >= now - 3e4).sort((a, b) => a.t - b.t).map((dep) => {
+      const next = plan.next.find((x) => same(x, dep)), early = plan.early.find((x) => same(x, dep));
+      const reach = dep.t >= plan.ready ? "walk" : early && atStop ? "early" : "none";
+      return { dep, reach, timed: next || early || null };
+    });
+  }
+  function reachFlag(r) {
+    switch (r) {
+      case "walk":
+        return { lvl: "ok", txt: "You can make it" };
+      case "fast":
+        return { lvl: "warn", txt: "Fast walk" };
+      case "run":
+        return { lvl: "warn", txt: "Run" };
+      case "car":
+        return { lvl: "warn", txt: "Car needed" };
+      case "early":
+        return { lvl: "warn", txt: "Only if you're near the platform" };
+      case "none":
+        return { lvl: "bad", txt: "Can't make it from here" };
+      default:
+        return { lvl: "info", txt: "Can't tell yet if you can make it" };
+    }
   }
 
   // src/core/viewControl.ts
@@ -4525,6 +4625,70 @@ function renderList(list, now, opts){
       <div class="arrive"><small>Arrive</small><span class="t">${hhmm(j.arrive)}</span></div>
     </div>`).join("");
 }
+// Live with no journey under way (Sam, 31 Oct): the departure board at the next stop of your journey, every train
+// from it, each saying whether you can make it from where you are and where it takes you. The engine finds the
+// stops and builds the rows (stationBoard.ts); this draws them. Auto still answers "when do I leave?".
+function renderLiveBoard(now){
+  const dir=direction(), stops=C.nextStops(routesFor(dir, mode(), {here:true}));
+  const pill=r=>{ if(r==null) return ""; const f=C.reachFlag(r); return `<span class="pill ${f.lvl}" data-reach="${esc(r)}">${esc(f.txt)}</span>`; };
+  const name=c=>c==="LET"?"Letchworth":(STATIONS[c]||HUB_NAME[c]||c);
+  const groups=[];
+  for(const stop of stops){
+    if(stop.kind==="tube"){
+      const d=state.aldDeps, id=`liveboard-${stop.code}`;
+      let body;
+      if(stop.code!=="ALD") body=`<div class="row"><div></div><div class="mid meta">No live departures for ${esc(stop.name)} in the app: the Circle and Met are closed, so the way home is the H&amp;C from there.</div><div></div></div>`;
+      else if(!nearOffice()) body=`<div class="row"><div></div><div class="mid meta">Live departures from Aldgate load when you're near the office.</div><div></div></div>`;
+      else if(!d || (!d.list && !d.err)) body=`<div class="row"><div></div><div class="mid meta">Loading live departures from Aldgate…</div><div></div></div>`;
+      else if(!d.list) body=`<div class="row"><div></div><div class="mid meta">${esc(d.err||"Couldn't load Aldgate departures.")}</div><div></div></div>`;
+      else {
+        const s=S(), k=state.saved.pace==="fast"?s.fastFactor:1, atAld=C.atOfficeTube("home", fix(), PROFILE);
+        const walkMs=((atAld?0:s.aldWalk)+s.aldPlatform)*k*1000;
+        const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), max:Infinity });
+        const rows=C.tubeStationBoard(d.list, plan, now, atAld);
+        body=rows.length ? rows.map(r=>{ const t=r.timed, o=t&&t.leg.o;
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}">
+      <div class="leave"><small>${esc(r.dep.line)}</small><span class="t">${hhmm(r.dep.t)}</span></div>
+      <div class="mid">
+        <div class="meta">${esc(r.dep.dest||"")}${C.platformNo(r.dep.platform)?` · <b class="plat">platform ${esc(C.platformNo(r.dep.platform))}</b>`:""} · <span data-dep="${r.dep.t}"></span></div>
+        <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:"No train home connects with this one"}</div>
+        <div>${pill(r.reach)}${r.reach==="walk"?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.dep.t-walkMs)}</span></small>`:""}</div>
+      </div>
+      <div class="arrive"><small>Home</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
+    </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No westbound Circle or Met departures listed at Aldgate right now.</div><div></div></div>`;
+      }
+      groups.push({ id, name:stop.name, html:body });
+    }
+  }
+  const railStops=stops.filter(x=>x.kind==="rail");
+  if(railStops.length){
+    if(!state.boards){
+      for(const stop of railStops) groups.push({ id:`liveboard-${stop.code}`, name:stop.name, html:`<div class="row"><div></div><div class="mid meta">${state.loading?"Loading live trains…":(missingCreds()?"Add your National Rail key in Settings to see live trains.":"No train data yet.")}</div><div></div></div>` });
+    } else {
+      const opts=ranked(now);
+      for(const g of C.railStationBoard({ stops:railStops, boards:C.addCallingAlternatives(state.boards, dir, PROFILE), options:opts, now })){
+        const html=g.rows.length ? g.rows.map(r=>{ const t=r.train;
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}${t.cancelled?" missed":""}">
+      <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
+      <div class="mid">
+        <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
+        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}${t.timetable?" · timetable":""} · <span data-dep="${t.dep}"></span></div>
+        <div>${[pill(r.reach),pills(boardFlags(C.trainFlags(t,PROFILE)),true)].filter(Boolean).join(" ")}</div>
+        ${r.option?followButton(r.option):""}
+      </div>
+      <div class="arrive"><small>Arrive</small><span class="t">${r.arrive!=null?hhmm(r.arrive):"–"}</span></div>
+    </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No trains listed from ${esc(g.stop.name)} on your routes in the next two hours.</div><div></div></div>`;
+        groups.push({ id:`liveboard-${g.stop.code}`, name:g.stop.name, html });
+      }
+    }
+  }
+  const where=groups.map(g=>g.name).join(", ");
+  const jumps=groups.length>1?`<div class="live-stops" role="navigation" aria-label="Stations">${groups.map(g=>`<button type="button" class="pill info live-stop" data-board-jump="${esc(g.id)}">${esc(g.name)}</button>`).join(" ")}</div>`:"";
+  $("#hero").innerHTML=`<div class="lbl">Live · departures from ${esc(where||"your next stop")} · ${esc(hhmm(now))}${state.railSource==="tfl"?" · timetable":""}</div><div class="meta live-note">No journey under way: what's leaving your next stop now, and whether you can make it from here. Auto shows when to leave.</div>${jumps}`;
+  $("#listTitle").textContent=groups.length>1?"Departures by station":`Departures from ${where}`;
+  $("#list").innerHTML=groups.map(g=>`<section class="live-board" id="${esc(g.id)}" aria-label="${esc(g.name)}">${groups.length>1?`<h3 class="live-board-name">${esc(g.name)}</h3>`:""}${g.html}</section>`).join("");
+  state.rendered.liveBoard={ stops:groups.map(g=>g.name) };
+}
 // What TfL returned for each route search and what was kept, so a short list can be explained.
 // "Why these trains?": what each source returned for the plan on screen, so a short or odd list can be explained.
 function renderDiag(){
@@ -4821,6 +4985,9 @@ function render(){
 }
 // "Which train are you on?": your pick is kept until you're off the line.
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
+// Live board: a station lozenge jumps to that station's departures.
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-board-jump]"); if(!b) return;
+  const el=document.getElementById(b.dataset.boardJump); if(el && el.scrollIntoView) el.scrollIntoView({behavior:"smooth", block:"start"}); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
   const [hub,t,line,vehicle,dest]=b.dataset.tubepick.split("|"), pick={hub, t:+t, line, ...(vehicle?{vehicle}:{}), ...(dest?{dest}:{})};
   if(+t<=Date.now()+30e3){ state.saved.tubeRide = hub==="ALD" ? homeRideFor(pick, Date.now(), {picked:true, confirmed:true}) : {...pick, picked:true, confirmed:true}; state.saved.tubePick=null; }
@@ -4867,9 +5034,7 @@ function renderInner(){
     renderHero(list,now);renderList(list,now);$("#listTitle").textContent="Other journeys";renderStatus();renderDiag();return;
   }
   if(shown.noActiveJourney){
-    $("#hero").innerHTML='<div class="lbl">Live</div><div class="empty">No active journey yet. Choose a route to follow, or return to Auto while the app works out where you are.</div>';
-    renderList(state.boards?ranked(now):[],now); $("#listTitle").textContent="Journeys you can follow";
-    renderStatus(); renderDiag(); return;
+    renderLiveBoard(now); renderStatus(); renderDiag(); return;
   }
   const T=byView?byTarget():NaN;
   if(shown.underWay){
