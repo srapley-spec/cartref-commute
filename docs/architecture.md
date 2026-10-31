@@ -292,11 +292,20 @@ Native backlog: #2–#7, #10–#12.
    the generic connection model. → [tube-home](stories/tube-home.md)
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
+3b. Leisure journeys: any address to any address in the region by rail (design 31 Oct; behind a switch). → [leisure-journeys](stories/leisure-journeys.md), [design](leisure-architecture.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct, night** Leisure journeys (Sam): door to door by rail between any two addresses in London, the South East
+  and the East of England; walk / cycle / drive to and from the station, timed by Google (key required, no estimated
+  fallback); stations discovered and ranked door to door; trips with changes; National Rail's journey planner, TfL
+  station to station until access arrives (TfL returns 404 for coordinates outside London; a guessed ID was matched to
+  a Feltham bus stop, so IDs are looked up and replies checked); live times per leg and at each change; Follow across
+  legs; Signal only, behind Settings → Experimental, off by default. Multi-leg rail is a new `Trip` type beside the
+  commute's `Option`, which is unchanged. Independent review of the design before building.
+  → [leisure-journeys](stories/leisure-journeys.md), [leisure architecture](leisure-architecture.md)
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
   point. Next for that: National Rail's journey planner (Sam has access; key and docs pending) for multi-train
