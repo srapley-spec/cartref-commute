@@ -17,7 +17,8 @@ test('Along UI: default off and enabled on-train entry work independently of Sig
   assert.match(a.text('#alongJourney'),/Great Northern/);assert.match(a.text('#alongEvidence'),/Approximate position/);
   assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
   assert.equal(a.d.querySelector('#alongPosition').hidden,false);assert.match(a.text('#alongPosition'),/approximate/);
-  assert.equal(a.d.querySelector('[data-point="hitchin"]').hidden,true);
+  assert.equal(a.d.querySelector('[data-point="hitchin"]').hidden,false);
+  assert.equal(a.d.querySelector('[data-point="hitchin"]').dataset.selected,'false');
   assert.equal(a.c.state.saved.settings.followRoute,false);
   assert.ok(a.d.querySelector('.al-station'));assert.ok(a.d.querySelector('a[href="https://en.wikipedia.org/wiki/Digswell_Viaduct"]'));
   const before=a.calls.slice();a.c.render();assert.deepEqual(a.calls,before);assert.deepEqual(a.errors,[]);a.close();
@@ -58,9 +59,9 @@ test('Along UI: toggle persists without feed requests and removes the entry imme
  a.c.state.saved.settings.alongLine=false;a.c.render();assert.ok(!a.d.querySelector('#alongLine').open);assert.equal(a.d.querySelector('#alongEntry').hidden,true);
  assert.deepEqual(a.errors,[]);a.close();
 });
-test('Along UI: browse is available offline from Settings but station boards never gain a landmark prompt',async()=>{
+test('Along UI: browse remains available from Settings without claiming a live position',async()=>{
  const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,signal:true}});
- a.d.querySelector('#settingsBtn').click();assert.equal(a.d.querySelector('#alongEntry').hidden,true);
+ a.d.querySelector('#settingsBtn').click();assert.equal(a.d.querySelector('#alongEntry').hidden,false);
  a.d.querySelector('#alongBrowse').click();assert.equal(a.d.querySelector('#alongLine').open,true);
  assert.match(a.text('#alongJourney'),/Browse/);assert.match(a.text('#alongEvidence'),/current position unavailable/);
  assert.ok(a.d.querySelector('[data-point="digswell"]'));assert.deepEqual(a.errors,[]);a.close();
@@ -78,7 +79,48 @@ test('Along UI: travel disruption remains visible, stale arrival is qualified an
  assert.match(a.text('#alongJourney'),/last known arrival/);
  a.c.state.boards['LET-KGX'].services[0].serviceId='another-service';
  a.c.state.trainLock.serviceId='another-service';a.c.render();
+ assert.equal(a.d.querySelector('[data-point="digswell"] details'),story,'another train on the same route preserves exploration');
+ const next=a.c.state.boards['LET-KGX'].services[0];next.to='ZFD';a.c.state.boards={'LET-ZFD':{services:[next],msgs:[]}};a.c.render();
  assert.notEqual(a.d.querySelector('[data-point="digswell"] details'),story);
  assert.equal(a.d.querySelector('[data-point="digswell"] details').open,false);
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Along UI: enabled navigation stays below the heading before boarding in either design',async()=>{
+ for(const signal of [false,true]){
+  const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,signal,followRoute:false},saved:{dirMode:'office'}});
+  const entry=a.d.querySelector('#alongEntry'),nav=a.d.querySelector('#alongNavigation');
+  assert.equal(entry.hidden,false);assert.equal(nav.hidden,false);
+  assert.equal(nav.previousElementSibling.tagName,'HEADER');
+  const before=a.calls.slice();entry.click();
+  assert.equal(a.d.querySelector('#alongLine').open,true);assert.match(a.text('#alongJourney'),/Browse/);
+  assert.match(a.text('#alongEvidence'),/unavailable or uncertain/);assert.equal(a.d.querySelector('[data-featured="true"]'),null);
+  a.d.querySelector('#alongClose').click();
+  a.c.state.saved.settings.signal=!signal;a.c.render();
+  assert.equal(nav.previousElementSibling.tagName,'HEADER','switching designs preserves the navigation position');
+  assert.equal(entry.hidden,false);assert.equal(a.c.state.saved.settings.followRoute,false);assert.deepEqual(a.calls,before);
+  a.c.state.saved.settings.alongLine=false;a.c.render();assert.equal(nav.hidden,true);assert.equal(entry.hidden,true);
+  assert.deepEqual(a.errors,[]);a.close();
+ }
+});
+
+test('Along UI: passed route points and open stories survive losing the current position',async()=>{
+ const a=await rail();a.d.querySelector('#alongEntry').click();
+ const hitchin=a.d.querySelector('[data-point="hitchin"]');assert.equal(hitchin.hidden,false);assert.equal(hitchin.dataset.state,'passed');
+ const story=hitchin.querySelector('details');story.open=true;
+ a.d.querySelector('#alongScroll').dispatchEvent(new a.w.Event('wheel'));a.d.querySelector('#alongScroll').scrollTop=120;
+ Object.assign(a.c.state,{onLine:false,here:null,locStatus:'unavailable',trainLock:null});a.c.render();
+ assert.equal(a.d.querySelector('[data-point="hitchin"] details'),story);assert.equal(story.open,true);
+ assert.equal(a.d.querySelector('#alongScroll').scrollTop,120);assert.equal(a.d.querySelector('#alongEntry').hidden,false);
+ assert.match(a.text('#alongEvidence'),/unavailable or uncertain/);assert.equal(a.d.querySelector('#alongStrip [data-featured="true"]'),null);
+ assert.equal(a.d.querySelector('#alongNow').hidden,false);assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Along UI: an established Thameslink route survives losing identity before opening the view',async()=>{
+ const a=await rail(),s=a.c.state,t=s.boards['LET-KGX'].services[0];t.to='ZFD';s.boards={'LET-ZFD':{services:[t],msgs:[]}};a.c.render();
+ Object.assign(s,{onLine:false,here:null,locStatus:'unavailable',trainLock:null});a.c.render();
+ a.d.querySelector('#alongEntry').click();
+ assert.match(a.text('#alongJourney'),/Farringdon/);assert.ok(a.d.querySelector('[data-point="canal-tunnels"]'));
+ assert.equal(a.d.querySelector('[data-point="gasworks"]'),null);assert.equal(a.d.querySelector('#alongStrip [data-featured="true"]'),null);
  assert.deepEqual(a.errors,[]);a.close();
 });

@@ -613,12 +613,17 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
 .al-story[data-state="passed"]>.al-location::before{content:'✓ ';color:var(--muted)}
 .al-story[data-selected="false"]:not(:has(details[open])){padding-bottom:10px}
 .al-story[data-selected="false"] .al-hook{display:none}
+#alongLine[data-show-all="true"] .al-story .al-hook{display:block}
 .along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
 .along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
 @media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
 @media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
 
 #alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}
+
+/* Keep explicit access available while scrolling the journey or simulator checkpoints. */
+#alongNavigation{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;display:flex;align-items:center;min-height:44px;padding-block:4px;background:var(--paper);border-bottom:1px solid var(--line)}
+#alongNavigation button{min-height:44px;padding:8px 12px;font:inherit;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:9px;white-space:normal}
 
 /* Follow controls also work in Panda; status colours retain their usual meaning. */
 #followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
@@ -711,7 +716,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 22:02 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 23:44 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6938,7 +6943,7 @@ function applySignalLayout(){
   if(footerSpan)p.network.append(footerSpan);
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
-  for(const node of [header,p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
   signalActive=true;
 }
 function signalReadingVisible(node){
@@ -7324,15 +7329,18 @@ alongDialog.innerHTML=`<header class="al-header"><div><h2 id="alongTitle">Along 
  <details id="alongChoices"><summary>Your interests and reading depth</summary>
  <fieldset><legend>What catches your interest?</legend>${[['views','Views and landscape'],['places','Places and their stories'],['engineering','Architecture and engineering'],['operations','How the railway works']].map(([id,label])=>`<label><input type="checkbox" value="${id}" name="alongInterest"> ${label}</label>`).join('')}</fieldset>
  <label class="al-depth">Reading depth <select id="alongDepth"><option value="glance">A glance</option><option value="discover">A little more</option><option value="explore">The full story</option></select></label>
- <p>Interests choose the highlights. Saved on this device.</p><label><input type="checkbox" id="alongShowAll"> Show other discoveries too</label></details>
- <p id="alongEvidence"></p><p id="alongEmpty" hidden>No highlights selected. Choose an interest, or show other discoveries to explore every story.</p>
+ <p>Interests choose the highlights. Every point stays on the line. Saved on this device.</p><label><input type="checkbox" id="alongShowAll"> Show previews for every point</label></details>
+ <p id="alongEvidence"></p><p id="alongEmpty" hidden>No highlights selected. Every point is still available below; choose interests for automatic highlights.</p>
  <div class="al-follow"><span id="alongFeatured"></span><button type="button" id="alongNow" hidden>Back to now</button></div>
  <div id="alongScroll" tabindex="0" aria-label="Stations and discoveries in journey order"><ol id="alongStrip"></ol></div>
  <p class="al-foot">Curated Letchworth–London stories · available offline once the app is loaded. Locations are approximate; views can be obscured.</p>`;
 document.body.append(alongDialog);
-const alongEntry=document.createElement('button');alongEntry.id='alongEntry';alongEntry.type='button';alongEntry.hidden=true;alongEntry.textContent='Along the line ›';
-$('#hero').after(alongEntry);
-let alongContextKey='',alongFollowing=true,alongLastFeatured=null,alongOpener=null,alongLastEpoch=null;
+const alongEntry=document.createElement('button');alongEntry.id='alongEntry';alongEntry.type='button';alongEntry.className='ghost';alongEntry.hidden=true;alongEntry.textContent='Along the line ›';
+alongEntry.setAttribute('aria-haspopup','dialog');alongEntry.setAttribute('aria-controls','alongLine');
+const alongNavigation=document.createElement('nav');alongNavigation.id='alongNavigation';alongNavigation.hidden=true;
+alongNavigation.setAttribute('aria-label','Along the line');alongNavigation.append(alongEntry);
+document.querySelector('.wrap > header').after(alongNavigation);
+let alongContextKey='',alongFollowing=true,alongLastFeatured=null,alongOpener=null,alongRouteScope='',alongRoute=null;
 function alongClose(){alongDialog.close();alongOpener?.focus({preventScroll:true});}
 $('#alongClose').addEventListener('click',alongClose);
 alongDialog.addEventListener('cancel',()=>{alongOpener?.focus({preventScroll:true});});
@@ -7372,20 +7380,30 @@ function alongContext(){
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
   const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
-  return {train,hub,onboard,option:progress?.kind==='rail'?progress.option:followed?.option,
+  return {train,hub,onboard,routeTrain:train||followed?.lastTrain||followed?.option?.train,option:progress?.kind==='rail'?progress.option:followed?.option,
     finalArrival:progress?.kind==='rail'?progress.finalArrival:followed?.expectedArrival,
     arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
 function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
   const context=alongContext();
-  alongEntry.hidden=!enabled||!context.onboard||!context.hub||state.presentation?.view?.startsWith('plan-');
+  // Navigation is available before boarding too; only the model may claim a live position.
+  alongNavigation.hidden=!enabled;alongEntry.hidden=!enabled;
   alongBrowse.hidden=!enabled;
   if(!enabled){if(alongDialog.open)alongClose();alongContextKey='';return;}
+  const routeScope=[sourceEpoch,direction(),currentMode()].join('|');
+  if(alongRouteScope!==routeScope){alongRouteScope=routeScope;alongRoute=null;alongContextKey='';alongLastFeatured=null;}
+  const routeTrain=context.routeTrain;
+  const knownHub=routeTrain&&(PROFILE.hubNames[routeTrain.to]?routeTrain.to:PROFILE.hubNames[routeTrain.from]?routeTrain.from:null);
+  if(knownHub&&PROFILE.stationGeo[routeTrain.from]&&PROFILE.stationGeo[routeTrain.to]){
+    alongRoute={hub:knownHub,from:routeTrain.from,to:routeTrain.to,reverse:routeTrain.to===PROFILE.home};
+  }
+  const fallbackHub='KGX',fallbackReverse=direction()==='home';
+  const route=alongRoute||{hub:fallbackHub,from:fallbackReverse?fallbackHub:PROFILE.home,to:fallbackReverse?PROFILE.home:fallbackHub,reverse:fallbackReverse};
   if(!alongDialog.open)return;
-  if(alongLastEpoch!==sourceEpoch){alongLastEpoch=sourceEpoch;alongContextKey='';alongLastFeatured=null;}
-  const hub=context.hub||'KGX',line=LINE[hub]||LINE.KGX,reverse=context.onboard?context.train.to===PROFILE.home:direction()==='home';
-  const key=[sourceEpoch,hub,direction(),context.train?.serviceId||context.train?.std||'browse',context.train?.from||'',context.train?.to||''].join('|');
+  const {hub,reverse}=route,line=LINE[hub]||LINE.KGX;
+  // Location or identity loss cannot remove the route being explored or close a story.
+  const key=[routeScope,hub,route.from,route.to].join('|');
   // Calling-point times come from the existing progress model, not a second timetable.
   const calls=state.rendered?.progressModel?.calls||[];
   const stations=[...C.samAlongStations,{code:hub,name:HUB_NAME[hub]}].map(station=>{
@@ -7396,7 +7414,7 @@ function renderAlongLine(resumePosition=false){
   }).filter(s=>s.geo);
   const model=C.alongLine({points:[...C.samAlongLine,...stations],line,hub,reverse,now:Date.now(),preferences:state.saved.alongLinePreferences,
     here:state.here,accuracy:state.locAcc,fixAt:state.lastFixAt,onboard:context.onboard,identityCertain:context.certain,locationOK:state.locStatus==='ok',
-    from:context.train&&PROFILE.stationGeo[context.train.from],to:context.train&&PROFILE.stationGeo[context.train.to]});
+    from:PROFILE.stationGeo[route.from],to:PROFILE.stationGeo[route.to]});
   const preferences=model.preferences;
   alongDialog.querySelectorAll('[name="alongInterest"]').forEach(el=>{el.checked=preferences.interests.includes(el.value);});
   $('#alongDepth').value=preferences.depth;
@@ -7404,7 +7422,7 @@ function renderAlongLine(resumePosition=false){
   const currentReport=timingSource==='reported'||timingSource==='prediction';
   const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
   const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
-  $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
+  $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${progressName(route.from)} → ${progressName(route.to)}`;
   if(context.onboard){
     const facts=document.createElement('div');facts.className='al-journey-facts';
     facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
@@ -7426,10 +7444,10 @@ function renderAlongLine(resumePosition=false){
     $('#alongScroll').scrollTop=0;
     $('#alongStrip').querySelectorAll('.al-more').forEach(button=>button.addEventListener('click',()=>{button.closest('details').dataset.full='true';button.hidden=true;}));
   }
-  alongDialog.dataset.depth=preferences.depth;
+  alongDialog.dataset.depth=preferences.depth;alongDialog.dataset.showAll=String($('#alongShowAll').checked);
   for(const item of model.points){
     const row=[...$('#alongStrip').children].find(el=>el.dataset.point===item.point.id);if(!row)continue;
-    row.hidden=!item.selected&&!$('#alongShowAll').checked&&!row.querySelector('details[open]');
+    row.hidden=false; // Interests rank highlights; every route point remains browsable.
     row.dataset.state=item.state;row.dataset.featured=String(item.point.id===model.featuredId);row.dataset.selected=String(item.selected);
     row.querySelector('.al-location').textContent=item.point.kind==='station'?`${item.point.stationTiming}${item.point.stationTime==null?'':' '+hhmm(item.point.stationTime)}`:
       item.state==='browse'?'Route discovery':item.state==='nearby'?'Near here · approximate':item.state==='passed'?'Passed · approximate':`Coming up · about ${Math.max(1,Math.round(item.distanceM/1000))} km along the route`;

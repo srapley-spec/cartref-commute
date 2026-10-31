@@ -26,7 +26,7 @@ Interests and reading depth are independent, saved on this device:
 - **The full story:** adds deeper context. Any story can be expanded to its full text independently.
 
 Default interests are views and places. For Laura this includes the Mimram valley at Digswell/Welwyn Viaduct.
-Sam can add engineering and operations to include Hitchin junction and other railway context. A landscape
+Sam can add engineering and operations to highlight Hitchin junction and other railway context. A landscape
 enthusiast may choose full depth without selecting operations. These choices do not require the future
 people/trips account feature. Empty interests are valid; explain the empty highlights and offer other discoveries.
 
@@ -39,17 +39,22 @@ conflict explains the flyover without claiming that a London-bound service trave
 - **Settings → Experimental → Along the line** is an independent boolean, off by default. It works with Signal
   or Panda and does not silently enable Signal or Follow. Disabling it immediately removes its entry and closes
   the view. Existing settings, train identity, followed journey, direction, pace and location watches are retained.
-- On an existing identified/inferred rail journey, show one **Along the line ›** entry. Do not put landmark
-  prompts onto station boards, walking or Tube views, or a manually pinned planning view. Settings also offers
-  **Browse Along the line** when enabled, including with location denied or no train identified.
+- With the flag enabled, show one clearly labelled **Along the line ›** navigation action directly below the
+  app heading, in both designs. Keep it accessible while scrolling and across simulator checkpoints, including
+  the initial Home/Office stage, planning, station and uncertain-location states. Before an identified train,
+  open an explicitly labelled browse view; never manufacture a live position or put automatic landmark prompts
+  onto station boards, walking or Tube views. Settings retains **Browse Along the line** too.
+- Signal layout changes and skin switching retain this navigation below the heading. It must not be stranded
+  above the app header, folded into another panel, or depend on reaching an on-train checkpoint.
 - Use Signal's production light/dark palette, blue actions, system typography and compact rounded surfaces.
   The view has a labelled Back to journey action, native dialog semantics, focus return, 44px touch targets,
   reduced-motion support and text wrapping. Red/amber/green remain reserved for service status.
 - A separate scrollable vertical strip combines route stations and discoveries in geographical order. A known
   journey clips to its endpoints; northbound order reverses. Stations are route references unless the existing
   progress model supplies their reported/expected/timetable times. A route reference is not a promised stop.
-- Surface one matching nearby/upcoming highlight; hide nonmatching stories initially. **Show other discoveries
-  too** makes all available stories browsable. Interest selection does not limit access to deeper text.
+- Surface one matching nearby/upcoming highlight, while retaining every route point in the strip, including
+  passed points and topics outside the selected interests. Nonmatching points use compact titles; **Show previews
+  for every point** expands their preview text. Interests never remove points or limit access to deeper text.
 - Each story has an engaging hook, a short observation, a discovery paragraph and an optional deeper story.
   Distinguish nearby places, scenery from the train and infrastructure beneath/above it. No unverified claim of
   a guaranteed view, window side, flyover traversal or current service stop.
@@ -67,8 +72,10 @@ conflict explains the flyover without claiming that a London-bound service trave
   explicit uncertain-position explanation and no automatic nearby/upcoming highlight.
 - User scrolling pauses following; **Back to now** resumes it and explicitly updates the position marker
   even when a story is open. Ordinary refresh continues to preserve the open story. Automatic refresh does not rebuild an open
-  article, collapse it, steal focus or scroll while any story is open. Source epoch, train/corridor or direction
-  changes reset the strip so old simulation/journey state cannot be reused as current evidence.
+  article, collapse it, steal focus or scroll while any story is open. Source epoch, corridor/endpoints or direction
+  changes reset the strip so old simulation/journey state cannot be reused as current evidence. A changed train
+  on the same route, weak location or loss of an onboard identity preserves the route, scroll and open story;
+  location determines the initial focus and current marker, not whether the feature or its route points exist.
 - Keep train identity, expected endpoint arrival and the current canonical train/total durations in the view; use the shared disruption model to retain
   significant journey disruption text in both Signal and Panda, and
   access to the main journey. No commentary notifications, sound or live regions repeatedly announce landmarks.
@@ -94,7 +101,7 @@ removed. Native dialog state and manual following are session-only.
 - tests/along-line.test.mjs: "Along UI: reading depth interests and expanded articles survive updates without losing journey state"
 - tests/along-line.test.mjs: "Along UI: manual scrolling pauses follow and back to now resumes it; all stories stay available"
 - tests/along-line.test.mjs: "Along UI: toggle persists without feed requests and removes the entry immediately when disabled"
-- tests/along-line.test.mjs: "Along UI: browse is available offline from Settings but station boards never gain a landmark prompt"
+- tests/along-line.test.mjs: "Along UI: browse remains available from Settings without claiming a live position"
 
 - tests/along-line.test.mjs: "Along UI: travel disruption remains visible, stale arrival is qualified and changed journeys reset the strip"
 
@@ -151,3 +158,24 @@ and assertion now share the captured feed time; a frozen10:00:29.900prediction t
 clock across that boundary and verifies the actual arrival remains10:26. Production timing is unchanged.
 
 - tests/app.test.mjs: "At King's Cross: a minute boundary after fetching cannot change the expected office arrival"
+
+## Access correction after simulator use
+Sam reported that enabling the flag and starting the simulator did not reveal a way into the feature.
+A real guided-journey reproduction confirmed the entry was hidden until the on-train checkpoint, and Signal's
+root-child reordering placed the button above its header when it finally appeared. The enabled feature now
+has persistent explicit navigation below the header; GPS/identity still gate live commentary, not access.
+
+- tests/along-line.test.mjs: "Along UI: enabled navigation stays below the heading before boarding in either design"
+
+Sam clarified the complete journey line must stay browsable: while crossing Welwyn, he should be able to scroll
+back to Hitchin and read about the junction. All route points now remain in the strip regardless of selected
+interests or current position. The last established route is retained within the current source/direction/mode;
+source, direction or real corridor/endpoints changes start a new view. Live cues still require fresh evidence.
+
+- tests/along-line.test.mjs: "Along UI: passed route points and open stories survive losing the current position"
+
+- tests/along-line.test.mjs: "Along UI: an established Thameslink route survives losing identity before opening the view"
+
+The real opt-in and guided simulator regression is [browser-along-access.py](../../tests/browser-along-access.py).
+It checks Home through Stevenage in both designs at 320/390px, visible navigation, browse/onboard transitions,
+passed Hitchin reading across a further GPS checkpoint, focus return and 44px targets.

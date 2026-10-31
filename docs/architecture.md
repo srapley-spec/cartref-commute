@@ -308,6 +308,10 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+- **31 Oct, Along access correction** Sam: location chooses the initial position on Along the line, never
+  whether it is available. Keep navigation visible whenever enabled and every route point browsable regardless
+  of interests. Retain the established corridor and open article through GPS/identity loss; reset on source,
+  direction, mode or actual corridor/endpoints changes. → [Along the line](stories/along-the-line.md).
 - **31 Oct** Sam authorises Along the line as a Signal-based journey companion, with a separate Experimental
   toggle off by default. Interests and reading depth are independent. Start with bundled curated
   Letchworth–London stories and approximate phone-led cues, never exact position from timetable interpolation.

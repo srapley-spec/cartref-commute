@@ -156,7 +156,17 @@ const factories={
   assert.equal(s.trainLock||null,null,'the walk home does not invent rail identity');
  },
  'along-the-line':async a=>{
-  const s=a.c.state,t={from:'LET',to:'KGX',std:'09:45',dep:NOW-15*MIN,arr:NOW+20*MIN,
+  const s=a.c.state;
+  assert.equal(a.d.querySelector('#alongEntry').hidden,true,'off by default before boarding');
+  s.saved.settings.alongLine=true;a.c.render();
+  const nav=a.d.querySelector('#alongNavigation');
+  assert.ok(visible(a,a.d.querySelector('#alongEntry')),'enabled access is visible before boarding');
+  assert.equal(nav.previousElementSibling.tagName,'HEADER');
+  a.d.querySelector('#alongEntry').click();
+  assert.match(a.text('#alongJourney'),/Browse/,'pre-boarding access does not invent an onboard journey');
+  assert.equal(a.d.querySelector('#alongStrip [data-featured="true"]'),null);
+  a.d.querySelector('#alongClose').click();
+  const t={from:'LET',to:'KGX',std:'09:45',dep:NOW-15*MIN,arr:NOW+20*MIN,
    serviceId:'parity-along',operator:'Great Northern',depLate:0,arrLate:20,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'A significant current delay',
    calls:[{code:'LET',name:'Letchworth',t:NOW-15*MIN},{code:'KGX',name:'King’s Cross',t:NOW+20*MIN}]};
   Object.assign(s,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:NOW,railSource:'darwin',boardsDir:'office',
@@ -171,6 +181,7 @@ const factories={
   assert.match(a.text('#alongJourney'),/09:45 Great Northern/);
   assertDuration(a,dialog,progress.option,{train:{...t,arr:progress.expectedArrival},arrival:progress.finalArrival});
   assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
+  assert.ok(visible(a,a.d.querySelector('[data-point="hitchin"] summary')),'passed points outside the selected interests remain browsable');
   assert.ok(visible(a,a.d.querySelector('#alongImpact')),'significant current impact stays exposed');
   assert.match(a.text('#alongImpact'),/20 min|late|delay/i);
   const story=a.d.querySelector('[data-point="digswell"] details');story.open=true;
