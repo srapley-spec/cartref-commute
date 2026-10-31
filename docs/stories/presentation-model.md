@@ -55,9 +55,10 @@ that integration, including a deliberate change to the model order. Panda's exis
   keeps its primary answer exposed while following/alerts continue. Tube choices/corrections are extracted
   outside folded recommendations with their existing handlers and selection intact. The approved compact layout is specified by the
   [Signal story](signal-design-system.md#compact-v2-direction-sam-31-oct-2026).
-- With both Experimental options off, existing Panda golden content stays unchanged. Signal and Panda share
-  journey identity, times, flags and source requests when following is off; Signal adds the selected presentation
-  and explicit controls without changing planning calculations.
+- Panda and Signal share journey identity, times, duration, arrival-first meaning, flags and source requests when
+  following is off. Sam's 31 Oct evening parity decision adds the same Auto / Plan / Live controls and override
+  policy to Panda, superseding the earlier feature-off “new controls hidden” contract. Follow remains independent;
+  toggling a visual design changes geometry rather than planning calculations or access to a view.
 
 ## Tests
 - tests/core/present.test.mjs: "chooseView: live situations win over Leave now, in the order the situations are checked"
@@ -93,6 +94,10 @@ that integration, including a deliberate change to the model order. Panda's exis
 - tests/presentation-ui.test.mjs: "Signal planning keeps the primary answer ahead of the accessible line-status strip"
 
 ## Current implementation and limits
+- [UI parity](ui-parity.md) now requires every supported design and applicable surface to receive a feature or
+  correction together. The mandatory matrix covers all `BLOCKS` views and explicit Live departures; a design is
+  removed only by Sam's explicit retirement. This supersedes preservation-only wording below wherever it would
+  freeze Panda's functionality while Signal advances.
 - Signal closes the old status-summary and live-block ordering gaps. Panda retains its existing banner stack
   and live-template arrangement when the design switch is off. The earlier “only Leave now draws BLOCKS” limitation
   describes Panda, not Signal.

@@ -23,7 +23,7 @@ test('Live at home with no journey: every train leaving Letchworth, each saying 
   live(a);
   assert.equal(a.c.state.presentation.mode,'live'); assert.equal(a.c.state.presentation.noActiveJourney,true);
   assert.match(a.text('#hero'),/Live · departures from Letchworth/);
-  assert.match(a.text('#hero'),/No journey under way/);
+  assert.equal(a.text('#hero .live-note'),'Auto shows when to leave.');
   assert.equal(a.text('#listTitle'),'Departures from Letchworth');
   assert.equal(a.d.querySelectorAll('[data-board-jump]').length,0,'one station: no station lozenges');
   const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
@@ -31,8 +31,9 @@ test('Live at home with no journey: every train leaving Letchworth, each saying 
   // Farringdon: one train, one row), 10:51 cancelled. Two hours of trains are listed, none hidden.
   assert.deepEqual(rows.map(r=>r.querySelector('.leave .t').textContent),['10:07','10:21','10:37','10:51','11:07','11:21','11:37','11:51','12:07','12:21','12:37','12:51']);
   assert.match(text[0],/to King's Cross/); assert.match(text[1],/to Farringdon or St Pancras/);
-  assert.equal(reach(rows[0]),'none','10:07 leaves before you could walk there');
-  assert.ok(rows[0].classList.contains('gone'));
+  const grade=a.c.ranked(MORNING).find(option=>option.train.std==='10:07').effort;
+  assert.equal(reach(rows[0]),grade,'the board retains the same effort grade as Auto, including a possible car');
+  assert.equal(rows[0].classList.contains('gone'),grade==='none');
   assert.equal(reach(rows[2]),'walk'); assert.match(text[2],/You can make it/);
   assert.match(text[2],/Arrive\s*11:40/,'arrival at the office, from the same plan Auto uses');
   assert.equal(reach(rows[3]),null,'a cancelled train has nothing to make'); assert.match(text[3],/Cancelled/);
