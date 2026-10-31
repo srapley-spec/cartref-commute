@@ -174,7 +174,6 @@ function journeyPresentation(now,s){
   state.pendingView=shown.pending;
   document.querySelectorAll('[data-journey-view]').forEach(b=>{
     b.setAttribute('aria-pressed',String(b.dataset.journeyView===shown.mode));
-    if(b.dataset.journeyView==='auto')b.textContent=shown.mode==='auto'?'Auto':'Return to Auto';
   });
   $('#journeyViewNote').textContent=shown.pending?'Journey update ready · finish what you’re reading or choose Live':
     shown.mode==='auto'?`Auto · ${current.active?'Live':'Plan'}`:shown.mode==='plan'?'Planning pinned · tracking continues':'Live pinned';

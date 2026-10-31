@@ -711,7 +711,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:42 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 22:02 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7030,7 +7030,6 @@ function journeyPresentation(now,s){
   state.pendingView=shown.pending;
   document.querySelectorAll('[data-journey-view]').forEach(b=>{
     b.setAttribute('aria-pressed',String(b.dataset.journeyView===shown.mode));
-    if(b.dataset.journeyView==='auto')b.textContent=shown.mode==='auto'?'Auto':'Return to Auto';
   });
   $('#journeyViewNote').textContent=shown.pending?'Journey update ready · finish what you’re reading or choose Live':
     shown.mode==='auto'?`Auto · ${current.active?'Live':'Plan'}`:shown.mode==='plan'?'Planning pinned · tracking continues':'Live pinned';
