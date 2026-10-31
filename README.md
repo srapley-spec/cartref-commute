@@ -2,6 +2,12 @@
 
 When to leave the office or Cartref, using live National Rail trains via King's Cross (Great Northern) or Farringdon (Thameslink), Circle/Met to Aldgate, and your measured walks.
 
+## Try the journey simulator
+Open **Simulator** in the app header to replay a journey through the real application without travelling.
+The [simulator user guide](docs/simulator-user-guide.md) covers starting a journey, controls, scenarios,
+GPS accuracy, verification, reports and limitations. The [scenario coverage matrix](docs/simulator-scenario-coverage.md)
+records the automated checks and their results.
+
 ## Context
 Start with [`CLAUDE.md`](CLAUDE.md) (working rules), [`docs/architecture.md`](docs/architecture.md) (why it's built
 this way, decisions, plan) and [`docs/stories/`](docs/stories/README.md) (each capability: where it came from,

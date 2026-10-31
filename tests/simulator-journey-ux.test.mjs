@@ -18,7 +18,24 @@ async function startJourney(a,{direction='outbound',route='kgx',scenario='normal
  await openJourney(a);select(a,'journeyDirection',direction);select(a,'journeyRoute',route);select(a,'journeyScenario',scenario);click(a,'journeyStart');
  await until(()=>a.c.simulator.sim.active&&a.d.querySelector('#simPanel').hidden,'guided start collapses to real app');await checked(a);
 }
-async function next(a){const index=view(a).index;click(a,'journeyNext');await until(()=>view(a).index===index+1,'Next advances one adjacent checkpoint');return checked(a);}
+async function next(a,{stallTimeout=6000,totalTimeout=60000}={}){
+ const initial=view(a),index=initial.index;let elapsed=initial.elapsed,lastProgress=Date.now();
+ const diagnostic=()=>{const v=view(a);return JSON.stringify({index:v.index,checkpoint:v.checkpoints[v.index]?.label,elapsed:v.elapsed,stepping:v.stepping,verificationPending:v.verification.pending,disabled:a.d.querySelector('#journeyNext').disabled,loading:a.c.state.loading,again:a.c.state.again});};
+ // Click once, atomically with readiness: a disabled DOM button silently ignores click().
+ await until(()=>{const button=a.d.querySelector('#journeyNext');if(button.disabled)return false;button.click();return true;},'Next becomes ready before clicking',20000);
+ const started=Date.now();lastProgress=started;
+ while(true){
+  const v=view(a),details=diagnostic();
+  assert.ok(v.index===index||v.index===index+1,'Next advances only one adjacent checkpoint: '+details);
+  assert.ok(Number.isFinite(v.elapsed)&&v.elapsed>=elapsed,'Next preserves monotonic simulated progress: '+details);
+  if(v.index===index+1)break;
+  if(v.elapsed>elapsed){elapsed=v.elapsed;lastProgress=Date.now();}
+  assert.ok(Date.now()-lastProgress<stallTimeout,'Next stalled without simulated progress: '+details);
+  assert.ok(Date.now()-started<totalTimeout,'Next exceeds bounded total duration: '+details);
+  await sleep(10);
+ }
+ assert.equal(view(a).index,index+1,'Next advances one adjacent checkpoint');return checked(a);
+}
 async function finish(a){if(a.c.simulator.sim.active||a.c.S().simulatorEnabled||a.c.S().simulatedFeeds)a.c.simulator.simStop({resume:false});await sleep(50);assert.deepEqual(a.errors,[]);}
 function scheduler(a){const nativeSet=a.w.setInterval.bind(a.w),nativeClear=a.w.clearInterval.bind(a.w),tasks=new Map();let id=97000;
  a.w.setInterval=(fn,ms)=>{if(ms!==1000)return nativeSet(fn,ms);const n=id++;tasks.set(n,fn);return n;};
@@ -143,10 +160,29 @@ for(const design of ['panda','signal'])for(const direction of ['outbound','retur
 
 test('Journey verification recognises known Thameslink continuing through St Pancras before genuine Farringdon alighting',async()=>{
  const a=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:80});await startJourney(a,{route:'far'});select(a,'simSpeed','20');
- while(!view(a).checkpoints[view(a).index].label.includes('Passing St Pancras'))await next(a);
+ let slowSegment=false;
+ while(!view(a).checkpoints[view(a).index].label.includes('Passing St Pancras')){
+  if(view(a).index!==4){await next(a);continue;}
+  // The 25-minute leg has nine normal zero-delay yields. Slow those actual app yields
+  // to reproduce loaded CI without changing GPS, providers, inference or assertions.
+  const nativeTimeout=a.w.setTimeout,started=Date.now();
+  a.w.setTimeout=function(fn,delay,...args){return nativeTimeout.call(this,fn,Number(delay)===0&&view(a).stepping?750:delay,...args);};
+  try{await next(a);assert.ok(Date.now()-started>=6000,'progressing playback genuinely exceeds the old six-second total deadline');slowSegment=true;}
+  finally{a.w.setTimeout=nativeTimeout;}
+ }
+ assert.ok(slowSegment,'the long Thameslink segment exercises slow sequential playback');
  const result=await checked(a);assert.equal(a.c.state.onLine,true,'known moving Thameslink is still on its route through the shared station radius');
  assert.equal(result.status,'PASS');assert.ok(result.assertions.some(row=>row.status==='PASS'&&row.id==='rail-progress'));assert.match(a.text('#hero'),/^On the train/);
  await next(a);assert.equal(view(a).checkpoints[view(a).index].point,'far');assert.equal(a.c.state.onLine,false,'stationary destination fix still allows genuine alighting');assert.doesNotMatch(a.text('#hero'),/^On the train/);await finish(a);
+});
+
+test('Journey Next watchdog rejects a deliberately stalled playback action',async()=>{
+ const a=await createApp({settle:80});await startJourney(a);
+ const original=a.c.simulator.nextCheckpoint,index=view(a).index;
+ // Deliberately break the actual UI action, leaving the original inference/verifier intact.
+ a.c.simulator.nextCheckpoint=async()=>{};
+ try{await assert.rejects(next(a,{stallTimeout:80,totalTimeout:1000}),/Next stalled without simulated progress/);assert.equal(view(a).index,index);}
+ finally{a.c.simulator.nextCheckpoint=original;await finish(a);}
 });
 
 test('Journey verification visibly fails when known-service through-station inference is deliberately reverted',async()=>{

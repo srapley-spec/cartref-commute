@@ -77,6 +77,25 @@ Aldgate arrival ends the ride and the real office card appears.
   journeys support bounded local coordinates and named Science Museum/office examples, not arbitrary worldwide planning.
 - Independent review/mutation outcomes and exact committed CI results belong in the final evidence below.
 
+## User-guide follow-up: checkpoint test synchronization
+
+The [user guide](simulator-user-guide.md) documents operation and practical limits. Its PR exposed a
+same-head GitHub difference: one 680-test run passed while another timed out during the 25-minute
+Thameslink Stevenage–London segment. Independent controlled-load reproduction found elapsed time
+still advancing at 64.333 minutes towards the 65-minute checkpoint when the test's six-second total
+deadline expired; the same action subsequently completed. This was a test synchronization failure,
+not evidence that the application had stopped moving. The helper now waits for an enabled control,
+clicks once, requires monotonic progress to exactly the adjacent checkpoint, rejects six seconds
+without progress and retains a 60-second overall bound. Production inference and playback are unchanged.
+
+| Behaviour | Actual application exercise | Automated test in `tests/simulator-journey-ux.test.mjs` | Result |
+| --- | --- | --- | --- |
+| Slow sequential processing | Delay the real zero-delay playback yields on the 25-minute Thameslink leg beyond the old six-second total deadline; retain the real train, through-station and alighting assertions | `Journey verification recognises known Thameslink continuing through St Pancras before genuine Farringdon alighting` | PASS (targeted run) |
+| Permanent lack of progress | Deliberately replace the actual Next action with a no-op; the helper must reject it rather than accepting completion | `Journey Next watchdog rejects a deliberately stalled playback action` | PASS (targeted run) |
+
+Both targeted regressions passed 2/2. Full committed-code CI and exact release evidence for this follow-up
+are recorded in [PR #38](https://github.com/srapley-spec/cartref-commute/pull/38).
+
 ## Release evidence
 
 Main-merged integration evidence (after merging live branch`be91e99`): `tests/simulator-integration.test.mjs`, **22 passed / 0 failed**, 93.24 seconds.
