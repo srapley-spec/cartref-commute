@@ -119,3 +119,15 @@ test('explicit planning views are inconclusive without hiding an unintended pres
  c.app.planMode='now';assert.equal(row(evaluate(c),'rail-presentation').status,'FAIL','forcing the planner without a user request is still a presentation defect');
  c.app.planMode='at';c.app.view='on-train';c.app.heroText='On the train';assert.equal(evaluate(c).status,'PASS','live inference may legitimately win over leave-around');
 });
+
+test('office dwell verifies the legitimate homeward plan after the arrival acknowledgement',()=>{
+ const c=base({point:'office',label:'Office dwell',mode:undefined});c.app.direction='home';c.app.nearOffice=true;c.app.onLine=false;c.app.ride=null;c.app.view='plan-now';c.app.heroText='If you leave now · Tubes from Aldgate · home at 17:20';const result=evaluate(c);assert.equal(result.status,'PASS');assert.equal(row(result,'office-presentation'),undefined,'the earlier arrival acknowledgement no longer applies');assert.equal(row(result,'office-dwell-plan').status,'PASS');
+ for(const patch of [{direction:'office'},{onLine:true},{ride:{vehicle:'OLD-TUBE'},view:'on-tube-home',heroText:'On the tube towards home'},{view:'on-train',heroText:'On the train home'},{heroText:'On the tube · old arrival at home'}]){
+  const wrong=base({point:'office',label:'Office dwell',mode:undefined});wrong.app={...c.app,...patch};assert.equal(evaluate(wrong).status,'FAIL',JSON.stringify(patch));
+ }
+});
+
+test('initial office arrival still requires arrival wording and sufficient actual evidence',()=>{
+ const c=base({point:'office',label:'Arrive at office',mode:undefined});c.app.nearOffice=true;c.app.heroText='At the office';assert.equal(evaluate(c).status,'PASS');c.app.heroText='If you leave now · home';assert.equal(row(evaluate(c),'office-presentation').status,'FAIL','homeward wording is not substituted for initial arrival');
+ const dwell=base({point:'office',label:'Office dwell',mode:undefined});dwell.app.direction='home';dwell.app.nearOffice=true;dwell.app.onLine=false;dwell.app.view='plan-now';dwell.app.heroText='If you leave now · home';delete dwell.app.ride;assert.equal(evaluate(dwell).status,'INCONCLUSIVE','missing ride evidence does not prove completion');
+});

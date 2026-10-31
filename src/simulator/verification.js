@@ -43,7 +43,8 @@ function evaluateSimulationCheckpoint(context={}) {
  const supported=['home','walk','let','north','approach','kgx','stp','far','farTube','kxTube','barbican','ald','officeWalk','office','nearHome'].includes(point);
  if(!supported){unknown('undefined-checkpoint','A defined application behaviour at this checkpoint','No assertion is defined for this checkpoint');return result();}
  // After office dwell the application deliberately turns to the homeward journey.
- const wantedDirection=!ret&&/Office dwell/i.test(label)?'home':direction;
+ const officeDwell=!ret&&point==='office'&&/Office dwell/i.test(label);
+ const wantedDirection=officeDwell?'home':direction;
  add('journey-direction',`Infer the ${wantedDirection==='office'?'London / office':'Letchworth / home'} direction`,app.direction||'Not observed',typeof app.direction==='string'?app.direction===wantedDirection:null,{direction:app.direction||null});
  const elapsed=Number.isFinite(c.elapsed)?c.elapsed:Number.isFinite(config.startTime)&&Number.isFinite(c.now)?(c.now-config.startTime)/60000:null;
  if(config.scenario==='outage'&&elapsed!=null&&elapsed>=16&&elapsed<40){
@@ -103,7 +104,14 @@ function evaluateSimulationCheckpoint(context={}) {
  } else if(point==='nearHome'&&ret){screen('nearly-home','Show the real Nearly home card',/Nearly home/i);
  } else if(point==='office'&&!ret){
   bool('office-arrival','Recognise that the passenger is near the office',app.nearOffice);
-  screen('office-presentation','Show arrival at the office rather than an old train or tube ride',/At the office|arrived/i);
+  if(officeDwell){
+   bool('office-dwell-rail','End the completed outbound National Rail journey',app.onLine,false);
+   add('office-dwell-ride','End any old Underground ride before offering a new homeward journey',app.ride?'An Underground ride is still active':app.ride===null?'No Underground ride is active':'Ride state not observed',app.ride===null?true:app.ride?false:null,{rideActive:app.ride===null?false:app.ride?true:null});
+   const planViews=['plan-now','plan-by','plan-at'];
+   add('office-dwell-plan','Offer a new homeward planning view after the office dwell',app.view?`Application view: ${app.view}`:'Application view not observed',typeof app.view==='string'?planViews.includes(app.view):null,{view:app.view||null});
+   const planned=!!text&&/home|Aldgate|leave/i.test(text)&&!/On the (train|tube)/i.test(text);
+   add('office-dwell-presentation','Display a genuine homeward plan rather than the completed outbound train or tube',text?(planned?'Homeward planning wording observed':'Homeward planning wording not observed'):'Main card not observed',text?planned:null,{screenMatch:text?planned:null});
+  }else screen('office-presentation','Show arrival at the office rather than an old train or tube ride',/At the office|arrived/i);
  } else if(point==='office'&&ret){screen('return-plan','Offer a genuine homeward journey from the office',/home|Aldgate|leave|tube/i);
  } else if(point==='ald'&&!ret){
   bool('office-walk','Plan the remaining London walk towards the office',app.inLondonToOffice);

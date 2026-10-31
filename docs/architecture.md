@@ -183,6 +183,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **30 Oct late evening** Follow a route built behind Settings → Experimental (Sam: "do all of it"): one-tap Follow;
+  the arrival changes only with a reason; missed/cancelled offer the best way on; better options at 5+ min sooner;
+  the tube home followed by its vehicle from TfL's arrivals at the station you're heading for (one request per
+  refresh while following on a tube); planning tabs lapse to live after 20 min or a change of situation. Engine:
+  `src/core/follow.ts`. → [follow-a-route](stories/follow-a-route.md)
 - **30 Oct evening** Interchange timings from Sam's measurements: King's Cross rail → tube 400 s from the train
   stopping (30 s off + double the 185 s best, both paces); Aldgate East 112 s + 283 s (as measured). Next: start the
   King's Cross walk when the train stops (GPS speed), not at the first fix. → [connections](stories/connections.md)

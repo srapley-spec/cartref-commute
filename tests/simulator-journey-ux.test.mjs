@@ -134,6 +134,8 @@ for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
    if(v.index===total-1)break;await next(a);
   }
   assert.ok(svg);const final=view(a);assert.equal(final.summary.completedCheckpoints,total);assert.equal(final.summary.failedAssertions,final.verification.results.flatMap(r=>r.assertions).filter(r=>r.status==='FAIL').length,'summary truthfully counts observed application failures');assert.ok(final.summary.passedAssertions>0);
+  const failures=final.verification.results.flatMap(r=>r.assertions.filter(row=>row.status==='FAIL').map(row=>({checkpoint:r.label,id:row.id,expected:row.expected,actual:row.actual})));
+  assert.equal(failures.length,0,'normal coordinated journeys satisfy every defined assertion; unresolved choices may remain inconclusive: '+JSON.stringify(failures));
   assert.equal(a.calls.length,calls,'guided playback never leaks to live providers');assert.match(a.text('#journeyResultsSummary'),/pass|assertion|checkpoint/i);
   assert.equal(a.d.querySelector('#journeyNext').textContent,'Results');click(a,'journeyNext');assert.equal(a.d.querySelector('#journeyResultsDetails').open,true,'completion makes the real summary discoverable');assert.equal(view(a).index,total-1);await finish(a);
  });

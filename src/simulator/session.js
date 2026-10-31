@@ -37,8 +37,8 @@ function createJourneySimulationSession({simulator,reporter,evaluate,readActual,
   return result;
  }
  function observe(){
-  const app=readActual(),observation={view:app.view,direction:app.direction,serviceId:app.train?.serviceId||null,vehicle:app.ride?.vehicle||null,errors:(app.errors||[]).join('|')};
-  if(lastObserved){for(const key of ['view','direction','serviceId','vehicle','errors'])if(lastObserved[key]!==observation[key])event('inference',`${key} changed from ${lastObserved[key]||'unknown'} to ${observation[key]||'unknown'}`,{view:app.view,serviceId:app.train?.serviceId,vehicle:app.ride?.vehicle});}
+  const app=readActual(),observation={view:app.view,direction:app.direction,serviceId:app.train?.serviceId||null,vehicle:app.ride?.vehicle||null,followedServiceId:app.follow?.serviceId||null,followState:app.follow?.state||null,errors:(app.errors||[]).join('|')};
+  if(lastObserved){for(const key of ['view','direction','serviceId','vehicle','followedServiceId','followState','errors'])if(lastObserved[key]!==observation[key])event('inference',`${key} changed from ${lastObserved[key]||'unknown'} to ${observation[key]||'unknown'}`,{view:app.view,serviceId:app.train?.serviceId,vehicle:app.ride?.vehicle});}
   lastObserved=observation;
  }
  const unsubscribe=simulator.subscribe(({type,reason})=>{
