@@ -1,6 +1,6 @@
 # Journey simulator scenario coverage
 
-Status: strengthened application integration **22/22 passed**, including actual train/tube identity, displayed arrival states and poor-fix protection. Final implementation is independently approved; committed local and GitHub CI remain release gates.
+Status: the pre-redesign baseline passed **409/409**. Guided Journey UX passed **12/12**, plus the focused independent-source regression; real Chromium passed **18 phone/theme layouts in both modes** and all four journeys. Final committed CI and independent staged review remain release gates. Runtime verification uncovered and now guards a fixed Thameslink passing-St-Pancras inference defect, described below.
 
 The integration suite loads the generated `index.html` in jsdom, submits the actual Settings form,
 clicks simulator controls and advances the actual playback interval callback. It does not assign trains,
@@ -106,3 +106,64 @@ see [independent review](simulator-review.md). The initial full CI correctly fai
 with pending refresh callbacks. Tests now wait for the actual loading state to settle before close;
 the focused cleanup suite passes4/4. Final committed CI and merge evidence are recorded in
 [PR33](https://github.com/srapley-spec/cartref-commute/pull/33) and its GitHub Actions checks.
+
+## Guided Journey Mode and runtime verification redesign
+
+The pre-redesign baseline was executed again: **409 passed, 0 failed** (`/tmp/cartref-ux-baseline.log`).
+The number is historical evidence, not a fixed test-count target. Existing corridor, provider, source-isolation,
+accuracy and recovery tests remain in place. New tests load the same generated application and use the same
+controller/provider pipeline through the guided controls.
+
+A passing simulator test is different from a runtime checkpoint PASS. Tests below can pass by proving that
+a genuine application defect produces a visible runtime FAIL. Merely reaching a waypoint does not establish
+application correctness; undefined or insufficient assertions remain INCONCLUSIVE.
+
+| Behaviour | Simulator/user inputs | Expected observable outcome | Automated test | Current execution result |
+| --- | --- | --- | --- | --- |
+| Three-action guided start | Open Journey Mode; choose direction, corridor, Start | Both synthetic sources and shared clock active; first checkpoint paused; configuration collapses and real app remains the main screen | `Journey Mode starts either selected corridor and direction in three actions with automatic coordinated sources` | PASS (rebuilt-page 12-case UX run) |
+| Scenario discoverability and preservation | Inspect every grouped scenario option | All existing fixture IDs retained; each has an input description and expected app behaviour | `Journey scenarios retain every existing fixture and explain their expected application behaviour` | PASS (rebuilt-page 12-case UX run) |
+| Advanced tools and timeline inspection | Open modes/timeline while playback runs | Same session, sources, checkpoint and timer retained; old manual controls remain available; inspecting does not jump | `Journey Advanced and timeline inspection preserve the same active simulation and playback timer` | PASS (rebuilt-page 12-case UX run) |
+| Remember choices without resuming simulation | Select return/Farringdon, stop, reload stored preferences | Allowlisted direction/corridor choices restored; real GPS/feeds/device clock active on reload | `Journey preferences remember selection across reload without persisting an active simulation` | PASS (rebuilt-page 12-case UX run) |
+| Explicit inference defect detection | Isolated built-page mutation makes production `trackLine` return false while GPS/Darwin remain normal | Actual app displays the wrong non-rail view; runtime rail-movement assertion and compact badge show FAIL, with expected/actual evidence | `Journey verification detects a deliberate production movement defect and exposes expected versus actual failure` | PASS (rebuilt-page 12-case UX run) |
+| Actual message comparison | Open failed checkpoint evidence | Detail retains the main-card message the genuine app displayed, alongside explicit assertions | Same production movement mutation test | PASS (actual main-card text retained in rebuilt-page comparison) |
+| Results and privacy | Complete two checkpoints, Stop, copy report containing fixture secrets/custom home | Separate checkpoint/assertion counts, configuration/times and evidence exported; no credentials or personal coordinates; viewing results does not resume simulation | `Journey results distinguish assertion counts and copy a credential-free diagnostic report` | PASS after preserving the fixed report-kind discriminator during privacy redaction |
+| Outbound GN / King's Cross | Guided full normal journey, actual app tube selection | Every checkpoint evaluated, actual SVG identity PASS, clock remains frozen during inspection, summary counts reflect actual verdicts | `Journey verification: outbound kgx evaluates real checkpoints through completion` | PASS (rebuilt-page 12-case UX run) |
+| Outbound TL / Farringdon | Guided full normal journey, actual app tube selection | Same; the known Thameslink remains on rail through St Pancras and genuinely alights at Farringdon | `Journey verification: outbound far evaluates real checkpoints through completion` | PASS in initial full-route run; subsequent focused through-station fix and negative control pass |
+| Return GN / King's Cross | Guided westbound tube and northbound rail | Real platform pick, actual SVG train identity, complete endpoint and truthful assertion totals | `Journey verification: return kgx evaluates real checkpoints through completion` | PASS (rebuilt-page 12-case UX run) |
+| Return TL / Farringdon | Actual tube pick and explicit Farringdon alighting control | Real northbound train identity and home endpoint; unconfirmed alighting is not fabricated | `Journey verification: return far evaluates real checkpoints through completion` | PASS (rebuilt-page 12-case UX run) |
+| Known-service through-station continuity | Thameslink passes St Pancras with precise fresh train-speed fixes and matching service calling points | Actual app stays on rail, runtime rail-progress assertion passes, then genuine stationary Farringdon arrival ends rail state | `Journey verification recognises known Thameslink continuing through St Pancras before genuine Farringdon alighting` | PASS after generic production inference fix |
+| Through-station regression remains detectable | Isolated built-page mutation restores ordinary hub-radius handling for the known moving service | Actual app again prematurely leaves rail state; the same runtime assertion and visible badge report FAIL | `Journey verification visibly fails when known-service through-station inference is deliberately reverted` | PASS: negative control exposes deliberately restored application failure |
+| Start/show asynchronous interaction | Reopen controls during settled Start callback | User's Show action is retained; late completion cannot close it again or change playback | `Journey controls reopened while Start settles are not closed again by a late callback` | PASS after removing duplicate late collapse from the Start completion callback |
+| iPhone-sized layout and accessibility | Three viewports × system/manual light/dark, Journey and Advanced modes | Prominent Start needs no extra scroll, controls ≥44px and text contrast ≥4.5:1; measured dock space reserved and no overlap/overflow | `python3 tests/browser-simulator.py` | PASS (18 layouts, both modes; Start requires no extra scroll) |
+| Browser report export | Stop a completed journey and use actual JSON download | Report retains results without restarting simulation; no external transport requests | `python3 tests/browser-simulator.py` | PASS (real Chromium JSON download after Stop) |
+| Advanced independent sources and insufficient evidence | Turn synthetic GPS off using the real Advanced source checkbox while keeping synthetic feeds | Independent source selection works; coordinated checkpoint verification is INCONCLUSIVE instead of a fabricated PASS | `Advanced independent sources retain controls and make incomplete checkpoint evidence inconclusive` | PASS (focused Advanced integration run) |
+| British local time and Advanced clock parity | Set August 08:44 UTC in Advanced, then return to Journey setup and Start | Setup/dock say 09:44 BST and actual clock retains the same selected instant | `Journey setup displays the British local time actually selected in Advanced` | PASS (actual app focused integration, 3/3 including history/privacy) |
+| Runtime outage and recovery wiring | Guided provider outage from minute 16 to 40 | Real application reports failure; recovery oracle observes the actual Darwin source and resumed services | `Journey runtime verification observes the real provider outage and its recovered source` | PASS (actual app focused integration, 3/3 including history/privacy) |
+
+### Application defect uncovered and fixed using the new verifier
+
+The new verifier initially reported a real FAIL at outbound Thameslink **Passing St Pancras**: its fresh
+train-speed fix fell within the neighbouring King's Cross hub radius, and the production app prematurely
+cleared rail movement. The original route playback test had not asserted that intermediate inference state.
+The scenario and assertion were retained. A generic pure-engine helper now uses already inferred service
+identity, ordered calling points, profile geometry and fresh train-speed evidence to preserve a continuing
+service through an intermediate/shared hub; genuine stationary destination arrival still ends rail state.
+
+The positive actual-app regression now observes rail-progress PASS through St Pancras and genuine alighting
+at Farringdon. A separate isolated built-page mutation removes the helper's continuation evidence and requires
+the runtime verifier to show the original FAIL again. Successful playback is never substituted for either
+assertion. No simulator identity injection, fixture change or assertion removal was used to conceal the defect.
+
+### Guided UX execution evidence
+
+- Built-page Journey UX: **12 passed, 0 failed**, 78.81s (`/tmp/cartref-journey-ux-fixed.log`).
+- Additional independent-source regression and strengthened timeline test: **2 passed, 0 failed** (`/tmp/cartref-journey-ux-advanced.log`). The retained UX file subsequently gained a positive through-station case and separate production-helper negative control; it now contains16 cases after adding local-time hint and actual provider-recovery wiring regressions. Final committed CI reruns them together.
+- Real Chromium:18 phone/theme combinations across Journey and Advanced modes,44px controls,4.5:1 minimum text contrast, measured dock reservation, no overflow/overlap, three-action Start, unchanged playback through mode/timeline inspection, actual JSON download after Stop and all four route/direction journeys at1×/5×/20×. Zero page errors or live transport requests during simulation (`/tmp/cartref-journey-ux-browser-fixed.log`).
+- The retained production mutation changes only an isolated built-page copy of `trackLine` to return no rail movement. The real app consequently renders the wrong view and runtime verification displays FAIL. No expected train identity or route is injected into the application.
+- First execution identified two implementation defects: a late Start callback closed controls the user had reopened, and privacy redaction altered the report's fixed format discriminator. Both were fixed, and the original failing assertions pass without weakening them.
+
+Focused integration after the core continuity correction: **4 passed, 0 failed**, 27.77s (`/tmp/cartref-journey-ux-core-fixed.log`). This includes a numbered session-identity preservation check, the production movement mutation, known Thameslink continuity plus genuine alighting, and the deliberately reverted through-station helper. The mutation targets the production function name/signature with an assertion that exactly one target was replaced.
+
+The stopped-history comparison also retains completed versus upcoming steps and historical times after a new Advanced draft route is selected, without reactivating simulation. An additional probe caught a British-time hint that advertised the default November date while preserving a custom August clock; the UI now derives that hint from the selected instant. The source recovery regression requires the observational snapshot to include the real provider source, not merely nonempty cached services.
+
+Final wiring and reporting focused integration: **3 passed, 0 failed**, 13.09s (`/tmp/cartref-ux-report-clock-outage.log`). This verifies historical GN progress after selecting a future TL draft, the same August instant displayed as British Summer Time in setup and playback, and the runtime outage/recovery oracle against actual provider state.

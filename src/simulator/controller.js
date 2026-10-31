@@ -1,12 +1,21 @@
 // Simulator orchestration. GPS enters the normal browser-position handler; no train identity is injected.
 function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onStop=()=>{}}) {
 const $=id=>document.getElementById(id);
-const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null};
+const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,sessionId:0,verification:{current:null,results:[],pending:false}};
+const listeners=new Set();let playbackGeneration=0;
+const subscribe=fn=>{listeners.add(fn);return ()=>listeners.delete(fn);};
+function notify(type,extra={}){for(const fn of [...listeners])fn({type,...extra});}
+function getView(){const checkpoints=route(),config=getScenario(),summary=api.reporter?.summary()||null;
+ const report=!sim.active&&summary?.finished?api.reporter.getReport():null;
+ const historicalTimeline=report?{config:report.config,startTime:report.config.startTime,checkpoints:route(report.config),index:Math.max(-1,...report.checkpoints.map(item=>item.index)),results:report.checkpoints,reason:report.reason,finished:true}:null;
+ return {historicalTimeline,diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
+
 const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
 const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
-function getScenario(){return {route:$("simPath").value,direction:$("simDirection").value,scenario:$("simScenario").value,startTime:sim.startTime??startTime()};}
+function getDraftScenario(){return {route:$("simPath").value,direction:$("simDirection").value,scenario:$("simScenario").value,startTime:startTime()};}
+function getScenario(){return sim.config?{...sim.config}:getDraftScenario();}
 function startTime(){return Date.parse($("simDate").value+'Z');}
-function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let boarded=false;
+function route(configuration=getScenario()){const c=configuration,raw=routes[c.direction+'-'+c.route];let boarded=false;
  const shift=['later-train','wrong-train','cancellation'].includes(c.scenario)?(c.route==='far'?15:c.direction==='return'?10:12):c.scenario==='delay'?8:0;
  let tubeBoarded=false;
  return raw.map(([point,label,at,mode])=>{if(mode==='rail')boarded=true;if(mode==='tube')tubeBoarded=true;
@@ -16,17 +25,19 @@ function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let b
  return {point,label,at:at+adjustment,mode};});}
 function status(message){$("simStatus").textContent=message;updateTime();}
 function setPanelVisible(visible){
- $("simPanel").hidden=!visible;$("simToggle").textContent=visible?'Hide controls':'Show controls';$("simToggle").setAttribute('aria-expanded',String(visible));
+ $("simPanel").hidden=!visible;$("simBar").hidden=!(visible||S().simulatorEnabled||S().simulatedFeeds);$("simToggle").textContent=visible?'Hide controls':'Show controls';$("simToggle").setAttribute('aria-expanded',String(visible));
+ document.body.classList.toggle('simControlsVisible',visible||!!(S().simulatorEnabled||S().simulatedFeeds));notify('panel');
 }
 function updateTime(){
  const enabled=!!(S().simulatorEnabled||S().simulatedFeeds);
- document.body.classList.toggle('simControlsVisible',enabled);
+ document.body.classList.toggle('simControlsVisible',enabled||!$("simPanel").hidden);
  const activity=sim.active||S().simulatedFeeds?'Simulation active':'Simulator ready';
  if($("simActivity").textContent!==activity)$("simActivity").textContent=activity;
  $("simPlay").textContent=sim.startTime===null?'Start':'Restart';
- $("simAdvance").textContent=sim.timer!==null?'Pause':sim.startTime===null?'Start':sim.index>=route().length-1?'Restart':'Continue';
- const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';}
-function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;}
+ $("simAdvance").textContent=sim.timer!==null||sim.stepping?'Pause':sim.startTime===null?'Start':sim.index>=route().length-1?'Restart':'Continue';
+ const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';notify('frame');}
+function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;sim.stepping=false;playbackGeneration++;}
+function pause(){stopTimer();status('Paused');notify('pause');}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
@@ -65,11 +76,16 @@ function emit(p,speed=0){const scenario=getScenario().scenario;
  if(S().simulatorEnabled&&onPositionError)onPositionError({code:2});$("simFixStatus").textContent='Underground: no usable GPS fix';return;}
  fix(...points[p.point],speed,accuracy(p));
 }
-function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textContent=`${p.label} · ${sim.index+1}/${r.length}`;$("simNext").textContent=r[sim.index+1]?.label||'Journey complete';status('Paused at '+p.label+'. Press Continue to next waypoint.');}
-function restart(){stopTimer();if(!start())return;const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.elapsed=0;sim.index=0;clearJourneyMemory();resetContext();syncClock();emit(route()[0]);checkpoint();refresh({force:true});}
+function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textContent=`${p.label} · ${sim.index+1}/${r.length}`;$("simNext").textContent=r[sim.index+1]?.label||'Journey complete';status('Paused at '+p.label+'. Press Continue to next waypoint.');notify('checkpoint');}
+function restart(){
+ stopTimer();const draft=getDraftScenario(),t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return false;}
+ if(!start())return false;
+ sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
+ clearJourneyMemory();resetContext();syncClock();notify('start');emit(route()[0]);checkpoint();refresh({force:true});return true;
+}
 // Follow the same approximate corridor as the profile rather than cutting across the bends.
-function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
- const speed=Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
+function tick(stepSeconds){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
+ const speed=typeof stepSeconds==='number'&&Number.isFinite(stepSeconds)?stepSeconds:Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
  const a=points[p.point],b=points[next.point],f=(sim.elapsed-p.at)/Math.max(.001,next.at-p.at);
  // Rail travel uses explicit speed evidence. Tube travel withholds GPS except at exposed sections.
  if(getScenario().scenario==='uncertain'&&next.mode==='rail'&&!route().slice(0,sim.index+1).some(x=>x.point==='north')&&f<1){$("simFixStatus").textContent='Train: GPS unavailable until Stevenage';}
@@ -77,19 +93,35 @@ function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){sto
  else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,next.mode==='rail',railLine),next.mode==='rail'?25:1.4,accuracy(next));
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
-function continuePlayback(){if(!sim.active||sim.startTime===null){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
-function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
+function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
+async function nextCheckpoint(){
+ if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}
+ if(sim.index>=route().length-1)return;
+ if(!S().simulatorEnabled||!S().simulatedFeeds){continuePlayback();return;}
+ stopTimer();const generation=playbackGeneration,target=sim.index+1;sim.stepping=true;notify('playback');
+ // Sequential normal observations and normal refreshes reconstruct history; never teleport a checkpoint.
+ for(let frame=0;frame<10000&&sim.active&&generation===playbackGeneration&&sim.index<target;frame++){
+  tick(20);
+  if(frame%3===0)await refresh();
+  if(frame%9===0)await new Promise(resolve=>setTimeout(resolve,0));
+ }
+ if(generation===playbackGeneration){sim.stepping=false;notify('playback');}
+}
+function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
- $("simToggle").addEventListener('click',()=>setPanelVisible($("simPanel").hidden));
- $("simAdvance").addEventListener('click',()=>{if(sim.timer!==null){stopTimer();status('Paused');}else if(sim.startTime!==null&&sim.index>=route().length-1){restart();}else continuePlayback();});
- $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',()=>{stopTimer();status('Paused');});$("simExit").addEventListener('click',simStop);
- $("simJump").addEventListener('click',()=>{stopTimer();const p=points[$("simPreset").value];if(p)fix(...p);status('Manual GPS fix applied');});
- $("simApply").addEventListener('click',()=>{stopTimer();fix(Number($("simLat").value),Number($("simLon").value));});
- $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');}});
- for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';sim.startTime=null;sim.index=0;sim.elapsed=0;status('Selection changed. Press Restart.');});
+ $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',pause);$("simExit").addEventListener('click',simStop);
+ $("simJump").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;const p=points[$("simPreset").value];if(p)fix(...p);notify('manual');status('Manual GPS fix applied');});
+ $("simApply").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;fix(Number($("simLat").value),Number($("simLon").value));notify('manual');});
+ $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.config={...getDraftScenario(),startTime:t};sim.manualOverride=true;sim.sessionId++;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');notify('manual');}});
+ for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{
+  stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
+  sim.pendingRestart=!!sim.config;status('Selection changed. Press Restart.');notify('configuration');
+ });
+ $("simSpeed").addEventListener('change',()=>{notify('speed');updateTime();});
  updateTime();
 }
-return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateTime,setPanelVisible};
+const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
+return api;
 }

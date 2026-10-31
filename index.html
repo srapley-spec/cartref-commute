@@ -216,7 +216,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <h1>Cartref Commute</h1>
       <div class="sub" id="routeLabel">Cartref ⇄ 20 Mansfield Street</div>
     </div>
-    <button class="iconbtn" id="settingsBtn" type="button">Settings</button>
+    <div class="controls"><button class="iconbtn" id="journeySimulatorBtn" type="button">Simulator</button><button class="iconbtn" id="settingsBtn" type="button">Settings</button></div>
   </header>
 
   <div class="controls">
@@ -278,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 22:59 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:04 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -379,26 +379,92 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <style>
 #simDock{position:fixed;z-index:9998;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;max-height:100vh;max-height:100dvh;pointer-events:none;font:14px system-ui;color:var(--ink)}
-#simPanel{pointer-events:auto;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:65vh;max-height:65dvh;overflow:auto;padding:14px;border:2px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
-#simBar{pointer-events:auto;flex-shrink:0;width:100%;background:var(--card);color:var(--ink);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--muted);box-shadow:0 -2px 15px #0003;text-align:center}
-#simActivity{display:block;margin-bottom:6px;font-weight:700}
+#simPanel{pointer-events:auto;display:flex;flex-direction:column;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:58vh;max-height:58dvh;overflow:hidden;padding:14px 14px 0;border:1px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
+#simPanel.simSetupOpen{max-height:72vh;max-height:72dvh}
+#simPanelScroll{overflow:auto;min-height:0;padding-bottom:12px}
+#simBar{pointer-events:auto;flex-shrink:0;width:100%;background:var(--card);color:var(--ink);padding:4px 12px calc(4px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--muted);box-shadow:0 -2px 15px #0003}
 #simPanel label{display:block;margin:8px 0 3px}
-#simPanel input,#simPanel select{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:16px system-ui;min-height:44px}
+#simPanel input,#simPanel select,#simPanel textarea{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:16px system-ui;min-height:44px}
+#simPanel textarea{min-height:120px;resize:vertical;font:12px var(--font-mono)}
 #simPanel input{-webkit-appearance:none;appearance:none}#simPanel input::-webkit-date-and-time-value{text-align:left;min-width:0}
 #simPanel button,#simBar button{padding:10px;margin:0;min-height:44px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:600 14px system-ui;cursor:pointer;touch-action:manipulation}
-#simPanel #simPlay,#simBar #simAdvance{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#simPanel #simPlay,#simBar #simAdvance,#simPanel .simModeButtons [aria-pressed="true"],#simPanel .simPrimary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 #simPanel button:focus-visible,#simBar button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 #simPanel .simRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
 #simPanel .simPlayback{grid-template-columns:repeat(3,minmax(0,1fr))}
 #simPanel small{display:block;color:var(--muted)}#simPanel output,#simPanel small{overflow-wrap:anywhere}
-#simBar .simDockActions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-body.simControlsVisible{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+#simPanel .simPanelTitle{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+#simPanel .simModeButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+#simPanel .simPanelTitle,#simPanel .simModeButtons,#journeyStartFooter{flex-shrink:0}
+#simPanel #journeySetup h2{display:none}
+#simPanel .simPrimary{width:100%;font-size:16px}
+#journeyStartFooter{margin:0 -14px;padding:8px 14px 12px;background:var(--card);border-top:1px solid var(--line)}
+#journeyStartFooter .simPrimary{margin:0 0 5px}#journeyStartHint{font-size:11px}
+#journeySetupError{flex-shrink:0;font-size:13px;padding:8px;border-left:3px solid var(--bad);margin:6px 0;background:var(--paper)}
+#simPanel .simDescription,#simPanel .simExpected{font-size:14px;margin:10px 0;line-height:1.5}
+#simPanel .simExpected{padding:10px;border-left:3px solid var(--accent);background:var(--paper)}
+#simPanel details{border-top:1px solid var(--line);margin-top:12px;padding-top:6px}
+#simPanel summary{font-weight:700;padding:10px 0;min-height:44px;cursor:pointer}
+#simPanel .simSourceSwitches{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:12px 0}
+#simPanel .simSourceSwitches label{display:flex;align-items:center;gap:10px;margin:0;min-height:44px}
+#simPanel .simSourceSwitches input{width:22px;min-height:44px;height:44px;appearance:auto;-webkit-appearance:checkbox}
+#simPanel .simTimeline{list-style:none;margin:8px 0;padding:0}
+#simPanel .simTimeline li{position:relative;padding:8px 8px 12px 25px;border-left:2px solid var(--line);margin-left:7px}
+#simPanel .simTimeline li:before{content:"";position:absolute;width:10px;height:10px;left:-6px;top:13px;background:var(--card);border:2px solid var(--muted);border-radius:50%}
+#simPanel .simTimeline li[data-state="complete"]:before{background:var(--accent);border-color:var(--accent)}
+#simPanel .simTimeline li[data-state="current"]{background:var(--paper);border-radius:0 6px 6px 0}
+#simPanel .simTimeline li[data-state="current"]:before{background:var(--card);border:3px solid var(--accent);width:12px;height:12px;left:-7px}
+#simPanel .simTimeline button{width:100%;text-align:left;background:transparent;border:0;padding:0;min-height:44px;font-weight:400}
+#simPanel .simTimeline strong,#simPanel .simTimeline small{display:block}
+#simPanel .simTimeline li[data-state="upcoming"]{color:var(--muted)}
+#simPanel .simTimelineEvidence{padding:6px 0;font-size:13px;overflow-wrap:anywhere}
+#simPanel .simVerificationRow{border-left:3px solid var(--line);padding:8px 10px;margin:8px 0;background:var(--paper)}
+#simPanel .simVerificationRow[data-result="PASS"]{border-color:var(--ok)}#simPanel .simVerificationRow[data-result="FAIL"]{border-color:var(--bad)}
+#simPanel .simVerificationRow p{margin:5px 0;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+#simPanel .simVerificationRow pre,#simPanel .simDiagnosticText{white-space:pre-wrap;overflow-wrap:anywhere;font:12px var(--font-mono);max-width:100%}
+#simPanel .simDiagnosticText{margin-top:10px}
+#simBar .simDockHeading,#simBar .simDockCurrent{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;max-width:580px;margin:auto}
+#simBar .simDockHeading{min-height:18px;margin-bottom:0}
+#simActivity{display:inline;margin:0;font-size:12px;font-weight:700;white-space:nowrap}
+#journeyDockTime{font:600 13px var(--font-mono);white-space:nowrap}
+#simBar .simDockLocation{min-width:0;flex:1}
+#journeyDockLocation{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#simBar #journeyVerificationBadge,#simBar #journeyTimelineToggle{min-height:44px;min-width:44px;padding:4px 6px;font-size:12px}
+#simBar #journeyVerificationBadge{max-width:96px;white-space:normal;overflow-wrap:anywhere;font-size:11px}
+#simBar #journeyVerificationBadge[data-result="PASS"]{color:var(--ok)}#simBar #journeyVerificationBadge[data-result="FAIL"]{color:var(--bad);border-color:var(--bad)}
+#simBar #journeyTimelineToggle{white-space:nowrap}
+#journeyDockNext{display:block;margin:2px 0 0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#journeyDockProgress{display:block;max-width:580px;width:100%;height:4px;margin:2px auto 4px;accent-color:var(--accent)}
+#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:1fr .7fr 1.25fr .55fr;gap:6px}
+#simBar .simDockActions button{padding:8px 5px;font-size:12px}
+body.simControlsVisible{padding-bottom:calc(var(--sim-dock-height,155px) + 16px)}
+body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
+@media(max-width:350px){#simBar{padding-left:8px;padding-right:8px}#simActivity{font-size:11px}#simBar .simDockActions{gap:4px}#simBar .simDockActions button{font-size:11px}}
+@media(max-height:650px){#simPanel .simPanelTitle small{display:none}}
 </style>
 <div id="simDock">
 <section id="simPanel" hidden aria-label="Journey simulator">
-<strong>Journey simulator</strong>
+<div class="simPanelTitle"><strong>Journey simulator</strong><small>The real app stays in charge</small></div>
+<div class="simModeButtons" role="group" aria-label="Simulator mode"><button id="journeyModeButton" type="button" aria-pressed="true">Journey mode</button><button id="journeyAdvancedButton" type="button" aria-pressed="false">Advanced</button></div>
+<p id="journeySetupError" role="alert" hidden></p>
+<div id="simPanelScroll">
+<div id="journeySetup">
+<h2>Choose a journey</h2>
+<label for="journeyDirection">Where are you going?</label><select id="journeyDirection"><option value="outbound">To London / Office</option><option value="return">To Letchworth / Home</option></select>
+<label for="journeyRoute">Rail route</label><select id="journeyRoute"><option value="kgx">Great Northern via King’s Cross</option><option value="far">Thameslink via Farringdon</option></select>
+<label for="journeyScenario">What should happen?</label><select id="journeyScenario"></select>
+<p id="journeyScenarioDescription" class="simDescription"></p><p class="simExpected"><strong>Watch for:</strong> <span id="journeyScenarioExpected"></span></p>
+
+
+</div>
+<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Travel stays sequential so the app sees the full journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
+<details id="journeyVerificationDetails"><summary>Expected and actual <span id="journeyVerificationCount"></span></summary><div id="journeyVerificationResults"><p>No checkpoint verification yet.</p></div></details>
+<details id="journeyResultsDetails"><summary>Journey results</summary><div id="journeyResultsSummary"><p>Results become available when a journey starts.</p></div><div class="simRow"><button id="journeyCopyResults" type="button">Copy results</button><button id="journeyExportResults" type="button">Export JSON</button></div><small id="journeyExportStatus" role="status"></small></details>
+<details id="simAdvanced"><summary>Advanced diagnostics</summary>
+<p class="simDescription">These controls use the same session. Opening diagnostics does not change the journey.</p>
+<fieldset class="simSourceSwitches"><legend>Simulation sources</legend><label><input id="simAdvancedGPS" type="checkbox"> GPS simulation</label><label><input id="simAdvancedFeeds" type="checkbox"> Transport feed simulation</label></fieldset>
 <div class="simRow simPlayback"><button type="button" id="simPlay">Start</button><button type="button" id="simContinue">Continue</button><button type="button" id="simPause">Pause</button></div>
-<small>Independent GPS and feed switches. Reload exits simulation.</small>
+
 <label for="simPreset">Jump to location</label><select id="simPreset">
 <option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate</option><option value="office">Office</option>
 </select>
@@ -417,11 +483,17 @@ body.simControlsVisible{padding-bottom:calc(120px + env(safe-area-inset-bottom,0
 <div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
-</section>
 
+<div id="journeySourceDiagnostics" class="simDiagnosticText"></div>
+</details>
+</div>
+<div id="journeyStartFooter"><button id="journeyStart" class="simPrimary" type="button">Start journey</button>
+<small id="journeyStartHint">Starts paused at the first checkpoint. All transport and location inputs are simulated.</small></div>
+</section>
 <div id="simBar" hidden role="group" aria-label="Simulator playback">
-<span id="simActivity" role="status">Simulator ready</span>
-<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button">Start</button><button id="simExit" type="button">Stop</button></div>
+<div class="simDockHeading"><span id="simActivity" role="status">Simulator ready</span><time id="journeyDockTime">—</time></div>
+<div class="simDockCurrent"><div class="simDockLocation"><strong id="journeyDockLocation">No journey started</strong><small id="journeyDockNext">Choose a journey to begin</small></div><button id="journeyVerificationBadge" type="button" title="Open checkpoint verification">Not checked</button><button id="journeyTimelineToggle" type="button" title="Inspect journey timeline">0 / 0</button></div><progress id="journeyDockProgress" value="0" max="1" aria-label="Journey progress"></progress>
+<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
 </div>
 </div>
 
@@ -542,6 +614,7 @@ var CommuteCore = (() => {
     plannable: () => plannable,
     platformNo: () => platformNo,
     profiles: () => profiles,
+    railTrackingContext: () => railTrackingContext,
     railWarnings: () => railWarnings,
     rankNow: () => rankNow,
     refreshDue: () => refreshDue,
@@ -1544,13 +1617,66 @@ var CommuteCore = (() => {
     return pr.offKm < 1 && pr.frac > 0.1 && pr.frac < 0.97;
   }
   var lineKm = (line) => line.slice(1).reduce((t, q, i) => t + km(line[i], q), 0);
-  function trackLine(prev, f, speed, atHub, line, keep = false) {
+  function railTrackingContext(i, p) {
+    var _a;
+    const atHub = hubHere(i.fix, p), known = i.train;
+    const ordinary = { atHub, line: null, continuing: false, passingHub: false };
+    if (i.onTube === true) return ordinary;
+    if (!known) {
+      const visit = i.departingHub, here2 = pos(i.fix, 250), at2 = i.fix.at;
+      if (i.dir !== "home" || i.onTube !== false || !visit || !here2 || i.fix.acc < 0 || at2 == null || !Number.isFinite(at2) || !Number.isFinite(i.now) || at2 > i.now || i.now - at2 > 6e4 || !Number.isFinite(visit.seen) || at2 < visit.seen || at2 - visit.seen > 6e5 || i.speed == null || !Number.isFinite(i.speed) || i.speed < 12 || !awayFromHubs(i.fix, p)) return ordinary;
+      const departures = (i.trains || []).filter((t) => {
+        var _a2;
+        return !t.cancelled && t.to === p.home && (t.from === visit.hub || ((_a2 = p.sharesTubeWith) == null ? void 0 : _a2[t.from]) === visit.hub) && Number.isFinite(t.dep) && t.dep <= at2 && at2 - t.dep <= 6e5 && t.arr != null && Number.isFinite(t.arr) && t.arr >= at2;
+      });
+      if (!departures.length) return ordinary;
+      const line2 = p.lines[visit.hub] || p.lines[departures[0].from];
+      if (!line2 || line2.length < 2) return ordinary;
+      const progress = lineProgress(here2, line2);
+      return progress.offKm < 0.3 && progress.frac > 0.97 && progress.frac < 1 ? { atHub: null, line: line2, continuing: true, passingHub: false } : ordinary;
+    }
+    if (known.cancelled || (i.dir === "office" ? known.from !== p.home : known.to !== p.home)) return ordinary;
+    const codes = (t) => (t.calls || []).map((call) => call.code).filter((code) => typeof code === "string" && !!code);
+    const knownCalls = codes(known);
+    let train = known, count = knownCalls.length;
+    if (known.serviceId && knownCalls.length && knownCalls[0] === known.from && knownCalls[count - 1] === known.to) {
+      const extensions = [];
+      for (const candidate of i.trains || []) {
+        const calls2 = codes(candidate), route = i.dir === "office" ? candidate.to : candidate.from;
+        if (candidate.cancelled || candidate.serviceId !== known.serviceId || candidate.from !== known.from || candidate.std !== known.std || !p.lines[route] || calls2.length <= knownCalls.length || calls2[calls2.length - 1] !== candidate.to || !knownCalls.every((code, index) => calls2[index] === code)) continue;
+        extensions.push(candidate);
+        if (calls2.length > count) {
+          train = candidate;
+          count = calls2.length;
+        }
+      }
+      const longest = codes(train);
+      if (extensions.some((candidate) => !codes(candidate).every((code, index) => longest[index] === code))) train = known;
+    }
+    const hub = i.dir === "office" ? train.to : train.from, line = p.lines[hub];
+    if (!line || line.length < 2) return ordinary;
+    const noContinuation = { ...ordinary, line };
+    const here = pos(i.fix, 250), at = i.fix.at, previous = i.track;
+    if (!here || i.fix.acc < 0 || at == null || !Number.isFinite(at) || !Number.isFinite(i.now) || at > i.now || i.now - at > 6e4 || !(previous == null ? void 0 : previous.moving) || previous.at == null || !Number.isFinite(previous.at) || at < previous.at || at - previous.at > 18e4 || i.speed == null || !Number.isFinite(i.speed) || i.speed < 12 || !Number.isFinite(train.dep) || train.dep > at || train.arr == null || !Number.isFinite(train.arr) || at > train.arr + 12e4) return noContinuation;
+    const destination = ((_a = p.stationGeo) == null ? void 0 : _a[train.to]) || p.places.hubGeo[train.to];
+    if (!destination || km(here, destination) <= p.places.atHubKm + i.fix.acc / 1e3) return noContinuation;
+    const calls = (train.calls || []).map((call) => call.code), from = calls.indexOf(train.from), to = calls.indexOf(train.to);
+    if (from < 0 || to <= from || lineProgress(here, line).offKm >= 1) return noContinuation;
+    const middle = calls.slice(from + 1, to);
+    const passingHub = !!atHub && middle.some((code) => {
+      var _a2;
+      return code === atHub || !!code && ((_a2 = p.sharesTubeWith) == null ? void 0 : _a2[code]) === atHub;
+    });
+    if (atHub && !passingHub) return noContinuation;
+    return { atHub: passingHub ? null : atHub, line, continuing: true, passingHub };
+  }
+  function trackLine(prev, f, speed, atHub, line, keep = false, continuing = false) {
     if (atHub) return { onLine: false, track: null };
     const here = pos(f, 500);
     if (!here) return prev ? { onLine: prev.moving, track: prev } : { onLine: false, track: null };
     const pr = lineProgress(here, line);
     const nearHome = pr.frac > 0.01 && pr.frac <= 0.1 && pr.offKm < 0.3;
-    if (!nearHome && !(pr.offKm < 1 && pr.frac > 0.1 && pr.frac < 0.97)) return { onLine: false, track: null };
+    if (!nearHome && !(pr.offKm < 1 && pr.frac > 0.1 && (pr.frac < 0.97 || continuing))) return { onLine: false, track: null };
     const along = pr.frac * lineKm(line);
     const ref = prev && !prev.moving && prev.at != null && f.at != null && f.at > prev.at && f.at - prev.at <= 18e4 ? prev : null;
     const dKm = ref ? Math.abs(along - ref.km) : 0, hours = ref ? (f.at - ref.at) / 36e5 : 0;
@@ -2765,6 +2891,7 @@ function optionBlock(j, opt){
   </section>`;
 }
 function renderOnTrain(now, m){
+ state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
   const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location${m && m.stale ? ` · <b>location last updated ${m.fixAgeMin} min ago</b>` : ""}</div>`;
   if(!m || m.none){
@@ -2846,7 +2973,7 @@ function tubesFromAldgate(now){
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
 function renderOnTubeHome(now){
-  const r=homeRide(now);
+  const r=homeRide(now);state.rendered=state.rendered||{};state.rendered.ride=r;
   const head=`<div class="lbl">On the tube · ${hhmm(now)} · ${r&&r.picked?"the tube you picked":"worked out from when you left Aldgate"}</div>`;
   if(!r){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return; }
   const legs=homeLegs(r.t, now).map(l=>({...l, stopAt:r.t+l.rideMs, arrive:r.t+l.rideMs+l.tailMs})).sort((a,b)=>a.arrive-b.arrive || a.stopAt-b.stopAt);
@@ -2876,7 +3003,7 @@ function onwardParts(hub){
   return { ic: ms(after.filter(x=>x.kind==="change")), ride: ms(after.filter(x=>x.kind==="ride")), tail: ms(after.slice(rideAt+1)) };
 }
 function renderOnTube(now){
-  const r=currentRide(now); if(!r) return null;
+  const r=currentRide(now);state.rendered=state.rendered||{};state.rendered.ride=r;if(!r) return null;
   const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
@@ -3065,6 +3192,7 @@ function renderHero(list, now){
   h.innerHTML = C.BLOCKS["plan-now"].map(b=>blocks[b]||"").join("\n    ");
 }
 function renderList(list, now, opts){
+ state.rendered=state.rendered||{};state.rendered.options={count:list.length,usableCount:list.filter(item=>plannable(item.train)).length};
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
   if(!loaded){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear here once live trains load.</div><div></div></div>`; return; }
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
@@ -3353,9 +3481,9 @@ function renderByHero(opts){
 // Expanded sections (notices, Journey steps) stay open when the screen is redrawn every few seconds.
 const openKeys=new Set();
 const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d.querySelector("summary")||{}).textContent||""}`;
-document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
-function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
-function render(){ renderInner(); restoreOpen(); }
+document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
+function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
+function render(){ renderInner(); restoreOpen(); simulator.notify('application-render'); }
 // "Which train are you on?": your pick is kept until you're off the line.
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
@@ -3375,13 +3503,14 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
 function renderInner(){
+ state.rendered={train:null,ride:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
-  const shown = C.chooseView(situation(now)), view = shown.view;
+  const shown = C.chooseView(situation(now)), view = shown.view;state.rendered.view=view;
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -3566,7 +3695,9 @@ function onPosition(p){
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   noteAldgate();
-  state.atHub=hubHere();
+  const speed=typeof p.coords.speed==='number'&&p.coords.speed>=0?p.coords.speed:null;
+  const railContext=C.railTrackingContext({fix:fix(),speed,track:state.lineTrack||null,train:lockedTrain()||state.rendered?.train?.t||null,trains:Object.values(state.boards||{}).flatMap(board=>board?.services||[]),dir:direction(),now:Date.now(),departingHub:state.lastHub?{hub:state.lastHub.hub,seen:state.lastHub.seen}:null,onTube:!!(state.saved.tubeRide||state.saved.tubePick||state.rendered?.ride)},PROFILE);
+  state.atHub=railContext.atHub;
   const riding = !!currentRide(Date.now());
   // With the station visit, the last time this session saw you away from any station: you can't have arrived
   // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
@@ -3576,7 +3707,7 @@ function onPosition(p){
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
   // On a train: on the line and seen moving along it (engine); a train you picked counts as moving.
-  const sp=p.coords.speed, tr=C.trackLine(state.lineTrack||null, fix(), (typeof sp==="number" && sp>=0) ? sp : null, state.atHub, LINE.KGX, !!(state.trainLock&&state.trainLock.picked));
+  const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked),railContext.continuing);
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
@@ -3787,15 +3918,325 @@ function interpolateSimulatedPosition(a,b,f,isRail,railLine){
  return b;
 }
 
+// Descriptions guide the operator; executable assertions live in verification.js.
+function createJourneySimulatorCatalog(){return [
+ {id:'normal',group:'Normal journey',title:'Everything operates normally',description:'Follow the complete journey with normal trains, connections and location fixes.',expected:'The app should recognise your progress and offer the onward journey from where you are.'},
+ {id:'delay',group:'Rail disruption',title:'Delayed train',description:'A signalling problem delays the trains by eight minutes.',expected:'Expected train times and arrival predictions should reflect the delay while alternatives remain available.'},
+ {id:'cancellation',group:'Rail disruption',title:'Cancelled train',description:'The first train is cancelled and you travel on a later service.',expected:'The cancelled train should remain visible and the app should offer a usable alternative.'},
+ {id:'later-train',group:'Rail disruption',title:'Take a later train',description:'You wait for a later departure instead of boarding the first train.',expected:'The app should identify the train that matches your movement, keeping competing services visible.'},
+ {id:'wrong-train',group:'Rail disruption',title:'Board a different train',description:'Your movement follows a different departure from the first available train.',expected:'The app should identify the actual service or ask you to choose; a conflicting confirmed choice should be flagged.'},
+ {id:'platform-change',group:'Rail disruption',title:'Platform change',description:'The selected rail service moves to a different platform.',expected:'The departure board and journey information should show the updated platform.'},
+ {id:'missed-connection',group:'Underground and connections',title:'Miss an Underground connection',description:'You reach the platform after the planned Underground service has gone.',expected:'The app should keep the original departure history and recommend a reachable later service.'},
+ {id:'disruption',group:'Underground and connections',title:'Underground disruption',description:'An Underground signalling problem delays services and changes line status.',expected:'The app should show the disruption and use the updated connection times.'},
+ {id:'gps-loss',group:'Location and data problems',title:'GPS signal lost underground',description:'Location fixes disappear in the tunnels and return at exposed checkpoints.',expected:'The app should keep the known journey without inventing precise locations, then recover when GPS returns.'},
+ {id:'low-accuracy',group:'Location and data problems',title:'Poor indoor and train accuracy',description:'Location fixes become less precise in buildings and on the train.',expected:'A rough fix should not invent boarding or arrival; good fixes should restore a reliable location.'},
+ {id:'uncertain',group:'Location and data problems',title:'Train identity uncertain',description:'Nearby departures and an initial GPS gap leave more than one plausible train.',expected:'The app should express uncertainty and offer its normal train-selection controls.'},
+ {id:'permission-denied',group:'Location and data problems',title:'Location permission denied',description:'The location provider reports that permission is denied.',expected:'The app should explain that location is unavailable and allow its normal manual direction choice.'},
+ {id:'awaiting-location',group:'Location and data problems',title:'Waiting for a location',description:'No usable location fix has arrived yet.',expected:'The app should wait for a location rather than assume a journey direction.'},
+ {id:'outage',group:'Location and data problems',title:'Transport provider outage',description:'Transport data fails during the station approach and recovers later.',expected:'The app should explain the data problem, retain useful information and recover when the feed returns.'}
+];}
+
+// Read-only simulator test oracles. This module observes the application's already rendered
+// model; it never selects a service, writes journey state, calls providers or reads a clock.
+function evaluateSimulationCheckpoint(context={}) {
+ const c=context, app=c.app||{}, config=c.config||{}, point=c.point, label=c.label||point||'Unknown checkpoint';
+ const assertions=[];
+ const add=(id,expected,actual,condition,evidence={})=>assertions.push({id,expected,actual,status:condition==null?'INCONCLUSIVE':condition?'PASS':'FAIL',evidence});
+ const unknown=(id,expected,actual)=>add(id,expected,actual,null);
+ const bool=(id,expected,value,wanted=true)=>add(id,expected,typeof value==='boolean'?String(value):'Not observed',typeof value==='boolean'?value===wanted:null,{value:typeof value==='boolean'?value:null});
+ const text=typeof app.heroText==='string'?app.heroText:'';
+ const displayText=[app.heroText,app.bannersText,app.listText].flat().filter(x=>typeof x==='string').join(' ');
+ const display=(id,expected,pattern)=>add(id,expected,displayText?(pattern.test(displayText)?'Expected wording observed in the real application':'Expected wording not observed in the real application'):'Application display not observed',displayText?pattern.test(displayText):null,{screenMatch:displayText?pattern.test(displayText):null});
+ const screen=(id,expected,pattern)=>add(id,expected,text?(pattern.test(text)?'Expected wording observed on the main card':'Expected wording not observed on the main card'):'Main card not observed',text?pattern.test(text):null,{view:typeof app.view==='string'?app.view:null,screenMatch:text?pattern.test(text):null});
+ const result=()=>({sessionId:c.sessionId??null,index:Number.isInteger(c.index)?c.index:null,point:typeof point==='string'?point:null,label,at:Number.isFinite(c.now)?c.now:null,
+  status:assertions.some(a=>a.status==='FAIL')?'FAIL':assertions.length&&assertions.every(a=>a.status==='PASS')?'PASS':'INCONCLUSIVE',assertions});
+ if(app.loading){unknown('pending-observation','Evaluate the settled application response','The application is still loading transport data');return result();}
+ if(c.manualOverride){unknown('manual-observation','Verify a coherent scenario checkpoint','Advanced input changed the location or context; restart the scenario to restore checkpoint verification');return result();}
+ if(!c.source?.gps){unknown('location-source','Observe scenario GPS through the real journey engine','GPS simulation is off; the real location is independent of this scenario');return result();}
+ const scenarios=['normal','later-train','wrong-train','uncertain','delay','cancellation','platform-change','missed-connection','disruption','outage','gps-loss','low-accuracy','awaiting-location','permission-denied'];
+ if(!['kgx','far'].includes(config.route)||!['outbound','return'].includes(config.direction)||!scenarios.includes(config.scenario)){
+  unknown('undefined-expectation','A defined route, direction and scenario assertion','No supported assertion is defined for this configuration');return result();
+ }
+ if(['by','at'].includes(app.planMode)&&app.view===`plan-${app.planMode}`){
+  unknown('planning-view','Observe the current journey rather than a different requested planning time','The passenger is inspecting an explicit planning view; current-trip checkpoint assertions are not applicable');return result();
+ }
+ if(config.scenario==='awaiting-location'||config.scenario==='permission-denied'){
+  const expected=config.scenario==='permission-denied'?'denied':'pending';
+  add('location-status',`Report location ${expected}`,app.locStatus||'Not observed',typeof app.locStatus==='string'?app.locStatus===expected:null,{locStatus:app.locStatus||null});
+  screen('location-presentation','Show the normal location-needed or waiting screen',/Finding your location|Location needed|Waiting for your phone/i);
+  return result();
+ }
+ const accurate=typeof app.locAcc==='number'&&Number.isFinite(app.locAcc)&&app.locAcc>=0;
+ const coarse=accurate&&app.locAcc>250;
+ if(config.scenario==='low-accuracy'&&coarse){
+  add('coarse-station','Do not identify a station from a fix worse than ±250 m',app.atHub?`Station inferred: ${app.atHub}`:'No station confidently inferred',app.atHub==null,{locAcc:app.locAcc,atHub:app.atHub||null});
+  unknown('coarse-inference','Use sufficient evidence before inferring boarding or arrival',`The current fix is ±${app.locAcc} m; prior movement or a user choice may legitimately be retained`);
+  return result();
+ }
+ const ret=config.direction==='return', direction=ret?'home':'office', boards=Array.isArray(app.boards)?app.boards:[];
+ const id=t=>t&&(t.serviceId||t.id)||null;
+ const baseId=(config.route==='far'?'SIM-TL':'SIM-GN')+(ret?'-HOME':'')+(config.route==='far'?(ret?'-1620':'-0912'):(ret?'-1617':'-0905'));
+ const later=['later-train','wrong-train','cancellation'].includes(config.scenario)||(ret&&['missed-connection','disruption'].includes(config.scenario));
+ const expectedId=later?(config.route==='far'?(ret?'SIM-TL-HOME-LATER-1635':'SIM-TL-LATER-0927'):(ret?'SIM-GN-HOME-LATER-1627':'SIM-GN-LATER-0917')):baseId;
+ const supported=['home','walk','let','north','approach','kgx','stp','far','farTube','kxTube','barbican','ald','officeWalk','office','nearHome'].includes(point);
+ if(!supported){unknown('undefined-checkpoint','A defined application behaviour at this checkpoint','No assertion is defined for this checkpoint');return result();}
+ // After office dwell the application deliberately turns to the homeward journey.
+ const wantedDirection=!ret&&/Office dwell/i.test(label)?'home':direction;
+ add('journey-direction',`Infer the ${wantedDirection==='office'?'London / office':'Letchworth / home'} direction`,app.direction||'Not observed',typeof app.direction==='string'?app.direction===wantedDirection:null,{direction:app.direction||null});
+ const elapsed=Number.isFinite(c.elapsed)?c.elapsed:Number.isFinite(config.startTime)&&Number.isFinite(c.now)?(c.now-config.startTime)/60000:null;
+ if(config.scenario==='outage'&&elapsed!=null&&elapsed>=16&&elapsed<40){
+  const errors=Array.isArray(app.errors)?app.errors:[];
+  add('provider-outage','Surface the provider outage without inventing current transport data',errors.length?`${errors.length} application data error(s) observed`:'No application data error observed',errors.length>0,{errorCount:errors.length});
+  return result();
+ }
+ if(config.scenario==='outage'&&elapsed!=null&&elapsed>=40){
+  add('provider-recovery','Resume parsed transport data after the provider recovers',`${boards.length} service(s), source ${app.railSource||'unknown'}`,boards.length>0&&app.railSource==='darwin',{serviceCount:boards.length,railSource:app.railSource||null});
+ }
+ if(point==='north'){
+  if(!accurate||app.locAcc>500){unknown('rail-position','Use sufficiently accurate rail movement evidence','Rail position accuracy is missing or worse than ±500 m');return result();}
+  bool('rail-movement','Recognise that the passenger is on National Rail',app.onLine);
+  screen('rail-presentation','Show the real On the train card',/On the train/i);
+  const train=app.train;
+  if(!c.source?.feeds){unknown('rail-identity','Compare actual inference with a synthetic service identity','Transport feeds are live; synthetic timetable identities are not applicable');return result();}
+  if(config.scenario==='uncertain'){
+   if(train?.picked){bool('manual-choice','Keep the explicitly selected train',train.picked);unknown('uncertainty-choice','Explain the original identification uncertainty','The passenger has made a choice; the earlier unpicked inference must be inspected in its recorded observation');}
+   else {
+    add('rail-uncertainty','Ask which train instead of asserting certainty',train?.none?'No matching service':train?`Certain: ${!!train.sure}`:'No inferred train',train&&!train.none?train.sure===false:null,{sure:typeof train?.sure==='boolean'?train.sure:null});
+    screen('uncertainty-presentation','Ask the passenger which train they are on',/Which train are you on|couldn.?t tell which train/i);
+    add('rail-choices','Keep competing trains available for the passenger to choose',`${Array.isArray(train?.others)?train.others.length:0} alternative(s) observed`,Array.isArray(train?.others)?train.others.length>0:null,{alternativeCount:Array.isArray(train?.others)?train.others.length:null});
+   }
+  } else {
+   if(train?.picked&&train.conflict&&train.serviceId!==expectedId)unknown('rail-identity',`Infer ${expectedId} from GPS and provider evidence`,'The passenger explicitly selected a conflicting train; the app should retain the selection and explain the disagreement');
+   else add('rail-identity',`Infer ${expectedId} from GPS and provider evidence`,train?.serviceId?`Inferred service: ${train.serviceId}`:'No service identified',train?train.serviceId===expectedId:false,{serviceId:train?.serviceId||null,confidence:train?.confidence||null});
+   const competitors=new Set(boards.map(id).filter(Boolean));
+   add('competing-services','Retain at least two distinct services in the actual departure data',`${competitors.size} distinct service(s) observed`,competitors.size>=2,{serviceCount:competitors.size});
+  }
+  if(train?.picked&&train.conflict){
+   screen('selection-conflict','Explain fresh evidence conflicting with the selected train',/does not match|doesn't match|conflict|contradict/i);
+  }
+  if(config.scenario==='delay'){
+   const t=boards.find(t=>id(t)===expectedId);
+   add('rail-delay','Show the delayed train with an eight-minute expected delay',t?`Departure delay: ${t.depLate??'unknown'} min`:'Selected service absent',t?Number(t.depLate)>=8:false,{depLate:t?.depLate??null});
+   screen('delay-presentation','Tell the passenger that the selected journey is late',/late|delay/i);
+  }
+ } else if(point==='let'&&!ret&&c.mode!=='rail'){
+  screen('station-presentation','Show departures from Letchworth rather than a walk from home',/You're at Letchworth.*departures/i);
+ } else if((point==='kgx'||point==='far'||ret&&(point==='kxTube'||point==='farTube'))&&c.mode!=='rail'){
+  const hub=point==='kgx'||point==='kxTube'?'KGX':'ZFD';
+  add('station-arrival',`Recognise ${hub==='KGX'?"King’s Cross":'Farringdon'} as the current station`,app.atHub?`Station inferred: ${app.atHub}`:'No station identified',typeof app.atHub==='string'?app.atHub===hub:app.atHub===null?false:null,{atHub:app.atHub||null});
+  if(ret&&app.ride){unknown('alighting-confirmation','Confirm alighting if a through Underground ride remains plausible','The app still tracks a tube ride; use the real app’s alighting control if this is where you got off');}
+  else if(ret)screen('return-platform','Show the station / National Rail connection after alighting',/King.?s Cross|Farringdon|train|departure|platform/i);
+ } else if(point==='walk'&&!ret){
+  bool('walking-to-station','Recognise the walk towards Letchworth station',app.onWay);
+  screen('walk-presentation','Show the real On your way guidance',/On your way|At the station about/i);
+ } else if(point==='let'&&ret&&c.mode!=='rail'){
+  bool('rail-alighting','End National Rail travel at Letchworth',app.onLine,false);
+  screen('home-station-presentation','Show the final journey home from Letchworth',/Nearly home|You.?re home/i);
+ } else if(point==='home'&&ret){
+  if(app.hasConfiguredHome===false){unknown('home-arrival','Recognise arrival at the configured home','A saved home is required to verify home arrival');}
+  else {bool('home-arrival','Recognise arrival home',app.atHome);screen('home-presentation','Display that the passenger is home',/You.?re home/i);}
+ } else if(point==='home'&&!ret){
+  if(app.hasConfiguredHome)bool('home-start','Recognise the configured home as the starting point',app.atHome);
+  screen('home-plan','Display the real journey plan for leaving home',/leave|Letchworth|train|office/i);
+ } else if(point==='nearHome'&&ret){screen('nearly-home','Show the real Nearly home card',/Nearly home/i);
+ } else if(point==='office'&&!ret){
+  bool('office-arrival','Recognise that the passenger is near the office',app.nearOffice);
+  screen('office-presentation','Show arrival at the office rather than an old train or tube ride',/At the office|arrived/i);
+ } else if(point==='office'&&ret){screen('return-plan','Offer a genuine homeward journey from the office',/home|Aldgate|leave|tube/i);
+ } else if(point==='ald'&&!ret){
+  bool('office-walk','Plan the remaining London walk towards the office',app.inLondonToOffice);
+  add('tube-alighting','End the Underground ride on a precise Aldgate arrival',app.ride?'An Underground ride is still active':'No active Underground ride',app.ride==null,{rideActive:!!app.ride});
+ } else if(point==='officeWalk'&&!ret){
+  bool('walking-to-office','Plan from the passenger’s current London location',app.inLondonToOffice);
+  screen('office-walk-presentation','Show the walk or onward journey to the office',/office|walk|arriv/i);
+ } else if(point==='barbican'){
+  add('underground-inference','Recognise Underground travel at Barbican',app.ride?'An Underground ride is active':'No Underground ride is active',!!app.ride,{rideActive:!!app.ride});
+  screen('underground-presentation','Display the genuine On the tube card',/On the tube/i);
+  if(c.previous?.ride?.vehicle){add('vehicle-continuity','Keep the previously observed Underground vehicle',app.ride?.vehicle?`Vehicle: ${app.ride.vehicle}`:'No vehicle observed',app.ride?.vehicle===c.previous.ride.vehicle,{vehicle:app.ride?.vehicle||null,previousVehicle:c.previous.ride.vehicle});}
+  else if(!app.ride?.vehicle)unknown('vehicle-continuity','Track the actual Underground vehicle','No usable vehicle identity has been observed');
+ } else if(c.mode==='tube'){
+  if(config.scenario==='gps-loss')add('underground-gps','Report loss of usable location underground',app.locStatus||'Unknown location status',typeof app.locStatus==='string'?app.locStatus==='unavailable':null,{locStatus:app.locStatus||null});
+  if(app.ride){screen('underground-boarding','Display the ride the application actually inferred or the passenger selected',/On the tube/i);}
+  else unknown('underground-boarding','Recognise boarding once there is sufficient evidence or a passenger choice','No ride has been established at the departure instant; reaching this checkpoint does not prove boarding');
+ } else if(c.mode==='rail'&&['approach','stp'].includes(point)){
+  bool('rail-progress','Keep tracking the passenger on National Rail while the service continues',app.onLine);
+  screen('rail-progress-presentation','Continue displaying the real On the train card before the alighting stop',/On the train/i);
+ } else if(c.mode==='rail'){
+  unknown('rail-boarding','Identify the train only after sufficient movement or an explicit passenger choice','Boarding or passing a station alone cannot establish a service identity');
+ } else if(point==='kxTube'||point==='farTube'||(point==='ald'&&ret)){
+  const count=Number.isInteger(app.tubeChoices)?app.tubeChoices:null;
+  add('underground-options','Offer genuine Underground choices from the interchange',count==null?'Platform choices not observed':`${count} selectable departure(s) observed`,count==null?null:count>0,{choiceCount:count});
+ } else {unknown('checkpoint-evidence','Inspect a defined application assertion for this transition','No additional assertion is defined for this transition yet');}
+ if(config.scenario==='cancellation'&&c.source?.feeds&&((point==='let'&&!ret&&c.mode!=='rail')||(ret&&['kgx','far'].includes(point)&&c.mode!=='rail'))){
+  const primary=boards.find(t=>id(t)===baseId);
+  add('cancelled-service','Keep the cancelled departure visible in actual provider data',primary?`Cancelled: ${!!primary.cancelled}`:'Primary departure absent',primary?primary.cancelled===true:false,{serviceId:primary?id(primary):null,cancelled:primary?.cancelled??null});
+  display('cancellation-presentation','Explain that a departure is cancelled in the real application',/cancelled|canceled/i);
+  const usable=app.options?.usableCount;
+  add('cancellation-replan','Offer a usable alternative through the real journey planner',Number.isInteger(usable)?`${usable} usable journey option(s)`:'Planner alternatives not observed',Number.isInteger(usable)?usable>0:null,{usableOptions:Number.isInteger(usable)?usable:null});
+ }
+ if(config.scenario==='platform-change'&&c.source?.feeds&&((point==='let'&&!ret&&c.mode!=='rail')||(ret&&['kgx','far'].includes(point)&&c.mode!=='rail'))){
+  const selected=boards.find(t=>id(t)===baseId);
+  add('platform-change','Show the changed platform for the selected departure',selected?`Platform: ${selected.platform??'unknown'}`:'Selected service absent',selected?String(selected.platform)==='4':null,{platform:selected?.platform??null});
+  display('platform-presentation','Display the changed platform in the real application',/platform\s*4/i);
+ }
+ if(config.scenario==='disruption'&&c.source?.feeds){
+  const statuses=Array.isArray(app.lineStatuses)?app.lineStatuses:[];
+  const disrupted=statuses.some(l=>l.id==='metropolitan'&&Array.isArray(l.statuses)&&l.statuses.some(s=>s.sev===6));
+  add('underground-disruption','Expose the Metropolitan line disruption in actual parsed status',disrupted?'Metropolitan severe delays observed':'Metropolitan severe delays not observed',statuses.length?disrupted:null,{disrupted});
+  display('disruption-presentation','Display the Underground disruption warning',/severe delays|signal failure|underground disruption/i);
+ }
+ if(!c.source?.feeds)unknown('transport-source','Verify transport behaviour against the selected synthetic scenario','Transport feed simulation is off; live services cannot be compared with fixture expectations');
+ return result();
+}
+
+// In-memory simulator reports. Export a small diagnostic contract, never application state.
+function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={}) {
+ const limits={checkpoints:200,assertions:100,events:500,revisions:30,text:1200};
+ const statuses=['PASS','FAIL','INCONCLUSIVE'];
+ let report=null,redactions=[];
+ const finite=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
+ const status=value=>statuses.includes(value)?value:'INCONCLUSIVE';
+ const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\/*__SIMULATOR_CONTROLLER__*/');
+ function setPrivateValues(values){
+  redactions=[...new Set((Array.isArray(values)?values:[]).filter(value=>typeof value==='string'&&value.length))].sort((a,b)=>b.length-a.length);
+ }
+ setPrivateValues(privateValues);
+ function text(value,fallback='',opaque=true){
+  if(typeof value!=='string')return fallback;
+  let out=value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
+  for(const value of redactions)out=out.replace(new RegExp(escape(value),'gi'),'[redacted]');
+  out=out.replace(/\b(?:https?|wss?):\/\/[^\s<>"']+/gi,'[URL omitted]');
+  const keys='(?:x-api-key|x-apikey|api[_ -]?key|rdmKey|rdmSdKey|tflKey|huxleyToken|consumerKey|subscriptionKey|access[_ -]?token|refresh[_ -]?token|authorization|password|secret|token)';
+  out=out.replace(new RegExp('\\b('+keys+')\\b["\\\']?\\s*[:=]\\s*(["\\\'])(.*?)\\2','gi'),'$1=[redacted]');
+  out=out.replace(new RegExp('\\b('+keys+')\\b["\\\']?\\s*[:=]\\s*["\\\']?[^\\s,"\\\'};]+','gi'),'$1=[redacted]');
+  out=out.replace(/\b(Bearer|Basic)\s+[A-Za-z0-9+/_=.:-]+/gi,'$1 [redacted]');
+  // No precise coordinates, postcodes or numbered street addresses are needed for a fixture report.
+  out=out.replace(/[-+]?\b\d{1,3}\.\d+\s*[,/]\s*[-+]?(?:\d{1,3})?\.\d+\b/g,'[coordinates omitted]');
+  out=out.replace(/[-+]?\b\d{1,3}\.\d+\b/g,'[decimal omitted]');
+  out=out.replace(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/gi,'[postcode omitted]');
+  out=out.replace(/\b\d{1,5}[A-Z]?\s+(?:[\w'-]+\s+){0,5}(?:Street|St|Road|Rd|Lane|Avenue|Close|Drive|Way|Place|Court|Gardens|Crescent|Terrace)\b/gi,'[address omitted]');
+  if(opaque)out=out.replace(/\b(?=[A-Za-z0-9+/_=-]{24,}\b)(?=[A-Za-z0-9+/_=-]*\d)[A-Za-z0-9+/_=-]{24,}\b/g,'[opaque value omitted]');
+  return out.slice(0,limits.text);
+ }
+ const id=(value,fallback='')=>text(value,fallback,false).slice(0,160);
+ const source=value=>({gps:value&&value.gps===true,feeds:value&&value.feeds===true});
+ function configuration(value={}){
+  if(!value||typeof value!=='object')value={};
+  const speed=typeof value.speed==='number'?value.speed:typeof value.speed==='string'?Number(value.speed):1;
+  const out={direction:['outbound','return'].includes(value.direction)?value.direction:'outbound',route:['kgx','far'].includes(value.route)?value.route:'kgx',scenario:id(value.scenario,'normal'),speed:[1,5,20].includes(speed)?speed:1,startTime:finite(value.startTime),totalCheckpoints:Math.max(0,Math.min(limits.checkpoints,Math.trunc(finite(value.totalCheckpoints)||0))),sources:source(value.sources||value.source)};
+  if(typeof value.accuracyMode==='string')out.accuracyMode=id(value.accuracyMode);
+  if(typeof value.sessionId==='string'||finite(value.sessionId)!==null)out.sessionId=typeof value.sessionId==='string'?id(value.sessionId):value.sessionId;
+  return out;
+ }
+ function evidence(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return {};
+  const out={},strings=['direction','view','expectedView','actualView','expectedDirection','actualDirection','serviceId','expectedServiceId','operator','from','to','atHub','locStatus','confidence','vehicle','expectedVehicle','line','lineId','stop','platform','point','accuracyMode','source','providerHealth'];
+  const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs'];
+  const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches'];
+  for(const key of strings)if(typeof value[key]==='string')out[key]=id(value[key]);
+  for(const key of numbers)if(finite(value[key])!==null)out[key]=value[key];
+  for(const key of booleans)if(typeof value[key]==='boolean')out[key]=value[key];
+  for(const key of ['serviceIds','vehicles','lines'])if(Array.isArray(value[key]))out[key]=value[key].filter(item=>typeof item==='string').slice(0,30).map(item=>id(item));
+  return out;
+ }
+ function assertion(value={},index=0){
+  if(!value||typeof value!=='object')value={};
+  const defined=typeof value.id==='string'&&value.id.trim()&&typeof value.expected==='string'&&value.expected.trim()&&typeof value.actual==='string'&&value.actual.trim();
+  return {id:id(value.id,'assertion-'+index),expected:text(value.expected,'No expectation recorded'),actual:text(value.actual,'No observation recorded'),status:defined?status(value.status):'INCONCLUSIVE',evidence:evidence(value.evidence)};
+ }
+ function display(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return {view:'',mainCard:'',notices:[]};
+  const notices=Array.isArray(value.notices)?value.notices:typeof value.notices==='string'?[value.notices]:[];
+  return {view:id(value.view),mainCard:text(value.mainCard),notices:notices.filter(item=>typeof item==='string').slice(0,20).map(item=>text(item))};
+ }
+ const classify=assertions=>assertions.some(value=>value.status==='FAIL')?'FAIL':!assertions.length||assertions.some(value=>value.status==='INCONCLUSIVE')?'INCONCLUSIVE':'PASS';
+ function checkpoint(value={}){
+  const assertions=(Array.isArray(value.assertions)?value.assertions:[]).filter(item=>item&&typeof item==='object').slice(0,limits.assertions).map(assertion);
+  return {index:Math.max(0,Math.trunc(finite(value.index)||0)),point:id(value.point),label:text(value.label,'Checkpoint'),at:finite(value.at)??now(),status:classify(assertions),assertions,actualDisplay:display(value.actualDisplay)};
+ }
+ const clone=value=>JSON.parse(JSON.stringify(value));
+ function snapshot(){
+  if(!report)return null;
+  // Sanitize again on read, so newly supplied private values also protect earlier observations.
+  return JSON.parse(JSON.stringify(report),(key,value)=>{
+   if(typeof value!=='string')return value;
+   // These are internally generated constants or strictly validated public enums, not user text.
+   // A private place called Cartref must not alter the report format's fixed discriminator.
+   if(key==='kind'&&value==='cartref-commute-simulation'||key==='status'&&statuses.includes(value)||key==='route'&&['kgx','far'].includes(value)||key==='direction'&&['outbound','return'].includes(value))return value;
+   return text(value,'',key!=='serviceId'&&key!=='expectedServiceId'&&key!=='vehicle'&&key!=='expectedVehicle');
+  });
+ }
+ function matchingSession(value){
+  return value&&typeof value==='object'&&report&&report.finishedAt===null&&(value.sessionId==null||report.config.sessionId==null||value.sessionId===report.config.sessionId);
+ }
+ function start(config={}){
+  if(!config||typeof config!=='object')config={};
+  report={schemaVersion:1,kind:'cartref-commute-simulation',startedAt:finite(config.startTime)??now(),finishedAt:null,reason:null,config:configuration(config),checkpoints:[],events:[],truncated:{checkpoints:0,assertions:0,events:0,revisions:0}};
+  return getReport();
+ }
+ function recordCheckpoint(value={}){
+  if(!matchingSession(value))return null;
+  const next=checkpoint(value),existing=report.checkpoints.find(item=>item.index===next.index);
+  if(Array.isArray(value.assertions))report.truncated.assertions+=Math.max(0,value.assertions.filter(item=>item&&typeof item==='object').length-limits.assertions);
+  if(!existing){
+   if(report.checkpoints.length>=limits.checkpoints){report.truncated.checkpoints++;return null;}
+   next.revisions=[];report.checkpoints.push(next);report.checkpoints.sort((a,b)=>a.index-b.index);
+  }else{
+   const previous=clone({...existing,revisions:undefined});
+   if(existing.revisions.length<limits.revisions)existing.revisions.push(previous);else report.truncated.revisions++;
+   // A later success is useful evidence, but cannot silently erase a failure already observed.
+   const failed=existing.assertions.filter(item=>item.status==='FAIL');
+   const merged=[...failed,...next.assertions.filter(item=>!failed.some(old=>old.id===item.id))];
+   report.truncated.assertions+=Math.max(0,merged.length-limits.assertions);
+   const assertions=merged.slice(0,limits.assertions);
+   Object.assign(existing,next,{assertions,status:classify(assertions),revisions:existing.revisions});
+   // Keep the new observation separately when the displayed verdict retains an earlier failure.
+   if(failed.length){
+    if(existing.revisions.length<limits.revisions)existing.revisions.push(clone(next));else report.truncated.revisions++;
+   }
+  }
+  return getReport().checkpoints.find(item=>item.index===next.index);
+ }
+ function recordEvent(value={}){
+  if(!matchingSession(value))return null;
+  if(report.events.length>=limits.events){report.truncated.events++;return null;}
+  const event={at:finite(value.at)??now(),type:id(value.type,'observation'),message:text(value.message),evidence:evidence(value.evidence)};
+  if(finite(value.index)!==null)event.index=Math.max(0,Math.trunc(value.index));
+  if(typeof value.point==='string')event.point=id(value.point);
+  report.events.push(event);return clone(event);
+ }
+ function summary(){
+  const rows=report?report.checkpoints:[],assertions=rows.flatMap(value=>value.assertions),count=(items,value)=>items.filter(item=>item.status===value).length;
+  return {completedCheckpoints:rows.length,totalCheckpoints:report?report.config.totalCheckpoints:0,passedAssertions:count(assertions,'PASS'),failedAssertions:count(assertions,'FAIL'),inconclusiveAssertions:count(assertions,'INCONCLUSIVE'),passedCheckpoints:count(rows,'PASS'),failedCheckpoints:count(rows,'FAIL'),inconclusiveCheckpoints:count(rows,'INCONCLUSIVE'),events:report?report.events.length:0,finished:!!report&&report.finishedAt!==null,reason:report?text(report.reason,null,false):null};
+ }
+ function getReport(){const out=snapshot();if(out)out.summary=summary();return out;}
+ function serialize(space=2){return JSON.stringify(getReport(),null,[0,1,2,3,4].includes(space)?space:2);}
+ function finish(reason='completed',at=now()){
+  if(!report)return null;
+  if(report.finishedAt===null){report.finishedAt=finite(at)??now();report.reason=id(reason,'completed');}
+  return getReport();
+ }
+ return {start,recordCheckpoint,recordEvent,finish,summary,getReport,serialize,setPrivateValues};
+}
+
 // Simulator orchestration. GPS enters the normal browser-position handler; no train identity is injected.
 function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onStop=()=>{}}) {
 const $=id=>document.getElementById(id);
-const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null};
+const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,sessionId:0,verification:{current:null,results:[],pending:false}};
+const listeners=new Set();let playbackGeneration=0;
+const subscribe=fn=>{listeners.add(fn);return ()=>listeners.delete(fn);};
+function notify(type,extra={}){for(const fn of [...listeners])fn({type,...extra});}
+function getView(){const checkpoints=route(),config=getScenario(),summary=api.reporter?.summary()||null;
+ const report=!sim.active&&summary?.finished?api.reporter.getReport():null;
+ const historicalTimeline=report?{config:report.config,startTime:report.config.startTime,checkpoints:route(report.config),index:Math.max(-1,...report.checkpoints.map(item=>item.index)),results:report.checkpoints,reason:report.reason,finished:true}:null;
+ return {historicalTimeline,diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
+
 const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
 const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
-function getScenario(){return {route:$("simPath").value,direction:$("simDirection").value,scenario:$("simScenario").value,startTime:sim.startTime??startTime()};}
+function getDraftScenario(){return {route:$("simPath").value,direction:$("simDirection").value,scenario:$("simScenario").value,startTime:startTime()};}
+function getScenario(){return sim.config?{...sim.config}:getDraftScenario();}
 function startTime(){return Date.parse($("simDate").value+'Z');}
-function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let boarded=false;
+function route(configuration=getScenario()){const c=configuration,raw=routes[c.direction+'-'+c.route];let boarded=false;
  const shift=['later-train','wrong-train','cancellation'].includes(c.scenario)?(c.route==='far'?15:c.direction==='return'?10:12):c.scenario==='delay'?8:0;
  let tubeBoarded=false;
  return raw.map(([point,label,at,mode])=>{if(mode==='rail')boarded=true;if(mode==='tube')tubeBoarded=true;
@@ -3805,17 +4246,19 @@ function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let b
  return {point,label,at:at+adjustment,mode};});}
 function status(message){$("simStatus").textContent=message;updateTime();}
 function setPanelVisible(visible){
- $("simPanel").hidden=!visible;$("simToggle").textContent=visible?'Hide controls':'Show controls';$("simToggle").setAttribute('aria-expanded',String(visible));
+ $("simPanel").hidden=!visible;$("simBar").hidden=!(visible||S().simulatorEnabled||S().simulatedFeeds);$("simToggle").textContent=visible?'Hide controls':'Show controls';$("simToggle").setAttribute('aria-expanded',String(visible));
+ document.body.classList.toggle('simControlsVisible',visible||!!(S().simulatorEnabled||S().simulatedFeeds));notify('panel');
 }
 function updateTime(){
  const enabled=!!(S().simulatorEnabled||S().simulatedFeeds);
- document.body.classList.toggle('simControlsVisible',enabled);
+ document.body.classList.toggle('simControlsVisible',enabled||!$("simPanel").hidden);
  const activity=sim.active||S().simulatedFeeds?'Simulation active':'Simulator ready';
  if($("simActivity").textContent!==activity)$("simActivity").textContent=activity;
  $("simPlay").textContent=sim.startTime===null?'Start':'Restart';
- $("simAdvance").textContent=sim.timer!==null?'Pause':sim.startTime===null?'Start':sim.index>=route().length-1?'Restart':'Continue';
- const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';}
-function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;}
+ $("simAdvance").textContent=sim.timer!==null||sim.stepping?'Pause':sim.startTime===null?'Start':sim.index>=route().length-1?'Restart':'Continue';
+ const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';notify('frame');}
+function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;sim.stepping=false;playbackGeneration++;}
+function pause(){stopTimer();status('Paused');notify('pause');}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
@@ -3854,11 +4297,16 @@ function emit(p,speed=0){const scenario=getScenario().scenario;
  if(S().simulatorEnabled&&onPositionError)onPositionError({code:2});$("simFixStatus").textContent='Underground: no usable GPS fix';return;}
  fix(...points[p.point],speed,accuracy(p));
 }
-function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textContent=`${p.label} · ${sim.index+1}/${r.length}`;$("simNext").textContent=r[sim.index+1]?.label||'Journey complete';status('Paused at '+p.label+'. Press Continue to next waypoint.');}
-function restart(){stopTimer();if(!start())return;const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.elapsed=0;sim.index=0;clearJourneyMemory();resetContext();syncClock();emit(route()[0]);checkpoint();refresh({force:true});}
+function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textContent=`${p.label} · ${sim.index+1}/${r.length}`;$("simNext").textContent=r[sim.index+1]?.label||'Journey complete';status('Paused at '+p.label+'. Press Continue to next waypoint.');notify('checkpoint');}
+function restart(){
+ stopTimer();const draft=getDraftScenario(),t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return false;}
+ if(!start())return false;
+ sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
+ clearJourneyMemory();resetContext();syncClock();notify('start');emit(route()[0]);checkpoint();refresh({force:true});return true;
+}
 // Follow the same approximate corridor as the profile rather than cutting across the bends.
-function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
- const speed=Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
+function tick(stepSeconds){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
+ const speed=typeof stepSeconds==='number'&&Number.isFinite(stepSeconds)?stepSeconds:Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
  const a=points[p.point],b=points[next.point],f=(sim.elapsed-p.at)/Math.max(.001,next.at-p.at);
  // Rail travel uses explicit speed evidence. Tube travel withholds GPS except at exposed sections.
  if(getScenario().scenario==='uncertain'&&next.mode==='rail'&&!route().slice(0,sim.index+1).some(x=>x.point==='north')&&f<1){$("simFixStatus").textContent='Train: GPS unavailable until Stevenage';}
@@ -3866,26 +4314,305 @@ function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){sto
  else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,next.mode==='rail',railLine),next.mode==='rail'?25:1.4,accuracy(next));
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
-function continuePlayback(){if(!sim.active||sim.startTime===null){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
-function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
+function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
+async function nextCheckpoint(){
+ if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}
+ if(sim.index>=route().length-1)return;
+ if(!S().simulatorEnabled||!S().simulatedFeeds){continuePlayback();return;}
+ stopTimer();const generation=playbackGeneration,target=sim.index+1;sim.stepping=true;notify('playback');
+ // Sequential normal observations and normal refreshes reconstruct history; never teleport a checkpoint.
+ for(let frame=0;frame<10000&&sim.active&&generation===playbackGeneration&&sim.index<target;frame++){
+  tick(20);
+  if(frame%3===0)await refresh();
+  if(frame%9===0)await new Promise(resolve=>setTimeout(resolve,0));
+ }
+ if(generation===playbackGeneration){sim.stepping=false;notify('playback');}
+}
+function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
- $("simToggle").addEventListener('click',()=>setPanelVisible($("simPanel").hidden));
- $("simAdvance").addEventListener('click',()=>{if(sim.timer!==null){stopTimer();status('Paused');}else if(sim.startTime!==null&&sim.index>=route().length-1){restart();}else continuePlayback();});
- $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',()=>{stopTimer();status('Paused');});$("simExit").addEventListener('click',simStop);
- $("simJump").addEventListener('click',()=>{stopTimer();const p=points[$("simPreset").value];if(p)fix(...p);status('Manual GPS fix applied');});
- $("simApply").addEventListener('click',()=>{stopTimer();fix(Number($("simLat").value),Number($("simLon").value));});
- $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');}});
- for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';sim.startTime=null;sim.index=0;sim.elapsed=0;status('Selection changed. Press Restart.');});
+ $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',pause);$("simExit").addEventListener('click',simStop);
+ $("simJump").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;const p=points[$("simPreset").value];if(p)fix(...p);notify('manual');status('Manual GPS fix applied');});
+ $("simApply").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;fix(Number($("simLat").value),Number($("simLon").value));notify('manual');});
+ $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.config={...getDraftScenario(),startTime:t};sim.manualOverride=true;sim.sessionId++;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');notify('manual');}});
+ for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{
+  stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
+  sim.pendingRestart=!!sim.config;status('Selection changed. Press Restart.');notify('configuration');
+ });
+ $("simSpeed").addEventListener('change',()=>{notify('speed');updateTime();});
  updateTime();
 }
-return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateTime,setPanelVisible};
+const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
+return api;
+}
+
+// Verification/report orchestration observes the normal web shell after its refresh settles.
+// It does not decide a route or write the application's journey state.
+function createJourneySimulationSession({simulator,reporter,evaluate,readActual,settle,privateValues=()=>[],document}){
+ let request=0,lastObserved=null,previousCheckpoint=null,queuedRender=false;
+ const privateHistory=new Set();
+ function refreshPrivacy(){for(const value of privateValues())if(typeof value==='string'&&value)privateHistory.add(value);reporter.setPrivateValues([...privateHistory]);}
+ const originalGet=reporter.getReport,originalSerialize=reporter.serialize;
+ reporter.getReport=()=>{refreshPrivacy();return originalGet();};
+ reporter.serialize=(...args)=>{refreshPrivacy();return originalSerialize(...args);};
+ const alive=()=>!!document.defaultView?.document;
+ const sim=simulator.sim;
+ simulator.reporter=reporter;
+ function context(view=simulator.getView()){
+  const checkpoint=view.checkpoints[view.index]||{};
+  return {sessionId:sim.sessionId,index:view.index,point:checkpoint.point,label:checkpoint.label,mode:checkpoint.mode,now:view.clockNow,elapsed:view.elapsed,config:view.config,source:view.sources,manualOverride:view.manualOverride,app:readActual(),previous:previousCheckpoint};
+ }
+ function event(type,message,evidence={}){refreshPrivacy();const v=simulator.getView();reporter.recordEvent({sessionId:sim.sessionId,type,message,evidence,index:v.index,point:v.checkpoints[v.index]?.point,at:v.clockNow});}
+ function publish(result){
+  result.actualDisplay={view:result.observed?.view||'',mainCard:result.observed?.heroText||'',notices:result.observed?.bannersText?[result.observed.bannersText]:[]};delete result.observed;
+  refreshPrivacy();const stored=reporter.recordCheckpoint(result);
+  const results=sim.verification.results.filter(item=>item.index!==result.index);
+  // Reports retain FAIL and revisions. Keep that verdict visible even after a later recovery.
+  results.push({...result,...(stored||{})});results.sort((a,b)=>a.index-b.index);
+  sim.verification={current:results.find(item=>item.index===sim.index)||null,results,pending:false};
+  simulator.notify('verification');
+ }
+ async function verifyCurrentCheckpoint({refresh=false}={}){
+  if(!alive()||!sim.active||sim.startTime===null||sim.pendingRestart)return null;
+  const token=++request,v=simulator.getView(),id=sim.sessionId,index=v.index,instant=v.clockNow,elapsed=v.elapsed;
+  sim.verification.pending=true;simulator.notify('verification-pending');
+  const settled=await settle({refresh,cancelled:()=>id!==sim.sessionId||!sim.active||token!==request});
+  if(!alive()||id!==sim.sessionId||!sim.active||token!==request||sim.index!==index||sim.elapsed!==elapsed){if(token===request){sim.verification.pending=false;simulator.notify('verification');}return null;}
+  const c=context();if(!settled)c.app={...c.app,loading:true};
+  const result=evaluate(c);result.observed=c.app;
+  publish(result);previousCheckpoint={train:c.app.train,ride:c.app.ride};
+  if(index===v.checkpoints.length-1){event('completed','Reached the final checkpoint; assertion outcomes recorded');reporter.finish('completed',instant);simulator.notify('summary');}
+  return result;
+ }
+ function observe(){
+  const app=readActual(),observation={view:app.view,direction:app.direction,serviceId:app.train?.serviceId||null,vehicle:app.ride?.vehicle||null,errors:(app.errors||[]).join('|')};
+  if(lastObserved){for(const key of ['view','direction','serviceId','vehicle','errors'])if(lastObserved[key]!==observation[key])event('inference',`${key} changed from ${lastObserved[key]||'unknown'} to ${observation[key]||'unknown'}`,{view:app.view,serviceId:app.train?.serviceId,vehicle:app.ride?.vehicle});}
+  lastObserved=observation;
+ }
+ const unsubscribe=simulator.subscribe(({type,reason})=>{
+  if(type==='start'){
+   request++;lastObserved=null;previousCheckpoint=null;const v=simulator.getView();
+   privateHistory.clear();refreshPrivacy();reporter.start({...v.config,sessionId:sim.sessionId,sources:v.sources,speed:Number(document.getElementById('simSpeed').value),accuracyMode:document.getElementById('simAccuracyMode').value,totalCheckpoints:v.checkpoints.length});
+   event('started','Journey simulation started');
+  } else if(type==='checkpoint'){
+   event('checkpoint','Reached '+simulator.getView().checkpoints[sim.index]?.label);
+   void verifyCurrentCheckpoint({refresh:true});
+  } else if(type==='stopping'){
+   request++;
+   if(sim.active&&sim.startTime!==null&&sim.verification.pending){const c=context();c.app={...c.app,loading:true};const result=evaluate(c);result.observed=c.app;publish(result);}
+   event('stopped','Simulation stopped; real sources and original journey context restored');reporter.finish(reason||'stopped',simulator.getView().clockNow);
+   sim.verification.pending=false;
+  } else if(type==='sources'){
+   request++;sim.verification.pending=false;refreshPrivacy();event('sources','Simulation source configuration changed');
+   if(sim.active)queueMicrotask(()=>{if(alive()&&sim.active)void verifyCurrentCheckpoint({refresh:true});});
+  } else if(type==='manual'||type==='configuration'){
+   request++;sim.verification.pending=false;refreshPrivacy();event(type,type==='manual'?'Advanced inputs changed the observed session':'Draft configuration changed; restart is required before it takes effect');simulator.notify('verification');
+  } else if(type==='application-render'&&sim.active&&sim.startTime!==null){
+   observe();
+   if(!sim.timer&&!sim.stepping&&!sim.pendingRestart&&!sim.verification.pending&&!readActual().loading&&!queuedRender){
+    queuedRender=true;queueMicrotask(()=>{queuedRender=false;if(alive()&&sim.active&&!sim.timer&&!sim.stepping&&!sim.pendingRestart&&!sim.verification.pending)void verifyCurrentCheckpoint();});
+   }
+  } else if(type==='speed')event('speed','Playback speed changed');
+ });
+ return {verifyCurrentCheckpoint,reporter,destroy(){request++;unsubscribe();}};
+}
+
+// Presentation and controls for the existing simulator session. Never infers a journey.
+function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberSelection=()=>{},onSetSources=()=>{},preferences={},verification,reporter}={}){
+ const $=id=>document.getElementById(id),win=document.defaultView;
+ const catalog=createJourneySimulatorCatalog(),byId=new Map(catalog.map(item=>[item.id,item]));
+ let mode='journey',busy=false,lastTimeline='',lastVerification='',lastSummary='';
+ const inspected=new Set(),listeners=[];
+ const listen=(id,event,fn)=>{const e=$(id);if(e){e.addEventListener(event,fn);listeners.push(()=>e.removeEventListener(event,fn));}};
+ const text=(id,value)=>{const e=$(id),s=String(value??'');if(e&&e.textContent!==s)e.textContent=s;};
+ const localTime=value=>Number.isFinite(value)?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false}).format(value):'—';
+ const localDate=value=>Number.isFinite(value)?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZoneName:'short',hour12:false}).format(value):'British local time';
+ const view=()=>typeof simulator.getView==='function'?simulator.getView():{};
+ const config=()=>({direction:$('journeyDirection').value,route:$('journeyRoute').value,scenario:$('journeyScenario').value});
+ const element=(tag,value,className)=>{const e=document.createElement(tag);if(value!=null)e.textContent=String(value);if(className)e.className=className;return e;};
+ const cleanStatus=status=>['PASS','FAIL','INCONCLUSIVE'].includes(status)?status:'INCONCLUSIVE';
+ const pretty=value=>typeof value==='string'?value:JSON.stringify(value??null,null,2);
+ const resultsFor=v=>v.verification?.results||[];
+ function scenarioDescription(current=view()){const c=config(),item=byId.get(c.scenario)||catalog[0];text('journeyScenarioDescription',item.description);text('journeyScenarioExpected',item.expected);const draft=current.draftConfig||{};const instant=draft.direction===c.direction&&Number.isFinite(draft.startTime)?draft.startTime:Date.parse(c.direction==='return'?'2026-11-03T15:44:00Z':'2026-11-03T08:44:00Z');text('journeyStartHint',`Starts ${localDate(instant)}. Pauses at every checkpoint. All inputs are simulated.`);}
+ function setMode(next){
+  mode=next==='advanced'?'advanced':'journey';$('journeySetup').hidden=mode!=='journey';$('journeyStartFooter').hidden=mode!=='journey';
+  $('journeyModeButton').setAttribute('aria-pressed',String(mode==='journey'));$('journeyAdvancedButton').setAttribute('aria-pressed',String(mode==='advanced'));
+  $('simAdvanced').open=mode==='advanced';if(mode==='journey')$('simPanelScroll').scrollTop=0;else win.setTimeout(()=>$('simAdvanced').scrollIntoView?.({block:'start'}),0);measure();
+ }
+ function open(next='journey'){simulator.setPanelVisible(true);setMode(next);render();}
+ function measure(){const bar=$('simBar');if(bar&&!bar.hidden){const height=bar.getBoundingClientRect().height;if(height>0)document.body.style.setProperty('--sim-dock-height',`${Math.ceil(height)}px`);}else document.body.style.removeProperty('--sim-dock-height');}
+ function inspectTimeline(index){inspected.has(index)?inspected.delete(index):inspected.add(index);lastTimeline='';render();}
+ function renderTimeline(v){
+  const history=v.historicalTimeline,historical=!!history,timeline=history||v;
+  const checkpoints=timeline.checkpoints||[],summary=v.summary||{},started=Number.isFinite(timeline.startTime),done=!historical&&summary.finished&&summary.reason==='completed';
+  const results=historical?(history.results||[]):resultsFor(v),reached=new Set(results.map(result=>result.index));
+  $('journeyTimelineContext').hidden=!historical;
+  if(historical){const c=history.config||{},scenario=byId.get(c.scenario)?.title||c.scenario||'Journey';text('journeyTimelineContext',`Previous journey · ${history.reason||'stopped'} · ${c.direction==='return'?'To Letchworth / Home':'To London / Office'} · ${c.route==='far'?'Thameslink via Farringdon':'Great Northern via King’s Cross'} · ${scenario}`);}
+  const key=JSON.stringify([timeline.startTime,timeline.index,historical,v.pendingRestart,done,checkpoints,results,[...inspected]]);if(key===lastTimeline)return;lastTimeline=key;
+  const list=$('journeyTimeline');list.replaceChildren();
+  checkpoints.forEach((cp,index)=>{
+   const completed=historical?reached.has(index):started&&(done||index<v.index),current=!historical&&started&&!completed&&index===v.index;
+   const state=completed?'completed':current?'current':'upcoming';
+   const row=element('li');row.dataset.checkpointIndex=String(index);row.dataset.status=state;row.dataset.state=state==='completed'?'complete':state;
+   if(current)row.setAttribute('aria-current','step');
+   const button=element('button');button.type='button';button.dataset.checkpointInspect=String(index);button.setAttribute('aria-expanded',String(inspected.has(index)));
+   button.append(element('strong',cp.label||cp.point||`Checkpoint ${index+1}`));
+   const stamp=started?localTime(timeline.startTime+Number(cp.at||0)*60000):'After Start';
+   button.append(element('small',`${stamp} · ${completed?'Completed':current?'Current':'Upcoming'}`));button.addEventListener('click',()=>inspectTimeline(index));row.append(button);
+   if(inspected.has(index)){
+    const detail=element('div',null,'simTimelineEvidence'),result=results.find(r=>r.index===index);
+    if(result){detail.append(element('strong',cleanStatus(result.status)));for(const a of result.assertions||[]){detail.append(element('p',`Expected: ${pretty(a.expected)}\nActual: ${pretty(a.actual)}\n${cleanStatus(a.status)}`));}}
+    else detail.append(element('p','No completed verification for this checkpoint. Reaching a location alone does not count as a pass.'));
+    row.append(detail);
+   }
+   list.append(row);
+  });
+  text('journeyTimelineCount',historical?`${reached.size} / ${checkpoints.length} completed`:started?`${Math.min((v.index||0)+1,checkpoints.length)} / ${checkpoints.length}`:'');
+ }
+ function renderVerification(v){
+  const results=resultsFor(v),supplied=v.verification?.current,current=(supplied?.index===v.index?supplied:null)||results.find(r=>r.index===v.index),pending=!!v.verification?.pending;
+  const failures=results.filter(result=>cleanStatus(result.status)==='FAIL').length;
+  const status=current?cleanStatus(current.status):'INCONCLUSIVE',badge=$('journeyVerificationBadge');
+  badge.dataset.result=failures?'FAIL':pending?'INCONCLUSIVE':status;text('journeyVerificationBadge',failures?`${failures} FAIL`:pending?'Checking':current?status:'Not checked');badge.setAttribute('aria-label',failures?`${failures} checkpoint failures recorded. Open expected and actual details.`:pending?'Checkpoint verification pending':`Checkpoint verification: ${current?status:'not checked'}. Open expected and actual details.`);
+  const key=JSON.stringify([results,pending]);if(key===lastVerification)return;lastVerification=key;
+  const panel=$('journeyVerificationResults');panel.replaceChildren();
+  const totals={PASS:0,FAIL:0,INCONCLUSIVE:0};results.forEach(r=>totals[cleanStatus(r.status)]++);
+  text('journeyVerificationCount',results.length?`${totals.PASS} pass · ${totals.FAIL} fail · ${totals.INCONCLUSIVE} inconclusive`:'');
+  if(!results.length)panel.append(element('p',pending?'Waiting for the real application to finish refreshing.':'No checkpoint verification yet. Playback alone does not prove the application is correct.'));
+  for(const result of results){
+   const section=element('section',null,'simVerificationRow');section.dataset.result=cleanStatus(result.status);section.dataset.checkpointIndex=String(result.index);section.append(element('strong',`${result.label||'Checkpoint'} · ${cleanStatus(result.status)}`));
+   if(!(result.assertions||[]).length)section.append(element('p','No explicit assertion is defined, or the evidence is insufficient.'));
+   for(const assertion of result.assertions||[]){
+    const block=element('div');block.dataset.assertionId=assertion.id||'';block.dataset.result=cleanStatus(assertion.status);
+    block.append(element('p',`${cleanStatus(assertion.status)} · Expected: ${pretty(assertion.expected)}`),element('p',`Actual: ${pretty(assertion.actual)}`));
+    if(assertion.evidence&&Object.keys(assertion.evidence).length){const details=element('details');details.append(element('summary','Diagnostic evidence'),element('pre',pretty(assertion.evidence)));block.append(details);}
+    section.append(block);
+   }
+   if(result.revisions?.length){section.append(element('p',result.status==='FAIL'?'A failure has been recorded. Observation history is retained below.':'Earlier observations are retained below.'));const history=element('details');history.append(element('summary','Observation history'));for(const revision of result.revisions){history.append(element('p',`${localTime(revision.at)} · ${pretty(revision.actualDisplay||revision.assertions||revision)}`));}section.append(history);}
+   if(result.actualDisplay){const actual=element('details');actual.append(element('summary','What the real app showed'));const display=result.actualDisplay;actual.append(element('p',`View: ${display.view||'Unknown'}`),element('p',display.mainCard||'No main card text was available.'));if(Array.isArray(display.notices)&&display.notices.length)actual.append(element('p',display.notices.join('\n')));section.append(actual);}
+   panel.append(section);
+  }
+ }
+ function renderSummary(v){
+  const summary=v.summary||(reporter&&reporter.summary?reporter.summary():null),key=JSON.stringify(summary);if(key===lastSummary)return;lastSummary=key;
+  const panel=$('journeyResultsSummary');panel.replaceChildren();if(!summary){panel.append(element('p','Results become available when a journey starts.'));return;}
+  panel.append(element('p',`${summary.completedCheckpoints||0} / ${summary.totalCheckpoints||v.checkpoints?.length||0} checkpoints completed`));
+  panel.append(element('p',`${summary.passedAssertions||0} assertions passed · ${summary.failedAssertions||0} failed · ${summary.inconclusiveAssertions||0} inconclusive`));
+  if(summary.finished)panel.append(element('p',summary.reason==='completed'?'Journey complete. Review failures and inconclusive results before drawing a conclusion.':`Session ended: ${summary.reason||'stopped'}.`));
+  const report=reporter&&reporter.getReport?reporter.getReport():null,events=report?.events||[];
+  if(events.length){const details=element('details');details.append(element('summary',`${events.length} journey events`));const list=element('ol');events.forEach(e=>list.append(element('li',`${localTime(e.at)} · ${e.label||e.message||e.type||'Journey event'}`)));details.append(list);panel.append(details);}
+ }
+ function render(v=view()){
+  scenarioDescription(v);
+  const points=v.checkpoints||[],index=Number(v.index)||0,started=Number.isFinite(v.startTime),current=points[index],next=points[index+1],summary=v.summary||{};
+  $('simPanel').classList.toggle('simSetupOpen',!v.active);
+  text('journeyDockTime',localTime(v.clockNow));$('journeyDockTime').setAttribute('datetime',Number.isFinite(v.clockNow)?new Date(v.clockNow).toISOString():'');
+  const place=typeof v.location==='string'?v.location:v.location?.label||v.location?.name;
+  const location=started?(place||current?.label||'Journey in progress'):'Choose a journey';text('journeyDockLocation',location);$('journeyDockLocation').title=location;
+  const nextText=started?(next?`Next: ${next.label}`:'Final checkpoint'):'Starts paused. Stop restores real operation.';text('journeyDockNext',nextText);$('journeyDockNext').title=nextText;
+  text('journeyTimelineToggle',started?`${Math.min(index+1,points.length)} / ${points.length}`:'Timeline');
+  $('journeyDockProgress').max=Math.max(points.length,1);$('journeyDockProgress').value=started?Math.min(index+1,points.length):0;text('journeyDockProgress',started?`${Math.min(index+1,points.length)} of ${points.length} checkpoints`:'Journey not started');$('journeyDockProgress').setAttribute('aria-valuetext',started?`${Math.min(index+1,points.length)} of ${points.length} checkpoints`:'Journey not started');
+  const play=$('journeyPlay')||$('simAdvance');if(play){play.setAttribute('aria-label',v.playing?'Pause simulation':'Play to the next checkpoint');}
+  const complete=started&&index>=points.length-1;
+  $('journeyNext').disabled=!!(busy||v.stepping||v.verification?.pending);text('journeyNext',complete?'Results':'Next checkpoint');$('journeyNext').setAttribute('aria-label',complete?'Open the journey summary':'Continue sequentially to the next checkpoint');
+  if(v.sources){$('simAdvancedGPS').checked=!!v.sources.gps;$('simAdvancedFeeds').checked=!!v.sources.feeds;}
+  text('journeyStart',v.active?'Restart journey':'Start journey');$('journeyStart').disabled=busy;
+  text('journeySourceDiagnostics',JSON.stringify({sources:v.sources||{},clock:localDate(v.clockNow),playing:!!v.playing,checkpoint:started?index+1:null,pendingRestart:!!v.pendingRestart,verificationPending:!!v.verification?.pending,actual:v.diagnostics||{}},null,2));
+  renderTimeline(v);renderVerification(v);renderSummary(v);measure();
+ }
+ async function startJourney(){
+  if(busy)return;busy=true;$('journeySetupError').hidden=true;render();
+  try{const c=config();const result=await onStartJourney(c);if(result===false)throw new Error('The journey could not start. Check Advanced diagnostics.');inspected.clear();}
+  catch(error){text('journeySetupError',error?.message||'The journey could not start.');$('journeySetupError').hidden=false;}
+  finally{busy=false;render();}
+ }
+ function reportText(){if(!reporter||typeof reporter.serialize!=='function')throw new Error('No journey report is available yet.');const report=reporter.getReport?.();if(!report||!report.config)throw new Error('Start a journey before exporting results.');return reporter.serialize(2);}
+ function copyFallback(value){let field=$('journeyReportText');if(!field){field=element('textarea');field.id='journeyReportText';field.readOnly=true;field.rows=8;field.setAttribute('aria-label','Diagnostic report to copy');$('journeyResultsDetails').append(field);}field.hidden=false;field.value=value;field.focus();field.select();$('journeyResultsDetails').open=true;text('journeyExportStatus','Clipboard unavailable. Select and copy the report below.');}
+ async function copyResults(){try{const value=reportText();try{if(!win.navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');await win.navigator.clipboard.writeText(value);text('journeyExportStatus','Report copied.');}catch(error){copyFallback(value);}}catch(error){text('journeyExportStatus',error.message);}}
+ function exportResults(){try{const value=reportText();if(!win.URL?.createObjectURL)throw new Error('Download unavailable. Use Copy results instead.');const blob=new win.Blob([value],{type:'application/json'}),url=win.URL.createObjectURL(blob),a=element('a');a.href=url;a.download='cartref-commute-simulation.json';document.body.append(a);try{a.click();text('journeyExportStatus','Report exported.');}finally{a.remove();win.setTimeout(()=>win.URL.revokeObjectURL(url),0);}}catch(error){text('journeyExportStatus',error.message||'Export failed. Use Copy results instead.');}}
+ function inspect(section){simulator.setPanelVisible(true);$(section).open=true;win.setTimeout(()=>$(section).scrollIntoView?.({block:'nearest'}),0);measure();}
+ // Setup selections are drafts. Only Start copies them into the running simulator configuration.
+ $('journeyDirection').value=['outbound','return'].includes(preferences.direction)?preferences.direction:'outbound';$('journeyRoute').value=['kgx','far'].includes(preferences.route)?preferences.route:'kgx';
+ const groups=new Map();catalog.forEach(item=>{let group=groups.get(item.group);if(!group){group=element('optgroup');group.label=item.group;groups.set(item.group,group);$('journeyScenario').append(group);}const option=element('option',item.title);option.value=item.id;group.append(option);});$('journeyScenario').value=byId.has(preferences.scenario)?preferences.scenario:'normal';
+ listen('journeyDirection','change',()=>{scenarioDescription();onRememberSelection(config());});listen('journeyRoute','change',()=>onRememberSelection(config()));listen('journeyScenario','change',()=>{scenarioDescription();onRememberSelection(config());});
+ listen('simToggle','click',()=>{if($('simPanel').hidden)open(mode);else simulator.setPanelVisible(false);});
+ listen('journeyModeButton','click',()=>setMode('journey'));listen('journeyAdvancedButton','click',()=>setMode('advanced'));listen('journeyStart','click',startJourney);
+ listen('simAdvance','click',()=>{const v=view();if(!v.active&&!v.sources?.gps&&!v.sources?.feeds){startJourney();return;}if(v.playing)simulator.pause();else if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1)simulator.restart();else simulator.continuePlayback();});
+ listen('journeyNext','click',async()=>{const v=view();if(!v.active){await startJourney();return;}if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1){inspect('journeyResultsDetails');return;}if(simulator.nextCheckpoint)await simulator.nextCheckpoint();else simulator.continuePlayback();render();});
+ listen('journeyTimelineToggle','click',()=>inspect('journeyTimelineDetails'));listen('journeyVerificationBadge','click',()=>inspect('journeyVerificationDetails'));
+ listen('journeyCopyResults','click',copyResults);listen('journeyExportResults','click',exportResults);
+ for(const id of ['simAdvancedGPS','simAdvancedFeeds'])listen(id,'change',async()=>{try{await onSetSources({gps:$('simAdvancedGPS').checked,feeds:$('simAdvancedFeeds').checked});$('journeySetupError').hidden=true;}catch(error){text('journeySetupError',error?.message||'Could not change simulation sources.');$('journeySetupError').hidden=false;}render();});
+ const unsubscribe=typeof simulator.subscribe==='function'?simulator.subscribe(()=>render()):null;
+ const resize=typeof win.ResizeObserver==='function'?new win.ResizeObserver(measure):null;resize?.observe($('simBar'));win.addEventListener('resize',measure);
+ scenarioDescription();setMode('journey');render();
+ return {open,render,setMode,copyResults,exportResults,destroy(){listeners.forEach(remove=>remove());if(typeof unsubscribe==='function')unsubscribe();resize?.disconnect();win.removeEventListener('resize',measure);}};
 }
 
 const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
+simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,direction:state.autoDir||null,railSource:state.railSource||null,onLine:!!state.onLine,atHub:state.atHub||null,locationStatus:state.locStatus||null,accuracy:state.locAcc??null,trainServiceId:state.rendered?.train?.t?.serviceId||null,trainConfidence:state.rendered?.train?.confidence||null,tubeVehicle:state.rendered?.ride?.vehicle||null,loading:!!state.loading,lastDataAt:state.fetchedAt||null,requests:requestCounts()});
+
+// Simulator integration observes normal rendering; no extra inference calls are made for verification.
+function readSimulationActual(){
+ const model=state.rendered||{},m=model.train,r=model.ride;
+ const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
+ return {railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+  ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
+  boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
+  heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
+}
+async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
+ if(reload)await refresh({force:true});
+ const deadline=window.Date.now()+15000;
+ // Await actual provider work and queued refreshes, using device time for the timeout.
+ while(state.loading||state.again){if(cancelled()||window.Date.now()>deadline)return false;await new Promise(resolve=>setTimeout(resolve,5));}
+ await Promise.resolve();return !cancelled();
+}
+const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
+function simulationPrivateValues(){
+ const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ return [...values,state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
+}
+const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
+const SIMULATOR_PREFERENCES='cartrefCommute.simulatorPreferences.v1';
+function readSimulatorPreferences(){try{const saved=JSON.parse(localStorage.getItem(SIMULATOR_PREFERENCES)||'{}');return validatedSimulatorSelection(saved);}catch(error){return {};}}
+function validatedSimulatorSelection(value){const out={};if(['outbound','return'].includes(value.direction))out.direction=value.direction;if(['kgx','far'].includes(value.route))out.route=value.route;if(createJourneySimulatorCatalog().some(item=>item.id===value.scenario))out.scenario=value.scenario;return out;}
+function rememberSimulatorSelection(value){try{localStorage.setItem(SIMULATOR_PREFERENCES,JSON.stringify(validatedSimulatorSelection(value)));}catch(error){}}
+function setSimulationSources({gps,feeds},{settings,refreshAfter=true}={}){
+ const next={...(settings||state.saved.settings)};delete next.simulatorEnabled;delete next.simulatedFeeds;
+ if(gps)next.simulatorEnabled=true;if(feeds)next.simulatedFeeds=true;
+ const modeChanged=!!S().simulatorEnabled!==!!gps||!!S().simulatedFeeds!==!!feeds;
+ if(modeChanged){simStop({resume:false,reason:'sources-changed'});endSimulationSession();}
+ invalidateSources();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
+ if(feeds&&!simClock.active){const value=window.Date.parse($("#simDate").value+'Z');simClock.start(new window.Date(value).toISOString());}
+ if(!feeds)simClock.stop();save();
+ $("#s_simulator").checked=!!gps;$("#s_simulatedFeeds").checked=!!feeds;
+ if(modeChanged&&!(gps&&!refreshAfter))locate();simulator.updateTime();simulator.notify('sources');if(refreshAfter)refresh({force:true});
+}
+async function startGuidedJourney(selection){
+ const chosen=validatedSimulatorSelection(selection);
+ if(!chosen.direction||!chosen.route||!chosen.scenario)throw new Error('Choose a direction, route and scenario.');
+ const changedDirection=$("#simDirection").value!==chosen.direction;
+ $("#simDirection").value=chosen.direction;$("#simPath").value=chosen.route;$("#simScenario").value=chosen.scenario;
+ if(changedDirection||!Number.isFinite(window.Date.parse($("#simDate").value+'Z')))$("#simDate").value=chosen.direction==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
+ setSimulationSources({gps:true,feeds:true},{refreshAfter:false});
+ // These are isolated user planning preferences, not inferred train/tube identities.
+ state.saved.mode='commute';state.saved.dirMode='auto';state.saved.view='now';
+ if(!simulator.restart())return false;
+ const session=sim.sessionId;simulator.setPanelVisible(false);rememberSimulatorSelection(chosen);
+ window.requestAnimationFrame(()=>{if(sim.active&&sim.sessionId===session&&document.getElementById('simPanel').hidden)document.getElementById('hero').scrollIntoView?.({block:'start',behavior:'instant'});});
+ await settleSimulation({cancelled:()=>!sim.active||sim.sessionId!==session});
+ return sim.active&&sim.sessionId===session;
+}
+const journeyUI=createJourneySimulatorUI({simulator,document,onStartJourney:startGuidedJourney,onSetSources:value=>{
+ if(value.feeds&&!Number.isFinite(window.Date.parse($("#simDate").value+'Z')))throw new Error('Select a valid virtual date before enabling simulated feeds.');
+ setSimulationSources(value);},onRememberSelection:rememberSimulatorSelection,preferences:readSimulatorPreferences(),reporter:simulationReporter});
+$("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey'));
+
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
@@ -3945,19 +4672,11 @@ $("#settingsForm").addEventListener("submit",e=>{
   document.getElementById("simDate").value=document.getElementById("simDirection").value==="return"?"2026-11-03T15:44":"2026-11-03T08:44";
   resetInvalidStart=true;
  }
- const modeChanged=!!S().simulatorEnabled!==!!next.simulatorEnabled || !!S().simulatedFeeds!==!!next.simulatedFeeds;
- if(modeChanged){simStop({resume:false});endSimulationSession();}
- invalidateSources();
- if(next.simulatorEnabled || next.simulatedFeeds)beginSimulationSession();
- state.saved.settings=next;
- if(next.simulatedFeeds && !simClock.active)simClock.start(new window.Date(document.getElementById("simDate").value+'Z').toISOString());
- if(!next.simulatedFeeds)simClock.stop();
- save();dlg.close();simulator.setPanelVisible(!!(next.simulatorEnabled||next.simulatedFeeds));
- document.getElementById("simBar").hidden=!next.simulatorEnabled&&!next.simulatedFeeds;
+ setSimulationSources({gps:!!next.simulatorEnabled,feeds:!!next.simulatedFeeds},{settings:next});
+ dlg.close();simulator.setPanelVisible(!!(next.simulatorEnabled||next.simulatedFeeds));
  simulator.updateTime();
  if(resetInvalidStart)document.getElementById("simStatus").textContent="Invalid start time was reset to the displayed default. Select a valid date/time before Start.";
- if(modeChanged)locate();
- state.boards=null;state.byCache={};refresh({force:true});
+
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
@@ -4005,7 +4724,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={simulator,simClock,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

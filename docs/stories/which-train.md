@@ -46,7 +46,22 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 
 - Distinct known National Rail service IDs remain separate candidates even when their times are within one minute; time/operator deduplication is only a fallback when IDs are unavailable.
 
+- A service already identified by the normal engine does not become an Underground interchange merely because a fresh, precise train-speed fix passes within a nearby station radius. Its own profile corridor and ordered calling points decide whether the station is intermediate. A shared interchange is profile data, not an operator or service-ID rule.
+- Through-station continuation requires an established moving track no older than3minutes, fix age at most1minute, accuracy at most250m and speed at least12m/s. The complete GPS uncertainty must remain outside the actual destination's existing station radius. A stopped or stale fix, cancellation, unrelated station, unknown service or destination arrival keeps the ordinary station rules. The final3% corridor remains trackable after the intermediate station only while this evidence remains valid.
+
+- When the same known service is recorded on several boards with different alighting endpoints, only an identical service ID, origin, scheduled departure and ordered calling-point prefix may extend its physical corridor. Matching operator/time alone or divergent calling points never selects another train.
+
+- Going home, the short final3% corridor just outside a recently observed departure hub can establish rail movement before identity is settled: a fresh fix good to250m, measured speed12m/s or more, within300m of that hub's profile line, outside every hub radius including uncertainty, and a plausible noncancelled departure towards home in the previous10minutes. The visit must be within10minutes and a known or selected Underground ride vetoes this inference. This supplies movement geometry only; normal train comparison still determines identity and confidence. An unknown service cannot use this rule to force passage inside another hub.
+
 ## Tests
+- tests/core/situation.test.mjs: "railTrackingContext: a provisional observed train preserves movement without resolving its identity"
+- tests/core/situation.test.mjs: "railTrackingContext: a recent departure can establish rail movement in the end-corridor gap without choosing a train"
+- tests/core/situation.test.mjs: "railTrackingContext: departure gap inference is generic and cannot override a known tube"
+- tests/core/situation.test.mjs: "railTrackingContext: same-service board variants extend only an identical ordered calling sequence"
+- tests/core/situation.test.mjs: "railTrackingContext: a known moving through service passes an overlapping interchange and keeps its own corridor"
+- tests/core/situation.test.mjs: "railTrackingContext: train knowledge cannot override its own destination or unrelated station arrival"
+- tests/core/situation.test.mjs: "railTrackingContext: stale rough slow or unestablished evidence cannot force through-station inference"
+- tests/core/situation.test.mjs: "railTrackingContext: another corridor and shared station names use only profile data"
 - tests/core/situation.test.mjs: "whichTrain: keep a confirmed train but warn on fresh contradictory evidence; stale fixes cannot create a conflict"
 - tests/simulator-integration.test.mjs: "simulator app: a confirmed train conflicting with reported position is retained with an explicit warning"
 - tests/core/situation.test.mjs: "whichTrain: distinct service IDs stay separate even a minute apart"
@@ -84,3 +99,10 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 ## Not yet / open questions
 - #23: passing points (Darwin real-time) for non-stop runs; needs a server.
 - #10/#11: fully automatic boarding detection and arrival platform, mainly for the native app.
+
+The Journey Simulator's expected-versus-actual assertion exposed this production defect: a Thameslink
+service at St Pancras was treated as arriving at the neighbouring King's Cross hub, and rail tracking
+used the King's Cross corridor even though the inferred service continued to Farringdon. The fix uses
+only existing inferred service data and generic profile geometry; simulation never supplies an identity.
+A first unidentified train or a stopped service at an intermediate station remains ambiguous; this rule
+does not invent a train identity or assume that the passenger stayed aboard.

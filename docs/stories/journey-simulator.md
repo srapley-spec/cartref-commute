@@ -1,5 +1,5 @@
 # Developer journey simulator
-Status: Behind toggle (independently reviewed; release CI gates required) · Since: 30 Oct 2026 · Issues: #32, #34
+Status: In progress (Journey Mode UX redesign; staged independent review and release gates required) · Since: 30 Oct 2026 · Issues: #32, #34
 
 ## Story
 As a developer I want to replay coherent location, Darwin and TfL inputs through the real application,
@@ -16,6 +16,28 @@ so that I can inspect inference and onward planning without travelling.
 - Approximate rail polylines follow the profile corridor; they are synthetic test geometry, not surveyed tracks. Provider formats pass through production adapters.
 
 - A compact bottom bar is visible whenever either simulator switch is enabled, including before Start. Start/Continue/Pause and Stop remain reachable with the controller hidden. Show/Hide controls only collapses the panel: it preserves the checkpoint, clock, settings and playback state. The panel and bar share layout space above the phone safe area, and all controls use explicit theme colours with readable contrast in light and dark modes.
+
+## Journey Mode and Advanced diagnostics
+- Open Simulator from the real application header without changing sources, clock or saved journey state. Journey Mode is the default; choose direction, rail route and the grouped scenario. Normal journey starts in at most three deliberate actions after opening (direction, route, Start).
+- Start automatically enables synthetic GPS and both transport feeds through the existing session transaction, starts the shared clock and pauses at the first checkpoint. It collapses setup immediately and brings the real application's main card into view. British local time is shown in the guided UI; the legacy UTC clock input remains available in Advanced.
+- Remember only allowlisted direction, route and scenario preferences in a separate versioned key. Never persist active flags, clocks, input coordinates or reports. Reload returns to real operation.
+- Guided choices remain drafts while a journey is active. They do not change the providers or route until Start/Restart. Advanced changes that require a restart keep the active scenario coherent until then.
+- The compact overlay shows simulated location/time, current/next checkpoint, progress, playback, sequential Next, Stop, timeline and verification. Reserve its measured height so actual app content can scroll clear. Every touch target is44px and text contrast is at least4.5:1 in light/dark modes.
+- Opening or collapsing modes, timeline inspection and verification details never changes simulation state. Timeline inspection cannot teleport. Next reconstructs each adjacent segment through normal GPS fixes, shared time and ordinary feed refreshes.
+- Every old control and automation ID remains available in Advanced diagnostics: independent source switches, manual fixes/accuracy/GPS loss, route/scenario/date/speed, playback, reset, source diagnostics and the existing app's train/tube choices.
+
+## Expected versus actual
+- Read outputs already computed by normal application rendering. Verification never calls mutating inference functions just to observe them, assigns a train/tube or replaces the main app interface.
+- Evaluate each meaningful checkpoint after normal refresh settles. Explicit assertions produce PASS/FAIL; missing evidence, pending work, unsupported/manual inputs or a legitimate unresolved passenger decision produce INCONCLUSIVE. Reaching a location is not itself a pass.
+- Session/index/playback generations reject stale asynchronous verification after restart, Stop, source changes or continued playback. Device clock advancement in GPS-only mode must not leave verification permanently pending.
+- Keep earlier failures and later revisions. A small failure indicator opens expected/actual explanations and the actual displayed main-card text without hiding that card.
+- Preserve genuine application failures; never weaken an assertion or change GPS/provider fixtures merely to obtain a passing simulator run. Deliberate production inference mutations must result in visible runtime failures.
+
+## Reports and privacy
+- Show reached checkpoint counts separately from passed, failed and inconclusive assertions and significant inference events. Results remain inspectable/copyable/exportable after Stop until a new run or reload.
+- Export a versioned JSON allowlist: scenario configuration, relevant virtual timestamps, assertions, sanitized display text, bounded revisions and selected diagnostic facts. Do not export raw settings/state, API URLs/credentials, precise coordinates, postcodes or home/work addresses.
+- Refresh the union of private values throughout the session and before exporting; credentials changed during a session must remain redacted after Stop restores the original settings.
+- Report format identifiers and validated structural enums remain intact while untrusted messages and service identifiers are sanitized. Unavailable clipboard access offers a selectable text fallback; download URLs are revoked.
 
 ## Tests
 - tests/simulator-controls.test.mjs: "Stop exits a ready GPS-only simulator before the journey has started"
@@ -43,3 +65,5 @@ records executed assertions. This status is not a release approval.
 Test lifecycle cleanup waits for native GPS and the resulting refresh to settle before closing a simulated browser. This prevents pending asynchronous callbacks from running after document teardown; CI correctly rejected the earlier incomplete cleanup.
 
 Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides. Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
+
+Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.

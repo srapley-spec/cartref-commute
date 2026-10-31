@@ -201,7 +201,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <h1>Cartref Commute</h1>
       <div class="sub" id="routeLabel">Cartref ⇄ 20 Mansfield Street</div>
     </div>
-    <button class="iconbtn" id="settingsBtn" type="button">Settings</button>
+    <div class="controls"><button class="iconbtn" id="journeySimulatorBtn" type="button">Simulator</button><button class="iconbtn" id="settingsBtn" type="button">Settings</button></div>
   </header>
 
   <div class="controls">
@@ -1071,6 +1071,7 @@ function optionBlock(j, opt){
   </section>`;
 }
 function renderOnTrain(now, m){
+ state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
   const head=`<div class="lbl">On the train · ${hhmm(now)} · worked out from your location${m && m.stale ? ` · <b>location last updated ${m.fixAgeMin} min ago</b>` : ""}</div>`;
   if(!m || m.none){
@@ -1152,7 +1153,7 @@ function tubesFromAldgate(now){
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
 function renderOnTubeHome(now){
-  const r=homeRide(now);
+  const r=homeRide(now);state.rendered=state.rendered||{};state.rendered.ride=r;
   const head=`<div class="lbl">On the tube · ${hhmm(now)} · ${r&&r.picked?"the tube you picked":"worked out from when you left Aldgate"}</div>`;
   if(!r){ $("#hero").innerHTML=`${head}<div class="empty">Couldn't tell which tube you're on.</div>`; return; }
   const legs=homeLegs(r.t, now).map(l=>({...l, stopAt:r.t+l.rideMs, arrive:r.t+l.rideMs+l.tailMs})).sort((a,b)=>a.arrive-b.arrive || a.stopAt-b.stopAt);
@@ -1182,7 +1183,7 @@ function onwardParts(hub){
   return { ic: ms(after.filter(x=>x.kind==="change")), ride: ms(after.filter(x=>x.kind==="ride")), tail: ms(after.slice(rideAt+1)) };
 }
 function renderOnTube(now){
-  const r=currentRide(now); if(!r) return null;
+  const r=currentRide(now);state.rendered=state.rendered||{};state.rendered.ride=r;if(!r) return null;
   const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
@@ -1371,6 +1372,7 @@ function renderHero(list, now){
   h.innerHTML = C.BLOCKS["plan-now"].map(b=>blocks[b]||"").join("\n    ");
 }
 function renderList(list, now, opts){
+ state.rendered=state.rendered||{};state.rendered.options={count:list.length,usableCount:list.filter(item=>plannable(item.train)).length};
   const el=$("#list"), loaded = opts && "loaded" in opts ? opts.loaded : !!state.boards;
   if(!loaded){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">Journeys appear here once live trains load.</div><div></div></div>`; return; }
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
@@ -1659,9 +1661,9 @@ function renderByHero(opts){
 // Expanded sections (notices, Journey steps) stay open when the screen is redrawn every few seconds.
 const openKeys=new Set();
 const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d.querySelector("summary")||{}).textContent||""}`;
-document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
-function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
-function render(){ renderInner(); restoreOpen(); }
+document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
+function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
+function render(){ renderInner(); restoreOpen(); simulator.notify('application-render'); }
 // "Which train are you on?": your pick is kept until you're off the line.
 // Which tube you're getting (at the station) or on (on the tube); "did you get it?" answers.
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-tubepick]"); if(!b) return;
@@ -1681,13 +1683,14 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
 function renderInner(){
+ state.rendered={train:null,ride:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
   // Live boards are for one direction: reload when the direction changes (not when a board merely failed).
   else if(!awaitingLocation() && state.railSource==="darwin" && state.boards && state.boardsDir && state.boardsDir!==direction()){ state.boards=null; refresh({force:true}); }
   const now=Date.now(), byView=state.saved.view==="by";
-  const shown = C.chooseView(situation(now)), view = shown.view;
+  const shown = C.chooseView(situation(now)), view = shown.view;state.rendered.view=view;
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -1872,7 +1875,9 @@ function onPosition(p){
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
   noteAldgate();
-  state.atHub=hubHere();
+  const speed=typeof p.coords.speed==='number'&&p.coords.speed>=0?p.coords.speed:null;
+  const railContext=C.railTrackingContext({fix:fix(),speed,track:state.lineTrack||null,train:lockedTrain()||state.rendered?.train?.t||null,trains:Object.values(state.boards||{}).flatMap(board=>board?.services||[]),dir:direction(),now:Date.now(),departingHub:state.lastHub?{hub:state.lastHub.hub,seen:state.lastHub.seen}:null,onTube:!!(state.saved.tubeRide||state.saved.tubePick||state.rendered?.ride)},PROFILE);
+  state.atHub=railContext.atHub;
   const riding = !!currentRide(Date.now());
   // With the station visit, the last time this session saw you away from any station: you can't have arrived
   // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
@@ -1882,7 +1887,7 @@ function onPosition(p){
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
   // On a train: on the line and seen moving along it (engine); a train you picked counts as moving.
-  const sp=p.coords.speed, tr=C.trackLine(state.lineTrack||null, fix(), (typeof sp==="number" && sp>=0) ? sp : null, state.atHub, LINE.KGX, !!(state.trainLock&&state.trainLock.picked));
+  const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked),railContext.continuing);
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
@@ -1929,6 +1934,67 @@ const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
+simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,direction:state.autoDir||null,railSource:state.railSource||null,onLine:!!state.onLine,atHub:state.atHub||null,locationStatus:state.locStatus||null,accuracy:state.locAcc??null,trainServiceId:state.rendered?.train?.t?.serviceId||null,trainConfidence:state.rendered?.train?.confidence||null,tubeVehicle:state.rendered?.ride?.vehicle||null,loading:!!state.loading,lastDataAt:state.fetchedAt||null,requests:requestCounts()});
+
+// Simulator integration observes normal rendering; no extra inference calls are made for verification.
+function readSimulationActual(){
+ const model=state.rendered||{},m=model.train,r=model.ride;
+ const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
+ return {railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+  ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
+  boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
+  heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
+}
+async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
+ if(reload)await refresh({force:true});
+ const deadline=window.Date.now()+15000;
+ // Await actual provider work and queued refreshes, using device time for the timeout.
+ while(state.loading||state.again){if(cancelled()||window.Date.now()>deadline)return false;await new Promise(resolve=>setTimeout(resolve,5));}
+ await Promise.resolve();return !cancelled();
+}
+const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
+function simulationPrivateValues(){
+ const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ return [...values,state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
+}
+const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
+const SIMULATOR_PREFERENCES='cartrefCommute.simulatorPreferences.v1';
+function readSimulatorPreferences(){try{const saved=JSON.parse(localStorage.getItem(SIMULATOR_PREFERENCES)||'{}');return validatedSimulatorSelection(saved);}catch(error){return {};}}
+function validatedSimulatorSelection(value){const out={};if(['outbound','return'].includes(value.direction))out.direction=value.direction;if(['kgx','far'].includes(value.route))out.route=value.route;if(createJourneySimulatorCatalog().some(item=>item.id===value.scenario))out.scenario=value.scenario;return out;}
+function rememberSimulatorSelection(value){try{localStorage.setItem(SIMULATOR_PREFERENCES,JSON.stringify(validatedSimulatorSelection(value)));}catch(error){}}
+function setSimulationSources({gps,feeds},{settings,refreshAfter=true}={}){
+ const next={...(settings||state.saved.settings)};delete next.simulatorEnabled;delete next.simulatedFeeds;
+ if(gps)next.simulatorEnabled=true;if(feeds)next.simulatedFeeds=true;
+ const modeChanged=!!S().simulatorEnabled!==!!gps||!!S().simulatedFeeds!==!!feeds;
+ if(modeChanged){simStop({resume:false,reason:'sources-changed'});endSimulationSession();}
+ invalidateSources();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
+ if(feeds&&!simClock.active){const value=window.Date.parse($("#simDate").value+'Z');simClock.start(new window.Date(value).toISOString());}
+ if(!feeds)simClock.stop();save();
+ $("#s_simulator").checked=!!gps;$("#s_simulatedFeeds").checked=!!feeds;
+ if(modeChanged&&!(gps&&!refreshAfter))locate();simulator.updateTime();simulator.notify('sources');if(refreshAfter)refresh({force:true});
+}
+async function startGuidedJourney(selection){
+ const chosen=validatedSimulatorSelection(selection);
+ if(!chosen.direction||!chosen.route||!chosen.scenario)throw new Error('Choose a direction, route and scenario.');
+ const changedDirection=$("#simDirection").value!==chosen.direction;
+ $("#simDirection").value=chosen.direction;$("#simPath").value=chosen.route;$("#simScenario").value=chosen.scenario;
+ if(changedDirection||!Number.isFinite(window.Date.parse($("#simDate").value+'Z')))$("#simDate").value=chosen.direction==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
+ setSimulationSources({gps:true,feeds:true},{refreshAfter:false});
+ // These are isolated user planning preferences, not inferred train/tube identities.
+ state.saved.mode='commute';state.saved.dirMode='auto';state.saved.view='now';
+ if(!simulator.restart())return false;
+ const session=sim.sessionId;simulator.setPanelVisible(false);rememberSimulatorSelection(chosen);
+ window.requestAnimationFrame(()=>{if(sim.active&&sim.sessionId===session&&document.getElementById('simPanel').hidden)document.getElementById('hero').scrollIntoView?.({block:'start',behavior:'instant'});});
+ await settleSimulation({cancelled:()=>!sim.active||sim.sessionId!==session});
+ return sim.active&&sim.sessionId===session;
+}
+const journeyUI=createJourneySimulatorUI({simulator,document,onStartJourney:startGuidedJourney,onSetSources:value=>{
+ if(value.feeds&&!Number.isFinite(window.Date.parse($("#simDate").value+'Z')))throw new Error('Select a valid virtual date before enabling simulated feeds.');
+ setSimulationSources(value);},onRememberSelection:rememberSimulatorSelection,preferences:readSimulatorPreferences(),reporter:simulationReporter});
+$("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey'));
+
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
@@ -1988,19 +2054,11 @@ $("#settingsForm").addEventListener("submit",e=>{
   document.getElementById("simDate").value=document.getElementById("simDirection").value==="return"?"2026-11-03T15:44":"2026-11-03T08:44";
   resetInvalidStart=true;
  }
- const modeChanged=!!S().simulatorEnabled!==!!next.simulatorEnabled || !!S().simulatedFeeds!==!!next.simulatedFeeds;
- if(modeChanged){simStop({resume:false});endSimulationSession();}
- invalidateSources();
- if(next.simulatorEnabled || next.simulatedFeeds)beginSimulationSession();
- state.saved.settings=next;
- if(next.simulatedFeeds && !simClock.active)simClock.start(new window.Date(document.getElementById("simDate").value+'Z').toISOString());
- if(!next.simulatedFeeds)simClock.stop();
- save();dlg.close();simulator.setPanelVisible(!!(next.simulatorEnabled||next.simulatedFeeds));
- document.getElementById("simBar").hidden=!next.simulatorEnabled&&!next.simulatedFeeds;
+ setSimulationSources({gps:!!next.simulatorEnabled,feeds:!!next.simulatedFeeds},{settings:next});
+ dlg.close();simulator.setPanelVisible(!!(next.simulatorEnabled||next.simulatedFeeds));
  simulator.updateTime();
  if(resetInvalidStart)document.getElementById("simStatus").textContent="Invalid start time was reset to the displayed default. Select a valid date/time before Start.";
- if(modeChanged)locate();
- state.boards=null;state.byCache={};refresh({force:true});
+
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 
@@ -2048,6 +2106,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={simulator,simClock,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

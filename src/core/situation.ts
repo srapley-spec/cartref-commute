@@ -52,14 +52,97 @@ export function onLine(f: Fix, atHub: StationCode | null, line: LatLon[]): boole
 /** How far along the line you were at a moment, and whether you've been seen moving along it like a train. */
 export interface LineTrack { at: number | null; km: number; moving: boolean; }
 const lineKm = (line: LatLon[]) => line.slice(1).reduce((t, q, i) => t + km(line[i], q), 0);
+
+/** Evidence already established by normal train inference, never a prescribed service identity. */
+export interface RailTrackingInput {
+  fix: Fix; speed: number | null; track: LineTrack | null; train: Train | null; trains?: Train[];
+  dir: Direction; now: number;
+  departingHub?: Pick<HubVisit, "hub" | "seen"> | null; onTube?: boolean;
+}
+export interface RailTrackingContext {
+  atHub: StationCode | null; line: LatLon[] | null; continuing: boolean; passingHub: boolean;
+}
+/**
+ * A known moving service can pass a station whose GPS radius overlaps its route. Use that service's
+ * profile line, not a neighbouring terminus's line. Only fresh, precise, train-speed observations
+ * continue through an intermediate hub (or the short final corridor after it); a destination arrival,
+ * a stationary fix, stale evidence or an unrelated hub retains the ordinary station rules.
+ */
+export function railTrackingContext(i: RailTrackingInput, p: Profile): RailTrackingContext {
+  const atHub = hubHere(i.fix, p), known = i.train;
+  const ordinary = { atHub, line: null, continuing: false, passingHub: false };
+  // In the small gap immediately beyond a known departure hub, a fresh train-speed fix and a
+  // plausible departure can establish rail movement before service identity is settled. This is
+  // still inference: it assigns no train and must not override an active or selected tube.
+  if (i.onTube === true) return ordinary;
+  if (!known) {
+    const visit = i.departingHub, here = pos(i.fix, 250), at = i.fix.at;
+    if (i.dir !== "home" || i.onTube !== false || !visit || !here || (i.fix.acc as number) < 0
+        || at == null || !Number.isFinite(at) || !Number.isFinite(i.now) || at > i.now || i.now - at > 60e3
+        || !Number.isFinite(visit.seen) || at < visit.seen || at - visit.seen > 600e3
+        || i.speed == null || !Number.isFinite(i.speed) || i.speed < 12 || !awayFromHubs(i.fix, p)) return ordinary;
+    const departures = (i.trains || []).filter(t => !t.cancelled && t.to === p.home
+      && (t.from === visit.hub || p.sharesTubeWith?.[t.from] === visit.hub)
+      && Number.isFinite(t.dep) && t.dep <= at && at - t.dep <= 600e3
+      && t.arr != null && Number.isFinite(t.arr) && t.arr >= at);
+    if (!departures.length) return ordinary;
+    const line = p.lines[visit.hub] || p.lines[departures[0].from];
+    if (!line || line.length < 2) return ordinary;
+    const progress = lineProgress(here, line);
+    return progress.offKm < 0.3 && progress.frac > 0.97 && progress.frac < 1
+      ? { atHub: null, line, continuing: true, passingHub: false } : ordinary;
+  }
+  if (known.cancelled || (i.dir === "office" ? known.from !== p.home : known.to !== p.home)) return ordinary;
+  // The same physical service can be on several boards, each truncated at a different alighting stop.
+  // Extend only an identical known service's ordered call prefix; never infer identity from its operator
+  // or a nearby departure time, and never switch to a divergent branch of a dividing service.
+  const codes = (t: Train) => (t.calls || []).map(call => call.code).filter((code): code is string => typeof code === "string" && !!code);
+  const knownCalls = codes(known);
+  let train = known, count = knownCalls.length;
+  if (known.serviceId && knownCalls.length && knownCalls[0] === known.from && knownCalls[count - 1] === known.to) {
+    const extensions: Train[] = [];
+    for (const candidate of i.trains || []) {
+      const calls = codes(candidate), route = i.dir === "office" ? candidate.to : candidate.from;
+      if (candidate.cancelled || candidate.serviceId !== known.serviceId || candidate.from !== known.from
+          || candidate.std !== known.std || !p.lines[route] || calls.length <= knownCalls.length
+          || calls[calls.length - 1] !== candidate.to || !knownCalls.every((code, index) => calls[index] === code)) continue;
+      extensions.push(candidate);
+      if (calls.length > count) { train = candidate; count = calls.length; }
+    }
+    const longest = codes(train);
+    if (extensions.some(candidate => !codes(candidate).every((code, index) => longest[index] === code))) train = known;
+  }
+  const hub = i.dir === "office" ? train.to : train.from, line = p.lines[hub];
+  if (!line || line.length < 2) return ordinary;
+  const noContinuation = { ...ordinary, line };
+  const here = pos(i.fix, 250), at = i.fix.at, previous = i.track;
+  if (!here || (i.fix.acc as number) < 0 || at == null || !Number.isFinite(at) || !Number.isFinite(i.now)
+      || at > i.now || i.now - at > 60e3 || !previous?.moving || previous.at == null
+      || !Number.isFinite(previous.at) || at < previous.at || at - previous.at > 180e3
+      || i.speed == null || !Number.isFinite(i.speed) || i.speed < 12
+      || !Number.isFinite(train.dep) || train.dep > at || train.arr == null || !Number.isFinite(train.arr)
+      || at > train.arr + 120e3) return noContinuation;
+  const destination = p.stationGeo?.[train.to] || p.places.hubGeo[train.to];
+  if (!destination || km(here, destination) <= p.places.atHubKm + (i.fix.acc as number) / 1000) return noContinuation;
+  const calls = (train.calls || []).map(call => call.code), from = calls.indexOf(train.from), to = calls.indexOf(train.to);
+  if (from < 0 || to <= from || lineProgress(here, line).offKm >= 1) return noContinuation;
+  // A shared interchange is profile data (e.g. two adjacent railway termini using one Underground hub).
+  const middle = calls.slice(from + 1, to);
+  const passingHub = !!atHub && middle.some(code => code === atHub || !!code && p.sharesTubeWith?.[code] === atHub);
+  if (atHub && !passingHub) return noContinuation;
+  return { atHub: passingHub ? null : atHub, line, continuing: true, passingHub };
+}
+
 /**
  * On a train: on the line and seen moving along it — the phone's speed at 5 m/s (18 km/h) or more, or 300 m+
  * along the line at 15 km/h or more within 3 minutes. Near home (Letchworth to just past Hitchin) only right by the
  * track and at train speed. Once moving it stays on the line while you're on it
  * (a train standing at a station still counts); `keep` (a train you picked) counts as moving. Standing on a
- * platform or near the line doesn't. Returns whether you're on a train and the track to keep for next time.
+ * platform or near the line doesn't. `continuing` is only the validated result of railTrackingContext:
+ * it extends the last 3% corridor until the known service's actual destination radius.
+ * Returns whether you're on a train and the track to keep for next time.
  */
-export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, atHub: StationCode | null, line: LatLon[], keep = false): { onLine: boolean; track: LineTrack | null } {
+export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, atHub: StationCode | null, line: LatLon[], keep = false, continuing = false): { onLine: boolean; track: LineTrack | null } {
   if (atHub) return { onLine: false, track: null };
   // A fix too rough to place you (worse than 500 m) changes nothing: keep what we knew.
   const here = pos(f, 500); if (!here) return prev ? { onLine: prev.moving, track: prev } : { onLine: false, track: null };
@@ -67,7 +150,7 @@ export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, 
   // The first tenth of the line (Letchworth to just past Hitchin, where home is) counts only right by the track
   // (300 m) and at train speed (12 m/s, about 43 km/h); beyond it, within 1 km at walking-plus speed.
   const nearHome = pr.frac > 0.01 && pr.frac <= 0.1 && pr.offKm < 0.3;
-  if (!nearHome && !(pr.offKm < 1.0 && pr.frac > 0.1 && pr.frac < 0.97)) return { onLine: false, track: null };
+  if (!nearHome && !(pr.offKm < 1.0 && pr.frac > 0.1 && (pr.frac < 0.97 || continuing))) return { onLine: false, track: null };
   const along = pr.frac * lineKm(line);
   const ref = prev && !prev.moving && prev.at != null && f.at != null && f.at > prev.at && f.at - prev.at <= 180e3 ? prev : null;
   const dKm = ref ? Math.abs(along - ref.km) : 0, hours = ref ? ((f.at as number) - (ref.at as number)) / 3600e3 : 0;

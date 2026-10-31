@@ -320,3 +320,8 @@ and device time remain unchanged; old virtual timestamps never return to real ca
 Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
 progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
 ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.
+
+### Journey Mode UX and observational verification (31 October redesign)
+Journey Mode and Advanced are presentations of one existing simulator controller. Guided setup is draft state; only Start atomically enables the coordinated sources and resets the scenario. Active provider configuration is immutable until an explicit restart, preserving coherence while draft controls are edited. Remembered choices live in a separate validated preference key, without active state.
+
+`catalog.js` describes grouped scenarios; `journey-ui.js` renders guided setup, the compact overlay, timeline and progressive Advanced diagnostics. `session.js` observes the real shell's already-computed presentation after refresh, invokes pure simulator assertions from `verification.js`, and records bounded allowlisted results in `report.js`. No expected identity is injected into the production engine. Session/playback tokens guard asynchronous observations, and export sanitization retains all private values encountered during the session even after Stop. The actual app remains the main interface.
