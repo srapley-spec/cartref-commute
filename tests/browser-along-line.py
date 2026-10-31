@@ -22,11 +22,14 @@ with sync_playwright() as p:
  results=[]
  for width in [320,390]:
   page.set_viewport_size({'width':width,'height':844})
-  for theme in ['light','dark']:
-   page.evaluate('(theme)=>document.documentElement.dataset.theme=theme',theme)
+  for theme in ['light','dark','system-light','system-dark']:
+   page.emulate_media(color_scheme='dark' if theme.endswith('dark') else 'light')
+   page.evaluate('(theme)=>{if(theme.startsWith("system"))delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=theme}',theme)
    for size in [15,30]:
     page.locator('#alongLine').evaluate('(el,size)=>el.style.fontSize=size+"px"',size)
     m=page.locator('#alongLine').evaluate('''el=>({width:el.clientWidth,scroll:el.scrollWidth,buttons:[...el.querySelectorAll('button')].filter(b=>b.checkVisibility()).map(b=>({id:b.id,h:b.getBoundingClientRect().height,w:b.getBoundingClientRect().width})),bg:getComputedStyle(el).backgroundColor})''')
+    expected_bg='rgb(9, 15, 22)' if theme.endswith('dark') else 'rgb(242, 245, 248)'
+    assert m['bg']==expected_bg,(width,theme,size,'Incorrect appearance',m['bg'])
     assert m['scroll']<=m['width']+1,(width,theme,size,m)
     assert all(x['h']>=44 and x['w']>=44 for x in m['buttons']),(width,theme,size,m)
     results.append({'viewport':width,'theme':theme,'fontSize':size,**m})
@@ -37,5 +40,5 @@ with sync_playwright() as p:
  assert page.locator('#alongEntry').evaluate('el=>el===document.activeElement')
  assert not errors,errors
  (art/'along-browser.json').write_text(json.dumps(results,indent=2))
- print('PASS: 320/390px, light/dark, 15/30px text, 44px targets, no dialog overflow, focus return, no page errors')
+ print('PASS: 320/390px, manual/system light/dark, 15/30px text, 44px targets, no dialog overflow, focus return, no page errors')
  b.close()

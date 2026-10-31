@@ -65,10 +65,12 @@ conflict explains the flyover without claiming that a London-bound service trave
   interpolate a timetable into exact GPS, assert that a timed trigger was observed, invent a passing time or
   produce a precise countdown. Weak/stale/off-route/uncertain evidence leaves articles browsable, with an
   explicit uncertain-position explanation and no automatic nearby/upcoming highlight.
-- User scrolling pauses following; **Back to now** resumes it. Automatic refresh does not rebuild an open
+- User scrolling pauses following; **Back to now** resumes it and explicitly updates the position marker
+  even when a story is open. Ordinary refresh continues to preserve the open story. Automatic refresh does not rebuild an open
   article, collapse it, steal focus or scroll while any story is open. Source epoch, train/corridor or direction
   changes reset the strip so old simulation/journey state cannot be reused as current evidence.
-- Keep train identity and expected endpoint arrival in the view; retain significant journey disruption text and
+- Keep train identity and expected endpoint arrival in the view; use the shared disruption model to retain
+  significant journey disruption text in both Signal and Panda, and
   access to the main journey. No commentary notifications, sound or live regions repeatedly announce landmarks.
 - No new requests, dependencies, API keys, GPS watches or background polling. Once the app has loaded, stories
   are bundled and work without connectivity. This does not add installation/offline app-shell caching.
@@ -94,8 +96,16 @@ removed. Native dialog state and manual following are session-only.
 
 - tests/along-line.test.mjs: "Along UI: travel disruption remains visible, stale arrival is qualified and changed journeys reset the strip"
 
+- tests/along-line-review.test.mjs: "independent: Panda active train severe delay remains visible in commentary"
+- tests/along-line-review.test.mjs: "independent: Back to now updates the frozen position when a story is open"
+- tests/along-line-review.test.mjs: "independent: route reference stations never invent midnight calling times"
+- tests/along-line-review.test.mjs: "independent: one glance article can reveal the full story without changing global depth"
+- tests/core/alongLine-review.test.mjs: "independent: approximate landmark areas include nearby positions rather than just exact anchors"
+- tests/core/alongLine-review.test.mjs: "independent: the GPS uncertainty buffer changes only the nearby boundary within the accepted fix limit"
+
 Chromium geometry checks: [browser-along-line.py](../../tests/browser-along-line.py), run after building.
-These exercise 320/390px, light/dark, 15/30px body text, touch targets, dialog overflow and focus return.
+These exercise 320/390px, explicit and device light/dark (with actual palette assertions), 15/30px body text,
+touch targets, dialog overflow and focus return.
 
 The full-suite validation exposed a pre-existing wall-clock assumption in the TfL departure-board presentation
 test: after enough elapsed real time, a Farringdon boarding option legitimately becomes preferred, contradicting

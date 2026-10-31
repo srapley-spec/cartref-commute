@@ -556,8 +556,8 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
 .along-dialog::backdrop{background:#09152299}
-@media(prefers-color-scheme:dark){html:not([data-theme="light"]) .along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}}
-html[data-theme="dark"] .along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]) #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}}
+html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}
 .along-dialog *{box-sizing:border-box;min-width:0}
 .along-dialog .al-header{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap}
 #alongLine #alongTitle{margin:0;font-size:24px;line-height:1.2;color:var(--ink);letter-spacing:-.03em}
@@ -591,7 +591,7 @@ html[data-theme="dark"] .along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5
 .al-story[data-selected="false"] .al-hook{display:none}
 .along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
 .along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
-@media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}.along-dialog{padding:12px}}
+@media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
 @media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
 
 #alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}
@@ -686,7 +686,7 @@ html[data-theme="dark"] .along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 16:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 19:04 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7164,15 +7164,19 @@ function signalNetworkLine(context=signalDisruptionEvidence()){
     fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),
     tubeLines:context.tubeLines,operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false,policy:PROFILE.disruption});
 }
-function renderSignalStatus(){
-  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+function journeyDisruptions(){
   const context=signalDisruptionEvidence();
   const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
   const input={errors:state.errors||[],notLoaded:context.railComplete?[]:failed,stale:!context.railComplete&&!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
     tubeFallback:context.fallback,fallbackUnavailable:context.fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),tiers:context.tiers,tubeLines:context.tubeLines,operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
     planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl',policy:PROFILE.disruption};
-  const items=C.visibleDisruptions(input);state.signalDisruptionItems=items;
+  return {context,failed,input,items:C.visibleDisruptions(input)};
+}
+function renderSignalStatus(){
+  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const {context,failed,input,items}=journeyDisruptions();
+  state.signalDisruptionItems=items;
   const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
   region.innerHTML=items.map(item=>{
     const preview=item.detail.length?C.noticeTitle(item.detail[0]):'';
@@ -7272,7 +7276,7 @@ function alongScrollToNow(){
   $('#alongScroll').scrollTop=Math.max(0,target.offsetTop-$('#alongStrip').offsetTop-12);
   setTimeout(()=>{alongAutoScrolling=false;},0);
 }
-$('#alongNow').addEventListener('click',()=>{alongFollowing=true;$('#alongNow').hidden=true;alongScrollToNow();});
+$('#alongNow').addEventListener('click',()=>{alongFollowing=true;$('#alongNow').hidden=true;renderAlongLine(true);alongScrollToNow();});
 $('#alongChoices').addEventListener('change',()=>{
   state.saved.alongLinePreferences=C.alongPreferences({interests:[...alongDialog.querySelectorAll('[name="alongInterest"]:checked')].map(el=>el.value),depth:$('#alongDepth').value});
   if(S().alongLine===true)save();renderAlongLine();
@@ -7285,7 +7289,7 @@ function alongContext(){
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
   return {train,hub,onboard,arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
-function renderAlongLine(){
+function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
   const context=alongContext();
   alongEntry.hidden=!enabled||!context.onboard||!context.hub||state.presentation?.view?.startsWith('plan-');
@@ -7312,11 +7316,9 @@ function renderAlongLine(){
   const timingSource=state.rendered?.progressModel?.source;
   const arrivalLabel=timingSource==='stale'||!state.boardsAt||Date.now()-state.boardsAt>=180000?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
-  const impacts=state.signalDisruptionItems||[];
+  const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;
   $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');
-  // Panda still has ordinary journey alerts even though the stories use Signal styling.
-  if(!S().signal){const alerts=[...$('#hero').querySelectorAll('.banner,.follow-status.bad,.follow-status.warn')].map(n=>n.textContent.trim());$('#alongImpact').textContent=alerts.join(' · ');$('#alongImpact').hidden=!alerts.length;}
   $('#alongEvidence').textContent=model.evidence;
   $('#alongEmpty').hidden=!model.empty;
   if(alongContextKey!==key){
@@ -7339,7 +7341,7 @@ function renderAlongLine(){
       item.state==='browse'?'Route discovery':item.state==='nearby'?'Near here · approximate':item.state==='passed'?'Passed · approximate':`Coming up · about ${Math.max(1,Math.round(item.distanceM/1000))} km along the route`;
   }
   const marker=$('#alongPosition');
-  if(!$('#alongStrip details[open]')){
+  if(resumePosition||!$('#alongStrip details[open]')){
     marker.hidden=!model.reliable;marker.textContent='You are around here · approximate';
     const before=[...$('#alongStrip').children].find(el=>el.dataset.point===model.markerBeforeId);
     if(before)before.before(marker);else $('#alongStrip').append(marker);

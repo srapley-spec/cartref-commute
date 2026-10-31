@@ -43,7 +43,7 @@ function alongScrollToNow(){
   $('#alongScroll').scrollTop=Math.max(0,target.offsetTop-$('#alongStrip').offsetTop-12);
   setTimeout(()=>{alongAutoScrolling=false;},0);
 }
-$('#alongNow').addEventListener('click',()=>{alongFollowing=true;$('#alongNow').hidden=true;alongScrollToNow();});
+$('#alongNow').addEventListener('click',()=>{alongFollowing=true;$('#alongNow').hidden=true;renderAlongLine(true);alongScrollToNow();});
 $('#alongChoices').addEventListener('change',()=>{
   state.saved.alongLinePreferences=C.alongPreferences({interests:[...alongDialog.querySelectorAll('[name="alongInterest"]:checked')].map(el=>el.value),depth:$('#alongDepth').value});
   if(S().alongLine===true)save();renderAlongLine();
@@ -56,7 +56,7 @@ function alongContext(){
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
   return {train,hub,onboard,arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
-function renderAlongLine(){
+function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
   const context=alongContext();
   alongEntry.hidden=!enabled||!context.onboard||!context.hub||state.presentation?.view?.startsWith('plan-');
@@ -83,11 +83,9 @@ function renderAlongLine(){
   const timingSource=state.rendered?.progressModel?.source;
   const arrivalLabel=timingSource==='stale'||!state.boardsAt||Date.now()-state.boardsAt>=180000?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
   $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
-  const impacts=state.signalDisruptionItems||[];
+  const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
   $('#alongImpact').hidden=!impacts.length;
   $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');
-  // Panda still has ordinary journey alerts even though the stories use Signal styling.
-  if(!S().signal){const alerts=[...$('#hero').querySelectorAll('.banner,.follow-status.bad,.follow-status.warn')].map(n=>n.textContent.trim());$('#alongImpact').textContent=alerts.join(' · ');$('#alongImpact').hidden=!alerts.length;}
   $('#alongEvidence').textContent=model.evidence;
   $('#alongEmpty').hidden=!model.empty;
   if(alongContextKey!==key){
@@ -110,7 +108,7 @@ function renderAlongLine(){
       item.state==='browse'?'Route discovery':item.state==='nearby'?'Near here · approximate':item.state==='passed'?'Passed · approximate':`Coming up · about ${Math.max(1,Math.round(item.distanceM/1000))} km along the route`;
   }
   const marker=$('#alongPosition');
-  if(!$('#alongStrip details[open]')){
+  if(resumePosition||!$('#alongStrip details[open]')){
     marker.hidden=!model.reliable;marker.textContent='You are around here · approximate';
     const before=[...$('#alongStrip').children].find(el=>el.dataset.point===model.markerBeforeId);
     if(before)before.before(marker);else $('#alongStrip').append(marker);
