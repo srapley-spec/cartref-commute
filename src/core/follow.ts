@@ -58,6 +58,13 @@ export function readyAtFromConnection(reach: Record<string, number>, ready: Reco
   }
   return result;
 }
+/** Compatibility identity for a declined legacy option whose provider ID was never saved. */
+export const legacyFollowDeclineMarker = (serviceDay: string, key: string): string => `legacy:${serviceDay}|${key}`;
+function alternativeDismissed(route: FollowRoute, option: Option): boolean {
+  const train = option.train;
+  return route.dismissedAlternatives.includes(followServiceKey(option)) || route.dismissedAlternatives.includes(
+    legacyFollowDeclineMarker(day(train), `${train.operator}|${train.std}|${train.from}`));
+}
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const day = (t: Train): string => new Date(t.dep - (t.depLate || 0) * MIN).toISOString().slice(0, 10);
 /** Expected departure can move; the scheduled service and selected boarding point cannot. */
@@ -176,6 +183,11 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   let status: FollowUpdate['status'] = 'on-track', level: FollowUpdate['level'] = 'ok', text = 'On track';
   const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number) => {
     const id = `${route.id}|${kind}|${key}`;
+    if (kind === 'arrival') {
+      // A newer ETA supersedes the old ETA explanation. A genuine later return to a prior ETA is still news.
+      route.notices = route.notices.filter(n => n.kind !== 'arrival');
+      route.seenEvents = route.seenEvents.filter(key => !key.includes('|arrival|'));
+    }
     if (!route.seenEvents.includes(id)) {
       route.seenEvents = [...route.seenEvents, id].slice(-100);
       route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...(deltaMin != null ? { deltaMin } : {}) }].slice(-100);
@@ -276,7 +288,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain
     && (input.activeConnection ? finite(input.readyAt?.[o.hub]) && o.train.dep >= input.readyAt![o.hub]
       : !o.missed && (o.effort ? ['walk', 'fast'].includes(o.effort) : o.leave >= input.now))
-    && o.train.dep >= input.now && !route.dismissedAlternatives.includes(followServiceKey(o))
+    && o.train.dep >= input.now && !alternativeDismissed(route, o)
     && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN))
     .sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null : null);
   let alternative = candidate;

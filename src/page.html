@@ -483,10 +483,12 @@ const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",se
   here:null, origin:"", london:null, londonErr:"" };
 // Simulation is a session opt-in; reload always returns to device GPS and live sources.
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
+// Preserve the Follow switch shipped on main. An explicit new choice always wins.
+if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&typeof state.saved.settings.follow==='boolean')state.saved.settings.followRoute=state.saved.settings.follow;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
- for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs'])delete state.saved[key];
+ for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];
 }}
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
@@ -848,8 +850,9 @@ function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!le
 // On your way to Letchworth station: you've left home (over 100 m from your saved home; without one, at least
 // 3 min of walking nearer the station than home is) and aren't at the station yet. Leave now then says when each
 // train departs, when you'll reach the station, and whether you're on track.
-function onWay(){
-  if((state.saved.view||"now")!=="now" || atStation()) return null;
+function onWay(physical=false){
+  const live=physical||(journeyEnabled()&&state.presentation?.mode!=='plan'&&state.presentation?.view==='plan-now');
+  if((!live&&(state.saved.view||"now")!=="now") || atStation(physical)) return null;
   const w=walkFromHere(); if(w==null) return null;
   // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
   if(!C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk())) return null;
@@ -1040,8 +1043,9 @@ function pills(flags, short){
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
 // board: the big time is when the train leaves; when to start walking to the platform is the small print.
-function atStation(){
-  if((state.saved.view||"now")!=="now" || state.saved.mode==="leisure") return null;
+function atStation(physical=false){
+  const live=physical||(journeyEnabled()&&state.presentation?.mode!=='plan'&&state.presentation?.view==='plan-now');
+  if((!live&&(state.saved.view||"now")!=="now") || state.saved.mode==="leisure") return null;
   const dir=direction();
   if(dir==="home" && state.atHub) return HUB_NAME[state.atHub];
   if(dir==="office" && state.here && state.locAcc<=250 && km(state.here,GEO.LET)<0.25) return "Letchworth";
@@ -1689,11 +1693,12 @@ document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTM
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
   applyJourneyAppearance();
+  restoreReleasedFollow();
   const focus=journeyFocus();
   if(journeyEnabled())document.querySelectorAll("details").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
   renderInner(); restoreOpen();
-  if(S().signal&&state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
+  if(S().signal&&state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
 }
 // "Which train are you on?": your pick is kept until you're off the line.
@@ -1739,8 +1744,8 @@ function renderInner(){
   $("#byLabel").textContent = atView ? "Leave around" : "Be there by";
   renderControls(); renderBanners();
   if(view==="following"){
-    $("#hero").innerHTML='<div class="lbl">Your chosen journey</div><div class="empty">Your route is shown above. Live observations update it as they become available; use Plan to explore other journeys.</div>';
-    renderList(state.boards?ranked(now):[],now);$("#listTitle").textContent="Other journeys";renderStatus();renderDiag();return;
+    const list=state.boards?ranked(now):[];
+    renderHero(list,now);renderList(list,now);$("#listTitle").textContent="Other journeys";renderStatus();renderDiag();return;
   }
   if(shown.noActiveJourney){
     $("#hero").innerHTML='<div class="lbl">Live</div><div class="empty">No active journey yet. Choose a route to follow, or return to Auto while the app works out where you are.</div>';
@@ -2038,7 +2043,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["signal","followRoute","appearance"]);
+ const presentationKeys=new Set(["signal","followRoute","appearance","follow"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

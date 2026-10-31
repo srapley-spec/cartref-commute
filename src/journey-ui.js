@@ -2,7 +2,14 @@
 // those results and adapts existing observations. Both designs share this single controller.
 const followChoices = new Map();
 const journeyEnabled = () => !!(S().signal || S().followRoute);
-const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'?r:null;};
+const pendingReleasedFollow = () => S().followRoute&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
+const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
+function restoreReleasedFollow(){
+  const legacy=pendingReleasedFollow();if(!legacy||!state.boards)return;
+  const options=(currentMode()==='leisure'?buildLeisure:buildJourneys)(legacy.dir,Date.now(),{here:true});
+  const imported=C.migrateFollowRoute(legacy,options,{now:Date.now(),mode:currentMode()});
+  if(imported){state.saved.followRoute=imported;save();}
+}
 function applyJourneyAppearance(){
   document.documentElement.dataset.design=S().signal?'signal':'panda';
   const theme=S().appearance;
@@ -18,7 +25,7 @@ function journeyInteracting(){
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
   const active=!live.view.startsWith('plan-')&&live.view!=='awaiting-location';
-  const station=atStation(), way=onWay();
+  const station=atStation(true), way=onWay(true);
   const phase=active?live.view:station?'station:'+station:way?'walking-to-station':'planning';
   const key=`${direction()}|${currentMode()}|${phase}`;
   // A temporary denied/stale position is not a new journey situation.
@@ -31,10 +38,19 @@ function journeyPresentation(now,s){
   const auto=C.chooseView(s);
   if(!journeyEnabled())return auto;
   const current=journeySituation(now,s);
+  let override=state.saved.viewOverride,legacyPinPending=false;
+  if(!Object.prototype.hasOwnProperty.call(state.saved,'viewOverride')&&Number.isFinite(state.saved.viewAt)&&(s.plan==='by'||s.plan==='at')){
+    const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
+    const oldKey=[direction(),state.atHub||'',!!state.onLine,!!currentRide(now),!!homeRide(now),!!onWay()].join('|');
+    const expired=now-state.saved.viewAt>=C.VIEW_OVERRIDE_MS||state.saved.viewAt>now;
+    override=expired||(reliable&&state.saved.viewKey!==oldKey)?null:C.createViewOverride('plan',state.saved.viewAt,current.key);
+    legacyPinPending=!expired&&!reliable;
+    if(!legacyPinPending){state.saved.viewOverride=override;save();}
+  }
   const shown=C.resolveViewControl({auto,live:current.live,hasActiveJourney:current.active,plan:s.plan,
     hasFollowedJourney:!!activeFollow(),
-    override:state.saved.viewOverride,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
-  if(JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
+    override,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
+  if(!legacyPinPending&&JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
     state.saved.viewOverride=shown.override;save();
   }
   state.pendingView=shown.pending;
@@ -64,6 +80,8 @@ function followButton(option){
   if(!S().followRoute)return '';
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
+  const selected=C.restoreFollowRoute(state.saved.followRoute);
+  if(selected&&selected.phase!=='arrived'&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
 }
@@ -82,7 +100,7 @@ document.addEventListener('click',e=>{
     const train=route.lastTrain;
     state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})};
   }
-  else if(action==='stop'){state.saved.followRoute=null;state.followUpdate=null;}
+  else if(action==='stop'){state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
   else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
   else if(action==='switch'&&state.followUpdate?.alternative){selectFollowRoute(state.followUpdate.alternative);return;}
   else if(action==='dismiss'&&state.followUpdate?.alternative)state.saved.followRoute=C.dismissFollowAlternative(state.followUpdate.route,state.followUpdate.alternative);
@@ -154,7 +172,13 @@ function followedObservation(route,now){
 function renderFollowPanel(){
   const panel=$('#followPanel');
   const route=C.restoreFollowRoute(state.saved.followRoute);
-  panel.hidden=!S().followRoute||!route||route.phase==='arrived';
+  const pending=pendingReleasedFollow();
+  if(!route&&pending){
+    panel.hidden=false;panel._renderedHtml=null;
+    panel.innerHTML=`<div class="lbl">Restoring your saved followed journey</div><div class="big">Last known arrival ${hhmm(pending.arrive)}</div><div>${esc(pending.train.std)} ${esc(pending.train.operator)}</div><div class="note">Waiting for the matching train and itinerary. Your saved selection is kept.</div>${pending.reason?`<div class="note">${esc(pending.reason.text)}</div>`:''}<button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
+    return;
+  }
+  panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading

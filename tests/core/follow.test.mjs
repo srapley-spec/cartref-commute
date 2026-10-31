@@ -320,3 +320,11 @@ test('follow: corrupted or recursively nested saved boarding alternatives are re
  const nested=option();nested.alts=[nested];assert.equal(start(nested),null,'a cyclic option is rejected without overflowing or JSON clone errors');
  const corrupt={...r,option:{...r.option,alts:'bad'}};assert.equal(core.followMatchesObservedTrain(corrupt,alt),false,'observation guards remain defensive for direct API callers');
 });
+
+test('follow: newer arrival reasons replace obsolete ETA wording and returning to an earlier ETA is announced',()=>{
+ const r=start(),late=option({}, {arr:t+65*MIN,arrLate:5}),lessLate=option({}, {arr:t+63*MIN,arrLate:3});
+ const five=update(r,[late]);assert.match(five.notice.text,/5 min late/);
+ const three=update(five.route,[lessLate]);assert.equal(three.route.notices.filter(n=>n.kind==='arrival').length,1);assert.match(three.notice.text,/earlier/);assert.doesNotMatch(three.notice.text,/5 min late/);
+ const seen=core.acknowledgeFollowNotice(three.route),again=update(seen,[late]);assert.match(again.notice.text,/5 min late/);assert.equal(again.route.notices.filter(n=>n.kind==='arrival').length,1);
+ const platform=update(r,[option({}, {platform:'12'})]);const delayed=update(platform.route,[option({}, {platform:'12',arr:t+65*MIN,arrLate:5})]);assert.ok(delayed.route.notices.some(n=>n.kind==='platform'));
+});

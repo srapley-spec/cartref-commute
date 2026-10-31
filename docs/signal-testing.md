@@ -150,3 +150,19 @@ After the implementation is released and the verification record says it passed:
 - Closed-Safari alerts and background location require native capabilities; a web page can update only while open.
 - Real iPhone, Dynamic Type/large text, VoiceOver and live journeys must not be claimed as passed without being run.
 - Review summaries and automated pass results will be added by the integrator after the implementation is tested.
+
+## Reconciliation with the released Follow build
+
+While Signal was being reviewed, `main` advanced to `be1e58e` and released Follow a route. Integration preserves
+its existing `settings.follow` switch and saved `follow` selection. A pure importer waits for a real matching
+itinerary, retains the original record, arrival, chosen boarding point, acknowledgements and declined options,
+and never substitutes another day's reused service ID. Pending restoration is explicit. An explicit new opt-out
+wins over the legacy switch; Stop clears both active representations. Legacy planning pins retain their original
+age and expire on a reliably changed situation without losing the stored planning question/time.
+
+The seven released engine scenarios are retained in `tests/core/follow-main-regression.test.mjs`; the nine
+released page scenarios are retained in `tests/follow-main-regression.test.mjs`, translated to the shared engine
+and new controls rather than obsolete HTML wording. Their deliberate corrections retain the canonical 5/15-minute
+train status bands, require real arrival evidence, and offer a boarding-point change explicitly. Migration has
+separate pure-engine and whole-page regressions. The chosen route keeps the existing Tube-pick controls and an
+inert Following marker, so redrawing or tapping the selected row cannot reset the original arrival/reasons.

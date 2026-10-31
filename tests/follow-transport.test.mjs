@@ -1,7 +1,7 @@
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createApp,closeAll,IN_LONDON,sleep} from './harness.mjs';
+import {createApp,closeAll,IN_LONDON,sleep,json} from './harness.mjs';
 after(closeAll);
 const NOW=Date.parse('2026-10-30T22:43:00Z'),MIN=60000;
 const recorded=JSON.parse(readFileSync(new URL('./fixtures/tfl-2026-10-30T2243Z/KSX.json',import.meta.url),'utf8'));
@@ -90,4 +90,25 @@ test('follow transport: normal arrival parsing rejects a vehicle with neither ex
  assert.match(a.text('#followPanel'),/Estimated Tube ride to your rail connection/);
  assert.doesNotMatch(a.text('#followPanel'),/Live arrival for your Tube vehicle/);
  assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('independent review: real Tube adapter retains explicit station and provider-age evidence',async()=>{
+ for(const invalid of [{naptanId:'940GZZLUMGT'},{timestamp:new Date(NOW-3*MIN).toISOString()}]){
+  const prediction={vehicleId:'review-tube',lineId:'metropolitan',platformName:'Westbound - Platform 1',naptanId:'940GZZLUKSX',
+   timestamp:new Date(NOW).toISOString(),expectedArrival:new Date(NOW+5*MIN).toISOString(),destinationName:'Uxbridge Underground Station'};
+  const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:'home'},
+   route:u=>/940GZZLUKSX\/Arrivals/.test(u)?json([prediction]):undefined});
+  const entry=[...a.c.followChoices].find(([,o])=>o.hub==='KGX'&&o.effort==='walk'&&o.train.dep>NOW+20*MIN);assert.ok(entry);
+  const button=[...a.d.querySelectorAll('[data-follow]:not([disabled])')].find(b=>b.dataset.follow===entry[0]);assert.ok(button);button.click();
+  const r=JSON.parse(JSON.stringify(a.c.state.saved.followRoute));
+  a.c.state.saved.tubeRide={hub:'ALD',from:'ALD',vehicle:'review-tube',line:'Met',t:NOW-2*MIN,rideMs:14*MIN,picked:true,confirmed:true,stop:"King's Cross",stopGeo:null};
+  Object.assign(a.c.state,{here:[51.5186,-.0886],lastFixAt:NOW,lastFixRecvAt:NOW,locAcc:12,locStatus:'ok',atHub:null,onLine:false,boardsAt:NOW});
+  await a.c.refreshFollowTransport(NOW);
+  assert.ok(a.c.followedTubeArrival(r,NOW),'the exact vehicle and station fixture supplies a live positive control');
+  Object.assign(prediction,invalid);await a.c.refreshFollowTransport(NOW);
+  assert.ok(a.calls.some(u=>/940GZZLUKSX\/Arrivals/.test(u)),'actual guarded network adapter was exercised');
+  assert.equal(a.c.followedTubeArrival(r,NOW),null,'wrong-station or old-provider response cannot become a live connection');
+  a.c.render();assert.match(a.text('#followPanel'),/Estimated Tube ride to your rail connection/);
+  assert.doesNotMatch(a.text('#followPanel'),/Live arrival for your Tube vehicle/);assert.deepEqual(a.errors,[]);a.close();
+ }
 });

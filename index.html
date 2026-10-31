@@ -452,7 +452,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:58 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:09 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -693,6 +693,7 @@ var CommuteCore = (() => {
     hubOfKey: () => hubOfKey,
     inLondonToOffice: () => inLondonToOffice,
     inferDirection: () => inferDirection,
+    isLegacyFollowRoute: () => isLegacyFollowRoute,
     isStopping: () => isStopping,
     isoDay: () => isoDay,
     keepEveryRoute: () => keepEveryRoute,
@@ -713,6 +714,7 @@ var CommuteCore = (() => {
     markTimetable: () => markTimetable,
     mergeBeyond: () => mergeBeyond,
     mergeSameTrain: () => mergeSameTrain,
+    migrateFollowRoute: () => migrateFollowRoute,
     minTimeToTrain: () => minTimeToTrain,
     mins: () => mins,
     missingPairSearches: () => missingPairSearches,
@@ -969,13 +971,13 @@ var CommuteCore = (() => {
     const dep = new Date(l.departureTime).getTime(), arr = new Date(l.arrivalTime).getTime();
     if (!isFinite(dep) || !isFinite(arr)) return null;
     const sched = l.scheduledDepartureTime ? new Date(l.scheduledDepartureTime).getTime() : dep;
-    const text = [
+    const text2 = [
       l.instruction && l.instruction.summary,
       l.instruction && l.instruction.detailed,
       ...(l.routeOptions || []).map((o) => `${o.name || ""} ${(o.directions || []).join(" ")}`)
     ].join(" ");
     const hub = a === profile.home ? b : a;
-    const operator = /thameslink/i.test(text) ? "Thameslink" : /great northern/i.test(text) ? "Great Northern" : profile.operatorByHub[hub] || "";
+    const operator = /thameslink/i.test(text2) ? "Thameslink" : /great northern/i.test(text2) ? "Great Northern" : profile.operatorByHub[hub] || "";
     const toM = /\bto\s+(.+?)\s*$/i.exec(String(l.instruction && l.instruction.summary || ""));
     const destination = toM && stationOf(toM[1], profile) !== b ? stationLabel(toM[1], profile) : void 0;
     const msgs = (l.disruptions || []).map((d) => toText(d.description)).filter(Boolean);
@@ -2313,6 +2315,13 @@ var CommuteCore = (() => {
     }
     return result;
   }
+  var legacyFollowDeclineMarker = (serviceDay, key) => `legacy:${serviceDay}|${key}`;
+  function alternativeDismissed(route, option) {
+    const train = option.train;
+    return route.dismissedAlternatives.includes(followServiceKey(option)) || route.dismissedAlternatives.includes(
+      legacyFollowDeclineMarker(day(train), `${train.operator}|${train.std}|${train.from}`)
+    );
+  }
   var clone = (x) => JSON.parse(JSON.stringify(x));
   var day = (t) => new Date(t.dep - (t.depLate || 0) * MIN).toISOString().slice(0, 10);
   function followServiceKey(o) {
@@ -2428,9 +2437,13 @@ var CommuteCore = (() => {
     } : train;
     const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : void 0;
     if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
-    let status = "on-track", level = "ok", text = "On track";
+    let status = "on-track", level = "ok", text2 = "On track";
     const addNotice = (kind, key, message, deltaMin) => {
       const id = `${route.id}|${kind}|${key}`;
+      if (kind === "arrival") {
+        route.notices = route.notices.filter((n2) => n2.kind !== "arrival");
+        route.seenEvents = route.seenEvents.filter((key2) => !key2.includes("|arrival|"));
+      }
       if (!route.seenEvents.includes(id)) {
         route.seenEvents = [...route.seenEvents, id].slice(-100);
         route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...deltaMin != null ? { deltaMin } : {} }].slice(-100);
@@ -2448,13 +2461,13 @@ var CommuteCore = (() => {
       if (selected.train.cancelled) {
         status = "cancelled";
         level = "bad";
-        text = `Your ${selected.train.std} is cancelled`;
-        addNotice("cancelled", "cancelled", text);
+        text2 = `Your ${selected.train.std} is cancelled`;
+        addNotice("cancelled", "cancelled", text2);
       } else if (selected.train.depUnknown || selected.train.arrUnknown || selected.train.arr == null) {
         status = "unknown";
         level = "bad";
-        text = "Your train is delayed with no estimate";
-        addNotice("unknown", "no-estimate", text);
+        text2 = "Your train is delayed with no estimate";
+        addNotice("unknown", "no-estimate", text2);
       } else {
         const arrival = finite(suppliedArrival) ? suppliedArrival : selected.train.arr + (route.plannedArrival - route.option.train.arr);
         if (Math.abs(arrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
@@ -2473,42 +2486,42 @@ var CommuteCore = (() => {
       }
     } else {
       level = "info";
-      text = "Last known journey \xB7 waiting for fresh data";
+      text2 = "Last known journey \xB7 waiting for fresh data";
     }
     if (route.phase === "arrived") {
       status = "arrived";
       level = "ok";
-      text = "Arrived";
+      text2 = "Arrived";
     } else if (route.phase === "before-train" && status === "on-track" && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
       const departure = (_c = selected == null ? void 0 : selected.train.dep) != null ? _c : route.lastTrain.dep;
       const missed = input.activeConnection ? connectionKnown && (connectionReady > departure || departure < input.now - FOLLOW_GONE_GRACE_MS) : selected ? selected.effort === "none" || !selected.effort && selected.missed || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
       if (missed) {
         status = "missed";
         level = "bad";
-        text = `You can no longer make your ${route.option.train.std}`;
-        addNotice("missed", "missed", text);
+        text2 = `You can no longer make your ${route.option.train.std}`;
+        addNotice("missed", "missed", text2);
       } else if (connectionKnown) {
         const spare = Math.floor((((_d = selected == null ? void 0 : selected.train.dep) != null ? _d : route.lastTrain.dep) - connectionReady) / MIN);
-        text = spare > 0 ? `On track \xB7 ${spare} min at your connection` : "On track \xB7 connection is tight";
+        text2 = spare > 0 ? `On track \xB7 ${spare} min at your connection` : "On track \xB7 connection is tight";
       } else if (!input.activeConnection && selected && ["fast", "run", "car"].includes(selected.effort || "")) {
         status = "hurry";
         level = "warn";
         const behind = Math.max(1, Math.ceil((input.now - selected.leave) / MIN));
-        text = `${behind} min behind \xB7 ${selected.effort === "fast" ? "fast walk" : selected.effort} needed`;
+        text2 = `${behind} min behind \xB7 ${selected.effort === "fast" ? "fast walk" : selected.effort} needed`;
       } else if (selected) {
         const spare = Math.floor((selected.leave - input.now) / MIN);
-        text = spare > 0 ? `On track \xB7 ${spare} min to spare` : "On track";
+        text2 = spare > 0 ? `On track \xB7 ${spare} min to spare` : "On track";
       }
     }
     if (route.phase === "before-train" && input.activeConnection && !connectionKnown && status === "on-track") {
       status = "unknown";
       level = "info";
-      text = "Checking your connection \xB7 keeping your chosen journey";
+      text2 = "Checking your connection \xB7 keeping your chosen journey";
     }
     if (route.phase === "before-train" && input.hasReliableLocation === false && !connectionKnown && status === "on-track") {
       status = "unknown";
       level = "info";
-      text = "Location unavailable \xB7 keeping your chosen journey";
+      text2 = "Location unavailable \xB7 keeping your chosen journey";
     }
     let boardingRecovery = null;
     if (route.phase === "before-train" && fresh && status === "missed") {
@@ -2520,7 +2533,7 @@ var CommuteCore = (() => {
       if (boardingRecovery) {
         status = "hurry";
         level = "warn";
-        text = `Same train still possible from ${boardingRecovery.hub}`;
+        text2 = `Same train still possible from ${boardingRecovery.hub}`;
         route.notices = route.notices.filter((n2) => n2.kind !== "missed");
         route.seenEvents = route.seenEvents.filter((id) => !id.includes("|missed|"));
         addNotice("boarding", followServiceKey(boardingRecovery), `Your original boarding point is no longer possible. The same train is still possible from ${boardingRecovery.hub}; choose it to change boarding point.`);
@@ -2531,7 +2544,7 @@ var CommuteCore = (() => {
       if (departure < input.now && departure >= input.now - FOLLOW_GONE_GRACE_MS) {
         status = "hurry";
         level = "info";
-        text = "Departure just passed \xB7 confirm if you are on it";
+        text2 = "Departure just passed \xB7 confirm if you are on it";
       }
     }
     const incident = boardingRecovery ? "boarding" : status === "cancelled" ? "cancelled" : status === "missed" ? "missed" : status === "unknown" && level === "bad" ? "unknown" : null;
@@ -2555,7 +2568,7 @@ var CommuteCore = (() => {
     const recovery = status === "missed" || status === "cancelled" || status === "unknown" && level === "bad" || route.lastTrain.arrLate >= 15;
     const candidate = boardingRecovery || (!onward && route.phase !== "on-train" && (!input.activeConnection || recovery) && fresh ? (input.availableOptions || input.options).filter((o) => {
       var _a2;
-      return !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && o.train.dep >= input.readyAt[o.hub] : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now)) && o.train.dep >= input.now && !route.dismissedAlternatives.includes(followServiceKey(o)) && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN);
+      return !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && o.train.dep >= input.readyAt[o.hub] : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now)) && o.train.dep >= input.now && !alternativeDismissed(route, o) && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN);
     }).sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null : null);
     let alternative = candidate;
     if (candidate && input.activeConnection) {
@@ -2594,7 +2607,7 @@ var CommuteCore = (() => {
       route,
       status,
       level,
-      text,
+      text: text2,
       nextStep,
       trainStatus: railStatus,
       notice: route.notices[0] || null,
@@ -2633,6 +2646,93 @@ var CommuteCore = (() => {
       return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true };
     }
     return null;
+  }
+
+  // src/core/followMigration.ts
+  var MIN2 = 6e4;
+  var DAY = 864e5;
+  var record3 = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+  var finite3 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var epoch = (n2) => finite3(n2) && n2 > 0 && n2 < 864e13;
+  var text = (x, max = 500) => typeof x === "string" && x.length > 0 && x.length <= max;
+  var kinds = ["cancelled", "late", "earlier", "missed", "updated"];
+  function trainId(x) {
+    return record3(x) && text(x.operator) && text(x.from, 100) && typeof x.std === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x.std) && (x.serviceId === void 0 || text(x.serviceId));
+  }
+  var idKey = (t) => `${t.operator}|${t.std}|${t.from}`;
+  function sameId(a, b) {
+    return a.operator === b.operator && a.std === b.std && a.from === b.from && (!(a.serviceId && b.serviceId) || a.serviceId === b.serviceId);
+  }
+  function isLegacyFollowRoute(x) {
+    return record3(x) && (x.dir === "office" || x.dir === "home") && trainId(x.train) && text(x.hub, 100) && Array.isArray(x.calls) && x.calls.length > 0 && x.calls.length <= 20 && x.calls.every(trainId) && x.calls.some((c) => sameId(c, x.train)) && epoch(x.lastDep) && epoch(x.planned) && epoch(x.arrive) && epoch(x.followedAt) && finite3(x.afterMs) && x.afterMs >= 0 && x.afterMs <= 2 * DAY && epoch(x.planned - x.afterMs) && finite3(x.lateMin) && Math.abs(x.lateMin) <= 7 * 24 * 60 && Math.abs(x.lastDep - x.followedAt) <= 2 * DAY && Math.abs(x.arrive - x.planned) <= 7 * DAY && (x.reason === null || record3(x.reason) && kinds.includes(String(x.reason.kind)) && text(x.reason.text, 1e4) && epoch(x.reason.at) && ["bad", "warn", "ok"].includes(String(x.reason.level))) && (x.dismissed === null || kinds.includes(String(x.dismissed))) && Array.isArray(x.declined) && x.declined.length <= 100 && x.declined.every((k) => text(k, 1e3) && /^.{1,500}\|(?:[01]\d|2[0-3]):[0-5]\d\|[^|]{1,100}$/.test(k));
+  }
+  function flatten(options, depth = 0) {
+    if (depth > 4 || !Array.isArray(options)) return [];
+    const out = [];
+    for (const o of options.slice(0, 1e3)) {
+      if (!record3(o) || !record3(o.train)) continue;
+      out.push(o);
+      if (Array.isArray(o.alts)) out.push(...flatten(o.alts, depth + 1));
+    }
+    return out;
+  }
+  function matches(t, id, legacy) {
+    return sameId(t, id) && finite3(t.dep) && finite3(t.depLate) && Math.abs(t.dep - legacy.lastDep) < DAY / 2;
+  }
+  function migrateFollowRoute(value, options, ctx) {
+    var _a, _b, _c, _d;
+    try {
+      if (!isLegacyFollowRoute(value) || !epoch(ctx.now) || !["commute", "leisure"].includes(ctx.mode)) return null;
+      const legacy = value, all = flatten(options);
+      const found = all.find((o) => o.hub === legacy.hub && matches(o.train, legacy.train, legacy));
+      if (!found || !finite3(found.train.arr) || !Array.isArray(found.legs) || !found.legs.length) return null;
+      const snapshot = JSON.parse(JSON.stringify(found));
+      const actualTrain = JSON.parse(JSON.stringify(found.train));
+      const baselineRail = legacy.planned - legacy.afterMs;
+      const shift = baselineRail - found.train.arr;
+      const lastTimed = snapshot.legs.reduce((last, l, index) => l.t != null && !l.calls ? index : last, -1);
+      snapshot.legs = snapshot.legs.map((l, index) => ({ ...l, t: l.t == null || l.train || l.t < found.train.arr ? l.t : index === lastTimed && l.t > found.train.arr ? legacy.planned : l.t + shift }));
+      snapshot.arrive = legacy.planned;
+      snapshot.train.arr = baselineRail;
+      snapshot.train.arrLate = Math.round((baselineRail - (found.train.arr - found.train.arrLate * MIN2)) / MIN2);
+      const calls = all.filter((o) => o !== found && legacy.calls.some((id2) => matches(o.train, id2, legacy)) && o.hub !== found.hub);
+      snapshot.alts = calls.filter((o, index) => calls.findIndex((other) => followServiceKey(other) === followServiceKey(o)) === index).slice(0, 20).map((o) => JSON.parse(JSON.stringify(o)));
+      const id = followServiceKey(snapshot), notices = [], seenEvents = [];
+      const reasonKind = ((_a = legacy.reason) == null ? void 0 : _a.kind) === "cancelled" ? "cancelled" : ((_b = legacy.reason) == null ? void 0 : _b.kind) === "missed" ? "missed" : "arrival";
+      if (legacy.reason) {
+        const suffix = reasonKind === "arrival" ? String(legacy.arrive) : reasonKind;
+        const notice = { id: `${id}|${reasonKind}|${suffix}`, kind: reasonKind, text: legacy.reason.text, at: legacy.reason.at };
+        notices.push(notice);
+        seenEvents.push(notice.id);
+      }
+      if (legacy.dismissed === "cancelled" || legacy.dismissed === "missed") seenEvents.push(`${id}|${legacy.dismissed}|${legacy.dismissed}`);
+      const incident = ((_c = legacy.reason) == null ? void 0 : _c.kind) === "cancelled" || legacy.dismissed === "cancelled" ? "cancelled" : ((_d = legacy.reason) == null ? void 0 : _d.kind) === "missed" || legacy.dismissed === "missed" ? "missed" : null;
+      const chosenDay = id.split("|", 1)[0];
+      const dismissedAlternatives = legacy.declined.map((key) => {
+        const actual = all.find((o) => idKey(o.train) === key);
+        const serviceDay = actual ? followServiceKey(actual).split("|", 1)[0] : chosenDay;
+        return legacyFollowDeclineMarker(serviceDay, key);
+      });
+      const result = {
+        version: 1,
+        id,
+        direction: legacy.dir,
+        mode: ctx.mode,
+        startedAt: legacy.followedAt,
+        option: snapshot,
+        plannedArrival: legacy.planned,
+        expectedArrival: legacy.arrive,
+        lastTrain: actualTrain,
+        phase: "before-train",
+        notices,
+        seenEvents: [...new Set(seenEvents)],
+        incident,
+        dismissedAlternatives: [...new Set(dismissedAlternatives)].slice(0, 100)
+      };
+      return restoreFollowRoute(result);
+    } catch {
+      return null;
+    }
   }
 
   // src/core/index.ts
@@ -2739,10 +2839,12 @@ const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",se
   here:null, origin:"", london:null, londonErr:"" };
 // Simulation is a session opt-in; reload always returns to device GPS and live sources.
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
+// Preserve the Follow switch shipped on main. An explicit new choice always wins.
+if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&typeof state.saved.settings.follow==='boolean')state.saved.settings.followRoute=state.saved.settings.follow;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
- for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs'])delete state.saved[key];
+ for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];
 }}
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
@@ -3104,8 +3206,9 @@ function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!le
 // On your way to Letchworth station: you've left home (over 100 m from your saved home; without one, at least
 // 3 min of walking nearer the station than home is) and aren't at the station yet. Leave now then says when each
 // train departs, when you'll reach the station, and whether you're on track.
-function onWay(){
-  if((state.saved.view||"now")!=="now" || atStation()) return null;
+function onWay(physical=false){
+  const live=physical||(journeyEnabled()&&state.presentation?.mode!=='plan'&&state.presentation?.view==='plan-now');
+  if((!live&&(state.saved.view||"now")!=="now") || atStation(physical)) return null;
   const w=walkFromHere(); if(w==null) return null;
   // Left home: more than 100 m from it even allowing for the fix's accuracy (GPS drift at home isn't leaving).
   if(!C.leftHome(state.here, state.locAcc, state.saved.home||null, w, homeWalk())) return null;
@@ -3296,8 +3399,9 @@ function pills(flags, short){
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
 // board: the big time is when the train leaves; when to start walking to the platform is the small print.
-function atStation(){
-  if((state.saved.view||"now")!=="now" || state.saved.mode==="leisure") return null;
+function atStation(physical=false){
+  const live=physical||(journeyEnabled()&&state.presentation?.mode!=='plan'&&state.presentation?.view==='plan-now');
+  if((!live&&(state.saved.view||"now")!=="now") || state.saved.mode==="leisure") return null;
   const dir=direction();
   if(dir==="home" && state.atHub) return HUB_NAME[state.atHub];
   if(dir==="office" && state.here && state.locAcc<=250 && km(state.here,GEO.LET)<0.25) return "Letchworth";
@@ -3945,11 +4049,12 @@ document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTM
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
   applyJourneyAppearance();
+  restoreReleasedFollow();
   const focus=journeyFocus();
   if(journeyEnabled())document.querySelectorAll("details").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
   renderInner(); restoreOpen();
-  if(S().signal&&state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
+  if(S().signal&&state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
 }
 // "Which train are you on?": your pick is kept until you're off the line.
@@ -3995,8 +4100,8 @@ function renderInner(){
   $("#byLabel").textContent = atView ? "Leave around" : "Be there by";
   renderControls(); renderBanners();
   if(view==="following"){
-    $("#hero").innerHTML='<div class="lbl">Your chosen journey</div><div class="empty">Your route is shown above. Live observations update it as they become available; use Plan to explore other journeys.</div>';
-    renderList(state.boards?ranked(now):[],now);$("#listTitle").textContent="Other journeys";renderStatus();renderDiag();return;
+    const list=state.boards?ranked(now):[];
+    renderHero(list,now);renderList(list,now);$("#listTitle").textContent="Other journeys";renderStatus();renderDiag();return;
   }
   if(shown.noActiveJourney){
     $("#hero").innerHTML='<div class="lbl">Live</div><div class="empty">No active journey yet. Choose a route to follow, or return to Auto while the app works out where you are.</div>';
@@ -4429,7 +4534,7 @@ function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  for(const key of ['autoDir','atHub','hubSince','lastAwayAt','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
-function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs'])delete state.saved[key];}
+function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
 function start(){if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;if(sim.active)return true;
  sim.baseline=JSON.parse(JSON.stringify(state.saved));
  const home=sim.baseline.home;
@@ -4573,7 +4678,14 @@ function followedTubeArrival(route, now) {
 // those results and adapts existing observations. Both designs share this single controller.
 const followChoices = new Map();
 const journeyEnabled = () => !!(S().signal || S().followRoute);
-const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'?r:null;};
+const pendingReleasedFollow = () => S().followRoute&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
+const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
+function restoreReleasedFollow(){
+  const legacy=pendingReleasedFollow();if(!legacy||!state.boards)return;
+  const options=(currentMode()==='leisure'?buildLeisure:buildJourneys)(legacy.dir,Date.now(),{here:true});
+  const imported=C.migrateFollowRoute(legacy,options,{now:Date.now(),mode:currentMode()});
+  if(imported){state.saved.followRoute=imported;save();}
+}
 function applyJourneyAppearance(){
   document.documentElement.dataset.design=S().signal?'signal':'panda';
   const theme=S().appearance;
@@ -4589,7 +4701,7 @@ function journeyInteracting(){
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
   const active=!live.view.startsWith('plan-')&&live.view!=='awaiting-location';
-  const station=atStation(), way=onWay();
+  const station=atStation(true), way=onWay(true);
   const phase=active?live.view:station?'station:'+station:way?'walking-to-station':'planning';
   const key=`${direction()}|${currentMode()}|${phase}`;
   // A temporary denied/stale position is not a new journey situation.
@@ -4602,10 +4714,19 @@ function journeyPresentation(now,s){
   const auto=C.chooseView(s);
   if(!journeyEnabled())return auto;
   const current=journeySituation(now,s);
+  let override=state.saved.viewOverride,legacyPinPending=false;
+  if(!Object.prototype.hasOwnProperty.call(state.saved,'viewOverride')&&Number.isFinite(state.saved.viewAt)&&(s.plan==='by'||s.plan==='at')){
+    const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
+    const oldKey=[direction(),state.atHub||'',!!state.onLine,!!currentRide(now),!!homeRide(now),!!onWay()].join('|');
+    const expired=now-state.saved.viewAt>=C.VIEW_OVERRIDE_MS||state.saved.viewAt>now;
+    override=expired||(reliable&&state.saved.viewKey!==oldKey)?null:C.createViewOverride('plan',state.saved.viewAt,current.key);
+    legacyPinPending=!expired&&!reliable;
+    if(!legacyPinPending){state.saved.viewOverride=override;save();}
+  }
   const shown=C.resolveViewControl({auto,live:current.live,hasActiveJourney:current.active,plan:s.plan,
     hasFollowedJourney:!!activeFollow(),
-    override:state.saved.viewOverride,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
-  if(JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
+    override,now,situationKey:current.key,previous:state.presentation,interacting:journeyInteracting()});
+  if(!legacyPinPending&&JSON.stringify(state.saved.viewOverride||null)!==JSON.stringify(shown.override)){
     state.saved.viewOverride=shown.override;save();
   }
   state.pendingView=shown.pending;
@@ -4635,6 +4756,8 @@ function followButton(option){
   if(!S().followRoute)return '';
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
+  const selected=C.restoreFollowRoute(state.saved.followRoute);
+  if(selected&&selected.phase!=='arrived'&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
 }
@@ -4653,7 +4776,7 @@ document.addEventListener('click',e=>{
     const train=route.lastTrain;
     state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})};
   }
-  else if(action==='stop'){state.saved.followRoute=null;state.followUpdate=null;}
+  else if(action==='stop'){state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
   else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
   else if(action==='switch'&&state.followUpdate?.alternative){selectFollowRoute(state.followUpdate.alternative);return;}
   else if(action==='dismiss'&&state.followUpdate?.alternative)state.saved.followRoute=C.dismissFollowAlternative(state.followUpdate.route,state.followUpdate.alternative);
@@ -4725,7 +4848,13 @@ function followedObservation(route,now){
 function renderFollowPanel(){
   const panel=$('#followPanel');
   const route=C.restoreFollowRoute(state.saved.followRoute);
-  panel.hidden=!S().followRoute||!route||route.phase==='arrived';
+  const pending=pendingReleasedFollow();
+  if(!route&&pending){
+    panel.hidden=false;panel._renderedHtml=null;
+    panel.innerHTML=`<div class="lbl">Restoring your saved followed journey</div><div class="big">Last known arrival ${hhmm(pending.arrive)}</div><div>${esc(pending.train.std)} ${esc(pending.train.operator)}</div><div class="note">Waiting for the matching train and itinerary. Your saved selection is kept.</div>${pending.reason?`<div class="note">${esc(pending.reason.text)}</div>`:''}<button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
+    return;
+  }
+  panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
@@ -4858,7 +4987,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["signal","followRoute","appearance"]);
+ const presentationKeys=new Set(["signal","followRoute","appearance","follow"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

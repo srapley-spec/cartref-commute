@@ -41,3 +41,5 @@ export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, confirmFollowBoarding, followMatch
 export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';
 export { FOLLOW_TUBE_FRESH_MS, followTubeArrival } from './followTube';
 export type { FollowTubeRequest, FollowTubeArrival } from './followTube';
+export { migrateFollowRoute, isLegacyFollowRoute } from './followMigration';
+export type { LegacyFollowRoute } from './followMigration';

@@ -72,3 +72,12 @@ test('follow Tube: another corridor supplies its own travel direction',()=>{
  assert.ok(core.followTubeArrival([east],request({direction:'eastbound'})));
  assert.equal(core.followTubeArrival([east],request({direction:'unknown'})),null);
 });
+
+test('independent review: cache expiry is independent of an accepted provider clock offset',()=>{
+ const prediction={vehicleId:'v1',lineId:'metropolitan',platformName:'Westbound - Platform 1',naptanId:'target',
+  timestamp:new Date(NOW+10000).toISOString(),expectedArrival:new Date(NOW+8*MIN).toISOString()};
+ const request={vehicle:'v1',hub:'OTHER',stopId:'target',lineId:'metropolitan',direction:'westbound',fetchedAt:NOW,readyMs:MIN};
+ assert.ok(core.followTubeArrival([prediction],{...request,now:NOW+3*MIN-1}));
+ assert.equal(core.followTubeArrival([prediction],{...request,now:NOW+3*MIN}),null,
+  'provider clock offset cannot extend the cache lifetime');
+});

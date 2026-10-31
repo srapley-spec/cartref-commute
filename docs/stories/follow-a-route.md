@@ -175,3 +175,12 @@ not a claim that every criterion has already passed release verification. See [S
 Source precedence: a fresh selected-board cancellation remains an alert even when a recent Service Details
 response still contains an expected arrival (a train can be terminated early). An obsolete board does not
 outvote a genuinely fresh train report. Regression: tests/core/follow.test.mjs: "independent review: fresh cancellation remains visible despite a recent live arrival prediction".
+
+### Released-state compatibility
+The released Follow switch (`settings.follow`) and saved selection (`follow`) are restored into the shared
+controller only once a real matching itinerary is available. The old record remains intact; missing data shows
+restoration in progress. Explicit opt-out wins over the old switch and Stop cannot revive the backup selection.
+Original planned/expected arrival, onward duration, boarding identity, acknowledgements and declined alternatives
+survive migration. Old planning-pin age and reliable situation changes are preserved while question/time remain
+separate from the displayed view. See `tests/core/followMigration.test.mjs`, `tests/follow-migration.test.mjs`,
+`tests/core/follow-main-regression.test.mjs` and `tests/follow-main-regression.test.mjs`.
