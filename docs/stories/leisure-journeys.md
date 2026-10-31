@@ -189,6 +189,10 @@ Built so far (see the build log in the architecture for what is and isn't on scr
 - tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
+- tests/proxy.test.mjs: "Proxy (Trip): any station's board only with ALLOW_ANY_STATION=yes; still only well-formed codes"
+- tests/proxy.test.mjs: "Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field masks, the key sent upstream only"
+- tests/trip-google.test.mjs: the contract suite in tests/contracts/google-ports.mjs, run against the Maps JS, proxy and
+  fixture (simulator) adapters (8 checks each; generated names, so not linked one by one)
 - Still planned: Google contract suite (Maps JS, proxy, simulator adapters); page tests (switch off unchanged, Trip
   without key, combobox keyboard / stale reply, full plan, live budget, Follow through a change); goldens for
   Brighton → Canterbury West and Winchester → Norwich incl. request counts.

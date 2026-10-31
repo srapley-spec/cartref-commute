@@ -17,8 +17,38 @@
 //   the Origin header, so it limits casual misuse rather than guaranteeing it. Only the three fixed
 //   station boards can be requested, and responses are cached for 20 seconds, which caps upstream use.
 // - The key is only ever sent upstream; it never appears in responses or logs.
+//
+// Trip mode (optional, docs/leisure-architecture.md §5 and §9). Off unless configured, so an existing Worker is unchanged:
+//   ALLOW_ANY_STATION (Text)  "yes": boards for any well-formed station code (Trip's rides), not just the four.
+//   GOOGLE_KEY        (Secret) your Google Maps key: enables /google/places/... and /google/routes/... with fixed upstream
+//                              hosts and fixed field masks (which also fix what Google bills for).
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
+const CRS = /^[A-Z]{3}$/;
+// Google: the only paths and field masks the Worker will forward.
+const GOOGLE = [
+  { re: /^\/google\/places\/v1\/places:autocomplete$/, method: "POST", url: () => "https://places.googleapis.com/v1/places:autocomplete",
+    mask: "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat" },
+  { re: /^\/google\/places\/v1\/places\/([A-Za-z0-9_-]{1,300})$/, method: "GET", url: (m, q) => `https://places.googleapis.com/v1/places/${m[1]}${q.get("sessionToken") ? `?sessionToken=${encodeURIComponent(q.get("sessionToken"))}` : ""}`,
+    mask: "id,displayName,formattedAddress,location" },
+  { re: /^\/google\/routes\/distanceMatrix\/v2:computeRouteMatrix$/, method: "POST", url: () => "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix",
+    mask: "originIndex,destinationIndex,status,condition,distanceMeters,duration" },
+];
+async function google(request, env, cors, url) {
+  const route = GOOGLE.map(g => ({ g, m: url.pathname.match(g.re) })).find(x => x.m);
+  if (!route) return new Response("Not found", { status: 404, headers: cors });
+  if (request.method !== route.g.method) return new Response("Method not allowed", { status: 405, headers: cors });
+  if (!env.GOOGLE_KEY) return new Response("Proxy not configured: set GOOGLE_KEY.", { status: 500, headers: cors });
+  let body;
+  if (route.g.method === "POST") { body = await request.text(); if (body.length > 8192) return new Response("Too large", { status: 413, headers: cors }); }
+  let upstream;
+  try {
+    upstream = await fetch(route.g.url(route.m, url.searchParams), { method: route.g.method, body,
+      headers: { "X-Goog-Api-Key": env.GOOGLE_KEY, "X-Goog-FieldMask": route.g.mask, ...(body ? { "Content-Type": "application/json" } : {}) },
+      signal: AbortSignal.timeout(10000) });
+  } catch (e) { return new Response("Upstream timeout", { status: 504, headers: cors }); }
+  return new Response(upstream.body, { status: upstream.status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
 
 export default {
   async fetch(request, env) {
@@ -30,14 +60,18 @@ export default {
 
     const cors = {
       "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    const reqUrl = new URL(request.url);
+    if (reqUrl.pathname.startsWith("/google/")) return google(request, env, cors, reqUrl);
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: cors });
 
-    const m = new URL(request.url).pathname.match(/^\/board\/([A-Z]{3})\/([A-Z]{3})$/);
-    if (!m || !ALLOWED_CRS.has(m[1]) || !ALLOWED_CRS.has(m[2])) {
+    const m = reqUrl.pathname.match(/^\/board\/([A-Z]{3})\/([A-Z]{3})$/);
+    const ok = crs => (env.ALLOW_ANY_STATION === "yes" ? CRS.test(crs) : ALLOWED_CRS.has(crs));
+    if (!m || !ok(m[1]) || !ok(m[2])) {
       return new Response("Not found", { status: 404, headers: cors });
     }
     const [, from, to] = m;
