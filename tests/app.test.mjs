@@ -703,10 +703,13 @@ test("Coming back with a cached position (taken before you came back) doesn't re
 });
 
 test("Departure board on TfL timetable data: Expected says 'Not live', never 'On time'; a delay TfL reports shows its expected time, coloured", async () => {
+  // Freeze this presentation case: a later clock can legitimately prefer boarding at Farringdon.
+  const now = Date.parse("2026-11-03T10:00:00Z");
   // At the office first (leave mode): rows are Leave → Arrive, not the board.
-  const plain = await createApp({ geo: IN_LONDON });
+  const plain = await createApp({ geo: IN_LONDON, now });
   assert.ok(plain.d.querySelectorAll("#list .row").length > 0);
   assert.equal(plain.d.querySelectorAll("#list .row.board").length, 0, "leave mode: no board columns");
+  plain.setNow(now + 1000); // A later fix is required by the real location-resume guard.
   await moveTo(plain, AT_KINGS_CROSS);
   const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector(".leave"));
   assert.ok(rows.length > 0 && rows.every((r) => r.classList.contains("board")), "at the station: every train row is a board row");
@@ -726,7 +729,8 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     const base = tflTimetable();
     const journeys = (q) => { const r = base(q); for (const j of r.journeys) { const l = j.legs[0], d = new Date(l.departureTime).getTime();
       l.scheduledDepartureTime = l.departureTime; l.departureTime = iso(d + late * 60e3); } return r; };
-    const app = await createApp({ geo: IN_LONDON, journeys });
+    const app = await createApp({ geo: IN_LONDON, journeys, now });
+    app.setNow(now + 1000);
     await moveTo(app, AT_KINGS_CROSS);
     const hero = app.text("#hero"), m = hero.match(/Train ?(\d\d:\d\d) Expected ?(\d\d:\d\d) At home/);
     assert.ok(m, `TfL ${late} min late: the expected time, not 'Not live' — ${hero.slice(0, 200)}`);

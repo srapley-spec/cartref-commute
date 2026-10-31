@@ -97,6 +97,11 @@ removed. Native dialog state and manual following are session-only.
 Chromium geometry checks: [browser-along-line.py](../../tests/browser-along-line.py), run after building.
 These exercise 320/390px, light/dark, 15/30px body text, touch targets, dialog overflow and focus return.
 
+The full-suite validation exposed a pre-existing wall-clock assumption in the TfL departure-board presentation
+test: after enough elapsed real time, a Farringdon boarding option legitimately becomes preferred, contradicting
+the test’s King’s Cross-only regex. That single presentation test now supplies a fixed10:00clock to the existing
+harness; production ranking and timing rules are unchanged.
+
 ## Not yet / open questions
 - Any-route discovery, Wikipedia/OSM runtime lookup and generated prose remain later stages; the first release
   is curated Letchworth–King's Cross/St Pancras/Farringdon, both directions. Newark flat crossing is outside this
