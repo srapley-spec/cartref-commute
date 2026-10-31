@@ -344,7 +344,7 @@ Newest first. One line each; the story or issue holds the detail.
 - **28 Oct** Four-layer re-architecture, in steps that keep the live app unchanged and all tests green.
 - **28 Oct** People and trips requirements (Laura, nursery, day out). → [people-and-trips](stories/people-and-trips.md)
 
-## Journey simulator (release verification in progress)
+## Journey simulator
 The web shell injects independent session-only GPS and transport providers from `src/simulator`.
 The simulator clock supplies a scoped Date wrapper; the global browser clock is unchanged. GPS-only
 playback uses device time; feed simulation uses a selectable frozen virtual epoch advanced only by
@@ -358,8 +358,8 @@ and no-fix scenarios exercise the normal location and inference paths.
 Simulation sessions snapshot saved journey memory, suppress persistence and reset transient caches.
 A source epoch guards requests, response bodies, asynchronous callbacks and retries across switches,
 restart and Stop. Reload always restores real operation. See [journey simulator](stories/journey-simulator.md),
-[coverage](simulator-scenario-coverage.md), and [independent review](simulator-review.md) for verification
-and outstanding release gates. GitHub-first release applies because this changes location, timing,
+[coverage](simulator-scenario-coverage.md), and [independent UX review](simulator-ux-review.md) for verification;
+[PR #37](https://github.com/srapley-spec/cartref-commute/pull/37) records exact release evidence. GitHub-first release applies because this changes location, timing,
 feed requests, saved-state isolation and generated build integration.
 
 ### Simulator time audit
@@ -377,6 +377,19 @@ and device time remain unchanged; old virtual timestamps never return to real ca
 Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
 progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
 ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.
+
+### Journey Mode UX and observational verification (31 October redesign)
+Journey Mode and Advanced are presentations of one existing simulator controller. Guided setup is draft state; only Start atomically enables the coordinated sources and resets the scenario. Active provider configuration is immutable until an explicit restart, preserving coherence while draft controls are edited. Remembered choices live in a separate validated preference key, without active state.
+
+`catalog.js` describes grouped scenarios; `journey-ui.js` renders guided setup, the compact overlay, timeline and progressive Advanced diagnostics. `session.js` observes the real shell's already-computed presentation after refresh, invokes pure simulator assertions from `verification.js`, and records bounded allowlisted results in `report.js`. No expected identity is injected into the production engine. Session/playback tokens guard asynchronous observations, and export sanitization retains all private values encountered during the session even after Stop. The actual app remains the main interface.
+
+The subsequent main-branch Follow-a-route capability shares these safeguards: original followed-route and planning-lifetime memory are snapshot/restored, synthetic Follow choices remain in memory, and follow-option/vehicle-ETA caches are cleared at source boundaries. Diagnostics observe the normal rendered Follow model; they never call the production follower or train inference a second time. Its cache ages, planning expiry and event timestamps use the same lexical clock as the rest of the web shell.
+
+Main's subsequent Signal release (`4ee24c7`, PR #36) replaces the original Follow controller with the shared `src/journey-ui.js` shell. The simulator preserves that controller and records its already-computed train/ride and Follow result. Its separate Follow panel is sanitized into `actualDisplay.followCard`. Snapshot/reset covers `followRoute`, `viewOverride`, `planInputs` and legacy migration metadata; source epochs also clear the Follow Map and presentation/transport state. Explicit presentation pins have separate inconclusive expectations, while actual followed rail phase is checked independently of whether the main card chooses `following` or the richer `on-train` view.
+
+The later train-stop release (`cdf6ecd`) is retained. Synthetic stationary waits have zero speed, and rail fixes stay moving until the final arrival; normal `watchStop` derives the stop from the shared clock. Runtime assertions compare the actual stopped timestamp and the selected service's arrival at the actual destination board. Leaving simulation resets transient state before restoring saved real station visits, with device-time age validation; the speed watch stays empty until fresh native observations. This preserves an existing real stopped visit through both Stop and Settings source-disable without restoring any synthetic timestamps.
+
+Real planning input values and runtime alternative origin are session-snapshotted separately from saved JSON. The shell's planners read these DOM inputs, so restoring only saved metadata is insufficient. Both exit paths restore them before normal refreshing; the normal location dispatcher resumes the selected planner, including Leave-around. Original unsaved origin/destination strings join the private-value history for sanitized reports. No input snapshot is persisted or exported.
 
 ### Reconcile the released Follow controller (31 Oct)
 `main` released Follow a route at `be1e58e` during Signal implementation. Both designs now consume one shared

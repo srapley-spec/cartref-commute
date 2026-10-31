@@ -446,3 +446,98 @@ test('whichTrain: keep a confirmed train but warn on fresh contradictory evidenc
  const stale=run([50.05,-1.05],now-3*MIN);assert.equal(stale.result.conflict,false,'stale position cannot establish contradiction');assert.equal(stale.result.confidence,'low');assert.equal(stale.lock.serviceId,'PICKED');
  const recovered=run([50.083333,-1.083333]);assert.equal(recovered.result.conflict,false);assert.equal(recovered.result.sure,true);assert.equal(recovered.result.confidence,'high');
 });
+
+test('railTrackingContext: a known moving through service passes an overlapping interchange and keeps its own corridor',()=>{
+ const now=T('09:55'),at=fix([51.53062,-.12594],45,now),track={at:now-20000,km:50,moving:true};
+ const through=train({from:'LET',to:'ZFD',std:'09:12',dep:T('09:12'),arr:T('10:00'),serviceId:'THROUGH',calls:[{code:'LET'},{code:'STP'},{code:'ZFD'}]});
+ const input={fix:at,speed:25,track,train:through,dir:'office',now};
+ assert.equal(core.hubHere(at,sam),'KGX','GPS alone overlaps the adjacent interchange');
+ const c=core.railTrackingContext(input,sam);assert.equal(c.atHub,null);assert.equal(c.passingHub,true);assert.equal(c.continuing,true);assert.equal(c.line,sam.lines.ZFD);
+ assert.equal(core.trackLine(track,at,25,null,sam.lines.KGX).onLine,false,'the old neighbouring-terminus corridor drops the train at this point');
+ assert.equal(core.trackLine(track,at,25,c.atHub,c.line,false,c.continuing).onLine,true);
+ // Leaving that hub radius must not reintroduce the 97% cutoff before the actual destination.
+ const middle=fix([51.524977,-.1145],30,now+20000),later=core.railTrackingContext({...input,fix:middle,track:{...track,at:now},now:now+20000},sam);
+ assert.equal(core.hubHere(middle,sam),null);assert.equal(later.passingHub,false);assert.equal(later.continuing,true);
+ assert.equal(core.trackLine(track,middle,25,later.atHub,later.line,false,later.continuing).onLine,true);
+ const destination=fix(sam.stationGeo.ZFD,30,now+60000),arrived=core.railTrackingContext({...input,fix:destination,track:{...track,at:now+40000},now:now+60000},sam);
+ assert.equal(arrived.atHub,'ZFD');assert.equal(arrived.continuing,false);assert.equal(core.trackLine(track,destination,25,arrived.atHub,arrived.line,false,arrived.continuing).onLine,false);
+});
+
+test('railTrackingContext: train knowledge cannot override its own destination or unrelated station arrival',()=>{
+ const now=T('09:55'),position=fix(sam.places.hubGeo.KGX,20,now),track={at:now-10000,km:50,moving:true};
+ const terminus=train({from:'LET',to:'KGX',std:'09:12',dep:T('09:12'),arr:now+60000,calls:[{code:'LET'},{code:'KGX'}]});
+ const input={fix:position,speed:25,track,train:terminus,dir:'office',now};
+ const own=core.railTrackingContext(input,sam);assert.equal(own.atHub,'KGX');assert.equal(own.continuing,false);
+ const uncalled={...terminus,to:'ZFD',calls:[{code:'LET'},{code:'ZFD'}]};
+ const other=core.railTrackingContext({...input,train:uncalled},sam);assert.equal(other.atHub,'KGX');assert.equal(other.continuing,false,'a nearby hub not on the known calling sequence is still an ordinary station');
+});
+
+test('railTrackingContext: stale rough slow or unestablished evidence cannot force through-station inference',()=>{
+ const now=T('09:55'),position=fix([51.53062,-.12594],45,now),track={at:now-20000,km:50,moving:true};
+ const through=train({from:'LET',to:'ZFD',std:'09:12',dep:T('09:12'),arr:T('10:00'),calls:[{code:'LET'},{code:'STP'},{code:'ZFD'}]});
+ const base={fix:position,speed:25,track,train:through,dir:'office',now};
+ for(const overrides of [{speed:0},{speed:11.999},{speed:null},{speed:NaN},{track:null},{track:{...track,moving:false}},{track:{...track,at:now-180001}},{fix:{...position,at:now-60001}},{fix:{...position,at:now+1}},{fix:{...position,acc:251}},{fix:{...position,acc:-1}},{train:null},{train:{...through,cancelled:true}},{train:{...through,dep:now+1}},{train:{...through,arr:now-120001}},{train:{...through,arr:null}},{train:{...through,calls:[]}},{dir:'home'}]){
+  const c=core.railTrackingContext({...base,...overrides},sam);assert.equal(c.continuing,false,JSON.stringify(overrides));assert.equal(c.passingHub,false);
+ }
+ const boundary=core.railTrackingContext({...base,speed:12,fix:{...position,acc:250},track:{...track,at:now-180000}},sam);assert.equal(boundary.continuing,true,'existing train-speed, fix and movement-age thresholds include their boundary');
+});
+
+test('railTrackingContext: another corridor and shared station names use only profile data',()=>{
+ const now=T('08:00'),home=[50.5,-1.5],junction=[50,-1],end=[49.99,-.99];
+ const profile={...testville,lines:{CEN:[home,junction],MKT:[home,junction,end]},stationGeo:{RVS:home,PLT:junction,CEN:junction,MKT:end},places:{...testville.places,homeStation:home,hubGeo:{CEN:junction,MKT:end}},sharesTubeWith:{PLT:'CEN'}};
+ const t=train({from:'RVS',to:'MKT',std:'07:10',dep:now-50*MIN,arr:now+5*MIN,operator:'Moon Railway',serviceId:'OTHER-CORRIDOR',calls:[{code:'RVS'},{code:'PLT'},{code:'MKT'}]});
+ const position=fix(junction,20,now),track={at:now-10000,km:60,moving:true};
+ const c=core.railTrackingContext({fix:position,speed:20,track,train:t,dir:'office',now},profile);
+ assert.equal(c.atHub,null);assert.equal(c.line,profile.lines.MKT);assert.equal(c.passingHub,true);assert.equal(core.trackLine(track,position,20,c.atHub,c.line,false,c.continuing).onLine,true);
+ const homeward={...t,from:'MKT',to:'RVS',dep:now-5*MIN,arr:now+50*MIN,calls:[{code:'MKT'},{code:'PLT'},{code:'RVS'}]};
+ const back=core.railTrackingContext({fix:position,speed:20,track,train:homeward,dir:'home',now},profile);assert.equal(back.atHub,null);assert.equal(back.continuing,true);assert.equal(back.line,profile.lines.MKT);
+});
+
+test('railTrackingContext: same-service board variants extend only an identical ordered calling sequence',()=>{
+ const now=T('09:55'),position=fix([51.53062,-.12594],45,now),track={at:now-20000,km:50,moving:true};
+ const truncated=train({from:'LET',to:'STP',std:'09:12',dep:T('09:12'),arr:now,serviceId:'SAME-SERVICE',calls:[{code:'LET'},{code:'SVG'},{code:'STP'}]});
+ const extended={...truncated,to:'ZFD',arr:now+5*MIN,calls:[...truncated.calls,{code:'ZFD'}]};
+ const input={fix:position,speed:25,track,train:truncated,dir:'office',now};
+ assert.equal(core.railTrackingContext(input,sam).continuing,false,'a truncated board alone cannot invent a later stop');
+ const c=core.railTrackingContext({...input,trains:[truncated,extended]},sam);assert.equal(c.line,sam.lines.ZFD);assert.equal(c.atHub,null);assert.equal(c.continuing,true);
+ for(const candidate of [{...extended,serviceId:'OTHER-SERVICE'},{...extended,std:'09:13'},{...extended,from:'HIT'},{...extended,cancelled:true},{...extended,calls:[{code:'LET'},{code:'HIT'},{code:'STP'},{code:'ZFD'}]}]){
+  assert.equal(core.railTrackingContext({...input,trains:[candidate]},sam).continuing,false,'unrelated or divergent service must not extend the remembered train');
+ }
+ const noId={...truncated,serviceId:undefined};assert.equal(core.railTrackingContext({...input,train:noId,trains:[{...extended,serviceId:undefined}]},sam).continuing,false,'operator and times are insufficient to merge physical services');
+ const divergent={...truncated,to:'KGX',calls:[...truncated.calls,{code:'KGX'}]};assert.equal(core.railTrackingContext({...input,trains:[extended,divergent]},sam).continuing,false,'ambiguous same-ID branches after the known prefix cannot choose a continuation');
+ const stopped=core.railTrackingContext({...input,speed:0,trains:[extended]},sam);assert.equal(stopped.atHub,'KGX');assert.equal(stopped.continuing,false,'future calling points do not imply a stationary passenger stayed aboard');
+});
+
+test('railTrackingContext: a recent departure can establish rail movement in the end-corridor gap without choosing a train',()=>{
+ const now=T('16:23'),position=fix([51.524977,-.1145],30,now),departure=train({from:'ZFD',to:'LET',std:'16:20',dep:now-3*MIN,arr:now+45*MIN});
+ const input={fix:position,speed:25,track:null,train:null,trains:[departure],dir:'home',now,departingHub:{hub:'ZFD',seen:now-4*MIN},onTube:false};
+ const c=core.railTrackingContext(input,sam);assert.equal(c.atHub,null);assert.equal(c.continuing,true);assert.equal(c.line,sam.lines.ZFD);assert.equal(c.passingHub,false,'unknown identity cannot force passage through another station');
+ assert.equal(core.trackLine(null,position,25,c.atHub,c.line,false,c.continuing).onLine,true);
+ assert.deepEqual(Object.keys(c).sort(),['atHub','continuing','line','passingHub'],'classification supplies geometry only, not a selected service');
+ for(const overrides of [{onTube:true},{onTube:undefined},{departingHub:null},{departingHub:{hub:'ZFD',seen:now-600001}},{departingHub:{hub:'ZFD',seen:now+1}},{speed:11.999},{fix:{...position,acc:251}},{fix:{...position,at:now-60001}},{dir:'office'},{trains:[]},{trains:[{...departure,cancelled:true}]},{trains:[{...departure,from:'KGX'}]},{trains:[{...departure,dep:now+1}]},{trains:[{...departure,dep:now-600001}]},{fix:fix(sam.places.hubGeo.KGX,30,now)},{fix:fix([51.525,-.105],30,now)}]){
+  assert.equal(core.railTrackingContext({...input,...overrides},sam).continuing,false,JSON.stringify(overrides));
+ }
+});
+
+test('railTrackingContext: departure gap inference is generic and cannot override a known tube',()=>{
+ const now=T('08:00'),home=[50.5,-1.5],junction=[50,-1],end=[49.99,-.99],line=[home,junction,end];
+ const profile={...testville,lines:{CEN:[home,junction],MKT:line},stationGeo:{RVS:home,CEN:junction,MKT:end},places:{...testville.places,homeStation:home,hubGeo:{CEN:junction,MKT:end}}};
+ const departure=train({from:'MKT',to:'RVS',std:'07:58',dep:now-2*MIN,arr:now+45*MIN}),position=fix([49.995,-.995],25,now);
+ const input={fix:position,speed:20,track:null,train:null,trains:[departure],dir:'home',now,departingHub:{hub:'MKT',seen:now-3*MIN},onTube:false};
+ assert.equal(core.railTrackingContext(input,profile).continuing,true);
+ assert.equal(core.railTrackingContext({...input,onTube:true},profile).continuing,false,'the same physical corridor may also carry Underground services');
+ const known={...departure,from:'RVS',to:'MKT',calls:[{code:'RVS'},{code:'CEN'},{code:'MKT'}],dep:now-30*MIN};
+ assert.equal(core.railTrackingContext({...input,fix:fix(junction,25,now),track:{at:now-10000,km:50,moving:true},train:known,dir:'office',onTube:true},profile).continuing,false,'a picked or established tube takes precedence over old rail memory');
+});
+
+test('railTrackingContext: a provisional observed train preserves movement without resolving its identity',()=>{
+ const now=T('08:00'),home=[50.5,-1.5],junction=[50,-1],end=[49.99,-.99],line=[home,junction,end];
+ const profile={...testville,lines:{CEN:[home,junction],MKT:line},stationGeo:{RVS:home,CEN:junction,MKT:end},places:{...testville.places,homeStation:home,hubGeo:{CEN:junction,MKT:end}}};
+ const a=train({from:'RVS',to:'MKT',std:'07:30',dep:now-30*MIN,arr:now+MIN,serviceId:'PROVISIONAL-A',calls:[{code:'RVS'},{code:'CEN'},{code:'MKT'}]});
+ const b={...a,std:'07:31',dep:a.dep+MIN,arr:a.arr+MIN,serviceId:'PROVISIONAL-B'},boards={'RVS-MKT':{msgs:[],services:[a,b]}};
+ const inferred=core.whichTrain(boards,junction,'office',now,null,()=>null,profile,now);
+ assert.equal(inferred.result.sure,false);assert.equal(inferred.lock,null);
+ const before=JSON.stringify(inferred),c=core.railTrackingContext({fix:fix(junction,25,now),speed:20,track:{at:now-10000,km:60,moving:true},train:inferred.result.t,trains:[a,b],dir:'office',now,onTube:false},profile);
+ assert.equal(c.continuing,true);assert.equal(c.atHub,null);assert.equal(JSON.stringify(inferred),before,'geometry inference does not rewrite the model, service or lock');
+ const still=core.whichTrain(boards,junction,'office',now,null,()=>null,profile,now);assert.equal(still.result.sure,false);assert.equal(still.lock,null,'normal train comparison still asks between close competitors');
+});

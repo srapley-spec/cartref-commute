@@ -19,7 +19,7 @@ function applyJourneyAppearance(){
 }
 function journeyInteracting(){
   const a=document.activeElement;
-  return !!($('#settings').open || (a&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
+  return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
     document.querySelector('#banners details[open],#hero details[open],#followPanel details[open]'));
 }
 function journeySituation(now,s){
@@ -110,6 +110,7 @@ function followedObservation(route,now){
   const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
   let phase=route.phase, currentTrainArrival=null,trainArrivalLive=false;
   const fit=state.onLine?whichTrain(now):null;
+  if(fit&&state.rendered)state.rendered.train=fit;
   if(fit?.t&&C.followMatchesObservedTrain(route,{...route.option,train:fit.t,hub:fit.hub||route.option.hub})){
     phase='on-train';
     const pg=progressFor(fit.t.serviceId);
@@ -130,7 +131,7 @@ function followedObservation(route,now){
   }
   let activeConnection=false,readyAt,connectionSource='';
   if(route.direction==='home'&&route.mode==='commute'&&phase==='before-train'){
-    const ride=homeRide(now);
+    const ride=homeRide(now);if(ride&&state.rendered)state.rendered.ride=ride;
     if(ride){
       const connection=C.tubeHomeConnections(ride.t,S(),state.saved.pace==='fast'?'fast':'avg');
       readyAt=C.readyAtFromConnection(connection.reach,connection.ready);activeConnection=true;
@@ -154,7 +155,7 @@ function followedObservation(route,now){
         (pace==='fast'?S().walkStationHomeFast:S().walkStationHomeAvg)*1000,pace,PROFILE);
       if('at' in e){currentArrival=e.at;onwardFresh=true;onwardSource='Walk from your current location';}
     } else if(route.direction==='office'){
-      const ride=currentRide(now);
+      const ride=currentRide(now);if(ride&&state.rendered)state.rendered.ride=ride;
       if(ride){
         const leg=officeLeg(ride.hub,lineIdOf(ride.line))||officeLeg(ride.hub,'circle');
         const live=leg?.stop==='Aldgate'&&state.ald&&now-state.ald.at<3*60e3?

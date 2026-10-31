@@ -1,25 +1,91 @@
 <style>
 #simDock{position:fixed;z-index:9998;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;max-height:100vh;max-height:100dvh;pointer-events:none;font:14px system-ui;color:var(--ink)}
-#simPanel{pointer-events:auto;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:65vh;max-height:65dvh;overflow:auto;padding:14px;border:2px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
-#simBar{pointer-events:auto;flex-shrink:0;width:100%;background:var(--card);color:var(--ink);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--muted);box-shadow:0 -2px 15px #0003;text-align:center}
-#simActivity{display:block;margin-bottom:6px;font-weight:700}
+#simPanel{pointer-events:auto;display:flex;flex-direction:column;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:58vh;max-height:58dvh;overflow:hidden;padding:14px 14px 0;border:1px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
+#simPanel.simSetupOpen{max-height:72vh;max-height:72dvh}
+#simPanelScroll{overflow:auto;min-height:0;padding-bottom:12px}
+#simBar{pointer-events:auto;flex-shrink:0;width:100%;background:var(--card);color:var(--ink);padding:4px 12px calc(4px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--muted);box-shadow:0 -2px 15px #0003}
 #simPanel label{display:block;margin:8px 0 3px}
-#simPanel input,#simPanel select{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:16px system-ui;min-height:44px}
+#simPanel input,#simPanel select,#simPanel textarea{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:16px system-ui;min-height:44px}
+#simPanel textarea{min-height:120px;resize:vertical;font:12px var(--font-mono)}
 #simPanel input{-webkit-appearance:none;appearance:none}#simPanel input::-webkit-date-and-time-value{text-align:left;min-width:0}
 #simPanel button,#simBar button{padding:10px;margin:0;min-height:44px;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);font:600 14px system-ui;cursor:pointer;touch-action:manipulation}
-#simPanel #simPlay,#simBar #simAdvance{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#simPanel #simPlay,#simBar #simAdvance,#simPanel .simModeButtons [aria-pressed="true"],#simPanel .simPrimary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 #simPanel button:focus-visible,#simBar button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 #simPanel .simRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
 #simPanel .simPlayback{grid-template-columns:repeat(3,minmax(0,1fr))}
 #simPanel small{display:block;color:var(--muted)}#simPanel output,#simPanel small{overflow-wrap:anywhere}
-#simBar .simDockActions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-body.simControlsVisible{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+#simPanel .simPanelTitle{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+#simPanel .simModeButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+#simPanel .simPanelTitle,#simPanel .simModeButtons,#journeyStartFooter{flex-shrink:0}
+#simPanel #journeySetup h2{display:none}
+#simPanel .simPrimary{width:100%;font-size:16px}
+#journeyStartFooter{margin:0 -14px;padding:8px 14px 12px;background:var(--card);border-top:1px solid var(--line)}
+#journeyStartFooter .simPrimary{margin:0 0 5px}#journeyStartHint{font-size:11px}
+#journeySetupError{flex-shrink:0;font-size:13px;padding:8px;border-left:3px solid var(--bad);margin:6px 0;background:var(--paper)}
+#simPanel .simDescription,#simPanel .simExpected{font-size:14px;margin:10px 0;line-height:1.5}
+#simPanel .simExpected{padding:10px;border-left:3px solid var(--accent);background:var(--paper)}
+#simPanel details{border-top:1px solid var(--line);margin-top:12px;padding-top:6px}
+#simPanel summary{font-weight:700;padding:10px 0;min-height:44px;cursor:pointer}
+#simPanel .simSourceSwitches{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:12px 0}
+#simPanel .simSourceSwitches label{display:flex;align-items:center;gap:10px;margin:0;min-height:44px}
+#simPanel .simSourceSwitches input{width:22px;min-height:44px;height:44px;appearance:auto;-webkit-appearance:checkbox}
+#simPanel .simTimeline{list-style:none;margin:8px 0;padding:0}
+#simPanel .simTimeline li{position:relative;padding:8px 8px 12px 25px;border-left:2px solid var(--line);margin-left:7px}
+#simPanel .simTimeline li:before{content:"";position:absolute;width:10px;height:10px;left:-6px;top:13px;background:var(--card);border:2px solid var(--muted);border-radius:50%}
+#simPanel .simTimeline li[data-state="complete"]:before{background:var(--accent);border-color:var(--accent)}
+#simPanel .simTimeline li[data-state="current"]{background:var(--paper);border-radius:0 6px 6px 0}
+#simPanel .simTimeline li[data-state="current"]:before{background:var(--card);border:3px solid var(--accent);width:12px;height:12px;left:-7px}
+#simPanel .simTimeline button{width:100%;text-align:left;background:transparent;border:0;padding:0;min-height:44px;font-weight:400}
+#simPanel .simTimeline strong,#simPanel .simTimeline small{display:block}
+#simPanel .simTimeline li[data-state="upcoming"]{color:var(--muted)}
+#simPanel .simTimelineEvidence{padding:6px 0;font-size:13px;overflow-wrap:anywhere}
+#simPanel .simVerificationRow{border-left:3px solid var(--line);padding:8px 10px;margin:8px 0;background:var(--paper)}
+#simPanel .simVerificationRow[data-result="PASS"]{border-color:var(--ok)}#simPanel .simVerificationRow[data-result="FAIL"]{border-color:var(--bad)}
+#simPanel .simVerificationRow p{margin:5px 0;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+#simPanel .simVerificationRow pre,#simPanel .simDiagnosticText{white-space:pre-wrap;overflow-wrap:anywhere;font:12px var(--font-mono);max-width:100%}
+#simPanel .simDiagnosticText{margin-top:10px}
+#simBar .simDockHeading,#simBar .simDockCurrent{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;max-width:580px;margin:auto}
+#simBar .simDockHeading{min-height:18px;margin-bottom:0}
+#simActivity{display:inline;margin:0;font-size:12px;font-weight:700;white-space:nowrap}
+#journeyDockTime{font:600 13px var(--font-mono);white-space:nowrap}
+#simBar .simDockLocation{min-width:0;flex:1}
+#journeyDockLocation{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#simBar #journeyVerificationBadge,#simBar #journeyTimelineToggle{min-height:44px;min-width:44px;padding:4px 6px;font-size:12px}
+#simBar #journeyVerificationBadge{max-width:96px;white-space:normal;overflow-wrap:anywhere;font-size:11px}
+#simBar #journeyVerificationBadge[data-result="PASS"]{color:var(--ok)}#simBar #journeyVerificationBadge[data-result="FAIL"]{color:var(--bad);border-color:var(--bad)}
+#simBar #journeyTimelineToggle{white-space:nowrap}
+#journeyDockNext{display:block;margin:2px 0 0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#journeyDockProgress{display:block;max-width:580px;width:100%;height:4px;margin:2px auto 4px;accent-color:var(--accent)}
+#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:1fr .7fr 1.25fr .55fr;gap:6px}
+#simBar .simDockActions button{padding:8px 5px;font-size:12px}
+body.simControlsVisible{padding-bottom:calc(var(--sim-dock-height,155px) + 16px)}
+body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
+@media(max-width:350px){#simBar{padding-left:8px;padding-right:8px}#simActivity{font-size:11px}#simBar .simDockActions{gap:4px}#simBar .simDockActions button{font-size:11px}}
+@media(max-height:650px){#simPanel .simPanelTitle small{display:none}}
 </style>
 <div id="simDock">
 <section id="simPanel" hidden aria-label="Journey simulator">
-<strong>Journey simulator</strong>
+<div class="simPanelTitle"><strong>Journey simulator</strong><small>The real app stays in charge</small></div>
+<div class="simModeButtons" role="group" aria-label="Simulator mode"><button id="journeyModeButton" type="button" aria-pressed="true">Journey mode</button><button id="journeyAdvancedButton" type="button" aria-pressed="false">Advanced</button></div>
+<p id="journeySetupError" role="alert" hidden></p>
+<div id="simPanelScroll">
+<div id="journeySetup">
+<h2>Choose a journey</h2>
+<label for="journeyDirection">Where are you going?</label><select id="journeyDirection"><option value="outbound">To London / Office</option><option value="return">To Letchworth / Home</option></select>
+<label for="journeyRoute">Rail route</label><select id="journeyRoute"><option value="kgx">Great Northern via King’s Cross</option><option value="far">Thameslink via Farringdon</option></select>
+<label for="journeyScenario">What should happen?</label><select id="journeyScenario"></select>
+<p id="journeyScenarioDescription" class="simDescription"></p><p class="simExpected"><strong>Watch for:</strong> <span id="journeyScenarioExpected"></span></p>
+
+
+</div>
+<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Travel stays sequential so the app sees the full journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
+<details id="journeyVerificationDetails"><summary>Expected and actual <span id="journeyVerificationCount"></span></summary><div id="journeyVerificationResults"><p>No checkpoint verification yet.</p></div></details>
+<details id="journeyResultsDetails"><summary>Journey results</summary><div id="journeyResultsSummary"><p>Results become available when a journey starts.</p></div><div class="simRow"><button id="journeyCopyResults" type="button">Copy results</button><button id="journeyExportResults" type="button">Export JSON</button></div><small id="journeyExportStatus" role="status"></small></details>
+<details id="simAdvanced"><summary>Advanced diagnostics</summary>
+<p class="simDescription">These controls use the same session. Opening diagnostics does not change the journey.</p>
+<fieldset class="simSourceSwitches"><legend>Simulation sources</legend><label><input id="simAdvancedGPS" type="checkbox"> GPS simulation</label><label><input id="simAdvancedFeeds" type="checkbox"> Transport feed simulation</label></fieldset>
 <div class="simRow simPlayback"><button type="button" id="simPlay">Start</button><button type="button" id="simContinue">Continue</button><button type="button" id="simPause">Pause</button></div>
-<small>Independent GPS and feed switches. Reload exits simulation.</small>
+
 <label for="simPreset">Jump to location</label><select id="simPreset">
 <option value="home">Near home</option><option value="let">Letchworth station</option><option value="kgx">King's Cross</option><option value="far">Farringdon</option><option value="ald">Aldgate</option><option value="office">Office</option>
 </select>
@@ -38,10 +104,16 @@ body.simControlsVisible{padding-bottom:calc(120px + env(safe-area-inset-bottom,0
 <div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
-</section>
 
+<div id="journeySourceDiagnostics" class="simDiagnosticText"></div>
+</details>
+</div>
+<div id="journeyStartFooter"><button id="journeyStart" class="simPrimary" type="button">Start journey</button>
+<small id="journeyStartHint">Starts paused at the first checkpoint. All transport and location inputs are simulated.</small></div>
+</section>
 <div id="simBar" hidden role="group" aria-label="Simulator playback">
-<span id="simActivity" role="status">Simulator ready</span>
-<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button">Start</button><button id="simExit" type="button">Stop</button></div>
+<div class="simDockHeading"><span id="simActivity" role="status">Simulator ready</span><time id="journeyDockTime">—</time></div>
+<div class="simDockCurrent"><div class="simDockLocation"><strong id="journeyDockLocation">No journey started</strong><small id="journeyDockNext">Choose a journey to begin</small></div><button id="journeyVerificationBadge" type="button" title="Open checkpoint verification">Not checked</button><button id="journeyTimelineToggle" type="button" title="Inspect journey timeline">0 / 0</button></div><progress id="journeyDockProgress" value="0" max="1" aria-label="Journey progress"></progress>
+<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
 </div>
 </div>
