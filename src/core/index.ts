@@ -24,7 +24,7 @@ export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRound
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
-export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, onLine, trackLine, lockOf, nearOffice, atOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
+export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, lockOf, nearOffice, atOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, StopWatch, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";

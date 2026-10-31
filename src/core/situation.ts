@@ -29,16 +29,20 @@ const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && 
 
 /** When the train you came in on stopped, from GPS speed (Sam, 30 Oct: the walk to the tube counts from the train
  *  stopping, not from the first fix in the station while it pulls in). A stop is speed ≤ 0.5 m/s after the train was
- *  seen moving (≥ 5 m/s, faster than you can run). Moving again at train speed (held at a signal, or a later train)
- *  clears it; walking off or queueing at the gateline doesn't (only train speed starts a new stop). No speed:
- *  nothing changes. */
-export interface StopWatch { moving: boolean; stoppedAt: number | null; }
-export const TRAIN_MOVING_MPS = 5, STOPPED_MPS = 0.5;
+ *  seen moving (≥ 5 m/s, faster than you can run) **within the last minute**: the real stop came after that reading,
+ *  so a stop is never more than a minute late (the slack the earliest-platform rule allows; a later stop would hide
+ *  the tube you caught). Too long after (unlocked on the platform, or the stop missed and then a gateline queue):
+ *  no stop. Moving again at train speed (held at a signal, or a later train) clears it; walking off or queueing
+ *  doesn't. No speed: nothing changes. */
+export interface StopWatch { moving: boolean; stoppedAt: number | null; fastAt?: number; }
+export const TRAIN_MOVING_MPS = 5, STOPPED_MPS = 0.5, STOP_WITHIN_MS = 60e3;
 export function watchStop(prev: StopWatch | null, speed: number | null, at: number): StopWatch {
   const w: StopWatch = prev || { moving: false, stoppedAt: null };
   if (speed == null || !(speed >= 0)) return w;
-  if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null };
-  return speed <= STOPPED_MPS && w.moving ? { moving: false, stoppedAt: at } : w;
+  if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
+  if (speed > STOPPED_MPS || !w.moving) return w;
+  const recent = w.fastAt != null && at - w.fastAt <= STOP_WITHIN_MS;
+  return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
 }
 
 /** Confidently away from every London station: a fix good to 250 m whose uncertainty can't reach any of them

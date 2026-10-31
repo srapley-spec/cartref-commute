@@ -112,14 +112,21 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - These are defaults: settings already saved on a phone keep their values until changed in Settings.
 
 ## When the walk starts: the train stopping (Sam, 30 Oct evening)
-- At the station, the walk to the tube counts from **when your train stopped**, seen from GPS speed: ≤ 0.5 m/s after
-  it was seen moving at ≥ 5 m/s (faster than you can run). The card says "from when your train stopped (08:40)".
+- At the station, the walk to the tube counts from **when your train stopped**, seen from GPS speed: ≤ 0.5 m/s
+  within a minute of a reading at ≥ 5 m/s (faster than you can run). The real stop came after that reading, so a
+  stop is never more than a minute late, the slack the earliest-platform rule allows: a stop never hides the tube
+  you caught. The card says "from when your train stopped (08:40)".
+- More than a minute after train speed (locked on the train and unlocked standing on the platform; the real stop
+  missed under the roof and then a queue at the gateline): no stop, and later zeros don't count either; the rules
+  below apply.
 - Held at a signal inside the station and moving again at train speed: that stop is dropped and the next counts.
   Walking off, queueing at the gateline or running for a tube don't count as the train.
 - Only a stop in the station you're visiting counts (at or after the first fix there); a stop outside (held before
   the station) followed by a crawl in under 5 m/s gives no stop, so the rules below apply.
-- No stop seen (GPS gives no speed, e.g. under the trainshed roof; the app opened on the platform; a reload loses
-  the speed history but keeps a stop already saved): from the first fix in the station, or the later of last-seen-
+- A train held inside the station that then creeps in under 5 m/s keeps the earlier stop: the walk starts early, so
+  the card may suggest a tube you can't quite make (never hides one).
+- A saved stop is kept through a reload and fixes with no speed; only moving again at train speed clears it.
+- No stop seen (GPS gives no speed, e.g. under the trainshed roof; the app opened on the platform): from the first fix in the station, or the later of last-seen-
   away + walk, as below. **Unverified:** whether iOS reports speed under the King's Cross roof. Sam to check the
   card's "from when your train stopped" on the next trip.
 - Worked-out tubes use the same start: the earliest tube you could be on is the stop + the walk (less a minute).
@@ -156,6 +163,9 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - tests/rules.test.mjs: "Train stop: the walk to the tube counts from when your train stopped (GPS speed), and the card says so"
 - tests/rules.test.mjs: "Train stop: held at a signal in the station then moving again, the later stop counts; no speed from GPS, from when you arrived"
 - tests/rules.test.mjs: "Train stop: a stop before you reached the station (outside 400 m) isn't taken; worked-out tubes count from the stop"
+- tests/rules.test.mjs: "Train stop review: locked on the train, unlocked on the platform 4 min later at 0 m/s: not a stop; the tube you caught counts"
+- tests/rules.test.mjs: "Train stop review: the real stop missed under the roof, then a queue at the gateline: not a stop"
+- tests/rules.test.mjs: "Train stop review: a saved stop survives a reload and fixes with no speed; riding, 'No, still here' or another station don't add one"
 - tests/core/situation.test.mjs: "awayFromHubs: only a fix good to 250 m whose uncertainty can't reach any London station (review, 30 Oct)"
 - tests/golden.test.mjs: "golden: at King's Cross in the morning: which tube"
 - tests/golden.test.mjs: "golden: Circle and Met closed: Aldgate East fallback"

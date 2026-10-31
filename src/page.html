@@ -1882,12 +1882,14 @@ function onPosition(p){
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
   if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
   // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
-  // Held at a signal and moving again clears it; a stop is only taken in the station you're visiting.
+  // A stop is only taken in the station you're visiting; moving again at train speed there clears it (held at a
+  // signal). Nothing else clears a saved stop (a reload starts the watch afresh but keeps it).
   const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, Date.now());
-  const hs=state.hubSince;
+  const hs=state.hubSince, sw=state.stopWatch;
   if(!riding && hs && state.atHub===hs.hub && !hs.still){
-    const st=state.stopWatch.stoppedAt!=null && state.stopWatch.stoppedAt>=hs.at ? state.stopWatch.stoppedAt : null;
-    if(st!==(hs.stopped??null)){ if(st!=null) hs.stopped=st; else delete hs.stopped; state.saved.hubSince=hs; save(); }
+    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at ? sw.stoppedAt : null;
+    if(st!=null && st!==hs.stopped){ hs.stopped=st; state.saved.hubSince=hs; save(); }
+    else if(sw.moving && hs.stopped!=null){ delete hs.stopped; state.saved.hubSince=hs; save(); }
   }
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});

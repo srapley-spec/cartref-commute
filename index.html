@@ -278,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 30 Oct 23:08 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:01 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -446,6 +446,7 @@ var CommuteCore = (() => {
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
     STOPPED_MPS: () => STOPPED_MPS,
+    STOP_WITHIN_MS: () => STOP_WITHIN_MS,
     TRAIN_MOVING_MPS: () => TRAIN_MOVING_MPS,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
@@ -1514,11 +1515,14 @@ var CommuteCore = (() => {
   var pos = (f, maxAcc) => f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null;
   var TRAIN_MOVING_MPS = 5;
   var STOPPED_MPS = 0.5;
+  var STOP_WITHIN_MS = 6e4;
   function watchStop(prev, speed, at) {
     const w = prev || { moving: false, stoppedAt: null };
     if (speed == null || !(speed >= 0)) return w;
-    if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null };
-    return speed <= STOPPED_MPS && w.moving ? { moving: false, stoppedAt: at } : w;
+    if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
+    if (speed > STOPPED_MPS || !w.moving) return w;
+    const recent = w.fastAt != null && at - w.fastAt <= STOP_WITHIN_MS;
+    return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
   }
   function awayFromHubs(f, p) {
     const here = pos(f, 250);
@@ -3570,12 +3574,14 @@ function onPosition(p){
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
   if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
   // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
-  // Held at a signal and moving again clears it; a stop is only taken in the station you're visiting.
+  // A stop is only taken in the station you're visiting; moving again at train speed there clears it (held at a
+  // signal). Nothing else clears a saved stop (a reload starts the watch afresh but keeps it).
   const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, Date.now());
-  const hs=state.hubSince;
+  const hs=state.hubSince, sw=state.stopWatch;
   if(!riding && hs && state.atHub===hs.hub && !hs.still){
-    const st=state.stopWatch.stoppedAt!=null && state.stopWatch.stoppedAt>=hs.at ? state.stopWatch.stoppedAt : null;
-    if(st!==(hs.stopped??null)){ if(st!=null) hs.stopped=st; else delete hs.stopped; state.saved.hubSince=hs; save(); }
+    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at ? sw.stoppedAt : null;
+    if(st!=null && st!==hs.stopped){ hs.stopped=st; state.saved.hubSince=hs; save(); }
+    else if(sw.moving && hs.stopped!=null){ delete hs.stopped; state.saved.hubSince=hs; save(); }
   }
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});

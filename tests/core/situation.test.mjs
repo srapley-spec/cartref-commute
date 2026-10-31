@@ -186,17 +186,27 @@ test("watchStop: the train stopping is speed ≤ 0.5 m/s after ≥ 5 m/s; moving
   go(15, 2); assert.equal(w.moving, true);
   go(3, 3); assert.equal(w.stoppedAt, null, "slowing down isn't stopped");
   go(0.5, 4); assert.equal(w.stoppedAt, 4, "0.5 m/s is stopped");
-  go(5, 5); assert.deepEqual(w, { moving: true, stoppedAt: null }, "held at a signal: moving again at train speed clears it");
+  go(5, 5); assert.deepEqual(w, { moving: true, stoppedAt: null, fastAt: 5 }, "held at a signal: moving again at train speed clears it");
   go(0.2, 6); assert.equal(w.stoppedAt, 6);
   go(0, 7); assert.equal(w.stoppedAt, 6, "still stopped: the first moment counts");
   go(null, 8); go(-1, 9); assert.equal(w.stoppedAt, 6, "no speed reported: nothing changes");
   go(1.4, 10); assert.equal(w.stoppedAt, 6, "walking off");
   go(0, 11); assert.equal(w.stoppedAt, 6, "a queue at the gateline isn't the train stopping");
   go(4.9, 12); assert.equal(w.stoppedAt, 6, "running for a tube isn't a train");
-  go(5, 13); assert.deepEqual(w, { moving: true, stoppedAt: null }, "a later train starts again");
+  go(5, 13); assert.deepEqual(w, { moving: true, stoppedAt: null, fastAt: 13 }, "a later train starts again");
   assert.deepEqual(core.watchStop(null, 0.6, 1), { moving: false, stoppedAt: null });
-  assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 0.51, 1).stoppedAt, null, "just over 0.5: not stopped");
-  assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 4.99, 1).moving, true, "decelerating keeps 'moving'");
+  const fast = { moving: true, stoppedAt: null, fastAt: 0 };
+  assert.equal(core.watchStop(fast, 0.51, 1).stoppedAt, null, "just over 0.5: not stopped");
+  assert.equal(core.watchStop(fast, 4.99, 1).moving, true, "decelerating keeps 'moving'");
+  assert.deepEqual(core.watchStop(fast, -1, 1), fast, "iOS's -1: no speed"); assert.deepEqual(core.watchStop(fast, NaN, 1), fast);
+  // Review: a stop counts only within a minute of train speed (the real stop came after that reading).
+  assert.equal(core.STOP_WITHIN_MS, 60e3);
+  assert.equal(core.watchStop(fast, 0, 60e3).stoppedAt, 60e3, "60 s after: a stop");
+  const late = core.watchStop(fast, 0, 60e3 + 1);
+  assert.equal(late.stoppedAt, null, "61 s after (unlocked on the platform, or a queue after a missed stop): no stop");
+  assert.equal(late.moving, false, "and later zeros don't count either");
+  assert.equal(core.watchStop(late, 0, 70e3).stoppedAt, null);
+  assert.equal(core.watchStop({ moving: true, stoppedAt: null }, 0, 1).stoppedAt, null, "moving with no time seen: no stop");
 });
 
 test("Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one", () => {
