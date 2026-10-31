@@ -30,6 +30,30 @@ so that I can inspect inference and onward planning without travelling.
 - Opening or collapsing modes, timeline inspection and verification details never changes simulation state. Timeline inspection cannot teleport. Next reconstructs each adjacent segment through normal GPS fixes, shared time and ordinary feed refreshes.
 - Every old control and automation ID remains available in Advanced diagnostics: independent source switches, manual fixes/accuracy/GPS loss, route/scenario/date/speed, playback, reset, source diagnostics and the existing app's train/tube choices.
 
+## Back and cold journey-state reset
+- Back deliberately drops simulated application history, returns to the preceding waypoint and pauses.
+  Between waypoints it returns to the last reached waypoint. GPS, synthetic Darwin and TfL use the same
+  rewound clock. It is disabled at the first waypoint, with independent/live sources, or pending Restart.
+- Reset journey state pauses at the current raw observation and time, preserving accuracy, observation
+  age and GPS unavailability. Either source may be independent. Neither source enabled is a no-op.
+- Clear train/tube choices, Follow, inferred direction, visits, movement, rendered train/ride evidence,
+  presentation/progress memory, transient London origin and provider caches. Abort old source work and
+  invalidate playback and verifier generations. Keep settings/home, target and fixed station profile.
+- Fresh inference uses normal position/provider paths; no old choice or expected service ID is injected.
+  A clear-state assertion observes actual memory before GPS processing. Cold verification checks current
+  geofences and uncertainty, then resumes ordinary assertions after new evidence establishes a journey.
+- Each action starts a report attempt, retains up to ten prior attempts with full sanitized expected/actual
+  evidence, clears future completion claims, and visibly counts dropped history. Old callbacks cannot
+  write into the new report epoch. Back after completion opens a new unfinished attempt.
+- Advanced Reset and restart retains the previous reset-to-start capability and automation ID `simClear`.
+  The new in-place button is `journeyResetState`, and the compact Back button is `journeyBack`.
+- Stop and reload retain the existing real-context restoration and persistence safeguards.
+
+Tests: `tests/simulator-context-reset.test.mjs` (both routes/directions in Panda and Signal, recovery,
+actual choices, unavailable/stale/rough GPS, async cancellation, independent sources and real context),
+`tests/simulator-verification.test.mjs` (cold oracles), `tests/simulator-report.test.mjs` (epochs/history/privacy),
+and real mobile Chromium `tests/browser-simulator-context-reset.py`.
+
 ## Expected versus actual
 - Read outputs already computed by normal application rendering. Verification never calls mutating inference functions just to observe them, assigns a train/tube or replaces the main app interface.
 - Evaluate each meaningful checkpoint after normal refresh settles. Explicit assertions produce PASS/FAIL; missing evidence, pending work, unsupported/manual inputs or a legitimate unresolved passenger decision produce INCONCLUSIVE. Reaching a location is not itself a pass.

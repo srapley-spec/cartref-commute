@@ -1,14 +1,14 @@
 // Simulator orchestration. GPS enters the normal browser-position handler; no train identity is injected.
-function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onStop=()=>{}}) {
+function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onResetPresentation=()=>{},onStop=()=>{}}) {
 const $=id=>document.getElementById(id);
-const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,sessionId:0,verification:{current:null,results:[],pending:false}};
+const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,recovery:null,sessionId:0,verification:{current:null,results:[],pending:false}};
 const listeners=new Set();let playbackGeneration=0;
 const subscribe=fn=>{listeners.add(fn);return ()=>listeners.delete(fn);};
 function notify(type,extra={}){for(const fn of [...listeners])fn({type,...extra});}
 function getView(){const checkpoints=route(),config=getScenario(),summary=api.reporter?.summary()||null;
  const report=!sim.active&&summary?.finished?api.reporter.getReport():null;
  const historicalTimeline=report?{config:report.config,startTime:report.config.startTime,checkpoints:route(report.config),index:Math.max(-1,...report.checkpoints.map(item=>item.index)),results:report.checkpoints,reason:report.reason,finished:true}:null;
- return {historicalTimeline,diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
+ return {historicalTimeline,recovery:sim.recovery,canBack:canGoBack(),diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
 
 const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
 const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
@@ -41,7 +41,7 @@ function pause(){stopTimer();status('Paused');notify('pause');}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
- for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
+ for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','lastPosition','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
 function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
@@ -64,6 +64,7 @@ function fix(lat,lon,speed=0,acc=Number($("simAccuracy").value)){
  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||!Number.isFinite(acc)||acc<0){status('Invalid coordinates or accuracy');return;}
  if(!start())return;
  $("simLat").value=String(lat);$("simLon").value=String(lon);
+ if(sim.recovery)sim.recovery.observations++;
  gps.emit(lat,lon,acc,speed);
  $("simFixStatus").textContent=`GPS ${lat.toFixed(5)}, ${lon.toFixed(5)} ±${acc} m`;
 }
@@ -80,7 +81,7 @@ function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textCont
 function restart(){
  stopTimer();const draft=getDraftScenario(),t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return false;}
  if(!start())return false;
- sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
+ sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.recovery=null;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
  clearJourneyMemory();resetContext();syncClock();notify('start');emit(route()[0]);checkpoint();refresh({force:true});return true;
 }
 // Follow the same approximate corridor as the profile rather than cutting across the bends.
@@ -95,7 +96,7 @@ function tick(stepSeconds){const r=route(),p=r[sim.index],next=r[sim.index+1];if
  else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,travellingRail,railLine),travellingRail?25:stationary?0:1.4,accuracy(next));
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
-function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
+function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();const generation=playbackGeneration;sim.timer=setInterval(()=>{if(sim.active&&generation===playbackGeneration)tick();},1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
 async function nextCheckpoint(){
  if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}
  if(sim.index>=route().length-1)return;
@@ -109,14 +110,41 @@ async function nextCheckpoint(){
  }
  if(generation===playbackGeneration){sim.stepping=false;notify('playback');}
 }
-function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();resetContext(false);onStop();$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
+function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;sim.recovery=null;clock.stop();resetContext(false);onStop();$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
+function canGoBack(){return !!(sim.active&&sim.startTime!==null&&!sim.pendingRestart&&S().simulatorEnabled&&S().simulatedFeeds&&(sim.index>0||sim.elapsed>route()[0].at));}
+function resetJourneyState({back=false}={}){
+ if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;
+ if(sim.pendingRestart||back&&!canGoBack())return false;
+ const observation=state.lastPosition?JSON.parse(JSON.stringify(state.lastPosition)):null,locationStatus=state.locStatus;
+ const fromIndex=sim.index,fromTime=clock.now(),wasManual=sim.manualOverride;
+ stopTimer();if(!start())return false;
+ if(back){if(sim.elapsed===route()[sim.index].at)sim.index--;sim.elapsed=route()[sim.index].at;}
+ const atCheckpoint=(back||!wasManual)&&sim.startTime!==null&&sim.elapsed===route()[sim.index].at;
+ sim.sessionId++;sim.manualOverride=false;sim.verification={current:null,results:[],pending:false};
+ sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint};
+ clearJourneyMemory();
+ state.saved.dirMode='auto';state.saved.view='now';
+ resetContext(false);onResetPresentation();
+ if(back)syncClock();
+ // New observation/report epochs precede GPS: no future output may seed fresh inference.
+ notify('context-reset',{reason:sim.recovery.reason,fromIndex,fromTime});
+ if(back){sim.manualOverride=false;const p=route()[sim.index];emit(p,p.mode==='rail'?25:0);}
+ else if(observation&&locationStatus==='ok'){
+  sim.recovery.observations++;onPosition(observation);
+ }else if(locationStatus==='denied'||locationStatus==='unavailable')onPositionError?.({code:locationStatus==='denied'?1:2});
+ else {state.locStatus='pending';state.autoSrc='finding your location…';render();}
+ if(sim.startTime!==null)checkpoint();
+ status((back?'Back one checkpoint. ':'')+'Journey state cleared; inferring afresh here.');
+ refresh({force:true});notify('context-ready');return true;
+}
+function previousCheckpoint(){return resetJourneyState({back:true});}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
  $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',pause);$("simExit").addEventListener('click',simStop);
  $("simJump").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;const p=points[$("simPreset").value];if(p)fix(...p);notify('manual');status('Manual GPS fix applied');});
  $("simApply").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;fix(Number($("simLat").value),Number($("simLon").value));notify('manual');});
- $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.config={...getDraftScenario(),startTime:t};sim.manualOverride=true;sim.sessionId++;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');notify('manual');}});
+ $("simClear").addEventListener('click',()=>{if(restart()){sim.manualOverride=true;notify('manual');status('Journey state cleared and restarted at the first checkpoint.');}});
  for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{
   stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
   sim.pendingRestart=!!sim.config;status('Selection changed. Press Restart.');notify('configuration');
@@ -124,6 +152,6 @@ function simSetup(){
  $("simSpeed").addEventListener('change',()=>{notify('speed');updateTime();});
  updateTime();
 }
-const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
+const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,previousCheckpoint,resetJourneyState,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
 return api;
 }

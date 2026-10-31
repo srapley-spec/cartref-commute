@@ -14,6 +14,33 @@ function evaluateSimulationCheckpoint(context={}) {
  const result=()=>({sessionId:c.sessionId??null,index:Number.isInteger(c.index)?c.index:null,point:typeof point==='string'?point:null,label,at:Number.isFinite(c.now)?c.now:null,
   status:assertions.some(a=>a.status==='FAIL')?'FAIL':assertions.length&&assertions.every(a=>a.status==='PASS')?'PASS':'INCONCLUSIVE',assertions});
  if(app.loading){unknown('pending-observation','Evaluate the settled application response','The application is still loading transport data');return result();}
+ if(c.recovery){
+  const recovery=c.recovery,memory=recovery.clearedMemory,values=memory&&Object.values(memory);
+  const cleared=values?.length&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
+  add('journey-context-cleared','Discard earlier train choices, rides, visits, direction and rendered journey evidence',cleared===null?'Clear-state observation unavailable':cleared?'Earlier journey evidence was cleared':'Surviving context: '+Object.keys(memory).filter(key=>memory[key]).join(', '),cleared,{contextCleared:cleared});
+  if(app.homeStation&&app.homeStation!=='LET'){unknown('recovery-profile','Inspect recovery under the selected starting-station profile',`The app is configured for ${app.homeStation}; these journey fixtures start at Letchworth. The selected profile is preserved.`);return result();}
+  if(app.fixAgeMs>90000){unknown('recovery-stale-location','Wait for fresh location evidence after losing journey state',`The retained observation is ${Math.round(app.fixAgeMs/1000)} seconds old; resetting did not make it fresh.`);return result();}
+  const wanted=config.direction==='return'||point==='office'&&/Office dwell/i.test(label)?'home':'office';
+  const recovered=recovery.observations>=2&&app.direction===wanted&&(app.journeyMemory?.trip||app.directionExplicit||app.train?.picked||app.ride)&&(!['rail','tube'].includes(c.mode)||c.mode==='rail'&&app.onLine||c.mode==='tube'&&app.ride)&&(point!=='barbican'||app.ride);
+  if(!recovered||!c.source?.gps||c.manualOverride||!recovery.atCheckpoint&&recovery.index===c.index){
+   if(!c.source?.gps)unknown('recovery-location-source','Observe recovery with the current real GPS','GPS is independent of the scenario; its actual inference remains visible');
+   else if(app.locStatus!=='ok'){
+    const chosenRide=app.journeyMemory?.tubeRide||app.journeyMemory?.tubePick;
+    add('recovery-no-fabricated-position','Do not invent a station or boarding without a usable fix or new passenger choice',`Location ${app.locStatus||'unknown'}; station ${app.atHub||'unknown'}; ride ${app.ride?'active':'unknown'}`,!app.atHub&&(!app.onLine||!!app.train?.picked)&&(!app.ride||!!chosenRide),{locStatus:app.locStatus||'unknown'});
+    unknown('recovery-location','Recover from a new usable location observation','Location is unavailable; earlier fixes and journey history are not replayed');
+   }else{
+    const precise=typeof app.locAcc==='number'&&app.locAcc<=250;
+    if(!precise)add('recovery-accuracy','Avoid a confident station from a rough fix',`Accuracy: ${app.locAcc??'unknown'} m; station: ${app.atHub||'unknown'}`,!app.atHub,{locAcc:app.locAcc});
+    const hub={kgx:'KGX',kxTube:'KGX',far:'ZFD',farTube:'ZFD'}[point];
+    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-home-station','Recognise the configured home station from fresh GPS',app.atStation);
+    if(precise&&recovery.atCheckpoint&&!c.manualOverride&&hub&&c.mode!=='rail')add('recovery-station',`Recognise the current ${hub} station from fresh GPS`,app.atHub||'No station recognised',app.atHub===hub,{atHub:app.atHub||null});
+    if(precise&&point==='office'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-office','Recognise the office geofence without a remembered trip',app.nearOffice);
+    if(precise&&point==='home'&&recovery.atCheckpoint&&!c.manualOverride&&app.hasConfiguredHome)bool('recovery-home','Recognise the configured home without a remembered trip',app.atHome);
+    unknown('recovery-history','Re-establish direction, boarding and service identity from new evidence',`History intentionally cleared. Direction: ${app.direction||'unknown'}; train: ${app.train?.serviceId||'unknown'}; Underground: ${app.ride?.vehicle||'unknown'}. Continue or use the real app’s normal choices.`);
+   }
+   return result();
+  }
+ }
  if(c.manualOverride){unknown('manual-observation','Verify a coherent scenario checkpoint','Advanced input changed the location or context; restart the scenario to restore checkpoint verification');return result();}
  if(!c.source?.gps){unknown('location-source','Observe scenario GPS through the real journey engine','GPS simulation is off; the real location is independent of this scenario');return result();}
  const scenarios=['normal','later-train','wrong-train','uncertain','delay','cancellation','platform-change','missed-connection','disruption','outage','gps-loss','low-accuracy','awaiting-location','permission-denied'];

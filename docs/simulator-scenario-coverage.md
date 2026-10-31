@@ -77,6 +77,32 @@ Aldgate arrival ends the ride and the real office card appears.
   journeys support bounded local coordinates and named Science Museum/office examples, not arbitrary worldwide planning.
 - Independent review/mutation outcomes and exact committed CI results belong in the final evidence below.
 
+## Cold Back and journey-state loss
+
+Back deliberately discards inferred context rather than restoring old decisions. Reset journey state
+does the same at the current raw location and time. The real engine must pick up from the remaining
+evidence; it is not supplied a train or replayed passenger choice. Old report attempts remain available,
+while future checkpoints do not count as verified in the new attempt.
+
+| Behaviour | Inputs and expected actual application outcome | Automated check | Executed result |
+| --- | --- | --- | --- |
+| Both corridors/directions in both designs | Establish a real rail journey, Back, reset in place, and advance with new evidence; old memory disappears and real service identification returns | Eight `cold Back and Reset` cases in `tests/simulator-context-reset.test.mjs` | PASS |
+| Genuine train choice lost | Use the real train-pick control, reset at unchanged fix/time; previous picked identity is gone | `Reset discards a genuine explicit train choice without moving GPS or time` | PASS |
+| Mid-segment position and first checkpoint | Reset retains interpolated fix/time; Back returns to the last reached point, then becomes disabled at the first point | `Reset while moving keeps the interpolated fix; Back returns to the last reached checkpoint` | PASS |
+| Underground with no GPS | An actual selected ride is discarded without inventing a fresh station fix | `Reset underground loses the ride and does not fabricate a fresh station fix` | PASS |
+| Rewind after completion | Reopen a cold attempt, preserve earlier report, and remove future completion claims | `Back after completion reopens a cold attempt and retains prior failures and results` | PASS |
+| Stale async work | Interrupt actual Next while synthetic JSON waits; release old work and invoke a queued old timer; no new-context writes or clock movement | `Back interrupts sequential work, rejects stale JSON and cancels old interval callbacks` | PASS |
+| Independent switches | GPS-only/feed-only reset preserves source/time semantics; Back is unavailable; both disabled is a no-op | Independent-source and rough-GPS cases in the same file | PASS |
+| Accuracy and age | Preserve rough/stale fixes; wait for fresh evidence and allow subsequent normal verification | Manual/stale and rough-GPS cases in the same file | PASS |
+| Real state isolation | Real Follow and form drafts survive; transient simulated origin/choices are cleared | `Reset clears transient origin and Follow choices while Stop restores real drafts and saved journey` | PASS |
+| Assertion sensitivity and report epochs | Retained memory and wrong recovered identity fail; insufficient history stays inconclusive; old callbacks rejected; archived failures remain redacted; dropped-history limit disclosed | `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs` | PASS |
+| Real mobile controls | Eight complete route/direction/design recovery cases; six mobile/theme layouts each; Back and Reset are real pointer clicks; no page errors or live provider calls | `python3 tests/browser-simulator-context-reset.py` | PASS (8 cases, 48 layouts) |
+
+The focused app/report/assertion/compatibility run passed **78/78** before final review. The existing
+Chromium simulator check also passed its 36 design/theme/mobile combinations and eight journeys with
+all three speeds. These are executed checks, not a claim that playback alone proves recovery. Full
+committed-code CI and independent mutation review remain separate release gates.
+
 ## User-guide follow-up: checkpoint test synchronization
 
 The [user guide](simulator-user-guide.md) documents operation and practical limits. Its PR exposed a

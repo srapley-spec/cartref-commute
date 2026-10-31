@@ -645,7 +645,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 12:32 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 15:34 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -805,7 +805,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
 #simBar #journeyTimelineToggle{white-space:nowrap}
 #journeyDockNext{display:block;margin:2px 0 0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #journeyDockProgress{display:block;max-width:580px;width:100%;height:4px;margin:2px auto 4px;accent-color:var(--accent)}
-#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:1fr .7fr 1.25fr .55fr;gap:6px}
+#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:minmax(56px,1fr) minmax(64px,.9fr) 44px minmax(62px,1.25fr) 44px;gap:6px}
 #simBar .simDockActions button{padding:8px 5px;font-size:12px}
 body.simControlsVisible{padding-bottom:calc(var(--sim-dock-height,155px) + 16px)}
 body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
@@ -827,7 +827,8 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 
 
 </div>
-<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Travel stays sequential so the app sees the full journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
+<div id="journeyStateTools" hidden><button id="journeyResetState" type="button">Reset journey state</button><small id="journeyResetNotice">Reset forgets journey history at the current location and time.</small></div>
+<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Next travels sequentially. Back returns one step and clears journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
 <details id="journeyVerificationDetails"><summary>Expected and actual <span id="journeyVerificationCount"></span></summary><div id="journeyVerificationResults"><p>No checkpoint verification yet.</p></div></details>
 <details id="journeyResultsDetails"><summary>Journey results</summary><div id="journeyResultsSummary"><p>Results become available when a journey starts.</p></div><div class="simRow"><button id="journeyCopyResults" type="button">Copy results</button><button id="journeyExportResults" type="button">Export JSON</button></div><small id="journeyExportStatus" role="status"></small></details>
 <details id="simAdvanced"><summary>Advanced diagnostics</summary>
@@ -850,7 +851,7 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 <label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
 <label for="simAccuracyMode">Playback accuracy</label><select id="simAccuracyMode"><option value="realistic">Good fixes (12 m walking, 45 m train)</option><option value="poor">Poor indoor/train fixes (180–1400 m)</option><option value="manual">Use manual accuracy</option></select>
 <label for="simAccuracy">Manual location accuracy (metres)</label><input type="number" min="0" step="any" id="simAccuracy" value="12">
-<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset and restart</button></div>
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
 
@@ -863,7 +864,7 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 <div id="simBar" hidden role="group" aria-label="Simulator playback">
 <div class="simDockHeading"><span id="simActivity" role="status">Simulator ready</span><time id="journeyDockTime">—</time></div>
 <div class="simDockCurrent"><div class="simDockLocation"><strong id="journeyDockLocation">No journey started</strong><small id="journeyDockNext">Choose a journey to begin</small></div><button id="journeyVerificationBadge" type="button" title="Open checkpoint verification">Not checked</button><button id="journeyTimelineToggle" type="button" title="Inspect journey timeline">0 / 0</button></div><progress id="journeyDockProgress" value="0" max="1" aria-label="Journey progress"></progress>
-<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
+<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyBack" type="button" title="Back one checkpoint and forget journey state" aria-label="Back one checkpoint and forget journey state">Back</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
 </div>
 </div>
 
@@ -5323,6 +5324,8 @@ async function refreshLondon(){
 // otherwise heading to whichever end is further away. No time-of-day guessing.
 const LOC_HELP="Turn it on in iPhone Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, with Precise Location on. Or choose a direction above.";
 function onPosition(p){
+  // Raw observation only: cold simulator resets can reprocess it without inventing freshness.
+  state.lastPosition={coords:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,speed:p.coords.speed??null},timestamp:Math.min(Date.now(),p.timestamp||Date.now())};
   const here=[p.coords.latitude,p.coords.longitude], acc=Number.isFinite(p.coords.accuracy)&&p.coords.accuracy>=0?Math.round(p.coords.accuracy):null;
   const moved=!state.here || km(state.here,here)>0.2;
   state.here=here; state.locAcc=acc; state.locStatus="ok";
@@ -5607,6 +5610,33 @@ function evaluateSimulationCheckpoint(context={}) {
  const result=()=>({sessionId:c.sessionId??null,index:Number.isInteger(c.index)?c.index:null,point:typeof point==='string'?point:null,label,at:Number.isFinite(c.now)?c.now:null,
   status:assertions.some(a=>a.status==='FAIL')?'FAIL':assertions.length&&assertions.every(a=>a.status==='PASS')?'PASS':'INCONCLUSIVE',assertions});
  if(app.loading){unknown('pending-observation','Evaluate the settled application response','The application is still loading transport data');return result();}
+ if(c.recovery){
+  const recovery=c.recovery,memory=recovery.clearedMemory,values=memory&&Object.values(memory);
+  const cleared=values?.length&&values.every(value=>typeof value==='boolean')?values.every(value=>!value):null;
+  add('journey-context-cleared','Discard earlier train choices, rides, visits, direction and rendered journey evidence',cleared===null?'Clear-state observation unavailable':cleared?'Earlier journey evidence was cleared':'Surviving context: '+Object.keys(memory).filter(key=>memory[key]).join(', '),cleared,{contextCleared:cleared});
+  if(app.homeStation&&app.homeStation!=='LET'){unknown('recovery-profile','Inspect recovery under the selected starting-station profile',`The app is configured for ${app.homeStation}; these journey fixtures start at Letchworth. The selected profile is preserved.`);return result();}
+  if(app.fixAgeMs>90000){unknown('recovery-stale-location','Wait for fresh location evidence after losing journey state',`The retained observation is ${Math.round(app.fixAgeMs/1000)} seconds old; resetting did not make it fresh.`);return result();}
+  const wanted=config.direction==='return'||point==='office'&&/Office dwell/i.test(label)?'home':'office';
+  const recovered=recovery.observations>=2&&app.direction===wanted&&(app.journeyMemory?.trip||app.directionExplicit||app.train?.picked||app.ride)&&(!['rail','tube'].includes(c.mode)||c.mode==='rail'&&app.onLine||c.mode==='tube'&&app.ride)&&(point!=='barbican'||app.ride);
+  if(!recovered||!c.source?.gps||c.manualOverride||!recovery.atCheckpoint&&recovery.index===c.index){
+   if(!c.source?.gps)unknown('recovery-location-source','Observe recovery with the current real GPS','GPS is independent of the scenario; its actual inference remains visible');
+   else if(app.locStatus!=='ok'){
+    const chosenRide=app.journeyMemory?.tubeRide||app.journeyMemory?.tubePick;
+    add('recovery-no-fabricated-position','Do not invent a station or boarding without a usable fix or new passenger choice',`Location ${app.locStatus||'unknown'}; station ${app.atHub||'unknown'}; ride ${app.ride?'active':'unknown'}`,!app.atHub&&(!app.onLine||!!app.train?.picked)&&(!app.ride||!!chosenRide),{locStatus:app.locStatus||'unknown'});
+    unknown('recovery-location','Recover from a new usable location observation','Location is unavailable; earlier fixes and journey history are not replayed');
+   }else{
+    const precise=typeof app.locAcc==='number'&&app.locAcc<=250;
+    if(!precise)add('recovery-accuracy','Avoid a confident station from a rough fix',`Accuracy: ${app.locAcc??'unknown'} m; station: ${app.atHub||'unknown'}`,!app.atHub,{locAcc:app.locAcc});
+    const hub={kgx:'KGX',kxTube:'KGX',far:'ZFD',farTube:'ZFD'}[point];
+    if(precise&&point==='let'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-home-station','Recognise the configured home station from fresh GPS',app.atStation);
+    if(precise&&recovery.atCheckpoint&&!c.manualOverride&&hub&&c.mode!=='rail')add('recovery-station',`Recognise the current ${hub} station from fresh GPS`,app.atHub||'No station recognised',app.atHub===hub,{atHub:app.atHub||null});
+    if(precise&&point==='office'&&recovery.atCheckpoint&&!c.manualOverride)bool('recovery-office','Recognise the office geofence without a remembered trip',app.nearOffice);
+    if(precise&&point==='home'&&recovery.atCheckpoint&&!c.manualOverride&&app.hasConfiguredHome)bool('recovery-home','Recognise the configured home without a remembered trip',app.atHome);
+    unknown('recovery-history','Re-establish direction, boarding and service identity from new evidence',`History intentionally cleared. Direction: ${app.direction||'unknown'}; train: ${app.train?.serviceId||'unknown'}; Underground: ${app.ride?.vehicle||'unknown'}. Continue or use the real app’s normal choices.`);
+   }
+   return result();
+  }
+ }
  if(c.manualOverride){unknown('manual-observation','Verify a coherent scenario checkpoint','Advanced input changed the location or context; restart the scenario to restore checkpoint verification');return result();}
  if(!c.source?.gps){unknown('location-source','Observe scenario GPS through the real journey engine','GPS simulation is off; the real location is independent of this scenario');return result();}
  const scenarios=['normal','later-train','wrong-train','uncertain','delay','cancellation','platform-change','missed-connection','disruption','outage','gps-loss','low-accuracy','awaiting-location','permission-denied'];
@@ -5772,7 +5802,7 @@ function evaluateSimulationCheckpoint(context={}) {
 function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={}) {
  const limits={checkpoints:200,assertions:100,events:500,revisions:30,text:1200};
  const statuses=['PASS','FAIL','INCONCLUSIVE'];
- let report=null,redactions=[];
+ let report=null,redactions=[],previousAttempts=[],droppedAttempts=0;
  const finite=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
  const status=value=>statuses.includes(value)?value:'INCONCLUSIVE';
  const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\/*__SIMULATOR_CONTROLLER__*/');
@@ -5805,13 +5835,15 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   const out={direction:['outbound','return'].includes(value.direction)?value.direction:'outbound',route:['kgx','far'].includes(value.route)?value.route:'kgx',scenario:id(value.scenario,'normal'),speed:[1,5,20].includes(speed)?speed:1,startTime:finite(value.startTime),totalCheckpoints:Math.max(0,Math.min(limits.checkpoints,Math.trunc(finite(value.totalCheckpoints)||0))),sources:source(value.sources||value.source)};
   if(typeof value.accuracyMode==='string')out.accuracyMode=id(value.accuracyMode);
   if(typeof value.sessionId==='string'||finite(value.sessionId)!==null)out.sessionId=typeof value.sessionId==='string'?id(value.sessionId):value.sessionId;
+  if(Number.isInteger(value.initialCheckpoint))out.initialCheckpoint=Math.max(0,value.initialCheckpoint);
+  if(['back','reset'].includes(value.recoveryReason))out.recoveryReason=value.recoveryReason;
   return out;
  }
  function evidence(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return {};
   const out={},strings=['direction','view','expectedView','actualView','expectedDirection','actualDirection','serviceId','expectedServiceId','operator','from','to','atHub','locStatus','confidence','vehicle','expectedVehicle','line','lineId','stop','platform','point','accuracyMode','source','providerHealth'];
   const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs','stoppedAt','arrivalAt','clockNow'];
-  const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches'];
+  const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches','contextCleared'];
   for(const key of strings)if(typeof value[key]==='string')out[key]=id(value[key]);
   for(const key of numbers)if(finite(value[key])!==null)out[key]=value[key];
   for(const key of booleans)if(typeof value[key]==='boolean')out[key]=value[key];
@@ -5837,11 +5869,11 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  function snapshot(){
   if(!report)return null;
   // Sanitize again on read, so newly supplied private values also protect earlier observations.
-  return JSON.parse(JSON.stringify(report),(key,value)=>{
+  return JSON.parse(JSON.stringify({...report,...(droppedAttempts?{truncated:{...report.truncated,attempts:droppedAttempts}}:{}),...(previousAttempts.length?{previousAttempts}: {})}),(key,value)=>{
    if(typeof value!=='string')return value;
    // These are internally generated constants or strictly validated public enums, not user text.
    // A private place called Cartref must not alter the report format's fixed discriminator.
-   if(key==='kind'&&value==='cartref-commute-simulation'||key==='status'&&statuses.includes(value)||key==='route'&&['kgx','far'].includes(value)||key==='direction'&&['outbound','return'].includes(value))return value;
+   if(key==='recoveryReason'&&['back','reset'].includes(value)||key==='kind'&&value==='cartref-commute-simulation'||key==='status'&&statuses.includes(value)||key==='route'&&['kgx','far'].includes(value)||key==='direction'&&['outbound','return'].includes(value))return value;
    return text(value,'',key!=='serviceId'&&key!=='expectedServiceId'&&key!=='vehicle'&&key!=='expectedVehicle');
   });
  }
@@ -5849,8 +5881,18 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   return value&&typeof value==='object'&&report&&report.finishedAt===null&&(value.sessionId==null||report.config.sessionId==null||value.sessionId===report.config.sessionId);
  }
  function start(config={}){
+  previousAttempts=[];droppedAttempts=0;
   if(!config||typeof config!=='object')config={};
   report={schemaVersion:1,kind:'cartref-commute-simulation',startedAt:finite(config.startTime)??now(),finishedAt:null,reason:null,config:configuration(config),checkpoints:[],events:[],truncated:{checkpoints:0,assertions:0,events:0,revisions:0}};
+  return getReport();
+ }
+ function resetAttempt(config,{reason='reset',fromTime=now(),at=now()}={}){
+  if(report){
+   if(report.finishedAt===null){report.finishedAt=finite(fromTime)??now();report.reason=id(reason);}
+   previousAttempts.push(clone(report));
+   if(previousAttempts.length>10){previousAttempts.shift();droppedAttempts++;}
+  }
+  const history=previousAttempts,dropped=droppedAttempts;start(config);previousAttempts=history;droppedAttempts=dropped;report.startedAt=finite(at)??now();
   return getReport();
  }
  function recordCheckpoint(value={}){
@@ -5886,7 +5928,7 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  }
  function summary(){
   const rows=report?report.checkpoints:[],assertions=rows.flatMap(value=>value.assertions),count=(items,value)=>items.filter(item=>item.status===value).length;
-  return {completedCheckpoints:rows.length,totalCheckpoints:report?report.config.totalCheckpoints:0,passedAssertions:count(assertions,'PASS'),failedAssertions:count(assertions,'FAIL'),inconclusiveAssertions:count(assertions,'INCONCLUSIVE'),passedCheckpoints:count(rows,'PASS'),failedCheckpoints:count(rows,'FAIL'),inconclusiveCheckpoints:count(rows,'INCONCLUSIVE'),events:report?report.events.length:0,finished:!!report&&report.finishedAt!==null,reason:report?text(report.reason,null,false):null};
+  return {completedCheckpoints:rows.length,totalCheckpoints:report?report.config.totalCheckpoints:0,passedAssertions:count(assertions,'PASS'),failedAssertions:count(assertions,'FAIL'),inconclusiveAssertions:count(assertions,'INCONCLUSIVE'),passedCheckpoints:count(rows,'PASS'),failedCheckpoints:count(rows,'FAIL'),inconclusiveCheckpoints:count(rows,'INCONCLUSIVE'),events:report?report.events.length:0,...(previousAttempts.length?{previousAttemptCount:previousAttempts.length,droppedAttemptCount:droppedAttempts}:{}),finished:!!report&&report.finishedAt!==null,reason:report?text(report.reason,null,false):null};
  }
  function getReport(){const out=snapshot();if(out)out.summary=summary();return out;}
  function serialize(space=2){return JSON.stringify(getReport(),null,[0,1,2,3,4].includes(space)?space:2);}
@@ -5895,20 +5937,20 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   if(report.finishedAt===null){report.finishedAt=finite(at)??now();report.reason=id(reason,'completed');}
   return getReport();
  }
- return {start,recordCheckpoint,recordEvent,finish,summary,getReport,serialize,setPrivateValues};
+ return {start,resetAttempt,recordCheckpoint,recordEvent,finish,summary,getReport,serialize,setPrivateValues};
 }
 
 // Simulator orchestration. GPS enters the normal browser-position handler; no train identity is injected.
-function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onStop=()=>{}}) {
+function createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock,invalidateSources=()=>{},onResetPresentation=()=>{},onStop=()=>{}}) {
 const $=id=>document.getElementById(id);
-const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,sessionId:0,verification:{current:null,results:[],pending:false}};
+const sim={active:false,timer:null,baseline:null,index:0,elapsed:0,watchGeneration:0,startTime:null,config:null,pendingRestart:false,manualOverride:false,stepping:false,recovery:null,sessionId:0,verification:{current:null,results:[],pending:false}};
 const listeners=new Set();let playbackGeneration=0;
 const subscribe=fn=>{listeners.add(fn);return ()=>listeners.delete(fn);};
 function notify(type,extra={}){for(const fn of [...listeners])fn({type,...extra});}
 function getView(){const checkpoints=route(),config=getScenario(),summary=api.reporter?.summary()||null;
  const report=!sim.active&&summary?.finished?api.reporter.getReport():null;
  const historicalTimeline=report?{config:report.config,startTime:report.config.startTime,checkpoints:route(report.config),index:Math.max(-1,...report.checkpoints.map(item=>item.index)),results:report.checkpoints,reason:report.reason,finished:true}:null;
- return {historicalTimeline,diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
+ return {historicalTimeline,recovery:sim.recovery,canBack:canGoBack(),diagnostics:api.diagnostics?.()||{},enabled:!!(S().simulatorEnabled||S().simulatedFeeds),active:sim.active,playing:sim.timer!==null||sim.stepping,stepping:sim.stepping,index:sim.index,elapsed:sim.elapsed,startTime:sim.startTime,clockNow:clock.now(),config,draftConfig:getDraftScenario(),sources:{gps:!!S().simulatorEnabled,feeds:!!S().simulatedFeeds},checkpoints,location:sim.manualOverride?'Manual location':(sim.timer!==null||sim.stepping)&&checkpoints[sim.index+1]?'Towards '+checkpoints[sim.index+1].label:checkpoints[Math.min(sim.index,checkpoints.length-1)]?.label,pendingRestart:sim.pendingRestart,manualOverride:sim.manualOverride,verification:sim.verification,summary,panelVisible:!$("simPanel").hidden};}
 
 const {points,routes,railLine}=createJourneySimulationScenarioDefinitions();
 const gps=createSimulatedGPSProvider({now:()=>clock.now(),onPosition});
@@ -5941,7 +5983,7 @@ function pause(){stopTimer();status('Paused');notify('pause');}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
- for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
+ for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','lastPosition','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
 function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
@@ -5964,6 +6006,7 @@ function fix(lat,lon,speed=0,acc=Number($("simAccuracy").value)){
  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||!Number.isFinite(acc)||acc<0){status('Invalid coordinates or accuracy');return;}
  if(!start())return;
  $("simLat").value=String(lat);$("simLon").value=String(lon);
+ if(sim.recovery)sim.recovery.observations++;
  gps.emit(lat,lon,acc,speed);
  $("simFixStatus").textContent=`GPS ${lat.toFixed(5)}, ${lon.toFixed(5)} ±${acc} m`;
 }
@@ -5980,7 +6023,7 @@ function checkpoint(){const r=route(),p=r[sim.index];$("simCheckpoint").textCont
 function restart(){
  stopTimer();const draft=getDraftScenario(),t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return false;}
  if(!start())return false;
- sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
+ sim.config={...draft,startTime:t};sim.startTime=t;sim.pendingRestart=false;sim.manualOverride=false;sim.recovery=null;sim.elapsed=0;sim.index=0;sim.sessionId++;sim.verification={current:null,results:[],pending:false};
  clearJourneyMemory();resetContext();syncClock();notify('start');emit(route()[0]);checkpoint();refresh({force:true});return true;
 }
 // Follow the same approximate corridor as the profile rather than cutting across the bends.
@@ -5995,7 +6038,7 @@ function tick(stepSeconds){const r=route(),p=r[sim.index],next=r[sim.index+1];if
  else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,travellingRail,railLine),travellingRail?25:stationary?0:1.4,accuracy(next));
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
-function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
+function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();const generation=playbackGeneration;sim.timer=setInterval(()=>{if(sim.active&&generation===playbackGeneration)tick();},1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
 async function nextCheckpoint(){
  if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}
  if(sim.index>=route().length-1)return;
@@ -6009,14 +6052,41 @@ async function nextCheckpoint(){
  }
  if(generation===playbackGeneration){sim.stepping=false;notify('playback');}
 }
-function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();resetContext(false);onStop();$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
+function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;sim.recovery=null;clock.stop();resetContext(false);onStop();$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
+function canGoBack(){return !!(sim.active&&sim.startTime!==null&&!sim.pendingRestart&&S().simulatorEnabled&&S().simulatedFeeds&&(sim.index>0||sim.elapsed>route()[0].at));}
+function resetJourneyState({back=false}={}){
+ if(!S().simulatorEnabled&&!S().simulatedFeeds)return false;
+ if(sim.pendingRestart||back&&!canGoBack())return false;
+ const observation=state.lastPosition?JSON.parse(JSON.stringify(state.lastPosition)):null,locationStatus=state.locStatus;
+ const fromIndex=sim.index,fromTime=clock.now(),wasManual=sim.manualOverride;
+ stopTimer();if(!start())return false;
+ if(back){if(sim.elapsed===route()[sim.index].at)sim.index--;sim.elapsed=route()[sim.index].at;}
+ const atCheckpoint=(back||!wasManual)&&sim.startTime!==null&&sim.elapsed===route()[sim.index].at;
+ sim.sessionId++;sim.manualOverride=false;sim.verification={current:null,results:[],pending:false};
+ sim.recovery={reason:back?'back':'reset',index:sim.index,observations:0,atCheckpoint};
+ clearJourneyMemory();
+ state.saved.dirMode='auto';state.saved.view='now';
+ resetContext(false);onResetPresentation();
+ if(back)syncClock();
+ // New observation/report epochs precede GPS: no future output may seed fresh inference.
+ notify('context-reset',{reason:sim.recovery.reason,fromIndex,fromTime});
+ if(back){sim.manualOverride=false;const p=route()[sim.index];emit(p,p.mode==='rail'?25:0);}
+ else if(observation&&locationStatus==='ok'){
+  sim.recovery.observations++;onPosition(observation);
+ }else if(locationStatus==='denied'||locationStatus==='unavailable')onPositionError?.({code:locationStatus==='denied'?1:2});
+ else {state.locStatus='pending';state.autoSrc='finding your location…';render();}
+ if(sim.startTime!==null)checkpoint();
+ status((back?'Back one checkpoint. ':'')+'Journey state cleared; inferring afresh here.');
+ refresh({force:true});notify('context-ready');return true;
+}
+function previousCheckpoint(){return resetJourneyState({back:true});}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
  $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',pause);$("simExit").addEventListener('click',simStop);
  $("simJump").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;const p=points[$("simPreset").value];if(p)fix(...p);notify('manual');status('Manual GPS fix applied');});
  $("simApply").addEventListener('click',()=>{stopTimer();sim.manualOverride=true;fix(Number($("simLat").value),Number($("simLon").value));notify('manual');});
- $("simClear").addEventListener('click',()=>{stopTimer();if(start()){const t=startTime();if(!Number.isFinite(t)){status('Invalid start date/time');return;}sim.startTime=t;sim.config={...getDraftScenario(),startTime:t};sim.manualOverride=true;sim.sessionId++;clearJourneyMemory();resetContext();sim.index=0;sim.elapsed=0;syncClock();render();status('Journey context cleared');notify('manual');}});
+ $("simClear").addEventListener('click',()=>{if(restart()){sim.manualOverride=true;notify('manual');status('Journey state cleared and restarted at the first checkpoint.');}});
  for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{
   stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';
   sim.pendingRestart=!!sim.config;status('Selection changed. Press Restart.');notify('configuration');
@@ -6024,14 +6094,14 @@ function simSetup(){
  $("simSpeed").addEventListener('change',()=>{notify('speed');updateTime();});
  updateTime();
 }
-const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
+const api={sim,simSetup,simStop,getScenario,getDraftScenario,route,tick,restart,pause,continuePlayback,nextCheckpoint,previousCheckpoint,resetJourneyState,resetContext,updateTime,setPanelVisible,getView,subscribe,notify,reporter:null};
 return api;
 }
 
 // Verification/report orchestration observes the normal web shell after its refresh settles.
 // It does not decide a route or write the application's journey state.
 function createJourneySimulationSession({simulator,reporter,evaluate,readActual,settle,privateValues=()=>[],document}){
- let request=0,lastObserved=null,previousCheckpoint=null,queuedRender=false;
+ let request=0,lastObserved=null,previousCheckpoint=null,queuedRender=false,clearedMemory=null;
  const privateHistory=new Set();
  function refreshPrivacy(){for(const value of privateValues())if(typeof value==='string'&&value)privateHistory.add(value);reporter.setPrivateValues([...privateHistory]);}
  const originalGet=reporter.getReport,originalSerialize=reporter.serialize;
@@ -6042,7 +6112,7 @@ function createJourneySimulationSession({simulator,reporter,evaluate,readActual,
  simulator.reporter=reporter;
  function context(view=simulator.getView()){
   const checkpoint=view.checkpoints[view.index]||{};
-  return {sessionId:sim.sessionId,index:view.index,point:checkpoint.point,label:checkpoint.label,mode:checkpoint.mode,now:view.clockNow,elapsed:view.elapsed,config:view.config,source:view.sources,manualOverride:view.manualOverride,app:readActual(),previous:previousCheckpoint};
+  return {sessionId:sim.sessionId,index:view.index,point:checkpoint.point,label:checkpoint.label,mode:checkpoint.mode,now:view.clockNow,elapsed:view.elapsed,config:view.config,source:view.sources,manualOverride:view.manualOverride,recovery:view.recovery?{...view.recovery,clearedMemory}:null,app:readActual(),previous:previousCheckpoint};
  }
  function event(type,message,evidence={}){refreshPrivacy();const v=simulator.getView();reporter.recordEvent({sessionId:sim.sessionId,type,message,evidence,index:v.index,point:v.checkpoints[v.index]?.point,at:v.clockNow});}
  function publish(result){
@@ -6071,11 +6141,21 @@ function createJourneySimulationSession({simulator,reporter,evaluate,readActual,
   if(lastObserved){for(const key of ['view','direction','serviceId','vehicle','followedServiceId','followState','errors'])if(lastObserved[key]!==observation[key])event('inference',`${key} changed from ${lastObserved[key]||'unknown'} to ${observation[key]||'unknown'}`,{view:app.view,serviceId:app.train?.serviceId,vehicle:app.ride?.vehicle});}
   lastObserved=observation;
  }
- const unsubscribe=simulator.subscribe(({type,reason})=>{
+ const unsubscribe=simulator.subscribe(({type,reason,fromTime,fromIndex})=>{
   if(type==='start'){
-   request++;lastObserved=null;previousCheckpoint=null;const v=simulator.getView();
+   request++;lastObserved=null;previousCheckpoint=null;clearedMemory=null;const v=simulator.getView();
    privateHistory.clear();refreshPrivacy();reporter.start({...v.config,sessionId:sim.sessionId,sources:v.sources,speed:Number(document.getElementById('simSpeed').value),accuracyMode:document.getElementById('simAccuracyMode').value,totalCheckpoints:v.checkpoints.length});
    event('started','Journey simulation started');
+  } else if(type==='context-reset'){
+   request++;lastObserved=null;previousCheckpoint=null;queuedRender=false;
+   clearedMemory=readActual().journeyMemory||null;
+   const v=simulator.getView();refreshPrivacy();
+   if(v.startTime!==null){
+    reporter.resetAttempt({...v.config,sessionId:sim.sessionId,sources:v.sources,speed:Number(document.getElementById('simSpeed').value),accuracyMode:document.getElementById('simAccuracyMode').value,totalCheckpoints:v.checkpoints.length,initialCheckpoint:v.index,recoveryReason:reason},{reason,fromTime,at:v.clockNow});
+    event('context-reset',`${reason==='back'?'Back from checkpoint '+(fromIndex+1)+'. ':''}Journey state deliberately discarded; cold recovery at checkpoint ${v.index+1}`);
+   }
+  } else if(type==='context-ready'){
+   if(sim.active&&sim.startTime!==null)void verifyCurrentCheckpoint({refresh:true});
   } else if(type==='checkpoint'){
    event('checkpoint','Reached '+simulator.getView().checkpoints[sim.index]?.label);
    void verifyCurrentCheckpoint({refresh:true});
@@ -6182,6 +6262,24 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
   panel.append(element('p',`${summary.passedAssertions||0} assertions passed · ${summary.failedAssertions||0} failed · ${summary.inconclusiveAssertions||0} inconclusive`));
   if(summary.finished)panel.append(element('p',summary.reason==='completed'?'Journey complete. Review failures and inconclusive results before drawing a conclusion.':`Session ended: ${summary.reason||'stopped'}.`));
   const report=reporter&&reporter.getReport?reporter.getReport():null,events=report?.events||[];
+  if(report?.config?.recoveryReason)panel.append(element('p',`Fresh inference attempt from checkpoint ${(report.config.initialCheckpoint||0)+1}. Earlier journey choices were discarded.`));
+  if(report?.previousAttempts?.length){
+   const history=element('details');history.append(element('summary',`${report.previousAttempts.length} previous attempt(s)`));
+   for(const previous of report.previousAttempts){
+    const attempt=element('details'),failures=previous.checkpoints.flatMap(row=>row.assertions).filter(row=>row.status==='FAIL').length;
+    attempt.append(element('summary',`${localTime(previous.startedAt)} → ${localTime(previous.finishedAt)} · ${previous.checkpoints.length} checkpoint(s) · ${failures} failed assertion(s)`));
+    for(const checkpoint of previous.checkpoints){
+     const item=element('details');item.append(element('summary',`${checkpoint.label} · ${checkpoint.status}`));
+     for(const assertion of checkpoint.assertions)item.append(element('p',`${assertion.status} · Expected: ${assertion.expected}\nActual: ${assertion.actual}`));
+     if(checkpoint.actualDisplay?.mainCard)item.append(element('p',`What the real app showed: ${checkpoint.actualDisplay.mainCard}`));
+     if(checkpoint.actualDisplay?.followCard)item.append(element('p',checkpoint.actualDisplay.followCard));
+     attempt.append(item);
+    }
+    history.append(attempt);
+   }
+   panel.append(history);
+  }
+  if(report?.truncated?.attempts)panel.append(element('p',`${report.truncated.attempts} older attempt(s) exceeded the history limit. Export results before further resets.`));
   if(events.length){const details=element('details');details.append(element('summary',`${events.length} journey events`));const list=element('ol');events.forEach(e=>list.append(element('li',`${localTime(e.at)} · ${e.label||e.message||e.type||'Journey event'}`)));details.append(list);panel.append(details);}
  }
  function render(v=view()){
@@ -6197,6 +6295,10 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
   const play=$('journeyPlay')||$('simAdvance');if(play){play.setAttribute('aria-label',v.playing?'Pause simulation':'Play to the next checkpoint');}
   const complete=started&&index>=points.length-1;
   $('journeyNext').disabled=!!(busy||v.stepping||v.verification?.pending);text('journeyNext',complete?'Results':'Next checkpoint');$('journeyNext').setAttribute('aria-label',complete?'Open the journey summary':'Continue sequentially to the next checkpoint');
+  $('journeyBack').disabled=!!(busy||!v.canBack);
+  $('journeyStateTools').hidden=!v.active;
+  $('journeyResetState').disabled=!!(busy||v.pendingRestart||!v.sources?.gps&&!v.sources?.feeds);$('simClear').disabled=!!(busy||!v.sources?.gps&&!v.sources?.feeds);
+  text('journeyResetNotice',v.recovery?'Journey state cleared. The app is inferring afresh; previous attempts remain in Results.':'Reset forgets journey history at the current location and time.');
   if(v.sources){$('simAdvancedGPS').checked=!!v.sources.gps;$('simAdvancedFeeds').checked=!!v.sources.feeds;}
   text('journeyStart',v.active?'Restart journey':'Start journey');$('journeyStart').disabled=busy;
   text('journeySourceDiagnostics',JSON.stringify({sources:v.sources||{},clock:localDate(v.clockNow),playing:!!v.playing,checkpoint:started?index+1:null,pendingRestart:!!v.pendingRestart,verificationPending:!!v.verification?.pending,actual:v.diagnostics||{}},null,2));
@@ -6222,6 +6324,8 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
  listen('simAdvance','click',()=>{const v=view();if(!v.active&&!v.sources?.gps&&!v.sources?.feeds){startJourney();return;}if(v.playing)simulator.pause();else if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1)simulator.restart();else simulator.continuePlayback();});
  listen('journeyNext','click',async()=>{const v=view();if(!v.active){await startJourney();return;}if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1){inspect('journeyResultsDetails');return;}if(simulator.nextCheckpoint)await simulator.nextCheckpoint();else simulator.continuePlayback();render();});
  listen('journeyTimelineToggle','click',()=>inspect('journeyTimelineDetails'));listen('journeyVerificationBadge','click',()=>inspect('journeyVerificationDetails'));
+ listen('journeyBack','click',()=>{simulator.previousCheckpoint();render();});
+ listen('journeyResetState','click',()=>{simulator.resetJourneyState();render();});
  listen('journeyCopyResults','click',copyResults);listen('journeyExportResults','click',exportResults);
  for(const id of ['simAdvancedGPS','simAdvancedFeeds'])listen(id,'change',async()=>{try{await onSetSources({gps:$('simAdvancedGPS').checked,feeds:$('simAdvancedFeeds').checked});$('journeySetupError').hidden=true;}catch(error){text('journeySetupError',error?.message||'Could not change simulation sources.');$('journeySetupError').hidden=false;}render();});
  const unsubscribe=typeof simulator.subscribe==='function'?simulator.subscribe(()=>render()):null;
@@ -6230,7 +6334,10 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
  return {open,render,setMode,copyResults,exportResults,destroy(){listeners.forEach(remove=>remove());if(typeof unsubscribe==='function')unsubscribe();resize?.disconnect();win.removeEventListener('resize',measure);}};
 }
 
-const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
+const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onResetPresentation:()=>{
+ state.rendered=null;state.pendingView=null;state.journeyLivePresentation=null;state.signalDisruptionItems=[];signalProgressMemory=null;
+ state.origin='';document.getElementById('originInput').value='';state.startChoose=false;
+},onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
 simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,direction:state.autoDir||null,railSource:state.railSource||null,onLine:!!state.onLine,atHub:state.atHub||null,locationStatus:state.locStatus||null,accuracy:state.locAcc??null,trainServiceId:state.rendered?.train?.t?.serviceId||null,trainConfidence:state.rendered?.train?.confidence||null,tubeVehicle:state.rendered?.ride?.vehicle||null,loading:!!state.loading,lastDataAt:state.fetchedAt||null,requests:requestCounts()});
@@ -6238,10 +6345,11 @@ simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,directio
 // Simulator integration observes normal rendering; no extra inference calls are made for verification.
 function readSimulationActual(){
  const model=state.rendered||{},m=model.train,r=model.ride;
+ const journeyMemory={pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!state.saved.viewOverride};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
- return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+ return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,directionExplicit:['home','office'].includes(state.saved.dirMode),locStatus:state.locStatus,locAcc:state.locAcc,fixAgeMs:Number.isFinite(state.lastFixAt)?Math.max(0,Date.now()-state.lastFixAt):null,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
   ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
-  boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  homeStation:HOME,journeyMemory,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
   errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
   followText:!$("#followPanel").hidden?$("#followPanel").textContent.replace(/\s+/g,' ').trim():'',heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
 }
