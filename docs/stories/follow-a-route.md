@@ -97,6 +97,7 @@ not a claim that every criterion has already passed release verification. See [S
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
+- Every scenario in tests/follow-main-regression.test.mjs runs twice: Panda, then Signal ("(Signal)" in the name; Sam, 31 Oct). In Signal, tapping Arrive by with Follow off saves Signal's own view override (its design), which Panda doesn't.
 - Implementation tests include the pure engine, real built-page integration and independent whole-journey probes.
   Release verification and final review are pending. Required evidence includes stable arrival despite
   re-ranking, an explicit reason for live changes, cancellation/missed recovery without automatic replacement,

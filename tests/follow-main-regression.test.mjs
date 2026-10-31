@@ -5,17 +5,20 @@ import assert from 'node:assert/strict';
 import { createApp, closeAll, json, sleep, parseJourneyUrl } from './harness.mjs';
 import { services, darwinResponder, tflResponder, serviceDetailsResponder } from './golden/feeds.mjs';
 after(closeAll);
+const scenarios=[];const scenario=(name,fn)=>scenarios.push([name,fn]);
 const DAY='2026-11-03',MIN=60000,T=h=>new Date(`${DAY}T${h}:00`).getTime();
 const OFFICE=[51.5139,-.071],ALD=[51.5142,-.0755],KX=[51.5309,-.1236];
 const RDM={provider:'rdm',rdmKey:'test',rdmBase:'https://darwin.test/LDBWS/api/20220120',rdmSdBase:'https://darwin.test/SD/LDBWS/api/20220120',tflKey:'test'};
 const plain=x=>JSON.parse(JSON.stringify(x));
 const status=(id,name)=>({id,name,lineStatuses:[{statusSeverity:10,statusSeverityDescription:'Good Service'}]});
 async function settle(a){for(let n=0;n<100;n++){await sleep(10);if(!a.c.state.loading)return;}assert.fail('fixture refresh did not finish');}
+// Every scenario runs in both designs (Panda and Signal; Sam, 31 Oct: everything recent must work in both).
+let SIGNAL=false;
 async function open({now=T('18:19'),geo=OFFICE,enabled=true,saved={},extra}={}){
  let current=now;const svcs=[...services('2026-11-02'),...services(DAY),...services('2026-11-04')];
  const dar=darwinResponder(svcs,()=>current),tfl=tflResponder(svcs),details=serviceDetailsResponder(svcs,()=>current);
  const a=await createApp({now,geo:geo?{coords:{latitude:geo[0],longitude:geo[1],accuracy:10}}:null,
-  settings:{...RDM,...(enabled?{followRoute:true}: {})},saved:{dirMode:'home',...saved},settle:650,
+  settings:{...RDM,...(SIGNAL?{signal:true}:{}),...(enabled?{followRoute:true}: {})},saved:{dirMode:'home',...saved},settle:650,
   route:u=>{
    const response=extra?.(u,current);if(response!==undefined)return response;
    if(/darwin\.test\/SD\//.test(u)){const r=details(u);return r?json(r):json({},404);}
@@ -48,7 +51,7 @@ async function tubeApp(target){
  return {a,r};
 }
 
-test('main Follow preservation: 18:48 cancellation from the office offers an explicit best way on without changing the chosen arrival',async()=>{
+scenario('main Follow preservation: 18:48 cancellation from the office offers an explicit best way on without changing the chosen arrival',async()=>{
  const a=await open({now:T('18:10')}),r=choose(a,'18:48');
  assert.equal(a.c.state.followUpdate.status,'on-track');
  const selectedButtons=[...a.d.querySelectorAll('[data-follow]')].filter(b=>b.dataset.follow===r.id);
@@ -64,7 +67,7 @@ test('main Follow preservation: 18:48 cancellation from the office offers an exp
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('main Follow preservation: reopening retains selection, a seven minute delay is explained, Seen persists and the original arrival stays visible',async()=>{
+scenario('main Follow preservation: reopening retains selection, a seven minute delay is explained, Seen persists and the original arrival stays visible',async()=>{
  let a=await open(),r=choose(a,'18:48');const saved=plain(a.c.state.saved);a.close();
  a=await open({now:T('18:20'),saved});assert.equal(a.c.state.saved.followRoute.id,r.id);
  currentTrain(a,r).forEach(t=>{t.arr+=7*MIN;t.arrLate=7;});a.c.render();
@@ -74,7 +77,7 @@ test('main Follow preservation: reopening retains selection, a seven minute dela
  const off=await open({enabled:false});assert.equal(off.d.querySelectorAll('[data-follow]').length,0);off.close();
 });
 
-test('main Follow preservation: a slow 19:06 route offers only five minute gains, remembers refusal, reports missed and accepts I am on it',async()=>{
+scenario('main Follow preservation: a slow 19:06 route offers only five minute gains, remembers refusal, reports missed and accepts I am on it',async()=>{
  const a=await open(),r=choose(a,'19:06');const better=a.c.state.followUpdate.alternative;assert.ok(better);assert.ok(r.expectedArrival-better.arrive>=5*MIN);
  const declined=a.w.CommuteCore.followServiceKey(better);a.d.querySelector('[data-follow-action="dismiss"]').click();a.c.render();
  assert.ok(a.c.state.saved.followRoute.dismissedAlternatives.includes(declined));assert.notEqual(a.c.state.followUpdate.alternative&&a.w.CommuteCore.followServiceKey(a.c.state.followUpdate.alternative),declined);
@@ -84,7 +87,7 @@ test('main Follow preservation: a slow 19:06 route offers only five minute gains
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('main Follow preservation: the selected Tube vehicle live arrival determines whether the 17:18 connection survives',async()=>{
+scenario('main Follow preservation: the selected Tube vehicle live arrival determines whether the 17:18 connection survives',async()=>{
  let eta=T('16:56');const {a,r}=await tubeApp(()=>json([predicted('c46',eta)]));
  assert.match(a.text('#followPanel'),/Live arrival for your Tube vehicle/);assert.equal(a.c.state.followUpdate.status,'on-track');
  eta=T('17:14');await a.c.refresh({force:true});await settle(a);
@@ -92,7 +95,7 @@ test('main Follow preservation: the selected Tube vehicle live arrival determine
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('main Follow preservation: planning selected at the office yields to a new station situation and after twenty minutes while moving',async()=>{
+scenario('main Follow preservation: planning selected at the office yields to a new station situation and after twenty minutes while moving',async()=>{
  const a=await open({now:T('18:00')});a.d.querySelector('[data-view="by"]').click();await settle(a);
  assert.equal(a.c.state.presentation.mode,'plan');await a.fix(OFFICE,T('18:10'));assert.equal(a.c.state.presentation.mode,'plan');
  await a.fix(KX,T('18:15'));assert.equal(a.c.state.presentation.mode,'auto');assert.notEqual(a.c.state.presentation.view,'plan-by');
@@ -102,7 +105,7 @@ test('main Follow preservation: planning selected at the office yields to a new 
  const off=await open({now:T('18:00'),enabled:false});off.d.querySelector('[data-view="by"]').click();await settle(off);await off.fix(KX,T('18:15'));assert.equal(off.c.state.saved.view,'by');off.close();
 });
 
-test('main Follow preservation: not-yet-loaded data and direction changes cannot invent a missed train; cancelled rows are not followable',async()=>{
+scenario('main Follow preservation: not-yet-loaded data and direction changes cannot invent a missed train; cancelled rows are not followable',async()=>{
  const a=await open(),r=choose(a,'18:48'),savedBoards=a.c.state.boards;
  a.c.state.boards=null;a.c.render();assert.notEqual(a.c.state.followUpdate.status,'missed');assert.equal(a.c.state.saved.followRoute.id,r.id);
  a.c.state.boards=savedBoards;a.d.querySelector('[data-dir="office"]').click();await settle(a);assert.equal(a.d.querySelector('#followPanel').hidden,true,'the opposite-direction journey is not the current journey');
@@ -114,7 +117,7 @@ test('main Follow preservation: not-yet-loaded data and direction changes cannot
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('main Follow preservation: another vehicle, wrong destination stop, stale or failed predictions use the ride-time fallback',async()=>{
+scenario('main Follow preservation: another vehicle, wrong destination stop, stale or failed predictions use the ride-time fallback',async()=>{
  let fail=false;const {a,r}=await tubeApp(()=>fail?json({},500):json([predicted('c99',T('16:50')),predicted('c46',T('16:57'))]));
  const live=a.c.followedTubeArrival(r,T('16:48'));assert.ok(live);assert.equal(live.arrival,T('16:57'));
  fail=true;a.at(T('16:52'));await a.c.refresh({force:true});await settle(a);
@@ -125,20 +128,23 @@ test('main Follow preservation: another vehicle, wrong destination stop, stale o
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('main Follow preservation: confirmed boarding prevents better offers, while feature off ignores saved follow and makes no extra Tube requests or view writes',async()=>{
+scenario('main Follow preservation: confirmed boarding prevents better offers, while feature off ignores saved follow and makes no extra Tube requests or view writes',async()=>{
  const a=await open({now:T('18:10')}),r=choose(a,'19:06');freshRender(a,T('19:15'));a.d.querySelector('[data-follow-action="boarded"]').click();
  assert.equal(a.c.state.followUpdate.alternative,null);assert.notEqual(a.c.state.followUpdate.status,'missed');a.close();
  const off=await open({now:T('16:30'),geo:null,enabled:false,saved:{followRoute:r},extra:u=>/940GZZLUALD\/Arrivals/.test(u)?json(aldgateFeed()):undefined});
  await off.fix(ALD,T('16:44'));const button=off.d.querySelector(`[data-tubepick^="ALD|${T('16:46')}|Circle"]`);assert.ok(button);button.click();off.at(T('16:48'));await off.c.refresh({force:true});await settle(off);
  assert.ok(off.c.homeRide(T('16:48')));assert.equal(off.d.querySelector('#followPanel').hidden,true);
  assert.equal(off.calls.filter(u=>/940GZZLUKSX\/Arrivals|940GZZLUFCN\/Arrivals/.test(u)).length,0);
- off.d.querySelector('[data-view="by"]').click();await settle(off);assert.equal(off.c.state.saved.viewOverride,undefined);assert.equal(off.c.state.saved.viewAt,undefined);assert.equal(off.c.state.saved.viewKey,undefined);
+ off.d.querySelector('[data-view="by"]').click();await settle(off);if(!SIGNAL)assert.equal(off.c.state.saved.viewOverride,undefined);assert.equal(off.c.state.saved.viewAt,undefined);assert.equal(off.c.state.saved.viewKey,undefined);
  assert.deepEqual(off.errors,[]);off.close();
 });
 
-test('main Follow preservation: a planning pin survives nineteen minutes at a station and expires at twenty',async()=>{
+scenario('main Follow preservation: a planning pin survives nineteen minutes at a station and expires at twenty',async()=>{
  const a=await open({now:T('18:00')});await a.fix(KX,T('18:00'));a.d.querySelector('[data-view="at"]').click();await settle(a);
  await a.fix(KX,T('18:19'));assert.equal(a.c.state.presentation.mode,'plan');assert.equal(a.c.state.presentation.view,'plan-at');
  await a.fix(KX,T('18:20')+1000);assert.equal(a.c.state.presentation.mode,'auto');assert.notEqual(a.c.state.presentation.view,'plan-at');
  assert.deepEqual(a.errors,[]);a.close();
 });
+
+for(const signal of [false,true])for(const [name,fn] of scenarios)
+ test(`${name}${signal?' (Signal)':''}`,async()=>{SIGNAL=signal;try{await fn();}finally{SIGNAL=false;}});
