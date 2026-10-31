@@ -27,8 +27,13 @@ shouldn't turn round the moment GPS puts you near it. 30 Oct 10:16: at his desk 
   (use "To office"). Saved as `officeNearSince`.
 - Location denied: the app says so and offers a manual choice, which works.
 - Missing GPS accuracy means unknown, not perfect.
+- **Signal diagnostic (Sam, 31 Oct):** where the existing inference thinks the user is remains visible outside
+  Journey options, including source/accuracy and unavailable or old-fix qualifications. A manual direction
+  choice does not conceal this diagnostic or make it claim that location established the direction. This is
+  presentation of existing evidence; it must not restart location, request new permission or alter inference.
 
 ## Tests
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: manual direction keeps location diagnostics visible without restarting location"
 - tests/core/situation.test.mjs: "inferDirection: setting off, arriving home, after the office, mid-journey, and remembering the trip"
 - tests/rules.test.mjs: "Direction: nearest end when there's no trip; a trip keeps its direction for 3 hours"
 - tests/rules.test.mjs: "Coming home: near Letchworth stays 'home' (Nearly home) for 3 hours after heading home; next morning it's work again"

@@ -30,10 +30,19 @@ delays shown as expected times, coloured.
   timetabled time is never struck through: a missed train says "Can't make it" instead.
 - The arrival is one expected time (train + tube + walk); no timetabled door-to-door arrival exists to show.
 - **Leave mode (at home or the office):** unchanged. Big Leave → Arrive; the train line reads "07:00 exp 07:03".
+- **Signal shared columns (Sam, 31 Oct):** the primary answer, Next best and complete board share one set of
+  horizontal anchors. Train/Leave is left aligned, Expected is centred at the page's time-grid centre, and
+  destination arrival is right aligned. Planning reserves the middle slot without inventing an Expected
+  column. Next best sits above the time grid, and Follow/service metadata occupies its own row. At enlarged
+  text sizes, preserve the semantic order and readable reflow without overlaps or clipped times.
 - At Letchworth or on the way there, refresh every 30 s.
 - Elsewhere, automatic refreshes no more often than every 30 s; live boards each time, timetable reused for 5 min.
 
 ## Tests
+Signal's cross-card/row column geometry and enlarged-text reflow are checked in
+[browser-signal-journey-clarity.py](../../tests/browser-signal-journey-clarity.py); pure/page assertions below retain
+the departure semantics independently of CSS.
+
 - tests/rules.test.mjs: "Automatic refreshes: none within 30 s; after that, live boards again (timetable reused for 5 min)"
 - tests/core/refresh.test.mjs: "refreshPlan: office tubes going home; line status reused 2 min, National Rail status 5 min; at most every 30 s"
 - tests/rules.test.mjs: "At Letchworth station a late train shows Train and Expected side by side, coloured by status band; refreshes every 30 s"

@@ -6,7 +6,7 @@ export interface FollowTubeRequest {
   hub: string;
   stopId: string;
   lineId?: string;
-  direction: 'eastbound' | 'westbound';
+  direction: 'eastbound' | 'westbound' | 'northbound' | 'southbound';
   now: number;
   fetchedAt: number;
   /** Existing route segments supply the time from the Tube platform to the chosen rail train. */
@@ -30,7 +30,7 @@ const parsedTime = (v: unknown): number | null => {
 
 /** Accept raw recorded TfL predictions or the existing arrival adapter's normalized records. */
 export function followTubeArrival(predictions: unknown, i: FollowTubeRequest): FollowTubeArrival | null {
-  if (!Array.isArray(predictions) || !i.vehicle || !i.hub || !i.stopId || !['eastbound','westbound'].includes(i.direction) || !finite(i.now) || !finite(i.fetchedAt) ||
+  if (!Array.isArray(predictions) || !i.vehicle || !i.hub || !i.stopId || !['eastbound','westbound','northbound','southbound'].includes(i.direction) || !finite(i.now) || !finite(i.fetchedAt) ||
     !finite(i.readyMs) || i.readyMs < 0 || i.now < i.fetchedAt || i.now - i.fetchedAt >= FOLLOW_TUBE_FRESH_MS) return null;
   for (const p of predictions) {
     if (!record(p)) continue;

@@ -5,8 +5,9 @@
 // from engine outputs. A screen, a widget, a Live Activity or a Watch face draws that order in its own shape; none
 // of them re-decides it. A design proposal proposes how to draw these blocks, not which block comes first.
 import type { RailWarnings } from "./warnings";
-import { lineLevel, type LineStatus } from "./warnings";
+import { lineLevel, worstStatus, type LineStatus } from "./warnings";
 import type { Effort } from "./types";
+import { resolveDisruptionPolicy, type DisruptionConfig } from './disruption';
 
 /** The screens. One of these is chosen from the situation; no shell has a view the model doesn't name. */
 export type View =
@@ -104,6 +105,7 @@ export function headlineKind(view: View, ctx: { atStation: boolean; onWay: boole
 // ---------- The status line ----------
 export type StatusLevel = "bad" | "warn" | "note" | "info" | "ok";
 export interface StatusInput {
+  policy?: DisruptionConfig;
   /** Feed health, worst first: these can never hide behind a line's status. */
   errors: string[];              // problems loading (e.g. a key refused)
   notLoaded: string[];           // routes whose trains didn't load, by name
@@ -135,18 +137,20 @@ const n = (k: number, one: string, many = one + "s") => `${k} ${k === 1 ? one : 
 export function statusLine(i: StatusInput): StatusLine {
   const detail: string[] = [];
   const t = i.tiers;
-  const notOk = (ls: LineStatus[]) => ls.filter(l => lineLevel(l) !== "ok");
-  const tubeBad = notOk(i.tubeLines).filter(l => lineLevel(l) === "bad"), tubeWarn = notOk(i.tubeLines).filter(l => lineLevel(l) === "warn");
+  const policy = resolveDisruptionPolicy(i.policy).rail;
+  const describe = (l: LineStatus) => worstStatus(l, i.policy)?.desc || 'status unknown';
+  const notOk = (ls: LineStatus[]) => ls.filter(l => lineLevel(l, i.policy) !== "ok");
+  const tubeBad = notOk(i.tubeLines).filter(l => lineLevel(l, i.policy) === "bad"), tubeWarn = notOk(i.tubeLines).filter(l => lineLevel(l, i.policy) === "warn");
   const ops = notOk(i.operators);
   const nowNote = i.planLater ? " (trains now, not your plan)" : "";
   if (t) {
     if (t.cancelled.length) detail.push(n(t.cancelled.length, "train", "trains") + " cancelled");
     if (t.uncertain.length) detail.push(n(t.uncertain.length, "train", "trains") + " delayed with no estimate");
-    if (t.hit) detail.push(`${t.affected} of ${t.total} delayed 5+ min or cancelled`);
-    else if (t.late >= 5) detail.push(`worst delay ${t.late} min`);
+    if (t.hit) detail.push(`${t.affected} of ${t.total} delayed ${policy.warnMin}+ min or cancelled`);
+    else if (t.late >= policy.warnMin) detail.push(`worst delay ${t.late} min`);
     if (t.onRoute.length) detail.push(n(t.onRoute.length, "notice") + " on your route");
   }
-  for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${l.statuses[0] ? worstDesc(l) : "status unknown"}`);
+  for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${describe(l)}`);
   if (i.demo) detail.push("example data");
   if (i.timetableOnly) detail.push("timetable, not live");
   if (i.statusUnavailable) detail.push("live line status unavailable");
@@ -156,13 +160,13 @@ export function statusLine(i: StatusInput): StatusLine {
   if (i.stale) return { level: "bad", text: "Train times may be out of date", detail };
   if (t && t.cancelled.length) return { level: "bad", text: `${n(t.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
   if (t && t.uncertain.length) return { level: "bad", text: `${n(t.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
-  if (t && t.late >= 15) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+  if (t && t.late >= policy.badMin) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
   if (i.tubeFallback && i.fallbackUnavailable) return { level: "bad", text: "Tube lines closed now · check onward travel", detail };
   if (i.tubeFallback) return { level: "bad", text: "Circle and Met closed: via Aldgate East", detail };
-  if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${worstDesc(tubeBad[0])}`, detail };
-  if (t && t.late >= 5) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
-  if (tubeWarn.length) return { level: "warn", text: `${tubeWarn[0].name}: ${worstDesc(tubeWarn[0])}`, detail };
-  if (ops.length) return { level: "note", text: `${ops[0].name}: ${worstDesc(ops[0])}`, detail };
+  if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${describe(tubeBad[0])}`, detail };
+  if (t && t.late >= policy.warnMin) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+  if (tubeWarn.length) return { level: "warn", text: `${tubeWarn[0].name}: ${describe(tubeWarn[0])}`, detail };
+  if (ops.length) return { level: "note", text: `${ops[0].name}: ${describe(ops[0])}`, detail };
   if (t && t.onRoute.length) return { level: "note", text: `${n(t.onRoute.length, "notice")} on your route, no train affected yet`, detail };
   if (i.demo) return { level: "info", text: "Example trains", detail };
   if (i.timetableOnly) return { level: "info", text: "Timetable times, not live", detail };
@@ -183,8 +187,6 @@ export function tubeName(timeHHMM: string, line: string | undefined, dest: strin
   const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();
   return `${timeHHMM} ${line || "tube"}${d ? ` to ${d}` : ""}`;
 }
-
-const worstDesc = (l: LineStatus) => l.statuses.reduce((a, b) => (a.sev <= b.sev ? a : b)).desc;
 
 // ---------- On your way: how you're doing for the top train ----------
 /** Minutes in hand to be comfortable on your way to the station (Sam, 30 Oct). */

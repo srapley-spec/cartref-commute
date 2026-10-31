@@ -15,9 +15,11 @@ accent. Later on 30 Oct Sam moved amber to start at 5 min (with the departure-bo
 [Panda](../design/panda.md)
 
 ## Acceptance criteria
-- Bands, one rule in the engine (`delayLevel`, `LATE_WARN_MIN` = 5, `LATE_BAD_MIN` = 15 in `src/core/rules.ts`):
-  green under 5 min late (and early); amber 5–14 min; red 15+ min, cancelled, or no estimate (Sam, 30 Oct: amber
-  from 5, was 2). The route-wide warnings use the same constants.
+- Bands, one configured policy in `src/core/disruption.ts`, consumed by `delayLevel` in `src/core/rules.ts`:
+  defaults are green under 5 min late (and early), amber 5–14 min, red 15+ min, cancelled, or no estimate
+  (Sam, 30 Oct: amber from 5, was 2). `LATE_WARN_MIN`/`LATE_BAD_MIN` remain default aliases, not a separate policy.
+  A partial `Profile.disruption` override reaches train flags, departure/arrival wording, route-wide warnings,
+  Follow and visual progress through the same effective configuration. See [warning configuration](warnings.md).
 - Every live train's flags carry its status as a word and minutes: "On time", "3 min late" (green), "8 min late"
   (amber), "18 min late" (red); cancelled and no estimate keep their own red flags. The worse of departure and
   arrival delay counts.

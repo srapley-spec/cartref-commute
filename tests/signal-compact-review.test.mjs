@@ -114,10 +114,16 @@ test('compact review: consolidated network status keeps disruption on the fallba
    else if(lineId==='metropolitan'&&line.id==='hammersmith-city')line.statuses=[{sev:10,desc:'Good Service'}];
   }
   a.c.render();
-  const visible=e=>{for(let p=e;p;p=p.parentElement)if(p.hidden||a.w.getComputedStyle(p).display==='none'||p!==e&&p.tagName==='DETAILS'&&!p.open)return false;return true;};
-  const immediate=[...a.d.querySelectorAll('#signalStatus,.pill')].filter(visible).map(e=>e.textContent).join(' ');
+  const visible=e=>{for(let p=e;p;p=p.parentElement)if(p.hidden||a.w.getComputedStyle(p).display==='none'||a.w.getComputedStyle(p).visibility==='hidden'||p!==e&&p.tagName==='DETAILS'&&!p.open)return false;return true;};
   const name=lineId==='metropolitan'?'Metropolitan':'Hammersmith & City';
-  assert.match(immediate,new RegExp(name+'.*Severe Delays'),'the disrupted line still available to this route stays visible before opening alerts');
+  // Significant impacts now have a dedicated visible region. The single-line
+  // summary and route pills need not repeat every simultaneous network problem.
+  const region=a.d.querySelector('[aria-label="Significant disruption on your journey"]');assert.ok(region);
+  const impact=[...region.querySelectorAll('article')].find(e=>e.querySelector('h3')?.textContent.includes(name));assert.ok(impact);
+  const title=impact.querySelector('h3');assert.match(title.textContent,new RegExp(name+'.*Severe Delays'));
+  assert.equal(visible(title),true,'the relevant disrupted fallback or surviving main line is visible before opening alerts');
+  const cause=[...impact.querySelectorAll('p')].find(e=>e.textContent==='A signal failure is causing severe delays');assert.ok(cause);
+  assert.equal(visible(cause),true,'the actual cause is also visible without opening details');
   assert.equal(a.d.querySelector('#signalNotices').open,false);assert.deepEqual(a.errors,[]);a.close();
  }
 });

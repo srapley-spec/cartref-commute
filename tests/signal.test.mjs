@@ -16,7 +16,15 @@ test('Signal off preserves the default design and keeps new controls hidden',asy
 });
 test('Signal preserves every journey field and request while compacting Panda content',async()=>{
   const a=await app(),b=await app({signal:true});
-  for(const id of ['#list','#banners','#dirNote','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  for(const id of ['#list','#banners','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  // Signal deliberately keeps a visible location diagnostic independent of the
+  // direction control; Panda keeps its existing automatic-direction sentence.
+  assert.equal(a.text('#dirNote'),`Heading to the office · ${a.c.state.autoSrc}`);
+  assert.equal(b.text('#dirNote'),`Location: ${b.c.state.autoSrc}`);
+  assert.equal(a.c.state.autoSrc,b.c.state.autoSrc,'both designs retain the same phone-location interpretation');
+  assert.deepEqual([...a.c.state.here],[...b.c.state.here]);
+  assert.equal(a.c.state.locAcc,b.c.state.locAcc);
+  assert.equal(b.d.querySelector('#dirNote').closest('details'),null,'the Signal diagnostic is visible without expanding controls');
   // Geometry changes, but every original text node survives: fallback timing moves
   // into its summary and the line strip moves into the full network disclosure.
   const fields=(page,selectors)=>selectors.flatMap(selector=>{

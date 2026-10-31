@@ -41,7 +41,8 @@ that integration, including a deliberate change to the model order. Panda's exis
   rearrangement preserves listeners, disclosures, focused controls and text selection.
 - With Follow a route enabled, a chosen journey is an active `following` presentation even before departure.
   It does not fabricate a location or claim the passenger is on a particular service.
-- Signal draws the engine's one-line impact summary while retaining full original notices under Travel alerts
+- Signal draws the engine's one-line impact summary and exposes all significant relevant impacts from the shared
+  disruption policy, while retaining remaining full original notices under Travel alerts
   and line/source detail under Lines & data. Missing live line/operator evidence is qualified as unavailable,
   never promoted to a good-service claim. If the fallback line is unavailable as well as Circle and Met, the
   summary must not recommend that fallback as a resolution. A more important train/feed failure retains priority,
@@ -79,6 +80,7 @@ that integration, including a deliberate change to the model order. Panda's exis
 - tests/presentation-ui.test.mjs: "canonical rendering preserves unknown content, untagged context, listeners, disclosure and focus"
 - tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: reading expanded significant details defers Auto and preserves disclosure focus across refresh"
 - tests/signal.test.mjs: "Signal preserves every journey field and request while compacting Panda content"
 - tests/follow-journey-review.test.mjs: "journey review: absent live line-status evidence never becomes a good-service claim"
 

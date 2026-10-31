@@ -1,6 +1,7 @@
 // Warnings: how badly your own trains are hit, which notices are about your route, and tube line status.
 import type { Board, Flag, Profile, Train } from "./types";
-import { LATE_WARN_MIN, LATE_BAD_MIN } from "./rules";
+import { DEFAULT_DISRUPTION_POLICY, disruptionLineLevel, railDelayLevel, resolveDisruptionPolicy, worstDisruptionStatus, type DisruptionConfig } from './disruption';
+import { clock, isoDay } from './time';
 
 /** Station facilities (toilets, lifts…): never about whether trains run. */
 export const FACILITY = /\b(toilets?|lavator(y|ies)|escalators?|lifts?|elevators?|ticket (office|machines?|barriers?|gates?)|car ?park|parking|wi-?fi|waiting rooms?|caf[eé]s?|shops?|help points?|customer information|footbridge|entrances?|exits?|step[- ]free|baby chang\w*|accessib\w*|cycle (racks?|parking)|taxi rank)\b/i;
@@ -14,26 +15,54 @@ export type ImpactLevel = "red" | "amber" | "none";
 export interface RailWarnings {
   cancelled: Train[]; uncertain: Train[]; affected: number; total: number; hit: boolean;
   onRoute: string[]; other: string[]; facilities: string[]; level: ImpactLevel; late: number;
+  /** Known delayed services preserve their own reported reason. Optional for older supplied summaries. */
+  delayed?: Train[];
 }
+export interface RailWarningContext {
+  /** Actual observed services still being ridden; a past departure does not make their remaining leg irrelevant. */
+  activeTrains?: readonly Train[];
+}
+const scheduledServiceDay = (t: Train) => {
+  const anchor = t.dep - (t.depLate || 0) * 60e3;
+  return isoDay(clock(t.std, anchor) ?? anchor);
+};
+/** Match one boarding service only. A provider ID reused tomorrow is not today's train. */
+const sameObservedService = (a: Train, b: Train): boolean => a === b ||
+  a.from === b.from && a.to === b.to && a.std === b.std && scheduledServiceDay(a) === scheduledServiceDay(b) &&
+  (a.serviceId || b.serviceId ? !!a.serviceId && a.serviceId === b.serviceId : a.operator === b.operator);
 
 /**
  * Graded by what's happening to your own trains (every board loaded for your direction, from 5 min ago):
  * red = a cancellation, a train with no estimate, or 15+ min late; amber = 5–14 min late. Notices are split into
  * your route (stations on it, or network-wide), elsewhere, and station facilities.
  */
-export function railWarnings(boards: Record<string, Board | null | undefined>, keys: string[], now: number, p: Profile): RailWarnings {
+export function railWarnings(boards: Record<string, Board | null | undefined>, keys: string[], now: number, p: Profile, context: RailWarningContext = {}): RailWarnings {
+  const policy = resolveDisruptionPolicy(p.disruption).rail;
   const corridor = new RegExp(`\\b(${p.corridorPattern})\\b`, "i");
-  const svcs = keys.flatMap(k => (boards[k] ? boards[k]!.services : [])).filter(t => t.dep >= now - 5 * 60e3);
+  const fromBoards = keys.flatMap(k => (boards[k] ? boards[k]!.services : []));
+  // Active observations overlay matching board records; adding a cloned Service
+  // Details observation must not turn one physical service into two affected trains.
+  // This does not deduplicate the existing board rows or other boarding stations.
+  const active: Train[] = [];
+  for (const observation of context.activeTrains || []) {
+    const previous = active.findIndex(t => sameObservedService(t, observation));
+    if (previous < 0) active.push(observation); else active[previous] = observation;
+  }
+  const overlaid = fromBoards.map(t => active.find(observation => sameObservedService(t, observation)) || t);
+  const additional = active.filter(observation => !fromBoards.some(t => sameObservedService(t, observation)));
+  const svcs = [...overlaid, ...additional].filter(t => active.includes(t) || t.dep >= now - policy.lookbackMin * 60e3);
   const cancelled = svcs.filter(t => t.cancelled);
-  const affected = svcs.filter(t => t.cancelled || t.depUnknown || t.depLate >= LATE_WARN_MIN || t.arrLate >= LATE_WARN_MIN).length;
+  const affected = svcs.filter(t => t.cancelled || t.depUnknown || t.arrUnknown || t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin).length;
   const msgs = [...new Set(keys.flatMap(k => (boards[k] ? boards[k]!.msgs : [])))];
   const facilities = msgs.filter(facilityOnly);
   const onRoute = msgs.filter(m => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
   const other = msgs.filter(m => !facilityOnly(m) && !onRoute.includes(m));
-  const uncertain = svcs.filter(t => !t.cancelled && (t.depUnknown || t.arrUnknown) && t.dep >= now - 5 * 60e3);
+  const uncertain = svcs.filter(t => !t.cancelled && (t.depUnknown || t.arrUnknown));
+  const delayed = svcs.filter(t => !t.cancelled && !t.depUnknown && !t.arrUnknown && t.arr != null && (t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin));
   const late = Math.max(0, ...svcs.filter(t => !t.cancelled).map(t => Math.max(t.depLate || 0, t.arrLate || 0)));
-  const level: ImpactLevel = cancelled.length || uncertain.length || late >= LATE_BAD_MIN ? "red" : late >= LATE_WARN_MIN ? "amber" : "none";
-  return { cancelled, uncertain, affected, total: svcs.length, hit: affected >= 2, onRoute, other, facilities, level, late };
+  const delay = railDelayLevel(late, p.disruption);
+  const level: ImpactLevel = cancelled.length || uncertain.length || delay === 'bad' ? "red" : delay === 'warn' ? "amber" : "none";
+  return { cancelled, uncertain, delayed, affected, total: svcs.length, hit: affected >= policy.affectedTrainCount, onRoute, other, facilities, level, late };
 }
 
 /** A notice's title: its first sentence, shortened to 90 characters at a word. */
@@ -45,24 +74,25 @@ export function noticeTitle(m: string): string {
 // ---------- Line status (TfL format: severities; 10 good service, 18 no issues, 19 information) ----------
 export interface LineStatus { id: string; name: string; statuses: { sev: number; desc: string; reason?: string }[]; }
 /** Closed, suspended or part closed. */
-export const BAD_SEV = new Set([1, 2, 3, 4, 5, 16, 20]);
-export const worstStatus = (l: LineStatus | null | undefined) => (l && l.statuses.length ? l.statuses.reduce((a, b) => (a.sev <= b.sev ? a : b)) : null);
-export const lineOk = (l: LineStatus | null | undefined) => { const w = worstStatus(l); return !w || w.sev === 10 || w.sev === 18 || w.sev === 19; };
-export const lineLevel = (l: LineStatus) => (lineOk(l) ? "ok" : l.statuses.some(s => BAD_SEV.has(s.sev)) ? "bad" : "warn");
+export const BAD_SEV = new Set(DEFAULT_DISRUPTION_POLICY.tube.closedSeverities);
+export const worstStatus = (l: LineStatus | null | undefined, policy?: DisruptionConfig) => worstDisruptionStatus(l, policy);
+export const lineOk = (l: LineStatus | null | undefined, policy?: DisruptionConfig) => disruptionLineLevel(l, policy) === 'ok';
+export const lineLevel = (l: LineStatus, policy?: DisruptionConfig) => disruptionLineLevel(l, policy);
 
 /** Both tube lines to the office closed or suspended: use the fallback (H&C to Aldgate East). */
-export function tubeFallbackNeeded(status: LineStatus[] | null, ids: string[]): boolean {
+export function tubeFallbackNeeded(status: LineStatus[] | null, ids: string[], policy?: DisruptionConfig): boolean {
   if (!status) return false;
-  const bad = (l?: LineStatus) => !!l && l.statuses.some(s => BAD_SEV.has(s.sev));
+  const closed = resolveDisruptionPolicy(policy).tube.closedSeverities;
+  const bad = (l?: LineStatus) => !!l && l.statuses.some(s => closed.includes(s.sev));
   return ids.every(id => bad(status.find(l => l.id === id)));
 }
 
 /** Flags for an option's tube leg: red when every line it can use has a problem, amber when some do. */
-export function tubeFlags(tube: { fallback?: boolean } | null | undefined, status: LineStatus[] | null, ids: { main: string[]; fallback: string[]; fallbackNote: string }): Flag[] {
+export function tubeFlags(tube: { fallback?: boolean } | null | undefined, status: LineStatus[] | null, ids: { main: string[]; fallback: string[]; fallbackNote: string }, policy?: DisruptionConfig): Flag[] {
   const f: Flag[] = [];
   if (tube && status) {
     const ls = (tube.fallback ? ids.fallback : ids.main).map(id => status.find(l => l.id === id)).filter(Boolean) as LineStatus[];
-    const notOk = ls.filter(l => !lineOk(l)), txt = notOk.map(l => `${l.name}: ${worstStatus(l)!.desc}`).join(" · ");
+    const notOk = ls.filter(l => !lineOk(l, policy)), txt = notOk.map(l => `${l.name}: ${worstStatus(l, policy)!.desc}`).join(" · ");
     if (notOk.length === ls.length && ls.length) f.push({ lvl: "bad", txt });
     else if (notOk.length) f.push({ lvl: "warn", txt });
   }

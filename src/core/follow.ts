@@ -4,6 +4,7 @@ import type { Direction, Option, Train } from './types';
 import type { Leg } from './journey';
 import { hhmm } from './time';
 import { arrivalStatus, trainStatus, type TrainStatus } from './rules';
+import { railDelayLevel, type DisruptionConfig } from './disruption';
 
 const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
@@ -22,6 +23,7 @@ export interface FollowRoute {
   incident?: 'cancelled' | 'unknown' | 'missed' | 'boarding' | null;
 }
 export interface FollowInput {
+  policy?: DisruptionConfig;
   now: number; options: Option[]; dataFresh?: boolean; phase?: FollowPhase;
   /** Existing Service Details/connection engine's door-to-door arrival, when available. */
   currentArrival?: number | null;
@@ -283,7 +285,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     route.incident = null;
   }
   // Alternatives always come from the normal engine. Never invent a departure or bypass its effort checks.
-  const recovery = status === 'missed' || status === 'cancelled' || (status === 'unknown' && level === 'bad') || route.lastTrain.arrLate >= 15;
+  const recovery = status === 'missed' || status === 'cancelled' || (status === 'unknown' && level === 'bad') || railDelayLevel(route.lastTrain.arrLate, input.policy) === 'bad';
   const candidate = boardingRecovery || (!onward && route.phase !== 'on-train' && (!input.activeConnection || recovery) && fresh ? (input.availableOptions || input.options).filter(o => !sameService(o, route.option)
     && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain
     && (input.activeConnection ? finite(input.readyAt?.[o.hub]) && o.train.dep >= input.readyAt![o.hub]
@@ -307,10 +309,10 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   if (!onward && (fresh || input.trainArrivalLive)) {
     const t = route.lastTrain;
     if (route.phase !== 'on-train' || t.cancelled || t.depUnknown || t.arrUnknown || t.arr == null) {
-      railStatus = t.arr == null && !t.cancelled ? { level: 'bad', text: 'No estimate' } : trainStatus(t);
+      railStatus = t.arr == null && !t.cancelled ? { level: 'bad', text: 'No estimate' } : trainStatus(t, input.policy);
     } else if ((!t.timetable && !t.derived && !t.estimated) || input.trainArrivalLive) {
       const expected = finite(input.currentTrainArrival) ? input.currentTrainArrival : t.arr as number;
-      railStatus = arrivalStatus(expected, (route.option.train.arr as number) - route.option.train.arrLate * MIN);
+      railStatus = arrivalStatus(expected, (route.option.train.arr as number) - route.option.train.arrLate * MIN, input.policy);
     }
   }
   const legs = legsFor(route).filter(l => l.t != null && !l.calls);

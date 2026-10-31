@@ -6,6 +6,25 @@ import type { LatLon, Profile } from "../types";
 const LINE_NORTH: LatLon[] = [[51.9799, -0.2290], [51.9533, -0.2635], [51.9017, -0.2071], [51.8667, -0.1876], [51.8233, -0.1920], [51.8010, -0.2040],
   [51.7638, -0.2156], [51.6973, -0.1925], [51.6141, -0.1431], [51.5983, -0.1201], [51.5646, -0.1063]];
 
+// Published sub-surface corridor topology. Recorded TfL fixtures identify KSX/FCN/MGT/LVT/ALD;
+// station order is profile data, never evidence that a vehicle has passed a station.
+const tubeTrunk=[
+  {id:'940GZZLUKSX',name:"King's Cross St Pancras"},
+  {id:'940GZZLUFCN',name:'Farringdon'},
+  {id:'940GZZLUBBN',name:'Barbican'},
+  {id:'940GZZLUMGT',name:'Moorgate'},
+  {id:'940GZZLULVT',name:'Liverpool Street'},
+];
+const tubeCorridors:NonNullable<Profile['tubeCorridors']>=[];
+for(const lineId of ['circle','metropolitan','hammersmith-city']){
+  const to=lineId==='hammersmith-city'?'ADE':'ALD';
+  const terminal=to==='ADE'?{id:'940GZZLUADE',name:'Aldgate East'}:{id:'940GZZLUALD',name:'Aldgate'};
+  for(const from of ['KGX','STP','ZFD']){
+    const stops=[...tubeTrunk.slice(from==='ZFD'?1:0),terminal];
+    tubeCorridors.push({lineId,from,to,stops},{lineId,from:to,to:from,stops:[...stops].reverse()});
+  }
+}
+
 export const samCommute: Profile = {
   id: "sam-commute",
   name: "Sam: Cartref ⇄ 20 Mansfield Street",
@@ -37,8 +56,8 @@ export const samCommute: Profile = {
     hubGeo: { KGX: [51.5308, -0.1238], ZFD: [51.5203, -0.1053] },
     atHubKm: 0.4,
     officeStops: [
-      { id: "ALD", name: "Aldgate", geo: [51.5142, -0.0755], lines: ["circle", "metropolitan"] },
-      { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"] },
+      { id: "ALD", name: "Aldgate", geo: [51.5142, -0.0755], lines: ["circle", "metropolitan"], stopId:"940GZZLUALD", arrivalDirections:{circle:"eastbound",metropolitan:"northbound"} },
+      { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"], stopId:"940GZZLUADE", arrivalDirections:{"hammersmith-city":"eastbound"} },
     ],
   },
   // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
@@ -48,6 +67,7 @@ export const samCommute: Profile = {
   effort: { runFactor: 1.8, runKm: 0.4, walkKmh: 5.0, carFromHomeSecs: 240, cabWaitSecs: 600, cabKmh: 20, stickMs: 30e3 },
   mergeHubs: ["ZFD", "STP"],
   sharesTubeWith: { STP: "KGX" },
+  tubeCorridors,
   operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
   // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
   // Tue–Thu, Hertfordshire school term time (holidays from hertfordshire.gov.uk; after Sep 2028 all term).

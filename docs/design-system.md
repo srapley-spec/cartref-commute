@@ -23,8 +23,35 @@ Production geometry and tokens live in `src/signal.css`: a 21px brand, 36px prim
 24px compact fallback times, 14px service metadata, 12px supporting labels, and at least 44×44px actions.
 Times and controls reflow at enlarged text sizes. The primary answer precedes a compact expandable Next best
 with visible service/platform identity, followed by full-width board rows. One impact summary stays visible;
-complete Travel alerts and Lines & data use native disclosures. Every train and its individual problems remain
+significant route-relevant disruption is exposed, while remaining Travel alerts and Lines & data use native
+disclosures. Every train and its individual problems remain
 on the complete board. Additional line problems and example/timetable provenance must not be lost to consolidation.
+
+### Shared geometry and live-journey clarity (Sam, 31 October 2026)
+
+Position carries meaning as well as type and colour. Repeated time fields use the same page-wide anchors in the
+primary answer, Next best and the complete board: Train/Leave at the left, Expected at the centre when this is a
+departure board, and destination arrival at the right. Use the same content inset and column widths; route chips,
+service metadata, disclosure labels and Follow actions cannot squeeze a time into a different position. Place
+Next best above its time grid. In planning the Expected slot stays empty rather than moving the arrival inward
+or inventing an expected departure. The rule applies wherever these semantic fields recur. Enlarged text may
+reflow in a consistent order, but may not overlap, clip or shrink controls below 44×44px.
+
+Keep the existing inferred-location diagnostic visible outside Journey options. It must distinguish the actual
+location/source/accuracy from a manually chosen direction and preserve unavailable or old-fix qualifications.
+This presentation does not change location permission, watches, inference or journey state.
+
+Disruption visibility uses the agreed [impact policy](stories/warnings.md), centrally configured and shared by
+all consumers. A significant problem affecting the route must not depend on opening a disclosure. Minor,
+unrelated and facility detail can remain compact/folded. A short highest-priority summary does not replace the
+significant information needed to understand the impact; full notice text and source remain available.
+
+Rail and Tube live views add an overall journey strip with its legs, followed by the current-leg calling-point
+view. The [progress contract](stories/journey-progress.md) requires existing engine itinerary/times and explicit
+reported/expected/modelled/stale evidence. Live delay information may qualify ahead/behind; a timer or marker
+does not become a live position report. Preserve uncertainty and correction actions. The historical
+[Womble diagram](design/proposals/womble/a3-on-train.html) is a geometry reference, not a source of mock timings,
+continuous train positions, passing points, extra live feeds or old non-compliant accent colours.
 
 The [compact acceptance story](stories/signal-design-system.md), [approved visual review](signal-compact-design-review.md)
 and [independent regression review](signal-compact-independent-review.md) record the current contract and measured
@@ -233,15 +260,17 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 
 | Component | Required data and behaviour |
 | --- | --- |
-| JourneyContext | Direction + inference/manual label; pace; keep Settings and Leisure discoverable |
+| JourneyContext | Direction + inference/manual label; pace; visible location diagnostic; keep Settings and Leisure discoverable |
 | ViewControl | Auto by default; explicit Plan/Live overrides; Return to Auto; never mutate selected service |
 | PlanningQuestion | Leave now / Arrive by / Leave around; retain date/time values per mode |
 | PrimaryAnswer | Situation-labelled leave/depart/arrive time; data source; deadline consequence; no ETA for unplannable services |
 | JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps |
 | TrainBoard | All engine-returned options in engine order; do not filter by aesthetic preference; cancelled/unknown remain |
+| SharedTimeGrid | Common left Train/Leave, centre Expected when relevant, right destination arrival anchors; Next best heading and actions outside the grid |
 | ActiveJourney | Confirmed/inferred identity, source timestamp, last reported station, expected arrival and next action |
+| JourneyProgress | Existing complete timed itinerary and current-leg calls; reported/expected/modelled/stale source; no fabricated live position or delay |
 | ConnectionChoice | Station arrival, transfer allowance, candidate departures, spare time, near-platform caveat, confirm/correct actions |
-| StatusAndNotices | Relevant line statuses including good/unknown; severity from existing rules; full notice retained on expansion |
+| StatusAndNotices | Central configured impact/relevance rules; significant relevant disruption exposed; full notice available; minor/unrelated detail may fold |
 | DataState | Loading/empty/timetable/stale/partial failure independent of journey stage; errors must not destroy last good data |
 
 Missing fields are explicit unknowns, never zero, on-time or fake platform values. Interaction state (selection, expanded disclosure, scroll/focus) must survive ordinary refreshes. In production all timing arithmetic remains in route/engine outputs.
