@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Planned (design revision 2 after the first independent review; not built) · Behind toggle when built
+Status: Planned (design revision 3: approved with changes by the second independent review; not built) · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
 Architecture: [leisure-architecture.md](../leisure-architecture.md). Design-system additions:
@@ -27,7 +27,9 @@ Decisions the same evening (Sam, answering design questions):
 - **The Google key is required.** No estimated fallback: without a key the feature says what it needs and plans nothing.
 - **Plan plus live legs**: live times for every rail leg and change, Follow for the whole trip, drive re-checked.
 - **Trip is a third mode** (Commute / Leisure / Trip). Today's Leisure (home ↔ London) stays exactly as it is.
-- **Google through its Maps JavaScript library**, loaded only when Trip is used.
+- **Google through its Maps JavaScript library**, loaded only when Trip is used; moving it to the proxy later must be
+  one adapter and a setting ("Google: key in this browser | My proxy").
+- Trip needs a TfL key (TfL refuses concurrent searches without one).
 
 Evidence (live calls from the build session and the independent review, 31 Oct):
 - TfL's journey planner plans national rail **station to station** across the region with exact station IDs: Brighton →
@@ -75,13 +77,19 @@ Minutes are whole minutes, rounded down.
 - Reach in a straight line: walk 3 km, cycle 10 km, drive 25 km. Candidates: the 3 nearest within reach, plus up to 2
   well-served stations within reach (departures per hour at least twice the best of the nearest three, highest
   first). None within reach: the nearest, flagged "Nearest station is N km away".
-- Pinned: driving from near Chilham gives Chilham, Chartham, Selling, Ashford International, Canterbury West.
-- Round 1 searches: nearest From × every To candidate, and every From candidate × nearest To (≤ 9). Round 2 only for
-  pairs whose best arrival is within 30 min of the best found (≤ 6). ≤ 15 planner searches per plan.
+- A station within reach where a round-1 journey boards or changes becomes a candidate too (found from live data).
+- Pinned with fixture stations: driving from near Chilham, Ashford International is searched, both by the
+  well-served rule and by promotion (Chilham → London changes there). (Live Saturday counts, 31 Oct, 2 h: Chilham,
+  Chartham, Selling 4 each; Canterbury West 9; Faversham 14; Ashford International 20.)
+- Round 1 searches: nearest From × every To candidate, and every From candidate × nearest To (≤ 9, at once). Round 2:
+  untried pairs of the best From and To stations, then later searches for the 3 best pairs to cover Leave around
+  (to T + 100) or Arrive by (from T − 100); none for pairs > 30 min behind the best. ≤ 18 planner searches per plan.
+- Station times: walk / cycle don't depend on the time; a drive to the station is timed for the best journey's
+  set-off, a drive from it for the best journey's arrival; re-timed when followed.
 - Drive to a station with no car park: "No station car park"; unknown: "Car park not known". Never hidden.
 - The pick: the commute's top-card rule (earliest arrival for Leave now / Leave around; latest leave arriving in time
   for Arrive by; next best within 20 min). "Other stations": the best journey from / to each other station with its
-  consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier").
+  consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
 
 ### The trains
 - Journeys can have changes, including a cross-London Tube or walk; each change shows where and how long ("Change at
@@ -94,11 +102,12 @@ Minutes are whole minutes, rounded down.
 - Leave now, Leave around T (to T + 100 min), Arrive by T. Every journey returned is listed in leaving order.
 
 ### Changes (one rule, planned and live)
-- Spare = next ride's departure − this ride's arrival − any Tube / walk between them, in whole minutes. Expected times
-  when both rides are live; else timetabled, marked "Not live" (never green).
-- Spare ≥ 5: fine. 2–4: amber "Tight change, N min". Under 2: red "Connection at risk". Next ride gone or cancelled
-  while you'd still be on this one: red "Connection missed" with "Plan from <station>". Planned connection times are
-  never shortened.
+- Spare = next ride's departure − this ride's arrival − any Tube / walk between them, in whole minutes, using the best
+  known time at each end (live if known, else timetabled). An end without live data says "Not live"; the other end's
+  live delay still counts (a 12-min-late arrival against a 7-min change is red, never neutral).
+- Under 2: red "Connection at risk". Under 5 and below the planned change: amber "Tight change, N min". Otherwise
+  neutral "Change N min" (a planner's own 4-min change on time is not amber). Next ride gone or cancelled while you'd
+  still be on this one: red "Connection missed" with "Plan from <station>". Planned changes are never shortened.
 
 ### Edges
 - Both ends share a station, or are within 1.5 km: "Close enough to walk / cycle / drive: no train needed", plus any
@@ -108,8 +117,10 @@ Minutes are whole minutes, rounded down.
 - Arrive by with a drive: the drive is timed for the computed leave, re-timed once; if it then misses, "Late by N min".
 
 ### Live, and keeping you up to date
-- Live times for at most 6 board requests per refresh (≥ 30 s apart): the two picks' rides, the followed journey's next
-  two rides, then first rides leaving within 30 min. Others "Not live". A matched ride uses Service Details by its ID.
+- Live times for at most 6 board requests per refresh (≥ 30 s apart, shared by station pair): the followed journey's
+  next two rides, then each pick's first ride, then other first rides leaving within 30 min. Rides beyond the board's
+  119 min, and the rest, say "Not live". A matched ride uses Service Details by its ID. Through the proxy, the Worker
+  must accept any station (today it allows only LET, KGX, ZFD, STP).
 - Same status colours as the commute (amber 5–14 min late, red 15+, cancelled, no estimate).
 - Drive: re-timed every 5 min within 60 min of leaving; a change of 2+ min moves the leave time with "Traffic: leave N
   min earlier"; if the new leave time has passed: "Leave now: N min late for the 14:05".
@@ -122,9 +133,11 @@ Minutes are whole minutes, rounded down.
   and spare); final leg. Auto / Plan / Live work as in the commute.
 
 ### Speed
-- First answer drawn ≤ 4 s after the second place is chosen with every feed answering in 600 ms; live times ≤ 6 s; at
-  most 3 network steps one after another before the first answer.
-- After the first answer, a better journey found later is shown as "Better option found", never a silent swap.
+- First answer after at most 2 network steps one after another from choosing the second place (its place fetch, then
+  the first searches alongside its station times); live times after at most 3. Drawn when round 1 completes or at
+  2.5 s with what has arrived. Proved by the order of calls in a log (deterministic); 8 s with 600 ms feeds as a
+  smoke bound.
+- A journey found later that arrives ≥ 5 min sooner is shown as "Better option found", never a silent swap.
 
 ### Keys, saved data and requests
 - Keys (Google; National Rail planner address and key) are stored only on the phone, shown as their last 4
@@ -137,18 +150,19 @@ Minutes are whole minutes, rounded down.
 | Google autocomplete | 1 per 250 ms pause after 3+ characters |
 | Google place fetch | 1 per chosen place |
 | Google route matrix | 1 per end (+1 for Arrive by with a drive; +1 per 5 min drive re-check) |
-| Rail planner | ≤ 9 round 1, ≤ 6 round 2 |
+| Rail planner | ≤ 9 round 1, ≤ 18 in total |
 | National Rail boards | ≤ 6 per refresh, ≥ 30 s apart |
 | Service Details | ≤ 1 per minute for the ride you're on |
 | TfL station lookups | 0 (bundled) |
 
 ## Tests
 - None yet (planned). Engine: region; candidates incl. the Chilham pin and the nearest fallback; pair rounds (9 / 30
-  min / 6 / 15 caps); access segments and allowances; journey timing from segments; change rule at 5 and 2 min (both
-  edges) incl. Not live; TfL adapter from recorded replies (end check, Feltham refusal, dropped station walks,
+  min / 18 caps, promotion); access segments and allowances; journey timing from segments; change rule at 5 and 2 min (both
+  edges), planned-gap erosion, one live side; TfL adapter from recorded replies (end check, Feltham refusal, dropped station walks,
   cross-London transfer, bus flag, Tomorrow); ranking and Other stations; trip views; drive re-check at 2 min; follow
   across rides. Page: switch off unchanged (no script, no request); Trip without key; combobox keyboard / stale reply;
-  full plan with fixture ports; live budget; follow through a change; speed (latency mocks, serial depth); goldens
+  full plan with fixture ports; live budget; follow through a change; speed (causal depth from the call log); Google contract suite run against the Maps JS, proxy and
+  simulator adapters; goldens
   for Brighton → Canterbury West and Winchester → Norwich incl. request counts.
 
 ## Not yet / open questions

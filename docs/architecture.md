@@ -308,6 +308,10 @@ Newest first. One line each; the story or issue holds the detail.
   **Trip** (Leisure unchanged); Google via its Maps JS library; one shared `Journey` core (the commute's `Option` a
   one-ride case, converging step by step) instead of a parallel type; providers behind ports; bundled station data
   (CRS + TfL IDs + car park + departures per hour); stations = nearest + well-served; first answer ≤ 4 s.
+  Revision 3 after the second review (approve with changes): page mode contract first; Follow notices and view
+  switching are reviewed refactors, not moves; plain-data Google ports with a contract suite so Maps JS → proxy is one
+  adapter and a setting (Sam); stations promoted from live round-1 data; one change rule using the best known time at
+  each end; speed proved by call order, not wall-clock.
   → [leisure-journeys](stories/leisure-journeys.md), [leisure architecture](leisure-architecture.md)
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
