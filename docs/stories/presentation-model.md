@@ -1,5 +1,5 @@
 # Presentation model: the engine decides what comes first
-Status: Done (status line computed, not yet drawn) · Since: 29 Oct 2026
+Status: Done for Panda; Signal behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Since: 29 Oct 2026
 
 ## Story
 As a commuter glancing at the phone, I want the thing that matters most to be first on every screen, however the
@@ -14,8 +14,9 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
 **geometry** (pixels, cards, where controls sit) belongs to the shell.
 
 Reviewed after merging (29 Oct evening): 47 deliberate one-line breakages of `present.ts` and its page wiring; 18
-went unnoticed at first, all now caught by tests except two that can't change any output and the undrawn live-view
-orders (below).
+went unnoticed at first. The original remaining gap was the undrawn live-view order. Signal now annotates
+semantic block boundaries and draws the actual live cards in the engine's order; the new page probes exercise
+that integration, including a deliberate change to the model order. Panda's existing content/order is retained.
 
 ## Acceptance criteria
 - `src/core/present.ts` is pure (no DOM, no sizes) and exports: `chooseView(situation)`, `headlineKind(view, ctx)`,
@@ -33,10 +34,18 @@ orders (below).
   late > a tube line with delays > an operator not on good service > a notice on your route with no impact yet >
   timetable-only / example data > good service. Lower tiers are counted in the detail, so a cancellation can never
   hide behind "minor delays". When the plan on screen is for later, train warnings say they're about trains now.
-- `src/page.html` dispatches on `chooseView`, uses `headlineKind` for the departure board (Train · Expected) or Leave, and draws the Leave now card's
-  blocks in `BLOCKS["plan-now"]` order. It does not re-decide any of these.
-- What is shown does not change: the golden recordings are identical in content (the only diff when this landed was
-  a space between two adjacent block `<div>`s in the extracted text).
+- `src/page.html` dispatches on the pure presentation result and uses `headlineKind` for the departure board
+  (Train · Expected) or Leave. Panda retains its existing Leave now block assembly. Signal uses semantic
+  `data-block` boundaries and `src/presentation-blocks.js` to render actual live-card nodes in the supplied
+  `BLOCKS` order. The shell has no second priority table. Untagged context and unknown blocks are retained;
+  rearrangement preserves listeners, disclosures, focused controls and text selection.
+- With Follow a route enabled, a chosen journey is an active `following` presentation even before departure.
+  It does not fabricate a location or claim the passenger is on a particular service.
+- Signal draws the engine's one-line status summary while retaining detailed notices and line status. Missing
+  live line/operator evidence is qualified as unavailable, never promoted to a good-service claim.
+- With both Experimental options off, existing Panda golden content stays unchanged. Signal and Panda share
+  journey identity, times, flags and source requests when following is off; Signal adds the selected presentation
+  and explicit controls without changing planning calculations.
 
 ## Tests
 - tests/core/present.test.mjs: "chooseView: live situations win over Leave now, in the order the situations are checked"
@@ -54,18 +63,24 @@ orders (below).
 - tests/logic.test.mjs: "Arrive by on the train: says whether this train gets you there on time; a deadline on another day is a plan, not a verdict"
 - tests/golden.test.mjs: every golden recording (what is shown is unchanged by the extraction)
 
-## Not yet / open questions
-- The status line is computed and tested but not yet drawn: today's banner stack stays until the chosen design
-  replaces it with the one-line summary (the banners' own order is the same precedence, by hand, in `renderBanners`).
-- Only the Leave now card is assembled from `BLOCKS`; the live cards (on train, at hub, on tube, tube home, nearly
-  home) still compose their own HTML in the model's order by inspection, not by iteration. Move them when the chosen
-  design is implemented. Until then the live views' `BLOCKS` orders are a specification only:
-  no test checks that the page draws them in that order (a reorder of `on-train`'s blocks went unnoticed in the
-  29 Oct review).
-- The manual Planner/Live override and its lifetime are agreed (Sam, 29 Oct, with Signal: see
-  [signal-design-system](signal-design-system.md)) but not built. It goes in as an input to `chooseView`, with its
-  lifecycle (until Return to Auto or a new journey; deferred while editing) tested here.
-- `docs/design/README.md` tells every design proposal to draw `BLOCKS` in this order and to use `statusLine`.
-- Side effect (found in review, 29 Oct): `situation()` evaluates every live situation on each render, where the
-  page used to stop at the first. Going home with Arrive by or Leave around on screen, a tube picked at Aldgate now
-  becomes your ride once it leaves (before, only in Leave now). Judged correct; no test pins it yet.
+- tests/presentation-ui.test.mjs: "live block rendering consumes the engine order and retains every real train-card node"
+- tests/presentation-ui.test.mjs: "actual station, Tube, final-walk and London templates expose semantic blocks in model order"
+- tests/presentation-ui.test.mjs: "canonical rendering preserves unknown content, untagged context, listeners, disclosure and focus"
+- tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"
+- tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
+- tests/signal.test.mjs: "Signal uses identical journey content and requests to Panda when following is off"
+- tests/follow-journey-review.test.mjs: "journey review: absent live line-status evidence never becomes a good-service claim"
+
+## Current implementation and limits
+- Signal closes the old status-summary and live-block ordering gaps. Panda retains its existing banner stack
+  and live-template arrangement when the design switch is off. The earlier “only Leave now draws BLOCKS” limitation
+  describes Panda, not Signal.
+- Manual Planner/Live override policy now lives in `src/core/viewControl.ts`, consuming the existing automatic
+  choice. Sam selected the newer Follow a route policy: Return to Auto, exactly 20 minutes, or a reliable
+  underlying situation change clears the override. A refresh or GPS blip alone does not. Interaction deferral
+  preserves editing, service selection and expanded reading; tracking and journey-impact alerts continue.
+- The shared followed-route panel is independent of the displayed view. Its rail identity and live arrival,
+  onward Tube/walk estimates and reasons come from engine outputs and existing situation evidence.
+- The prototype remains a visual reference. Real iPhone Safari, VoiceOver and live-feed checks remain hardware
+  acceptance limits; see [Signal verification](../signal-testing.md).
+- `docs/design/README.md` tells every design proposal to use the model's order and status line.

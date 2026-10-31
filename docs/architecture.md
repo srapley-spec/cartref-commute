@@ -62,7 +62,7 @@ from that description.
 
 ## Signal presentation architecture (29 Oct 2026)
 
-Status: design selected; implementation not started. See [design system](design-system.md) and
+Status: behind Settings → Experimental; independent review approved; release gates recorded in docs/signal-testing.md. See [design system](design-system.md) and
 [acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
 
 ### Agreed by Sam
@@ -75,8 +75,9 @@ Status: design selected; implementation not started. See [design system](design-
 ### Architectural consequences within the existing structure
 - Situation inference, service identity, ranking, timings and confidence remain engine responsibilities.
   The presentation layer consumes their results; it must not introduce duplicate GPS/timetable heuristics.
-- View selection lives in the presentation model (`src/core/present.ts`, `chooseView`): the automatic choice
-  and a manual Planner/Live override are its inputs, tested there, so every shell gets the same answer.
+- View selection lives in the pure presentation model: `src/core/present.ts` supplies the automatic choice;
+  `src/core/viewControl.ts` resolves an explicit Planner/Live override and its lifetime. Both are tested without
+  a DOM, so the shell does not invent a second set of situation rules.
 - Keep view selection separate from direction and selected service. Looking at Planner must not redefine
   which train the user is on; an appearance change must not reset the journey.
 - Represent view selection explicitly: automatic versus a manual Planner/Live override. The exact field
@@ -87,15 +88,56 @@ Status: design selected; implementation not started. See [design system](design-
   passing-point data or coach formation. Those remain separate capabilities.
 
 ### Additional policies agreed by Sam
-1. A manual view override lasts for the current journey/session and clears on explicit Return to Auto
-   or a genuinely new journey. The engine's new-journey boundary needs definition and tests.
+1. **Updated by Sam, 30 Oct:** use the newer Follow a route policy. A manual Planner/Live override clears on
+   explicit Return to Auto, after 20 minutes, or when the underlying situation changes (for example, reaching
+   or leaving a station or starting or stopping rail travel). This supersedes the 29 Oct journey/session
+   lifetime. Refresh, appearance changes and a transient loss of GPS alone do not create a new situation.
 2. Automatic screen transitions wait while the user edits a date/time, chooses a service or reads an
    expanded notice. A pending live state remains discoverable without discarding the interaction.
 3. Tracking and important active-journey alerts continue while Planner is pinned. Do not interpret a view
    override as permission to pause refreshes or suppress a cancellation.
 
-Sam agreed to all three policies on 29 Oct 2026. Their implementation is still pending; the prototype
-is not evidence that production background tracking, alert delivery or interaction deferral is implemented.
+Sam agreed the original policies on 29 Oct and selected the newer Follow a route lifetime on 30 Oct.
+Implementation and release evidence are recorded in [Signal testing](signal-testing.md); the prototype alone
+is not evidence of production tracking, alert delivery or interaction deferral.
+
+### Followed journey and design boundaries
+- Signal design and Follow a route are separate Experimental settings, both off by default. Selecting Signal
+  checks Follow a route as a convenience; it remains independently configurable. Disabling Signal restores
+  Panda without deleting the followed journey. Neither design owns a separate routing engine.
+- `src/core/follow.ts` owns the chosen journey snapshot, service identity, stable arrival, progress, reasons
+  and alternative eligibility. It receives explicit time, unfiltered current options and existing situation
+  evidence; it reads no clock, DOM, browser storage or network. The shell fetches, persists and draws.
+- The snapshot includes the complete route's existing timed legs. Live rail updates amend the chosen route,
+  with a visible reason; re-ranking another service never silently replaces it. Switching to an alternative
+  takes an explicit Follow action. Better alternatives must arrive at least 5 minutes sooner and be reachable
+  at walking or fast-walking pace. Missing or stale feed data is not cancellation.
+- View override, direction override, selected train/Tube and followed route remain separate state. Planning
+  does not stop tracking or hide an important alert about the followed journey.
+- New saved fields must be validated on restore, preserved when switching designs, and included in simulator
+  reset/isolation: simulated following must not write to the real phone journey, and Stop restores its snapshot.
+- Signal live templates emit semantic block boundaries; `src/presentation-blocks.js` renders their existing
+  nodes in the engine-supplied canonical order without a second priority table or dropping unknown content.
+  Panda's feature-off layout remains unchanged. Signal draws the tested status summary and qualifies missing
+  live line-status evidence.
+- Following a caught Tube uses current connection readiness for rail catchability. After rail, fresh onward
+  Tube/walk evidence can revise the arrival with a visible reason without changing completed rail-step times.
+  Fresh Service Details arrival evidence remains authoritative even if departure boards are stale.
+- `src/core/followTube.ts` validates an already-known homeward Tube vehicle against its westbound arrival
+  prediction at the chosen rail hub. Five recorded 30 Oct 22:43 TfL snapshots provide a concrete vehicle-441
+  case; they do not prove provider-wide vehicle reliability. Both cache and provider observation expire at
+  exactly three minutes. Station IDs and interchange allowance remain caller-supplied profile data.
+- `src/follow-transport.js` adds at most one existing target-stop arrivals request per refresh only for an enabled
+  followed homeward Tube with a known vehicle, before rail boarding. Concurrent work is shared; source epochs
+  and route/vehicle/target identity guard the response. Absent/stale/nonmatching data keeps the explicit modelled
+  fallback. Missing Met departures at Aldgate are still unsolved; no Tube identity is invented.
+- Chosen arrival stability uses a one-minute threshold; the original plan remains visible after a change.
+  Incident recovery supersedes obsolete cancellation/no-estimate/missed notices. Explicit “I’m on it” confirms
+  boarding; known same-train call evidence can track progress without changing chosen boarding. A person can
+  explicitly follow a run/car option as “Behind”, while automatically proposed alternatives stay walking/fast
+  only and ordinary better-option prompts stay quiet during a Tube approach unless recovery is needed.
+- Saved-state and build integration changes take the GitHub-first release path in `CLAUDE.md`. Independent
+  review must check architecture, feature-off compatibility, meaningful regression tests and mutation results.
 
 ## Data sources
 - **Live board**: Rail Data Marketplace Live Departure Board, direct from the phone (key in Settings). Reaches
@@ -179,15 +221,22 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); implementation pending. Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (independent review approved; release gates recorded in docs/signal-testing.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
-- **30 Oct late evening** Follow a route built behind Settings → Experimental (Sam: "do all of it"): one-tap Follow;
-  the arrival changes only with a reason; missed/cancelled offer the best way on; better options at 5+ min sooner;
-  the tube home followed by its vehicle from TfL's arrivals at the station you're heading for (one request per
-  refresh while following on a tube); planning tabs lapse to live after 20 min or a change of situation. Engine:
-  `src/core/follow.ts`. → [follow-a-route](stories/follow-a-route.md)
+- **30 Oct night, latest-code reconciliation** Premerge review found concurrent `origin/follow-a-route`
+  (`d330e95`). Port its current journey improvements selectively: visible original arrival, incident recovery,
+  explicit boarding correction, same-train observation continuity, explicit run/car choice, quiet Tube-approach
+  alternatives and one-minute ETA stability. Retain current 5/15 status thresholds and latest simulator fixes
+  rather than bulk-merging older page handling. Add recorded known-vehicle Tube prediction validation with a
+  conditional, source-guarded existing-stop request. → [Follow a route](stories/follow-a-route.md)
+- **30 Oct night** Sam authorises implementing Signal as an optional design against latest `main`, using the new
+  Follow a route behavior. Manual planning returns to Auto after 20 minutes or a situation change, superseding
+  the 29 Oct journey-scoped override. Panda and Signal share followed state and the engine; both switches start
+  off. Preserve recent improvements and obtain regular independent behavior, testing and architecture reviews.
+  → [Follow a route](stories/follow-a-route.md), [Signal](stories/signal-design-system.md),
+  [verification and morning testing](signal-testing.md)
 - **30 Oct evening** At a London station the walk to the tube counts from the train stopping (GPS speed ≤ 0.5 m/s
   after ≥ 5 m/s; engine `watchStop`), else from the first fix as before (Sam). Unverified under the King's Cross
   roof. → [connections](stories/connections.md)
@@ -328,3 +377,13 @@ and device time remain unchanged; old virtual timestamps never return to real ca
 Synthetic Underground runs include plausible dwell and running variability: actual GPS/TfL vehicle
 progress takes14minutes KGX–Aldgate or9minutes Farringdon–Aldgate in the normal fixtures. Profile
 ride durations remain fallback estimates; live vehicle predictions correct the expected arrival.
+
+### Reconcile the released Follow controller (31 Oct)
+`main` released Follow a route at `be1e58e` during Signal implementation. Both designs now consume one shared
+pure follower and presentation controller; the older internal API/HTML assertions are translated into the seven
+engine and nine page regression scenarios in `tests/core/follow-main-regression.test.mjs` and
+`tests/follow-main-regression.test.mjs`. There is no parallel legacy planner. Saved `settings.follow`, `follow`,
+and planning-pin metadata have a validated compatibility boundary; old records are retained until actual loaded
+itineraries can restore them. Source freshness, current 5/15-minute bands, explicit boarding-point consent and
+observed completion take precedence over the old implementation's conflicting assumptions. All original scenario
+boundaries remain tested; see the reconciliation record below.

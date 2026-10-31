@@ -13,6 +13,8 @@ export type RailLoad = "toOffice" | "officeTubeArrivals" | "hubTubeArrivals" | "
 export interface RefreshSituation {
   now: number; force: boolean; manual: boolean; source: RailSource; dir: Direction; mode: "commute" | "leisure";
   view: "now" | "by" | "at"; awaitingLocation: boolean;
+  /** Current journey tracking/restoration continues independently of a pinned planning question. */
+  following?: boolean;
   inLondonToOffice: boolean; onTube: boolean; atHubToOffice: boolean; onTheLine: boolean; nearOffice: boolean;
   /** The timetable trains on screen: when loaded, from where, and whether they cover the routes needed. */
   boards: { at: number | null; source: RailSource | null; fit: boolean };
@@ -39,7 +41,7 @@ export function refreshPlan(s: RefreshSituation): RefreshPlan {
     // Timetable times don't change minute to minute: reuse them for 5 minutes for the same routes.
     const reuse = !s.force && !s.onTheLine && s.boards.fit && !!s.boards.at && s.now - s.boards.at < REUSE.timetable && s.boards.source === "tfl";
     // Arrive by and Leave around run their own searches, so Leave now trains aren't loaded while they're on screen.
-    rail = s.awaitingLocation || reuse || ((s.view === "by" || s.view === "at") && !s.onTheLine) ? "none" : "timetable";
+    rail = s.awaitingLocation || reuse || ((s.view === "by" || s.view === "at") && !s.onTheLine && !s.following) ? "none" : "timetable";
   } else rail = s.awaitingLocation ? "none" : "live";   // live boards are for one direction: wait for location
   return {
     rail, toOfficeNeeded,

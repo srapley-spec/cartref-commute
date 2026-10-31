@@ -1,0 +1,155 @@
+/* Signal changes geometry and appearance only. All rules are opt-in; Panda owns the default. */
+html[data-design="signal"] {
+  color-scheme: light;
+  --paper: #f1f4f7; --card: #ffffff; --ink: #17283b; --muted: #536477; --line: #cfd9e3;
+  --accent: #174eac; --accent-ink: #ffffff; --signal-soft: #e4edff; --signal-inset: #e9eef4;
+  --signal-control-line: #8394a8; --signal-shadow: 0 8px 28px #17283b0b;
+  --ok: #12674e; --ok-bg: #e4f4ed; --warn: #835000; --warn-bg: #fff0d5;
+  --bad: #b1293c; --bad-bg: #ffebee; --note: #726000; --note-bg: #fff8cf;
+  --hero-accent: #e4edff; --hero-accent-ink: #174eac;
+  --hero-ok: #12674e; --hero-warn: #835000; --hero-bad: #b1293c;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-body); --font-mono: var(--font-body);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-design="signal"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
+    --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
+    --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
+    --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
+    --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
+    --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
+    --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+  }
+}
+html[data-design="signal"][data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
+  --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
+  --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
+  --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
+  --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
+  --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
+  --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+}
+html[data-design="signal"] body {
+  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
+  font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%;
+}
+html[data-design="signal"] .wrap { max-width: 600px; gap: 16px; min-width: 0; }
+html[data-design="signal"] header { align-items: center; gap: 12px; }
+html[data-design="signal"] h1 { font-size: 29px; font-weight: 750; line-height: 1.15; letter-spacing: -.045em; }
+html[data-design="signal"] .sub { font-size: 14px; margin-top: 5px; }
+html[data-design="signal"] .controls { gap: 8px; }
+html[data-design="signal"] .seg { border-radius: 14px; padding: 3px; max-width: 100%; flex-wrap: wrap; }
+html[data-design="signal"] .seg button { min-height: 44px; padding: 8px 11px; border-radius: 11px; font-size: 14px; }
+html[data-design="signal"] .seg button[aria-pressed="true"] { background: var(--signal-soft); color: var(--accent); }
+html[data-design="signal"] button { min-height: 44px; touch-action: manipulation; white-space: normal; }
+html[data-design="signal"] :is(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 3px;
+}
+html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost, .primary, .follow-btn, .follow-action) {
+  min-height: 44px; border-radius: 12px; padding: 10px 14px; font-size: 14px;
+}
+html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost) { border-color: var(--signal-control-line); background: var(--card); color: var(--ink); }
+html[data-design="signal"] :is(.primary, .follow-btn) { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+html[data-design="signal"] .follow-action { border: 1px solid var(--signal-control-line); background: var(--card); color: var(--accent); font-weight: 700; }
+html[data-design="signal"] .dirnote { font-size: 14px; }
+html[data-design="signal"] :is(.origin, .byf) { font-size: 14px; }
+html[data-design="signal"] :is(.originbar input, .byf input, .f input, .f select) {
+  min-height: 44px; font-size: 16px; border-radius: 12px; border-color: var(--signal-control-line);
+}
+html[data-design="signal"] .hero {
+  background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 24px;
+  padding: 20px; gap: 16px; box-shadow: var(--signal-shadow); transition: none;
+}
+html[data-design="signal"] .hero .lbl { color: var(--muted); font-size: 13px; text-transform: none; letter-spacing: .015em; opacity: 1; }
+html[data-design="signal"] .hero .arr { font-size: clamp(42px, 12vw, 56px); font-weight: 750; letter-spacing: -.055em; }
+html[data-design="signal"] .hero .arrlbl { color: var(--muted); opacity: 1; font-size: 16px; }
+html[data-design="signal"] .hero .slack {
+  border-radius: 12px; padding: 6px 10px; font-size: 14px; font-weight: 650;
+}
+html[data-design="signal"] .hero .slack .slackst { margin: 0 0 0 5px; padding: 2px 6px; border-radius: 8px; }
+html[data-design="signal"] .hero .slackst.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero .slackst.warn { background: var(--warn-bg); color: var(--warn); }
+html[data-design="signal"] .hero .slackst.bad { background: var(--bad-bg); color: var(--bad); }
+html[data-design="signal"] .hero .slack.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero .slack.warn { background: var(--warn-bg); color: var(--warn); }
+html[data-design="signal"] .hero .slack.bad { background: var(--bad-bg); color: var(--bad); }
+/* Tube identity retains TfL colours, including when displayed inside the primary answer. */
+html[data-design="signal"] .hero .slack.circle { background: var(--circle); color: var(--circle-ink); }
+html[data-design="signal"] .hero .slack.met { background: var(--met); color: var(--met-ink); }
+html[data-design="signal"] .hero .slack.hc { background: var(--hc); color: var(--hc-ink); }
+html[data-design="signal"] .hero :is(.empty, .alt, .optmeta, .legs .t, .legs .d small, .striphead, .steps summary) { opacity: 1; }
+html[data-design="signal"] .hero :is(.empty, .optmeta, .alt, .legs) { font-size: 14px; }
+html[data-design="signal"] .hero :is(.alt, .opt, .strip) { border-color: var(--line); }
+html[data-design="signal"] .hero .opt { gap: 8px; padding-top: 16px; }
+html[data-design="signal"] .hero .optrow { gap: 10px; }
+html[data-design="signal"] .hero .optrow small { color: var(--muted); font-size: 12px; letter-spacing: .025em; text-transform: none; opacity: 1; }
+html[data-design="signal"] .hero .optbig { font-size: 36px; font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
+html[data-design="signal"] .hero .optrow.board { gap: 8px; }
+html[data-design="signal"] .hero .optrow.board .optbig { font-size: clamp(24px, 7vw, 34px); }
+html[data-design="signal"] .hero .optrow.board .optbig.word { font-size: clamp(16px, 4.8vw, 22px); line-height: 1.5; }
+html[data-design="signal"] .hero .optarrow { color: var(--muted); opacity: 1; }
+html[data-design="signal"] .hero .optroute { align-items: center; }
+html[data-design="signal"] .hero .altstop { border-color: var(--signal-control-line); }
+html[data-design="signal"] .hero .steps summary, html[data-design="signal"] #followPanel .steps summary { color: var(--accent); font-size: 14px; min-height: 44px; padding-block: 11px; }
+html[data-design="signal"] .hero .steps .legs { margin-top: 4px; }
+html[data-design="signal"] .hero .striphead { color: var(--muted); font-size: 12px; }
+html[data-design="signal"] .hero .pill.ok { background: var(--ok-bg); color: var(--ok); }
+html[data-design="signal"] .hero :is(.pill.info, .chip.rail, .chip.walk) { color: var(--muted); border-color: var(--signal-control-line); }
+html[data-design="signal"] .hero .latetxt { color: var(--bad); }
+html[data-design="signal"] .hero .latetxt.warn { color: var(--warn); }
+html[data-design="signal"] :is(.chip, .pill) { font-size: 12px; letter-spacing: 0; line-height: 1.6; }
+html[data-design="signal"] .pill.note { background: var(--note-bg); color: var(--note); }
+html[data-design="signal"] .chip { padding: 2px 7px; border-radius: 7px; }
+html[data-design="signal"] h2 { font-size: 16px; text-transform: none; letter-spacing: -.015em; color: var(--ink); }
+html[data-design="signal"] .list { border-radius: 16px; }
+html[data-design="signal"] .row { padding: 16px; gap: 10px; grid-template-columns: 4em minmax(0, 1fr) 4em; }
+html[data-design="signal"] .row.board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html[data-design="signal"] .row :is(.leave .t, .exp .t, .arrive .t) { font-size: 22px; font-weight: 700; letter-spacing: -.025em; }
+html[data-design="signal"] .row :is(.leave small, .exp small, .arrive small) { font-size: 12px; letter-spacing: .015em; text-transform: none; }
+html[data-design="signal"] .row .exp .word { font-size: 16px; }
+html[data-design="signal"] .row :is(.meta, .route) { font-size: 14px; }
+html[data-design="signal"] .row.best { background: var(--signal-soft); }
+/* A missed/cancelled train stays readable; its flags communicate availability, not low opacity. */
+html[data-design="signal"] .row.gone { opacity: 1; }
+html[data-design="signal"] .banner { border-radius: 16px; padding: 12px 16px; font-size: 14px; }
+html[data-design="signal"] .banner details summary { min-height: 44px; display: list-item; padding-block: 10px; }
+html[data-design="signal"] :is(.diag, .note, footer, .st .s, .sreason) { font-size: 14px; }
+html[data-design="signal"] .diag summary { min-height: 44px; padding-block: 11px; color: var(--accent); }
+html[data-design="signal"] .st { border-radius: 16px; padding: 12px; }
+html[data-design="signal"] .st .n { font-size: 14px; }
+html[data-design="signal"] dialog { border-radius: 24px; background: var(--card); }
+html[data-design="signal"] .sheet { padding: 20px; gap: 20px; }
+html[data-design="signal"] .sheet h3 { font-size: 24px; letter-spacing: -.03em; }
+html[data-design="signal"] .sheet fieldset { border-radius: 16px; padding: 12px; gap: 12px; }
+html[data-design="signal"] .sheet :is(.f, legend, .hint) { font-size: 14px; }
+html[data-design="signal"] .sheet label:has(input[type="checkbox"]) { min-height: 44px; align-items: center !important; }
+html[data-design="signal"] .sheet input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--accent); }
+html[data-design="signal"] #journeyViewControl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+html[data-design="signal"] #journeyViewControl > :is(p, span) { font-size: 14px; color: var(--muted); }
+html[data-design="signal"] #appearanceControl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+html[data-design="signal"] #followPanel { border: 1px solid var(--accent); border-radius: 24px; background: var(--card); padding: 20px; box-shadow: var(--signal-shadow); }
+html[data-design="signal"] #followPanel :is(h2, h3) { margin: 0; text-transform: none; font-size: 18px; color: var(--ink); }
+html[data-design="signal"] #followPanel :is(.big, .follow-arrival) { font-size: 44px; font-weight: 750; letter-spacing: -.045em; line-height: 1.2; }
+html[data-design="signal"] #followPanel :is(.follow-actions, .actions) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+html[data-design="signal"] #followPanel p { margin-block: 10px; }
+html[data-design="signal"] #signalStatus { border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; background: var(--card); color: var(--ink); font-size: 14px; }
+html[data-design="signal"] #signalStatus.bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+html[data-design="signal"] #signalStatus.warn { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+html[data-design="signal"] #signalStatus.note { background: var(--note-bg); border-color: var(--note); color: var(--note); }
+html[data-design="signal"] #signalStatus.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+html[data-design="signal"] #simPanel { border-radius: 20px; }
+html[data-design="signal"] #simPanel :is(button, input, select), html[data-design="signal"] #simBar button { border-radius: 12px; }
+html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 370px) {
+  html[data-design="signal"] body { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  html[data-design="signal"] .hero, html[data-design="signal"] #followPanel { padding: 16px; }
+  html[data-design="signal"] .seg button { padding-inline: 9px; font-size: 13px; }
+  html[data-design="signal"] .row { padding: 12px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-design="signal"] *, html[data-design="signal"] *::before, html[data-design="signal"] *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
