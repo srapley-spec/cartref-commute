@@ -50,6 +50,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [On your way to the station](on-the-way-to-the-station.md) · Done
 - [At the station: departure board](at-the-station.md) · Done
 - [Which train you're on](which-train.md) · Done
+- [Visual progress for the journey and current leg](journey-progress.md) · Behind Signal toggle; validation/release evidence recorded separately
 - [Connections at any station](connections.md) · Done
 - [Tube home decides the train](tube-home.md) · Done (generic connection model)
 - [Elsewhere in London](elsewhere-in-london.md) · Done

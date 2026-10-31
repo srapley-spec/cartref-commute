@@ -50,6 +50,7 @@ function applySignalLayout(){
       network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
       other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
       boardHeading:make('div','signalBoardHeading',''),
+      disruptions:make('section','signalDisruptions',''),
       connections:make('div','signalConnections',''),
       freshness:make('span','signalFreshness','')
     };
@@ -60,7 +61,7 @@ function applySignalLayout(){
     signalParts.planning.append(signalRemember(document.querySelector('[data-view]').closest('.controls')),signalRemember($('#byForm')));
     signalParts.notices.append(signalRemember($('#banners')));
     signalParts.network.append(signalRemember($('#status').previousElementSibling),signalRemember($('#status')),signalRemember($('#modelNote')),signalRemember(root.querySelector('footer > span')));
-    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));
+    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));signalRemember($('#dirNote'));
     signalParts.toolbar.append($('#journeyViewControl'),signalParts.adjustments);
     root.querySelector('footer').prepend(signalParts.freshness);
   }
@@ -79,7 +80,7 @@ function applySignalLayout(){
   if(footerSpan)p.network.append(footerSpan);
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
-  for(const node of [header,p.toolbar,p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
   signalActive=true;
 }
 function signalReadingVisible(node){
@@ -93,6 +94,15 @@ function renderSignalCompact(){
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
   p.notices.hidden=!$('#banners').children.length;
   $('#signalNoticeCount').textContent=$('#banners').children.length?`· ${$('#banners').children.length}`:'';
+  p.notices.querySelector('summary').firstChild.textContent=state.signalDisruptionItems?.length?'All alerts ':'Travel alerts ';
+  // Consolidate only background line issues or impacts actually represented above.
+  // An unused alternative's serious problem must remain on that option's row.
+  const foreground=new Set((state.signalDisruptionItems||[]).filter(item=>item.scope==='tube').map(item=>item.id.slice(5)));
+  document.querySelectorAll('#hero [data-network-lines],#list [data-network-lines],.follow-alternative [data-network-lines]').forEach(flag=>{
+    const ids=flag.dataset.networkLines.split(',').filter(Boolean);
+    const represented=ids.length&&ids.every(id=>foreground.has(id)||!C.significantLineDisruption((state.status||[]).find(line=>line.id===id)||{id,name:id,statuses:[]},PROFILE.disruption));
+    flag.toggleAttribute('data-network-flag',flag.dataset.networkFallback==='true'||!!represented);
+  });
   $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
   p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
   // A compact, accessible fallback row; full metadata and actions remain on expansion.
@@ -120,7 +130,7 @@ function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalP
 function journeyInteracting(){
   const a=document.activeElement;
   return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
-    [...document.querySelectorAll('#banners details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
+    [...document.querySelectorAll('#banners details[open],#signalDisruptions details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
 }
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
@@ -138,6 +148,7 @@ function journeyPresentation(now,s){
   const auto=C.chooseView(s);
   if(!journeyEnabled())return auto;
   const current=journeySituation(now,s);
+  state.journeyLivePresentation=current.live;
   let override=state.saved.viewOverride,legacyPinPending=false;
   if(!Object.prototype.hasOwnProperty.call(state.saved,'viewOverride')&&Number.isFinite(state.saved.viewAt)&&(s.plan==='by'||s.plan==='at')){
     const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
@@ -298,7 +309,7 @@ function renderFollowPanel(){
   const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
   const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
     !(state.routeFailed&&state.routeFailed[selectedBoard])&&!(state.followFailedBoards||[]).includes(selectedBoard);
-  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation});
+  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,policy:PROFILE.disruption});
   state.followUpdate=result;
   if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
   const r=result.route,t=r.lastTrain, alt=result.alternative,st=result.trainStatus;
@@ -323,34 +334,77 @@ function renderFollowPanel(){
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
 }
-function signalNetworkLine(){
-  const fallback=aldgateUnusable();
-  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
-    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),
-    tubeLines:state.status||[],operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false});
+function signalDisruptionEvidence(){
+  const now=Date.now(),view=state.journeyLivePresentation?.view||state.rendered?.view;
+  const followed=state.followUpdate?.route;
+  const current=state.rendered?.progress;
+  const railComplete=followed?followed.phase==='after-train'||followed.phase==='arrived':
+    direction()==='office'?['at-hub','on-tube','in-london'].includes(view):view==='nearly-home';
+  const railActive=followed?.phase==='on-train'||state.onLine;
+  const tubeComplete=direction()==='home'?(railActive||followed?.phase==='after-train'||['on-train','nearly-home'].includes(view)):view==='in-london';
+  // Drawing an alert must not select, finish or persist a ride. The normal
+  // journey controller has already established any current Tube journey.
+  const cachedRide=state.saved.tubeRide;
+  const ride=tubeComplete?null:(state.rendered?.ride||(cachedRide&&C.rideActive(cachedRide,now,fix())&&!C.rideEnded(cachedRide,now,fix())?cachedRide:null));
+  const option=followed?.option||current?.option;
+  const usesFallback=option?.tube?.fallback??aldgateUnusable();
+  const tubeIds=currentMode()==='leisure'||tubeComplete?[]:ride?.line?[lineIdOf(ride.line)]:
+    option?(usesFallback?['hammersmith-city']:['circle','metropolitan']):
+    usesFallback?['circle','metropolitan','hammersmith-city']:['circle','metropolitan'];
+  let boards=state.boards;
+  let activeTrains=[];
+  const currentTrain=state.rendered?.train?.t||current?.train||(state.onLine?whichTrain(now,false)?.t:null)||
+    (railActive&&state.trainLock?.picked?C.lockedTrain(state.boards,state.trainLock):null);
+  const chosen=followed?.option?.train||currentTrain;
+  if(railComplete)boards={};
+  else if(chosen){
+    const matches=t=>followed?C.followMatchesService(followed,{...followed.option,train:t}):
+      t===chosen||!!(t.serviceId&&t.serviceId===chosen.serviceId&&t.std===chosen.std&&t.from===chosen.from);
+    const preferred=`${chosen.from}-${chosen.to}`,entries=Object.entries(boards||{});
+    const scoped=entries.some(([key])=>key===preferred)?entries.filter(([key])=>key===preferred):entries;
+    boards=Object.fromEntries(scoped.map(([key,board])=>[key,board?{...board,services:(board.services||[]).filter(matches)}:board]));
+    const observed=Object.values(boards).flatMap(board=>board?.services||[]).find(matches);
+    if(railActive&&observed)activeTrains=[observed];
+  }
+  if(!railComplete&&railActive&&state.rendered?.activeRailDisruption){
+    if(!boards)boards={};
+    activeTrains=[state.rendered.activeRailDisruption];
+  }
+  const keys=state.railSource==='darwin'?livePairs().map(pair=>pair.join('-')):boardKeys();
+  return {railComplete,tiers:boards?C.railWarnings(boards,keys,now,PROFILE,{activeTrains}):null,
+    tubeLines:(state.status||[]).filter(line=>tubeIds.includes(line.id)),
+    fallback:!tubeComplete&&usesFallback&&aldgateUnusable()};
 }
-function signalConsolidatesFlag(flag){
-  // Fold only information represented by the visible summary. Mixed closures and
-  // delays on the surviving line remain per-option warnings, including H&C delays.
-  return flag.txt===TUBE_FALLBACK_NOTE||
-    (aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']))||
-    flag.txt===signalNetworkLine().text;
+function signalNetworkLine(context=signalDisruptionEvidence()){
+  const fallback=context.fallback;
+  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
+    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),
+    tubeLines:context.tubeLines,operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false,policy:PROFILE.disruption});
 }
 function renderSignalStatus(){
   const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const context=signalDisruptionEvidence();
   const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
-  const input={errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
-    tubeFallback:aldgateUnusable(),fallbackUnavailable:aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+  const input={errors:state.errors||[],notLoaded:context.railComplete?[]:failed,stale:!context.railComplete&&!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
+    tubeFallback:context.fallback,fallbackUnavailable:context.fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),tiers:context.tiers,tubeLines:context.tubeLines,operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
-    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'};
+    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl',policy:PROFILE.disruption};
+  const items=C.visibleDisruptions(input);state.signalDisruptionItems=items;
+  const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
+  region.innerHTML=items.map(item=>{
+    const preview=item.detail.length?C.noticeTitle(item.detail[0]):'';
+    const comparable=text=>String(text||'').replace(/\s+/g,' ').trim().replace(/[.!?]$/,'');
+    const full=item.detail.length>1||comparable(item.detail[0])!==comparable(preview);
+    return `<article class="signal-disruption ${item.level}" data-alert-id="${esc(item.id)}" data-scope="${item.scope}"><h3 class="signal-disruption-title">${esc(item.title)}</h3>${item.qualifier?`<p class="signal-disruption-qualifier">${esc(item.qualifier)}</p>`:''}${preview?`<p class="signal-disruption-detail">${linkify(preview)}</p>`:''}${full&&item.detail.length?`<details data-key="impact|${esc(item.id)}|${esc(item.title)}"><summary>Full details</summary><ul>${item.detail.map(detail=>`<li>${linkify(detail)}</li>`).join('')}</ul></details>`:''}</article>`;
+  }).join('');
   const result=C.statusLine(input);
   const planBoards=state.saved.view==='by'?state.by?.boards:state.saved.view==='at'?state.at?.boards:null;
-  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length&&!items.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;
   el.textContent=result.text;
   // Consolidated network flags must remain visible even when a train cancellation
   // or a feed failure takes precedence. The engine still chooses both summaries.
-  const network=signalNetworkLine();
+  const network=signalNetworkLine(context);
   if(['bad','warn'].includes(network.level)&&network.text!==result.text){
     const impact=document.createElement('span');impact.className='signal-network-impact '+network.level;impact.textContent=' · '+network.text;el.append(impact);
   }
@@ -359,7 +413,21 @@ function renderSignalStatus(){
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
 }
-function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();renderSignalCompact();}
+function renderSignalLocation(){
+  if(!S().signal)return;
+  const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
+  const station=atStation(true),ride=state.rendered?.ride;
+  const rail=state.onLine||state.followUpdate?.route?.phase==='on-train';
+  const phase=rail?'On the train':ride?`On the ${ride.line||'Tube'}`:station?`At ${station}`:
+    view==='nearly-home'?'Nearly home':view==='in-london'?'Walking to the office':'';
+  const report=rail&&progress?.calls?.filter(call=>call.state==='reported').slice(-1)[0];
+  const reportText=report?` · last ${progress.source==='stale'?'known ':''}report ${report.name}${report.time==null?'':' '+hhmm(report.time)}`:'';
+  const fallback=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
+  const phone=phase?` · phone: ${fallback.replace(/^you're /,'')}`:fallback;
+  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
+}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   if(!journeyEnabled()&&!signalActive)return null;

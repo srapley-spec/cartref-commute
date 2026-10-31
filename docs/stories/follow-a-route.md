@@ -44,6 +44,9 @@ not a claim that every criterion has already passed release verification. See [S
   following**. It is never dropped silently: if it can't be completed it says so (see Missed).
 - With no route followed, the app works as it does today (Leave now; working out where you are and which train or
   tube you're probably on). Following is never required.
+- Signal's [visual journey/current-leg progress](journey-progress.md) consumes the chosen route's saved timed
+  legs and existing observations. It does not replace the snapshot with a fresh best option or retime completed
+  history from changed Settings; the same diagram also supports inferred journeys without requiring Follow.
 
 ### What the card shows while following
 - One headline: **arriving HH:MM** for the followed route, and the next step ("Walk to Aldgate: leave by 18:27",

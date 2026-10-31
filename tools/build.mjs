@@ -21,7 +21,7 @@ if (!page.includes('/*__SIGNAL_STYLES__*/') || !page.includes('/*__PRESENTATION_
 page = page.replace('/*__SIGNAL_STYLES__*/', readFileSync(path.join(ROOT, 'src/signal.css'), 'utf8'))
   .replace('/*__PRESENTATION_BLOCKS__*/', readFileSync(path.join(ROOT, 'src/presentation-blocks.js'), 'utf8'))
   .replace('/*__FOLLOW_TRANSPORT__*/', readFileSync(path.join(ROOT, 'src/follow-transport.js'), 'utf8'))
-  .replace('/*__JOURNEY_UI__*/', readFileSync(path.join(ROOT, 'src/journey-ui.js'), 'utf8'));
+  .replace('/*__JOURNEY_UI__*/', ['journey-progress.js', 'journey-ui.js'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8')).join('\n'));
 // Embed the development simulator from its own source module and panel asset.
 // The web app is a static single-file GitHub Pages deployment.
 const simController = ["scenarios.js", "gps.js", "catalog.js", "verification.js", "report.js", "controller.js", "session.js", "journey-ui.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");

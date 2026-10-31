@@ -36,6 +36,9 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
   the same service is on two boards; if the ID isn't on the board, by operator, time and station.
 - Arrival comes from Service Details' expected time at your stop; "timetable" is the scheduled time; the card shows
   the last reported stop. Service Details about once a minute.
+- Signal's [journey-progress diagram](journey-progress.md) draws the existing inferred/confirmed service and
+  itinerary, plus its reported/expected calls. It does not introduce another matching algorithm or claim an exact
+  live location between reports. The ordinary identity/correction controls remain available.
 - On the train home, the list doesn't talk about the onward tube.
 - Every train on the on-train card (the lozenge, "or the …", the pick buttons) and on the nearly-home card is named
   with its destination, as the train's own screens say: "18:57 Great Northern to Cambridge". From National Rail's
