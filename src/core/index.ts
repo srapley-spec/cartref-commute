@@ -37,6 +37,8 @@ export { samRoutes, tubeHomeConnections } from "./profiles/samRoutes";
 export type { Timings, RouteInput, LondonLeg } from "./profiles/samRoutes";
 export const profiles = { samCommute };
 export const ENGINE_VERSION = "1";
+export { nextStops, railStationBoard, tubeStationBoard, reachFlag } from "./stationBoard";
+export type { BoardStop, Reach, BoardRow, StationBoardGroup, TubeBoardRow } from "./stationBoard";
 export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewControl } from './viewControl';
 export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
 export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, confirmFollowBoarding, followMatchesObservedTrain, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';

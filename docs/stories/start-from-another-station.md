@@ -86,6 +86,13 @@ stations nearby with their walks.
 - Recorded data: tests/fixtures/darwin-hit-2026-10-31T1130Z.json and darwin-arl-2026-10-31.json (Darwin boards from
   Hitchin and Arlesey to KGX/STP/ZFD, no key).
 
+## With Live before a journey (merged from main, 31 Oct)
+- The Signal Live board ("Departures from …") follows the chosen station: "Departures from Hitchin", and going back
+  from the office each Aldgate tube shows the arrival at Hitchin (not "Home"). While starting elsewhere and within
+  walking range you're always "on your way", so Live shows that walk rather than the board; the board appears
+  when no journey is under way (e.g. beyond walking range).
+- tests/start-station.test.mjs: "Starting from Hitchin: Live before a journey is Hitchin's departure board; going back, arrivals are at Hitchin"
+
 ## Independent review (31 Oct, on a0e0c3e)
 A separate agent made 43 one-line breakages: 27 caught, 16 survived (mostly the trip back, no location, TfL source,
 no saved home). It found a real bug: going back, the arrival said "Arrive home" while it was the time at Hitchin.

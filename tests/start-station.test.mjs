@@ -393,3 +393,26 @@ test("At home, 'nearest' says the commute already starts here; near Letchworth b
   assert.deepEqual(plain(away.c.state.saved.startFrom), { code: "LET", day: today() });
   away.close();
 });
+
+// Live before a journey (merged from main, 31 Oct): the board follows the station you start from.
+test("Starting from Hitchin: Live before a journey is Hitchin's departure board; going back, arrivals are at Hitchin", async () => {
+  const MORNING = Date.parse("2026-11-03T10:00:00Z");
+  const a = await createApp({ now: MORNING, settings: { provider: "demo", signal: true }, saved: { startFrom: { code: "HIT", day: "2026-11-03" } }, geo: southOfHitchin(10.5) });
+  // Beyond walking range, so no journey is under way: within it you're "on your way", and Live shows that walk.
+  a.d.querySelector('[data-journey-view="live"]').click();
+  assert.match(a.text("#hero"), /Live · departures from Hitchin/);
+  assert.equal(a.text("#listTitle"), "Departures from Hitchin");
+  assert.ok(a.d.querySelectorAll("#list .live-board .row.board").length > 0);
+  assert.doesNotMatch(a.text("#hero") + a.text("#list"), /Letchworth|Cartref/);
+  assert.deepEqual(a.errors, []); a.close();
+  const EVENING = Date.parse("2026-11-03T17:30:00Z");
+  const aldgate = (u) => /940GZZLUALD\/Arrivals/.test(u) ? json([9, 15].map((m, i) => ({ vehicleId: `c${i}`, lineId: "circle", platformName: "Westbound - Platform 1",
+    destinationName: "Edgware Road (Circle Line) Underground Station", expectedArrival: new Date(EVENING + m * 60e3).toISOString(), timeToStation: m * 60 }))) : undefined;
+  const b = await createApp({ now: EVENING, geo: { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } }, settings: { provider: "demo", signal: true },
+    saved: { dirMode: "home", startFrom: { code: "HIT", day: "2026-11-03" } }, route: aldgate });
+  b.d.querySelector('[data-journey-view="live"]').click();
+  const rows = [...b.d.querySelectorAll("#list .live-board .row.board")].map(r => r.textContent.replace(/\s+/g, " "));
+  assert.ok(rows.length > 0);
+  assert.ok(rows.every(r => /Hitchin\s*\d\d:\d\d/.test(r) && !/Home/.test(r)), rows.join("\n"));
+  assert.deepEqual(b.errors, []); b.close();
+});

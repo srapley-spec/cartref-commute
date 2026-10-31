@@ -70,7 +70,8 @@ function baseRoutes(i: RouteInput): Route[] {
         before: [walkSeg(tube.walk * k, tube.walk, tube.walk * s.fastFactor, { at: "start", d: "Leave office", note: `walk to ${tube.stop} ${dur(sec(tube.walk * k))}` }), seg("station", tube.plat * k), seg("wait", s.tubeWait),
           seg("ride", tube.ride[hub], { at: "start", ...tubeStep }), seg("change", ic[hub] * k), seg("margin", s.catchMargin)],
         after: homeEnd(walkBack),
-        arriveLabel: `Arrive ${LOCAL_NAME}`, noPlatform: "platform not yet shown", extra: { tube } });
+        arriveLabel: `Arrive ${LOCAL_NAME}`, noPlatform: "platform not yet shown", extra: { tube },
+        firstStop: { code: tube.fallback ? "ADE" : "ALD", name: tube.stop, kind: "tube" } });
     }
   } else if (dir === "office" && i.dest) {
     // Out to a London place: train to any of the three stations, then TfL's leg from there.
@@ -124,6 +125,7 @@ function fromHere(routes: Route[], i: RouteInput) {
         : [seg("station", 120 * k, { at: "start", d: `Tube from ${NAMES[at]} to ${NAMES[r.hub]}`, note: `about ${dur(sec(HUB_HOP))} ride, allows ${dur(sec(s.tubeWait))} wait and the change` }),
           seg("wait", s.tubeWait), seg("ride", HUB_HOP), seg("change", ic[r.hub] * k), seg("margin", s.catchMargin)];
       r.extra = { ...r.extra, fromHere: true, planned: true };
+      delete r.firstStop;   // already at the London station: the train is the next thing you board
     } else if (dir === "home" && i.here!.atOfficeTube && i.mode !== "leisure" && r.extra && (r.extra as { tube?: { fallback: boolean } }).tube && !(r.extra as { tube: { fallback: boolean } }).tube.fallback) {
       // The office walk and its step go; the platform walk carries the first step instead.
       const plat = r.before[1];
