@@ -236,3 +236,11 @@ test('Journey delayed services remain followable through genuine boarding and re
  const report=a.c.simulationReporter.getReport();assert.ok(report.events.some(event=>event.message.includes('followedServiceId changed')&&event.message.includes('SIM-GN-0905')));
  const json=a.c.simulationReporter.serialize();assert.doesNotMatch(json,/private-follow-delay-key/);assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),saved);await finish(a);
 });
+
+
+test('Advanced poor accuracy stays inconclusive in a normal scenario and precise restart recovers',async()=>{
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:80});await openJourney(a);click(a,'journeyAdvancedButton');select(a,'simAccuracyMode','poor');click(a,'journeyModeButton');click(a,'journeyStart');
+ const rough=await checked(a);assert.ok(a.c.state.locAcc>250);assert.equal(rough.status,'INCONCLUSIVE','normal journey choice does not make deliberately poor GPS precise');assert.equal(rough.assertions.some(row=>row.status==='FAIL'),false);
+ const walk=await next(a);assert.equal(walk.status,'INCONCLUSIVE');assert.equal(walk.assertions.some(row=>row.status==='FAIL'),false);
+ click(a,'simToggle');click(a,'journeyAdvancedButton');select(a,'simAccuracyMode','realistic');click(a,'simPlay');const recovered=await checked(a);assert.equal(a.c.state.locAcc,12);assert.equal(recovered.status,'PASS','precise recovery uses the original normal-journey expectations');await finish(a);
+});

@@ -237,6 +237,9 @@ Newest first. One line each; the story or issue holds the detail.
   off. Preserve recent improvements and obtain regular independent behavior, testing and architecture reviews.
   → [Follow a route](stories/follow-a-route.md), [Signal](stories/signal-design-system.md),
   [verification and morning testing](signal-testing.md)
+- **30 Oct evening** At a London station the walk to the tube counts from the train stopping (GPS speed ≤ 0.5 m/s
+  after ≥ 5 m/s; engine `watchStop`), else from the first fix as before (Sam). Unverified under the King's Cross
+  roof. → [connections](stories/connections.md)
 - **30 Oct evening** Interchange timings from Sam's measurements: King's Cross rail → tube 400 s from the train
   stopping (30 s off + double the 185 s best, both paces); Aldgate East 112 s + 283 s (as measured). Next: start the
   King's Cross walk when the train stops (GPS speed), not at the first fix. → [connections](stories/connections.md)
@@ -383,6 +386,8 @@ Journey Mode and Advanced are presentations of one existing simulator controller
 The subsequent main-branch Follow-a-route capability shares these safeguards: original followed-route and planning-lifetime memory are snapshot/restored, synthetic Follow choices remain in memory, and follow-option/vehicle-ETA caches are cleared at source boundaries. Diagnostics observe the normal rendered Follow model; they never call the production follower or train inference a second time. Its cache ages, planning expiry and event timestamps use the same lexical clock as the rest of the web shell.
 
 Main's subsequent Signal release (`4ee24c7`, PR #36) replaces the original Follow controller with the shared `src/journey-ui.js` shell. The simulator preserves that controller and records its already-computed train/ride and Follow result. Its separate Follow panel is sanitized into `actualDisplay.followCard`. Snapshot/reset covers `followRoute`, `viewOverride`, `planInputs` and legacy migration metadata; source epochs also clear the Follow Map and presentation/transport state. Explicit presentation pins have separate inconclusive expectations, while actual followed rail phase is checked independently of whether the main card chooses `following` or the richer `on-train` view.
+
+The later train-stop release (`cdf6ecd`) is retained. Synthetic stationary waits have zero speed, and rail fixes stay moving until the final arrival; normal `watchStop` derives the stop from the shared clock. Runtime assertions compare the actual stopped timestamp and the selected service's arrival at the actual destination board. Leaving simulation resets transient state before restoring saved real station visits, with device-time age validation; the speed watch stays empty until fresh native observations. This preserves an existing real stopped visit through both Stop and Settings source-disable without restoring any synthetic timestamps.
 
 ### Reconcile the released Follow controller (31 Oct)
 `main` released Follow a route at `be1e58e` during Signal implementation. Both designs now consume one shared

@@ -154,3 +154,12 @@ test('deliberate reading deferral is inconclusive until the real automatic view 
  c.app.presentationInteracting=false;assert.equal(evaluate(c).status,'FAIL','pending without actual passenger interaction must not hide an automatic view defect');
  c.app.presentationInteracting=true;c.app.presentationPending=false;assert.equal(evaluate(c).status,'FAIL','ending the legitimate deferral cannot conceal the same wrong automatic view');
 });
+
+
+test('rail arrival verifies actual GPS stop and Darwin time on the shared clock',()=>{
+ const c=base({point:'kgx',label:'Alight at Kings Cross',mode:undefined});c.app.atHub='KGX';c.app.onLine=false;c.app.stationStop={hub:'KGX',at:c.now-20000,stopped:c.now};c.app.boards[0].to='KGX';c.app.boards[0].arr=c.now;
+ assert.equal(evaluate(c).status,'PASS');assert.equal(row(evaluate(c),'station-stop-clock').status,'PASS');assert.equal(row(evaluate(c),'rail-arrival-clock').status,'PASS');
+ c.app.stationStop.stopped=null;assert.equal(row(evaluate(c),'station-stop-clock').status,'FAIL');
+ c.app.stationStop.stopped=c.now-120000;assert.equal(row(evaluate(c),'station-stop-clock').status,'FAIL');
+ c.app.stationStop.stopped=c.now;c.app.boards[0].arr=c.now+60000;assert.equal(row(evaluate(c),'rail-arrival-clock').status,'FAIL');
+});

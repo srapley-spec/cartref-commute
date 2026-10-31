@@ -27,6 +27,25 @@ export interface Fix { here: LatLon | null; acc: number | null; at: number | nul
 // A position counts only with a known accuracy within `maxAcc` metres (a missing accuracy is unknown, not perfect).
 const pos = (f: Fix, maxAcc: number) => (f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null);
 
+/** When the train you came in on stopped, from GPS speed (Sam, 30 Oct: the walk to the tube counts from the train
+ *  stopping, not from the first fix in the station while it pulls in). A stop is speed ≤ 0.5 m/s after the train was
+ *  seen moving (≥ 5 m/s, faster than you can run) **within the last minute**: the real stop came after that reading,
+ *  so a stop is never more than a minute late (the slack the earliest-platform rule allows; a later stop would hide
+ *  the tube you caught). Too long after (unlocked on the platform, or the stop missed and then a gateline queue):
+ *  no stop. Moving again at train speed (held at a signal, or a later train) clears it; walking off or queueing
+ *  doesn't. No speed: nothing changes. */
+export interface StopWatch { moving: boolean; stoppedAt: number | null; fastAt?: number; }
+export const TRAIN_MOVING_MPS = 5, STOPPED_MPS = 0.5, STOP_WITHIN_MS = 60e3;
+/** `at`: when the phone took the fix (not when it arrived: a fix can arrive up to 30 s old). */
+export function watchStop(prev: StopWatch | null, speed: number | null, at: number): StopWatch {
+  const w: StopWatch = prev || { moving: false, stoppedAt: null };
+  if (speed == null || !(speed >= 0)) return w;
+  if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
+  if (speed > STOPPED_MPS || !w.moving) return w;
+  const recent = w.fastAt != null && at >= w.fastAt && at - w.fastAt <= STOP_WITHIN_MS;
+  return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
+}
+
 /** Confidently away from every London station: a fix good to 250 m whose uncertainty can't reach any of them
  *  (further than `atHubKm` + its accuracy). A coarse fix at the station (the first one underground, say) isn't.
  *  Used for "you can't have arrived before you were last seen away" (30 Oct review). */

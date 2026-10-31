@@ -452,7 +452,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 00:48 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 01:16 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -714,6 +714,9 @@ var CommuteCore = (() => {
     PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
+    STOPPED_MPS: () => STOPPED_MPS,
+    STOP_WITHIN_MS: () => STOP_WITHIN_MS,
+    TRAIN_MOVING_MPS: () => TRAIN_MOVING_MPS,
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
@@ -845,6 +848,7 @@ var CommuteCore = (() => {
     tubeName: () => tubeName,
     updateFollowRoute: () => updateFollowRoute,
     walkSecs: () => walkSecs,
+    watchStop: () => watchStop,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
     whichTube: () => whichTube,
@@ -1799,6 +1803,17 @@ var CommuteCore = (() => {
 
   // src/core/situation.ts
   var pos = (f, maxAcc) => f.here && typeof f.acc === "number" && isFinite(f.acc) && f.acc <= maxAcc ? f.here : null;
+  var TRAIN_MOVING_MPS = 5;
+  var STOPPED_MPS = 0.5;
+  var STOP_WITHIN_MS = 6e4;
+  function watchStop(prev, speed, at) {
+    const w = prev || { moving: false, stoppedAt: null };
+    if (speed == null || !(speed >= 0)) return w;
+    if (speed >= TRAIN_MOVING_MPS) return { moving: true, stoppedAt: null, fastAt: at };
+    if (speed > STOPPED_MPS || !w.moving) return w;
+    const recent = w.fastAt != null && at >= w.fastAt && at - w.fastAt <= STOP_WITHIN_MS;
+    return { moving: false, stoppedAt: recent ? at : null, fastAt: w.fastAt };
+  }
   function awayFromHubs(f, p) {
     const here = pos(f, 250);
     if (!here) return false;
@@ -2984,10 +2999,19 @@ function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
  for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];
 }}
+// Restore only saved real visit memory; require a current device-time visit, never a virtual cache.
+function restoreRealJourneyVisits(){
+ const now=window.Date.now(),copy=value=>JSON.parse(JSON.stringify(value));
+ const recent=(value,key,age)=>value&&Object.prototype.hasOwnProperty.call(PROFILE.hubNames,value.hub)&&Number.isFinite(value[key])&&value[key]<=now&&now-value[key]<age;
+ const hs=state.saved.hubSince,lh=state.saved.lastHub;
+ state.hubSince=recent(hs,'at',20*60e3)?copy(hs):null;
+ state.lastHub=recent(lh,'seen',25*60e3)?copy(lh):null;
+ if(state.hubSince&&(!Number.isFinite(state.hubSince.stopped)||state.hubSince.stopped>now||state.hubSince.stopped<state.hubSince.at-30e3))delete state.hubSince.stopped;
+}
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
  delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
- simClock.stop();
+ simClock.stop();restoreRealJourneyVisits();
  simulator.setPanelVisible(false);document.getElementById("s_simulator").checked=false;document.getElementById("s_simulatedFeeds").checked=false;
 }
 // The last London station you were seen at survives reopening the app (for 25 minutes).
@@ -3364,7 +3388,8 @@ const mode = () => state.saved.mode==="leisure" ? "leisure" : "commute";
 // locked on the train and unlocked on the platform, or opened here, it's less. After "No, still here": that moment
 // exactly. Null if it hasn't seen you at this station.
 const tubeReady = hub => { const h=state.hubSince; if(!h || h.hub!==hub) return null;
-  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
+  return h.still ? h.at+onwardParts(hub).ic+C.TUBE_REACH_SLACK_MS : h.stopped!=null ? h.stopped+onwardParts(hub).ic
+    : h.away!=null ? Math.max(h.away+onwardParts(hub).ic, h.at) : h.at; };
 const onTubeAuto = now => C.onTube(state.lastHub, direction(), now, fix(), !!state.onLine, state.atHub, PROFILE, state.lastHub?tubeReady(state.lastHub.hub):null);
 // The stop by the office each line reaches (profile), and the ride and walk from it (your Settings timings).
 function officeLeg(hub, lineId){
@@ -3765,7 +3790,9 @@ function renderInLondon(now){
 function renderAtHub(now){
   const s=S(), hub=state.atHub, { ic, ride, tail } = onwardParts(hub);
   const tube=state.tube&&state.tube.hub===hub?state.tube:null;
-  const since = state.hubSince && state.hubSince.hub===hub ? state.hubSince.at : null;
+  // The walk counts from when your train stopped (seen from GPS speed), else from when you were first seen here.
+  const hsv = state.hubSince && state.hubSince.hub===hub ? state.hubSince : null, stopped = hsv && hsv.stopped!=null;
+  const since = hsv ? (stopped ? hsv.stopped : hsv.at) : null;
   // What you can catch (engine planConnection): the walk to the platform counts from when you arrived; tubes before
   // you can reach it are still offered "if you're near the platform" (GPS can't tell concourse from platform).
   const pk=state.saved.tubePick && state.saved.tubePick.hub===hub ? state.saved.tubePick : null;
@@ -3788,7 +3815,7 @@ function renderAtHub(now){
       <div class="big" data-block="headline"><span class="arr t">${hhmm(n.office)}</span><span class="arrlbl">at the office · ${dur(n.office-now)}</span></div>
       <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs" data-block="then">
-        <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when you arrived (${hhmm(since)})`:""}</small></li>
+        <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
         <li class="t">${hhmm(n.ald)}</li><li class="d">${esc(n.leg.stop)} <small>· about ${dur(n.leg.rideMs)} ride</small></li>
         <li class="t">${hhmm(n.office)}</li><li class="d">Arrive office <small>· walk ${dur(n.leg.tailMs)}</small></li>
@@ -4429,6 +4456,17 @@ function onPosition(p){
   // before it (tubeReady). Unknown if the app was opened, or reloaded, at the station.
   if(!riding && state.atHub && state.atHub!==prevHub && !(state.hubSince && state.hubSince.hub===state.atHub && Date.now()-state.hubSince.at<20*60e3)){ state.hubSince={hub:state.atHub, at:Date.now(), ...(state.lastAwayAt!=null?{away:state.lastAwayAt}:{})}; state.saved.hubSince=state.hubSince; save(); }
   if(C.awayFromHubs(fix(), PROFILE)) state.lastAwayAt=state.lastFixAt;
+  // When the train you came in on stopped (engine watchStop, GPS speed): the walk to the tube counts from then.
+  // A stop is only taken in the station you're visiting; moving again at train speed there clears it (held at a
+  // signal). Nothing else clears a saved stop (a reload starts the watch afresh but keeps it).
+  const spd=p.coords.speed; state.stopWatch=C.watchStop(state.stopWatch||null, (typeof spd==="number" && spd>=0) ? spd : null, state.lastFixAt);
+  const hs=state.hubSince, sw=state.stopWatch;
+  if(!riding && hs && state.atHub===hs.hub && !hs.still){
+    // (Stops are timed by when the phone took the fix, up to 30 s before it arrived; the visit by its arrival.)
+    const st=sw.stoppedAt!=null && sw.stoppedAt>=hs.at-30e3 ? sw.stoppedAt : null;
+    if(st!=null && st!==hs.stopped){ hs.stopped=st; state.saved.hubSince=hs; save(); }
+    else if(sw.moving && hs.stopped!=null){ delete hs.stopped; state.saved.hubSince=hs; save(); }
+  }
   if(riding){ /* on a tube: a London station on the way isn't where you are */ }
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
@@ -4697,7 +4735,7 @@ function evaluateSimulationCheckpoint(context={}) {
  }
  const accurate=typeof app.locAcc==='number'&&Number.isFinite(app.locAcc)&&app.locAcc>=0;
  const coarse=accurate&&app.locAcc>250;
- if(config.scenario==='low-accuracy'&&coarse){
+ if(coarse){
   add('coarse-station','Do not identify a station from a fix worse than ±250 m',app.atHub?`Station inferred: ${app.atHub}`:'No station confidently inferred',app.atHub==null,{locAcc:app.locAcc,atHub:app.atHub||null});
   unknown('coarse-inference','Use sufficient evidence before inferring boarding or arrival',`The current fix is ±${app.locAcc} m; prior movement or a user choice may legitimately be retained`);
   return result();
@@ -4759,6 +4797,11 @@ function evaluateSimulationCheckpoint(context={}) {
  } else if((point==='kgx'||point==='far'||ret&&(point==='kxTube'||point==='farTube'))&&c.mode!=='rail'){
   const hub=point==='kgx'||point==='kxTube'?'KGX':'ZFD';
   add('station-arrival',`Recognise ${hub==='KGX'?"King’s Cross":'Farringdon'} as the current station`,app.atHub?`Station inferred: ${app.atHub}`:'No station identified',typeof app.atHub==='string'?app.atHub===hub:app.atHub===null?false:null,{atHub:app.atHub||null});
+  if(!ret&&c.source?.feeds){
+   const visit=app.stationStop,stopped=visit?.stopped,arrival=boards.find(t=>id(t)===expectedId&&t.to===hub)?.arr;
+   add('station-stop-clock','Time the train stop from actual GPS at the shared virtual arrival instant',Number.isFinite(stopped)?`Observed stop: ${stopped}; checkpoint: ${c.now}`:'No train stop observed',visit===undefined?null:!!visit&&visit.hub===hub&&Number.isFinite(stopped)&&Math.abs(stopped-c.now)<=1000,{atHub:visit?.hub||null,stoppedAt:stopped,clockNow:c.now});
+   add('rail-arrival-clock','Keep the selected actual Darwin arrival consistent with GPS and the shared clock',Number.isFinite(arrival)?`Darwin arrival: ${arrival}; checkpoint: ${c.now}`:'Selected Darwin arrival not observed',Number.isFinite(arrival)?Math.abs(arrival-c.now)<=1000:null,{serviceId:expectedId,arrivalAt:arrival,clockNow:c.now});
+  }
   if(ret&&app.ride){unknown('alighting-confirmation','Confirm alighting if a through Underground ride remains plausible','The app still tracks a tube ride; use the real app’s alighting control if this is where you got off');}
   else if(ret)screen('return-platform','Show the station / National Rail connection after alighting',/King.?s Cross|Farringdon|train|departure|platform/i);
  } else if(point==='walk'&&!ret){
@@ -4876,7 +4919,7 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  function evidence(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return {};
   const out={},strings=['direction','view','expectedView','actualView','expectedDirection','actualDirection','serviceId','expectedServiceId','operator','from','to','atHub','locStatus','confidence','vehicle','expectedVehicle','line','lineId','stop','platform','point','accuracyMode','source','providerHealth'];
-  const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs'];
+  const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs','stoppedAt','arrivalAt','clockNow'];
   const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches'];
   for(const key of strings)if(typeof value[key]==='string')out[key]=id(value[key]);
   for(const key of numbers)if(finite(value[key])!==null)out[key]=value[key];
@@ -5007,7 +5050,7 @@ function pause(){stopTimer();status('Paused');notify('pause');}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
  const liveFix=preserveLiveLocation?{here:state.here,lastFixAt:state.lastFixAt,lastFixRecvAt:state.lastFixRecvAt,autoDir:state.autoDir,autoSrc:state.autoSrc,atHub:state.atHub}:null;
- for(const key of ['autoDir','atHub','hubSince','lastAwayAt','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
+ for(const key of ['autoDir','atHub','hubSince','lastAwayAt','stopWatch','lastHub','lineTrack','trainLock','tube','lastFixAt','lastFixRecvAt','here','boards','boardsDir','fetchedAt','london','presentation','followUpdate','journeySituationKey','followTransport'])state[key]=null;
  state.autoSrc='';if(!liveFix)state.locStatus='pending';state.inLondon=false;state.onLine=false;state.byCache={};state.atCache={};if(liveFix)Object.assign(state,liveFix);
 }
 function clearJourneyMemory(){for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];}
@@ -5053,10 +5096,12 @@ function restart(){
 function tick(stepSeconds){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){stopTimer();return;}
  const speed=typeof stepSeconds==='number'&&Number.isFinite(stepSeconds)?stepSeconds:Number($("simSpeed").value)||1;sim.elapsed=Math.min(next.at,sim.elapsed+speed/60);syncClock();
  const a=points[p.point],b=points[next.point],f=(sim.elapsed-p.at)/Math.max(.001,next.at-p.at);
+ const stationary=a[0]===b[0]&&a[1]===b[1];
+ const travellingRail=p.mode==='rail'&&!stationary&&(f<1||next.mode==='rail');
  // Rail travel uses explicit speed evidence. Tube travel withholds GPS except at exposed sections.
  if(getScenario().scenario==='uncertain'&&next.mode==='rail'&&!route().slice(0,sim.index+1).some(x=>x.point==='north')&&f<1){$("simFixStatus").textContent='Train: GPS unavailable until Stevenage';}
  else if((next.mode==='tube'||p.mode==='tube')&&f<1&&!(getScenario().scenario==='missed-connection'&&next.label.startsWith('Board')&&p.mode!=='tube')){if(S().simulatorEnabled&&onPositionError)onPositionError({code:2});$("simFixStatus").textContent='Underground: no usable GPS fix';}
- else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,next.mode==='rail',railLine),next.mode==='rail'?25:1.4,accuracy(next));
+ else if(!['awaiting-location','permission-denied'].includes(getScenario().scenario))fix(...interpolateSimulatedPosition(a,b,f,travellingRail,railLine),travellingRail?25:stationary?0:1.4,accuracy(next));
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
 function continuePlayback(){if(!sim.active||sim.startTime===null||sim.pendingRestart){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
@@ -5073,7 +5118,7 @@ async function nextCheckpoint(){
  }
  if(generation===playbackGeneration){sim.stepping=false;notify('playback');}
 }
-function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
+function simStop({resume=true,reason='stopped'}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled){setPanelVisible(false);notify('stop');return;}notify('stopping',{reason});sim.active=false;sim.sessionId++;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;sim.config=null;sim.pendingRestart=false;clock.stop();resetContext(false);onStop();$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');notify('stop');}
 function simSetup(){
  setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
  $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
@@ -5303,7 +5348,7 @@ simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,directio
 function readSimulationActual(){
  const model=state.rendered||{},m=model.train,r=model.ride;
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
- return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+ return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
   ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
   boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
   errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
@@ -5334,7 +5379,7 @@ function setSimulationSources({gps,feeds},{settings,refreshAfter=true}={}){
  if(modeChanged){simStop({resume:false,reason:'sources-changed'});endSimulationSession();}
  invalidateSources();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
  if(feeds&&!simClock.active){const value=window.Date.parse($("#simDate").value+'Z');simClock.start(new window.Date(value).toISOString());}
- if(!feeds)simClock.stop();save();
+ if(!feeds)simClock.stop();if(!gps&&!feeds)restoreRealJourneyVisits();save();
  $("#s_simulator").checked=!!gps;$("#s_simulatedFeeds").checked=!!feeds;
  if(modeChanged&&!(gps&&!refreshAfter))locate();simulator.updateTime();simulator.notify('sources');if(refreshAfter)refresh({force:true});
 }

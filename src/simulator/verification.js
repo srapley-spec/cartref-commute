@@ -33,7 +33,7 @@ function evaluateSimulationCheckpoint(context={}) {
  }
  const accurate=typeof app.locAcc==='number'&&Number.isFinite(app.locAcc)&&app.locAcc>=0;
  const coarse=accurate&&app.locAcc>250;
- if(config.scenario==='low-accuracy'&&coarse){
+ if(coarse){
   add('coarse-station','Do not identify a station from a fix worse than ±250 m',app.atHub?`Station inferred: ${app.atHub}`:'No station confidently inferred',app.atHub==null,{locAcc:app.locAcc,atHub:app.atHub||null});
   unknown('coarse-inference','Use sufficient evidence before inferring boarding or arrival',`The current fix is ±${app.locAcc} m; prior movement or a user choice may legitimately be retained`);
   return result();
@@ -95,6 +95,11 @@ function evaluateSimulationCheckpoint(context={}) {
  } else if((point==='kgx'||point==='far'||ret&&(point==='kxTube'||point==='farTube'))&&c.mode!=='rail'){
   const hub=point==='kgx'||point==='kxTube'?'KGX':'ZFD';
   add('station-arrival',`Recognise ${hub==='KGX'?"King’s Cross":'Farringdon'} as the current station`,app.atHub?`Station inferred: ${app.atHub}`:'No station identified',typeof app.atHub==='string'?app.atHub===hub:app.atHub===null?false:null,{atHub:app.atHub||null});
+  if(!ret&&c.source?.feeds){
+   const visit=app.stationStop,stopped=visit?.stopped,arrival=boards.find(t=>id(t)===expectedId&&t.to===hub)?.arr;
+   add('station-stop-clock','Time the train stop from actual GPS at the shared virtual arrival instant',Number.isFinite(stopped)?`Observed stop: ${stopped}; checkpoint: ${c.now}`:'No train stop observed',visit===undefined?null:!!visit&&visit.hub===hub&&Number.isFinite(stopped)&&Math.abs(stopped-c.now)<=1000,{atHub:visit?.hub||null,stoppedAt:stopped,clockNow:c.now});
+   add('rail-arrival-clock','Keep the selected actual Darwin arrival consistent with GPS and the shared clock',Number.isFinite(arrival)?`Darwin arrival: ${arrival}; checkpoint: ${c.now}`:'Selected Darwin arrival not observed',Number.isFinite(arrival)?Math.abs(arrival-c.now)<=1000:null,{serviceId:expectedId,arrivalAt:arrival,clockNow:c.now});
+  }
   if(ret&&app.ride){unknown('alighting-confirmation','Confirm alighting if a through Underground ride remains plausible','The app still tracks a tube ride; use the real app’s alighting control if this is where you got off');}
   else if(ret)screen('return-platform','Show the station / National Rail connection after alighting',/King.?s Cross|Farringdon|train|departure|platform/i);
  } else if(point==='walk'&&!ret){

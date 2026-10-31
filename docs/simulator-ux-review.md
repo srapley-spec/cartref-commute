@@ -263,3 +263,71 @@ adds current-main compatibility evidence; it does not replace final all-suite CI
 The reviewer independently endorsed exact commit `5674e2fbbea23cb996c32a2de4dd15db929f5d84` after an additional actual Chromium check on Signal:393×852 and852×393, light/dark; genuine three-action return/Farringdon Start; automatically collapsed controls; real app headline visible;44px controls; minimum contrast10.24:1;125px dock with140px reserved space; no overflow/overlap/errors/live calls during simulation; frozen clock; Stop restored real transport calls. The reviewer visually inspected light/dark screenshots. Evidence: `/tmp/cartref-signal-independent-mobile.log`, `/tmp/cartref-signal-review-mobile-light.png`, `/tmp/cartref-signal-review-mobile-dark.png`. No feature source was written by that reviewer.
 
 The integrated source's [PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152458880) and [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152454687) both pass **663/663**, including all independent regressions. Final clean-copy local CI and exact merged/deployment evidence remain recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37); this addendum records observed evidence without implying hardware Safari acceptance.
+
+## Additional independent review after train-stop main integration
+
+Reviewer: `/root/signal_integration_review`, still independent of feature implementation. Reviewed incoming
+main `cdf6ecd` (GPS train-stop watch and connection timing) against the updated connections story, with the
+resolved simulator candidate built **31 October 01:16 UTC**. **Technical review approved; no significant
+findings remain open.** Final committed CI, current-main/branch checks and deployment remain release gates.
+
+### Findings and fixes reviewed
+
+1. The old synthetic segment logic switched to walking speed between the last rail checkpoint and alighting.
+   It therefore supplied no recent train-speed reading when the genuine engine tried to detect the stop.
+   Rail movement now lasts until actual alighting; the checkpoint emits stationary speed. Conversely, the old
+   next-checkpoint-only logic reported train speed during a stationary wait before scheduled boarding. A train
+   segment now starts with the actual boarding phase, and identical-coordinate waits emit zero speed.
+2. Stop restored saved visit memory and then cleared its runtime counterpart. Resuming native GPS at the same
+   real station overwrote the original saved stop with a new unstopped visit. Transient reset now precedes the
+   snapshot restoration; only recent, known-hub visits are rehydrated using device time. Invalid/future stop
+   timestamps are excluded from runtime. Settings disabling both sources repeats restoration after its final
+   source invalidation. Simulated speed-watch history is cleared, never carried into real observations.
+3. The read-only runtime oracle now observes the actual station stop and parsed service arrival. At outbound
+   London alighting, both must match the shared virtual arrival; a duplicate Thameslink service must use the
+   actual destination board, not its earlier St Pancras call. Explicit missing stop evidence fails; a genuinely
+   absent observation field is INCONCLUSIVE. Scenario-specific later/cancelled/delayed service selection remains
+   in the existing oracle, not injected into production inference.
+4. Accuracy gating follows the actual fix, independently of the scenario label. A Normal scenario with the
+   Advanced poor-accuracy profile is INCONCLUSIVE for unsupported arrival inference, while a confident station
+   claim from a fix worse than 250m still fails. Independent boundary observations confirmed Normal + 650m →
+   INCONCLUSIVE, invented coarse station → FAIL, and precise recovery → PASS. Precise normal assertions remain.
+
+The core watch receives observation timestamps from the normal position handler and checks chronological
+recent movement; simulation supplies its existing scoped clock, without globally replacing browser time.
+The incoming `stopWatch` reset is preserved. The restoration helper uses device time and original saved visit
+memory, with no synthetic coordinates, train identity or expected decisions written into the engine.
+
+### Retained actual-application tests
+
+`tests/simulator-stop-review.test.mjs` contains **five cases**, all passed together (**5/5**, 44.69s):
+
+- Great Northern and Thameslink, outbound and return, traverse normal sequential GPS/provider playback.
+  Each verifies stationary waiting before boarding, a fresh genuine train-speed observation before the stop,
+  the actual watch's stopped time equal to parsed Darwin arrival and virtual clock, indefinite-pause state
+  remaining unchanged in the observation interval, and Restart clearing prior speed/stop history.
+- Outbound King's Cross and Farringdon verify the actual hub visit and the visible runtime stop/provider-clock
+  assertions PASS. Returning Letchworth verifies that its stop is not attached to an old London hub visit.
+- A real saved King's Cross stop survives both the dock Stop button and actual Settings disabling both sources,
+  including resumed native no-speed station fixes. Runtime, saved state and localStorage keep the original stop;
+  synthetic speed history does not escape. The paired exit-path case also passed separately (2.22s total).
+
+These tests select ordinary real Underground controls where required and never prescribe a train, stop,
+arrival or route decision to production state. Evidence: `/tmp/cartref-stop-review-final.log`,
+`/tmp/cartref-stop-review-restore.log`, `/tmp/cartref-stop-review-accuracy-gate.log`.
+
+### Independent temporary defects
+
+| Defect in isolated generated page | Intended failure observed |
+| --- | --- |
+| Restore the old next-checkpoint-only train-speed condition | Stationary predeparture waiting fabricates a fast reading; retained test fails timestamp versus null |
+| Disable rail speed only on the final alighting segment | Actual stop is absent; the runtime `station-stop-clock` assertion and visible badge both show FAIL, and the retained positive test fails null versus arrival time |
+| Restore the old Stop ordering (restore snapshot, then clear runtime visits) | Resumed native GPS loses the original real stopped time; retained dock restoration assertion fails undefined versus the original timestamp |
+
+All three fail for the intended assertion, not setup/import errors; no shared source was mutated. The normal
+candidate passes the corresponding retained cases. Evidence: `/tmp/cartref-stop-review-old-speed-final-mutant.log`,
+`/tmp/cartref-stop-review-arrival-final-mutant.log`, `/tmp/cartref-stop-review-restore-final-mutant.log`.
+
+The previous Signal mobile review and source/clock/privacy findings remain applicable. The release lead reruns
+all normal journeys, mobile layouts and the complete committed suite on the final integrated source. Real
+under-roof iPhone speed availability remains the explicitly documented hardware limitation from the main story.

@@ -40,7 +40,7 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  function evidence(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return {};
   const out={},strings=['direction','view','expectedView','actualView','expectedDirection','actualDirection','serviceId','expectedServiceId','operator','from','to','atHub','locStatus','confidence','vehicle','expectedVehicle','line','lineId','stop','platform','point','accuracyMode','source','providerHealth'];
-  const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs'];
+  const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs','stoppedAt','arrivalAt','clockNow'];
   const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches'];
   for(const key of strings)if(typeof value[key]==='string')out[key]=id(value[key]);
   for(const key of numbers)if(finite(value[key])!==null)out[key]=value[key];
