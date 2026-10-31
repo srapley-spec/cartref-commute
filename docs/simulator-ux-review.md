@@ -367,3 +367,9 @@ Evidence: `/tmp/cartref-input-isolation-review-baseline.log`, `/tmp/cartref-inpu
 `/tmp/cartref-input-isolation-review-private-fixed.log`, `/tmp/cartref-input-isolation-review-mutant.log`.
 No further significant findings remain open. Final committed-code CI and exact GitHub release/deployment
 checks remain required; focused review is not a substitute for those gates.
+
+## Final exact-commit approval
+
+The independent reviewer explicitly endorsed `c7116fd60fe6aa8b4766cc4814e4e04543a136e1`: all42 committed source/build files match the approved snapshot, zero mismatches, and no resume-marker experiment remains. This includes the planning-input rollback and original-draft redaction fix, with the normal selected-planner dispatch. No feature code was authored by that reviewer.
+
+Both [PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41157467871) and [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41157462898) pass **680/680**, no skips. Browser evidence includes the actual reload check in `/tmp/cartref-ux-browser-release-final.log`, alongside all36 layouts and8 journeys. All significant review findings are closed. Final clean-copy local CI, merge, merged-commit Tests/Pages and published-page verification are recorded in PR #37.

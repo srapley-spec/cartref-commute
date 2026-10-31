@@ -1,6 +1,6 @@
 # Journey simulator scenario coverage
 
-Status: **678/678 tests pass** on independently approved source `11f369b` ([GitHub PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155133955), [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155128856)); all retained application/unit scenarios below are included. The recorded baselines grew from **409** to **425**, **577**, then **585** as main independently released Follow, Signal and train-stop timing. Real Chromium passed **36 design/theme/phone layouts in both modes**, eight complete journeys and all three speeds. Independent staged technical and mobile reviews are approved. Exact final committed local CI, merge and deployment evidence is recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37). Runtime assertions detect genuine train-continuity, Follow-phase and stop-clock defects; playback alone never establishes a pass.
+Status: **680/680 tests pass** on independently approved source `c7116fd` ([GitHub PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41157467871), [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41157462898)); all retained application/unit scenarios below are included. The recorded baselines grew from **409** to **425**, **577**, then **585** as main independently released Follow, Signal and train-stop timing. Real Chromium passed **36 design/theme/phone layouts in both modes**, eight complete journeys, all three speeds, download and actual reload isolation. Independent staged technical and mobile reviews are approved. Exact final committed local CI, merge and deployment evidence is recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37). Runtime assertions detect genuine inference, Follow-phase and stop-clock defects; playback alone never establishes a pass.
 
 The integration suite loads the generated `index.html` in jsdom, submits the actual Settings form,
 clicks simulator controls and advances the actual playback interval callback. It does not assign trains,
@@ -10,7 +10,7 @@ it does not establish Safari permission behaviour, rendering or background deliv
 ## Application matrix
 
 All test references in this table are `tests/simulator-integration.test.mjs` unless stated otherwise.
-Results record direct and focused integration runs on 30 October; final committed CI and independent review are separate release gates.
+The rows retain their original direct-run evidence; every named retained regression also passed in the complete680-test final-source GitHub run. Exact committed local CI and release evidence is recorded in PR #37.
 
 | Scenario | Application behaviour | Simulator inputs | Expected application outcome | Automated test | Result |
 | --- | --- | --- | --- | --- | --- |
@@ -217,7 +217,7 @@ Main subsequently released `cdf6ecd` with the train-stop watch and its simulator
 
 After these changes, all eight complete normal routes across Panda/Signal reran with zero runtime FAIL assertions (**8/8**,121.83s). The final Chromium rerun again passed36 layouts/both modes and8 journeys/all speeds with zero errors or live calls (`/tmp/cartref-ux-stop-browser-final.log`). The focused verifier/report suite passed42/42. Final complete integrated test counts and release evidence are recorded in PR #37.
 
-### Complete final retained-suite evidence
+### Train-stop suite evidence before final planning-input correction
 
 The reviewed final source `11f369b` passed **678 tests, 0 failed, 0 skipped** on GitHub in313.47s. This retains the585-test current-main baseline and adds23 Journey UX cases,30 verifier cases,12 report cases,11 original independent UX regressions,4 independent Signal integration cases,5 independent train-stop integration cases and8 pure rail-context regressions. Complete exact-commit release evidence is in PR #37.
 
@@ -235,3 +235,9 @@ An additional independent end-of-session probe found a real saved-only restorati
 | Real browser reload clears active state | Stop/export, then actual Chromium reload | `python3 tests/browser-simulator.py` | PASS:36 layouts, eight journeys/all speeds, report download, reload exits sources/clock/controller, zero page errors/live calls while simulated (`/tmp/cartref-ux-browser-release-final.log`) |
 
 The preceding complete source run passed678/678 with zero golden changes before this final input-isolation correction. Final integrated counts and fresh committed-code CI are recorded in PR #37, together with the exact merged/deployed commit.
+
+### Final source and complete results
+
+Exact approved source `c7116fd60fe6aa8b4766cc4814e4e04543a136e1` passed **680 tests, 0 failed, 0 skipped** on both GitHub checks in220.83s. The final count comprises the585-test current-main baseline,23 Journey UX cases,30 verifier cases,12 report cases,11 original independent UX regressions,4 Signal integration regressions,6 stop/isolation regressions,8 pure rail-context cases and1 late-GPS planning-resume regression. The independent reviewer compared all42 committed source/build files with the approved snapshot and found zero mismatches.
+
+Both By/At questions and alternative origins restore through both exit paths, while private drafts remain redacted. The final Chromium run also confirms actual reload clears active simulation after successful report export. Previous complete678-test runs had zero golden differences; the final fresh-copy CI and exact merged/deployed-commit evidence are linked from PR #37.
