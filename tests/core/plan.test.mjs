@@ -87,3 +87,17 @@ test("tflPickPlaces: TfL's best match for each end that needs one", () => {
   assert.deepEqual(core.tflPickPlaces(j), { from: null, to: { value: "51.497,-0.174", name: "Science Museum" } });
   assert.deepEqual(core.tflPickPlaces({}), { from: null, to: null });
 });
+
+test("samRoutes: the local station comes from `start` (default Letchworth); no station is written into the routes", () => {
+  const def = R({});
+  assert.deepEqual(def.map(r => r.board), ["LET-KGX", "LET-STP", "LET-ZFD"]);
+  assert.equal(def[0].fromName, "Letchworth");
+  const other = R({ start: { code: "XYZ", name: "Elsewhere" } });
+  assert.deepEqual(other.map(r => r.board), ["XYZ-KGX", "XYZ-STP", "XYZ-ZFD"]);
+  assert.ok(other.every(r => r.fromName === "Elsewhere" && r.startsAtHome));
+  const back = R({ dir: "home", start: { code: "XYZ", name: "Elsewhere" } });
+  assert.deepEqual(back.map(r => r.board), ["KGX-XYZ", "STP-XYZ", "ZFD-XYZ"]);
+  assert.ok(back.every(r => r.arriveLabel === "Arrive Elsewhere" && r.after.at(-1).step.d === "Arrive Cartref"));
+  const here = R({ start: { code: "XYZ", name: "Elsewhere" }, here: { walkToStation: 600, atHub: null } });
+  assert.match(here[0].before[0].step.note, /walk to Elsewhere station/);
+});
