@@ -198,7 +198,7 @@ identity, and full-width departure rows. Auto/Plan/Live and the planning questio
 and line/data detail remain native disclosures; train-specific warnings and additional surviving-line problems
 stay visible. Example and timetable provenance remain visible when worse warnings take priority.
 
-Implementation was reconciled with `6aa5e2f`, retaining the latest guided simulator, `8789a50`'s six both-design
+Implementation was reconciled with `2b9fedf`, including its simulator guide and permanent slow/stalled-playback tests, retaining the latest guided simulator, `8789a50`'s six both-design
 Tube regressions, all nine preserved Follow scenarios in both designs, and the additional Signal Aldgate/going-home
 rules run. No route timing, ranking, feed request policy or saved preference shape changed. Panda restores
 the original nodes, handlers, values and root order. No Panda golden recordings changed.
@@ -217,8 +217,14 @@ and closed focus loss, Panda order changes, hidden explicit Plan, hidden nested-
 plan failures, misleading closed-fallback copy, lost additional line warnings, undersized targets, and enlarged
 text collisions. These were fixed and retested; an earlier failed candidate was not counted as release evidence.
 Full CI also exposed an ignored test click on the correctly disabled simulator Next control. A 150 ms verification
-hold reproduced it; the corrected test waits for the real enabled control and retains the original shared
-six-second readiness/movement deadline. Production simulator behaviour is unchanged.
+hold reproduced it; the corrected test waits for the real enabled control. A later hosted PR run passed 707/708
+while the equivalent push and local runs passed 708/708: a long leg had completed 64 of 69 real simulation frames
+when its fixed six-second movement deadline expired. The incoming tested helper is retained: readiness is bounded at 20 seconds; movement has
+a six-second real-progress watchdog and a 60-second bound while movement remains pending, with finite/monotonic elapsed time and
+exactly adjacent checkpoint assertions. A controlled slow leg passed at 10.69 seconds, while the same old helper
+failed and a deliberately frozen step still failed at six seconds. No production simulator behaviour changed.
+Native Chromium completed all 14 return-Farringdon checkpoints with 37 passed assertions, two inconclusive and
+zero failures; its longest leg took 0.476 seconds. This measures this browser environment, not a physical phone.
 
 Release uses the GitHub-first path because interaction-sensitive page tests changed. The committed-HEAD full
 CI, current-main green result, branch Tests, and exact merged Tests/Pages deployment remain separate gates.

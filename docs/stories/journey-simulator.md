@@ -1,6 +1,8 @@
 # Developer journey simulator
 Status: Implemented and independently reviewed (Journey Mode UX redesign; [release evidence in PR #37](https://github.com/srapley-spec/cartref-commute/pull/37)) · Since: 30 Oct 2026 · Issues: #32, #34
 
+Operating instructions and practical limitations: [Journey simulator user guide](../simulator-user-guide.md).
+
 ## Story
 As a developer I want to replay coherent location, Darwin and TfL inputs through the real application,
 so that I can inspect inference and onward planning without travelling.
@@ -75,18 +77,11 @@ Test lifecycle cleanup waits for native GPS and the resulting refresh to settle 
 Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides in both Panda and Signal (36 combinations). Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
 
 Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.
+The Journey UX Next helper waits for the actual enabled control, clicks once and requires monotonic
+progress to exactly the adjacent checkpoint. It rejects six seconds without progress and caps the
+whole action at 60 seconds, rather than treating six seconds of normal processing as a playback failure.
+A delayed real Thameslink segment exceeds the old total deadline while preserving every inference
+assertion; a deliberately stalled UI action must still be rejected. This fixes the timeout exposed by
+the guide PR's same-head GitHub run (679/680, while the other run passed 680/680).
 Signal/current-main integration adds independent `tests/simulator-signal-review.test.mjs`; the eight complete normal-journey cases verify all route/direction combinations under both real designs.
 Train-stop/current-main integration adds independent `tests/simulator-stop-review.test.mjs`: four route/direction cases check provider/GPS/clock agreement, predeparture waiting, freeze/reset and the return stop's station; a fifth checks restoration through both exit paths. Broken approach speed must cause a visible runtime stop-clock failure.
-
-## Next-control test synchronization (31 Oct compact Signal review)
-
-A real Tube selection can queue checkpoint verification after the test has observed the preceding verification
-finish. The UI correctly disables Next during that new verification. The old test clicked without checking the
-control, so the browser ignored the click and the test later timed out without advancing. A scratch-only 150 ms
-hold after a real platform choice reproduced this at the outbound Farringdon interchange: Next was disabled and
-verification pending before the click; both cleared normally, but the checkpoint remained unchanged.
-
-The journey UX test helper now waits for the actual Next button to be enabled, with stepping and verification
-settled, and clicks synchronously when that condition is true. Readiness and movement share the original six-second
-deadline; the timeout is not extended and production simulator behavior is unchanged. Failure messages include
-checkpoint index, elapsed virtual time, disabled state, stepping and verification state.
