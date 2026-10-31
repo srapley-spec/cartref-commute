@@ -76,6 +76,9 @@ conflict explains the flyover without claiming that a London-bound service trave
   changes reset the strip so old simulation/journey state cannot be reused as current evidence. A changed train
   on the same route, weak location or loss of an onboard identity preserves the route, scroll and open story;
   location determines the initial focus and current marker, not whether the feature or its route points exist.
+  Opening the view or choosing Back to now positions the strip at that marker even with no interests selected
+  or no matching highlights ahead. A hidden followed journey from another direction/mode, an arrived journey,
+  or a stopped/replaced selection cannot seed a new route scope.
 - Keep train identity, expected endpoint arrival and the current canonical train/total durations in the view; use the shared disruption model to retain
   significant journey disruption text in both Signal and Panda, and
   access to the main journey. No commentary notifications, sound or live regions repeatedly announce landmarks.

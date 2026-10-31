@@ -26,7 +26,7 @@ function openAlongLine(){
   alongOpener=document.activeElement;alongFollowing=true;alongLastFeatured=null;
   renderAlongLine();
   try{alongDialog.showModal();}catch(e){alongDialog.setAttribute('open','');}
-  renderAlongLine();$('#alongClose').focus();
+  renderAlongLine(true);$('#alongClose').focus();
 }
 alongEntry.addEventListener('click',openAlongLine);
 const alongBrowse=document.createElement('button');alongBrowse.type='button';alongBrowse.id='alongBrowse';alongBrowse.className='ghost';alongBrowse.textContent='Browse Along the line';
@@ -53,7 +53,9 @@ $('#alongChoices').addEventListener('change',()=>{
 });
 function alongContext(){
   const progress=state.rendered?.progress;
-  const followed=S().followRoute&&state.followUpdate?.route;
+  const candidate=S().followRoute&&state.followUpdate?.route;
+  const restored=candidate&&C.restoreFollowRoute(state.saved.followRoute);
+  const followed=restored&&candidate.id===restored.id&&candidate.direction===direction()&&candidate.mode===currentMode()&&candidate.phase!=='arrived'?candidate:null;
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
   const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
@@ -137,7 +139,8 @@ function renderAlongLine(resumePosition=false){
   }else if(!marker.hidden){marker.textContent='Last shown position · reading paused';}
   const featured=model.points.find(p=>p.point.id===model.featuredId);
   $('#alongFeatured').textContent=featured?`${featured.state==='nearby'?'Near here':'Coming up'} · ${featured.point.title}`:'Explore the places along this route';
-  // Never move the reading position while a story is open.
-  if(alongFollowing&&model.featuredId!==alongLastFeatured&&!$('#alongStrip details[open]'))alongScrollToNow();
+  // Opening/Back to now starts at the phone position even with no matching interests.
+  // Ordinary refresh never moves the reading position while a story is open.
+  if(alongFollowing&&(resumePosition||model.featuredId!==alongLastFeatured)&&(resumePosition||!$('#alongStrip details[open]')))alongScrollToNow();
   alongLastFeatured=model.featuredId;
 }
