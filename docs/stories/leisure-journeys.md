@@ -1,6 +1,6 @@
-# Leisure journeys: door to door by rail, anywhere in the region
-Status: Planned (design for independent review; not built) · Behind toggle when built (Settings → Experimental →
-"Leisure journeys", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
+# Trip: door to door by rail, anywhere in the region (leisure journeys)
+Status: Planned (design revision 2 after the first independent review; not built) · Behind toggle when built
+(Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
 Architecture: [leisure-architecture.md](../leisure-architecture.md). Design-system additions:
 [design-system.md → Leisure journeys extensions](../design-system.md#leisure-journeys-extensions-proposed-31-oct-2026).
@@ -18,135 +18,144 @@ keeping you up to date on the way. The principles and design should be very simi
 biggest difference is getting to and from the station." Address search with a drop-down; Signal design system, with any
 extensions called out explicitly for a separate designer to review and polish; Google for the times to and from the
 station; National Rail's journey planner for the trains, with TfL as the fallback until access arrives; searches limited
-to the South East; independent review before implementation; behind a feature switch.
+to the South East; independent review before implementation; behind a feature switch. Later: "think carefully about the
+architecture … we need to support reuse, loose coupling and speed."
 
 Decisions the same evening (Sam, answering design questions):
 - Ways to and from the station: **walk, cycle, drive**. No bus, tube, taxi or drop-off to the station in this story.
-- Stations are **discovered and ranked**, not just the nearest: the nearest few within reach for the mode, ranked door
-  to door, the others shown with what they cost.
-- **The Google key is required.** No estimated fallback for addresses or station times: without a key the feature says
-  what it needs and plans nothing. Tests use recorded-shape synthetic Google responses.
-- **Plan plus live legs**: live National Rail times for every rail leg and every change, connection at risk / missed,
-  Follow a route for the whole multi-leg trip, and the drive re-checked for traffic before you leave.
+- Stations are **discovered and ranked**, not just the nearest.
+- **The Google key is required.** No estimated fallback: without a key the feature says what it needs and plans nothing.
+- **Plan plus live legs**: live times for every rail leg and change, Follow for the whole trip, drive re-checked.
+- **Trip is a third mode** (Commute / Leisure / Trip). Today's Leisure (home ↔ London) stays exactly as it is.
+- **Google through its Maps JavaScript library**, loaded only when Trip is used.
 
-Evidence gathered the same evening (live calls from the build session):
-- TfL's journey planner plans national rail **station to station** across the South East with exact station IDs:
-  Brighton → Canterbury East (185 min via Victoria; 209 min via Gatwick and St Pancras), Reading → Brighton (128 min via
-  Gatwick), Brighton → Letchworth Garden City (118 min direct Thameslink). With **coordinates outside London it returns
-  404 "No journey found"**, so the door ↔ station legs must come from Google and only station ↔ station from TfL.
-- A guessed station ID (`910GLETCHWT`) was silently resolved by TfL to "Letchworth Avenue" bus stop in Feltham and a bus
-  journey planned there. Station IDs must come from a lookup and the reply must be checked against what was asked.
-- TfL's nearby-stations search (`StopPoint?lat&lon&stopTypes=NaptanRailStation&radius`) works outside London (6
-  stations within 3 km of Brighton). Its station detail lists facilities ("Car Park: yes") but has no CRS code.
-- The National Rail journey planner (Online/Real Time Journey Planner) is a licensed SOAP service; Sam does not yet
-  have access. The Google Routes and Places APIs could not be reached from the build session and Sam has no key yet.
+Evidence (live calls from the build session and the independent review, 31 Oct):
+- TfL's journey planner plans national rail **station to station** across the region with exact station IDs: Brighton →
+  Canterbury East (185 min via Victoria), Reading → Brighton (128 min via Gatwick), Brighton → Letchworth Garden City
+  (118 min, direct Thameslink). With **coordinates outside London it returns 404 "No journey found"**.
+- A guessed ID (`910GLETCHWT`) was silently resolved to "Letchworth Avenue" bus stop in Feltham.
+- TfL replies: the last rail leg's arrival often has no station ID (name, ICS code and position only); TfL adds its
+  own walk out of the station; cross-London changes come back as tube legs with gaps, no connection time; a 23:00
+  search returns the next morning's first train; asking a 25 km nearby-stations radius returns HTTP 504.
+- Near Chilham (Kent) the four nearest stations exclude Ashford International (11.6 km), whose high-speed trains are
+  what you'd use to reach London: picking stations by distance alone is wrong.
 
 ## Acceptance criteria
-Numbers here are the contract; the architecture says where each lives. "Region" = the bounding box in profile data
-(south 50.55, west −1.95, north 52.75, east 1.80: London, the South East and the East of England).
+"Region" = profile data, south 50.55, west −1.95, north 52.75, east 1.80 (London, the South East, the East of England).
+Minutes are whole minutes, rounded down.
 
-### Switch
-- Settings → Experimental → "Leisure journeys: plan door to door by rail between any two addresses in the region".
-  Off by default. Off: the app is unchanged (Leisure, "Any start and end point", requests and saved data as today; no
-  Google or journey-planner request is ever made).
-- On: Leisure in the Signal design becomes the leisure journey planner. With Signal off, the switch is shown but its
-  hint says "Needs the Signal design"; Panda is unchanged.
-- On, with no Google key in Settings: "Add a Google Maps key in Settings to search addresses and time the trip to the
-  station." Nothing is planned and no request is made.
+### Switch and mode
+- Settings → Experimental → "Trip: plan door to door by rail between any two addresses in the region". Off by default.
+  Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
+  script loaded, no Trip request).
+- On, with Signal on: a third mode button **Trip** beside Commute and Leisure. With Signal off: no Trip button; the
+  switch's hint says "Needs the Signal design". Leisure is the same with the switch on or off.
+- Trip with no Google key: the setup card "Add a Google Maps key in Settings to search addresses and time the trip to
+  the station", with Open Settings. Nothing planned, no request, no script loaded.
 
 ### Where from and where to
-- Two fields, **From** and **To**. From defaults to "Current location" (the phone's location; refused if outside the
-  region or the fix is older than 2 min or worse than 200 m). Swap reverses them.
-- Typing 3 or more characters shows a drop-down of up to 5 suggestions after 250 ms without typing, restricted to the
-  region, addresses and stations alike. Fewer than 3 characters shows up to 5 recent places (saved on the phone, newest
-  first, at most 5). Choosing a suggestion resolves it to a place (name, address line, position).
-- The drop-down is usable by touch, keyboard and VoiceOver (combobox / listbox, arrow keys, Enter, Escape returns to the
-  field, rows at least 44 px). A late reply for older text never replaces a newer one.
-- A place outside the region is refused: "Outside the area this plans: London, the South East and the East of England."
-- One autocomplete session token per search, ended by the choice (Google bills a session, not each keystroke).
+- Fields **From** and **To**. From defaults to "Current location", used only when the fix is ≤ 2 min old, ≤ 200 m
+  accurate and inside the region; otherwise it says which. Swap reverses them.
+- 3+ characters: a drop-down of ≤ 5 suggestions, 250 ms after the last keystroke, restricted to the region; fewer than
+  3: ≤ 5 recent places, newest first. "Powered by Google" under suggestions. A reply for older text never replaces a
+  newer one. Combobox / listbox for VoiceOver; arrow keys, Enter, Escape; rows ≥ 44 px.
+- One Google session per search, ended by fetching the chosen place. Recent places keep Google's place ID and the
+  name (not positions; Google's terms).
+- Outside the region: "Outside the area this plans: London, the South East and the East of England."
+- Choosing From starts timing its stations at once (before To is chosen); choosing To starts planning at once.
 
 ### Getting to and from the station
-- Each end has its own way: **Walk / Cycle / Drive** (to the station at From; from the station at To). Defaults Walk /
-  Walk; the last choice is remembered.
-- Walk: Google's walking route distance at your leisure walking pace (profile `walking.kmh.leisure`). Cycle: Google's
-  cycling time. Drive: Google's traffic-aware driving time for the time you'd set off.
-- Allowances (Settings, minutes): park and walk to the platform 10; lock the bike and walk to the platform 4; walk
-  from the station entrance to the platform 3 (walk and every arrival); from the train back to a parked car 5.
-- Drive is for getting to a station, not driving the journey: a drive to a station is at most 25 km straight line.
+- Each end has Walk / Cycle / Drive. Defaults Walk / Walk; last choice remembered.
+- Walk: Google's walking distance at your leisure pace (`walking.kmh.leisure`). Cycle: Google's cycling time. Drive:
+  Google's traffic-aware time for when you'd set off.
+- Allowances (Settings, minutes, 0–60): park and reach the platform 10; lock the bike and reach the platform 4; station
+  entrance to platform 3 (walking); off the train to the street 3; off the train back to a parked car 5.
 
 ### Which stations
-- Candidates for each end: rail stations within the mode's reach in a straight line (walk 3 km, cycle 10 km, drive 25 km),
-  nearest first, at most 4. If none is within reach, the single nearest station is used with the flag "Nearest
-  station is N km away".
-- Their real times come from one Google route-matrix request per end (the place × the candidates).
-- A candidate more than 20 min slower to reach than the quickest one is dropped before any rail search (it can't win
-  by much); at most 3 From stations × 2 To stations = 6 station pairs are searched.
-- Driving to a station whose TfL facilities say "Car Park: no": flagged "No station car park" (never hidden).
-- The pick is door to door (as the commute): earliest arrival for Leave now / Leave around; latest leave that arrives in
-  time for Arrive by; top-card rule with the 20-min window. The other stations appear under "Other stations", each with
-  its consequence ("From Stevenage: arrive 12 min later", "leave 8 min earlier").
+- Reach in a straight line: walk 3 km, cycle 10 km, drive 25 km. Candidates: the 3 nearest within reach, plus up to 2
+  well-served stations within reach (departures per hour at least twice the best of the nearest three, highest
+  first). None within reach: the nearest, flagged "Nearest station is N km away".
+- Pinned: driving from near Chilham gives Chilham, Chartham, Selling, Ashford International, Canterbury West.
+- Round 1 searches: nearest From × every To candidate, and every From candidate × nearest To (≤ 9). Round 2 only for
+  pairs whose best arrival is within 30 min of the best found (≤ 6). ≤ 15 planner searches per plan.
+- Drive to a station with no car park: "No station car park"; unknown: "Car park not known". Never hidden.
+- The pick: the commute's top-card rule (earliest arrival for Leave now / Leave around; latest leave arriving in time
+  for Arrive by; next best within 20 min). "Other stations": the best journey from / to each other station with its
+  consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier").
 
 ### The trains
-- The rail journey between two stations can have changes, including a cross-London Tube or walk between termini; each
-  change shows its station and time ("Change at Clapham Junction · 7 min").
-- Rail planner: National Rail's journey planner when its address and key are in Settings; otherwise TfL's journey
-  planner, station to station by exact station ID. A TfL reply whose first rail leg doesn't start at the asked station,
-  or whose last doesn't end at the asked one, is refused for that pair ("TfL matched a different place").
-- Questions as the commute: Leave now, Leave around (100 min past T), Arrive by T.
-- Never hide a journey: every one returned is listed in leaving order with its flags (cancelled, late, timetable only,
-  tight change, connection at risk, no car park, nearest station far away).
-- A change shorter than 5 min is flagged "Tight change (N min)" (amber); the planner's own minimum connection time is
-  respected and never shortened.
+- Journeys can have changes, including a cross-London Tube or walk; each change shows where and how long ("Change at
+  Clapham Junction · 7 min"; "Waterloo → Bank → Liverpool Street by Tube · 18 min").
+- Rail planner: National Rail's when its address and key are in Settings; otherwise TfL, station to station by the
+  station's own TfL IDs. A reply whose ends aren't the asked stations (by ID, else ICS code, else within 300 m) is
+  refused for that pair: "TfL matched a different place".
+- A bus or coach ride inside a journey is kept and flagged "Bus between X and Y".
+- A journey departing on a later day is flagged "Tomorrow" with its date.
+- Leave now, Leave around T (to T + 100 min), Arrive by T. Every journey returned is listed in leaving order.
+
+### Changes (one rule, planned and live)
+- Spare = next ride's departure − this ride's arrival − any Tube / walk between them, in whole minutes. Expected times
+  when both rides are live; else timetabled, marked "Not live" (never green).
+- Spare ≥ 5: fine. 2–4: amber "Tight change, N min". Under 2: red "Connection at risk". Next ride gone or cancelled
+  while you'd still be on this one: red "Connection missed" with "Plan from <station>". Planned connection times are
+  never shortened.
+
+### Edges
+- Both ends share a station, or are within 1.5 km: "Close enough to walk / cycle / drive: no train needed", plus any
+  journeys found.
+- Already at a candidate station (≤ 400 m): its access time is 0 and the headline is "Departs".
+- Current location moves > 500 m since the plan (not following): re-planned from the new position.
+- Arrive by with a drive: the drive is timed for the computed leave, re-timed once; if it then misses, "Late by N min".
 
 ### Live, and keeping you up to date
-- Each rail leg departing within 2 h has live National Rail times: one departure board per distinct leg origin (filtered
-  to that leg's destination), matched by timetabled departure and destination. Shown as the commute shows trains:
-  timetabled, expected, platform, status colour (amber 5–14 min late, red 15+, cancelled, no estimate).
-- Change status from expected times: spare = next leg's expected departure − (this leg's expected arrival + change time
-  between platforms). Spare ≥ 5 min: fine. 2–4 min: amber "Tight change, N min". Under 2 min: red "Connection at risk".
-  The next leg gone or cancelled while you'd still be on this one: red "Connection missed", with "Plan from <station>".
-- Drive before you leave: while within 60 min of the leave time, the drive is re-timed every 5 min; a change of 2 min or
-  more moves the leave time and says why ("Traffic: leave 6 min earlier").
-- Follow a route works for the whole trip: one tap on any journey. The card shows the next step (leave / ride to the
-  station / board / change / final leg), ahead or behind, every change with its reason; the followed trip is never
-  silently replaced; an alternative is offered only when it arrives at least 5 min sooner or the followed one is broken,
-  and taking it is an explicit Follow.
-- Which leg you're on: by the followed plan, time and position against each leg's stations; when unsure it asks ("Are
-  you on the 14:05 to Victoria?") and remembers the answer.
+- Live times for at most 6 board requests per refresh (≥ 30 s apart): the two picks' rides, the followed journey's next
+  two rides, then first rides leaving within 30 min. Others "Not live". A matched ride uses Service Details by its ID.
+- Same status colours as the commute (amber 5–14 min late, red 15+, cancelled, no estimate).
+- Drive: re-timed every 5 min within 60 min of leaving; a change of 2+ min moves the leave time with "Traffic: leave N
+  min earlier"; if the new leave time has passed: "Leave now: N min late for the 14:05".
+- Follow works for the whole trip: one tap. The card shows the next step, ahead / behind, every change with its reason;
+  never silently replaced; an alternative only when ≥ 5 min sooner or the followed one is broken; switching is an
+  explicit Follow.
+- Which ride you're on: the followed ride by time; position within 1 km of the line between its stations confirms; when
+  two rides fit (within 1 km and 5 min) it asks "Are you on the 14:05 to Victoria?" and remembers for this trip.
+- Views: planning; on the way to the station; on a ride (headline = arrival); at a change (headline = next departure
+  and spare); final leg. Auto / Plan / Live work as in the commute.
 
-### Screen (Signal)
-- Same structure as the commute: primary answer (Leave by / Departs / Arrive), Next best, every journey, Other stations,
-  Travel alerts, freshness and Refresh, Auto / Plan / Live.
-- Journey steps: the access leg with its mode, each rail leg (timetabled · expected · platform), each change, the
-  final leg; each time computed from the journey's segments.
-- New or extended Signal components are listed in the design system section above and used only as listed there.
+### Speed
+- First answer drawn ≤ 4 s after the second place is chosen with every feed answering in 600 ms; live times ≤ 6 s; at
+  most 3 network steps one after another before the first answer.
+- After the first answer, a better journey found later is shown as "Better option found", never a silent swap.
 
 ### Keys, saved data and requests
-- Keys in Settings (Google Maps key; National Rail journey planner address and key) are stored only on the phone, never
-  shown back in full, never logged, exported, captured or sent anywhere but their own service.
-- Saved on the phone (validated on restore; dropped if malformed): the switch, the keys, the allowances, the current
-  From / To / modes, at most 5 recent places, a followed leisure trip. Turning the switch off keeps them; the simulator
-  snapshot covers them.
-- Request budget per plan: ≤ 2 nearby-station lookups (cached 1 day per 1 km square), ≤ 2 route-matrix requests,
-  ≤ 6 rail-planner searches in the first round and ≤ 12 in total, Darwin boards ≤ 1 per leg origin per refresh with
-  refreshes ≥ 30 s apart. Each refusal or timeout stops further requests for that refresh, as the commute does.
+- Keys (Google; National Rail planner address and key) are stored only on the phone, shown as their last 4
+  characters, never logged, captured, exported, put in simulator reports or sent anywhere but their own service.
+- Saved (validated on restore; malformed dropped): the switch, keys, allowances, current From / To / ways / question,
+  ≤ 5 recent places, a followed trip. Switch off keeps them.
+
+| Per plan | Requests |
+| --- | --- |
+| Google autocomplete | 1 per 250 ms pause after 3+ characters |
+| Google place fetch | 1 per chosen place |
+| Google route matrix | 1 per end (+1 for Arrive by with a drive; +1 per 5 min drive re-check) |
+| Rail planner | ≤ 9 round 1, ≤ 6 round 2 |
+| National Rail boards | ≤ 6 per refresh, ≥ 30 s apart |
+| Service Details | ≤ 1 per minute for the ride you're on |
+| TfL station lookups | 0 (bundled) |
 
 ## Tests
-- None yet (planned). Planned engine tests: region check; candidate selection per mode (3 / 10 / 25 km, max 4, nearest
-  fallback flag); 20-min pruning and the 6-pair cap; access segments from Google times (leisure pace, allowances);
-  itinerary timing from segments; change spare thresholds at 5 and 2 min (both edges); TfL multi-leg adapter incl. the
-  Feltham wrong-station refusal from a recorded reply; NR planner adapter from a documented-shape fixture; Google
-  autocomplete / details / routes / matrix parsers from synthetic fixtures; ranking and Other-stations consequences;
-  drive re-time ≥ 2 min rule; follow across legs (connection at risk, missed, explicit alternative only).
-  Planned page tests (toggle off unchanged; toggle on without key; combobox keyboard / stale reply; full plan with mocked
-  feeds; follow through a change) and goldens for Brighton → Canterbury and Reading → Brighton.
+- None yet (planned). Engine: region; candidates incl. the Chilham pin and the nearest fallback; pair rounds (9 / 30
+  min / 6 / 15 caps); access segments and allowances; journey timing from segments; change rule at 5 and 2 min (both
+  edges) incl. Not live; TfL adapter from recorded replies (end check, Feltham refusal, dropped station walks,
+  cross-London transfer, bus flag, Tomorrow); ranking and Other stations; trip views; drive re-check at 2 min; follow
+  across rides. Page: switch off unchanged (no script, no request); Trip without key; combobox keyboard / stale reply;
+  full plan with fixture ports; live budget; follow through a change; speed (latency mocks, serial depth); goldens
+  for Brighton → Canterbury West and Winchester → Norwich incl. request counts.
 
 ## Not yet / open questions
-- National Rail journey planner: SOAP, licensed; built from documentation until Sam's access arrives; very likely needs
-  the proxy (browsers can't send its SOAP request across origins). TfL fallback until then.
-- Google from the phone directly: whether a website-restricted key works for Routes and Places (New) from a browser is
-  unverified; if not, the calls go through the proxy with the key server-side.
-- Station data: CRS codes and positions from the open UK stations list (ODbL, attribution in Settings → About); TfL
-  station IDs resolved live and name-checked.
-- Out of scope: bus / tube / taxi to the station, fares and tickets, step-free routing ([family day out](family-day-out.md)),
-  anywhere outside the region, Panda.
+- National Rail journey planner: licensed SOAP; built from documentation, unverified until access; likely needs the
+  proxy.
+- Google: class names, limits and cycling coverage in the UK are unverified until Sam has a key.
+- Station data: CRS and positions from the open UK stations list (ODbL); TfL IDs, car parks and departures per hour
+  measured once by a tool.
+- Out of scope: bus / tube / taxi to the station, fares, step-free routing ([family day out](family-day-out.md)),
+  outside the region, Panda.

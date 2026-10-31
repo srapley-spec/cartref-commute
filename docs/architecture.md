@@ -303,8 +303,11 @@ Newest first. One line each; the story or issue holds the detail.
   fallback); stations discovered and ranked door to door; trips with changes; National Rail's journey planner, TfL
   station to station until access arrives (TfL returns 404 for coordinates outside London; a guessed ID was matched to
   a Feltham bus stop, so IDs are looked up and replies checked); live times per leg and at each change; Follow across
-  legs; Signal only, behind Settings → Experimental, off by default. Multi-leg rail is a new `Trip` type beside the
-  commute's `Option`, which is unchanged. Independent review of the design before building.
+  legs; Signal only, behind Settings → Experimental, off by default. Independent review of the design before building.
+  Revision 2 after that review (verdict "rework") and Sam's brief "reuse, loose coupling and speed": a third mode,
+  **Trip** (Leisure unchanged); Google via its Maps JS library; one shared `Journey` core (the commute's `Option` a
+  one-ride case, converging step by step) instead of a parallel type; providers behind ports; bundled station data
+  (CRS + TfL IDs + car park + departures per hour); stations = nearest + well-served; first answer ≤ 4 s.
   → [leisure-journeys](stories/leisure-journeys.md), [leisure architecture](leisure-architecture.md)
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
