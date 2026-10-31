@@ -115,6 +115,8 @@ export interface Profile {
   busy: BusyRule;
   topWindowMin?: number;                              // top card: alternative only if this close to the best (default 20)
   stationGeo?: Record<StationCode, LatLon>;           // stations along the line, to place a train from where it was reported
+  /** Other stations on the line you can start from instead of home (positions in stationGeo). See startStation.ts. */
+  startStations?: Record<StationCode, { name: string; pattern: string }>;
   corridorPattern: string;                            // regex source: station names on your route (notices naming them are about you)
   places: Places;                                     // where things are, for working out what you're doing
   walking: { streetFactor: number; kmh: { avg: number; fast: number; leisure: number } };

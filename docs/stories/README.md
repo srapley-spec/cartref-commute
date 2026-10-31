@@ -54,6 +54,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Connections at any station](connections.md) · Done
 - [Tube home decides the train](tube-home.md) · Done (generic connection model)
 - [Elsewhere in London](elsewhere-in-london.md) · Done
+- [Start from the nearest station (not at home)](start-from-another-station.md) · Done (opt-in, for today only)
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
