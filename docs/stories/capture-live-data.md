@@ -23,6 +23,10 @@ invented in the shape the code expected, which is why the gap was never caught.
 - tests/app.test.mjs: "Capture Aldgate (Settings): three TfL requests only when tapped, bodies shown, the key never shown"
 
 ## Not yet / open questions
-- Whether TrackerNet has Met departures from Aldgate: unknown until Sam captures one on the platform. If it does, it
-  replaces the arrivals feed for Aldgate going home; if not, TfL's Met timetable is the fallback.
+- Whether TrackerNet has Met departures from Aldgate: still unknown. 31 Oct 08:59 (recorded,
+  `tests/fixtures/tfl-2026-10-31T0859Z/trackernet-ALD.json`): TfL refuses Sam's key on every TrackerNet endpoint (401
+  "invalid subscription key"; the same key works on the unified API). TrackerNet is its own product on TfL's portal
+  ("TrackernetFeedPublic"), most likely with its own key (inference), so a capture with today's key shows the same 401.
+  Once a TrackerNet key exists, it needs its own field in Settings and the capture should send it. See
+  [tube-home](tube-home.md).
 - Only Aldgate. A capture for any station (King's Cross, Farringdon) when the next mismatch happens there.

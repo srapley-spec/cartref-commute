@@ -1,0 +1,14 @@
+{
+ "recorded": "2026-10-31T08:59Z",
+ "note": "TfL key valid for the unified API (200 at the same moment); TrackerNet refuses it on every endpoint (LineStatus, StationStatus, PredictionDetailed M/H, PredictionSummary), key as query or header.",
+ "M": {
+  "url": "https://api.tfl.gov.uk/trackernet/PredictionDetailed/M/ALD?app_key=(removed)",
+  "status": 401,
+  "body": "{ \"statusCode\": 401, \"message\": \"Access denied due to invalid subscription key. Make sure to provide a valid key for an active subscription.\" }"
+ },
+ "H": {
+  "url": "https://api.tfl.gov.uk/trackernet/PredictionDetailed/H/ALD?app_key=(removed)",
+  "status": 401,
+  "body": "{ \"statusCode\": 401, \"message\": \"Access denied due to invalid subscription key. Make sure to provide a valid key for an active subscription.\" }"
+ }
+}

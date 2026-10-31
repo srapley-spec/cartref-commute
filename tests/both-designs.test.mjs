@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SCENARIOS = ["Met departures from Aldgate", "Whole evening", "Aldgate's real feed", "Going home, 30 Oct 18:24", "Review 30 Oct", "Morning, 30 Oct", "Tube going home", "Going home"];
+const SCENARIOS = ["Met departures from Aldgate", "Met platform at Aldgate", "Whole evening", "Aldgate's real feed", "Going home, 30 Oct 18:24", "Review 30 Oct", "Morning, 30 Oct", "Tube going home", "Going home"];
 
 test("Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal too", () => {
   const env = { ...process.env, CARTREF_DESIGN: "signal", TZ: "Europe/London" }; delete env.NODE_TEST_CONTEXT;

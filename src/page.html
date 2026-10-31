@@ -720,13 +720,15 @@ async function fetchTubeArrivals(hub,direction="eastbound"){
 // Going home: live westbound Circle and Met departures from Aldgate (towards Farringdon and King's Cross).
 // Westbound tubes leaving Aldgate. The Circle runs through, so Aldgate's own arrivals list it (westbound only; it runs
 // both ways). The Met starts here, and TfL lists it at Aldgate only as arriving (recorded 30 Oct 19:32 and 22:43,
-// tests/fixtures), so its departures come from Liverpool Street, the next stop, where TfL predicts each westbound Met
-// with its turnaround included, less the timetabled 2-minute run (TfL Met timetable from Aldgate).
-const ALD_NEXT = { id:"940GZZLULVT", runMs:2*60e3 };
+// 31 Oct 08:59, tests/fixtures), so its departures come from Liverpool Street, the next stop, where TfL predicts each
+// westbound Met with its turnaround included, less the measured run (profile: officeStops ALD.startsHere, 90 s).
+// A Met standing at Aldgate has its platform in TfL's location there ("At Aldgate Platform 3").
+// TrackerNet (TfL's per-platform feed) refused the 500-a-minute key on 31 Oct (401): not used. tube-home story.
+const ALD_NEXT = (()=>{ const s=(PROFILE.places.officeStops||[]).find(x=>x.id==="ALD")?.startsHere; return s ? { id:s.nextStopId, runMs:s.runMs, lineId:s.lineId } : null; })();
 async function fetchAldgateDepartures(){
   const epoch0=sourceEpoch;
   const [r, next]=await Promise.all([fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals"),
-    fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${ALD_NEXT.id}/Arrivals`).catch(()=>null)]);
+    ALD_NEXT ? fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${ALD_NEXT.id}/Arrivals`).catch(()=>null) : null]);
   if(!r.ok) throw new Error(`TfL tube departures error (HTTP ${r.status}).`);
   const now=Date.now(), ald=await r.json();
   const list=ald.filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
@@ -734,9 +736,9 @@ async function fetchAldgateDepartures(){
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }));
   // Liverpool Street failing in any way (an error, a refused request, a body that isn't a list) leaves the Circles.
   let met=[];
-  if(next && next.ok){ try{ const j=await next.json(); if(Array.isArray(j)) met=C.terminusDepartures(j, { lineId:"metropolitan", outbound:/westbound/i, runMs:ALD_NEXT.runMs, now, terminus:/^aldgate\b/i }); } catch(e){ assertSource(epoch0); } }
+  if(next && next.ok){ try{ const j=await next.json(); if(Array.isArray(j)) met=C.terminusDepartures(j, { lineId:ALD_NEXT.lineId, outbound:/westbound/i, runMs:ALD_NEXT.runMs, now, terminus:/^aldgate\b/i, terminusName:"Aldgate" }); } catch(e){ assertSource(epoch0); } }
   for(const m of met) if(!list.some(a=>a.lineId==="metropolitan" && a.vehicle && a.vehicle===m.vehicle))
-    list.push({ vehicle:m.vehicle, line:"Met", lineId:"metropolitan", dest:m.dest, t:m.t, platform:"", fromNext:true });
+    list.push({ vehicle:m.vehicle, line:"Met", lineId:"metropolitan", dest:m.dest, t:m.t, platform:m.platform, fromNext:true });
   return list.filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);
 }
 // Live arrivals at Aldgate, to follow the tube you're on by its vehicle id.
