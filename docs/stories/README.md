@@ -39,7 +39,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Late trains say so](late-trains.md) · Done
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done
-- [Presentation model: the engine decides what comes first](presentation-model.md) · Done for Panda; Signal behind toggle (release verification pending)
+- [Presentation model: the engine decides what comes first](presentation-model.md) · Done for Panda; Signal compact v2 behind toggle (review approved; release gates recorded)
 - [Live and timetable data](live-and-timetable.md) · Done
 - [Reliability when feeds fail](reliability.md) · Done
 
@@ -75,4 +75,4 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 
 ### Design and presentation
 - [Every live train says how late it is, in colour](train-status.md) · Done
-- [Signal design system and automatic journey presentation](signal-design-system.md) · Behind toggle (release verification pending)
+- [Signal design system and automatic journey presentation](signal-design-system.md) · Behind toggle; compact v2 review approved, release gates recorded

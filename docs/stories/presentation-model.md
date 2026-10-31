@@ -1,5 +1,5 @@
 # Presentation model: the engine decides what comes first
-Status: Done for Panda; Signal behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Since: 29 Oct 2026
+Status: Done for Panda; Signal compact v2 behind toggle (independent review approved; release gates recorded) · Since: 29 Oct 2026
 
 ## Story
 As a commuter glancing at the phone, I want the thing that matters most to be first on every screen, however the
@@ -41,8 +41,19 @@ that integration, including a deliberate change to the model order. Panda's exis
   rearrangement preserves listeners, disclosures, focused controls and text selection.
 - With Follow a route enabled, a chosen journey is an active `following` presentation even before departure.
   It does not fabricate a location or claim the passenger is on a particular service.
-- Signal draws the engine's one-line status summary while retaining detailed notices and line status. Missing
-  live line/operator evidence is qualified as unavailable, never promoted to a good-service claim.
+- Signal draws the engine's one-line impact summary while retaining full original notices under Travel alerts
+  and line/source detail under Lines & data. Missing live line/operator evidence is qualified as unavailable,
+  never promoted to a good-service claim. If the fallback line is unavailable as well as Circle and Met, the
+  summary must not recommend that fallback as a resolution. A more important train/feed failure retains priority,
+  with the current onward-travel qualification still visible. Current closures are labelled “now” when the
+  planning question is for later; displayed-plan missing routes use that plan's own failures.
+- Compact v2 foregrounds the current answer and uses a compact expandable Next best rather than two equally
+  large recommendation cards. The shell may consolidate repeated geometry and reparent the existing controls,
+  but may not change priority, ranking, current selection or the complete set of journey/notice information.
+  In Auto/Live, active followed-route presentation leads and unrelated recommendations may fold. Explicit Plan
+  keeps its primary answer exposed while following/alerts continue. Tube choices/corrections are extracted
+  outside folded recommendations with their existing handlers and selection intact. The approved compact layout is specified by the
+  [Signal story](signal-design-system.md#compact-v2-direction-sam-31-oct-2026).
 - With both Experimental options off, existing Panda golden content stays unchanged. Signal and Panda share
   journey identity, times, flags and source requests when following is off; Signal adds the selected presentation
   and explicit controls without changing planning calculations.
@@ -68,8 +79,16 @@ that integration, including a deliberate change to the model order. Panda's exis
 - tests/presentation-ui.test.mjs: "canonical rendering preserves unknown content, untagged context, listeners, disclosure and focus"
 - tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
-- tests/signal.test.mjs: "Signal uses identical journey content and requests to Panda when following is off"
+- tests/signal.test.mjs: "Signal preserves every journey field and request while compacting Panda content"
 - tests/follow-journey-review.test.mjs: "journey review: absent live line-status evidence never becomes a good-service claim"
+
+- tests/core/present.test.mjs: "statusLine: a closed fallback asks to check onward travel without claiming a future closure"
+- tests/signal-compact-review.test.mjs: "compact review: future Arrive by and Leave around missing routes stay visible above folded alerts"
+- tests/signal-compact-review.test.mjs: "compact review: a cancellation summary cannot hide the currently closed onward fallback"
+
+- tests/signal-compact-plan.test.mjs: "compact Plan: explicitly choosing Plan keeps its primary answer visible while following continues"
+- tests/signal-compact-plan.test.mjs: "compact Plan: live Tube choices remain outside folded recommendations and keep working while following"
+- tests/presentation-ui.test.mjs: "Signal planning keeps the primary answer ahead of the accessible line-status strip"
 
 ## Current implementation and limits
 - Signal closes the old status-summary and live-block ordering gaps. Panda retains its existing banner stack
@@ -81,6 +100,10 @@ that integration, including a deliberate change to the model order. Panda's exis
   preserves editing, service selection and expanded reading; tracking and journey-impact alerts continue.
 - The shared followed-route panel is independent of the displayed view. Its rail identity and live arrival,
   onward Tube/walk estimates and reasons come from engine outputs and existing situation evidence.
+- Compact v2 moves the actual mode/direction/pace controls into Journey options with effective values in its
+  summary. Auto / Plan / Live and the planning question remain exposed. This is an approved geometry change,
+  not permission for a second presentation policy or a separate set of journey state. Panda restores the same
+  original nodes and positions when Signal is disabled.
 - The prototype remains a visual reference. Real iPhone Safari, VoiceOver and live-feed checks remain hardware
   acceptance limits; see [Signal verification](../signal-testing.md).
 - `docs/design/README.md` tells every design proposal to use the model's order and status line.

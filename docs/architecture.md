@@ -62,7 +62,7 @@ from that description.
 
 ## Signal presentation architecture (29 Oct 2026)
 
-Status: behind Settings → Experimental; independent review approved; release gates recorded in docs/signal-testing.md. See [design system](design-system.md) and
+Status: behind Settings → Experimental; compact v2 with independent and visual review approved; CI/deployment gates in docs/signal-testing.md. See [design system](design-system.md) and
 [acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
 
 ### Agreed by Sam
@@ -100,6 +100,37 @@ Status: behind Settings → Experimental; independent review approved; release g
 Sam agreed the original policies on 29 Oct and selected the newer Follow a route lifetime on 30 Oct.
 Implementation and release evidence are recorded in [Signal testing](signal-testing.md); the prototype alone
 is not evidence of production tracking, alert delivery or interaction deferral.
+
+### Compact Signal v2 (Sam, 31 Oct 2026)
+- Sam requested substantially less bulk, informed by Flighty's current-journey hierarchy and Railboard's readable
+  timetable rows. This intentionally changes the older Signal geometry; the latest engine, status thresholds,
+  route-following, simulator and source behavior remain shared. See the
+  [Signal acceptance story](stories/signal-design-system.md#compact-v2-direction-sam-31-oct-2026) and
+  [compact design review](signal-compact-design-review.md).
+- Existing mode/direction/pace controls move into a native Journey options disclosure; its summary exposes
+  effective direction/mode and pace. Auto / Plan / Live and the planning question stay exposed. This supersedes
+  the older always-visible direction/pace control requirement for Signal only. Move the same DOM controls and
+  retain their handlers/values instead of cloning inputs or creating a second saved state.
+- One primary answer leads; Next best is a compact expandable option retaining all metadata, steps and actions.
+  Board rows use full-width information and a Follow target of at least 44 px. All trains and individual
+  cancellation/no-estimate/uncertainty flags survive; no aesthetics-based filtering is introduced.
+- One impact summary remains visible, with its existing severity precedence; Travel alerts holds the full original
+  banners, and Lines & data holds full line/source/technical detail. Freshness and Refresh remain available.
+  `statusLine` receives whether the fallback is unavailable: all relevant Tube lines closed must not advertise
+  H&C/Aldgate East as a usable resolution. This qualification belongs in the pure engine, not shell wording rules.
+- In Auto/Live the active followed route stays foregrounded; other recommendations can fold without losing
+  information or actions. An explicit Plan request keeps the primary planning answer visible outside that
+  fold while following and alerts continue. Tube selection/correction controls are extracted outside the fold
+  with their original handlers and chosen vehicle intact. Notice/detail reading, focus and planning values
+  survive redraw; long text and enlarged type wrap rather than clip.
+- Reparented elements have recorded DOM homes. Turning Signal off restores Panda's original live nodes, control
+  locations and behavior; requests, ranking and selected journey do not change. Panda remains the default.
+- Latest `main` regression contract (`8789a50`) adds six Tube-change checks in both Panda and Signal, with no
+  application-source change. Integration must retain these new tests alongside the existing production source
+  and compact-layout probes; the redesign does not replace the latest source with older branch behavior.
+- Compact-v2 page tests and browser screenshots must prove availability, density and preservation together.
+  Engine tests alone cannot prove reachable controls or responsive layout. Independent review must check tests,
+  architectural boundaries, deliberate breakages and final screenshot targets before release approval.
 
 ### Followed journey and design boundaries
 - Signal design and Follow a route are separate Experimental settings, both off by default. Selecting Signal
@@ -221,10 +252,18 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (independent review approved; release gates recorded in docs/signal-testing.md). Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 Newest first. One line each; the story or issue holds the detail.
+- **31 Oct** Sam approves a radical compact Signal direction, inspired by Flighty/Railboard: real Journey options
+  controls with effective context visible, exposed Auto/Plan/Live and planning question, primary answer plus
+  expandable Next best, one visible network-impact summary, full Travel alerts and Lines & data, readable full-width
+  rows and 44 px Follow actions. Active followed route foregrounds other recommendations; Tube controls remain
+  outside their fold. Preserve Panda's original DOM, behavior, requests and ranking when Signal is off.
+  This supersedes older Signal geometry, not its shared engine or preservation contract. Independent design,
+  behavior, architecture and mutation review remain release requirements. → [Signal story](stories/signal-design-system.md),
+  [compact design review](signal-compact-design-review.md)
 - **30 Oct night, latest-code reconciliation** Premerge review found concurrent `origin/follow-a-route`
   (`d330e95`). Port its current journey improvements selectively: visible original arrival, incident recovery,
   explicit boarding correction, same-train observation continuity, explicit run/car choice, quiet Tube-approach
