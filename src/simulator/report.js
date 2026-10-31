@@ -2,7 +2,7 @@
 function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={}) {
  const limits={checkpoints:200,assertions:100,events:500,revisions:30,text:1200};
  const statuses=['PASS','FAIL','INCONCLUSIVE'];
- let report=null,redactions=[];
+ let report=null,redactions=[],previousAttempts=[],droppedAttempts=0;
  const finite=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
  const status=value=>statuses.includes(value)?value:'INCONCLUSIVE';
  const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -35,13 +35,15 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   const out={direction:['outbound','return'].includes(value.direction)?value.direction:'outbound',route:['kgx','far'].includes(value.route)?value.route:'kgx',scenario:id(value.scenario,'normal'),speed:[1,5,20].includes(speed)?speed:1,startTime:finite(value.startTime),totalCheckpoints:Math.max(0,Math.min(limits.checkpoints,Math.trunc(finite(value.totalCheckpoints)||0))),sources:source(value.sources||value.source)};
   if(typeof value.accuracyMode==='string')out.accuracyMode=id(value.accuracyMode);
   if(typeof value.sessionId==='string'||finite(value.sessionId)!==null)out.sessionId=typeof value.sessionId==='string'?id(value.sessionId):value.sessionId;
+  if(Number.isInteger(value.initialCheckpoint))out.initialCheckpoint=Math.max(0,value.initialCheckpoint);
+  if(['back','reset'].includes(value.recoveryReason))out.recoveryReason=value.recoveryReason;
   return out;
  }
  function evidence(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return {};
   const out={},strings=['direction','view','expectedView','actualView','expectedDirection','actualDirection','serviceId','expectedServiceId','operator','from','to','atHub','locStatus','confidence','vehicle','expectedVehicle','line','lineId','stop','platform','point','accuracyMode','source','providerHealth'];
   const numbers=['locAcc','accuracy','depLate','arrLate','boardsCount','alternativesCount','fixAgeMs','stoppedAt','arrivalAt','clockNow'];
-  const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches'];
+  const booleans=['sure','picked','conflict','none','onLine','onWay','atHome','nearOffice','cancelled','loading','gpsAvailable','displayMatches','contextCleared'];
   for(const key of strings)if(typeof value[key]==='string')out[key]=id(value[key]);
   for(const key of numbers)if(finite(value[key])!==null)out[key]=value[key];
   for(const key of booleans)if(typeof value[key]==='boolean')out[key]=value[key];
@@ -67,11 +69,11 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  function snapshot(){
   if(!report)return null;
   // Sanitize again on read, so newly supplied private values also protect earlier observations.
-  return JSON.parse(JSON.stringify(report),(key,value)=>{
+  return JSON.parse(JSON.stringify({...report,...(droppedAttempts?{truncated:{...report.truncated,attempts:droppedAttempts}}:{}),...(previousAttempts.length?{previousAttempts}: {})}),(key,value)=>{
    if(typeof value!=='string')return value;
    // These are internally generated constants or strictly validated public enums, not user text.
    // A private place called Cartref must not alter the report format's fixed discriminator.
-   if(key==='kind'&&value==='cartref-commute-simulation'||key==='status'&&statuses.includes(value)||key==='route'&&['kgx','far'].includes(value)||key==='direction'&&['outbound','return'].includes(value))return value;
+   if(key==='recoveryReason'&&['back','reset'].includes(value)||key==='kind'&&value==='cartref-commute-simulation'||key==='status'&&statuses.includes(value)||key==='route'&&['kgx','far'].includes(value)||key==='direction'&&['outbound','return'].includes(value))return value;
    return text(value,'',key!=='serviceId'&&key!=='expectedServiceId'&&key!=='vehicle'&&key!=='expectedVehicle');
   });
  }
@@ -79,8 +81,18 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   return value&&typeof value==='object'&&report&&report.finishedAt===null&&(value.sessionId==null||report.config.sessionId==null||value.sessionId===report.config.sessionId);
  }
  function start(config={}){
+  previousAttempts=[];droppedAttempts=0;
   if(!config||typeof config!=='object')config={};
   report={schemaVersion:1,kind:'cartref-commute-simulation',startedAt:finite(config.startTime)??now(),finishedAt:null,reason:null,config:configuration(config),checkpoints:[],events:[],truncated:{checkpoints:0,assertions:0,events:0,revisions:0}};
+  return getReport();
+ }
+ function resetAttempt(config,{reason='reset',fromTime=now(),at=now()}={}){
+  if(report){
+   if(report.finishedAt===null){report.finishedAt=finite(fromTime)??now();report.reason=id(reason);}
+   previousAttempts.push(clone(report));
+   if(previousAttempts.length>10){previousAttempts.shift();droppedAttempts++;}
+  }
+  const history=previousAttempts,dropped=droppedAttempts;start(config);previousAttempts=history;droppedAttempts=dropped;report.startedAt=finite(at)??now();
   return getReport();
  }
  function recordCheckpoint(value={}){
@@ -116,7 +128,7 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
  }
  function summary(){
   const rows=report?report.checkpoints:[],assertions=rows.flatMap(value=>value.assertions),count=(items,value)=>items.filter(item=>item.status===value).length;
-  return {completedCheckpoints:rows.length,totalCheckpoints:report?report.config.totalCheckpoints:0,passedAssertions:count(assertions,'PASS'),failedAssertions:count(assertions,'FAIL'),inconclusiveAssertions:count(assertions,'INCONCLUSIVE'),passedCheckpoints:count(rows,'PASS'),failedCheckpoints:count(rows,'FAIL'),inconclusiveCheckpoints:count(rows,'INCONCLUSIVE'),events:report?report.events.length:0,finished:!!report&&report.finishedAt!==null,reason:report?text(report.reason,null,false):null};
+  return {completedCheckpoints:rows.length,totalCheckpoints:report?report.config.totalCheckpoints:0,passedAssertions:count(assertions,'PASS'),failedAssertions:count(assertions,'FAIL'),inconclusiveAssertions:count(assertions,'INCONCLUSIVE'),passedCheckpoints:count(rows,'PASS'),failedCheckpoints:count(rows,'FAIL'),inconclusiveCheckpoints:count(rows,'INCONCLUSIVE'),events:report?report.events.length:0,...(previousAttempts.length?{previousAttemptCount:previousAttempts.length,droppedAttemptCount:droppedAttempts}:{}),finished:!!report&&report.finishedAt!==null,reason:report?text(report.reason,null,false):null};
  }
  function getReport(){const out=snapshot();if(out)out.summary=summary();return out;}
  function serialize(space=2){return JSON.stringify(getReport(),null,[0,1,2,3,4].includes(space)?space:2);}
@@ -125,5 +137,5 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   if(report.finishedAt===null){report.finishedAt=finite(at)??now();report.reason=id(reason,'completed');}
   return getReport();
  }
- return {start,recordCheckpoint,recordEvent,finish,summary,getReport,serialize,setPrivateValues};
+ return {start,resetAttempt,recordCheckpoint,recordEvent,finish,summary,getReport,serialize,setPrivateValues};
 }

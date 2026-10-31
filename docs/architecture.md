@@ -484,6 +484,17 @@ restart and Stop. Reload always restores real operation. See [journey simulator]
 [PR #37](https://github.com/srapley-spec/cartref-commute/pull/37) records exact release evidence. GitHub-first release applies because this changes location, timing,
 feed requests, saved-state isolation and generated build integration.
 
+### Deliberate context loss and Back (31 October)
+Back is a cold-start experiment, not a replay of prior decisions: it pauses, invalidates source/playback
+and observation epochs, moves the shared synthetic inputs to the previous waypoint and discards inferred
+journey state. Reset journey state performs the same discard without moving the clock or raw fix.
+The shell captures raw observations with their original age and clears rendered/presentation/progress
+evidence before the normal location handler runs again. Unavailable GPS remains unavailable. The configured
+profile and permanent settings are preserved; real session snapshots remain untouched.
+The observational verifier distinguishes missing historical evidence from failures and resumes ordinary
+checks after fresh movement/context. Reports archive bounded sanitized attempts, including earlier failures,
+without treating future checkpoints as verified after rewind. No simulation decisions enter `src/core`.
+
 ### Simulator time audit
 The shell's lexical Date wrapper supplies current time to board parsing, service matching, direction
 memory, arrival/leave date inputs, stale-fix checks, request counts, cache ages, backoff and refresh

@@ -56,7 +56,7 @@
 #simBar #journeyTimelineToggle{white-space:nowrap}
 #journeyDockNext{display:block;margin:2px 0 0;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #journeyDockProgress{display:block;max-width:580px;width:100%;height:4px;margin:2px auto 4px;accent-color:var(--accent)}
-#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:1fr .7fr 1.25fr .55fr;gap:6px}
+#simBar .simDockActions{max-width:580px;margin:auto;display:grid;grid-template-columns:minmax(56px,1fr) minmax(64px,.9fr) 44px minmax(62px,1.25fr) 44px;gap:6px}
 #simBar .simDockActions button{padding:8px 5px;font-size:12px}
 body.simControlsVisible{padding-bottom:calc(var(--sim-dock-height,155px) + 16px)}
 body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-top,0px))}
@@ -78,7 +78,8 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 
 
 </div>
-<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Travel stays sequential so the app sees the full journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
+<div id="journeyStateTools" hidden><button id="journeyResetState" type="button">Reset journey state</button><small id="journeyResetNotice">Reset forgets journey history at the current location and time.</small></div>
+<details id="journeyTimelineDetails"><summary>Journey timeline <span id="journeyTimelineCount"></span></summary><p id="journeyTimelineContext" class="simDescription" hidden></p><p class="simDescription">Inspect any step. Next travels sequentially. Back returns one step and clears journey history.</p><ol id="journeyTimeline" class="simTimeline"></ol></details>
 <details id="journeyVerificationDetails"><summary>Expected and actual <span id="journeyVerificationCount"></span></summary><div id="journeyVerificationResults"><p>No checkpoint verification yet.</p></div></details>
 <details id="journeyResultsDetails"><summary>Journey results</summary><div id="journeyResultsSummary"><p>Results become available when a journey starts.</p></div><div class="simRow"><button id="journeyCopyResults" type="button">Copy results</button><button id="journeyExportResults" type="button">Export JSON</button></div><small id="journeyExportStatus" role="status"></small></details>
 <details id="simAdvanced"><summary>Advanced diagnostics</summary>
@@ -101,7 +102,7 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 <label for="simLon">Longitude</label><input type="number" step="any" id="simLon" value="-0.22909">
 <label for="simAccuracyMode">Playback accuracy</label><select id="simAccuracyMode"><option value="realistic">Good fixes (12 m walking, 45 m train)</option><option value="poor">Poor indoor/train fixes (180–1400 m)</option><option value="manual">Use manual accuracy</option></select>
 <label for="simAccuracy">Manual location accuracy (metres)</label><input type="number" min="0" step="any" id="simAccuracy" value="12">
-<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset journey context</button></div>
+<div class="simRow"><button type="button" id="simApply">Apply coordinates</button><button type="button" id="simClear">Reset and restart</button></div>
 <label for="simSpeed">Playback speed</label><select id="simSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select>
 <small id="simStatus" aria-live="polite">Ready</small>
 
@@ -114,6 +115,6 @@ body.simControlsVisible #hero{scroll-margin-top:calc(8px + env(safe-area-inset-t
 <div id="simBar" hidden role="group" aria-label="Simulator playback">
 <div class="simDockHeading"><span id="simActivity" role="status">Simulator ready</span><time id="journeyDockTime">—</time></div>
 <div class="simDockCurrent"><div class="simDockLocation"><strong id="journeyDockLocation">No journey started</strong><small id="journeyDockNext">Choose a journey to begin</small></div><button id="journeyVerificationBadge" type="button" title="Open checkpoint verification">Not checked</button><button id="journeyTimelineToggle" type="button" title="Inspect journey timeline">0 / 0</button></div><progress id="journeyDockProgress" value="0" max="1" aria-label="Journey progress"></progress>
-<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
+<div class="simDockActions"><button id="simToggle" type="button" aria-controls="simPanel" aria-expanded="false">Show controls</button><button id="simAdvance" type="button" aria-label="Play to next checkpoint">Start</button><button id="journeyBack" type="button" title="Back one checkpoint and forget journey state" aria-label="Back one checkpoint and forget journey state">Back</button><button id="journeyNext" type="button">Next checkpoint</button><button id="simExit" type="button">Stop</button></div>
 </div>
 </div>

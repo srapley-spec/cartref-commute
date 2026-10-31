@@ -531,12 +531,13 @@ let sourceEpoch=0;
 const pendingRequests=new Set();
 const staleSource=()=>Object.assign(new Error("Transport source changed"),{staleSource:true});
 function assertSource(epoch){if(epoch!==sourceEpoch)throw staleSource();}
-function invalidateSources(){
+function invalidateSources({preserveRateLimits=false}={}){
+ const backoff=preserveRateLimits?state.tflBackoffUntil:null;
  sourceEpoch++; for(const controller of pendingRequests)controller.abort(); pendingRequests.clear();
  clearTimeout(state.retryTimer);state.retryTimer=null;
  state.byToken={};state.atToken={};state.loading=false;state.again=false;
  for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
- state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();reqLog.length=0;
+ state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();if(preserveRateLimits)state.tflBackoffUntil=backoff;else reqLog.length=0;
 }
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
@@ -2038,6 +2039,8 @@ async function refreshLondon(){
 // otherwise heading to whichever end is further away. No time-of-day guessing.
 const LOC_HELP="Turn it on in iPhone Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, with Precise Location on. Or choose a direction above.";
 function onPosition(p){
+  // Raw observation only: cold simulator resets can reprocess it without inventing freshness.
+  state.lastPosition={coords:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,speed:p.coords.speed??null},timestamp:Math.min(Date.now(),p.timestamp||Date.now())};
   const here=[p.coords.latitude,p.coords.longitude], acc=Number.isFinite(p.coords.accuracy)&&p.coords.accuracy>=0?Math.round(p.coords.accuracy):null;
   const moved=!state.here || km(state.here,here)>0.2;
   state.here=here; state.locAcc=acc; state.locStatus="ok";
@@ -2121,7 +2124,10 @@ const awaitingLocation = () => state.saved.dirMode==="auto" && !state.autoDir;
 /*__SIMULATION_CLOCK__*/
 /*__SIMULATED_FEEDS__*/
 /*__SIMULATOR_CONTROLLER__*/
-const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onStop:endSimulationSession});
+const simulator=createJourneySimulator({state,S,onPosition,onPositionError,locate,render,refresh,navigator,document,clock:simClock,invalidateSources,onResetPresentation:()=>{
+ state.rendered=null;state.pendingView=null;state.journeyLivePresentation=null;state.signalDisruptionItems=[];signalProgressMemory=null;
+ state.origin='';document.getElementById('originInput').value='';
+},onStop:endSimulationSession});
 const {sim,simSetup,simStop}=simulator;
 const simulatedFeeds=createSimulatedTransportFeeds({now:()=>simClock.now(),scenario:()=>simulator.getScenario()});
 simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,direction:state.autoDir||null,railSource:state.railSource||null,onLine:!!state.onLine,atHub:state.atHub||null,locationStatus:state.locStatus||null,accuracy:state.locAcc??null,trainServiceId:state.rendered?.train?.t?.serviceId||null,trainConfidence:state.rendered?.train?.confidence||null,tubeVehicle:state.rendered?.ride?.vehicle||null,loading:!!state.loading,lastDataAt:state.fetchedAt||null,requests:requestCounts()});
@@ -2129,10 +2135,11 @@ simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,directio
 // Simulator integration observes normal rendering; no extra inference calls are made for verification.
 function readSimulationActual(){
  const model=state.rendered||{},m=model.train,r=model.ride;
+ const journeyMemory={origin:!!state.origin,directionPin:state.saved.dirMode!=='auto',planningView:(state.saved.view||'now')!=='now',trainLock:!!state.trainLock,aldgateVisit:!!state.saved.aldHome,followChoices:followChoices.size>0,pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!(state.saved.viewOverride||state.saved.viewAt||state.saved.viewKey||state.saved.planInputs)};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
- return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,locStatus:state.locStatus,locAcc:state.locAcc,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
+ return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,directionExplicit:['home','office'].includes(state.saved.dirMode),locStatus:state.locStatus,locAcc:state.locAcc,fixAgeMs:Number.isFinite(state.lastFixAt)?Math.max(0,Date.now()-state.lastFixAt):null,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:!!atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
   ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
-  boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  homeStation:HOME,travelMode:state.saved.mode,journeyMemory,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
   errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
   followText:!$("#followPanel").hidden?$("#followPanel").textContent.replace(/\s+/g,' ').trim():'',heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
 }

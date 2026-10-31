@@ -12,6 +12,35 @@ function create(options={}){
 const config={sessionId:1,direction:'outbound',route:'kgx',scenario:'normal',speed:20,startTime:Date.parse('2026-11-03T08:44:00Z'),totalCheckpoints:14,sources:{gps:true,feeds:true}};
 const check=(index,status='PASS',extra={})=>({sessionId:1,index,point:'north',label:'On train at Stevenage',at:Date.parse('2026-11-03T09:16:00Z'),assertions:[{id:'rail-service',expected:'Identify the 09:05 Great Northern',actual:'The real engine identified SIM-GN-0905',status,evidence:{serviceId:'SIM-GN-0905',onLine:true,sure:true}}],...extra});
 
+test('cold report attempts retain old failures but cannot count future results or accept old callbacks',()=>{
+ const r=create();r.start(config);r.recordCheckpoint(check(10,'FAIL'));r.finish('completed');
+ r.resetAttempt({...config,sessionId:2,initialCheckpoint:4,recoveryReason:'back'},{reason:'back',fromTime:999,at:500});
+ assert.equal(r.recordCheckpoint(check(11)),null,'old report epoch cannot publish into a cold attempt');
+ r.recordCheckpoint(check(4,'INCONCLUSIVE',{sessionId:2}));
+ const report=r.getReport();assert.equal(report.finishedAt,null);assert.equal(report.startedAt,500);
+ assert.equal(report.checkpoints.length,1);assert.equal(report.checkpoints[0].index,4);assert.equal(report.previousAttempts[0].checkpoints[0].status,'FAIL');assert.equal(report.previousAttempts[0].reason,'completed');
+ assert.equal(r.summary().failedAssertions,0);assert.equal(r.summary().inconclusiveAssertions,1);
+});
+
+test('cold report archives remain redacted and disclose dropped history at their limit',()=>{
+ const r=create();r.start(config);r.recordCheckpoint(check(2,'FAIL',{label:'Private Landmark',actualDisplay:{mainCard:'Private Landmark at 51.12345,-0.23456'}}));
+ r.resetAttempt({...config,sessionId:2,recoveryReason:'reset'},{at:2,fromTime:2});
+ r.setPrivateValues(['Private Landmark']);
+ const retained=r.getReport().previousAttempts[0].checkpoints[0];
+ assert.equal(retained.label,'[redacted]','late privacy values protect an attempt which is still archived');
+ assert.equal(retained.assertions[0].expected,'Identify the 09:05 Great Northern','public diagnostic evidence is retained');
+ assert.ok(!r.serialize().includes('Private Landmark'));assert.ok(!r.serialize().includes('51.12345'));
+ for(let sessionId=3;sessionId<=13;sessionId++)r.resetAttempt({...config,sessionId,recoveryReason:'reset'},{at:sessionId,fromTime:sessionId});
+ const out=r.getReport();assert.equal(out.previousAttempts.length,10);assert.equal(out.truncated.attempts,2);
+ assert.ok(!r.serialize().includes('Private Landmark'));assert.ok(!r.serialize().includes('51.12345'));
+ r.start(config);assert.equal(r.getReport().previousAttempts,undefined);assert.equal(r.getReport().truncated.attempts,undefined);
+});
+
+test('recovery reason metadata remains typed when a private value matches a public enum',()=>{
+ const r=create({privateValues:['back']});r.start(config);r.resetAttempt({...config,sessionId:2,recoveryReason:'back'},{reason:'back'});
+ assert.equal(r.getReport().config.recoveryReason,'back');assert.equal(r.getReport().previousAttempts[0].reason,'[redacted]');
+});
+
 test('simulator reports count actual assertions separately from completed checkpoints',()=>{
  const r=create();assert.equal(r.getReport(),null);assert.equal(r.serialize(),'null');
  r.start(config);
