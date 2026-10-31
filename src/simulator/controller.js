@@ -15,7 +15,17 @@ function route(){const c=getScenario(),raw=routes[c.direction+'-'+c.route];let b
  if(tubeShift&&tubeBoarded){if(c.direction==='return'&&boarded)adjustment=c.route==='far'?15:10;else adjustment+=tubeShift;}
  return {point,label,at:at+adjustment,mode};});}
 function status(message){$("simStatus").textContent=message;updateTime();}
-function updateTime(){const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';}
+function setPanelVisible(visible){
+ $("simPanel").hidden=!visible;$("simToggle").textContent=visible?'Hide controls':'Show controls';$("simToggle").setAttribute('aria-expanded',String(visible));
+}
+function updateTime(){
+ const enabled=!!(S().simulatorEnabled||S().simulatedFeeds);
+ document.body.classList.toggle('simControlsVisible',enabled);
+ const activity=sim.active||S().simulatedFeeds?'Simulation active':'Simulator ready';
+ if($("simActivity").textContent!==activity)$("simActivity").textContent=activity;
+ $("simPlay").textContent=sim.startTime===null?'Start':'Restart';
+ $("simAdvance").textContent=sim.timer!==null?'Pause':sim.startTime===null?'Start':sim.index>=route().length-1?'Restart':'Continue';
+ const c=getScenario();$("simTime").textContent=(S().simulatedFeeds?new Date(clock.now()).toISOString():'Device clock (GPS only)')+' · '+c.scenario;$("simClockMode").textContent=S().simulatedFeeds?'Virtual clock: frozen when paused. Real GPS remains real when GPS Simulation is off.':'Live feeds: device time is used. Playback speeds move GPS only; service timing stays live.';}
 function stopTimer(){if(sim.timer!==null)clearInterval(sim.timer);sim.timer=null;}
 function resetContext(preserveLiveLocation=!S().simulatorEnabled){
  invalidateSources();
@@ -68,9 +78,12 @@ function tick(){const r=route(),p=r[sim.index],next=r[sim.index+1];if(!next){sto
  if(sim.elapsed>=next.at){stopTimer();sim.index++;emit(next,next.mode==='rail'?25:0);checkpoint();refresh({force:true});}
 }
 function continuePlayback(){if(!sim.active||sim.startTime===null){restart();return;}if(sim.index>=route().length-1){status('Journey complete. Press Restart.');return;}stopTimer();sim.timer=setInterval(tick,1000);status('Moving towards '+route()[sim.index+1].label+' at '+$("simSpeed").value+'×');}
-function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
+function simStop({resume=true}={}){stopTimer();if(!sim.active&&!S().simulatedFeeds&&!S().simulatorEnabled)return;sim.active=false;sim.watchGeneration++;if(sim.baseline)state.saved=sim.baseline;sim.baseline=null;sim.startTime=null;clock.stop();onStop();resetContext(false);$("simBar").hidden=true;state.locStatus='pending';if(resume){locate();render();refresh({force:true});}status('Stopped; real GPS resumed, saved context restored.');}
 function simSetup(){
- $("simPanel").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
+ setPanelVisible(!!(S().simulatorEnabled||S().simulatedFeeds));
+ $("simBar").hidden=!S().simulatorEnabled&&!S().simulatedFeeds;
+ $("simToggle").addEventListener('click',()=>setPanelVisible($("simPanel").hidden));
+ $("simAdvance").addEventListener('click',()=>{if(sim.timer!==null){stopTimer();status('Paused');}else if(sim.startTime!==null&&sim.index>=route().length-1){restart();}else continuePlayback();});
  $("simPlay").addEventListener('click',restart);$("simContinue").addEventListener('click',continuePlayback);$("simPause").addEventListener('click',()=>{stopTimer();status('Paused');});$("simExit").addEventListener('click',simStop);
  $("simJump").addEventListener('click',()=>{stopTimer();const p=points[$("simPreset").value];if(p)fix(...p);status('Manual GPS fix applied');});
  $("simApply").addEventListener('click',()=>{stopTimer();fix(Number($("simLat").value),Number($("simLon").value));});
@@ -78,5 +91,5 @@ function simSetup(){
  for(const id of ['simDirection','simPath','simScenario','simDate'])$(id).addEventListener('change',()=>{stopTimer();if(id==='simDirection')$("simDate").value=$("simDirection").value==='return'?'2026-11-03T15:44':'2026-11-03T08:44';sim.startTime=null;sim.index=0;sim.elapsed=0;status('Selection changed. Press Restart.');});
  updateTime();
 }
-return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateTime};
+return {sim,simSetup,simStop,getScenario,route,tick,restart,resetContext,updateTime,setPanelVisible};
 }
