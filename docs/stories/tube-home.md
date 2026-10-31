@@ -34,11 +34,16 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
   at Liverpool Street (the next stop) came from Aldgate, and TfL predicts it there with its turnaround included. Each
   such prediction less the timetabled 2-minute run (TfL's Met timetable from Aldgate) is a Met departure from Aldgate,
   with TfL's destination (or "towards"), never "Aldgate" or "Check Front of Train". One extra request (Liverpool
-  Street) each time Aldgate is fetched; if it fails, the Circles from Aldgate still show. A Met already in Aldgate's own
-  westbound list isn't added twice. Engine: `terminusDepartures` (generic: any terminus and its next stop).
+  Street) each time Aldgate is fetched. If it fails (an error, a 429, a hang until the request times out, or an "OK"
+  that isn't a list, e.g. a Wi-Fi sign-in page), the Circles from Aldgate still show. Exception: a 429 starts the app's
+  usual 60 s TfL back-off, so the next refresh's Aldgate request waits too (as any TfL 429 does). A Met listed twice
+  (two platforms at Liverpool Street, or already in Aldgate's own westbound list) appears once, at the earlier time
+  (Aldgate's own when it has one); a Circle sharing its vehicle number never hides it. Engine: `terminusDepartures` (generic: any terminus and its next stop).
   Checked against TfL's recorded feeds (30 Oct 22:43): Met 441 waiting at Aldgate platform 2 → leaves 22:44:11;
   435 still arriving → leaves 22:52:41 (TfL's turnaround); 474 → 23:04:42. Not yet checked against the board on the
-  platform (capture includes Liverpool Street now).
+  platform (capture includes Liverpool Street now). Independent review (31 Oct): consistent with Moorgate's
+  predictions to ±30 s; TfL's turnaround at Aldgate 4 min; the one Met starting elsewhere (Moorgate bay) never appears
+  at Liverpool Street, so it's rightly not listed.
 - Where to get off: Farringdon or King's Cross, whichever gets you home soonest with the trains loaded; ties go to
   the earlier stop. Arrival at each London station and the time needed there are worked out at your pace.
 - **At Aldgate going home** (within 150 m, fix good to 150 m): every commute option plans from the platform: the walk
@@ -76,6 +81,8 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/core/terminus.test.mjs: "Met departures from Aldgate, from TfL's real Liverpool Street arrivals (recorded 30 Oct 22:43): each westbound Met less the 2-min run"
 - tests/core/terminus.test.mjs: "terminusDepartures: only the line and outbound direction; past trains dropped (30 s grace); destination never the terminus or 'Check Front of Train'"
 - tests/rules.test.mjs: "Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals less 2 min, recorded 30 Oct 22:43 with Aldgate's; offered like the board"
+- tests/rules.test.mjs: "Met departures from Aldgate, review: Liverpool Street refusing (429), hanging, or answering OK with a page or an object never loses the Circles; a Met isn't listed twice"
+- tests/core/terminus.test.mjs: "terminusDepartures: anything but a list (an error page, an object) gives none"
 - tests/both-designs.test.mjs: "Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal too" (re-runs this story's rules tests with the Signal design on; the whole-evening test checks which design is on screen)
 - tests/rules.test.mjs: "Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office"
 - tests/rules.test.mjs: "Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not"
@@ -102,7 +109,9 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 
 ## Not yet / open questions
 - Met departures (31 Oct): to confirm against the board on the platform at a busy time (Settings → Capture now also
-  fetches Liverpool Street). The 2-minute run is the timetable's; a slow departure shows the Met slightly early. No
+  fetches Liverpool Street). The 2-minute run is the timetable's: if the real run is longer, the app shows the Met
+  leaving later than it does (you could miss it); if the departure is slow, slightly earlier. A hanging Liverpool Street
+  request delays the Aldgate list until it times out. No
   platform number for a Met from Liverpool Street's data. Without a TfL key, the extra request uses more of TfL's
   keyless limit.
 - A rough fix at Aldgate (worse than 150 m) isn't noted, so underground afterwards the card still times from the

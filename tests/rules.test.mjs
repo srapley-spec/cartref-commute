@@ -3,7 +3,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createApp, json, sleep, closeAll, parseJourneyUrl, NEAR_LETCHWORTH } from "./harness.mjs";
+import { createApp, json, sleep, hang, closeAll, parseJourneyUrl, NEAR_LETCHWORTH } from "./harness.mjs";
 import { services, tflResponder, darwinResponder } from "./golden/feeds.mjs";
 
 after(closeAll);
@@ -23,9 +23,9 @@ async function open({ now, geo = OFFICE, settings = { provider: "tfl", tflKey: "
   const svcs = [...services(PREV, disrupt), ...services(DAY, disrupt), ...services(NEXT, disrupt)];
   const cur = { t: now };
   const tfl = tflResponder(svcs), dar = darwinResponder(svcs, () => cur.t);
-  const route = (u) => {
+  const route = (u, opts) => {
     const code = fail && fail(u); if (code) return json({}, code);
-    const x = extra && extra(u, cur.t); if (x !== undefined) return x;
+    const x = extra && extra(u, cur.t, opts); if (x !== undefined) return x;
     if (/darwin\.test/.test(u)) { const b = dar(u); return b ? json(b) : json({}, 404); }
     if (/Line\/circle/.test(u)) return json([st("circle", "Circle", tube[0], tube[0] === 10 ? "Good Service" : tube[0] === 20 ? "Service Closed" : "Severe Delays"),
       st("metropolitan", "Metropolitan", tube[1], tube[1] === 10 ? "Good Service" : tube[1] === 20 ? "Service Closed" : "Severe Delays"), st("hammersmith-city", "Hammersmith & City")]);
@@ -1084,6 +1084,38 @@ test("Met departures from Aldgate (31 Oct): from TfL's Liverpool Street arrivals
   // Liverpool Street failing: the Circles from Aldgate still come through.
   lvtFails = true; app.at(t0 + 60e3); await app.c.refresh({ force: true }); await sleep(300);
   assert.deepEqual(app.c.state.aldDeps.list.map(d => d.line), ["Circle", "Circle", "Circle"]);
+  app.close();
+});
+
+test("Met departures from Aldgate, review: Liverpool Street refusing (429), hanging, or answering OK with a page or an object never loses the Circles; a Met isn't listed twice", async () => {
+  const t0 = T("16:30"), cap = Date.parse("2026-10-30T22:43:19Z");
+  const rec = (n) => JSON.parse(readFileSync(new URL(`./fixtures/tfl-2026-10-30T2243Z/${n}.json`, import.meta.url), "utf8"))
+    .map(a => ({ ...a, expectedArrival: new Date(t0 + (Date.parse(a.expectedArrival) - cap)).toISOString() }));
+  let lvt = () => json(rec("LVT")), ald = () => json(rec("ALD"));
+  const app = await open({ now: t0, geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u, now, opts) => (/940GZZLUALD\/Arrivals/.test(u) ? ald() : /940GZZLULVT\/Arrivals/.test(u) ? lvt(opts) : undefined) });
+  await app.fix(...ALD, 10, t0);
+  const lines = async () => { await app.c.refresh({ force: true }); await sleep(500); return (app.c.state.aldDeps.list || []).map(d => d.line); };
+  const circles = ["Circle", "Circle", "Circle"];
+  for (const [what, resp] of [["HTML page", () => new Response("<html>Sign in to Wi-Fi</html>", { status: 200 })], ["an object", () => json({})],
+    ["hanging", (opts) => hang(opts)]]) {
+    lvt = resp; assert.deepEqual(await lines(), circles, `Liverpool Street ${what}: the Circles stay`);
+  }
+  lvt = () => json({}, 429); assert.deepEqual(await lines(), circles, "Liverpool Street refused (429): the Circles stay this time");
+  app.c.state.tflBackoffUntil = 0;
+  // The same Met on two westbound platforms at Liverpool Street: listed once, at the earlier time.
+  const l = rec("LVT"), m441 = l.find(a => a.vehicleId === "441" && /westbound/i.test(a.platformName));
+  lvt = () => json([...l, { ...m441, platformName: "Westbound - Platform 3", expectedArrival: new Date(Date.parse(m441.expectedArrival) + 60e3).toISOString() }]);
+  let list = (await lines(), app.c.state.aldDeps.list);
+  assert.equal(list.filter(d => d.vehicle === "441").length, 1); assert.equal(list.find(d => d.vehicle === "441").t, Date.parse(m441.expectedArrival) - 2 * MIN);
+  // Aldgate's own feed listing that Met westbound: Aldgate's entry is kept, not added again.
+  ald = () => json([...rec("ALD"), { vehicleId: "441", lineId: "metropolitan", platformName: "Westbound - Platform 1", destinationName: "Uxbridge Underground Station", expectedArrival: new Date(t0 + 30e3).toISOString(), timeToStation: 30 }]);
+  list = (await lines(), app.c.state.aldDeps.list);
+  assert.deepEqual(list.filter(d => d.vehicle === "441").map(d => [d.line, d.t]), [["Met", t0 + 30e3]]);
+  // A Circle that happens to share a vehicle number never hides a Met.
+  ald = () => json([...rec("ALD"), { vehicleId: "441", lineId: "circle", platformName: "Westbound - Platform 4", destinationName: "Hammersmith (H&C Line) Underground Station", expectedArrival: new Date(t0 + 40e3).toISOString(), timeToStation: 40 }]);
+  list = (await lines(), app.c.state.aldDeps.list);
+  assert.deepEqual(list.filter(d => d.vehicle === "441").map(d => d.line).sort(), ["Circle", "Met"]);
   app.close();
 });
 

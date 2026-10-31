@@ -91,7 +91,7 @@ export function terminusDepartures(nextArrivals: TflArrival[], o: { lineId: stri
   const name = (s?: string) => String(s || "").replace(/ Underground Station/i, "").trim();
   const ok = (s: string) => !!s && !o.terminus.test(s) && !/check front of train/i.test(s);
   const out: TerminusDeparture[] = [];
-  for (const a of nextArrivals || []) {
+  for (const a of Array.isArray(nextArrivals) ? nextArrivals : []) {
     if (a.lineId !== o.lineId || !o.outbound.test(a.platformName || "")) continue;
     const atNext = a.expectedArrival ? new Date(a.expectedArrival).getTime() : o.now + (a.timeToStation || 0) * 1000;
     if (!isFinite(atNext)) continue;

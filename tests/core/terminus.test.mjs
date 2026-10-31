@@ -20,7 +20,7 @@ test("terminusDepartures: only the line and outbound direction; past trains drop
   const now = Date.parse("2026-10-31T08:00:00Z"), at = (s) => new Date(now + s * 1000).toISOString();
   const a = (o) => ({ lineId: "metropolitan", platformName: "Westbound - Platform 2", vehicleId: "v", ...o });
   const deps = core.terminusDepartures([
-    a({ vehicleId: "1", expectedArrival: at(300), destinationName: "Amersham Underground Station" }),
+    a({ vehicleId: "1", expectedArrival: at(300), destinationName: "Amersham Underground Station", towards: "Chesham" }),   // TfL's destination wins
     a({ vehicleId: "2", expectedArrival: at(200), destinationName: "Aldgate Underground Station", towards: "Watford" }),
     a({ vehicleId: "3", expectedArrival: at(150), towards: "Check Front of Train" }),
     a({ vehicleId: "4", platformName: "Eastbound - Platform 1", expectedArrival: at(100) }),
@@ -28,6 +28,12 @@ test("terminusDepartures: only the line and outbound direction; past trains drop
     a({ vehicleId: "6", expectedArrival: at(120 - 30) }),    // left the terminus 30 s ago: kept
     a({ vehicleId: "7", expectedArrival: at(120 - 31) }),    // 31 s ago: dropped
     a({ vehicleId: "8", timeToStation: 600 }),               // no expectedArrival: from timeToStation
+    a({ vehicleId: "9", expectedArrival: "not a time" }),     // unreadable: dropped
   ], { lineId: "metropolitan", outbound: /westbound/i, runMs: 120e3, now, terminus: /^aldgate\b/i });
   assert.deepEqual(deps.map((d) => [d.vehicle, d.dest, (d.t - now) / 1e3]), [["6", "", -30], ["3", "", 30], ["2", "Watford", 80], ["1", "Amersham", 180], ["8", "", 480]]);
+});
+
+test("terminusDepartures: anything but a list (an error page, an object) gives none", () => {
+  const o = { lineId: "metropolitan", outbound: /westbound/i, runMs: 120e3, now: 0, terminus: /^aldgate\b/i };
+  assert.deepEqual(core.terminusDepartures({}, o), []); assert.deepEqual(core.terminusDepartures(null, o), []); assert.deepEqual(core.terminusDepartures("<html>", o), []);
 });

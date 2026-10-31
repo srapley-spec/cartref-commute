@@ -719,6 +719,7 @@ async function fetchTubeArrivals(hub,direction="eastbound"){
 // with its turnaround included, less the timetabled 2-minute run (TfL Met timetable from Aldgate).
 const ALD_NEXT = { id:"940GZZLULVT", runMs:2*60e3 };
 async function fetchAldgateDepartures(){
+  const epoch0=sourceEpoch;
   const [r, next]=await Promise.all([fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals"),
     fetchTfl_(`https://api.tfl.gov.uk/StopPoint/${ALD_NEXT.id}/Arrivals`).catch(()=>null)]);
   if(!r.ok) throw new Error(`TfL tube departures error (HTTP ${r.status}).`);
@@ -726,8 +727,9 @@ async function fetchAldgateDepartures(){
   const list=ald.filter(a=>/^(circle|metropolitan)$/.test(a.lineId) && /westbound/i.test(a.platformName||"") && !/^aldgate\b/i.test(a.destinationName||""))
     .map(a=>({ vehicle:a.vehicleId||"", line:a.lineId==="circle"?"Circle":"Met", lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
       t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : now+(a.timeToStation||0)*1000, platform:a.platformName||"" }));
-  // Liverpool Street failing leaves the Circle list as before.
-  const met = next && next.ok ? C.terminusDepartures(await next.json(), { lineId:"metropolitan", outbound:/westbound/i, runMs:ALD_NEXT.runMs, now, terminus:/^aldgate\b/i }) : [];
+  // Liverpool Street failing in any way (an error, a refused request, a body that isn't a list) leaves the Circles.
+  let met=[];
+  if(next && next.ok){ try{ const j=await next.json(); if(Array.isArray(j)) met=C.terminusDepartures(j, { lineId:"metropolitan", outbound:/westbound/i, runMs:ALD_NEXT.runMs, now, terminus:/^aldgate\b/i }); } catch(e){ assertSource(epoch0); } }
   for(const m of met) if(!list.some(a=>a.lineId==="metropolitan" && a.vehicle && a.vehicle===m.vehicle))
     list.push({ vehicle:m.vehicle, line:"Met", lineId:"metropolitan", dest:m.dest, t:m.t, platform:"", fromNext:true });
   return list.filter(a=>isFinite(a.t)).sort((a,b)=>a.t-b.t);
