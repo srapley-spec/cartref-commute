@@ -16,11 +16,111 @@ function applyJourneyAppearance(){
   if(theme==='light'||theme==='dark')document.documentElement.dataset.theme=theme;
   else delete document.documentElement.dataset.theme;
   $('#journeyViewControl').hidden=!journeyEnabled();
+  applySignalLayout();
 }
+// Reparent existing controls, never clone their handlers or maintain a second journey state.
+const signalHomes=new Map();
+let signalParts=null;
+let signalActive=false;
+function signalRemember(node){
+  if(!signalHomes.has(node)){const anchor=document.createComment('Signal layout home');node.before(anchor);signalHomes.set(node,anchor);}
+  return node;
+}
+function applySignalLayout(){
+  const root=$('#hero').closest('.wrap');
+  if(!S().signal){
+    if(!signalActive)return;
+    for(const[node,anchor]of signalHomes)anchor.after(node);
+    if(signalParts)for(const node of Object.values(signalParts))if(node instanceof HTMLElement)node.hidden=true;
+    root.querySelector('h1').textContent='Cartref Commute';
+    signalActive=false;
+    return;
+  }
+  if(signalActive)return;
+  if(!signalParts){
+    // Remember every original root child before moving any of them, including hidden
+    // controls. Their anchors restore Panda's exact order on every skin transition.
+    [...root.children].forEach(signalRemember);
+    const make=(tag,id,html)=>{const node=document.createElement(tag);node.id=id;node.innerHTML=html;root.append(node);return node;};
+    signalParts={
+      toolbar:make('div','signalToolbar',''),
+      adjustments:make('details','signalAdjustments','<summary id="signalContextSummary">Journey options</summary><div class="signal-adjustment-body"></div>'),
+      planning:make('div','signalPlanningControls',''),
+      notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
+      network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
+      other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
+      boardHeading:make('div','signalBoardHeading',''),
+      connections:make('div','signalConnections',''),
+      freshness:make('span','signalFreshness','')
+    };
+    signalParts.toolbar.className='signal-toolbar';
+    for(const key of ['adjustments','notices','network','other'])signalParts[key].dataset.key='signal-'+key;
+    const context=signalRemember(document.querySelector('[data-mode]').closest('.controls'));
+    signalParts.adjustments.querySelector('div').append(context);
+    signalParts.planning.append(signalRemember(document.querySelector('[data-view]').closest('.controls')),signalRemember($('#byForm')));
+    signalParts.notices.append(signalRemember($('#banners')));
+    signalParts.network.append(signalRemember($('#status').previousElementSibling),signalRemember($('#status')),signalRemember($('#modelNote')),signalRemember(root.querySelector('footer > span')));
+    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));
+    signalParts.toolbar.append($('#journeyViewControl'),signalParts.adjustments);
+    root.querySelector('footer').prepend(signalParts.freshness);
+  }
+  const p=signalParts;
+  for(const key of ['toolbar','adjustments','planning','notices','network','freshness','boardHeading'])p[key].hidden=false;
+  // Switching skins restores these exact same elements and their input values.
+  p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls'));
+  p.toolbar.append($('#journeyViewControl'),p.adjustments);
+  p.planning.append(document.querySelector('[data-view]').closest('.controls'),$('#byForm'));
+  p.notices.append($('#banners'));
+  p.boardHeading.append($('#listTitle'),p.notices);
+  const statusTitle=[...signalHomes.keys()].find(n=>n.tagName==='H2'&&n.textContent==='Line status');
+  if(statusTitle)p.network.append(statusTitle);
+  p.network.append($('#status'),$('#modelNote'));
+  const footerSpan=[...signalHomes.keys()].find(n=>n.tagName==='SPAN'&&n.querySelector('#updated'));
+  if(footerSpan)p.network.append(footerSpan);
+  root.querySelector('footer').prepend(p.freshness);
+  const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
+  for(const node of [header,p.toolbar,p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  signalActive=true;
+}
+function signalReadingVisible(node){
+  for(let p=node;p;p=p.parentElement)if(p.hidden||(p.tagName==='DETAILS'&&!p.open))return false;
+  return true;
+}
+function renderSignalCompact(){
+  if(!S().signal||!signalParts)return;
+  const p=signalParts;
+  $('#signalContextSummary').textContent=`${state.saved.mode==='leisure'?'Leisure':direction()==='home'?'To home':'To office'} · ${state.saved.mode==='leisure'?'Journey options':state.saved.pace==='fast'?'Fast pace':'Average pace'}`;
+  if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
+  p.notices.hidden=!$('#banners').children.length;
+  $('#signalNoticeCount').textContent=$('#banners').children.length?`· ${$('#banners').children.length}`:'';
+  $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
+  p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
+  // A compact, accessible fallback row; full metadata and actions remain on expansion.
+  const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
+  for(const opt of options.slice(1)){
+    const detail=document.createElement('details');detail.className='signal-alternative';
+    detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
+    const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
+    const times=opt.querySelector('.optrow');
+    const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
+    if(times)summary.append(times);
+    const service=document.createElement('span');service.className='signal-alt-service';service.textContent=opt.dataset.serviceLabel||'';summary.append(service);
+    opt.before(detail);detail.append(summary,opt);
+  }
+  p.connections.replaceChildren();
+  const following=!$('#followPanel').hidden;
+  const secondary=following&&state.presentation?.mode!=='plan'&&!!$('#hero .opt');
+  p.other.hidden=!secondary;
+  if(secondary){p.connections.append(...$('#hero').querySelectorAll('.tubes'));if($('#hero').parentElement!==p.other)p.other.append($('#hero'));}
+  else rootSignalHeroHome();
+  p.connections.hidden=!p.connections.childNodes.length;
+  restoreOpen();
+}
+function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalParts.other.parentElement)signalParts.other.before($('#hero'));}
 function journeyInteracting(){
   const a=document.activeElement;
   return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
-    document.querySelector('#banners details[open],#hero details[open],#followPanel details[open]'));
+    [...document.querySelectorAll('#banners details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
 }
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
@@ -83,7 +183,7 @@ function followButton(option){
   const selected=C.restoreFollowRoute(state.saved.followRoute);
   if(selected&&selected.phase!=='arrived'&&selected.direction===direction()&&selected.mode===currentMode()&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
-  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
+  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${S().signal?(possible?'Follow':'Unavailable'):(possible?'Follow this route':'Cannot follow this train')}</button>`;
 }
 function selectFollowRoute(option){
   const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
@@ -223,21 +323,46 @@ function renderFollowPanel(){
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
 }
+function signalNetworkLine(){
+  const fallback=aldgateUnusable();
+  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
+    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),
+    tubeLines:state.status||[],operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false});
+}
+function signalConsolidatesFlag(flag){
+  // Fold only information represented by the visible summary. Mixed closures and
+  // delays on the surviving line remain per-option warnings, including H&C delays.
+  return flag.txt===TUBE_FALLBACK_NOTE||
+    (aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']))||
+    flag.txt===signalNetworkLine().text;
+}
 function renderSignalStatus(){
   const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
-  const failed=Object.keys(state.routeFailed||{}).map(k=>HUB_NAME[hubOfKey(k)]||k);
-  const result=C.statusLine({errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
-    tubeFallback:aldgateUnusable(),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+  const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
+  const input={errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
+    tubeFallback:aldgateUnusable(),fallbackUnavailable:aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
-    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'});
-  if(!state.boards&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'};
+  const result=C.statusLine(input);
+  const planBoards=state.saved.view==='by'?state.by?.boards:state.saved.view==='at'?state.at?.boards:null;
+  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;
   el.textContent=result.text;
+  // Consolidated network flags must remain visible even when a train cancellation
+  // or a feed failure takes precedence. The engine still chooses both summaries.
+  const network=signalNetworkLine();
+  if(['bad','warn'].includes(network.level)&&network.text!==result.text){
+    const impact=document.createElement('span');impact.className='signal-network-impact '+network.level;impact.textContent=' · '+network.text;el.append(impact);
+  }
+  if(input.demo||input.timetableOnly){
+    const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
+    if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
+  }
 }
-function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();}
+function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();renderSignalCompact();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
-  if(!journeyEnabled())return null;
+  if(!journeyEnabled()&&!signalActive)return null;
   const a=document.activeElement;
   if(!a||a===document.body)return null;
   const keys=['data-follow','data-follow-action','data-pick','data-tubepick','data-ride'];

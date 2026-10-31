@@ -119,6 +119,14 @@ test("statusLine edges: exactly 5 min late is amber; under 5 isn't counted; a ca
   assert.match(both.text, /cancelled/, "a cancelled train is worse than the Aldgate East fallback");
 });
 
+test("statusLine: a closed fallback asks to check onward travel without claiming a future closure", () => {
+  const closed={tubeFallback:true,fallbackUnavailable:true};
+  assert.equal(line(closed).text,"Tube lines closed now · check onward travel");
+  assert.equal(line({...closed,planLater:true}).text,"Tube lines closed now · check onward travel");
+  assert.match(line({...closed,tiers:tiers([tr({cancelled:true})])}).text,/cancelled/);
+  assert.equal(line({tubeFallback:true}).text,"Circle and Met closed: via Aldgate East");
+});
+
 test("statusLine edges: a tube line's delays beat an operator's; example data beats timetable; the worst of a line's statuses", () => {
   const r = line({ tubeLines: [L("Circle", 6, "Severe Delays")], operators: [L("Thameslink", 9, "Minor Delays")] });
   assert.equal(r.level, "warn"); assert.equal(r.text, "Circle: Severe Delays");

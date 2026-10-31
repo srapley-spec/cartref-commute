@@ -206,160 +206,282 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
-/* Signal changes geometry and appearance only. All rules are opt-in; Panda owns the default. */
+/* Signal: a compact journey instrument. Scope every rule so Panda remains the baseline. */
 html[data-design="signal"] {
   color-scheme: light;
-  --paper: #f1f4f7; --card: #ffffff; --ink: #17283b; --muted: #536477; --line: #cfd9e3;
-  --accent: #174eac; --accent-ink: #ffffff; --signal-soft: #e4edff; --signal-inset: #e9eef4;
-  --signal-control-line: #8394a8; --signal-shadow: 0 8px 28px #17283b0b;
-  --ok: #12674e; --ok-bg: #e4f4ed; --warn: #835000; --warn-bg: #fff0d5;
-  --bad: #b1293c; --bad-bg: #ffebee; --note: #726000; --note-bg: #fff8cf;
-  --hero-accent: #e4edff; --hero-accent-ink: #174eac;
-  --hero-ok: #12674e; --hero-warn: #835000; --hero-bad: #b1293c;
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: var(--font-body); --font-mono: var(--font-body);
+  --paper:#f2f5f8; --card:#ffffff; --ink:#142436; --muted:#506174; --line:#d4dde7;
+  --accent:#1453b6; --accent-ink:#ffffff; --signal-soft:#e8f0fd; --signal-inset:#edf2f7;
+  --signal-control-line:#8191a5; --signal-shadow:0 2px 9px #10213606;
+  --ok:#14654c; --ok-bg:#e7f4ee; --warn:#805000; --warn-bg:#fff1d9;
+  --bad:#ae2540; --bad-bg:#ffedf1; --note:#746000; --note-bg:#fff7d2;
+  --hero-accent:#e8f0fd; --hero-accent-ink:#1453b6;
+  --hero-ok:#14654c; --hero-warn:#805000; --hero-bad:#ae2540;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:var(--font-body); --font-mono:var(--font-body);
 }
-@media (prefers-color-scheme: dark) {
+@media(prefers-color-scheme:dark) {
   html[data-design="signal"]:not([data-theme="light"]) {
-    color-scheme: dark;
-    --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
-    --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
-    --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
-    --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
-    --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
-    --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
-    --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+    color-scheme:dark;
+    --paper:#090f16; --card:#121c28; --ink:#f0f5fc; --muted:#aabbd0; --line:#2c3b4e;
+    --accent:#9bc3ff; --accent-ink:#0a1525; --signal-soft:#182d48; --signal-inset:#182433;
+    --signal-control-line:#71869f; --signal-shadow:none;
+    --ok:#82ddb8; --ok-bg:#15382e; --warn:#ffd08a; --warn-bg:#47331b;
+    --bad:#ff9daf; --bad-bg:#432333; --note:#efdd88; --note-bg:#363219;
+    --hero-accent:#182d48; --hero-accent-ink:#9bc3ff;
+    --hero-ok:#82ddb8; --hero-warn:#ffd08a; --hero-bad:#ff9daf;
   }
 }
 html[data-design="signal"][data-theme="dark"] {
-  color-scheme: dark;
-  --paper: #0b1017; --card: #151e29; --ink: #edf4fc; --muted: #aebfd1; --line: #344356;
-  --accent: #9abfff; --accent-ink: #0b1017; --signal-soft: #1c3557; --signal-inset: #202c3b;
-  --signal-control-line: #7890ac; --signal-shadow: 0 8px 28px #00000020;
-  --ok: #7ce0b7; --ok-bg: #16392f; --warn: #ffd18a; --warn-bg: #49351c;
-  --bad: #ff9ba8; --bad-bg: #452431; --note: #f2df81; --note-bg: #393214;
-  --hero-accent: #1c3557; --hero-accent-ink: #9abfff;
-  --hero-ok: #7ce0b7; --hero-warn: #ffd18a; --hero-bad: #ff9ba8;
+  color-scheme:dark;
+  --paper:#090f16; --card:#121c28; --ink:#f0f5fc; --muted:#aabbd0; --line:#2c3b4e;
+  --accent:#9bc3ff; --accent-ink:#0a1525; --signal-soft:#182d48; --signal-inset:#182433;
+  --signal-control-line:#71869f; --signal-shadow:none;
+  --ok:#82ddb8; --ok-bg:#15382e; --warn:#ffd08a; --warn-bg:#47331b;
+  --bad:#ff9daf; --bad-bg:#432333; --note:#efdd88; --note-bg:#363219;
+  --hero-accent:#182d48; --hero-accent-ink:#9bc3ff;
+  --hero-ok:#82ddb8; --hero-warn:#ffd08a; --hero-bad:#ff9daf;
 }
 html[data-design="signal"] body {
-  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
-  font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%;
+  padding:8px max(12px,env(safe-area-inset-right,0px)) max(28px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
+  font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%;
 }
-html[data-design="signal"] .wrap { max-width: 600px; gap: 16px; min-width: 0; }
-html[data-design="signal"] header { align-items: center; gap: 12px; }
-html[data-design="signal"] h1 { font-size: 29px; font-weight: 750; line-height: 1.15; letter-spacing: -.045em; }
-html[data-design="signal"] .sub { font-size: 14px; margin-top: 5px; }
-html[data-design="signal"] .controls { gap: 8px; }
-html[data-design="signal"] .seg { border-radius: 14px; padding: 3px; max-width: 100%; flex-wrap: wrap; }
-html[data-design="signal"] .seg button { min-height: 44px; padding: 8px 11px; border-radius: 11px; font-size: 14px; }
-html[data-design="signal"] .seg button[aria-pressed="true"] { background: var(--signal-soft); color: var(--accent); }
-html[data-design="signal"] button { min-height: 44px; touch-action: manipulation; white-space: normal; }
-html[data-design="signal"] :is(button, input, select, textarea, summary):focus-visible {
-  outline: 3px solid var(--accent); outline-offset: 3px;
+html[data-design="signal"] .wrap {max-width:620px;gap:8px;min-width:0}
+html[data-design="signal"] header {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;align-items:center}
+html[data-design="signal"] header>div:first-child {display:block;min-width:0;grid-column:1;grid-row:1}
+html[data-design="signal"] header h1 {grid-column:1;grid-row:1;margin:0;font-size:21px;font-weight:760;line-height:1.15;letter-spacing:-.04em}
+html[data-design="signal"] header .sub {grid-column:1/-1;grid-row:2;margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+html[data-design="signal"] header>.controls {grid-column:2;grid-row:1;flex-wrap:wrap;justify-content:flex-end;max-width:50vw;gap:4px}
+html[data-design="signal"] header .iconbtn {padding:8px;font-size:12px;border:0;background:transparent;color:var(--accent);border-radius:8px}
+html[data-design="signal"] button {min-width:44px;min-height:44px;touch-action:manipulation;white-space:normal;overflow-wrap:anywhere}
+html[data-design="signal"] :is(button,input,select,textarea,summary):focus-visible {outline:3px solid var(--accent);outline-offset:3px}
+html[data-design="signal"] :is(.iconbtn,.pickbtn,.ghost,.primary,.follow-btn,.follow-action) {min-height:44px;border-radius:9px;padding:8px 11px;font-size:14px;line-height:1.25}
+html[data-design="signal"] :is(.iconbtn,.pickbtn,.ghost,.follow-action) {border-color:var(--signal-control-line);background:var(--card);color:var(--accent)}
+html[data-design="signal"] :is(.primary,.follow-btn) {border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:700}
+html[data-design="signal"] .follow-btn:disabled {border-color:var(--line);background:var(--signal-inset);color:var(--muted);font-weight:600;cursor:default;opacity:1}
+html[data-design="signal"] .follow-action {font-weight:650}
+html[data-design="signal"] :is(.controls,.signal-toolbar) {gap:6px;min-width:0}
+html[data-design="signal"] .signal-toolbar {display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+html[data-design="signal"] .seg {padding:2px;border-radius:10px;max-width:100%;background:var(--signal-inset);border:0;flex-wrap:wrap}
+html[data-design="signal"] .seg button {min-height:44px;border-radius:8px;padding:8px 11px;font-size:14px;line-height:1.2;color:var(--muted)}
+html[data-design="signal"] .seg button[aria-pressed="true"] {background:var(--card);color:var(--accent);box-shadow:0 1px 3px #0000000b}
+html[data-design="signal"] #journeyViewControl {display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+html[data-design="signal"] #journeyViewControl .seg button {padding-inline:8px}
+html[data-design="signal"] #journeyViewNote {font-size:12px;line-height:1.35;color:var(--muted);max-width:24em}
+html[data-design="signal"] #journeyViewNote:empty {display:none}
+html[data-design="signal"] #signalAdjustments {min-width:0;flex:1 1 auto;max-width:100%;font-size:13px}
+html[data-design="signal"] #signalAdjustments>summary {min-height:44px;display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:6px 2px;color:var(--muted);font-weight:600;list-style:none;cursor:pointer}
+html[data-design="signal"] #signalAdjustments>summary::after {content:'⌄';font-size:16px;color:var(--accent)}
+html[data-design="signal"] #signalAdjustments>summary::-webkit-details-marker {display:none}
+html[data-design="signal"] #signalContextSummary {min-width:0;overflow-wrap:break-word}
+html[data-design="signal"] #signalAdjustments[open] {flex-basis:100%;padding:0 10px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+html[data-design="signal"] #signalAdjustments[open]>summary {justify-content:space-between}
+html[data-design="signal"] #signalAdjustments[open]>summary::after {content:'⌃'}
+html[data-design="signal"] #signalAdjustments .controls {display:flex;flex-wrap:wrap;gap:6px}
+html[data-design="signal"] #signalAdjustments .dirnote {font-size:12px;line-height:1.4;margin-top:2px;color:var(--muted)}
+html[data-design="signal"] #signalPlanningControls .seg {display:flex;width:100%}
+html[data-design="signal"] #signalPlanningControls .seg button {flex:1;min-width:0;padding-inline:7px}
+html[data-design="signal"] :is(.origin,.byf) {font-size:13px}
+html[data-design="signal"] :is(.originbar input,.byf input,.f input,.f select) {min-height:44px;font-size:16px;border-radius:8px;border-color:var(--signal-control-line)}
+html[data-design="signal"] .byform {gap:8px}
+/* A focused answer surface, with a quieter fallback rather than two giant hero cards. */
+html[data-design="signal"] .hero {background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:13px;gap:8px;box-shadow:var(--signal-shadow);transition:none}
+html[data-design="signal"] .hero .lbl {font-size:12px;line-height:1.4;color:var(--muted);opacity:1;text-transform:none;letter-spacing:0;font-weight:600}
+html[data-design="signal"] .hero .big {gap:8px}
+html[data-design="signal"] .hero .arr {font-size:38px;line-height:1.05;font-weight:750;letter-spacing:-.045em}
+html[data-design="signal"] .hero .arrlbl {font-size:14px;color:var(--muted);opacity:1}
+html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
+html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
+html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
+html[data-design="signal"] .hero .optrow:not(.board) {display:flex;flex-wrap:wrap;align-items:end;gap:4px 8px}
+html[data-design="signal"] .hero .optrow:not(.board)>div:not(.optroute):not(.optarrow) {flex:1 1 0;min-width:min-content}
+html[data-design="signal"] .hero .optrow:not(.board) .optroute {flex:1 0 100%;justify-content:flex-start;margin:1px 0 0;padding:0}
+html[data-design="signal"] .hero .optrow small {font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;opacity:1;color:var(--muted);line-height:1.4}
+html[data-design="signal"] .hero .optbig {font-size:36px;font-weight:750;letter-spacing:-.035em;line-height:1.1}
+html[data-design="signal"] .hero .opt:first-of-type>.optrow:not(.board)>div:nth-child(3) .optbig {font-size:32px}
+html[data-design="signal"] .hero .opt+.opt .optbig {font-size:26px}
+html[data-design="signal"] .hero .opt+.opt .optrow small {font-size:12px}
+html[data-design="signal"] .hero .optarrow {font-size:20px;color:var(--muted);opacity:1;padding-bottom:3px}
+html[data-design="signal"] .hero .optrow.board {display:flex;flex-wrap:wrap;gap:4px 8px}
+html[data-design="signal"] .hero .optrow.board>div:not(.optroute) {flex:1 1 0;min-width:min-content}
+html[data-design="signal"] .hero .optrow.board .optroute {flex:1 0 100%;margin:1px 0 0;padding:0}
+html[data-design="signal"] .hero .optrow.board .optbig {font-size:30px}
+html[data-design="signal"] .hero .optrow.board .optbig.word {font-size:19px;line-height:1.5;letter-spacing:-.02em}
+html[data-design="signal"] .hero .optmeta {font-size:14px;line-height:1.4;opacity:1}
+html[data-design="signal"] .hero .optmeta :is(b,[data-cd]) {font-size:inherit}
+html[data-design="signal"] .hero .altstop {font-size:14px;padding:3px 7px;border-color:var(--signal-control-line);line-height:1.4}
+html[data-design="signal"] .hero .flags {gap:4px;align-items:center}
+html[data-design="signal"] .hero .opt>.steps {grid-column:1;min-width:0}
+html[data-design="signal"] .hero .opt>.follow-btn {grid-column:2;align-self:center;width:auto;margin:0}
+html[data-design="signal"] .hero .opt:has(>.steps[open])>.steps {grid-column:1/-1}
+html[data-design="signal"] .hero .opt:has(>.steps[open])>.follow-btn {justify-self:end}
+html[data-design="signal"] .hero .signal-alternative {border-top:1px solid var(--line);padding-top:3px}
+html[data-design="signal"] .hero .signal-alternative>summary {display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center;min-height:44px;cursor:pointer;list-style:none;padding:5px 0;color:var(--ink)}
+html[data-design="signal"] .hero .signal-alternative>summary::-webkit-details-marker {display:none}
+html[data-design="signal"] .hero .signal-alternative>summary>span {grid-column:1;grid-row:1;font-size:12px;font-weight:650;color:var(--muted)}
+html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {order:1;flex:1 0 100%;font-weight:500;overflow-wrap:anywhere}
+html[data-design="signal"] .hero .signal-alternative>summary::after {content:'›';grid-column:5;grid-row:1;font-size:22px;color:var(--accent);line-height:1}
+html[data-design="signal"] .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
+html[data-design="signal"] .hero .signal-alternative>summary>.optrow {display:contents}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:not(.optroute):not(.optarrow) {display:flex;flex:1 1 0;flex-direction:column;align-items:flex-start;gap:0;min-width:min-content}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:first-child {grid-column:2;grid-row:1;justify-self:start}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:nth-child(3) {grid-column:4;grid-row:1;justify-self:start}
+html[data-design="signal"] .hero .signal-alternative>summary .optarrow {grid-column:3;grid-row:1;justify-self:center}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow>.optroute {grid-column:1/-1;grid-row:2;margin:0;padding:0}
+html[data-design="signal"] .hero .signal-alternative>summary .optbig {font-size:24px}
+html[data-design="signal"] .hero .signal-alternative>summary .optbig.word {font-size:16px}
+html[data-design="signal"] .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
+html[data-design="signal"] .hero .signal-alternative>summary .optroute {font-size:12px}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow.board {display:flex;flex:1 1 0;min-width:0;gap:3px 8px}
+html[data-design="signal"] .hero .signal-alternative>summary .optrow.board>div:not(.optroute) {grid-column:auto;grid-row:auto;display:block;justify-self:start}
+html[data-design="signal"] .hero .signal-alternative>summary:has(.optrow.board)>.signal-alt-label {grid-column:1;grid-row:1}
+html[data-design="signal"] .hero .signal-alternative>summary:has(.optrow.board)>.optrow {grid-row:1}
+html[data-design="signal"] .hero .signal-alternative>.opt {padding-top:7px;border:0}
+html[data-design="signal"] .hero .signal-alternative>.opt>.optroute {grid-column:1/-1;justify-content:flex-start;margin:0;padding:0}
+html[data-design="signal"] .hero .steps summary,html[data-design="signal"] #followPanel .steps summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer}
+html[data-design="signal"] .hero .steps summary::before,html[data-design="signal"] #followPanel .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
+html[data-design="signal"] .hero .steps[open]>summary::before,html[data-design="signal"] #followPanel .steps[open]>summary::before {transform:rotate(90deg)}
+html[data-design="signal"] .hero .steps summary::-webkit-details-marker,html[data-design="signal"] #followPanel .steps summary::-webkit-details-marker {display:none}
+html[data-design="signal"] .hero .steps .legs {margin-top:3px}
+html[data-design="signal"] .hero :is(.empty,.alt,.legs) {font-size:14px;opacity:1}
+html[data-design="signal"] .hero .alt {padding-top:8px;border-color:var(--line)}
+html[data-design="signal"] .hero .legs {row-gap:5px;column-gap:9px}
+html[data-design="signal"] .hero .legs :is(.t,.d small) {opacity:1}
+html[data-design="signal"] .hero .strip {padding-top:8px;gap:4px;border-color:var(--line)}
+html[data-design="signal"] .hero .striphead {font-size:12px;color:var(--muted);opacity:1;letter-spacing:0;text-transform:none}
+html[data-design="signal"] .hero .sreason {font-size:13px;opacity:1}
+html[data-design="signal"] .hero .slack {display:inline-block;border-radius:7px;padding:4px 7px;font-size:13px;line-height:1.4;font-weight:650}
+html[data-design="signal"] .hero .slack .slackst {margin:0 0 0 5px;padding:1px 5px;border-radius:5px}
+html[data-design="signal"] .hero :is(.slackst,.pill).ok {background:var(--ok-bg);color:var(--ok)}
+html[data-design="signal"] .hero :is(.slackst,.pill).warn {background:var(--warn-bg);color:var(--warn)}
+html[data-design="signal"] .hero :is(.slackst,.pill).bad {background:var(--bad-bg);color:var(--bad)}
+html[data-design="signal"] .hero .slack.ok {background:var(--ok-bg);color:var(--ok)}
+html[data-design="signal"] .hero .slack.warn {background:var(--warn-bg);color:var(--warn)}
+html[data-design="signal"] .hero .slack.bad {background:var(--bad-bg);color:var(--bad)}
+html[data-design="signal"] .hero .stat.ok {color:var(--ok)}
+html[data-design="signal"] .hero .stat.warn {color:var(--warn)}
+html[data-design="signal"] .hero .stat.bad {color:var(--bad)}
+html[data-design="signal"] .hero .exp.ok {color:var(--ok)}
+html[data-design="signal"] .hero .exp.warn {color:var(--warn)}
+html[data-design="signal"] .hero .exp.bad {color:var(--bad)}
+html[data-design="signal"] .hero .latetxt {color:var(--bad)}
+html[data-design="signal"] .hero .latetxt.warn {color:var(--warn)}
+html[data-design="signal"] .hero .slack.circle {background:var(--circle);color:var(--circle-ink)}
+html[data-design="signal"] .hero .slack.met {background:var(--met);color:var(--met-ink)}
+html[data-design="signal"] .hero .slack.hc {background:var(--hc);color:var(--hc-ink)}
+html[data-design="signal"] :is(.chip,.pill) {font-size:12px;line-height:1.45;letter-spacing:0;border-radius:5px;max-width:100%}
+html[data-design="signal"] .chip {padding:2px 6px;font-weight:650}
+html[data-design="signal"] .pill {padding:1px 5px;font-weight:650}
+html[data-design="signal"] :is(#hero,#list,.follow-alternative) .pill[data-network-flag] {display:none}
+html[data-design="signal"] .pill.note {background:var(--note-bg);color:var(--note)}
+html[data-design="signal"] .hero :is(.pill.info,.chip.rail,.chip.walk) {background:transparent;color:var(--muted);border-color:var(--line)}
+html[data-design="signal"] h2 {font-size:14px;line-height:1.4;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:650;margin:3px 0 0}
+/* Railboard-style rows: times/actions together, every explanatory line uses the full width. */
+html[data-design="signal"] .list {border:1px solid var(--line);border-radius:12px;background:var(--card)}
+html[data-design="signal"] .row {position:relative;display:flex;flex-wrap:wrap;align-items:flex-start;gap:2px 10px;padding:8px 12px;border-color:var(--line);min-width:0}
+html[data-design="signal"] .row .mid {display:contents}
+html[data-design="signal"] .row:has(>.mid.meta) {display:block}
+html[data-design="signal"] .row>.mid.meta {display:block;font-size:14px;line-height:1.5}
+html[data-design="signal"] .row .leave {order:1;flex:1 1 0;min-width:min-content}
+html[data-design="signal"] .row .arrive {order:2;flex:1 1 0;min-width:min-content;text-align:left}
+html[data-design="signal"] .row .mid>:is(.route,.meta,div) {order:4;flex:1 0 100%;min-width:0}
+html[data-design="signal"] .row .mid>.meta {order:5}
+html[data-design="signal"] .row .mid>div:has(>.pill) {order:6}
+html[data-design="signal"] .row .route {gap:4px;align-items:center;font-size:13px;line-height:1.4}
+html[data-design="signal"] .row .meta {font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .row .meta b {font-weight:650;color:var(--ink)}
+html[data-design="signal"] .row .meta :is([data-cd],[data-dep]) {white-space:normal}
+html[data-design="signal"] .row :is(.leave small,.exp small,.arrive small) {display:block;font-size:12px;color:var(--muted);line-height:1.35;letter-spacing:0;text-transform:none}
+html[data-design="signal"] .row :is(.leave .t,.exp .t,.arrive .t) {font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.025em}
+html[data-design="signal"] .row .mid>.follow-btn {order:3;flex:0 0 auto;align-self:center;min-width:64px;max-width:120px;padding:7px 10px;margin:0 0 0 auto;font-size:13px}
+html[data-design="signal"] .row .mid>.followtag {order:3;flex:0 0 auto;align-self:center;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:88px;padding:4px 6px;margin-left:auto}
+html[data-design="signal"] .row .mid>div:has(>.pill) {display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
+html[data-design="signal"] .row .pill {white-space:normal}
+html[data-design="signal"] .row.best {background:color-mix(in srgb,var(--signal-soft) 45%,var(--card))}
+html[data-design="signal"] .row.gone {opacity:1}
+html[data-design="signal"] .row.board {gap:4px 8px}
+html[data-design="signal"] .row.board .leave {order:1}
+html[data-design="signal"] .row.board .exp {order:2;flex:1 1 0;min-width:min-content}
+html[data-design="signal"] .row.board .arrive {order:3;text-align:left}
+html[data-design="signal"] .row.board .mid>.route {order:4;flex:1 1 calc(100% - 128px);align-self:center}
+html[data-design="signal"] .row.board .mid>.follow-btn,html[data-design="signal"] .row.board .mid>.followtag {order:5;align-self:center}
+html[data-design="signal"] .row.board .mid>.meta {order:6}
+html[data-design="signal"] .row.board .mid>div:has(>.pill) {order:7}
+html[data-design="signal"] .row.board .exp .word {font-size:16px;font-weight:650;line-height:1.6}
+/* Secondary information is discoverable once, below the answer; important status stays in the summary. */
+html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys) {min-width:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent;font-size:13px}
+html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys)>summary {display:flex;align-items:center;gap:7px;min-height:44px;font-size:13px;font-weight:650;color:var(--muted);cursor:pointer;padding:7px 1px;list-style:none}
+html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys)>summary::before {content:'›';font-size:20px;line-height:1;color:var(--accent)}
+html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys)[open]>summary::before {transform:rotate(90deg)}
+html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys)>summary::-webkit-details-marker {display:none}
+html[data-design="signal"] #signalBoardHeading {display:flex;flex-wrap:wrap;gap:0 8px;align-items:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+html[data-design="signal"] #signalBoardHeading>#listTitle {flex:1 1 0;min-width:0;margin:0;font-size:14px}
+html[data-design="signal"] #signalBoardHeading>#signalNotices {display:block;flex:0 0 auto;max-width:100%;border:0}
+html[data-design="signal"] #signalBoardHeading>#signalNotices>summary {justify-content:flex-end;font-size:12px}
+html[data-design="signal"] #signalBoardHeading>#signalNotices[open] {flex:1 0 100%}
+html[data-design="signal"] #signalBoardHeading>#signalNotices[open]>summary {justify-content:flex-start}
+html[data-design="signal"] #signalBoardHeading #banners {padding-bottom:8px}
+html[data-design="signal"] #signalConnections:empty {display:none}
+html[data-design="signal"] .banner {border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.4}
+html[data-design="signal"] .banner details summary {min-height:44px;padding-block:10px}
+html[data-design="signal"] #signalStatus {border:0;border-left:3px solid var(--accent);border-radius:0;padding:5px 8px;background:transparent;color:var(--ink);font-size:13px;line-height:1.4}
+html[data-design="signal"] #signalStatus.bad {border-color:var(--bad);color:var(--bad)}
+html[data-design="signal"] #signalStatus.warn {border-color:var(--warn);color:var(--warn)}
+html[data-design="signal"] #signalStatus.note {border-color:var(--note);color:var(--note)}
+html[data-design="signal"] #signalStatus.ok {border-color:var(--ok);color:var(--muted)}
+html[data-design="signal"] #signalStatus.info {border-color:var(--line);color:var(--muted)}
+html[data-design="signal"] #signalStatus .signal-network-impact {font-weight:600}
+html[data-design="signal"] #signalStatus .signal-network-impact.bad {color:var(--bad)}
+html[data-design="signal"] #signalStatus .signal-network-impact.warn {color:var(--warn)}
+html[data-design="signal"] :is(.diag,.note,footer,.st .s,.sreason) {font-size:12px;line-height:1.5}
+html[data-design="signal"] .diag summary {min-height:44px;padding-block:11px;color:var(--accent)}
+html[data-design="signal"] .status {grid-template-columns:1fr;gap:0;border-top:1px solid var(--line)}
+html[data-design="signal"] .st {display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:8px;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px 0;background:transparent}
+html[data-design="signal"] .st .n {font-size:13px;font-weight:650}
+html[data-design="signal"] .st .s {font-size:12px}
+html[data-design="signal"] .st .pill {font-size:12px}
+html[data-design="signal"] .signal-source {display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+html[data-design="signal"] footer {gap:8px;padding-top:3px;border-top:1px solid var(--line)}
+html[data-design="signal"] footer>.iconbtn {border:0;background:transparent;padding-inline:3px}
+/* Active travel remains the focus, with its controls sharing a line where space permits. */
+html[data-design="signal"] #followPanel {display:flex;flex-direction:column;gap:7px;border:1px solid var(--accent);border-radius:14px;padding:13px;background:var(--card);box-shadow:none}
+html[data-design="signal"] #followPanel .lbl {font-size:12px;line-height:1.4;color:var(--muted);font-weight:650}
+html[data-design="signal"] #followPanel :is(.big,.follow-arrival) {font-size:36px;font-weight:750;letter-spacing:-.04em;line-height:1.1}
+html[data-design="signal"] #followPanel :is(.follow-status,.follow-next) {font-size:14px;line-height:1.4}
+html[data-design="signal"] #followPanel .follow-status.ok {color:var(--ok)}
+html[data-design="signal"] #followPanel .follow-status.warn {color:var(--warn)}
+html[data-design="signal"] #followPanel .follow-status.bad {color:var(--bad)}
+html[data-design="signal"] #followPanel .note {font-size:12px}
+html[data-design="signal"] #followPanel :is(.follow-actions,.actions) {display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+html[data-design="signal"] #followPanel .follow-alternative {font-size:13px;line-height:1.4;padding-top:7px;border-top:1px solid var(--line)}
+html[data-design="signal"] #followPanel>[data-follow-action="stop"] {align-self:flex-start;border-color:transparent;padding-left:0;min-height:44px}
+html[data-design="signal"] #followPanel .banner {display:flex;flex-direction:row;align-items:center;gap:8px}
+html[data-design="signal"] #followPanel .banner>span {flex:1;min-width:0}
+html[data-design="signal"] #followPanel .banner button {flex:0 0 auto}
+html[data-design="signal"] #followPanel p {margin:0}
+/* Settings and the guided simulator retain comfortable controls without inheriting giant card padding. */
+html[data-design="signal"] dialog {border-radius:14px;background:var(--card)}
+html[data-design="signal"] .sheet {padding:16px;gap:14px}
+html[data-design="signal"] .sheet h3 {font-size:22px;letter-spacing:-.025em}
+html[data-design="signal"] .sheet fieldset {border-radius:9px;padding:10px;gap:9px}
+html[data-design="signal"] .sheet :is(.f,legend,.hint) {font-size:13px}
+html[data-design="signal"] .sheet label:has(input[type="checkbox"]) {min-height:44px;align-items:center!important}
+html[data-design="signal"] .sheet input[type="checkbox"] {width:20px;height:20px;flex:0 0 auto;accent-color:var(--accent)}
+html[data-design="signal"] #simPanel {border-radius:14px}
+html[data-design="signal"] #simPanel :is(button,input,select),html[data-design="signal"] #simBar button {border-radius:8px}
+html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) + 20px)}
+@media(max-width:350px) {
+  html[data-design="signal"] body {padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+  html[data-design="signal"] header h1 {font-size:18px}
+  html[data-design="signal"] header .iconbtn {font-size:12px;padding-inline:6px}
+  html[data-design="signal"] .hero,html[data-design="signal"] #followPanel {padding:11px}
+  html[data-design="signal"] .hero .optbig {font-size:32px}
+  html[data-design="signal"] .hero .optrow.board .optbig {font-size:26px}
+  html[data-design="signal"] .hero .optrow.board .optbig.word {font-size:16px}
+  html[data-design="signal"] .row {padding:9px 10px}
+  html[data-design="signal"] .seg button {font-size:13px;padding-inline:8px}
 }
-html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost, .primary, .follow-btn, .follow-action) {
-  min-height: 44px; border-radius: 12px; padding: 10px 14px; font-size: 14px;
-}
-html[data-design="signal"] :is(.iconbtn, .pickbtn, .ghost) { border-color: var(--signal-control-line); background: var(--card); color: var(--ink); }
-html[data-design="signal"] :is(.primary, .follow-btn) { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; }
-html[data-design="signal"] .follow-action { border: 1px solid var(--signal-control-line); background: var(--card); color: var(--accent); font-weight: 700; }
-html[data-design="signal"] .dirnote { font-size: 14px; }
-html[data-design="signal"] :is(.origin, .byf) { font-size: 14px; }
-html[data-design="signal"] :is(.originbar input, .byf input, .f input, .f select) {
-  min-height: 44px; font-size: 16px; border-radius: 12px; border-color: var(--signal-control-line);
-}
-html[data-design="signal"] .hero {
-  background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 24px;
-  padding: 20px; gap: 16px; box-shadow: var(--signal-shadow); transition: none;
-}
-html[data-design="signal"] .hero .lbl { color: var(--muted); font-size: 13px; text-transform: none; letter-spacing: .015em; opacity: 1; }
-html[data-design="signal"] .hero .arr { font-size: clamp(42px, 12vw, 56px); font-weight: 750; letter-spacing: -.055em; }
-html[data-design="signal"] .hero .arrlbl { color: var(--muted); opacity: 1; font-size: 16px; }
-html[data-design="signal"] .hero .slack {
-  border-radius: 12px; padding: 6px 10px; font-size: 14px; font-weight: 650;
-}
-html[data-design="signal"] .hero .slack .slackst { margin: 0 0 0 5px; padding: 2px 6px; border-radius: 8px; }
-html[data-design="signal"] .hero .slackst.ok { background: var(--ok-bg); color: var(--ok); }
-html[data-design="signal"] .hero .slackst.warn { background: var(--warn-bg); color: var(--warn); }
-html[data-design="signal"] .hero .slackst.bad { background: var(--bad-bg); color: var(--bad); }
-html[data-design="signal"] .hero .slack.ok { background: var(--ok-bg); color: var(--ok); }
-html[data-design="signal"] .hero .slack.warn { background: var(--warn-bg); color: var(--warn); }
-html[data-design="signal"] .hero .slack.bad { background: var(--bad-bg); color: var(--bad); }
-/* Tube identity retains TfL colours, including when displayed inside the primary answer. */
-html[data-design="signal"] .hero .slack.circle { background: var(--circle); color: var(--circle-ink); }
-html[data-design="signal"] .hero .slack.met { background: var(--met); color: var(--met-ink); }
-html[data-design="signal"] .hero .slack.hc { background: var(--hc); color: var(--hc-ink); }
-html[data-design="signal"] .hero :is(.empty, .alt, .optmeta, .legs .t, .legs .d small, .striphead, .steps summary) { opacity: 1; }
-html[data-design="signal"] .hero :is(.empty, .optmeta, .alt, .legs) { font-size: 14px; }
-html[data-design="signal"] .hero :is(.alt, .opt, .strip) { border-color: var(--line); }
-html[data-design="signal"] .hero .opt { gap: 8px; padding-top: 16px; }
-html[data-design="signal"] .hero .optrow { gap: 10px; }
-html[data-design="signal"] .hero .optrow small { color: var(--muted); font-size: 12px; letter-spacing: .025em; text-transform: none; opacity: 1; }
-html[data-design="signal"] .hero .optbig { font-size: 36px; font-weight: 750; letter-spacing: -.045em; line-height: 1.15; }
-html[data-design="signal"] .hero .optrow.board { gap: 8px; }
-html[data-design="signal"] .hero .optrow.board .optbig { font-size: clamp(24px, 7vw, 34px); }
-html[data-design="signal"] .hero .optrow.board .optbig.word { font-size: clamp(16px, 4.8vw, 22px); line-height: 1.5; }
-html[data-design="signal"] .hero .optarrow { color: var(--muted); opacity: 1; }
-html[data-design="signal"] .hero .optroute { align-items: center; }
-html[data-design="signal"] .hero .altstop { border-color: var(--signal-control-line); }
-html[data-design="signal"] .hero .steps summary, html[data-design="signal"] #followPanel .steps summary { color: var(--accent); font-size: 14px; min-height: 44px; padding-block: 11px; }
-html[data-design="signal"] .hero .steps .legs { margin-top: 4px; }
-html[data-design="signal"] .hero .striphead { color: var(--muted); font-size: 12px; }
-html[data-design="signal"] .hero .pill.ok { background: var(--ok-bg); color: var(--ok); }
-html[data-design="signal"] .hero :is(.pill.info, .chip.rail, .chip.walk) { color: var(--muted); border-color: var(--signal-control-line); }
-html[data-design="signal"] .hero .latetxt { color: var(--bad); }
-html[data-design="signal"] .hero .latetxt.warn { color: var(--warn); }
-html[data-design="signal"] :is(.chip, .pill) { font-size: 12px; letter-spacing: 0; line-height: 1.6; }
-html[data-design="signal"] .pill.note { background: var(--note-bg); color: var(--note); }
-html[data-design="signal"] .chip { padding: 2px 7px; border-radius: 7px; }
-html[data-design="signal"] h2 { font-size: 16px; text-transform: none; letter-spacing: -.015em; color: var(--ink); }
-html[data-design="signal"] .list { border-radius: 16px; }
-html[data-design="signal"] .row { padding: 16px; gap: 10px; grid-template-columns: 4em minmax(0, 1fr) 4em; }
-html[data-design="signal"] .row.board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-html[data-design="signal"] .row :is(.leave .t, .exp .t, .arrive .t) { font-size: 22px; font-weight: 700; letter-spacing: -.025em; }
-html[data-design="signal"] .row :is(.leave small, .exp small, .arrive small) { font-size: 12px; letter-spacing: .015em; text-transform: none; }
-html[data-design="signal"] .row .exp .word { font-size: 16px; }
-html[data-design="signal"] .row :is(.meta, .route) { font-size: 14px; }
-html[data-design="signal"] .row.best { background: var(--signal-soft); }
-/* A missed/cancelled train stays readable; its flags communicate availability, not low opacity. */
-html[data-design="signal"] .row.gone { opacity: 1; }
-html[data-design="signal"] .banner { border-radius: 16px; padding: 12px 16px; font-size: 14px; }
-html[data-design="signal"] .banner details summary { min-height: 44px; display: list-item; padding-block: 10px; }
-html[data-design="signal"] :is(.diag, .note, footer, .st .s, .sreason) { font-size: 14px; }
-html[data-design="signal"] .diag summary { min-height: 44px; padding-block: 11px; color: var(--accent); }
-html[data-design="signal"] .st { border-radius: 16px; padding: 12px; }
-html[data-design="signal"] .st .n { font-size: 14px; }
-html[data-design="signal"] dialog { border-radius: 24px; background: var(--card); }
-html[data-design="signal"] .sheet { padding: 20px; gap: 20px; }
-html[data-design="signal"] .sheet h3 { font-size: 24px; letter-spacing: -.03em; }
-html[data-design="signal"] .sheet fieldset { border-radius: 16px; padding: 12px; gap: 12px; }
-html[data-design="signal"] .sheet :is(.f, legend, .hint) { font-size: 14px; }
-html[data-design="signal"] .sheet label:has(input[type="checkbox"]) { min-height: 44px; align-items: center !important; }
-html[data-design="signal"] .sheet input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--accent); }
-html[data-design="signal"] #journeyViewControl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-html[data-design="signal"] #journeyViewControl > :is(p, span) { font-size: 14px; color: var(--muted); }
-html[data-design="signal"] #appearanceControl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-html[data-design="signal"] #followPanel { border: 1px solid var(--accent); border-radius: 24px; background: var(--card); padding: 20px; box-shadow: var(--signal-shadow); }
-html[data-design="signal"] #followPanel :is(h2, h3) { margin: 0; text-transform: none; font-size: 18px; color: var(--ink); }
-html[data-design="signal"] #followPanel :is(.big, .follow-arrival) { font-size: 44px; font-weight: 750; letter-spacing: -.045em; line-height: 1.2; }
-html[data-design="signal"] #followPanel :is(.follow-actions, .actions) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-html[data-design="signal"] #followPanel p { margin-block: 10px; }
-html[data-design="signal"] #signalStatus { border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; background: var(--card); color: var(--ink); font-size: 14px; }
-html[data-design="signal"] #signalStatus.bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
-html[data-design="signal"] #signalStatus.warn { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
-html[data-design="signal"] #signalStatus.note { background: var(--note-bg); border-color: var(--note); color: var(--note); }
-html[data-design="signal"] #signalStatus.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-html[data-design="signal"] #simPanel { border-radius: 20px; }
-html[data-design="signal"] #simPanel :is(button, input, select), html[data-design="signal"] #simBar button { border-radius: 12px; }
-html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
-@media (max-width: 370px) {
-  html[data-design="signal"] body { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
-  html[data-design="signal"] .hero, html[data-design="signal"] #followPanel { padding: 16px; }
-  html[data-design="signal"] .seg button { padding-inline: 9px; font-size: 13px; }
-  html[data-design="signal"] .row { padding: 12px; gap: 8px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html[data-design="signal"] *, html[data-design="signal"] *::before, html[data-design="signal"] *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+@media(prefers-reduced-motion:reduce) {
+  html[data-design="signal"] *,html[data-design="signal"] *::before,html[data-design="signal"] *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
 
 /* Follow controls also work in Panda; status colours retain their usual meaning. */
@@ -452,7 +574,7 @@ html[data-design="signal"] body.simControlsVisible { padding-bottom: calc(140px 
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 05:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 05:35 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2138,6 +2260,7 @@ var CommuteCore = (() => {
     if (t && t.cancelled.length) return { level: "bad", text: `${n(t.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
     if (t && t.uncertain.length) return { level: "bad", text: `${n(t.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
     if (t && t.late >= 15) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+    if (i.tubeFallback && i.fallbackUnavailable) return { level: "bad", text: "Tube lines closed now \xB7 check onward travel", detail };
     if (i.tubeFallback) return { level: "bad", text: "Circle and Met closed: via Aldgate East", detail };
     if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${worstDesc(tubeBad[0])}`, detail };
     if (t && t.late >= 5) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
@@ -3365,7 +3488,8 @@ function buildJourneys(dir, now, o){
 // Never hide a train: every train is listed with its flags. Only trains with known times (not cancelled, not
 // "Delayed" without an estimate) can be recommended on the top card.
 // Tube line status flags for a commute option (train flags come from the engine).
-const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:"Via Aldgate East: Circle and Met closed" });
+const TUBE_FALLBACK_NOTE="Via Aldgate East: Circle and Met closed";
+const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:TUBE_FALLBACK_NOTE }).map(f=>({...f,network:true}));
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>(dir==="office" && !r.extra.outTo) || r.extra.planned);
@@ -3584,7 +3708,7 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network&&signalConsolidatesFlag(f)?' data-network-flag="true"':''}>${esc(f.txt)}</span>`).join(" ");
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -3624,7 +3748,7 @@ function effortLine(j, dest, best){
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  return `<section class="opt">
+  return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -4018,13 +4142,14 @@ function planIsLater(){
   return false;
 }
 function planLabel(){ const v=state.saved.view, T=v==="at"?state.at&&state.at.T:state.by&&state.by.T; return T?hhmm(T):""; }
+function displayedFailures(){return state.saved.view==="by"?(state.by&&state.by.failed)||{}:state.saved.view==="at"?(state.at&&state.at.failed)||{}:(state.railSource==="tfl"?state.routeFailed||{}:{});}
 // Every board loaded for this direction (live: all three London stations), so the counts agree with each other.
 const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), Date.now(), PROFILE);
 function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
-  const failedNow = state.saved.view==="by" ? (state.by&&state.by.failed)||{} : state.saved.view==="at" ? (state.at&&state.at.failed)||{} : (state.railSource==="tfl" ? state.routeFailed||{} : {});
+  const failedNow = displayedFailures();
   const missing=boardKeys().filter(k=>failedNow[k]);
   if(missing.length){
     const names=missing.map(k=>HUB_NAME[hubOfKey(k)]).join(" and ");
@@ -4034,7 +4159,9 @@ function renderBanners(){
   [...new Set(state.errors)].filter(e=>!missing.some(k=>failedNow[k]===e)).forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
-  if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
+  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'])
+    ? `<div class="banner bad"><b>Tube lines closed now</b><span>Circle, Metropolitan and Hammersmith &amp; City are closed now. Check onward travel before relying on the Tube estimate.</span></div>`
+    : `<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
   const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
@@ -4242,9 +4369,9 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  const focus=journeyFocus();
   applyJourneyAppearance();
   restoreReleasedFollow();
-  const focus=journeyFocus();
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
   renderInner(); restoreOpen();
@@ -5525,11 +5652,111 @@ function applyJourneyAppearance(){
   if(theme==='light'||theme==='dark')document.documentElement.dataset.theme=theme;
   else delete document.documentElement.dataset.theme;
   $('#journeyViewControl').hidden=!journeyEnabled();
+  applySignalLayout();
 }
+// Reparent existing controls, never clone their handlers or maintain a second journey state.
+const signalHomes=new Map();
+let signalParts=null;
+let signalActive=false;
+function signalRemember(node){
+  if(!signalHomes.has(node)){const anchor=document.createComment('Signal layout home');node.before(anchor);signalHomes.set(node,anchor);}
+  return node;
+}
+function applySignalLayout(){
+  const root=$('#hero').closest('.wrap');
+  if(!S().signal){
+    if(!signalActive)return;
+    for(const[node,anchor]of signalHomes)anchor.after(node);
+    if(signalParts)for(const node of Object.values(signalParts))if(node instanceof HTMLElement)node.hidden=true;
+    root.querySelector('h1').textContent='Cartref Commute';
+    signalActive=false;
+    return;
+  }
+  if(signalActive)return;
+  if(!signalParts){
+    // Remember every original root child before moving any of them, including hidden
+    // controls. Their anchors restore Panda's exact order on every skin transition.
+    [...root.children].forEach(signalRemember);
+    const make=(tag,id,html)=>{const node=document.createElement(tag);node.id=id;node.innerHTML=html;root.append(node);return node;};
+    signalParts={
+      toolbar:make('div','signalToolbar',''),
+      adjustments:make('details','signalAdjustments','<summary id="signalContextSummary">Journey options</summary><div class="signal-adjustment-body"></div>'),
+      planning:make('div','signalPlanningControls',''),
+      notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
+      network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
+      other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
+      boardHeading:make('div','signalBoardHeading',''),
+      connections:make('div','signalConnections',''),
+      freshness:make('span','signalFreshness','')
+    };
+    signalParts.toolbar.className='signal-toolbar';
+    for(const key of ['adjustments','notices','network','other'])signalParts[key].dataset.key='signal-'+key;
+    const context=signalRemember(document.querySelector('[data-mode]').closest('.controls'));
+    signalParts.adjustments.querySelector('div').append(context);
+    signalParts.planning.append(signalRemember(document.querySelector('[data-view]').closest('.controls')),signalRemember($('#byForm')));
+    signalParts.notices.append(signalRemember($('#banners')));
+    signalParts.network.append(signalRemember($('#status').previousElementSibling),signalRemember($('#status')),signalRemember($('#modelNote')),signalRemember(root.querySelector('footer > span')));
+    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));
+    signalParts.toolbar.append($('#journeyViewControl'),signalParts.adjustments);
+    root.querySelector('footer').prepend(signalParts.freshness);
+  }
+  const p=signalParts;
+  for(const key of ['toolbar','adjustments','planning','notices','network','freshness','boardHeading'])p[key].hidden=false;
+  // Switching skins restores these exact same elements and their input values.
+  p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls'));
+  p.toolbar.append($('#journeyViewControl'),p.adjustments);
+  p.planning.append(document.querySelector('[data-view]').closest('.controls'),$('#byForm'));
+  p.notices.append($('#banners'));
+  p.boardHeading.append($('#listTitle'),p.notices);
+  const statusTitle=[...signalHomes.keys()].find(n=>n.tagName==='H2'&&n.textContent==='Line status');
+  if(statusTitle)p.network.append(statusTitle);
+  p.network.append($('#status'),$('#modelNote'));
+  const footerSpan=[...signalHomes.keys()].find(n=>n.tagName==='SPAN'&&n.querySelector('#updated'));
+  if(footerSpan)p.network.append(footerSpan);
+  root.querySelector('footer').prepend(p.freshness);
+  const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
+  for(const node of [header,p.toolbar,p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  signalActive=true;
+}
+function signalReadingVisible(node){
+  for(let p=node;p;p=p.parentElement)if(p.hidden||(p.tagName==='DETAILS'&&!p.open))return false;
+  return true;
+}
+function renderSignalCompact(){
+  if(!S().signal||!signalParts)return;
+  const p=signalParts;
+  $('#signalContextSummary').textContent=`${state.saved.mode==='leisure'?'Leisure':direction()==='home'?'To home':'To office'} · ${state.saved.mode==='leisure'?'Journey options':state.saved.pace==='fast'?'Fast pace':'Average pace'}`;
+  if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
+  p.notices.hidden=!$('#banners').children.length;
+  $('#signalNoticeCount').textContent=$('#banners').children.length?`· ${$('#banners').children.length}`:'';
+  $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
+  p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
+  // A compact, accessible fallback row; full metadata and actions remain on expansion.
+  const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
+  for(const opt of options.slice(1)){
+    const detail=document.createElement('details');detail.className='signal-alternative';
+    detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
+    const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
+    const times=opt.querySelector('.optrow');
+    const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
+    if(times)summary.append(times);
+    const service=document.createElement('span');service.className='signal-alt-service';service.textContent=opt.dataset.serviceLabel||'';summary.append(service);
+    opt.before(detail);detail.append(summary,opt);
+  }
+  p.connections.replaceChildren();
+  const following=!$('#followPanel').hidden;
+  const secondary=following&&state.presentation?.mode!=='plan'&&!!$('#hero .opt');
+  p.other.hidden=!secondary;
+  if(secondary){p.connections.append(...$('#hero').querySelectorAll('.tubes'));if($('#hero').parentElement!==p.other)p.other.append($('#hero'));}
+  else rootSignalHeroHome();
+  p.connections.hidden=!p.connections.childNodes.length;
+  restoreOpen();
+}
+function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalParts.other.parentElement)signalParts.other.before($('#hero'));}
 function journeyInteracting(){
   const a=document.activeElement;
   return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
-    document.querySelector('#banners details[open],#hero details[open],#followPanel details[open]'));
+    [...document.querySelectorAll('#banners details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
 }
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
@@ -5592,7 +5819,7 @@ function followButton(option){
   const selected=C.restoreFollowRoute(state.saved.followRoute);
   if(selected&&selected.phase!=='arrived'&&selected.direction===direction()&&selected.mode===currentMode()&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
-  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow this route':'Cannot follow this train'}</button>`;
+  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${S().signal?(possible?'Follow':'Unavailable'):(possible?'Follow this route':'Cannot follow this train')}</button>`;
 }
 function selectFollowRoute(option){
   const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
@@ -5732,21 +5959,46 @@ function renderFollowPanel(){
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
 }
+function signalNetworkLine(){
+  const fallback=aldgateUnusable();
+  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
+    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),
+    tubeLines:state.status||[],operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false});
+}
+function signalConsolidatesFlag(flag){
+  // Fold only information represented by the visible summary. Mixed closures and
+  // delays on the surviving line remain per-option warnings, including H&C delays.
+  return flag.txt===TUBE_FALLBACK_NOTE||
+    (aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']))||
+    flag.txt===signalNetworkLine().text;
+}
 function renderSignalStatus(){
   const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
-  const failed=Object.keys(state.routeFailed||{}).map(k=>HUB_NAME[hubOfKey(k)]||k);
-  const result=C.statusLine({errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
-    tubeFallback:aldgateUnusable(),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+  const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
+  const input={errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
+    tubeFallback:aldgateUnusable(),fallbackUnavailable:aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
-    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'});
-  if(!state.boards&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'};
+  const result=C.statusLine(input);
+  const planBoards=state.saved.view==='by'?state.by?.boards:state.saved.view==='at'?state.at?.boards:null;
+  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;
   el.textContent=result.text;
+  // Consolidated network flags must remain visible even when a train cancellation
+  // or a feed failure takes precedence. The engine still chooses both summaries.
+  const network=signalNetworkLine();
+  if(['bad','warn'].includes(network.level)&&network.text!==result.text){
+    const impact=document.createElement('span');impact.className='signal-network-impact '+network.level;impact.textContent=' · '+network.text;el.append(impact);
+  }
+  if(input.demo||input.timetableOnly){
+    const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
+    if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
+  }
 }
-function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();}
+function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();renderSignalCompact();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
-  if(!journeyEnabled())return null;
+  if(!journeyEnabled()&&!signalActive)return null;
   const a=document.activeElement;
   if(!a||a===document.body)return null;
   const keys=['data-follow','data-follow-action','data-pick','data-tubepick','data-ride'];

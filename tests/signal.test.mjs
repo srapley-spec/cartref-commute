@@ -14,9 +14,20 @@ test('Signal off preserves the default design and keeps new controls hidden',asy
   assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
   assert.deepEqual(a.errors,[]);a.close();
 });
-test('Signal uses identical journey content and requests to Panda when following is off',async()=>{
+test('Signal preserves every journey field and request while compacting Panda content',async()=>{
   const a=await app(),b=await app({signal:true});
-  for(const id of ['#hero','#list','#banners','#dirNote','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  for(const id of ['#list','#banners','#dirNote','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  // Geometry changes, but every original text node survives: fallback timing moves
+  // into its summary and the line strip moves into the full network disclosure.
+  const fields=(page,selectors)=>selectors.flatMap(selector=>{
+    const node=page.d.querySelector(selector);if(!node)return [];
+    const walker=page.d.createTreeWalker(node,4),out=[];
+    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service')){
+      const text=walker.currentNode.textContent.replace(/\s+/g,' ').trim();if(text)out.push(text);
+    }
+    return out;
+  }).sort();
+  assert.deepEqual(fields(a,['#hero']),fields(b,['#hero','#signalCurrentLines']));
   assert.deepEqual(a.calls,b.calls);
   assert.equal(b.d.documentElement.dataset.design,'signal');
   assert.equal(b.d.querySelector('#journeyViewControl').hidden,false);
@@ -26,9 +37,19 @@ test('Signal status summary follows actual engine warning precedence and handles
   const a=await app({signal:true});
   assert.match(a.text('#signalStatus'),/cancelled/);
   a.c.state.errors=['Feed key refused'];a.c.render();
-  assert.equal(a.text('#signalStatus'),'Feed key refused');
+  assert.match(a.text('#signalStatus'),/^Feed key refused/);
+  assert.equal(a.d.querySelector('#signalStatus').className,'bad');
   a.c.state.errors=[];a.c.state.boards=null;a.c.state.loading=true;a.c.render();
   assert.match(a.text('#signalStatus'),/Loading journey data/);
+  assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Signal keeps example and timetable provenance visible when train warnings take precedence',async()=>{
+  const a=await app({signal:true});
+  assert.match(a.text('#signalStatus'),/cancelled/);assert.match(a.text('#signalStatus'),/Example trains/);
+  a.c.state.saved.settings.provider='tfl';a.c.state.railSource='tfl';a.c.render();
+  assert.match(a.text('#signalStatus'),/cancelled/);assert.match(a.text('#signalStatus'),/Timetable times, not live/);
+  assert.equal(a.d.querySelector('#signalNotices').open,false);
   assert.deepEqual(a.errors,[]);a.close();
 });
 test('manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation',async()=>{

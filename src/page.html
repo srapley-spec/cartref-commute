@@ -840,7 +840,8 @@ function buildJourneys(dir, now, o){
 // Never hide a train: every train is listed with its flags. Only trains with known times (not cancelled, not
 // "Delayed" without an estimate) can be recommended on the top card.
 // Tube line status flags for a commute option (train flags come from the engine).
-const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:"Via Aldgate East: Circle and Met closed" });
+const TUBE_FALLBACK_NOTE="Via Aldgate East: Circle and Met closed";
+const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:TUBE_FALLBACK_NOTE }).map(f=>({...f,network:true}));
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>(dir==="office" && !r.extra.outTo) || r.extra.planned);
@@ -1059,7 +1060,7 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}">${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network&&signalConsolidatesFlag(f)?' data-network-flag="true"':''}>${esc(f.txt)}</span>`).join(" ");
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -1099,7 +1100,7 @@ function effortLine(j, dest, best){
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  return `<section class="opt">
+  return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -1493,13 +1494,14 @@ function planIsLater(){
   return false;
 }
 function planLabel(){ const v=state.saved.view, T=v==="at"?state.at&&state.at.T:state.by&&state.by.T; return T?hhmm(T):""; }
+function displayedFailures(){return state.saved.view==="by"?(state.by&&state.by.failed)||{}:state.saved.view==="at"?(state.at&&state.at.failed)||{}:(state.railSource==="tfl"?state.routeFailed||{}:{});}
 // Every board loaded for this direction (live: all three London stations), so the counts agree with each other.
 const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), Date.now(), PROFILE);
 function renderBanners(){
   const out=[];
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
-  const failedNow = state.saved.view==="by" ? (state.by&&state.by.failed)||{} : state.saved.view==="at" ? (state.at&&state.at.failed)||{} : (state.railSource==="tfl" ? state.routeFailed||{} : {});
+  const failedNow = displayedFailures();
   const missing=boardKeys().filter(k=>failedNow[k]);
   if(missing.length){
     const names=missing.map(k=>HUB_NAME[hubOfKey(k)]).join(" and ");
@@ -1509,7 +1511,9 @@ function renderBanners(){
   [...new Set(state.errors)].filter(e=>!missing.some(k=>failedNow[k]===e)).forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
-  if(aldgateUnusable()) out.push(`<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
+  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'])
+    ? `<div class="banner bad"><b>Tube lines closed now</b><span>Circle, Metropolitan and Hammersmith &amp; City are closed now. Check onward travel before relying on the Tube estimate.</span></div>`
+    : `<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
   const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
@@ -1717,9 +1721,9 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  const focus=journeyFocus();
   applyJourneyAppearance();
   restoreReleasedFollow();
-  const focus=journeyFocus();
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
   renderInner(); restoreOpen();

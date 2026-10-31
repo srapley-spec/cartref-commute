@@ -188,3 +188,44 @@ committed-code gate uses the same durable execution method. There was no memory/
 Real iPhone Safari, VoiceOver, closed-Safari/background behavior and provider-wide live reliability remain outside
 these automated checks. The morning sequence above is the device check; both experimental options remain off by
 default for new users. Existing Follow users keep their switch and saved selection through migration.
+
+## Compact Signal review — 31 October 2026
+
+Sam's live screenshots showed the answer displaced by controls and repeated alerts, with train metadata
+confined to a narrow centre column. The authorised redesign uses a compact masthead/context, the existing
+controls in Journey options, one primary answer, an expandable next-best service with visible train/platform
+identity, and full-width departure rows. Auto/Plan/Live and the planning questions remain exposed. Full notices
+and line/data detail remain native disclosures; train-specific warnings and additional surviving-line problems
+stay visible. Example and timetable provenance remain visible when worse warnings take priority.
+
+Implementation was reconciled with `2b9fedf`, including its simulator guide and permanent slow/stalled-playback tests, retaining the latest guided simulator, `8789a50`'s six both-design
+Tube regressions, all nine preserved Follow scenarios in both designs, and the additional Signal Aldgate/going-home
+rules run. No route timing, ranking, feed request policy or saved preference shape changed. Panda restores
+the original nodes, handlers, values and root order. No Panda golden recordings changed.
+
+The final production-browser checks passed 20 compact phone/theme layouts and the 12 existing Signal layouts.
+They cover actual controls, notices, all loaded services including cancellation, Follow selection changes,
+refresh/reload/Plan/Stop, boarding, simulator entry, 44×44 actions, contrast, and all-visible-font 200% text
+with no horizontal overflow or overlapping times. At 393px, the ordinary/overnight answer begins at 247/265px
+instead of 703/1,105px; the board begins at 613/632px instead of 1,569/2,191px. The overnight page is 64.5% shorter.
+These are identical deterministic fixtures, not claims about every live response or iPhone Safari.
+
+The [independent design review](signal-compact-design-review.md) records the inspected screenshots, reference
+sources, visual approval and accepted density exceptions. The [independent regression review](signal-compact-independent-review.md)
+records exact source commits, focused capability checks, edge cases, and deliberate mutations. Review found
+and closed focus loss, Panda order changes, hidden explicit Plan, hidden nested-alert deferral, missing future
+plan failures, misleading closed-fallback copy, lost additional line warnings, undersized targets, and enlarged
+text collisions. These were fixed and retested; an earlier failed candidate was not counted as release evidence.
+Full CI also exposed an ignored test click on the correctly disabled simulator Next control. A 150 ms verification
+hold reproduced it; the corrected test waits for the real enabled control. A later hosted PR run passed 707/708
+while the equivalent push and local runs passed 708/708: a long leg had completed 64 of 69 real simulation frames
+when its fixed six-second movement deadline expired. The incoming tested helper is retained: readiness is bounded at 20 seconds; movement has
+a six-second real-progress watchdog and a 60-second bound while movement remains pending, with finite/monotonic elapsed time and
+exactly adjacent checkpoint assertions. A controlled slow leg passed at 10.69 seconds, while the same old helper
+failed and a deliberately frozen step still failed at six seconds. No production simulator behaviour changed.
+Native Chromium completed all 14 return-Farringdon checkpoints with 37 passed assertions, two inconclusive and
+zero failures; its longest leg took 0.476 seconds. This measures this browser environment, not a physical phone.
+
+Release uses the GitHub-first path because interaction-sensitive page tests changed. The committed-HEAD full
+CI, current-main green result, branch Tests, and exact merged Tests/Pages deployment remain separate gates.
+Real iPhone Safari, VoiceOver, live-provider reliability and background operation retain the limits above.
