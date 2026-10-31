@@ -73,3 +73,30 @@ test('independent train-stop simulation: Stop restores a real saved stop before 
  }
  assert.equal(a.c.state.stopWatch?.stoppedAt??null,null,'no synthetic speed watch escapes into real operation');assert.deepEqual(a.errors,[]);
 });
+
+test('independent simulation isolation: real planning dates and runtime origin return after dock Stop and source disable',async()=>{
+ const results=[],expected=[];
+ for(const question of ['by','at'])for(const exit of ['dock','settings']){
+  const a=await createApp({now:Date.parse('2026-11-03T10:00:00Z'),saved:{mode:'leisure',dirMode:'home'},settings:{provider:'tfl',tflKey:'input-review-fixture',signal:true,followRoute:false,anyPlace:true},geo:{coords:{latitude:51.515,longitude:-.08,accuracy:12}},settle:150,
+   route:url=>url.includes('/JourneyResults/')&&!url.includes('timeIs=')?{ok:true,status:200,json:async()=>({journeys:[{duration:12,arrivalDateTime:'2026-11-03T10:12:00Z',legs:[{mode:{id:'walking'},duration:12}]}]})}:undefined});apps.push(a);await settled(a);
+  const submit=(id)=>a.d.getElementById(id).dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
+  a.d.getElementById('originInput').value='Aldgate';submit('originRow');await sleep(30);
+  a.d.querySelector('[data-view="'+question+'"]').click();choose(a,'byDate','2026-11-05');choose(a,'byTime','11:23');await sleep(70);await settled(a);
+  const unsaved='Input-review private draft origin';a.d.getElementById('originInput').value=unsaved;
+  const original={date:a.d.getElementById('byDate').value,time:a.d.getElementById('byTime').value,origin:a.c.state.origin,originInput:a.d.getElementById('originInput').value,destInput:a.d.getElementById('destInput').value};
+  assert.equal(a.c.state[question]?.T,Date.parse('2026-11-05T11:23:00Z'),'normal app has the original actual planning question');
+  await begin(a,'outbound','kgx');a.c.simulationReporter.recordEvent({sessionId:a.c.simulator.sim.sessionId,type:'review',message:'Example parser diagnostic '+unsaved});assert.equal(a.c.simulationReporter.serialize().includes(unsaved),false,'original unsubmitted location text is private during simulation');
+  a.d.querySelector('[data-mode="leisure"]').click();a.d.querySelector('[data-dir="office"]').click();a.d.getElementById('destInput').value='Science Museum';submit('destRow');
+  a.d.querySelector('[data-dir="home"]').click();a.d.getElementById('originInput').value='Science Museum';submit('originRow');
+  a.d.querySelector('[data-view="'+question+'"]').click();choose(a,'byDate','2026-11-08');choose(a,'byTime','14:47');await sleep(70);await settled(a);
+  assert.equal(a.c.state.origin,'Science Museum');assert.equal(a.d.getElementById('byDate').value,'2026-11-08');
+  if(exit==='dock')click(a,'simExit');else{click(a,'settingsBtn');a.d.getElementById('s_simulator').checked=false;a.d.getElementById('s_simulatedFeeds').checked=false;submit('settingsForm');}
+  await sleep(180);await settled(a);
+  const actual={question,exit,date:a.d.getElementById('byDate').value,time:a.d.getElementById('byTime').value,origin:a.c.state.origin,originInput:a.d.getElementById('originInput').value,destInput:a.d.getElementById('destInput').value,target:a.c.state[question]?.T??null};
+  results.push(actual);expected.push({question,exit,...original,target:Date.parse('2026-11-05T11:23:00Z')});
+  assert.equal(a.c.simulationReporter.serialize().includes(unsaved),false,'original private-input knowledge survives snapshot restoration');
+  assert.equal(a.c.state.saved.view,question);assert.equal(a.c.simClock.active,false);assert.deepEqual(a.errors,[]);
+ }
+ console.log('Independent real input restoration:',JSON.stringify({actual:results,expected}));
+ assert.deepEqual(results,expected,'Stop/source disable restores DOM inputs, runtime origin and the actual planning question, not only saved preferences');
+});

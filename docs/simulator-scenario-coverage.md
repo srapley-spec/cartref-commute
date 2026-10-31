@@ -1,6 +1,6 @@
 # Journey simulator scenario coverage
 
-Status: **663/663 tests pass** on the final integrated implementation `5674e2f` ([GitHub PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152458880), [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152454687)); all retained application/unit scenarios below are included. The recorded baselines grew from **409** to **425**, then **577** as main independently released Follow and Signal. Real Chromium passed **36 design/theme/phone layouts in both modes**, eight complete journeys and all three speeds. Staged independent UX/technical review and a separate portrait/landscape Signal browser probe are approved. Exact final committed local CI, merge and deployment evidence is recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37). Runtime verification uncovered and now guards genuine train-continuity and Follow-phase failures; playback alone never establishes a pass.
+Status: **678/678 tests pass** on independently approved source `11f369b` ([GitHub PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155133955), [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155128856)); all retained application/unit scenarios below are included. The recorded baselines grew from **409** to **425**, **577**, then **585** as main independently released Follow, Signal and train-stop timing. Real Chromium passed **36 design/theme/phone layouts in both modes**, eight complete journeys and all three speeds. Independent staged technical and mobile reviews are approved. Exact final committed local CI, merge and deployment evidence is recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37). Runtime assertions detect genuine train-continuity, Follow-phase and stop-clock defects; playback alone never establishes a pass.
 
 The integration suite loads the generated `index.html` in jsdom, submits the actual Settings form,
 clicks simulator controls and advances the actual playback interval callback. It does not assign trains,
@@ -196,7 +196,7 @@ Main advanced again to `4ee24c7` (PR #36) during the release checks. Its baselin
 
 The new shell observes main's already-computed inference and follower result, including its separate actual Follow panel. No legacy parallel planner was retained. The new verification distinguishes a legitimate presentation pin/reading deferral from an unintended view failure; a pending flag without actual app interaction cannot suppress assertions. Core service continuity remains generic and unchanged by this integration.
 
-### Final integrated test evidence
+### Integrated test evidence before the subsequent train-stop release
 
 The reviewed implementation `5674e2f` passed **663 tests, 0 failed, 0 skipped** on GitHub in193.86s. This includes the updated577-test main baseline,22 Journey UX cases (eight complete normal routes across both designs),29 verifier cases,12 report cases,11 original independent UX regressions,4 independent Signal integration regressions and8 added pure rail-context cases. No original valid simulator test was removed. Two UX Follow tests and the last independent Follow test were translated to main's released shared API while preserving persistence, restart, cache, actual-control, phase and read-only assertions; mutation probes continue to detect their intended defects.
 
@@ -216,3 +216,22 @@ Main subsequently released `cdf6ecd` with the train-stop watch and its simulator
 | Advanced poor accuracy with Normal scenario | Select poor profile before Start, walk, then precise Restart | Actual coarse data yields INCONCLUSIVE, no falsely precise arrival claims; precise recovery resumes original normal assertions | `Advanced poor accuracy stays inconclusive in a normal scenario and precise restart recovers` | PASS:actual page2.82s; independent normal/coarse-false-station/precise boundary probe also passes |
 
 After these changes, all eight complete normal routes across Panda/Signal reran with zero runtime FAIL assertions (**8/8**,121.83s). The final Chromium rerun again passed36 layouts/both modes and8 journeys/all speeds with zero errors or live calls (`/tmp/cartref-ux-stop-browser-final.log`). The focused verifier/report suite passed42/42. Final complete integrated test counts and release evidence are recorded in PR #37.
+
+### Complete final retained-suite evidence
+
+The reviewed final source `11f369b` passed **678 tests, 0 failed, 0 skipped** on GitHub in313.47s. This retains the585-test current-main baseline and adds23 Journey UX cases,30 verifier cases,12 report cases,11 original independent UX regressions,4 independent Signal integration cases,5 independent train-stop integration cases and8 pure rail-context regressions. Complete exact-commit release evidence is in PR #37.
+
+Independent review endorsed exact source commit `11f369ba9096f9cf7e14016c8898505d5b01b9a8` after comparing the committed generated index and source with the approved snapshot. The only index differences were build time and the already-reviewed actual-coarse-accuracy guard. No implementation code was written by that reviewer, and no significant findings remain open.
+
+## Planning-input isolation and actual browser reload
+
+An additional independent end-of-session probe found a real saved-only restoration gap: after temporary simulation edits, By/At metadata returned but the DOM date/time and runtime alternative origin did not. The old generated page failed all four combinations (By/At × dock Stop/Settings source-disable); By planned the wrong November8 target and At did not resume planning. The session now restores the actual input values and runtime origin before normal refreshing. The normal location dispatcher resumes the selected planner rather than always invoking Arrive-by.
+
+| Behaviour | Inputs and expected actual outcome | Automated test | Result |
+| --- | --- | --- | --- |
+| Original By/At question survives temporary edits | Real November5 11:23/Aldgate question; edit to November8 14:47/ScienceMuseum in simulation; both exit paths restore original DOM/runtime and actual planning target | Sixth case in `tests/simulator-stop-review.test.mjs` | PASS all4 paths,6.47s; removing input restoration reproduces all4 failures |
+| Original private unsaved input draft stays private | Original draft differs from submitted origin; representative diagnostic event before/after Stop | Same retained independent case | PASS; original draft restored exactly and redacted from report |
+| Leave-around starts when GPS arrives late | Initial loading completes without location, then normal native location delivery | `tests/simulator-planning-resume.test.mjs` | PASS:actual requested target and genuine Leaving-around card,1.03s |
+| Real browser reload clears active state | Stop/export, then actual Chromium reload | `python3 tests/browser-simulator.py` | PASS:36 layouts, eight journeys/all speeds, report download, reload exits sources/clock/controller, zero page errors/live calls while simulated (`/tmp/cartref-ux-browser-release-final.log`) |
+
+The preceding complete source run passed678/678 with zero golden changes before this final input-isolation correction. Final integrated counts and fresh committed-code CI are recorded in PR #37, together with the exact merged/deployed commit.

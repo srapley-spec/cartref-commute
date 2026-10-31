@@ -25,7 +25,10 @@ include earlier trains (#14).
   list shows the rest of the journey. A deadline on another day stays a plan: no verdict (view choice:
   [presentation-model](presentation-model.md)).
 
+- The original question, date/time and alternative origin return after either simulator exit path; temporary input drafts stay private in diagnostic reports.
+
 ## Tests
+- tests/simulator-stop-review.test.mjs: "independent simulation isolation: real planning dates and runtime origin return after dock Stop and source disable"
 - tests/core/search.test.mjs: "Arrive by: on time, cutting it fine, late by N min; the latest on-time train is the pick"
 - tests/core/search.test.mjs: "Arrive by searches: arriving at the latest useful time, then after, then from early enough"
 - tests/app.test.mjs: "Arrive by finds the latest train, flags stopping trains and tight arrivals"

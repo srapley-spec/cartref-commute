@@ -44,6 +44,7 @@ so that I can inspect inference and onward planning without travelling.
 - Refresh the union of private values throughout the session and before exporting; credentials changed during a session must remain redacted after Stop restores the original settings.
 - Current main's `followRoute`, `viewOverride`, `planInputs` and legacy migration metadata are session-isolated together. Source changes clear the Follow option Map, transport prediction cache and presentation state; guarded pending predictions cannot populate a newer session.
 - The train-speed watch is reset across simulation boundaries. After transient cache clearing, Stop and disabling both sources rehydrate only recent original real station visits using device-time validation (20 minutes for the hub visit,25 for the last hub); original stopped time survives resumed native fixes with no speed. Synthetic visits and speed readings never rehydrate real state.
+- Session isolation includes the actual planning date/time, origin/destination input values and runtime alternative origin, not just saved JSON. Both exit paths restore these before normal refreshing and replan the selected By/At question when native GPS resumes. Original unsaved private drafts are included in the redaction union and never exported raw.
 - Report format identifiers and validated structural enums remain intact while untrusted messages and service identifiers are sanitized. Unavailable clipboard access offers a selectable text fallback; download URLs are revoked.
 
 ## Tests

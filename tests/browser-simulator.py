@@ -118,7 +118,11 @@ with sync_playwright() as p:
  exported=download_info.value;report=json.loads(Path(exported.path()).read_text())
  assert report['kind']=='cartref-commute-simulation' and report['checkpoints']
  assert not page.evaluate('__commute.simClock.active || __commute.simulator.sim.active')
+ # A real browser reload must exit all session-only simulation sources and controls.
+ page.reload();page.wait_for_function('!!window.__commute')
+ assert page.evaluate('!__commute.simClock.active && !__commute.S().simulatorEnabled && !__commute.S().simulatedFeeds && !__commute.simulator.sim.active && __commute.simulator.sim.timer===null')
+ assert not page.locator('#simPanel').is_visible() and not page.locator('#simBar').is_visible()
  assert not errors,errors
  browser.close()
 server.shutdown()
-print(json.dumps({'browser':'Chromium','phoneLayouts':36,'designs':['panda','signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))
+print(json.dumps({'browser':'Chromium','phoneLayouts':36,'designs':['panda','signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'reloadRestoresReal':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))

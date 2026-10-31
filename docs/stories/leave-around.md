@@ -12,6 +12,7 @@ one before I set off.
 - Leaving order; card follows the [top-card](top-card.md) rule.
 - Uses the live board while its start is within 119 min of now; beyond that the timetable, labelled.
 - Where the live board stops short, later trains come from the timetable and the heading says so.
+- When the first location establishes the direction after initial loading, the selected Leave-around question is planned without another tap. Returning from simulation restores the real date/time and alternative origin before replanning.
 
 ## Tests
 - tests/rules.test.mjs: "Leave around: listed from 15 min before; recommended only from 10 min before"
@@ -19,3 +20,5 @@ one before I set off.
 - tests/app.test.mjs: "Leave around 17:40: the best train (alone when nothing else is close) and every train around then, in leaving order"
 - tests/rules.test.mjs: "Leave around with live data: the live board is used while its start is within 119 min; beyond that, the timetable"
 - tests/app.test.mjs: "Leave around: where the live board stops short, later trains come from the timetable and the heading says so"
+- tests/simulator-planning-resume.test.mjs: "Leave around plans the actual requested time when the first location arrives after initial loading"
+- tests/simulator-stop-review.test.mjs: "independent simulation isolation: real planning dates and runtime origin return after dock Stop and source disable"

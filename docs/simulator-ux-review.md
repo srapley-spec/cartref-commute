@@ -331,3 +331,39 @@ candidate passes the corresponding retained cases. Evidence: `/tmp/cartref-stop-
 The previous Signal mobile review and source/clock/privacy findings remain applicable. The release lead reruns
 all normal journeys, mobile layouts and the complete committed suite on the final integrated source. Real
 under-roof iPhone speed availability remains the explicitly documented hardware limitation from the main story.
+
+## Final source commit endorsement and full-suite result
+
+The independent reviewer explicitly endorsed exact source commit `11f369ba9096f9cf7e14016c8898505d5b01b9a8`. The four key committed implementation files match the reviewed working snapshot byte for byte; comparison of the committed generated index found only build time and the already-reviewed accuracy-gate correction. No feature source was written by that reviewer and no significant findings remain open.
+
+Both final-source [PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155133955) and [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41155128856) pass **678/678**, with no skipped tests. This includes all prior and new independent regressions together. Exact final fresh-copy local CI, merged commit, GitHub Tests, Pages and published-browser results are recorded in [PR #37](https://github.com/srapley-spec/cartref-commute/pull/37).
+
+## Final independent isolation review: planning inputs and alternative origins
+
+The final saved-state audit found that the persisted snapshot did not cover the current planning form or
+runtime leisure origin. The reviewer reproduced the defect on the previously tested `11f369b` build through
+actual controls, before building the fix: real Arrive-by/Leave-around for 5 November 11:23 and origin Aldgate,
+then a simulated 8 November 14:47 / Science Museum question, then Stop. Both dock Stop and Settings disabling
+both sources restored saved preferences but retained the simulated DOM date/time, origin and destination.
+The actual restored By question used the wrong date; the restored At question remained unloaded.
+
+The candidate built **31 October 01:43 UTC** adds a session-only snapshot of the four date/time/origin/destination
+input values and runtime origin, restoring them before normal rendering/refresh. It retains original location
+strings in the existing private-value union, without exporting the input snapshot. Native direction changes
+now dispatch the existing `planView()` (By or At), so Leave-around is replanned after real GPS resumes. This
+preserves the existing By path and does not change journey inference or the transport providers.
+
+**Independent review approved.** The unchanged four-path actual-app regression passed after the fix (6.47s).
+The strengthened version also preserves an unsubmitted private origin draft distinct from the active runtime
+origin, and proves diagnostic text containing that draft remains redacted both during simulation and after
+restoration (**1/1 case, four control-path combinations**, 11.26s while two review processes ran concurrently).
+This is the sixth retained case in `tests/simulator-stop-review.test.mjs`; no earlier case was removed or weakened.
+
+Disabling only the new input-restoration branch in an isolated generated page makes the retained case fail
+for the intended wrong DOM/runtime/question values on all four paths. The normal candidate restores both
+actual `state.by.T` and `state.at.T`, including after native GPS resumes. The reviewer wrote no feature source.
+
+Evidence: `/tmp/cartref-input-isolation-review-baseline.log`, `/tmp/cartref-input-isolation-review-fixed.log`,
+`/tmp/cartref-input-isolation-review-private-fixed.log`, `/tmp/cartref-input-isolation-review-mutant.log`.
+No further significant findings remain open. Final committed-code CI and exact GitHub release/deployment
+checks remain required; focused review is not a substitute for those gates.

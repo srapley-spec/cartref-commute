@@ -475,7 +475,7 @@ const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number
 const LS = "cartrefCommute.v1";
 
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
-let simulationSnapshot=null;
+let simulationSnapshot=null,simulationInputSnapshot=null;
 function save(){if(simulationSnapshot || (typeof sim!=="undefined" && sim.active))return;try{const saved={...state.saved,settings:{...state.saved.settings}};delete saved.settings.simulatorEnabled;delete saved.settings.simulatedFeeds;localStorage.setItem(LS,JSON.stringify(saved));}catch(e){}}
 const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
   lastHub:null, diag:{},
@@ -488,6 +488,7 @@ if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&ty
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
+ simulationInputSnapshot={origin:state.origin,fields:Object.fromEntries(["byDate","byTime","originInput","destInput"].map(id=>[id,document.getElementById(id)?.value||""]))};
  for(const key of ['trip','officeVisit','officeSince','officeNearSince','tubeRide','tubePick','hubSince','aldHome','lastHub','followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])delete state.saved[key];
 }}
 // Restore only saved real visit memory; require a current device-time visit, never a virtual cache.
@@ -501,6 +502,7 @@ function restoreRealJourneyVisits(){
 }
 function endSimulationSession(){
  if(simulationSnapshot)state.saved=simulationSnapshot;simulationSnapshot=null;
+ if(simulationInputSnapshot){state.origin=simulationInputSnapshot.origin;for(const [id,value]of Object.entries(simulationInputSnapshot.fields)){const input=document.getElementById(id);if(input)input.value=value;}simulationInputSnapshot=null;}
  delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
  simClock.stop();restoreRealJourneyVisits();
  simulator.setPanelVisible(false);document.getElementById("s_simulator").checked=false;document.getElementById("s_simulatedFeeds").checked=false;
@@ -1975,7 +1977,7 @@ function onPosition(p){
   const dirChanged = prev!==state.autoDir;
   // Arriving at (or leaving) a London station changes what is needed: reload once.
   if((state.saved.dirMode==="auto" && dirChanged) || prevHub!==state.atHub || wasOnLine!==state.onLine || wasInLondon!==state.inLondon) refresh({force:true});
-  render(); if(dirChanged) planBy();
+  render(); if(dirChanged) planView();
 }
 function onPositionError(e){
   state.locStatus = e && e.code===1 ? "denied" : "unavailable";
@@ -2032,7 +2034,7 @@ const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()
 function simulationPrivateValues(){
  const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
  const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
- return [...values,state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
+ return [...values,simulationInputSnapshot?.origin||'',simulationInputSnapshot?.fields.originInput||'',simulationInputSnapshot?.fields.destInput||'',state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
 }
 const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
 const SIMULATOR_PREFERENCES='cartrefCommute.simulatorPreferences.v1';

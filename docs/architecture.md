@@ -389,6 +389,8 @@ Main's subsequent Signal release (`4ee24c7`, PR #36) replaces the original Follo
 
 The later train-stop release (`cdf6ecd`) is retained. Synthetic stationary waits have zero speed, and rail fixes stay moving until the final arrival; normal `watchStop` derives the stop from the shared clock. Runtime assertions compare the actual stopped timestamp and the selected service's arrival at the actual destination board. Leaving simulation resets transient state before restoring saved real station visits, with device-time age validation; the speed watch stays empty until fresh native observations. This preserves an existing real stopped visit through both Stop and Settings source-disable without restoring any synthetic timestamps.
 
+Real planning input values and runtime alternative origin are session-snapshotted separately from saved JSON. The shell's planners read these DOM inputs, so restoring only saved metadata is insufficient. Both exit paths restore them before normal refreshing; the normal location dispatcher resumes the selected planner, including Leave-around. Original unsaved origin/destination strings join the private-value history for sanitized reports. No input snapshot is persisted or exported.
+
 ### Reconcile the released Follow controller (31 Oct)
 `main` released Follow a route at `be1e58e` during Signal implementation. Both designs now consume one shared
 pure follower and presentation controller; the older internal API/HTML assertions are translated into the seven
