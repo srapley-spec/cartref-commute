@@ -1,5 +1,5 @@
 # Presentation model: the engine decides what comes first
-Status: Done for Panda; Signal compact v2 behind toggle (release review pending) · Since: 29 Oct 2026
+Status: Done for Panda; Signal compact v2 behind toggle (independent review approved; release gates recorded) · Since: 29 Oct 2026
 
 ## Story
 As a commuter glancing at the phone, I want the thing that matters most to be first on every screen, however the

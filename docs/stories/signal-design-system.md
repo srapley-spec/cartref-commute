@@ -1,5 +1,5 @@
 # Signal design system and automatic journey presentation
-Status: Behind toggle (compact v2 implementation; independent and visual release review pending) · Since: 29 Oct 2026
+Status: Behind toggle (compact v2 independently and visually reviewed; release gates in Signal testing) · Since: 29 Oct 2026
 
 ## Story
 As a commuter, I want the appropriate planning or live journey view to appear automatically, with a manual override, so I can act quickly without losing control or information.
@@ -89,7 +89,7 @@ geometry where they differ; journey calculations, current features and status se
   train status, correction controls, Aldgate platform planning, interchange timings and simulator survive.
 
 ## Tests
-The shared Signal/Follow a route implementation is behind the switch; compact v2 release verification is in progress. [Signal testing](../signal-testing.md) records the required evidence
+The shared Signal/Follow a route implementation is behind the switch; compact v2 review is approved and release verification is recorded separately. [Signal testing](../signal-testing.md) records the required evidence
 and hands-on morning checks; do not treat the standalone mockup as regression evidence.
 
 Before release acceptance: run existing engine/app/golden suites, typecheck, build and check-docs on the committed

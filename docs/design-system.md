@@ -12,6 +12,26 @@ Signal selected by Sam, 29 October 2026; production implementation behind Settin
 
 The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
+## Current compact production revision — 31 October 2026
+
+Sam authorised a substantial Flighty/Railboard-inspired redesign after comparing the live designs. The compact
+revision supersedes the older prototype's sizing and always-exposed direction/pace controls below. The effective
+direction and pace remain visible in a labelled context disclosure containing the actual Commute/Leisure,
+Auto/office/home and pace controls. Auto/Plan/Live and Leave now/Arrive by/Leave around stay exposed.
+
+Production geometry and tokens live in `src/signal.css`: a 21px brand, 36px primary time, 32px secondary time,
+24px compact fallback times, 14px service metadata, 12px supporting labels, and at least 44×44px actions.
+Times and controls reflow at enlarged text sizes. The primary answer precedes a compact expandable Next best
+with visible service/platform identity, followed by full-width board rows. One impact summary stays visible;
+complete Travel alerts and Lines & data use native disclosures. Every train and its individual problems remain
+on the complete board. Additional line problems and example/timetable provenance must not be lost to consolidation.
+
+The [compact acceptance story](stories/signal-design-system.md), [approved visual review](signal-compact-design-review.md)
+and [independent regression review](signal-compact-independent-review.md) record the current contract and measured
+exceptions. Earlier preview/token artifacts remain design history; they do not override the current production
+geometry or justify copying old routing logic. The shared engine, status colours, source truthfulness, manual-view
+lifetime and preservation rules remain binding.
+
 ## Evidence and scope
 
 Read `src/page.html` on main (912e0977c386789aa2a892f84bb88a18cdd16734) and the architecture and all capability stories on `docs/context-in-repo` (tree 1454801756ce71a8a9fc4d8c348027c79760c958). The context branch's screen differs from main only in the location-resume fix; main's newer fix must be retained. This is a source audit, not a claim to have tested the production app with live credentials.
@@ -35,8 +55,8 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 | Existing capability | Design location / rule | Evidence |
 | --- | --- | --- |
 | Commute / Leisure | Commute header retains Leisure entry; destination screen out of scope | page controls; any-start-and-end-point |
-| Auto / To office / To home | Always-visible direction control; manual override remains available without location | direction-and-arrival |
-| Average / fast walking | Visible pace control, not hidden in general settings | page controls; on-the-way-to-the-station |
+| Auto / To office / To home | Effective direction visible; actual manual/Auto controls in Journey options, available without location | direction-and-arrival |
+| Average / fast walking | Effective pace visible; actual control in Journey options, outside general Settings | page controls; on-the-way-to-the-station |
 | Leave now / Arrive by / Leave around | Three explicit planning modes with date and time | arrive-by; leave-around |
 | Best and next best | Kept together, across routes; no manufactured fallback if none qualifies | top-card |
 | All loaded trains in leaving order | Full board below recommendation; cancellation and no-estimate rows remain | never-hide-a-train |
