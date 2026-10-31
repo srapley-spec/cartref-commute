@@ -144,6 +144,18 @@ test('independent Signal clarity: a fresh current-train report promotes a seriou
  assert.match(visibleText(a,'#signalDisruptions'),/20 min/,'serious live arrival impact cannot remain folded because the old departure board is on time');
  assert.match(visibleText(a,'#signalDisruptions'),/points failure/i,'retain the current report cause');
  assert.equal(t.arrLate,0,'the diagnostic view does not rewrite the original board');
+ const requests=a.calls.slice();
+ s.saved.settings.signal=false;a.c.render();
+ assert.equal(a.d.documentElement.dataset.design,'panda');
+ assert.equal(a.d.querySelector('.journey-progress'),null,'the optional Signal visual cannot leak into Panda on an actual selected live train');
+ const legacy=[...a.d.querySelectorAll('#hero [data-block="progress"]')];
+ assert.ok(legacy.length&&legacy.every(node=>visible(a,node)),'Panda retains its original visible report diagnostics');
+ assert.deepEqual(a.calls,requests,'switching designs cannot add provider requests');
+ s.saved.settings.signal=true;a.c.render();
+ assert.equal(a.d.documentElement.dataset.design,'signal');
+ assert.match(visibleText(a,'.journey-progress'),/20 min behind/,'turning Signal back on restores the same selected report');
+ assert.equal(s.trainLock.serviceId,t.serviceId);assert.equal(t.arrLate,0);
+ assert.deepEqual(a.calls,requests);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
