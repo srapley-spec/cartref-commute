@@ -257,3 +257,9 @@ Evidence: `/tmp/cartref-signal-review-mutant.log`, `/tmp/cartref-signal-review-c
 The earlier independent UX, source-isolation and synthetic-consistency findings remain covered. This review
 adds current-main compatibility evidence; it does not replace final all-suite CI or the release lead's actual
 36-layout/8-journey browser run. Physical iPhone Safari/VoiceOver/background delivery remains a hardware limit.
+
+## Final committed evidence addendum
+
+The reviewer independently endorsed exact commit `5674e2fbbea23cb996c32a2de4dd15db929f5d84` after an additional actual Chromium check on Signal:393×852 and852×393, light/dark; genuine three-action return/Farringdon Start; automatically collapsed controls; real app headline visible;44px controls; minimum contrast10.24:1;125px dock with140px reserved space; no overflow/overlap/errors/live calls during simulation; frozen clock; Stop restored real transport calls. The reviewer visually inspected light/dark screenshots. Evidence: `/tmp/cartref-signal-independent-mobile.log`, `/tmp/cartref-signal-review-mobile-light.png`, `/tmp/cartref-signal-review-mobile-dark.png`. No feature source was written by that reviewer.
+
+The integrated source's [PR Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152458880) and [push Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41152454687) both pass **663/663**, including all independent regressions. Final clean-copy local CI and exact merged/deployment evidence remain recorded in [release PR #37](https://github.com/srapley-spec/cartref-commute/pull/37); this addendum records observed evidence without implying hardware Safari acceptance.
