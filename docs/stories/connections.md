@@ -126,6 +126,8 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - A train held inside the station that then creeps in under 5 m/s keeps the earlier stop: the walk starts early, so
   the card may suggest a tube you can't quite make (never hides one).
 - A saved stop is kept through a reload and fixes with no speed; only moving again at train speed clears it.
+- The journey simulator resets the speed watch with the rest of the position state; a stop timed before the last
+  train-speed reading (a clock that jumped back) is never taken.
 - No stop seen (GPS gives no speed, e.g. under the trainshed roof; the app opened on the platform): from the first fix in the station, or the later of last-seen-
   away + walk, as below. **Unverified:** whether iOS reports speed under the King's Cross roof. Sam to check the
   card's "from when your train stopped" on the next trip.
