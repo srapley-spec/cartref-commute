@@ -80,6 +80,8 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one"
 - tests/rules.test.mjs: "Review: going home, 'On a different tube?' at Aldgate lists the nearest to yours first"
+- tests/rules.test.mjs: "Both designs (panda): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
+- tests/rules.test.mjs: "Both designs (signal): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
 - tests/core/connections.test.mjs: "Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept"
 - tests/core/situation.test.mjs: "onTube / whichTube: left the station after a tube left; not while there with a fresh fix; not near Aldgate"
 - tests/core/situation.test.mjs: "Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one"

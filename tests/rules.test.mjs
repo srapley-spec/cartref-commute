@@ -1548,3 +1548,72 @@ test("Train stop review 2: timed by when the phone took the fix, so a fix that a
   assert.equal(c3.state.hubSince.stopped, T("08:39") + 10e3);
   app3.close();
 });
+
+// ---------- Both designs (Sam, 31 Oct: everything from 30 Oct must work in Panda and in Signal) ----------
+const designSettings = (design) => design === "signal" ? { ...RDM, signal: true } : RDM;
+const btnText = (app) => [...app.d.querySelectorAll("#hero [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
+
+async function kingsCrossCardScenario(design) {
+    const DS = designSettings(design);
+    const app = await open({ now: T("08:38") + 50e3, geo: null, settings: DS, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+    assert.equal(app.d.documentElement.dataset.design, design);
+    await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
+    await app.fix(...KX, 20, T("08:40"), 6);
+    await app.fix(...KX, 20, T("08:40") + 30e3, 0);
+    await app.fix(...KX, 20, T("08:42"), 1.4);
+    const base = T("08:00");
+    c.state.tube = { hub: "KGX", at: T("08:42"), arrivals: [tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 46.5, "Met", "m46")], err: null };
+    c.render();
+    const hero = app.text("#hero");
+    assert.match(hero, /from when your train stopped \(08:40\)/);
+    const lozenge = app.d.querySelector("#hero .slack");
+    assert.match(lozenge.textContent, /^Get on the Met/); assert.equal(lozenge.className, "slack met");
+    assert.deepEqual(btnText(app), ["1 H&C Barking · 3 min", "2 Met Aldgate · 4 min"]);
+    assert.equal(app.d.querySelector("#hero [data-tubepick] .chip").className, "chip hc");
+    app.close();
+  }
+
+async function quietUndergroundScenario(design) {
+    const DS = designSettings(design);
+    const t0 = T("08:39") + 20e3, app = await open({ now: t0, geo: null, settings: DS, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
+    await app.fix(51.5420, -0.1180, 30, t0 - 10e3);
+    await app.fix(...KX, 15, t0);
+    const base = T("08:00"), deps = [tubeAt(base, 38 + 50 / 60, "H&C", "h38"), tubeAt(base, 40, "Circle", "c40"), tubeAt(base, 42, "Met", "m42"),
+      tubeAt(base, 45, "H&C", "h45"), tubeAt(base, 46, "Met", "m46"), tubeAt(base, 48, "Met", "m48")];
+    await app.fix(...KX, 15, T("08:41"));
+    atKx(c, deps, T("08:41"));
+    app.at(T("08:42") + 40e3); c.render();
+    assert.equal(c.onTubeAuto(T("08:42") + 40e3), false);
+    app.at(T("08:47")); c.render();
+    assert.match(app.text("#hero"), /Probably the 08:45 H&C/);
+    assert.equal(app.d.querySelector("#hero .slack").className, "slack hc");
+    assert.match(app.text("#hero"), /On a different tube\?\s*Met Aldgate · left 1 min ago\s*Met Aldgate · left 5 min ago/);
+    app.close();
+  }
+
+async function aldgateHomeScenario(design) {
+    const DS = designSettings(design);
+    const a = (hhmm, lineId, v, plat, dest) => ({ vehicleId: v, lineId, platformName: `Westbound - Platform ${plat}`, destinationName: `${dest} Underground Station`,
+      expectedArrival: new Date(T(hhmm)).toISOString(), timeToStation: 60 });
+    const feed = [a("16:41", "metropolitan", "m41", 1, "Amersham"), a("16:46", "circle", "c46", 2, "Hammersmith (H&C Line)"), a("16:52", "metropolitan", "m52", 1, "Amersham")];
+    const app = await open({ now: T("16:30"), geo: null, settings: DS, saved: { dirMode: "home" },
+      extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json(feed) : undefined) }), c = app.c;
+    await c.refresh({ force: true }); await sleep(400);
+    await app.fix(...OFFICE_PT, 15, T("16:30"));
+    const btns = btnText(app).join(" | ");
+    assert.match(btns, /Platform 1: \d Met Amersham · 11 min/);
+    assert.match(btns, /Platform 2: \d Circle Hammersmith · 16 min/);
+    app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+    await app.fix(...ALD, 15, T("16:44"));
+    app.at(T("16:48")); c.render();
+    assert.match(app.text("#hero"), /You're on the Circle to Hammersmith that left Aldgate at 16:46/);
+    assert.equal(app.d.querySelector("#hero .slack").className, "slack circle");
+    assert.match(app.text("#hero"), /On a different tube\?\s*Met Amersham · left 7 min ago/);
+    app.close();
+  }
+test("Both designs (panda): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("panda"));
+test("Both designs (signal): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("signal"));
+test("Both designs (panda): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("panda"));
+test("Both designs (signal): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("signal"));
+test("Both designs (panda): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("panda"));
+test("Both designs (signal): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("signal"));
