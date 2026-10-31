@@ -44,8 +44,13 @@ export function restoreFollowTrip(x: unknown): FollowTrip | null {
   const r = x as Record<string, unknown>, j = r.journey as Record<string, unknown> | undefined;
   if (r.version !== 1 || r.kind !== "trip" || typeof r.id !== "string" || !num(r.startedAt) || !num(r.plannedArrival) || !num(r.expectedArrival)) return null;
   if (!j || !Array.isArray(j.rides) || !j.rides.length || !Array.isArray(j.before) || !Array.isArray(j.after) || !num(j.leave) || !num(j.arrive) || j.id !== r.id) return null;
-  if (!(j.rides as unknown[]).every(d => !!d && typeof d === "object" && num((d as Record<string, unknown>).dep) && num((d as Record<string, unknown>).arr))) return null;
-  if (!Array.isArray(r.confirmed) || !Array.isArray(r.notices) || !Array.isArray(r.dismissed)) return null;
+  const station = (s: unknown) => !!s && typeof s === "object" && typeof (s as Record<string, unknown>).name === "string" && typeof (s as Record<string, unknown>).crs === "string";
+  const ride = (d: unknown) => { const x = d as Record<string, unknown>; return !!x && typeof x === "object" && num(x.dep) && num(x.arr) && num(x.schedDep) && num(x.schedArr)
+    && station(x.from) && station(x.to) && typeof x.kind === "string" && typeof x.label === "string" && !!x.live && typeof x.live === "object"; };
+  const seg = (d: unknown) => { const x = d as Record<string, unknown>; return !!x && typeof x === "object" && num(x.secs) && typeof x.kind === "string"; };
+  if (!(j.rides as unknown[]).every(ride) || !(j.before as unknown[]).every(seg) || !(j.after as unknown[]).every(seg)) return null;
+  if (!station(j.fromStation) || !station(j.toStation) || !Array.isArray(j.changes) || !Array.isArray(j.flags) || !j.modes || typeof j.modes !== "object") return null;
+  if (!Array.isArray(r.confirmed) || !(r.confirmed as unknown[]).every(n => Number.isInteger(n) && (n as number) >= 0) || !Array.isArray(r.notices) || !Array.isArray(r.dismissed)) return null;
   return x as FollowTrip;
 }
 

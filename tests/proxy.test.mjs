@@ -73,9 +73,14 @@ test("Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field ma
     assert.equal(seen[1].opts.headers["X-Goog-FieldMask"], "id,displayName,formattedAddress,location");
     const m = await worker.fetch(post("/google/routes/distanceMatrix/v2:computeRouteMatrix", { origins: [] }), G);
     assert.equal(m.status, 200); assert.equal(seen[2].url, "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix");
+    assert.equal(seen[2].opts.headers["X-Goog-FieldMask"], "originIndex,destinationIndex,status,condition,distanceMeters,duration");
+    assert.equal(seen[0].opts.headers["X-Goog-FieldMask"], "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat");
+    assert.equal(seen.length, 3);
   }, () => new Response('{"ok":true}', { status: 200 }));
   assert.equal((await worker.fetch(req("/google/places/v1/places:autocomplete"), G)).status, 405, "autocomplete is POST only");
   assert.equal((await worker.fetch(req("/google/other/thing"), G)).status, 404);
+  for (const bad of ["/google/places/v1/places/a.b", "/google/places/v1/places/a%2Fb", "/google/places/v1/places/" + "x".repeat(301)])
+    assert.equal((await worker.fetch(req(bad), G)).status, 404, bad);
   assert.equal((await worker.fetch(post("/google/places/v1/places:autocomplete", { input: "x".repeat(9000) }), G)).status, 413);
   assert.equal((await worker.fetch(post("/google/places/v1/places:autocomplete", { input: "x" }), { ...G, ALLOW_ORIGIN: "https://other.test" })).status, 403);
 });

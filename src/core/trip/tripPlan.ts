@@ -32,14 +32,17 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   if (!inRegion(from.geo, cfg.region) || !inRegion(to.geo, cfg.region)) throw new TripError(OUTSIDE_REGION, "outside");
   const cf = candidates(from.geo, modes.from, ports.stations, cfg), ct = candidates(to.geo, modes.to, ports.stations, cfg);
   if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
-  const close = km(from.geo, to.geo) <= cfg.closeKm;
+  // Close enough not to need a train: within closeKm, or both places' nearest station is the same one.
+  const close = km(from.geo, to.geo) <= cfg.closeKm || cf.list[0].station.crs === ct.list[0].station.crs;
   const requests = { planner: 0, access: 0 }, failed: { pair: string; why: string }[] = [], notes: string[] = [];
   const accFrom: AccessMap = new Map(), accTo: AccessMap = new Map();
-  const setOff = q.kind === "by" ? q.t - 3 * 3600e3 : q.kind === "at" ? q.t : now;   // drive timing only
-  const timeAccess = async (place: LatLon, list: Candidate[], mode: AccessMode, dir: "to" | "from", into: AccessMap) => {
-    const todo = list.filter(c => !into.has(c.station.crs)); if (!todo.length) return;
+  // Drive times depend on the time: first timed for a first guess (Leave now / around: then; Arrive by: 2 h before),
+  // then re-timed once for the best journey's real set-off / arrival (below).
+  const firstGuess = q.kind === "by" ? q.t - 2 * 3600e3 : q.kind === "at" ? q.t : now;
+  const timeAccess = async (place: LatLon, list: Candidate[], mode: AccessMode, dir: "to" | "from", into: AccessMap, at = firstGuess, again = false) => {
+    const todo = list.filter(c => again || !into.has(c.station.crs)); if (!todo.length) return;
     requests.access++;
-    const res = await ports.access.matrix(place, todo.map(c => c.station.geo), mode, setOff, dir);
+    const res = await ports.access.matrix(place, todo.map(c => c.station.geo), mode, at, dir);
     todo.forEach((c, i) => into.set(c.station.crs, res[i] ?? null));
   };
   const rail = new Map<string, RailJourney[]>();
@@ -73,11 +76,15 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     const fromKm = cf.farKm, toKm = ct.farKm;
     rail.forEach(list => list.forEach(rj => {
       const a = rj.rides[0].from, b = rj.rides[rj.rides.length - 1].to;
-      const ta = accFrom.get(a.crs), tb = accTo.get(b.crs); if (!ta || !tb) return;
+      if (!accFrom.has(a.crs) || !accTo.has(b.crs)) return;       // a station this plan never timed (not a candidate)
+      const ta = accFrom.get(a.crs), tb = accTo.get(b.crs), noRoute: string[] = [];
+      const word = { walk: "walking", cycle: "cycling", drive: "driving" };
+      if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
+      if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
       const atStation = from.kind === "current" && km(from.geo, a.geo) * 1000 <= cfg.atStationM;
-      const before: Segment[] = beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation);
-      const after: Segment[] = afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh);
-      js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm } }));
+      const before: Segment[] = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation) : [];
+      const after: Segment[] = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh) : [];
+      js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute }));
     }));
     const list = rankTrips(js, q, now, cfg);
     const picks = list.filter(j => j.recommended).sort((x, y) => (x.recommended as number) - (y.recommended as number));
@@ -122,6 +129,14 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     return q.kind === "by" ? !deps.some(d => d <= q.t - cfg.windowMin * 60e3 + 30 * 60e3) : !deps.some(d => d >= t0 + cfg.windowMin * 60e3);
   });
   if (need.length) await runPairs(need, later, "Departing");
+  // Drives re-timed once for the best journey's real set-off (to the station) and arrival (from it).
+  const chosen = assemble("timetable").picks[0];
+  if (chosen && (modes.from === "drive" || modes.to === "drive")) {
+    await Promise.all([
+      modes.from === "drive" ? timeAccess(from.geo, cf.list, "drive", "to", accFrom, chosen.leave, true).catch(e => { notes.push(`Drive re-timed: ${e.message}`); }) : null,
+      modes.to === "drive" ? timeAccess(to.geo, ct.list, "drive", "from", accTo, chosen.arrive, true).catch(e => { notes.push(`Drive re-timed: ${e.message}`); }) : null,
+    ]);
+  }
   const done = assemble("complete");
   onStage?.(done);
   return done;

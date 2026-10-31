@@ -44,7 +44,10 @@ Evidence (live calls from the build session and the independent review, 31 Oct):
   what you'd use to reach London: picking stations by distance alone is wrong.
 
 ## Acceptance criteria
-"Region" = profile data, south 50.55, west −1.95, north 52.75, east 1.80 (London, the South East, the East of England).
+"Region" = London, the South East and the East of England: an outline along their county edges (engine data,
+`TRIP_DEFAULTS.region`; Birmingham, Coventry, Northampton and Swindon are out, north Norfolk is in), inside a box
+(south 50.55, west −1.95, north 53.0, east 1.80) that Google's address search is restricted to. Approximate near a
+county edge.
 Minutes are whole minutes, rounded down.
 
 ### Switch and mode
@@ -99,7 +102,8 @@ Minutes are whole minutes, rounded down.
   station's own TfL IDs. A reply whose ends aren't the asked stations (by ID, else ICS code, else within 300 m) is
   refused for that pair: "TfL matched a different place".
 - A bus or coach ride inside a journey is kept and flagged "Bus between X and Y".
-- A journey departing on a later day is flagged "Tomorrow" with its date.
+- A journey departing on a later day than the one asked about is flagged with its date: "Tomorrow · Wed 4 Nov" for the
+  next day, "Fri 6 Nov" for later.
 - Leave now, Leave around T (to T + 100 min), Arrive by T. Every journey returned is listed in leaving order.
 
 ### Changes (one rule, planned and live)
@@ -111,11 +115,14 @@ Minutes are whole minutes, rounded down.
   still be on this one: red "Connection missed" with "Plan from <station>". Planned changes are never shortened.
 
 ### Edges
-- Both ends share a station, or are within 1.5 km: "Close enough to walk / cycle / drive: no train needed", plus any
-  journeys found.
+- Both places' nearest station is the same one, or they are within 1.5 km: a card "Close enough to walk / cycle /
+  drive: no train needed", plus any journeys found.
+- A station Google finds no route to or from: its journeys are still listed, flagged "Google found no walking route to
+  X: door-to-door times unknown", and never picked.
 - Already at a candidate station (≤ 400 m): its access time is 0 and the headline is "Departs".
 - Current location moves > 500 m since the plan (not following): re-planned from the new position.
-- Arrive by with a drive: the drive is timed for the computed leave, re-timed once; if it then misses, "Late by N min".
+- A drive is first timed for a first guess (Leave now / around: that time; Arrive by: 2 h before), then re-timed once
+  for the best journey's set-off (to the station) and arrival (from it); if it then misses, "Late by N min".
 
 ### Live, and keeping you up to date
 - Live times for at most 6 board requests per refresh (≥ 30 s apart, shared by station pair): the followed journey's
@@ -124,7 +131,7 @@ Minutes are whole minutes, rounded down.
   must accept any station (today it allows only LET, KGX, ZFD, STP).
 - Same status colours as the commute (amber 5–14 min late, red 15+, cancelled, no estimate).
 - Drive: re-timed every 5 min within 60 min of leaving; a change of 2+ min moves the leave time with "Traffic: leave N
-  min earlier"; if the new leave time has passed: "Leave now: N min late for the 14:05".
+  min earlier" (shown under the form, and as the reason in a followed trip's notice).
 - Follow works for the whole trip: one tap. The card shows the next step, ahead / behind, every change with its reason;
   never silently replaced; an alternative only when ≥ 5 min sooner or the followed one is broken; switching is an
   explicit Follow.
@@ -135,9 +142,8 @@ Minutes are whole minutes, rounded down.
 
 ### Speed
 - First answer after at most 2 network steps one after another from choosing the second place (its place fetch, then
-  the first searches alongside its station times); live times after at most 3. Drawn when round 1 completes or at
-  2.5 s with what has arrived. Proved by the order of calls in a log (deterministic); 8 s with 600 ms feeds as a
-  smoke bound.
+  the first searches alongside its station times); live times after at most 3 (boards are asked for as soon as
+  round 1 is drawn). Proved by the order of calls in a log (deterministic).
 - A journey found later that arrives ≥ 5 min sooner is shown as "Better option found", never a silent swap.
 
 ### Keys, saved data and requests
@@ -158,7 +164,7 @@ Minutes are whole minutes, rounded down.
 
 ## Tests
 Built so far (see the build log in the architecture for what is and isn't on screen yet):
-- tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Letchworth and Brighton in, Birmingham out"
+- tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"
 - tests/core/trip.test.mjs: "Station candidates: reach is 3 / 10 / 25 km; none within reach gives the nearest, flagged with its distance"
@@ -181,6 +187,34 @@ Built so far (see the build log in the architecture for what is and isn't on scr
 - tests/core/trip.test.mjs: "Ranking: Arrive by flags late journeys with whole minutes; the pick is the latest leave that arrives in time"
 - tests/core/trip.test.mjs: "Other stations: each other station's best journey with what it costs; a better option needs 5 min"
 - tests/core/trip.test.mjs: "TfL journeys: Winchester → Norwich crosses London by Tube; the Tube is the way across the change, not a ride"
+- tests/core/trip-edges.test.mjs: "planTrip: 5 candidates at each end give 9 round-1 searches at once; never more than 18 (or the configured cap)"
+- tests/core/trip-edges.test.mjs: "planTrip: a station a journey changes at, within reach, is promoted and searched in round 2"
+- tests/core/trip-edges.test.mjs: "planTrip: round 2 skips stations more than 30 min behind the best, and searches them when within"
+- tests/core/trip-edges.test.mjs: "planTrip: Arrive by searches 'Arriving' at the time in round 1 and covers the 100 min before; Leave now searches on after the last"
+- tests/core/trip-edges.test.mjs: "planTrip: already at a station only from your current location; an address there still walks"
+- tests/core/trip-edges.test.mjs: "planTrip: a station Google can't route to is shown, flagged and never picked (not dropped)"
+- tests/core/trip-edges.test.mjs: "planTrip: places sharing their nearest station are close enough without a train (any distance)"
+- tests/core/trip-edges.test.mjs: "planTrip: a drive is re-timed once for the best journey's set-off and arrival"
+- tests/core/trip-edges.test.mjs: "Round 1 never pairs a station with itself"
+- tests/core/trip-edges.test.mjs: "Changes: a spare of 0 is at risk, not missed; exactly 5 against a longer planned change is fine"
+- tests/core/trip-edges.test.mjs: "Changes: the planned change counts the Tube across, so an on-time 4-min cross-London change is not amber"
+- tests/core/trip-edges.test.mjs: "Changes: Not live names the end without live data: this train's arrival"
+- tests/core/trip-edges.test.mjs: "Live budget: at most 6 boards; the followed trip's next two rides first, then the picks, then first rides within 30 min"
+- tests/core/trip-edges.test.mjs: "Live budget: a ride already arrived gets no board; 30 min exactly still does"
+- tests/core/trip-edges.test.mjs: "Live: an arrival with no estimate keeps the timetable and says Not live; a board that disappears makes the ride Not live again"
+- tests/core/trip-edges.test.mjs: "Live: the 'Nearest station is N km away' flag survives live times"
+- tests/core/trip-edges.test.mjs: "Ranking: arriving exactly on time isn't late; Late by rounds down (1 min 30 s late is 1 min)"
+- tests/core/trip-edges.test.mjs: "Ranking: every journey in leaving order; one whose leave time has passed is listed but never picked"
+- tests/core/trip-edges.test.mjs: "Other stations: at most 4, uncertain or missed journeys skipped; a better option needs the default 5 min"
+- tests/core/trip-edges.test.mjs: "Follow: a broken trip is offered any reachable alternative; one whose leave time has passed never"
+- tests/core/trip-edges.test.mjs: "Follow: an answer about a later ride wins over the clock"
+- tests/core/trip-edges.test.mjs: "Follow: 5 min later is amber, 4 is not, 15 is red; a cancellation is announced once"
+- tests/core/trip-edges.test.mjs: "Follow: restore drops a saved trip with a broken ride, bad lists or times"
+- tests/core/trip-edges.test.mjs: "TfL: a leading walk is dropped too; a coach is a bus ride, flagged"
+- tests/core/trip-edges.test.mjs: "TfL: an end without a naptan ID is matched by its ICS code; one 500 m off with neither is refused"
+- tests/core/trip-edges.test.mjs: "Flags: driving to a station with no car park, or one not known; walking says neither"
+- tests/core/trip-edges.test.mjs: "Flags: a later day says Tomorrow only when it is the next day; otherwise the date"
+- tests/core/trip-edges.test.mjs: "Trip defaults are the story's numbers (docs/stories/leisure-journeys.md)"
 - tests/core/trip-live.test.mjs: "Live budget: at most 6 boards, shared by station pair; the followed trip's next two rides come first"
 - tests/core/trip-live.test.mjs: "Live budget: rides more than 119 min away get no board (Not live)"
 - tests/core/trip-live.test.mjs: "Live: a ride matches its board by timetabled time and destination; two candidates with no way to tell them apart match none"
@@ -197,10 +231,19 @@ Built so far (see the build log in the architecture for what is and isn't on scr
 - tests/trip-page.test.mjs: "Trip: Brighton → Canterbury plans door to door from TfL, every journey listed, and makes no commute requests"
 - tests/trip-page.test.mjs: "Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it"
 - tests/trip-page.test.mjs: "Trip: back to Commute restores the commute screen and Trip's places are kept"
-- tests/proxy.test.mjs: "Proxy (Trip): any station's board only with ALLOW_ANY_STATION=yes; still only well-formed codes"
-- tests/proxy.test.mjs: "Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field masks, the key sent upstream only"
-- tests/trip-google.test.mjs: the contract suite in tests/contracts/google-ports.mjs, run against the Maps JS, proxy and
-  fixture (simulator) adapters (8 checks each; generated names, so not linked one by one)
+- tests/trip-page.test.mjs: "Trip search: nothing is asked for until 250 ms after the last keystroke"
+- tests/trip-page.test.mjs: "Trip search: a slow reply for older text never replaces the newer one's suggestions"
+- tests/trip-page.test.mjs: "Trip search: choosing a place ends the search session; the next search starts a new one; recent places keep no position"
+- tests/trip-page.test.mjs: "Trip search: arrow keys wrap round; Escape closes the list and keeps the text"
+- tests/trip-page.test.mjs: "Trip: a place outside the region is refused when chosen, with the region named"
+- tests/trip-page.test.mjs: "Trip: the setup card shows without a key and hides with one; without a key nothing is planned from saved places"
+- tests/trip-page.test.mjs: "Trip: Current location is used only within 200 m and 2 minutes"
+- tests/trip-page.test.mjs: "Trip: choosing From starts timing its stations before To is chosen"
+- tests/trip-page.test.mjs: "Trip: Refresh while Trip is on screen makes no commute request"
+- tests/trip-page.test.mjs: "Trip settings: the Google key is never shown back, only its last 4 characters"
+- tests/trip-state.test.mjs: "Trip saved state: at most 5 recent places; a bad way to the station or question falls back to the defaults"
+- tests/trip-state.test.mjs: "Trip saved state: a place without a proper position is dropped; Current location keeps no position"
+- tests/trip-state.test.mjs: "Trip saved state: a followed trip is only kept when it passes the engine's checks"
 - Still planned: goldens for Brighton → Canterbury West and Winchester → Norwich incl. request counts; a page test for live
   boards within the budget and for Follow through a change with live data; the drive re-check at its 2-min edge.
 
@@ -209,12 +252,14 @@ Built differently from the text above, or not yet (31 Oct night):
 - Saved state is one validated key, `tripMode` (active, from, to, ways, question, recent places, followed trip), not
   separate keys: the commute already uses `trip` for its direction memory, and one key keeps Trip off the ~40 places
   the page checks `mode`. Settings: `trip`, `googleKey`, `googleVia`, `tripParkMin`… (minutes; engine defaults).
-- Not yet: National Rail journey planner adapter (no access); simulator providers for Trip (the contract suite has a
+- Not yet: "Leave now: N min late for the 14:05" when a drive's new leave time has passed; a 2.5-s early draw; Swap
+  when From is Current location leaves To empty; National Rail journey planner adapter (no access); simulator providers for Trip (the contract suite has a
   fixture adapter, but the journey simulator doesn't drive Trip); Auto / Plan / Live buttons for Trip (the view follows
   the followed trip's phase); asking which ride you're on (time and answers only, no GPS check yet); re-planning when
   the current location moves 500 m; "Plan from <station>" after a missed connection (the alternative offer covers it
   partly); Service Details for the ride you're on.
-- The drive re-check is the 5-min re-plan with drive times per 5-min slot; the leave-time change is announced when ≥ 2 min.
+- The drive re-check is the 5-min re-plan with drive times per 5-min slot; a leave-time change of 2 min or more is
+  announced (fixed after the review: it never fired). Its 2-min edge has no page test yet.
 - National Rail journey planner: licensed SOAP; built from documentation, unverified until access; likely needs the
   proxy.
 - Google: class names, limits and cycling coverage in the UK are unverified until Sam has a key; only

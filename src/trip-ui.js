@@ -189,7 +189,8 @@ function createTripUi(deps) {
       await access.matrix(f.place.geo, c.list.map(x => x.station.geo), st().modes.from, now(), "to"); } catch (e) { /* the plan reports it */ }
     if (st().to) plan();
   }
-  async function plan() {
+  /** Plan. `prev`: the best journey before a re-plan, so a drive re-timed for traffic can say what changed. */
+  async function plan(prev) {
     const s = st(); error = ""; better = false;
     if (!hasGoogle()) { renderResults(); return; }
     const f = resolvedFrom();
@@ -201,9 +202,16 @@ function createTripUi(deps) {
       const leisureKmh = deps.leisureKmh();
       const r = await C.planTrip({ from: f.place, to: s.to, modes: s.modes, question: q, now: now(), leisureKmh, cfg: cfg() },
         { stations: index, access, planner: planner(index) },
-        part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults(); });
+        part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults();
+          // Live times for the first answer straight away (the third step), not after the whole plan.
+          if (part.stage === "timetable") live(true).then(() => { if (mine === planToken) renderResults(); }); });
       if (mine !== planToken) return;
-      result = r; lastPlanAt = now(); await live(true);
+      result = r; lastPlanAt = now();
+      const best = r.picks[0];
+      if (prev && best && s.modes.from === "drive" && Math.abs(best.leave - prev.leave) >= cfg().drive.moveMin * 60e3) {
+        const d = Math.round((prev.leave - best.leave) / 60e3); driveNote = `Traffic: leave ${Math.abs(d)} min ${d > 0 ? "earlier" : "later"}`;
+      } else if (prev) driveNote = "";
+      await live(true);
     } catch (e) { if (mine !== planToken || (e && (e.staleSource || e.sourceChanged))) return; error = e.message; result = null; }
     if (mine === planToken) { stageText = ""; renderResults(); }
   }
@@ -228,9 +236,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
-    if (result && now() - lastPlanAt >= 5 * 60e3) { const before = lastBest; await plan();
-      if (before && lastBest && st().modes.from === "drive" && Math.abs(lastBest.leave - before.leave) >= cfg().drive.moveMin * 60e3) {
-        const d = Math.round((before.leave - lastBest.leave) / 60e3); driveNote = `Traffic: leave ${Math.abs(d)} min ${d > 0 ? "earlier" : "later"}`; } return; }
+    if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
 
@@ -261,22 +267,23 @@ function createTripUi(deps) {
     const s = st(), setup = root.querySelector("#tripSetup");
     setup.hidden = hasGoogle();
     if (!hasGoogle()) setup.innerHTML = `<p>${S().googleVia === "proxy" ? "Set your proxy's address in Settings to search addresses and time the trip to the station." : "Add a Google Maps key in Settings to search addresses and time the trip to the station."}</p><button type="button" class="ghost" data-trip-settings>Open Settings</button>`;
-    root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText;
+    root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText || driveNote;
     const out = root.querySelector("#tripResults");
     if (error) { out.innerHTML = `<div class="trip-card empty" role="alert">${esc(error)}</div>`; return; }
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
-    const html = { label: () => `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
+    const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
+    const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
       headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}"><b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
         : best ? `<div class="trip-headline"><span class="lbl">${best.rides[0].from.crs && best.before.every(x => x.kind === "station") ? "Departs" : "Leave by"}</span><b class="big">${hhmm(best.before.every(x => x.kind === "station") ? mains(best)[0].dep : best.leave)}</b><span>Arrive ${hhmm(best.arrive)} · ${esc(summary(best))}</span></div>`
-        : `<div class="trip-card empty">No journeys found.</div>`,
+        : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
       options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
       board: () => `<h3 class="trip-h">Every journey, in leaving order</h3>${r.journeys.map(j => journeyRow(j)).join("") || `<p class="note">None found.</p>`}`,
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
-      source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.${r.close ? " These places are close enough to walk, cycle or drive: no train needed." : ""}</p>`,
+      source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
       then: () => fu ? `<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
     out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");

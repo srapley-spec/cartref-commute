@@ -3,7 +3,7 @@
 // timing arithmetic. The commute's Option is a one-ride case (convergence: docs/leisure-architecture.md §3).
 import type { Flag, Train } from "../types";
 import { walkSteps, serviceFlags, type Leg, type Segment } from "../journey";
-import { hhmm, dur, isoDay } from "../time";
+import { hhmm, dur } from "../time";
 import type { TripConfig, AccessMode } from "./config";
 import type { Place } from "./ports";
 
@@ -41,6 +41,11 @@ export interface Journey {
 }
 
 const secs = (xs: Segment[]) => xs.reduce((s, x) => s + x.secs, 0) * 1000;
+/** Calendar days from one instant's day to another's (local time). */
+export function daysBetween(a: number, b: number): number {
+  const d = (t: number) => { const x = new Date(t); return Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()); };
+  return Math.round((d(b) - d(a)) / 86400e3);
+}
 /** Rides you board on a timetable; Tube and walks between them are the way across (a transfer). */
 export const isMain = (r: Ride) => r.kind === "rail" || r.kind === "bus" || r.kind === "other";
 export const mainRides = (rides: Ride[]) => rides.filter(isMain);
@@ -83,7 +88,7 @@ export function journeyChanges(rides: Ride[], cfg: Pick<TripConfig, "change">): 
 
 /** Flags for a journey. Never hides it: every problem is a flag. */
 export function journeyFlags(j: Pick<Journey, "rides" | "changes" | "tomorrow" | "fromStation" | "toStation" | "modes">,
-  extra: { farKm?: { from?: number; to?: number } } = {}): Flag[] {
+  extra: { farKm?: { from?: number; to?: number }; day?: number } = {}): Flag[] {
   const f: Flag[] = [];
   const mains = mainRides(j.rides);
   mains.forEach((r, i) => {
@@ -92,7 +97,10 @@ export function journeyFlags(j: Pick<Journey, "rides" | "changes" | "tomorrow" |
     serviceFlags(r.train).forEach(x => f.push(i === 0 ? x : { ...x, txt: `${hhmm(r.schedDep)} from ${r.from.name}: ${x.txt}` }));
   });
   j.changes.forEach(c => { if (c.level !== "ok") f.push({ lvl: c.level, txt: c.text }); });
-  if (j.tomorrow) f.push({ lvl: "info", txt: `Tomorrow · ${new Date(mains[0]?.dep ?? j.rides[0].dep).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}` });
+  if (j.tomorrow) {
+    const dep = (mains[0] || j.rides[0]).schedDep, date = new Date(dep).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    f.push({ lvl: "info", txt: extra.day != null && daysBetween(extra.day, dep) === 1 ? `Tomorrow · ${date}` : date });
+  }
   if (j.modes.from === "drive") {
     if (j.fromStation.carPark === "no") f.push({ lvl: "warn", txt: "No station car park" });
     else if (j.fromStation.carPark === "unknown") f.push({ lvl: "info", txt: "Car park not known" });
@@ -106,16 +114,19 @@ export function journeyFlags(j: Pick<Journey, "rides" | "changes" | "tomorrow" |
 /** Put a journey together from a planner's rides and the access segments. Times only from segments and rides. */
 export function buildJourney(rail: RailJourney, from: Place | null, to: Place | null, modes: Journey["modes"],
   before: Segment[], after: Segment[], cfg: Pick<TripConfig, "change">, now: number,
-  extra: { farKm?: { from?: number; to?: number } } = {}): Journey {
+  extra: { farKm?: { from?: number; to?: number }; day?: number; noRoute?: string[] } = {}): Journey {
   const rides = rail.rides, mains = mainRides(rides);
   const fromStation = rides[0].from, toStation = rides[rides.length - 1].to;
   const { leave, arrive } = journeyTimes(before, rides, after);
   const changes = journeyChanges(rides, cfg);
-  const tomorrow = isoDay((mains[0] || rides[0]).schedDep) !== isoDay(now);
+  // A later day than the one asked about (Leave now: today).
+  const day = extra.day ?? now;
+  const tomorrow = daysBetween(day, (mains[0] || rides[0]).schedDep) > 0;
   const id = [fromStation.crs, toStation.crs, ...mains.map(r => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
   const j: Journey = { id, from, to, fromStation, toStation, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
-  j.flags = journeyFlags(j, extra);
-  j.uncertain = mains.some(r => r.cancelled || (r.train && (r.train.depUnknown || r.train.arrUnknown)));
+  j.flags = [...journeyFlags(j, { ...extra, day }), ...(extra.noRoute || []).map(txt => ({ lvl: "bad" as const, txt }))];
+  // No route to or from a station: shown (never hidden) but never picked, since its door-to-door times are unknown.
+  j.uncertain = !!(extra.noRoute && extra.noRoute.length) || mains.some(r => r.cancelled || (r.train && (r.train.depUnknown || r.train.arrUnknown)));
   j.missed = changes.some(c => c.missed);
   return j;
 }

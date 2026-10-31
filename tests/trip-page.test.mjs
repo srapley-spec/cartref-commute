@@ -149,3 +149,117 @@ test("Trip: back to Commute restores the commute screen and Trip's places are ke
   assert.equal(saved.tripMode.active, false); assert.equal(saved.tripMode.to.name, "Canterbury Cathedral");
   assert.equal(saved.mode, "commute");
 });
+
+// ---------- Edges the independent review found untested ----------
+PLACES.birmingham = { id: "G-BHM", primary: "Birmingham New Street", secondary: "Birmingham B2 4QA", geo: [52.4778, -1.8990] };
+PLACES.lewes = { id: "G-LEW", primary: "Lewes Castle", secondary: "Lewes BN7 1YE", geo: [50.8737, 0.0076] };
+
+test("Trip search: nothing is asked for until 250 ms after the last keystroke", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  const g = googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "to", "canterbury"); await sleep(180);
+  assert.deepEqual(g.suggest, []);
+  await sleep(150);
+  assert.deepEqual(g.suggest, ["canterbury"]);
+});
+
+test("Trip search: a slow reply for older text never replaces the newer one's suggestions", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w, { slow: /^lew$/i, slowMs: 700 });
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  // "lew" (slow) would list Lewes Castle; "canterbury" lists the cathedral. The slow reply lands last.
+  const g = app.w.google.maps; const orig = g.importLibrary;
+  g.importLibrary = async (n) => { const lib = await orig(n); if (n !== "places") return lib;
+    const f = lib.AutocompleteSuggestion.fetchAutocompleteSuggestions;
+    return { ...lib, AutocompleteSuggestion: { fetchAutocompleteSuggestions: async (q) => (q.input === "lew" ? (await sleep(700), f({ ...q, input: "lewes" })) : f(q)) } }; };
+  await type(app, "to", "lew"); await sleep(300);
+  await type(app, "to", "canterbury"); await sleep(320);
+  await sleep(800);
+  assert.deepEqual(options(app, "to"), ["Canterbury CathedralThe Precincts, Canterbury CT1 2EH"]);
+});
+
+test("Trip search: choosing a place ends the search session; the next search starts a new one; recent places keep no position", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  let tokens = 0; const g = app.w.google.maps, orig = g.importLibrary;
+  g.importLibrary = async (n) => { const lib = await orig(n); if (n !== "places") return lib; const T = lib.AutocompleteSessionToken; return { ...lib, AutocompleteSessionToken: class extends T { constructor() { super(); tokens++; } } }; };
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "to", "canterbury cath"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter"); await sleep(100);
+  await type(app, "from", "brighton station"); await sleep(320);
+  assert.equal(tokens, 2);
+  const saved = JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).tripMode;
+  assert.equal(saved.recent[0].name, "Canterbury Cathedral"); assert.equal(saved.recent[0].geo, undefined);
+});
+
+test("Trip search: arrow keys wrap round; Escape closes the list and keeps the text", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "to", "canterbury"); await sleep(320);
+  const input = app.d.querySelector("#tripInput-to");
+  key(app, "to", "ArrowUp"); assert.equal(input.getAttribute("aria-activedescendant"), "tripOpt-to-0");   // one row: up wraps to it
+  key(app, "to", "ArrowDown"); assert.equal(input.getAttribute("aria-activedescendant"), "tripOpt-to-0");
+  key(app, "to", "Escape");
+  assert.equal(app.d.querySelector("#tripList-to").hidden, true); assert.equal(input.getAttribute("aria-expanded"), "false");
+  assert.equal(input.value, "canterbury");
+});
+
+test("Trip: a place outside the region is refused when chosen, with the region named", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "to", "birmingham"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter"); await sleep(100);
+  assert.match(app.text("#tripResults"), /Outside the area this plans: London, the South East and the East of England/);
+  assert.equal(JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).tripMode.to, undefined);
+});
+
+test("Trip: the setup card shows without a key and hides with one; without a key nothing is planned from saved places", async () => {
+  const saved = { tripMode: { active: true, from: { id: "G-BTN", name: "Brighton Station", address: "", geo: PLACES.brighton.geo, kind: "address" }, to: { id: "G-CAT", name: "Canterbury Cathedral", address: "", geo: PLACES.cathedral.geo, kind: "address" } } };
+  const none = await createApp({ settings: ON, saved, route }); await sleep(200);
+  assert.equal(none.d.querySelector("#tripSetup").hidden, false);
+  assert.ok(!none.calls.some(u => /JourneyResults|stations\.json|maps\.googleapis/.test(u)), none.calls.join("\n"));
+  const withKey = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, saved, route }); googleStub(withKey.w);
+  withKey.d.querySelector('[data-trip-q="now"]').click(); await sleep(100);
+  assert.equal(withKey.d.querySelector("#tripSetup").hidden, true);
+});
+
+test("Trip: Current location is used only within 200 m and 2 minutes", async () => {
+  const saved = { tripMode: { active: true, from: { id: "current", name: "Current location", address: "", geo: [0, 0], kind: "current" }, to: { id: "G-CAT", name: "Canterbury Cathedral", address: "", geo: PLACES.cathedral.geo, kind: "address" } } };
+  const rough = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, saved, route, geo: { coords: { latitude: 50.829, longitude: -0.141, accuracy: 500 } } });
+  googleStub(rough.w); rough.d.querySelector('[data-trip-q="now"]').click(); await sleep(150);
+  assert.match(rough.text("#tripResults"), /only known to 500 m/);
+  const T = Date.parse("2026-11-03T10:00:00");
+  const old = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, saved, route, now: T, geo: { coords: { latitude: 50.829, longitude: -0.141, accuracy: 20 } } });
+  googleStub(old.w); old.setNow(T + 2 * 60e3 + 1000); old.d.querySelector('[data-trip-q="now"]').click(); await sleep(150);
+  assert.match(old.text("#tripResults"), /more than 2 minutes old/);
+});
+
+test("Trip: choosing From starts timing its stations before To is chosen", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  const g = googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  const mark = app.calls.length;
+  await type(app, "from", "brighton station"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await until(() => g.matrix > 0, 2000);
+  assert.equal(g.matrix, 1);
+  assert.ok(!app.calls.slice(mark).some(u => /JourneyResults/.test(u)), "no trains before To");
+});
+
+test("Trip: Refresh while Trip is on screen makes no commute request", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(100);
+  const before = app.calls.length;
+  app.d.querySelector("#refreshBtn").click(); await sleep(300);
+  const after = app.calls.slice(before);
+  assert.ok(!after.some(u => !isTrip(u)), after.join("\n"));
+});
+
+test("Trip settings: the Google key is never shown back, only its last 4 characters", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaSECRET1234" }, route });
+  app.d.querySelector("#settingsBtn").click(); await sleep(50);
+  assert.equal(app.d.querySelector("#s_googleKey").value, "");
+  assert.match(app.text("#googleKeyNote"), /ends …1234/);
+  assert.ok(!app.d.querySelector("#settings").innerHTML.includes("AIzaSECRET"));
+});

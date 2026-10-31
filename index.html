@@ -680,7 +680,7 @@ html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;paddin
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 21:21 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 22:14 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -3735,8 +3735,29 @@ var CommuteCore = (() => {
 
   // src/core/trip/config.ts
   var TRIP_DEFAULTS = {
-    region: { s: 50.55, w: -1.95, n: 52.75, e: 1.8 },
-    // London, the South East, the East of England
+    // London, the South East and the East of England, outlined roughly along their county edges (Hampshire, Berkshire,
+    // Oxfordshire, Buckinghamshire, Bedfordshire, Cambridgeshire, Norfolk): Swindon, Coventry and Northampton are out;
+    // north Norfolk (Cromer, Sheringham, King's Lynn) is in. Approximate: a place within a few km of a county edge may
+    // fall either side.
+    region: { s: 50.55, w: -1.95, n: 53, e: 1.8, outline: [
+      [50.55, -1.95],
+      [51, -1.95],
+      [51.2, -1.63],
+      [51.45, -1.58],
+      [51.6, -1.68],
+      [51.85, -1.72],
+      [52.1, -1.55],
+      [52.17, -1.3],
+      [52.05, -1.05],
+      [52.2, -0.7],
+      [52.32, -0.45],
+      [52.55, -0.3],
+      [52.75, -0.05],
+      [52.8, 0.2],
+      [53, 0.6],
+      [53, 1.8],
+      [50.55, 1.8]
+    ] },
     reachKm: { walk: 3, cycle: 10, drive: 25 },
     nearest: 3,
     wellServed: 2,
@@ -3774,11 +3795,30 @@ var CommuteCore = (() => {
       reachKm: { ...TRIP_DEFAULTS.reachKm, ...over.reachKm || {} }
     };
   }
-  var inRegion = (geo, r) => Array.isArray(geo) && Number.isFinite(geo[0]) && Number.isFinite(geo[1]) && geo[0] >= r.s && geo[0] <= r.n && geo[1] >= r.w && geo[1] <= r.e;
+  function inRegion(geo, r) {
+    if (!Array.isArray(geo) || !Number.isFinite(geo[0]) || !Number.isFinite(geo[1])) return false;
+    const [y, x] = geo;
+    if (y < r.s || y > r.n || x < r.w || x > r.e) return false;
+    const o = r.outline;
+    if (!o || o.length < 3) return true;
+    let inside = false;
+    for (let i = 0, j = o.length - 1; i < o.length; j = i++) {
+      const [yi, xi] = o[i], [yj, xj] = o[j];
+      if (yi > y !== yj > y && x <= (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
   var OUTSIDE_REGION = "Outside the area this plans: London, the South East and the East of England.";
 
   // src/core/trip/journeyCore.ts
   var secs = (xs) => xs.reduce((s, x) => s + x.secs, 0) * 1e3;
+  function daysBetween(a, b) {
+    const d = (t2) => {
+      const x = new Date(t2);
+      return Date.UTC(x.getFullYear(), x.getMonth(), x.getDate());
+    };
+    return Math.round((d(b) - d(a)) / 864e5);
+  }
   var isMain = (r) => r.kind === "rail" || r.kind === "bus" || r.kind === "other";
   var mainRides = (rides) => rides.filter(isMain);
   function journeyTimes(before, rides, after) {
@@ -3813,7 +3853,6 @@ var CommuteCore = (() => {
     return out;
   }
   function journeyFlags(j, extra = {}) {
-    var _a, _b;
     const f = [];
     const mains = mainRides(j.rides);
     mains.forEach((r, i) => {
@@ -3824,7 +3863,10 @@ var CommuteCore = (() => {
     j.changes.forEach((c) => {
       if (c.level !== "ok") f.push({ lvl: c.level, txt: c.text });
     });
-    if (j.tomorrow) f.push({ lvl: "info", txt: `Tomorrow \xB7 ${new Date((_b = (_a = mains[0]) == null ? void 0 : _a.dep) != null ? _b : j.rides[0].dep).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}` });
+    if (j.tomorrow) {
+      const dep = (mains[0] || j.rides[0]).schedDep, date = new Date(dep).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+      f.push({ lvl: "info", txt: extra.day != null && daysBetween(extra.day, dep) === 1 ? `Tomorrow \xB7 ${date}` : date });
+    }
     if (j.modes.from === "drive") {
       if (j.fromStation.carPark === "no") f.push({ lvl: "warn", txt: "No station car park" });
       else if (j.fromStation.carPark === "unknown") f.push({ lvl: "info", txt: "Car park not known" });
@@ -3835,15 +3877,17 @@ var CommuteCore = (() => {
     return f;
   }
   function buildJourney(rail, from, to, modes, before, after, cfg, now, extra = {}) {
+    var _a;
     const rides = rail.rides, mains = mainRides(rides);
     const fromStation = rides[0].from, toStation = rides[rides.length - 1].to;
     const { leave, arrive } = journeyTimes(before, rides, after);
     const changes = journeyChanges(rides, cfg);
-    const tomorrow = isoDay((mains[0] || rides[0]).schedDep) !== isoDay(now);
+    const day2 = (_a = extra.day) != null ? _a : now;
+    const tomorrow = daysBetween(day2, (mains[0] || rides[0]).schedDep) > 0;
     const id = [fromStation.crs, toStation.crs, ...mains.map((r) => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
     const j = { id, from, to, fromStation, toStation, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
-    j.flags = journeyFlags(j, extra);
-    j.uncertain = mains.some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
+    j.flags = [...journeyFlags(j, { ...extra, day: day2 }), ...(extra.noRoute || []).map((txt) => ({ lvl: "bad", txt }))];
+    j.uncertain = !!(extra.noRoute && extra.noRoute.length) || mains.some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
     j.missed = changes.some((c) => c.missed);
     return j;
   }
@@ -4105,15 +4149,15 @@ var CommuteCore = (() => {
     if (!inRegion(from.geo, cfg.region) || !inRegion(to.geo, cfg.region)) throw new TripError(OUTSIDE_REGION, "outside");
     const cf = candidates(from.geo, modes.from, ports.stations, cfg), ct = candidates(to.geo, modes.to, ports.stations, cfg);
     if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
-    const close = km(from.geo, to.geo) <= cfg.closeKm;
+    const close = km(from.geo, to.geo) <= cfg.closeKm || cf.list[0].station.crs === ct.list[0].station.crs;
     const requests = { planner: 0, access: 0 }, failed = [], notes = [];
     const accFrom = /* @__PURE__ */ new Map(), accTo = /* @__PURE__ */ new Map();
-    const setOff = q.kind === "by" ? q.t - 3 * 36e5 : q.kind === "at" ? q.t : now;
-    const timeAccess = async (place, list, mode, dir, into) => {
-      const todo = list.filter((c) => !into.has(c.station.crs));
+    const firstGuess = q.kind === "by" ? q.t - 2 * 36e5 : q.kind === "at" ? q.t : now;
+    const timeAccess = async (place, list, mode, dir, into, at = firstGuess, again = false) => {
+      const todo = list.filter((c) => again || !into.has(c.station.crs));
       if (!todo.length) return;
       requests.access++;
-      const res = await ports.access.matrix(place, todo.map((c) => c.station.geo), mode, setOff, dir);
+      const res = await ports.access.matrix(place, todo.map((c) => c.station.geo), mode, at, dir);
       todo.forEach((c, i) => {
         var _a;
         return into.set(c.station.crs, (_a = res[i]) != null ? _a : null);
@@ -4158,12 +4202,15 @@ var CommuteCore = (() => {
       const fromKm = cf.farKm, toKm = ct.farKm;
       rail.forEach((list2) => list2.forEach((rj) => {
         const a = rj.rides[0].from, b = rj.rides[rj.rides.length - 1].to;
-        const ta = accFrom.get(a.crs), tb = accTo.get(b.crs);
-        if (!ta || !tb) return;
+        if (!accFrom.has(a.crs) || !accTo.has(b.crs)) return;
+        const ta = accFrom.get(a.crs), tb = accTo.get(b.crs), noRoute = [];
+        const word = { walk: "walking", cycle: "cycling", drive: "driving" };
+        if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
+        if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
         const atStation = from.kind === "current" && km(from.geo, a.geo) * 1e3 <= cfg.atStationM;
-        const before = beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation);
-        const after = afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh);
-        js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm } }));
+        const before = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation) : [];
+        const after = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh) : [];
+        js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute }));
       }));
       const list = rankTrips(js, q, now, cfg);
       const picks = list.filter((j) => j.recommended).sort((x, y) => x.recommended - y.recommended);
@@ -4235,6 +4282,17 @@ var CommuteCore = (() => {
       return q.kind === "by" ? !deps.some((d) => d <= q.t - cfg.windowMin * 6e4 + 30 * 6e4) : !deps.some((d) => d >= t0 + cfg.windowMin * 6e4);
     });
     if (need.length) await runPairs(need, later, "Departing");
+    const chosen = assemble("timetable").picks[0];
+    if (chosen && (modes.from === "drive" || modes.to === "drive")) {
+      await Promise.all([
+        modes.from === "drive" ? timeAccess(from.geo, cf.list, "drive", "to", accFrom, chosen.leave, true).catch((e) => {
+          notes.push(`Drive re-timed: ${e.message}`);
+        }) : null,
+        modes.to === "drive" ? timeAccess(to.geo, ct.list, "drive", "from", accTo, chosen.arrive, true).catch((e) => {
+          notes.push(`Drive re-timed: ${e.message}`);
+        }) : null
+      ]);
+    }
     const done = assemble("complete");
     onStage == null ? void 0 : onStage(done);
     return done;
@@ -4314,8 +4372,18 @@ var CommuteCore = (() => {
     const r = x, j = r.journey;
     if (r.version !== 1 || r.kind !== "trip" || typeof r.id !== "string" || !num(r.startedAt) || !num(r.plannedArrival) || !num(r.expectedArrival)) return null;
     if (!j || !Array.isArray(j.rides) || !j.rides.length || !Array.isArray(j.before) || !Array.isArray(j.after) || !num(j.leave) || !num(j.arrive) || j.id !== r.id) return null;
-    if (!j.rides.every((d) => !!d && typeof d === "object" && num(d.dep) && num(d.arr))) return null;
-    if (!Array.isArray(r.confirmed) || !Array.isArray(r.notices) || !Array.isArray(r.dismissed)) return null;
+    const station = (s) => !!s && typeof s === "object" && typeof s.name === "string" && typeof s.crs === "string";
+    const ride = (d) => {
+      const x2 = d;
+      return !!x2 && typeof x2 === "object" && num(x2.dep) && num(x2.arr) && num(x2.schedDep) && num(x2.schedArr) && station(x2.from) && station(x2.to) && typeof x2.kind === "string" && typeof x2.label === "string" && !!x2.live && typeof x2.live === "object";
+    };
+    const seg2 = (d) => {
+      const x2 = d;
+      return !!x2 && typeof x2 === "object" && num(x2.secs) && typeof x2.kind === "string";
+    };
+    if (!j.rides.every(ride) || !j.before.every(seg2) || !j.after.every(seg2)) return null;
+    if (!station(j.fromStation) || !station(j.toStation) || !Array.isArray(j.changes) || !Array.isArray(j.flags) || !j.modes || typeof j.modes !== "object") return null;
+    if (!Array.isArray(r.confirmed) || !r.confirmed.every((n2) => Number.isInteger(n2) && n2 >= 0) || !Array.isArray(r.notices) || !Array.isArray(r.dismissed)) return null;
     return x;
   }
   function tripPhase(j, now, confirmed = []) {
@@ -8174,7 +8242,8 @@ function createTripUi(deps) {
       await access.matrix(f.place.geo, c.list.map(x => x.station.geo), st().modes.from, now(), "to"); } catch (e) { /* the plan reports it */ }
     if (st().to) plan();
   }
-  async function plan() {
+  /** Plan. `prev`: the best journey before a re-plan, so a drive re-timed for traffic can say what changed. */
+  async function plan(prev) {
     const s = st(); error = ""; better = false;
     if (!hasGoogle()) { renderResults(); return; }
     const f = resolvedFrom();
@@ -8186,9 +8255,16 @@ function createTripUi(deps) {
       const leisureKmh = deps.leisureKmh();
       const r = await C.planTrip({ from: f.place, to: s.to, modes: s.modes, question: q, now: now(), leisureKmh, cfg: cfg() },
         { stations: index, access, planner: planner(index) },
-        part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults(); });
+        part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults();
+          // Live times for the first answer straight away (the third step), not after the whole plan.
+          if (part.stage === "timetable") live(true).then(() => { if (mine === planToken) renderResults(); }); });
       if (mine !== planToken) return;
-      result = r; lastPlanAt = now(); await live(true);
+      result = r; lastPlanAt = now();
+      const best = r.picks[0];
+      if (prev && best && s.modes.from === "drive" && Math.abs(best.leave - prev.leave) >= cfg().drive.moveMin * 60e3) {
+        const d = Math.round((prev.leave - best.leave) / 60e3); driveNote = `Traffic: leave ${Math.abs(d)} min ${d > 0 ? "earlier" : "later"}`;
+      } else if (prev) driveNote = "";
+      await live(true);
     } catch (e) { if (mine !== planToken || (e && (e.staleSource || e.sourceChanged))) return; error = e.message; result = null; }
     if (mine === planToken) { stageText = ""; renderResults(); }
   }
@@ -8213,9 +8289,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
-    if (result && now() - lastPlanAt >= 5 * 60e3) { const before = lastBest; await plan();
-      if (before && lastBest && st().modes.from === "drive" && Math.abs(lastBest.leave - before.leave) >= cfg().drive.moveMin * 60e3) {
-        const d = Math.round((before.leave - lastBest.leave) / 60e3); driveNote = `Traffic: leave ${Math.abs(d)} min ${d > 0 ? "earlier" : "later"}`; } return; }
+    if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
 
@@ -8246,22 +8320,23 @@ function createTripUi(deps) {
     const s = st(), setup = root.querySelector("#tripSetup");
     setup.hidden = hasGoogle();
     if (!hasGoogle()) setup.innerHTML = `<p>${S().googleVia === "proxy" ? "Set your proxy's address in Settings to search addresses and time the trip to the station." : "Add a Google Maps key in Settings to search addresses and time the trip to the station."}</p><button type="button" class="ghost" data-trip-settings>Open Settings</button>`;
-    root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText;
+    root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText || driveNote;
     const out = root.querySelector("#tripResults");
     if (error) { out.innerHTML = `<div class="trip-card empty" role="alert">${esc(error)}</div>`; return; }
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
-    const html = { label: () => `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
+    const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
+    const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
       headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}"><b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
         : best ? `<div class="trip-headline"><span class="lbl">${best.rides[0].from.crs && best.before.every(x => x.kind === "station") ? "Departs" : "Leave by"}</span><b class="big">${hhmm(best.before.every(x => x.kind === "station") ? mains(best)[0].dep : best.leave)}</b><span>Arrive ${hhmm(best.arrive)} · ${esc(summary(best))}</span></div>`
-        : `<div class="trip-card empty">No journeys found.</div>`,
+        : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
       options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
       board: () => `<h3 class="trip-h">Every journey, in leaving order</h3>${r.journeys.map(j => journeyRow(j)).join("") || `<p class="note">None found.</p>`}`,
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
-      source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.${r.close ? " These places are close enough to walk, cycle or drive: no train needed." : ""}</p>`,
+      source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
       then: () => fu ? `<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
     out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");

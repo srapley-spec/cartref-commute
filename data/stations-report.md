@@ -1,6 +1,6 @@
 # Station data report
 
-Generated 2026-10-31T21:06:48.541Z. 1092 stations; 1083 with TfL IDs; car park yes/no/unknown: 137/198/757.
+Generated 2026-10-31T22:11:20.025Z. 1136 stations; 1128 with TfL IDs; car park yes/no/unknown: 137/198/801.
 Fix rows below in data/stations-overrides.json ({"CRS": {"tfl": [...], "tflIcs": [...], "carPark": "yes"}}) and re-run.
 
 - ABW Abbey Wood: several TfL IDs kept: 910GABWD Abbey Wood (London) Rail Station; 910GABWDXR Abbey Wood
@@ -14,7 +14,6 @@ Fix rows below in data/stations-overrides.json ({"CRS": {"tfl": [...], "tflIcs":
 - RGP Reading Green Park: no TfL match within 400 m (none)
 - SAC St Albans: matched by position to 910GSTALBCY St Albans City Rail Station
 - SOJ Soham: no TfL match within 400 m (none)
-- SRG Seer Green & Jordans: fixed by override (910GSEERGRN)
 - STP London St Pancras International: several TfL IDs kept: 910GSTPXBOX London St Pancras International LL Rail Station; 910GSTPX London St Pancras International Rail Station; 910GSTPADOM London St Pancras International Rail Station
 - STQ Southampton Town Quay: no TfL match within 400 m (none)
 - THP Thanet Parkway: no TfL match within 400 m (none)

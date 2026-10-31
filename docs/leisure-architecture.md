@@ -210,6 +210,13 @@ Independent mutation review before merging (CLAUDE.md).
   commute while Trip is shown. Saved state is one validated key `tripMode` (the commute's `trip` key already exists).
   Adapters in `src/trip-adapters.js`; build inserts both at `/*__TRIP_UI__*/`. Station list fetched on first use.
 - Not built yet: see the story's "Not yet".
+- Independent test review 1 (31 Oct night, of 710f527): 149 mutations, 82 survived; 6 bugs. Fixed: corrupt saved
+  follow crashed the screen (deep validation); drive re-check notice never fired; places sharing a station weren't
+  "close enough"; journeys Google couldn't route were silently dropped (now flagged, never picked); "Tomorrow" for any
+  later day; the region box let in Birmingham / Coventry / Swindon and left out north Norfolk (now an outline; the
+  station list widened to 1,136). Live boards now start after round 1. Drives re-timed once for the chosen journey.
+  Tests added for the survivors (`trip-edges`, `trip-state`, page and contract edges, Worker masks); defaults pinned.
+  Equivalent: W2 (the path pattern already allows only capital letters).
 
 ## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live

@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REGION = { s: 50.55, w: -1.95, n: 52.75, e: 1.80 };   // must match LEISURE_DEFAULTS.region (src/core/trip/config.ts)
+const REGION = { s: 50.55, w: -1.95, n: 53.0, e: 1.80 };   // the box of TRIP_DEFAULTS.region (src/core/trip/config.ts); stations just outside the outline stay usable
 const LIST = "https://raw.githubusercontent.com/davwheat/uk-railway-stations/main/stations.json";
 const TFL = process.env.TFL_APP_KEY, RDM = process.env.RDM_API_KEY, RDM_BASE = (process.env.RDM_BASE_URL || "").replace(/\/+$/, "");
 const keepMeasured = process.argv.includes("--keep-measured");   // re-match TfL IDs only; keep car park / service
