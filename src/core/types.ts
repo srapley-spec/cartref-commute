@@ -1,4 +1,6 @@
 // Shared types for the planning engine. Times are epoch milliseconds.
+import type { DisruptionConfig } from './disruption';
+export type { DisruptionConfig } from './disruption';
 
 export type LatLon = [number, number];
 export type StationCode = string;            // e.g. "LET", "KGX", "STP", "ZFD"
@@ -117,6 +119,9 @@ export interface Profile {
   places: Places;                                     // where things are, for working out what you're doing
   walking: { streetFactor: number; kmh: { avg: number; fast: number; leisure: number } };
   effort?: EffortProfile;                             // how fast you can go when you're late (effort levels)
+  disruption?: DisruptionConfig;                      // optional shared severity / prominence policy overrides
+  /** Known route topology only; these stops are not live passing-point observations. */
+  tubeCorridors?: { lineId: string; from: string; to: string; stops: { id: string; name: string }[] }[];
 }
 
 /** Places the app reasons about from your location. */
@@ -127,7 +132,7 @@ export interface Places {
   hubGeo: Record<StationCode, LatLon>;                // London stations where rail meets tube ("at" = within atHubKm)
   /** Stops by the office and the lines that reach them from the London stations (e.g. Aldgate: Circle and Met;
    *  Aldgate East: H&C). `fallback`: used going home only when the main lines are closed. */
-  officeStops?: { id: string; name: string; geo: LatLon; lines: string[];
+  officeStops?: { id: string; name: string; geo: LatLon; lines: string[]; stopId?: string; arrivalDirections?: Record<string, 'eastbound'|'westbound'|'northbound'|'southbound'>;
     /** A line that starts here and is listed only as arriving (the Met at Aldgate): its departures come from the next
      *  stop's arrivals (TfL StopPoint id) less `runMs`, the gap between leaving here and TfL's prediction there. */
     startsHere?: { lineId: string; nextStopId: string; runMs: number } }[];

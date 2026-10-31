@@ -1,6 +1,6 @@
 // National Rail Darwin departure board (LDBWS JSON) → trains.
 import type { Board, Call, StationCode, Train } from "../types";
-import { resolve } from "../time";
+import { clock, resolve } from "../time";
 
 type Json = Record<string, unknown> | undefined | null;
 const pick = (o: Json, ...ks: string[]): any => { for (const k of ks) { if (o && (o as any)[k] != null) return (o as any)[k]; } return undefined; };
@@ -45,11 +45,19 @@ export function parseDarwinBoard(json: Json, from: StationCode, to: StationCode,
 }
 
 /** Where a train has been reported, from Service Details. */
+export interface ServiceCall {
+  name: string; code: string;
+  /** Separate facts: the best time must never become its own delay baseline. */
+  scheduledAt: number | null; expectedAt: number | null; actualAt: number | null;
+  cancelled: boolean; noEstimate: boolean;
+}
 export interface ServiceProgress {
   last: { name: string; code: string | null; t: number; late: number } | null;   // last stop it was reported at
   next: { name: string; code: string | null; t: number | null } | null;          // next stop, expected time
   at: (code: string) => number | null;                                             // expected (or actual) time at a stop
   cancelled: boolean; reason: string;
+  /** Ordered provider calling points, retaining signed ahead/behind evidence. */
+  calls: ServiceCall[];
 }
 
 /** LDBWS GetServiceDetails → progress. `at` values are actual times ("19:53"); "On time" means at the scheduled time. */
@@ -59,8 +67,23 @@ export function parseServiceDetails(json: Json, now: number): ServiceProgress {
   const points = [...prev, here, ...next].filter((c) => c && pick(c, "crs"));
   let last: ServiceProgress["last"] = null, nextUp: ServiceProgress["next"] = null;
   const times: Record<string, number | null> = {};
+  const calls: ServiceCall[] = [];
+  let previousScheduled: number | null = null;
   for (const c of points) {
     const code = String(pick(c, "crs")).toUpperCase(), st = pick(c, "st"), atv = pick(c, "at"), etv = pick(c, "et");
+    // Resolve the ordered schedule against its preceding call, keeping a midnight
+    // crossing on one coherent service day without altering the legacy at()/late API.
+    const parseClock = (value: unknown, anchor: number): number | null =>
+      /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value || '')) ? clock(String(value), anchor) : null;
+    const scheduledAt = parseClock(st, previousScheduled ?? now);
+    if (scheduledAt != null) previousScheduled = scheduledAt;
+    const factualTime = (value: unknown): number | null => /^on time$/i.test(String(value || '')) ? scheduledAt
+      : parseClock(value, scheduledAt ?? now);
+    const actualAt = factualTime(atv);
+    calls.push({ name: String(pick(c, "locationName") || code), code, scheduledAt,
+      expectedAt: factualTime(etv), actualAt,
+      cancelled: pick(c, 'isCancelled') === true || /cancel/i.test(String(etv || '') + ' ' + String(atv || '')),
+      noEstimate: actualAt === null && !!resolve(st, etv, scheduledAt ?? now)?.unknownDelay });
     const reported = atv && (/^\d\d:\d\d$/.test(String(atv)) || /^on time$/i.test(String(atv)));
     if (reported) {
       const r = resolve(st, /^on time$/i.test(String(atv)) ? "On time" : atv, now);
@@ -71,6 +94,6 @@ export function parseServiceDetails(json: Json, now: number): ServiceProgress {
       if (!nextUp) nextUp = { name: pick(c, "locationName") || code, code, t: r ? r.t : null };
     }
   }
-  return { last, next: nextUp, at: (code) => times[code] ?? null,
+  return { last, next: nextUp, at: (code) => times[code] ?? null, calls,
     cancelled: pick(json, "isCancelled") === true, reason: pick(json, "cancelReason") || pick(json, "delayReason") || "" };
 }

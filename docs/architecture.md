@@ -114,8 +114,9 @@ is not evidence of production tracking, alert delivery or interaction deferral.
 - One primary answer leads; Next best is a compact expandable option retaining all metadata, steps and actions.
   Board rows use full-width information and a Follow target of at least 44 px. All trains and individual
   cancellation/no-estimate/uncertainty flags survive; no aesthetics-based filtering is introduced.
-- One impact summary remains visible, with its existing severity precedence; Travel alerts holds the full original
-  banners, and Lines & data holds full line/source/technical detail. Freshness and Refresh remain available.
+- One impact summary remains visible, with its existing severity precedence. The subsequent journey-clarity
+  refinement exposes significant route-relevant disruption instead of folding it behind Travel alerts; remaining
+  full notices and line/source/technical detail stay available. Freshness and Refresh remain available.
   `statusLine` receives whether the fallback is unavailable: all relevant Tube lines closed must not advertise
   H&C/Aldgate East as a usable resolution. This qualification belongs in the pure engine, not shell wording rules.
 - In Auto/Live the active followed route stays foregrounded; other recommendations can fold without losing
@@ -131,6 +132,44 @@ is not evidence of production tracking, alert delivery or interaction deferral.
 - Compact-v2 page tests and browser screenshots must prove availability, density and preservation together.
   Engine tests alone cannot prove reachable controls or responsive layout. Independent review must check tests,
   architectural boundaries, deliberate breakages and final screenshot targets before release approval.
+
+### Signal journey clarity (Sam, 31 Oct 2026)
+- Significant route impact follows the existing graded warning rules. Severity, relevance and visibility policy
+  belong in the shared pure core with explicit configuration/defaults; a screen consumes the result instead of
+  maintaining its own thresholds or CSS severity decisions. Centralisation preserves the agreed defaults and
+  makes overrides testable. Changes beyond drawing require independent engine/integration review.
+  `src/core/disruption.ts` owns `DisruptionConfig`, effective policy, delay/line grading and visible impacts;
+  `Profile.disruption` supplies optional partial overrides. Legacy 5/15 constants are default aliases.
+  `disruptionTrainObservation` builds an ephemeral, non-mutating warning view of validated live progress.
+  It can promote a newly observed delay/cause but cannot clear explicit board cancellation/no-estimate state;
+  the existing controller/provider recovery path remains authoritative. Active observations overlay an exact
+  matching board service/day instead of inventing a second affected train.
+- Keep the existing inferred-location/source/accuracy diagnostic visible, including unavailable and old-fix
+  qualifications, in Auto and manual direction. This is evidence display, not a change to permission handling,
+  location watches or inference.
+- A repeated semantic time has a shared horizontal anchor across the primary answer, Next best and board:
+  Train/Leave left, Expected centre for departure boards, destination arrival right. Planning reserves the
+  centre without manufacturing Expected. Labels, route metadata and actions cannot change the grid geometry.
+  Next best labels its grid from above; enlarged text retains readable order without overlap.
+- Overall and current-leg progress reuse the existing itinerary, chosen/inferred identity, timed segments and
+  observations. Progress arithmetic and evidence qualification are pure engine responsibilities; the renderer
+  supplies geometry and accessible labels. Do not introduce a second planner, retime completed followed legs,
+  invent passing points, or relabel clock interpolation as an exact live position.
+- Fresh train reports can identify a reported calling point; future calls remain expected. Known-vehicle Tube
+  target predictions can qualify arrival but do not establish intermediate live position. Missing/stale data,
+  unknown identity and modelled Tube legs stay explicit. Preserve the current terminus-departure adapter and
+  its recorded-data validation when integrating Tube visualisation.
+  Service Details retains separate ordered scheduled/expected/actual call times so signed ahead/behind evidence
+  is not reconstructed from the legacy clamped-lateness field. Existing adapter APIs and requests stay compatible.
+  `Profile.tubeCorridors` supplies static station topology; `places.officeStops` supplies stop IDs and per-line
+  platform directions. These are profile data, not fetched live position/calling-point evidence. Tube headline
+  and progress use the same guarded destination prediction; the recorded Aldgate Met platform is northbound.
+- Relevance follows the remaining journey. Completed outbound-rail missing/stale data can fold once on the Tube;
+  homeward rail data remains important while its connection is still ahead. Unknown or missing source evidence
+  is not rewritten as good service merely because an irrelevant earlier problem is folded.
+- Behaviour and geometry are tested together, including significant-versus-background alerts, manual-location
+  diagnostics, common time anchors, inferred/followed rail and Tube, source freshness and Panda feature-off
+  restoration. See [journey progress](stories/journey-progress.md) and the [Signal story](stories/signal-design-system.md).
 
 ### Followed journey and design boundaries
 - Signal design and Follow a route are separate Experimental settings, both off by default. Selecting Signal
@@ -264,6 +303,12 @@ Newest first. One line each; the story or issue holds the detail.
   platform for a Met standing at Aldgate (TfL's location "At Aldgate Platform N"). TfL's timetable from Aldgate exists
   but adds nothing a live train doesn't. TrackerNet becomes primary only once a key gets it and live data proves it.
   → [tube-home](stories/tube-home.md)
+- **31 Oct, journey clarity** Sam requires significant relevant disruption to show, existing inferred-location
+  diagnostics to remain visible, shared time-column anchors across Signal, and overall/current-leg rail and Tube
+  progress from real evidence. Central warning policy/configuration and pure progress calculations are shared
+  engine responsibilities; independent review is required beyond UI-only changes. This refines the initial
+  compact layout without removing controls, routing behaviour, source honesty or Panda's switch-off contract.
+  → [Warnings](stories/warnings.md), [Signal](stories/signal-design-system.md), [progress](stories/journey-progress.md).
 - **31 Oct** API keys may also live in the Claude Code cloud environment's secrets (Sam), so sessions can call TfL
   (incl. TrackerNet) and Rail Data Marketplace directly to prove endpoints and record real feeds; never in chat, the
   repo or recorded data. Names in CLAUDE.md.

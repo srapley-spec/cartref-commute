@@ -51,7 +51,7 @@ export function trainFlags(t: Train, profile: Profile): Flag[] {
   if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
   if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
   if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-  else if (!t.cancelled) { const s = trainStatus(t); if (s) f.push({ lvl: s.level, txt: s.text, status: true }); }
+  else if (!t.cancelled) { const s = trainStatus(t, profile.disruption); if (s) f.push({ lvl: s.level, txt: s.text, status: true }); }
   if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
   return f;
 }

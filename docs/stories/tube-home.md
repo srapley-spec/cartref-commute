@@ -98,6 +98,10 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - Still at Aldgate with a good (≤50 m), fresh fix 3+ minutes after your tube left: "Did you get it?". "No, still
   here" looks for the next tube, not the one you missed.
 - A ride home is never treated as a ride to work, or the reverse.
+- Signal's [overall/current-leg progress](journey-progress.md) uses this same selected/inferred ride, target and
+  connection. A matching fresh known-vehicle target prediction can qualify arrival; the position between Tube
+  stops remains an estimate. Do not turn the terminus-derived departure or route sequence into a fictitious
+  live position or alter which rail connection the ordinary engine chooses.
 
 ## Tests
 - tests/core/terminus.test.mjs: "Met departures from Aldgate, from TfL's real Liverpool Street arrivals (recorded 30 Oct 22:43): each westbound Met less the 2-min run"

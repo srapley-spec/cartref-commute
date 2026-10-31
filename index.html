@@ -218,6 +218,7 @@ html[data-design="signal"] {
   --hero-ok:#14654c; --hero-warn:#805000; --hero-bad:#ae2540;
   --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --font-display:var(--font-body); --font-mono:var(--font-body);
+  --signal-content-inset:12px; --signal-time-gap:8px;
 }
 @media(prefers-color-scheme:dark) {
   html[data-design="signal"]:not([data-theme="light"]) {
@@ -245,7 +246,7 @@ html[data-design="signal"] body {
   padding:8px max(12px,env(safe-area-inset-right,0px)) max(28px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
   font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%;
 }
-html[data-design="signal"] .wrap {max-width:620px;gap:8px;min-width:0}
+html[data-design="signal"] .wrap {max-width:620px;gap:8px;min-width:0;container-type:inline-size}
 html[data-design="signal"] header {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;align-items:center}
 html[data-design="signal"] header>div:first-child {display:block;min-width:0;grid-column:1;grid-row:1}
 html[data-design="signal"] header h1 {grid-column:1;grid-row:1;margin:0;font-size:21px;font-weight:760;line-height:1.15;letter-spacing:-.04em}
@@ -253,7 +254,8 @@ html[data-design="signal"] header .sub {grid-column:1/-1;grid-row:2;margin:0;fon
 html[data-design="signal"] header>.controls {grid-column:2;grid-row:1;flex-wrap:wrap;justify-content:flex-end;max-width:50vw;gap:4px}
 html[data-design="signal"] header .iconbtn {padding:8px;font-size:12px;border:0;background:transparent;color:var(--accent);border-radius:8px}
 html[data-design="signal"] button {min-width:44px;min-height:44px;touch-action:manipulation;white-space:normal;overflow-wrap:anywhere}
-html[data-design="signal"] :is(button,input,select,textarea,summary):focus-visible {outline:3px solid var(--accent);outline-offset:3px}
+html[data-design="signal"] :is(button,input,select,textarea,summary,a):focus-visible {outline:3px solid var(--accent);outline-offset:3px}
+html[data-design="signal"] :is(.signal-disruption,.banner,.sreason) a {color:var(--accent);text-decoration:underline;overflow-wrap:anywhere}
 html[data-design="signal"] :is(.iconbtn,.pickbtn,.ghost,.primary,.follow-btn,.follow-action) {min-height:44px;border-radius:9px;padding:8px 11px;font-size:14px;line-height:1.25}
 html[data-design="signal"] :is(.iconbtn,.pickbtn,.ghost,.follow-action) {border-color:var(--signal-control-line);background:var(--card);color:var(--accent)}
 html[data-design="signal"] :is(.primary,.follow-btn) {border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -284,26 +286,32 @@ html[data-design="signal"] :is(.origin,.byf) {font-size:13px}
 html[data-design="signal"] :is(.originbar input,.byf input,.f input,.f select) {min-height:44px;font-size:16px;border-radius:8px;border-color:var(--signal-control-line)}
 html[data-design="signal"] .byform {gap:8px}
 /* A focused answer surface, with a quieter fallback rather than two giant hero cards. */
-html[data-design="signal"] .hero {background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:13px;gap:8px;box-shadow:var(--signal-shadow);transition:none}
+html[data-design="signal"] .hero {background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:var(--signal-content-inset);gap:8px;box-shadow:var(--signal-shadow);transition:none}
 html[data-design="signal"] .hero .lbl {font-size:12px;line-height:1.4;color:var(--muted);opacity:1;text-transform:none;letter-spacing:0;font-weight:600}
-html[data-design="signal"] .hero .big {gap:8px}
+html[data-design="signal"] .hero .big {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px var(--signal-time-gap)}
 html[data-design="signal"] .hero .arr {font-size:38px;line-height:1.05;font-weight:750;letter-spacing:-.045em}
 html[data-design="signal"] .hero .arrlbl {font-size:14px;color:var(--muted);opacity:1}
+html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-self:end;text-align:right;max-width:max-content}
+html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
 html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
-html[data-design="signal"] .hero .optrow:not(.board) {display:flex;flex-wrap:wrap;align-items:end;gap:4px 8px}
-html[data-design="signal"] .hero .optrow:not(.board)>div:not(.optroute):not(.optarrow) {flex:1 1 0;min-width:min-content}
-html[data-design="signal"] .hero .optrow:not(.board) .optroute {flex:1 0 100%;justify-content:flex-start;margin:1px 0 0;padding:0}
+/* Every answer uses the same anchors: departure left, expected centre, destination right.
+   Planning reserves the middle slot; actions and route metadata never take a time column. */
+html[data-design="signal"] .hero .optrow {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;align-items:start;gap:0 var(--signal-time-gap);min-width:0}
+html[data-design="signal"] .hero .optrow>div:not(.optroute):not(.optarrow) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
+html[data-design="signal"] .hero .optrow>div:not(.optroute):not(.optarrow)>:last-child {align-self:end}
+html[data-design="signal"] .hero .optrow>div:first-child {grid-column:1;text-align:left}
+html[data-design="signal"] .hero .optrow>div:nth-child(2) {grid-column:2;text-align:center}
+html[data-design="signal"] .hero .optrow>div:nth-child(3) {grid-column:3;text-align:right}
+html[data-design="signal"] .hero .optrow .optroute {grid-column:1/-1;grid-row:3;justify-content:flex-start;margin:5px 0 0;padding:0;min-width:0}
 html[data-design="signal"] .hero .optrow small {font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;opacity:1;color:var(--muted);line-height:1.4}
 html[data-design="signal"] .hero .optbig {font-size:36px;font-weight:750;letter-spacing:-.035em;line-height:1.1}
 html[data-design="signal"] .hero .opt:first-of-type>.optrow:not(.board)>div:nth-child(3) .optbig {font-size:32px}
 html[data-design="signal"] .hero .opt+.opt .optbig {font-size:26px}
 html[data-design="signal"] .hero .opt+.opt .optrow small {font-size:12px}
-html[data-design="signal"] .hero .optarrow {font-size:20px;color:var(--muted);opacity:1;padding-bottom:3px}
-html[data-design="signal"] .hero .optrow.board {display:flex;flex-wrap:wrap;gap:4px 8px}
-html[data-design="signal"] .hero .optrow.board>div:not(.optroute) {flex:1 1 0;min-width:min-content}
-html[data-design="signal"] .hero .optrow.board .optroute {flex:1 0 100%;margin:1px 0 0;padding:0}
+html[data-design="signal"] .hero .optrow>.optarrow {grid-row:2;align-self:end;font-size:20px;color:var(--muted);opacity:1;padding-bottom:3px}
+html[data-design="signal"] .hero .optrow.board {grid-template-columns:repeat(3,minmax(0,1fr))}
 html[data-design="signal"] .hero .optrow.board .optbig {font-size:30px}
 html[data-design="signal"] .hero .optrow.board .optbig.word {font-size:19px;line-height:1.5;letter-spacing:-.02em}
 html[data-design="signal"] .hero .optmeta {font-size:14px;line-height:1.4;opacity:1}
@@ -315,26 +323,18 @@ html[data-design="signal"] .hero .opt>.follow-btn {grid-column:2;align-self:cent
 html[data-design="signal"] .hero .opt:has(>.steps[open])>.steps {grid-column:1/-1}
 html[data-design="signal"] .hero .opt:has(>.steps[open])>.follow-btn {justify-self:end}
 html[data-design="signal"] .hero .signal-alternative {border-top:1px solid var(--line);padding-top:3px}
-html[data-design="signal"] .hero .signal-alternative>summary {display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center;min-height:44px;cursor:pointer;list-style:none;padding:5px 0;color:var(--ink)}
+html[data-design="signal"] .hero .signal-alternative>summary {position:relative;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 8px;min-height:44px;cursor:pointer;list-style:none;padding:5px 0;color:var(--ink)}
 html[data-design="signal"] .hero .signal-alternative>summary::-webkit-details-marker {display:none}
-html[data-design="signal"] .hero .signal-alternative>summary>span {grid-column:1;grid-row:1;font-size:12px;font-weight:650;color:var(--muted)}
-html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {order:1;flex:1 0 100%;font-weight:500;overflow-wrap:anywhere}
-html[data-design="signal"] .hero .signal-alternative>summary::after {content:'›';grid-column:5;grid-row:1;font-size:22px;color:var(--accent);line-height:1}
+html[data-design="signal"] .hero .signal-alternative>summary>span {grid-column:1;font-size:12px;font-weight:650;color:var(--muted)}
+html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-label {grid-column:1;grid-row:1}
+html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {grid-column:2;grid-row:1;padding-right:24px;min-width:0;font-weight:500;text-align:right;overflow-wrap:break-word}
+html[data-design="signal"] .hero .signal-alternative>summary::after {content:'›';position:absolute;right:0;top:5px;font-size:22px;color:var(--accent);line-height:1}
 html[data-design="signal"] .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
-html[data-design="signal"] .hero .signal-alternative>summary>.optrow {display:contents}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:not(.optroute):not(.optarrow) {display:flex;flex:1 1 0;flex-direction:column;align-items:flex-start;gap:0;min-width:min-content}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:first-child {grid-column:2;grid-row:1;justify-self:start}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow>div:nth-child(3) {grid-column:4;grid-row:1;justify-self:start}
-html[data-design="signal"] .hero .signal-alternative>summary .optarrow {grid-column:3;grid-row:1;justify-self:center}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow>.optroute {grid-column:1/-1;grid-row:2;margin:0;padding:0}
+html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig {font-size:24px}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig.word {font-size:16px}
 html[data-design="signal"] .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
 html[data-design="signal"] .hero .signal-alternative>summary .optroute {font-size:12px}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow.board {display:flex;flex:1 1 0;min-width:0;gap:3px 8px}
-html[data-design="signal"] .hero .signal-alternative>summary .optrow.board>div:not(.optroute) {grid-column:auto;grid-row:auto;display:block;justify-self:start}
-html[data-design="signal"] .hero .signal-alternative>summary:has(.optrow.board)>.signal-alt-label {grid-column:1;grid-row:1}
-html[data-design="signal"] .hero .signal-alternative>summary:has(.optrow.board)>.optrow {grid-row:1}
 html[data-design="signal"] .hero .signal-alternative>.opt {padding-top:7px;border:0}
 html[data-design="signal"] .hero .signal-alternative>.opt>.optroute {grid-column:1/-1;justify-content:flex-start;margin:0;padding:0}
 html[data-design="signal"] .hero .steps summary,html[data-design="signal"] #followPanel .steps summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer}
@@ -377,35 +377,31 @@ html[data-design="signal"] .hero :is(.pill.info,.chip.rail,.chip.walk) {backgrou
 html[data-design="signal"] h2 {font-size:14px;line-height:1.4;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:650;margin:3px 0 0}
 /* Railboard-style rows: times/actions together, every explanatory line uses the full width. */
 html[data-design="signal"] .list {border:1px solid var(--line);border-radius:12px;background:var(--card)}
-html[data-design="signal"] .row {position:relative;display:flex;flex-wrap:wrap;align-items:flex-start;gap:2px 10px;padding:8px 12px;border-color:var(--line);min-width:0}
+html[data-design="signal"] .row {position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;align-items:start;gap:0 var(--signal-time-gap);padding:8px var(--signal-content-inset);border-color:var(--line);min-width:0}
 html[data-design="signal"] .row .mid {display:contents}
 html[data-design="signal"] .row:has(>.mid.meta) {display:block}
 html[data-design="signal"] .row>.mid.meta {display:block;font-size:14px;line-height:1.5}
-html[data-design="signal"] .row .leave {order:1;flex:1 1 0;min-width:min-content}
-html[data-design="signal"] .row .arrive {order:2;flex:1 1 0;min-width:min-content;text-align:left}
-html[data-design="signal"] .row .mid>:is(.route,.meta,div) {order:4;flex:1 0 100%;min-width:0}
-html[data-design="signal"] .row .mid>.meta {order:5}
-html[data-design="signal"] .row .mid>div:has(>.pill) {order:6}
+html[data-design="signal"] .row>:is(.leave,.exp,.arrive) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
+html[data-design="signal"] .row>:is(.leave,.exp,.arrive)>:last-child {align-self:end}
+html[data-design="signal"] .row>.leave {grid-column:1;text-align:left}
+html[data-design="signal"] .row>.exp {grid-column:2;text-align:center}
+html[data-design="signal"] .row>.arrive {grid-column:3;text-align:right}
+html[data-design="signal"] .row .mid>:is(.route,.meta,div) {grid-column:1/-1;min-width:0;margin-top:4px}
+html[data-design="signal"] .row .mid>.route {grid-column:1/3;grid-row:3;align-self:center}
+html[data-design="signal"] .row:not(:has(.follow-btn,.followtag)) .mid>.route {grid-column:1/-1}
 html[data-design="signal"] .row .route {gap:4px;align-items:center;font-size:13px;line-height:1.4}
 html[data-design="signal"] .row .meta {font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
 html[data-design="signal"] .row .meta b {font-weight:650;color:var(--ink)}
 html[data-design="signal"] .row .meta :is([data-cd],[data-dep]) {white-space:normal}
 html[data-design="signal"] .row :is(.leave small,.exp small,.arrive small) {display:block;font-size:12px;color:var(--muted);line-height:1.35;letter-spacing:0;text-transform:none}
 html[data-design="signal"] .row :is(.leave .t,.exp .t,.arrive .t) {font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.025em}
-html[data-design="signal"] .row .mid>.follow-btn {order:3;flex:0 0 auto;align-self:center;min-width:64px;max-width:120px;padding:7px 10px;margin:0 0 0 auto;font-size:13px}
-html[data-design="signal"] .row .mid>.followtag {order:3;flex:0 0 auto;align-self:center;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:88px;padding:4px 6px;margin-left:auto}
+html[data-design="signal"] .row .mid>.follow-btn {grid-column:3;grid-row:3;justify-self:end;align-self:center;min-width:44px;max-width:100%;padding:7px 8px;margin:4px 0 0;font-size:13px}
+html[data-design="signal"] .row .mid>.followtag {grid-column:3;grid-row:3;justify-self:end;align-self:center;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:100%;padding:4px 6px;margin:4px 0 0}
 html[data-design="signal"] .row .mid>div:has(>.pill) {display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
 html[data-design="signal"] .row .pill {white-space:normal}
 html[data-design="signal"] .row.best {background:color-mix(in srgb,var(--signal-soft) 45%,var(--card))}
 html[data-design="signal"] .row.gone {opacity:1}
-html[data-design="signal"] .row.board {gap:4px 8px}
-html[data-design="signal"] .row.board .leave {order:1}
-html[data-design="signal"] .row.board .exp {order:2;flex:1 1 0;min-width:min-content}
-html[data-design="signal"] .row.board .arrive {order:3;text-align:left}
-html[data-design="signal"] .row.board .mid>.route {order:4;flex:1 1 calc(100% - 128px);align-self:center}
-html[data-design="signal"] .row.board .mid>.follow-btn,html[data-design="signal"] .row.board .mid>.followtag {order:5;align-self:center}
-html[data-design="signal"] .row.board .mid>.meta {order:6}
-html[data-design="signal"] .row.board .mid>div:has(>.pill) {order:7}
+html[data-design="signal"] .row.board {gap:0 var(--signal-time-gap)}
 html[data-design="signal"] .row.board .exp .word {font-size:16px;font-weight:650;line-height:1.6}
 /* Secondary information is discoverable once, below the answer; important status stays in the summary. */
 html[data-design="signal"] :is(#signalNotices,#signalNetwork,#signalOtherJourneys) {min-width:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent;font-size:13px}
@@ -432,6 +428,21 @@ html[data-design="signal"] #signalStatus.info {border-color:var(--line);color:va
 html[data-design="signal"] #signalStatus .signal-network-impact {font-weight:600}
 html[data-design="signal"] #signalStatus .signal-network-impact.bad {color:var(--bad)}
 html[data-design="signal"] #signalStatus .signal-network-impact.warn {color:var(--warn)}
+html[data-design="signal"] #dirNote {margin:0;padding:0 2px;font-size:12px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] #signalDisruptions {display:grid;gap:7px;min-width:0}
+html[data-design="signal"] #signalDisruptions .signal-disruption {min-width:0;border-left:3px solid var(--warn);padding:5px calc(var(--signal-content-inset) - 2px);background:transparent}
+html[data-design="signal"] #signalDisruptions .signal-disruption.bad {border-color:var(--bad)}
+html[data-design="signal"] #signalDisruptions .signal-disruption-title {margin:0;font-size:14px;line-height:1.4;font-weight:700;overflow-wrap:break-word}
+html[data-design="signal"] #signalDisruptions .signal-disruption.bad .signal-disruption-title {color:var(--bad)}
+html[data-design="signal"] #signalDisruptions .signal-disruption.warn .signal-disruption-title {color:var(--warn)}
+html[data-design="signal"] #signalDisruptions .signal-disruption-detail {margin:3px 0 0;font-size:13px;line-height:1.45;overflow-wrap:break-word}
+html[data-design="signal"] #signalDisruptions .signal-disruption-qualifier {margin:3px 0 0;font-size:12px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] #signalDisruptions details>summary {display:flex;align-items:center;min-width:44px;min-height:44px;font-size:13px;line-height:1.4;color:var(--accent);cursor:pointer}
+html[data-design="signal"] #signalDisruptions details>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
+html[data-design="signal"] #signalDisruptions details[open]>summary::before {transform:rotate(90deg)}
+html[data-design="signal"] #signalDisruptions details>summary::-webkit-details-marker {display:none}
+html[data-design="signal"] #signalDisruptions details>ul {margin:0;padding-left:18px;font-size:13px;line-height:1.5;overflow-wrap:break-word}
+html[data-design="signal"] #signalDisruptions details>ul>li+li {margin-top:5px}
 html[data-design="signal"] :is(.diag,.note,footer,.st .s,.sreason) {font-size:12px;line-height:1.5}
 html[data-design="signal"] .diag summary {min-height:44px;padding-block:11px;color:var(--accent)}
 html[data-design="signal"] .status {grid-template-columns:1fr;gap:0;border-top:1px solid var(--line)}
@@ -443,9 +454,11 @@ html[data-design="signal"] .signal-source {display:flex;align-items:baseline;jus
 html[data-design="signal"] footer {gap:8px;padding-top:3px;border-top:1px solid var(--line)}
 html[data-design="signal"] footer>.iconbtn {border:0;background:transparent;padding-inline:3px}
 /* Active travel remains the focus, with its controls sharing a line where space permits. */
-html[data-design="signal"] #followPanel {display:flex;flex-direction:column;gap:7px;border:1px solid var(--accent);border-radius:14px;padding:13px;background:var(--card);box-shadow:none}
+html[data-design="signal"] #followPanel {display:flex;flex-direction:column;gap:7px;border:1px solid var(--accent);border-radius:14px;padding:var(--signal-content-inset);background:var(--card);box-shadow:none}
 html[data-design="signal"] #followPanel .lbl {font-size:12px;line-height:1.4;color:var(--muted);font-weight:650}
 html[data-design="signal"] #followPanel :is(.big,.follow-arrival) {font-size:36px;font-weight:750;letter-spacing:-.04em;line-height:1.1}
+html[data-design="signal"] #followPanel .big:has(>.t) {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 8px;font-size:14px;letter-spacing:0;color:var(--muted)}
+html[data-design="signal"] #followPanel .big>.t {flex:0 0 auto;margin-left:auto;font-size:36px;font-weight:750;letter-spacing:-.04em;line-height:1.1;text-align:right;color:var(--ink)}
 html[data-design="signal"] #followPanel :is(.follow-status,.follow-next) {font-size:14px;line-height:1.4}
 html[data-design="signal"] #followPanel .follow-status.ok {color:var(--ok)}
 html[data-design="signal"] #followPanel .follow-status.warn {color:var(--warn)}
@@ -458,6 +471,41 @@ html[data-design="signal"] #followPanel .banner {display:flex;flex-direction:row
 html[data-design="signal"] #followPanel .banner>span {flex:1;min-width:0}
 html[data-design="signal"] #followPanel .banner button {flex:0 0 auto}
 html[data-design="signal"] #followPanel p {margin:0}
+/* Stages show leg order; the evidence-qualified current-leg bar is a separate view. */
+html[data-design="signal"] .journey-progress {display:grid;gap:10px;min-width:0;padding-top:10px;border-top:1px solid var(--line);font-size:13px;line-height:1.4}
+html[data-design="signal"] .journey-progress .jp-heading {display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:3px 8px}
+html[data-design="signal"] .journey-progress .jp-heading>b {font-size:13px;font-weight:650}
+html[data-design="signal"] .journey-progress .jp-status {font-size:12px;color:var(--muted)}
+html[data-design="signal"] .journey-progress :is(.jp-status.ok,.jp-stop-status.ok) {color:var(--ok)}
+html[data-design="signal"] .journey-progress :is(.jp-status.warn,.jp-stop-status.warn) {color:var(--warn)}
+html[data-design="signal"] .journey-progress :is(.jp-status.bad,.jp-stop-status.bad) {color:var(--bad)}
+html[data-design="signal"] .journey-progress .jp-overall {display:flex;gap:5px;list-style:none;padding:0;margin:0;min-width:0}
+html[data-design="signal"] .journey-progress .jp-leg {display:flex;flex-direction:column;flex:1 1 0;min-width:0;color:var(--muted)}
+html[data-design="signal"] .journey-progress .jp-leg-bar {display:block;flex:0 0 6px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+html[data-design="signal"] .journey-progress :is(.jp-leg-bar,.jp-current-track)>i {display:block;width:var(--complete,0%);height:100%;border-radius:inherit;background:var(--accent)}
+html[data-design="signal"] .journey-progress .jp-leg-name {display:block;margin-top:4px;font-size:12px;line-height:1.35;overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-leg[data-state="current"] .jp-leg-name {color:var(--accent);font-weight:700}
+html[data-design="signal"] .journey-progress .jp-current {display:grid;gap:6px;min-width:0}
+html[data-design="signal"] .journey-progress .jp-current-title {display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13px;font-weight:650;overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-current-title>span {font-size:12px;font-weight:500;color:var(--muted)}
+html[data-design="signal"] .journey-progress .jp-current-track {height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+html[data-design="signal"] .journey-progress .jp-stops {display:grid;grid-auto-flow:column;grid-auto-columns:max(86px,6em);grid-template-rows:repeat(5,auto);gap:2px 12px;list-style:none;margin:0;padding:0 1px 5px;overflow-x:auto;overscroll-behavior-inline:contain;min-width:0;scrollbar-width:thin}
+html[data-design="signal"] .journey-progress .jp-stops:focus-visible {outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+html[data-design="signal"] .journey-progress .jp-stop {position:relative;grid-row:1/span 5;min-width:0;display:grid;grid-template-rows:subgrid;align-content:start;font-size:12px;line-height:1.35}
+html[data-design="signal"] .journey-progress .jp-stop-dot {grid-row:1;position:relative;z-index:1;display:block;width:9px;height:9px;margin:2px 0 4px;border:2px solid var(--muted);border-radius:50%;background:var(--card)}
+html[data-design="signal"] .journey-progress .jp-stop:not(:last-child)::after {content:'';position:absolute;top:6px;left:8px;width:calc(100% + 12px);height:1px;background:var(--line)}
+html[data-design="signal"] .journey-progress .jp-stop[data-state="reported"] .jp-stop-dot {border-color:var(--accent);background:var(--accent)}
+html[data-design="signal"] .journey-progress .jp-stop-name {grid-row:2;font-weight:650;overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-stop-time {grid-row:3;font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--ink)}
+html[data-design="signal"] .journey-progress .jp-stop-plan {grid-row:4;font-size:12px;color:var(--muted)}
+html[data-design="signal"] .journey-progress .jp-stop-status {grid-row:5;font-size:12px;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-evidence {margin:0;font-size:12px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-source-details {border-top:1px solid var(--line)}
+html[data-design="signal"] .journey-progress .jp-source-details>summary {display:flex;align-items:center;min-width:44px;min-height:44px;padding-block:7px;list-style:none;font-size:13px;font-weight:650;color:var(--accent);cursor:pointer}
+html[data-design="signal"] .journey-progress .jp-source-details>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
+html[data-design="signal"] .journey-progress .jp-source-details[open]>summary::before {transform:rotate(90deg)}
+html[data-design="signal"] .journey-progress .jp-source-details>summary::-webkit-details-marker {display:none}
+html[data-design="signal"] .journey-progress .jp-source-details>*+* {margin-top:5px}
 /* Settings and the guided simulator retain comfortable controls without inheriting giant card padding. */
 html[data-design="signal"] dialog {border-radius:14px;background:var(--card)}
 html[data-design="signal"] .sheet {padding:16px;gap:14px}
@@ -470,15 +518,31 @@ html[data-design="signal"] #simPanel {border-radius:14px}
 html[data-design="signal"] #simPanel :is(button,input,select),html[data-design="signal"] #simBar button {border-radius:8px}
 html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) + 20px)}
 @media(max-width:350px) {
+  html[data-design="signal"] {--signal-content-inset:10px}
   html[data-design="signal"] body {padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
   html[data-design="signal"] header h1 {font-size:18px}
   html[data-design="signal"] header .iconbtn {font-size:12px;padding-inline:6px}
-  html[data-design="signal"] .hero,html[data-design="signal"] #followPanel {padding:11px}
   html[data-design="signal"] .hero .optbig {font-size:32px}
   html[data-design="signal"] .hero .optrow.board .optbig {font-size:26px}
   html[data-design="signal"] .hero .optrow.board .optbig.word {font-size:16px}
-  html[data-design="signal"] .row {padding:9px 10px}
+  html[data-design="signal"] .row {padding-block:9px}
   html[data-design="signal"] .seg button {font-size:13px;padding-inline:8px}
+}
+/* Keep the same semantic order at enlarged type. A shared query container means the
+   hero, fallback and board all reflow together instead of clipping large times. */
+@container (max-width:18em) {
+  html[data-design="signal"] :is(.hero .optrow,.hero .optrow.board,.row) {grid-template-columns:minmax(0,1fr);grid-template-rows:none;row-gap:4px}
+  html[data-design="signal"] .hero .optrow>div:not(.optroute):not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
+  html[data-design="signal"] .hero .optrow .optroute {grid-row:auto}
+  html[data-design="signal"] .hero .optrow .optarrow {display:none}
+  html[data-design="signal"] .hero .signal-alternative>summary {grid-template-columns:minmax(0,1fr)}
+  html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
+  html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-row:3}
+  html[data-design="signal"] .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
+  html[data-design="signal"] .row>.arrive {grid-row:2}
+  html[data-design="signal"] .row.board>.exp {grid-row:2}
+  html[data-design="signal"] .row.board>.arrive {grid-row:3}
+  html[data-design="signal"] .row .mid>.route,html[data-design="signal"] .row .mid>.follow-btn,html[data-design="signal"] .row .mid>.followtag {grid-column:1;grid-row:auto}
 }
 @media(prefers-reduced-motion:reduce) {
   html[data-design="signal"] *,html[data-design="signal"] *::before,html[data-design="signal"] *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}
@@ -574,7 +638,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 09:37 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 09:53 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -823,6 +887,7 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    DEFAULT_DISRUPTION_POLICY: () => DEFAULT_DISRUPTION_POLICY,
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
     FACILITY: () => FACILITY,
@@ -871,6 +936,8 @@ var CommuteCore = (() => {
     delayStatus: () => delayStatus,
     departureStatus: () => departureStatus,
     dismissFollowAlternative: () => dismissFollowAlternative,
+    disruptionLineLevel: () => disruptionLineLevel,
+    disruptionTrainObservation: () => disruptionTrainObservation,
     dur: () => dur,
     effortFor: () => effortFor,
     effortKey: () => effortKey,
@@ -893,6 +960,7 @@ var CommuteCore = (() => {
     isLegacyFollowRoute: () => isLegacyFollowRoute,
     isStopping: () => isStopping,
     isoDay: () => isoDay,
+    journeyProgress: () => journeyProgress,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
     leaveBy: () => leaveBy,
@@ -931,6 +999,9 @@ var CommuteCore = (() => {
     plannable: () => plannable,
     platformNo: () => platformNo,
     profiles: () => profiles,
+    progressContextCurrent: () => progressContextCurrent,
+    progressLegsFromSteps: () => progressLegsFromSteps,
+    railDelayLevel: () => railDelayLevel,
     railTrackingContext: () => railTrackingContext,
     railWarnings: () => railWarnings,
     rankNow: () => rankNow,
@@ -939,9 +1010,11 @@ var CommuteCore = (() => {
     refreshPlan: () => refreshPlan,
     reportedFrac: () => reportedFrac,
     resolve: () => resolve,
+    resolveDisruptionPolicy: () => resolveDisruptionPolicy,
     resolveViewControl: () => resolveViewControl,
     restoreFollowRoute: () => restoreFollowRoute,
     restoreViewOverride: () => restoreViewOverride,
+    retimeProgressLeg: () => retimeProgressLeg,
     rideActive: () => rideActive,
     rideDoubtful: () => rideDoubtful,
     rideEnded: () => rideEnded,
@@ -949,6 +1022,7 @@ var CommuteCore = (() => {
     samRoutes: () => samRoutes,
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
+    significantLineDisruption: () => significantLineDisruption,
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
     stationLabel: () => stationLabel,
@@ -970,12 +1044,14 @@ var CommuteCore = (() => {
     tubeHomeConnections: () => tubeHomeConnections,
     tubeName: () => tubeName,
     updateFollowRoute: () => updateFollowRoute,
+    visibleDisruptions: () => visibleDisruptions,
     walkSecs: () => walkSecs,
     watchStop: () => watchStop,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
     whichTube: () => whichTube,
     whichTubeHome: () => whichTubeHome,
+    worstDisruptionStatus: () => worstDisruptionStatus,
     worstStatus: () => worstStatus
   });
 
@@ -1118,13 +1194,30 @@ var CommuteCore = (() => {
     return { services, msgs };
   }
   function parseServiceDetails(json, now) {
+    var _a;
     const prev = callingPoints(pick(json, "previousCallingPoints")), next = callingPoints(pick(json, "subsequentCallingPoints"));
     const here = { locationName: pick(json, "locationName"), crs: pick(json, "crs"), st: pick(json, "std", "sta"), at: pick(json, "atd", "ata"), et: pick(json, "etd", "eta") };
     const points = [...prev, here, ...next].filter((c) => c && pick(c, "crs"));
     let last = null, nextUp = null;
     const times = {};
+    const calls = [];
+    let previousScheduled = null;
     for (const c of points) {
       const code = String(pick(c, "crs")).toUpperCase(), st = pick(c, "st"), atv = pick(c, "at"), etv = pick(c, "et");
+      const parseClock = (value, anchor) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(value || "")) ? clock(String(value), anchor) : null;
+      const scheduledAt = parseClock(st, previousScheduled != null ? previousScheduled : now);
+      if (scheduledAt != null) previousScheduled = scheduledAt;
+      const factualTime = (value) => /^on time$/i.test(String(value || "")) ? scheduledAt : parseClock(value, scheduledAt != null ? scheduledAt : now);
+      const actualAt = factualTime(atv);
+      calls.push({
+        name: String(pick(c, "locationName") || code),
+        code,
+        scheduledAt,
+        expectedAt: factualTime(etv),
+        actualAt,
+        cancelled: pick(c, "isCancelled") === true || /cancel/i.test(String(etv || "") + " " + String(atv || "")),
+        noEstimate: actualAt === null && !!((_a = resolve(st, etv, scheduledAt != null ? scheduledAt : now)) == null ? void 0 : _a.unknownDelay)
+      });
       const reported = atv && (/^\d\d:\d\d$/.test(String(atv)) || /^on time$/i.test(String(atv)));
       if (reported) {
         const r = resolve(st, /^on time$/i.test(String(atv)) ? "On time" : atv, now);
@@ -1142,9 +1235,10 @@ var CommuteCore = (() => {
       last,
       next: nextUp,
       at: (code) => {
-        var _a;
-        return (_a = times[code]) != null ? _a : null;
+        var _a2;
+        return (_a2 = times[code]) != null ? _a2 : null;
       },
+      calls,
       cancelled: pick(json, "isCancelled") === true,
       reason: pick(json, "cancelReason") || pick(json, "delayReason") || ""
     };
@@ -1250,6 +1344,129 @@ var CommuteCore = (() => {
     return out.sort((a, b) => a.t - b.t);
   }
 
+  // src/core/disruption.ts
+  var DEFAULT_DISRUPTION_POLICY = Object.freeze({
+    rail: Object.freeze({ warnMin: 5, badMin: 15, lookbackMin: 5, affectedTrainCount: 2 }),
+    tube: Object.freeze({
+      closedSeverities: Object.freeze([1, 2, 3, 4, 5, 16, 20]),
+      significantSeverities: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 16, 20]),
+      goodSeverities: Object.freeze([10, 18, 19])
+    })
+  });
+  var finite = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var severities = (value, fallback) => Array.isArray(value) && value.every((n2) => finite(n2) && Number.isInteger(n2) && n2 >= 0) ? [...new Set(value)] : fallback;
+  function resolveDisruptionPolicy(config) {
+    var _a, _b;
+    if (!config) return DEFAULT_DISRUPTION_POLICY;
+    const defaults = DEFAULT_DISRUPTION_POLICY, rail = config.rail, tube = config.tube;
+    const warn = (_a = rail == null ? void 0 : rail.warnMin) != null ? _a : defaults.rail.warnMin, bad = (_b = rail == null ? void 0 : rail.badMin) != null ? _b : defaults.rail.badMin;
+    const bandsValid = finite(warn) && finite(bad) && warn >= 1 && bad > warn;
+    const closed = severities(tube == null ? void 0 : tube.closedSeverities, defaults.tube.closedSeverities);
+    const good = severities(tube == null ? void 0 : tube.goodSeverities, defaults.tube.goodSeverities).filter((sev) => !closed.includes(sev));
+    const significant = [.../* @__PURE__ */ new Set([...severities(tube == null ? void 0 : tube.significantSeverities, defaults.tube.significantSeverities).filter((sev) => !good.includes(sev)), ...closed])];
+    return {
+      rail: {
+        warnMin: bandsValid ? warn : defaults.rail.warnMin,
+        badMin: bandsValid ? bad : defaults.rail.badMin,
+        lookbackMin: finite(rail == null ? void 0 : rail.lookbackMin) && rail.lookbackMin >= 0 ? rail.lookbackMin : defaults.rail.lookbackMin,
+        affectedTrainCount: finite(rail == null ? void 0 : rail.affectedTrainCount) && Number.isInteger(rail.affectedTrainCount) && rail.affectedTrainCount >= 1 ? rail.affectedTrainCount : defaults.rail.affectedTrainCount
+      },
+      tube: {
+        closedSeverities: closed,
+        significantSeverities: significant,
+        goodSeverities: good
+      }
+    };
+  }
+  function railDelayLevel(lateMin, config) {
+    const p = resolveDisruptionPolicy(config).rail;
+    return lateMin >= p.badMin ? "bad" : lateMin >= p.warnMin ? "warn" : "ok";
+  }
+  function worstDisruptionStatus(line, config) {
+    if (!(line == null ? void 0 : line.statuses.length)) return null;
+    const p = resolveDisruptionPolicy(config).tube;
+    const rank2 = (sev) => p.closedSeverities.includes(sev) ? 0 : p.significantSeverities.includes(sev) ? 1 : p.goodSeverities.includes(sev) ? 3 : 2;
+    return line.statuses.reduce((a, b) => rank2(a.sev) < rank2(b.sev) || rank2(a.sev) === rank2(b.sev) && a.sev <= b.sev ? a : b);
+  }
+  function disruptionLineLevel(line, config) {
+    const status = worstDisruptionStatus(line, config);
+    if (!status) return "ok";
+    const p = resolveDisruptionPolicy(config).tube;
+    return p.closedSeverities.includes(status.sev) ? "bad" : p.goodSeverities.includes(status.sev) ? "ok" : "warn";
+  }
+  function significantLineDisruption(line, config) {
+    const p = resolveDisruptionPolicy(config).tube;
+    return line.statuses.some((s) => p.closedSeverities.includes(s.sev) || p.significantSeverities.includes(s.sev));
+  }
+  function disruptionTrainObservation(train, observation) {
+    var _a;
+    if (!["reported", "prediction"].includes(observation.source)) return null;
+    if (!finite(observation.delayMin) && !observation.cancelled && !observation.noEstimate) return null;
+    const delay = finite(observation.delayMin) ? Math.max(0, observation.delayMin) : null;
+    return {
+      ...train,
+      depLate: delay != null ? delay : train.depLate,
+      arrLate: delay != null ? delay : train.arrLate,
+      arr: finite(observation.expectedArrival) ? observation.expectedArrival : train.arr,
+      cancelled: train.cancelled || !!observation.cancelled,
+      depUnknown: train.depUnknown || !!observation.noEstimate,
+      arrUnknown: train.arrUnknown || !!observation.noEstimate,
+      reason: (train.cancelled || train.depUnknown || train.arrUnknown) && train.reason ? train.reason : (_a = observation.reason) != null ? _a : train.reason
+    };
+  }
+  var count = (n2, singular) => `${n2} ${singular}${n2 === 1 ? "" : "s"}`;
+  var trainDetail = (t) => `${t.std} ${t.operator}${t.reason ? ": " + t.reason : ""}`;
+  var unique = (values) => [...new Set(values.filter(Boolean))];
+  var encodedMessage = (message) => {
+    try {
+      return encodeURIComponent(message);
+    } catch {
+      return "utf16:" + message.split("").map((char) => char.charCodeAt(0).toString(16).padStart(4, "0")).join("");
+    }
+  };
+  function visibleDisruptions(input) {
+    const out = [], p = resolveDisruptionPolicy(input.policy), tiers = input.tiers;
+    unique(input.errors || []).forEach((message) => out.push({ id: "data-error-" + encodedMessage(message), level: "bad", title: message, detail: [], scope: "data", currentOnly: false }));
+    const missing = unique(input.notLoaded || []);
+    if (missing.length) out.push({ id: "data-missing", level: "bad", title: `${missing.join(" and ")} trains not loaded`, detail: [], scope: "data", currentOnly: false });
+    if (input.stale) out.push({ id: "data-stale", level: "bad", title: "Train times may be out of date", detail: [], scope: "data", currentOnly: false });
+    if (tiers && (tiers.cancelled.length || tiers.uncertain.length || tiers.late >= p.rail.warnMin)) {
+      const level = tiers.cancelled.length || tiers.uncertain.length || tiers.late >= p.rail.badMin ? "bad" : "warn";
+      const title = tiers.cancelled.length ? `${count(tiers.cancelled.length, "train")} cancelled on your route` : tiers.uncertain.length ? `${count(tiers.uncertain.length, "train")} delayed with no estimate` : `Delays up to ${tiers.late} min on your route`;
+      const services = [
+        ...tiers.cancelled.map((t) => ({ train: t, text: "Cancelled: " + trainDetail(t) })),
+        ...tiers.uncertain.map((t) => ({ train: t, text: "No estimate: " + trainDetail(t) })),
+        ...(tiers.delayed || []).map((t) => ({ train: t, text: `${Math.max(t.depLate || 0, t.arrLate || 0)} min late: ${trainDetail(t)}` }))
+      ];
+      const detail = unique([
+        ...services.filter((item) => item.train.reason.trim()).map((item) => item.text),
+        ...tiers.onRoute,
+        ...services.filter((item) => !item.train.reason.trim()).map((item) => item.text),
+        ...tiers.late >= p.rail.warnMin ? [`Worst train delay: ${tiers.late} min`] : [],
+        ...tiers.hit ? [`${tiers.affected} of ${tiers.total} trains are affected`] : []
+      ]);
+      const qualifier = input.stale ? input.planLater ? "Last known train information, not a forecast for your later plan" : "Last known train information" : input.planLater ? "Trains running now, not your later plan" : void 0;
+      out.push({ id: "rail-impact", level, title, detail, scope: "rail", currentOnly: true, ...qualifier ? { qualifier } : {} });
+    }
+    for (const line of input.tubeLines || []) {
+      if (!significantLineDisruption(line, input.policy)) continue;
+      const status = worstDisruptionStatus(line, input.policy);
+      if (!status) continue;
+      const level = disruptionLineLevel(line, input.policy);
+      if (level === "ok") continue;
+      out.push({
+        id: "tube-" + line.id,
+        level,
+        title: `${line.name}: ${status.desc}`,
+        detail: unique(line.statuses.filter((s) => !p.tube.goodSeverities.includes(s.sev)).map((s) => s.reason || s.desc)),
+        scope: "tube",
+        currentOnly: true,
+        ...input.planLater ? { qualifier: "Current service status, not a forecast for your later plan" } : {}
+      });
+    }
+    return out;
+  }
+
   // src/core/rules.ts
   function busyDay(t, rule) {
     const d = new Date(t), day2 = isoDay(t);
@@ -1271,32 +1488,32 @@ var CommuteCore = (() => {
     return t.arr - t.dep >= limit * 6e4;
   }
   var plannable = (t) => !t.cancelled && t.arr != null && t.dep != null && !t.depUnknown && !t.arrUnknown;
-  var LATE_WARN_MIN = 5;
-  var LATE_BAD_MIN = 15;
-  var delayLevel = (lateMin) => lateMin >= LATE_BAD_MIN ? "bad" : lateMin >= LATE_WARN_MIN ? "warn" : "ok";
+  var LATE_WARN_MIN = DEFAULT_DISRUPTION_POLICY.rail.warnMin;
+  var LATE_BAD_MIN = DEFAULT_DISRUPTION_POLICY.rail.badMin;
+  var delayLevel = (lateMin, policy) => railDelayLevel(lateMin, policy);
   var PROJECTION_ON_TIME_MIN = 2;
-  function delayStatus(lateMin, about = false) {
-    const level = delayLevel(lateMin);
+  function delayStatus(lateMin, about = false, policy) {
+    const level = delayLevel(lateMin, policy);
     if (about) return { level, text: Math.abs(lateMin) < PROJECTION_ON_TIME_MIN ? "On time" : lateMin > 0 ? `About ${lateMin} min late` : `About ${-lateMin} min early` };
     return { level, text: lateMin >= 1 ? `${lateMin} min late` : "On time" };
   }
-  function trainStatus(t) {
+  function trainStatus(t, policy) {
     if (t.cancelled) return { level: "bad", text: "Cancelled" };
     if (t.depUnknown || t.arrUnknown) return { level: "bad", text: "No estimate" };
     const late = Math.max(t.depLate || 0, t.arrLate || 0);
-    if (late >= 1) return delayStatus(late);
-    return t.timetable || t.derived || t.estimated ? null : delayStatus(0);
+    if (late >= 1) return delayStatus(late, false, policy);
+    return t.timetable || t.derived || t.estimated ? null : delayStatus(0, false, policy);
   }
-  function departureStatus(t) {
+  function departureStatus(t, policy) {
     if (t.cancelled) return { level: "bad", text: "Cancelled", showTime: false };
     if (t.depUnknown) return { level: "bad", text: "No estimate", showTime: false };
-    if ((t.depLate || 0) >= 1) return { ...delayStatus(t.depLate), showTime: true };
+    if ((t.depLate || 0) >= 1) return { ...delayStatus(t.depLate, false, policy), showTime: true };
     if (hhmm(t.dep) !== t.std) return { level: "ok", text: "Early", showTime: true };
     if (t.timetable) return { level: "info", text: "Not live", showTime: false };
     if (t.derived || t.estimated) return { level: "info", text: "Estimated", showTime: false };
-    return { ...delayStatus(0), showTime: false };
+    return { ...delayStatus(0, false, policy), showTime: false };
   }
-  var arrivalStatus = (expected, scheduled) => delayStatus(Math.round((expected - scheduled) / 6e4), true);
+  var arrivalStatus = (expected, scheduled, policy) => delayStatus(Math.round((expected - scheduled) / 6e4), true, policy);
 
   // src/core/rank.ts
   function keepEveryRoute(sorted, n2) {
@@ -1412,41 +1629,57 @@ var CommuteCore = (() => {
   var SERVICE = /\b(delay\w*|cancel\w*|disrupt\w*|suspend\w*|reduced service|special service|amended|alter\w* (service|timetable)|trains? (are|is|will|may|run|running|not)|services? (are|is|will|may|between)|line(s)? (is|are) (closed|blocked)|bus(es)? replace\w*|replacement bus\w*|engineering|signal\w*|track|power|strike|industrial action)\b/i;
   var NETWORK_WIDE = /\b(strike|industrial action|all (lines|routes|services|stations)|across the (whole )?network)\b/i;
   var facilityOnly = (m) => FACILITY.test(m) && !SERVICE.test(m);
-  function railWarnings(boards, keys, now, p) {
+  var scheduledServiceDay = (t) => {
+    var _a;
+    const anchor = t.dep - (t.depLate || 0) * 6e4;
+    return isoDay((_a = clock(t.std, anchor)) != null ? _a : anchor);
+  };
+  var sameObservedService = (a, b) => a === b || a.from === b.from && a.to === b.to && a.std === b.std && scheduledServiceDay(a) === scheduledServiceDay(b) && (a.serviceId || b.serviceId ? !!a.serviceId && a.serviceId === b.serviceId : a.operator === b.operator);
+  function railWarnings(boards, keys, now, p, context = {}) {
+    const policy = resolveDisruptionPolicy(p.disruption).rail;
     const corridor = new RegExp(`\\b(${p.corridorPattern})\\b`, "i");
-    const svcs = keys.flatMap((k) => boards[k] ? boards[k].services : []).filter((t) => t.dep >= now - 5 * 6e4);
+    const fromBoards = keys.flatMap((k) => boards[k] ? boards[k].services : []);
+    const active = [];
+    for (const observation of context.activeTrains || []) {
+      const previous = active.findIndex((t) => sameObservedService(t, observation));
+      if (previous < 0) active.push(observation);
+      else active[previous] = observation;
+    }
+    const overlaid = fromBoards.map((t) => active.find((observation) => sameObservedService(t, observation)) || t);
+    const additional = active.filter((observation) => !fromBoards.some((t) => sameObservedService(t, observation)));
+    const svcs = [...overlaid, ...additional].filter((t) => active.includes(t) || t.dep >= now - policy.lookbackMin * 6e4);
     const cancelled = svcs.filter((t) => t.cancelled);
-    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.depLate >= LATE_WARN_MIN || t.arrLate >= LATE_WARN_MIN).length;
+    const affected = svcs.filter((t) => t.cancelled || t.depUnknown || t.arrUnknown || t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin).length;
     const msgs = [...new Set(keys.flatMap((k) => boards[k] ? boards[k].msgs : []))];
     const facilities = msgs.filter(facilityOnly);
     const onRoute = msgs.filter((m) => !facilityOnly(m) && (corridor.test(m) || NETWORK_WIDE.test(m)));
     const other = msgs.filter((m) => !facilityOnly(m) && !onRoute.includes(m));
-    const uncertain = svcs.filter((t) => !t.cancelled && (t.depUnknown || t.arrUnknown) && t.dep >= now - 5 * 6e4);
+    const uncertain = svcs.filter((t) => !t.cancelled && (t.depUnknown || t.arrUnknown));
+    const delayed = svcs.filter((t) => !t.cancelled && !t.depUnknown && !t.arrUnknown && t.arr != null && (t.depLate >= policy.warnMin || t.arrLate >= policy.warnMin));
     const late = Math.max(0, ...svcs.filter((t) => !t.cancelled).map((t) => Math.max(t.depLate || 0, t.arrLate || 0)));
-    const level = cancelled.length || uncertain.length || late >= LATE_BAD_MIN ? "red" : late >= LATE_WARN_MIN ? "amber" : "none";
-    return { cancelled, uncertain, affected, total: svcs.length, hit: affected >= 2, onRoute, other, facilities, level, late };
+    const delay = railDelayLevel(late, p.disruption);
+    const level = cancelled.length || uncertain.length || delay === "bad" ? "red" : delay === "warn" ? "amber" : "none";
+    return { cancelled, uncertain, delayed, affected, total: svcs.length, hit: affected >= policy.affectedTrainCount, onRoute, other, facilities, level, late };
   }
   function noticeTitle(m) {
     const t = String(m).replace(/\s+/g, " ").trim(), first = (t.match(/^.*?[.!?](\s|$)/) || [t])[0].trim();
     return first.length > 90 ? first.slice(0, 87).replace(/\s+\S*$/, "") + "\u2026" : first.replace(/\.$/, "");
   }
-  var BAD_SEV = /* @__PURE__ */ new Set([1, 2, 3, 4, 5, 16, 20]);
-  var worstStatus = (l) => l && l.statuses.length ? l.statuses.reduce((a, b) => a.sev <= b.sev ? a : b) : null;
-  var lineOk = (l) => {
-    const w = worstStatus(l);
-    return !w || w.sev === 10 || w.sev === 18 || w.sev === 19;
-  };
-  var lineLevel = (l) => lineOk(l) ? "ok" : l.statuses.some((s) => BAD_SEV.has(s.sev)) ? "bad" : "warn";
-  function tubeFallbackNeeded(status, ids) {
+  var BAD_SEV = new Set(DEFAULT_DISRUPTION_POLICY.tube.closedSeverities);
+  var worstStatus = (l, policy) => worstDisruptionStatus(l, policy);
+  var lineOk = (l, policy) => disruptionLineLevel(l, policy) === "ok";
+  var lineLevel = (l, policy) => disruptionLineLevel(l, policy);
+  function tubeFallbackNeeded(status, ids, policy) {
     if (!status) return false;
-    const bad = (l) => !!l && l.statuses.some((s) => BAD_SEV.has(s.sev));
+    const closed = resolveDisruptionPolicy(policy).tube.closedSeverities;
+    const bad = (l) => !!l && l.statuses.some((s) => closed.includes(s.sev));
     return ids.every((id) => bad(status.find((l) => l.id === id)));
   }
-  function tubeFlags(tube, status, ids) {
+  function tubeFlags(tube, status, ids, policy) {
     const f = [];
     if (tube && status) {
       const ls = (tube.fallback ? ids.fallback : ids.main).map((id) => status.find((l) => l.id === id)).filter(Boolean);
-      const notOk = ls.filter((l) => !lineOk(l)), txt = notOk.map((l) => `${l.name}: ${worstStatus(l).desc}`).join(" \xB7 ");
+      const notOk = ls.filter((l) => !lineOk(l, policy)), txt = notOk.map((l) => `${l.name}: ${worstStatus(l, policy).desc}`).join(" \xB7 ");
       if (notOk.length === ls.length && ls.length) f.push({ lvl: "bad", txt });
       else if (notOk.length) f.push({ lvl: "warn", txt });
     }
@@ -1471,7 +1704,7 @@ var CommuteCore = (() => {
     if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
     if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
     else if (!t.cancelled) {
-      const s = trainStatus(t);
+      const s = trainStatus(t, profile.disruption);
       if (s) f.push({ lvl: s.level, txt: s.text, status: true });
     }
     if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
@@ -2003,16 +2236,16 @@ var CommuteCore = (() => {
     if (known.cancelled || (i.dir === "office" ? known.from !== p.home : known.to !== p.home)) return ordinary;
     const codes = (t) => (t.calls || []).map((call) => call.code).filter((code) => typeof code === "string" && !!code);
     const knownCalls = codes(known);
-    let train = known, count = knownCalls.length;
-    if (known.serviceId && knownCalls.length && knownCalls[0] === known.from && knownCalls[count - 1] === known.to) {
+    let train = known, count2 = knownCalls.length;
+    if (known.serviceId && knownCalls.length && knownCalls[0] === known.from && knownCalls[count2 - 1] === known.to) {
       const extensions = [];
       for (const candidate of i.trains || []) {
         const calls2 = codes(candidate), route = i.dir === "office" ? candidate.to : candidate.from;
         if (candidate.cancelled || candidate.serviceId !== known.serviceId || candidate.from !== known.from || candidate.std !== known.std || !p.lines[route] || calls2.length <= knownCalls.length || calls2[calls2.length - 1] !== candidate.to || !knownCalls.every((code, index) => calls2[index] === code)) continue;
         extensions.push(candidate);
-        if (calls2.length > count) {
+        if (calls2.length > count2) {
           train = candidate;
-          count = calls2.length;
+          count2 = calls2.length;
         }
       }
       const longest = codes(train);
@@ -2251,18 +2484,23 @@ var CommuteCore = (() => {
   function statusLine(i) {
     const detail = [];
     const t = i.tiers;
-    const notOk = (ls) => ls.filter((l) => lineLevel(l) !== "ok");
-    const tubeBad = notOk(i.tubeLines).filter((l) => lineLevel(l) === "bad"), tubeWarn = notOk(i.tubeLines).filter((l) => lineLevel(l) === "warn");
+    const policy = resolveDisruptionPolicy(i.policy).rail;
+    const describe = (l) => {
+      var _a;
+      return ((_a = worstStatus(l, i.policy)) == null ? void 0 : _a.desc) || "status unknown";
+    };
+    const notOk = (ls) => ls.filter((l) => lineLevel(l, i.policy) !== "ok");
+    const tubeBad = notOk(i.tubeLines).filter((l) => lineLevel(l, i.policy) === "bad"), tubeWarn = notOk(i.tubeLines).filter((l) => lineLevel(l, i.policy) === "warn");
     const ops = notOk(i.operators);
     const nowNote = i.planLater ? " (trains now, not your plan)" : "";
     if (t) {
       if (t.cancelled.length) detail.push(n(t.cancelled.length, "train", "trains") + " cancelled");
       if (t.uncertain.length) detail.push(n(t.uncertain.length, "train", "trains") + " delayed with no estimate");
-      if (t.hit) detail.push(`${t.affected} of ${t.total} delayed 5+ min or cancelled`);
-      else if (t.late >= 5) detail.push(`worst delay ${t.late} min`);
+      if (t.hit) detail.push(`${t.affected} of ${t.total} delayed ${policy.warnMin}+ min or cancelled`);
+      else if (t.late >= policy.warnMin) detail.push(`worst delay ${t.late} min`);
       if (t.onRoute.length) detail.push(n(t.onRoute.length, "notice") + " on your route");
     }
-    for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${l.statuses[0] ? worstDesc(l) : "status unknown"}`);
+    for (const l of [...tubeBad, ...tubeWarn, ...ops]) detail.push(`${l.name}: ${describe(l)}`);
     if (i.demo) detail.push("example data");
     if (i.timetableOnly) detail.push("timetable, not live");
     if (i.statusUnavailable) detail.push("live line status unavailable");
@@ -2271,13 +2509,13 @@ var CommuteCore = (() => {
     if (i.stale) return { level: "bad", text: "Train times may be out of date", detail };
     if (t && t.cancelled.length) return { level: "bad", text: `${n(t.cancelled.length, "train", "trains")} cancelled on your route${nowNote}`, detail };
     if (t && t.uncertain.length) return { level: "bad", text: `${n(t.uncertain.length, "train", "trains")} delayed with no estimate${nowNote}`, detail };
-    if (t && t.late >= 15) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+    if (t && t.late >= policy.badMin) return { level: "bad", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
     if (i.tubeFallback && i.fallbackUnavailable) return { level: "bad", text: "Tube lines closed now \xB7 check onward travel", detail };
     if (i.tubeFallback) return { level: "bad", text: "Circle and Met closed: via Aldgate East", detail };
-    if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${worstDesc(tubeBad[0])}`, detail };
-    if (t && t.late >= 5) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
-    if (tubeWarn.length) return { level: "warn", text: `${tubeWarn[0].name}: ${worstDesc(tubeWarn[0])}`, detail };
-    if (ops.length) return { level: "note", text: `${ops[0].name}: ${worstDesc(ops[0])}`, detail };
+    if (tubeBad.length) return { level: "bad", text: `${tubeBad[0].name}: ${describe(tubeBad[0])}`, detail };
+    if (t && t.late >= policy.warnMin) return { level: "warn", text: `Delays up to ${t.late} min on your route${nowNote}`, detail };
+    if (tubeWarn.length) return { level: "warn", text: `${tubeWarn[0].name}: ${describe(tubeWarn[0])}`, detail };
+    if (ops.length) return { level: "note", text: `${ops[0].name}: ${describe(ops[0])}`, detail };
     if (t && t.onRoute.length) return { level: "note", text: `${n(t.onRoute.length, "notice")} on your route, no train affected yet`, detail };
     if (i.demo) return { level: "info", text: "Example trains", detail };
     if (i.timetableOnly) return { level: "info", text: "Timetable times, not live", detail };
@@ -2291,7 +2529,6 @@ var CommuteCore = (() => {
     const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();
     return `${timeHHMM} ${line || "tube"}${d ? ` to ${d}` : ""}`;
   }
-  var worstDesc = (l) => l.statuses.reduce((a, b) => a.sev <= b.sev ? a : b).desc;
   var WAY_COMFORT_MIN = 3;
   function wayLevel(spareMin, effort = "walk") {
     if (spareMin < 1 || effort !== "walk" && effort !== "fast") return "bad";
@@ -2313,6 +2550,22 @@ var CommuteCore = (() => {
     [51.5983, -0.1201],
     [51.5646, -0.1063]
   ];
+  var tubeTrunk = [
+    { id: "940GZZLUKSX", name: "King's Cross St Pancras" },
+    { id: "940GZZLUFCN", name: "Farringdon" },
+    { id: "940GZZLUBBN", name: "Barbican" },
+    { id: "940GZZLUMGT", name: "Moorgate" },
+    { id: "940GZZLULVT", name: "Liverpool Street" }
+  ];
+  var tubeCorridors = [];
+  for (const lineId of ["circle", "metropolitan", "hammersmith-city"]) {
+    const to = lineId === "hammersmith-city" ? "ADE" : "ALD";
+    const terminal = to === "ADE" ? { id: "940GZZLUADE", name: "Aldgate East" } : { id: "940GZZLUALD", name: "Aldgate" };
+    for (const from of ["KGX", "STP", "ZFD"]) {
+      const stops = [...tubeTrunk.slice(from === "ZFD" ? 1 : 0), terminal];
+      tubeCorridors.push({ lineId, from, to, stops }, { lineId, from: to, to: from, stops: [...stops].reverse() });
+    }
+  }
   var samCommute = {
     id: "sam-commute",
     name: "Sam: Cartref \u21C4 20 Mansfield Street",
@@ -2371,9 +2624,11 @@ var CommuteCore = (() => {
           name: "Aldgate",
           geo: [51.5142, -0.0755],
           lines: ["circle", "metropolitan"],
+          stopId: "940GZZLUALD",
+          arrivalDirections: { circle: "eastbound", metropolitan: "northbound" },
           startsHere: { lineId: "metropolitan", nextStopId: "940GZZLULVT", runMs: 9e4 }
         },
-        { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"] }
+        { id: "ADE", name: "Aldgate East", geo: [51.5154, -0.0726], lines: ["hammersmith-city"], stopId: "940GZZLUADE", arrivalDirections: { "hammersmith-city": "eastbound" } }
       ]
     },
     // Walks worked out from a straight line: × 1.3 for streets, at 5 km/h average, 6 fast, 4.3 leisure.
@@ -2383,6 +2638,7 @@ var CommuteCore = (() => {
     effort: { runFactor: 1.8, runKm: 0.4, walkKmh: 5, carFromHomeSecs: 240, cabWaitSecs: 600, cabKmh: 20, stickMs: 3e4 },
     mergeHubs: ["ZFD", "STP"],
     sharesTubeWith: { STP: "KGX" },
+    tubeCorridors,
     operatorByHub: { KGX: "Great Northern", STP: "Thameslink", ZFD: "Thameslink" },
     // Fast long-distance Great Northern trains (Cambridge / Ely / King's Lynn) reaching King's Cross 08:00–08:30,
     // Tue–Thu, Hertfordshire school term time (holidays from hertfordshire.gov.uk; after Sep 2028 all term).
@@ -2605,14 +2861,14 @@ var CommuteCore = (() => {
   var FOLLOW_BETTER_MIN = 5;
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_GONE_GRACE_MS = 3e4;
-  var finite = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var finite2 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
   var record = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   function readyAtFromConnection(reach, ready) {
     var _a;
     const result = {};
     for (const hub of Object.keys(reach)) {
       const allowance = (_a = ready[hub]) != null ? _a : 0;
-      if (finite(reach[hub]) && finite(allowance) && allowance >= 0) result[hub] = reach[hub] + allowance;
+      if (finite2(reach[hub]) && finite2(allowance) && allowance >= 0) result[hub] = reach[hub] + allowance;
     }
     return result;
   }
@@ -2652,14 +2908,14 @@ var CommuteCore = (() => {
     };
   }
   function validTrain(t, allowNullArrival = false) {
-    return record(t) && typeof t.from === "string" && t.from.length <= 100 && typeof t.to === "string" && t.to.length <= 100 && typeof t.std === "string" && /^\d\d:\d\d$/.test(t.std) && finite(t.dep) && (finite(t.arr) || allowNullArrival && t.arr === null) && Math.abs(t.dep) < 864e13 && (t.arr === null || Math.abs(t.arr) < 864e13) && finite(t.depLate) && Math.abs(t.depLate) < 1e6 && finite(t.arrLate) && Math.abs(t.arrLate) < 1e6 && typeof t.operator === "string" && t.operator.length <= 500 && typeof t.cancelled === "boolean" && typeof t.depUnknown === "boolean" && typeof t.reason === "string" && t.reason.length <= 1e4 && (t.serviceId == null || typeof t.serviceId === "string" && t.serviceId.length <= 500) && (t.platform == null || typeof t.platform === "string" && t.platform.length <= 100);
+    return record(t) && typeof t.from === "string" && t.from.length <= 100 && typeof t.to === "string" && t.to.length <= 100 && typeof t.std === "string" && /^\d\d:\d\d$/.test(t.std) && finite2(t.dep) && (finite2(t.arr) || allowNullArrival && t.arr === null) && Math.abs(t.dep) < 864e13 && (t.arr === null || Math.abs(t.arr) < 864e13) && finite2(t.depLate) && Math.abs(t.depLate) < 1e6 && finite2(t.arrLate) && Math.abs(t.arrLate) < 1e6 && typeof t.operator === "string" && t.operator.length <= 500 && typeof t.cancelled === "boolean" && typeof t.depUnknown === "boolean" && typeof t.reason === "string" && t.reason.length <= 1e4 && (t.serviceId == null || typeof t.serviceId === "string" && t.serviceId.length <= 500) && (t.platform == null || typeof t.platform === "string" && t.platform.length <= 100);
   }
   function validOption(o, depth = 0) {
     if (depth > 4) return false;
-    return record(o) && validTrain(o.train) && typeof o.hub === "string" && finite(o.leave) && finite(o.arrive) && o.leave <= o.train.dep && o.arrive >= o.train.arr && Array.isArray(o.flags) && o.flags.length <= 100 && o.flags.every((f) => record(f) && typeof f.txt === "string" && ["ok", "info", "warn", "bad"].includes(String(f.lvl))) && (o.alts === void 0 || Array.isArray(o.alts) && o.alts.length <= 20 && o.alts.every((alt) => validOption(alt, depth + 1))) && Array.isArray(o.legs) && o.legs.length > 0 && o.legs.length <= 200 && o.legs.every((l) => record(l) && typeof l.d === "string" && l.d.length <= 1e4 && (l.t === null || finite(l.t)) && (l.note == null || typeof l.note === "string"));
+    return record(o) && validTrain(o.train) && typeof o.hub === "string" && finite2(o.leave) && finite2(o.arrive) && o.leave <= o.train.dep && o.arrive >= o.train.arr && Array.isArray(o.flags) && o.flags.length <= 100 && o.flags.every((f) => record(f) && typeof f.txt === "string" && ["ok", "info", "warn", "bad"].includes(String(f.lvl))) && (o.alts === void 0 || Array.isArray(o.alts) && o.alts.length <= 20 && o.alts.every((alt) => validOption(alt, depth + 1))) && Array.isArray(o.legs) && o.legs.length > 0 && o.legs.length <= 200 && o.legs.every((l) => record(l) && typeof l.d === "string" && l.d.length <= 1e4 && (l.t === null || finite2(l.t)) && (l.note == null || typeof l.note === "string"));
   }
   function startFollowRoute(option, ctx) {
-    if (!validOption(option) || !finite(ctx.now) || !["office", "home"].includes(ctx.direction) || !["commute", "leisure"].includes(ctx.mode) || option.train.dep < ctx.now || option.train.cancelled || option.train.depUnknown || option.train.arrUnknown || option.uncertain || option.effort === "none") return null;
+    if (!validOption(option) || !finite2(ctx.now) || !["office", "home"].includes(ctx.direction) || !["commute", "leisure"].includes(ctx.mode) || option.train.dep < ctx.now || option.train.cancelled || option.train.depUnknown || option.train.arrUnknown || option.uncertain || option.effort === "none") return null;
     const copy = clone(option);
     return {
       version: 1,
@@ -2680,7 +2936,7 @@ var CommuteCore = (() => {
   }
   function restoreFollowRoute(value) {
     try {
-      if (!record(value) || value.version !== 1 || !["office", "home"].includes(String(value.direction)) || !["commute", "leisure"].includes(String(value.mode)) || !finite(value.startedAt) || !finite(value.plannedArrival) || !finite(value.expectedArrival) || !validOption(value.option) || !validTrain(value.lastTrain, true) || !sameService({ ...value.option, train: value.lastTrain }, value.option) || typeof value.id !== "string" || value.id !== followServiceKey(value.option) || !["before-train", "on-train", "after-train", "arrived"].includes(String(value.phase)) || value.incident != null && !["cancelled", "unknown", "missed", "boarding"].includes(String(value.incident)) || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every((n2) => record(n2) && typeof n2.id === "string" && typeof n2.text === "string" && finite(n2.at) && ["cancelled", "unknown", "missed", "arrival", "platform", "recovered", "boarding"].includes(String(n2.kind)) && (n2.deltaMin == null || finite(n2.deltaMin))) || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every((x) => typeof x === "string") || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every((x) => typeof x === "string")) return null;
+      if (!record(value) || value.version !== 1 || !["office", "home"].includes(String(value.direction)) || !["commute", "leisure"].includes(String(value.mode)) || !finite2(value.startedAt) || !finite2(value.plannedArrival) || !finite2(value.expectedArrival) || !validOption(value.option) || !validTrain(value.lastTrain, true) || !sameService({ ...value.option, train: value.lastTrain }, value.option) || typeof value.id !== "string" || value.id !== followServiceKey(value.option) || !["before-train", "on-train", "after-train", "arrived"].includes(String(value.phase)) || value.incident != null && !["cancelled", "unknown", "missed", "boarding"].includes(String(value.incident)) || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every((n2) => record(n2) && typeof n2.id === "string" && typeof n2.text === "string" && finite2(n2.at) && ["cancelled", "unknown", "missed", "arrival", "platform", "recovered", "boarding"].includes(String(n2.kind)) && (n2.deltaMin == null || finite2(n2.deltaMin))) || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every((x) => typeof x === "string") || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every((x) => typeof x === "string")) return null;
       return clone(value);
     } catch {
       return null;
@@ -2696,7 +2952,7 @@ var CommuteCore = (() => {
   function legsFor(route) {
     const before = route.option.train, after = route.lastTrain;
     const departureShift = after.dep - before.dep;
-    const railShift = finite(after.arr) ? after.arr - before.arr : route.expectedArrival - route.plannedArrival;
+    const railShift = finite2(after.arr) ? after.arr - before.arr : route.expectedArrival - route.plannedArrival;
     const source = route.option.legs;
     const lastTimed = source.reduce((last, leg, index) => leg.t != null && !leg.calls ? index : last, -1);
     return source.map((leg, index) => {
@@ -2722,10 +2978,10 @@ var CommuteCore = (() => {
     route.phase = order[Math.max(order.indexOf(route.phase), order.indexOf(phase))];
     const fresh = input.dataFresh !== false;
     const onward = route.phase === "after-train" || route.phase === "arrived";
-    const suppliedArrival = !onward && finite(input.currentTrainArrival) ? input.currentTrainArrival + (route.plannedArrival - route.option.train.arr) : input.currentArrival;
+    const suppliedArrival = !onward && finite2(input.currentTrainArrival) ? input.currentTrainArrival + (route.plannedArrival - route.option.train.arr) : input.currentArrival;
     const connectionReady = (_a = input.readyAt) == null ? void 0 : _a[route.option.hub];
-    const connectionKnown = !!input.activeConnection && finite(connectionReady);
-    const liveRailReport = route.phase === "on-train" && input.trainArrivalLive === true && finite(input.currentTrainArrival);
+    const connectionKnown = !!input.activeConnection && finite2(connectionReady);
+    const liveRailReport = route.phase === "on-train" && input.trainArrivalLive === true && finite2(input.currentTrainArrival);
     const arrivalFresh = fresh || liveRailReport;
     const sourceSelected = fresh ? input.options.find((o) => sameService(o, route.option)) : void 0;
     const reportedTrain = (train) => liveRailReport ? {
@@ -2751,7 +3007,7 @@ var CommuteCore = (() => {
       }
     };
     if (onward) {
-      if (((_b = input.onwardFresh) != null ? _b : fresh) && finite(suppliedArrival) && Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
+      if (((_b = input.onwardFresh) != null ? _b : fresh) && finite2(suppliedArrival) && Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
         const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
         if (Math.floor(suppliedArrival / MIN) !== Math.floor(previous.expectedArrival / MIN)) addNotice("arrival", String(suppliedArrival), `Your onward journey has changed; arriving ${hhmm(suppliedArrival)}`, delta);
         route.expectedArrival = suppliedArrival;
@@ -2770,7 +3026,7 @@ var CommuteCore = (() => {
         text2 = "Your train is delayed with no estimate";
         addNotice("unknown", "no-estimate", text2);
       } else {
-        const arrival = finite(suppliedArrival) ? suppliedArrival : selected.train.arr + (route.plannedArrival - route.option.train.arr);
+        const arrival = finite2(suppliedArrival) ? suppliedArrival : selected.train.arr + (route.plannedArrival - route.option.train.arr);
         if (Math.abs(arrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
           const delta = Math.round((arrival - previous.expectedArrival) / MIN);
           const late = route.phase === "on-train" ? selected.train.arrLate : Math.max(selected.train.depLate, selected.train.arrLate);
@@ -2779,7 +3035,7 @@ var CommuteCore = (() => {
           route.expectedArrival = arrival;
         }
       }
-    } else if (arrivalFresh && finite(suppliedArrival)) {
+    } else if (arrivalFresh && finite2(suppliedArrival)) {
       if (Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
         const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
         if (Math.floor(suppliedArrival / MIN) !== Math.floor(previous.expectedArrival / MIN)) addNotice("arrival", String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
@@ -2829,7 +3085,7 @@ var CommuteCore = (() => {
       const knownCalls = (Array.isArray(route.option.alts) ? route.option.alts : []).filter((alt) => record(alt) && validTrain(alt.train) && typeof alt.hub === "string");
       boardingRecovery = (input.availableOptions || input.options).filter((o) => {
         var _a2;
-        return knownCalls.some((alt) => sameService(alt, o)) && finite(o.train.dep) && o.train.dep >= input.now && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && input.readyAt[o.hub] <= o.train.dep : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now));
+        return knownCalls.some((alt) => sameService(alt, o)) && finite2(o.train.dep) && o.train.dep >= input.now && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite2((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && input.readyAt[o.hub] <= o.train.dep : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now));
       }).sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null;
       if (boardingRecovery) {
         status = "hurry";
@@ -2866,10 +3122,10 @@ var CommuteCore = (() => {
       if (recoveryNotice) route.notices = [recoveryNotice, ...route.notices.filter((n2) => n2 !== recoveryNotice)];
       route.incident = null;
     }
-    const recovery = status === "missed" || status === "cancelled" || status === "unknown" && level === "bad" || route.lastTrain.arrLate >= 15;
+    const recovery = status === "missed" || status === "cancelled" || status === "unknown" && level === "bad" || railDelayLevel(route.lastTrain.arrLate, input.policy) === "bad";
     const candidate = boardingRecovery || (!onward && route.phase !== "on-train" && (!input.activeConnection || recovery) && fresh ? (input.availableOptions || input.options).filter((o) => {
       var _a2;
-      return !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && o.train.dep >= input.readyAt[o.hub] : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now)) && o.train.dep >= input.now && !alternativeDismissed(route, o) && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN);
+      return !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown && !o.train.arrUnknown && !o.uncertain && (input.activeConnection ? finite2((_a2 = input.readyAt) == null ? void 0 : _a2[o.hub]) && o.train.dep >= input.readyAt[o.hub] : !o.missed && (o.effort ? ["walk", "fast"].includes(o.effort) : o.leave >= input.now)) && o.train.dep >= input.now && !alternativeDismissed(route, o) && (recovery || route.expectedArrival - o.arrive >= FOLLOW_BETTER_MIN * MIN);
     }).sort((a, b) => a.arrive - b.arrive || b.leave - a.leave)[0] || null : null);
     let alternative = candidate;
     if (candidate && input.activeConnection) {
@@ -2896,10 +3152,10 @@ var CommuteCore = (() => {
     if (!onward && (fresh || input.trainArrivalLive)) {
       const t = route.lastTrain;
       if (route.phase !== "on-train" || t.cancelled || t.depUnknown || t.arrUnknown || t.arr == null) {
-        railStatus = t.arr == null && !t.cancelled ? { level: "bad", text: "No estimate" } : trainStatus(t);
+        railStatus = t.arr == null && !t.cancelled ? { level: "bad", text: "No estimate" } : trainStatus(t, input.policy);
       } else if (!t.timetable && !t.derived && !t.estimated || input.trainArrivalLive) {
-        const expected = finite(input.currentTrainArrival) ? input.currentTrainArrival : t.arr;
-        railStatus = arrivalStatus(expected, route.option.train.arr - route.option.train.arrLate * MIN);
+        const expected = finite2(input.currentTrainArrival) ? input.currentTrainArrival : t.arr;
+        railStatus = arrivalStatus(expected, route.option.train.arr - route.option.train.arrLate * MIN, input.policy);
       }
     }
     const legs = legsFor(route).filter((l) => l.t != null && !l.calls);
@@ -2919,17 +3175,17 @@ var CommuteCore = (() => {
 
   // src/core/followTube.ts
   var FOLLOW_TUBE_FRESH_MS = 3 * 6e4;
-  var finite2 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var finite3 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
   var record2 = (v) => !!v && typeof v === "object" && !Array.isArray(v);
   var parsedTime = (v) => {
-    if (finite2(v)) return v;
+    if (finite3(v)) return v;
     if (typeof v !== "string" || !v) return null;
     const t = Date.parse(v);
-    return finite2(t) ? t : null;
+    return finite3(t) ? t : null;
   };
   function followTubeArrival(predictions, i) {
     var _a, _b, _c, _d, _e, _f;
-    if (!Array.isArray(predictions) || !i.vehicle || !i.hub || !i.stopId || !["eastbound", "westbound"].includes(i.direction) || !finite2(i.now) || !finite2(i.fetchedAt) || !finite2(i.readyMs) || i.readyMs < 0 || i.now < i.fetchedAt || i.now - i.fetchedAt >= FOLLOW_TUBE_FRESH_MS) return null;
+    if (!Array.isArray(predictions) || !i.vehicle || !i.hub || !i.stopId || !["eastbound", "westbound", "northbound", "southbound"].includes(i.direction) || !finite3(i.now) || !finite3(i.fetchedAt) || !finite3(i.readyMs) || i.readyMs < 0 || i.now < i.fetchedAt || i.now - i.fetchedAt >= FOLLOW_TUBE_FRESH_MS) return null;
     for (const p of predictions) {
       if (!record2(p)) continue;
       const vehicle = (_a = p.vehicle) != null ? _a : p.vehicleId;
@@ -2942,7 +3198,7 @@ var CommuteCore = (() => {
       const observed = observedValue == null ? i.fetchedAt : parsedTime(observedValue);
       if (observed == null || observed > i.now + 3e4 || i.now - observed >= FOLLOW_TUBE_FRESH_MS) continue;
       const explicit = (_f = p.t) != null ? _f : p.expectedArrival;
-      const arrival = explicit != null ? parsedTime(explicit) : finite2(p.timeToStation) && p.timeToStation >= 0 ? observed + p.timeToStation * 1e3 : null;
+      const arrival = explicit != null ? parsedTime(explicit) : finite3(p.timeToStation) && p.timeToStation >= 0 ? observed + p.timeToStation * 1e3 : null;
       if (arrival == null || arrival < i.now - 3e4) continue;
       return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true };
     }
@@ -2953,8 +3209,8 @@ var CommuteCore = (() => {
   var MIN2 = 6e4;
   var DAY = 864e5;
   var record3 = (x) => !!x && typeof x === "object" && !Array.isArray(x);
-  var finite3 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
-  var epoch = (n2) => finite3(n2) && n2 > 0 && n2 < 864e13;
+  var finite4 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var epoch = (n2) => finite4(n2) && n2 > 0 && n2 < 864e13;
   var text = (x, max = 500) => typeof x === "string" && x.length > 0 && x.length <= max;
   var kinds = ["cancelled", "late", "earlier", "missed", "updated"];
   function trainId(x) {
@@ -2965,7 +3221,7 @@ var CommuteCore = (() => {
     return a.operator === b.operator && a.std === b.std && a.from === b.from && (!(a.serviceId && b.serviceId) || a.serviceId === b.serviceId);
   }
   function isLegacyFollowRoute(x) {
-    return record3(x) && (x.dir === "office" || x.dir === "home") && trainId(x.train) && text(x.hub, 100) && Array.isArray(x.calls) && x.calls.length > 0 && x.calls.length <= 20 && x.calls.every(trainId) && x.calls.some((c) => sameId(c, x.train)) && epoch(x.lastDep) && epoch(x.planned) && epoch(x.arrive) && epoch(x.followedAt) && finite3(x.afterMs) && x.afterMs >= 0 && x.afterMs <= 2 * DAY && epoch(x.planned - x.afterMs) && finite3(x.lateMin) && Math.abs(x.lateMin) <= 7 * 24 * 60 && Math.abs(x.lastDep - x.followedAt) <= 2 * DAY && Math.abs(x.arrive - x.planned) <= 7 * DAY && (x.reason === null || record3(x.reason) && kinds.includes(String(x.reason.kind)) && text(x.reason.text, 1e4) && epoch(x.reason.at) && ["bad", "warn", "ok"].includes(String(x.reason.level))) && (x.dismissed === null || kinds.includes(String(x.dismissed))) && Array.isArray(x.declined) && x.declined.length <= 100 && x.declined.every((k) => text(k, 1e3) && /^.{1,500}\|(?:[01]\d|2[0-3]):[0-5]\d\|[^|]{1,100}$/.test(k));
+    return record3(x) && (x.dir === "office" || x.dir === "home") && trainId(x.train) && text(x.hub, 100) && Array.isArray(x.calls) && x.calls.length > 0 && x.calls.length <= 20 && x.calls.every(trainId) && x.calls.some((c) => sameId(c, x.train)) && epoch(x.lastDep) && epoch(x.planned) && epoch(x.arrive) && epoch(x.followedAt) && finite4(x.afterMs) && x.afterMs >= 0 && x.afterMs <= 2 * DAY && epoch(x.planned - x.afterMs) && finite4(x.lateMin) && Math.abs(x.lateMin) <= 7 * 24 * 60 && Math.abs(x.lastDep - x.followedAt) <= 2 * DAY && Math.abs(x.arrive - x.planned) <= 7 * DAY && (x.reason === null || record3(x.reason) && kinds.includes(String(x.reason.kind)) && text(x.reason.text, 1e4) && epoch(x.reason.at) && ["bad", "warn", "ok"].includes(String(x.reason.level))) && (x.dismissed === null || kinds.includes(String(x.dismissed))) && Array.isArray(x.declined) && x.declined.length <= 100 && x.declined.every((k) => text(k, 1e3) && /^.{1,500}\|(?:[01]\d|2[0-3]):[0-5]\d\|[^|]{1,100}$/.test(k));
   }
   function flatten(options, depth = 0) {
     if (depth > 4 || !Array.isArray(options)) return [];
@@ -2978,7 +3234,7 @@ var CommuteCore = (() => {
     return out;
   }
   function matches(t, id, legacy) {
-    return sameId(t, id) && finite3(t.dep) && finite3(t.depLate) && Math.abs(t.dep - legacy.lastDep) < DAY / 2;
+    return sameId(t, id) && finite4(t.dep) && finite4(t.depLate) && Math.abs(t.dep - legacy.lastDep) < DAY / 2;
   }
   function migrateFollowRoute(value, options, ctx) {
     var _a, _b, _c, _d;
@@ -2986,7 +3242,7 @@ var CommuteCore = (() => {
       if (!isLegacyFollowRoute(value) || !epoch(ctx.now) || !["commute", "leisure"].includes(ctx.mode)) return null;
       const legacy = value, all = flatten(options);
       const found = all.find((o) => o.hub === legacy.hub && matches(o.train, legacy.train, legacy));
-      if (!found || !finite3(found.train.arr) || !Array.isArray(found.legs) || !found.legs.length) return null;
+      if (!found || !finite4(found.train.arr) || !Array.isArray(found.legs) || !found.legs.length) return null;
       const snapshot = JSON.parse(JSON.stringify(found));
       const actualTrain = JSON.parse(JSON.stringify(found.train));
       const baselineRail = legacy.planned - legacy.afterMs;
@@ -3046,6 +3302,170 @@ var CommuteCore = (() => {
     } catch {
       return null;
     }
+  }
+
+  // src/core/journeyProgress.ts
+  var finite5 = (v) => typeof v === "number" && Number.isFinite(v);
+  var clamp = (v) => Math.max(0, Math.min(1, v));
+  var fractionAt = (at, start, end) => finite5(start) && finite5(end) && end > start ? clamp((at - start) / (end - start)) : null;
+  function journeyProgress(i) {
+    var _a, _b, _c, _d;
+    if (!finite5(i.now) || !Array.isArray(i.legs) || !i.legs.length) return null;
+    if (i.legs.some((l) => !l || !finite5(l.start) || l.end !== null && (!finite5(l.end) || l.end < l.start))) return null;
+    const currentIndex = i.legs.findIndex((l) => l.id === i.activeLeg);
+    if (currentIndex < 0) return null;
+    const current = { ...i.legs[currentIndex] }, e = i.evidence;
+    const age = finite5(e.observedAt) ? i.now - e.observedAt : null;
+    const fresh = age !== null && age >= 0 && age < ((_a = e.maxAgeMs) != null ? _a : FOLLOW_TUBE_FRESH_MS);
+    const accepted = (e.source === "reported" || e.source === "prediction") && fresh && e.identityMatched === true;
+    let source = e.source === "modelled" ? "modelled" : accepted ? e.source : age !== null && age >= 0 && !fresh ? "stale" : "unknown";
+    if (e.identityMatched === false) source = "modelled";
+    const calls = (i.calls || []).map((c) => {
+      const actual = finite5(c.actualAt) && finite5(e.observedAt) && e.observedAt <= i.now && c.actualAt <= e.observedAt ? c.actualAt : null;
+      const expected = !i.cancelled && !i.noEstimate && !c.cancelled && finite5(c.expectedAt) ? c.expectedAt : null;
+      const reported = actual !== null && !c.cancelled && e.source === "reported" && e.identityMatched === true;
+      const time = reported ? actual : accepted ? expected : null;
+      const deltaMin = accepted && finite5(c.scheduledAt) && time !== null ? Math.round((time - c.scheduledAt) / 6e4) : null;
+      return {
+        ...c,
+        state: reported ? "reported" : accepted && expected !== null ? "expected" : "unknown",
+        time: time != null ? time : finite5(c.scheduledAt) ? c.scheduledAt : null,
+        deltaMin,
+        level: c.cancelled ? "bad" : deltaMin === null || current.kind === "tube" ? "info" : delayLevel(deltaMin, i.policy)
+      };
+    });
+    const lastReported = calls.reduce((last, c, index) => c.state === "reported" ? index : last, -1);
+    let fraction;
+    if (e.source === "reported" && lastReported >= 0 && calls.length > 1) {
+      fraction = lastReported / (calls.length - 1);
+    } else {
+      const at = source === "stale" && finite5(e.observedAt) ? e.observedAt : i.now;
+      fraction = source === "unknown" ? null : fractionAt(
+        at,
+        (_b = current.travelStart) != null ? _b : current.start,
+        accepted && finite5(e.expectedAt) ? e.expectedAt : (_c = current.travelEnd) != null ? _c : current.end
+      );
+      if (source === "reported") source = "prediction";
+    }
+    if (i.cancelled || i.noEstimate) {
+      if (lastReported < 0) fraction = null;
+    }
+    const reportedCall = lastReported >= 0 ? calls[lastReported] : null;
+    const targetExpected = accepted && finite5(e.expectedAt) ? e.expectedAt : null;
+    const targetScheduled = finite5(e.scheduledAt) ? e.scheduledAt : null;
+    const lastDelta = (_d = reportedCall == null ? void 0 : reportedCall.deltaMin) != null ? _d : null;
+    const delta = targetExpected !== null && targetScheduled !== null ? Math.round((targetExpected - targetScheduled) / 6e4) : lastDelta;
+    let status = { text: "Timing estimate \xB7 live comparison unavailable", level: "info", deltaMin: null };
+    if (accepted && delta !== null) {
+      status = { text: delta < 0 ? `${-delta} min ahead` : delta > 0 ? `${delta} min behind` : "On time", level: current.kind === "tube" ? "info" : delayLevel(delta, i.policy), deltaMin: delta };
+      status.text += " \xB7 " + (targetExpected !== null && targetScheduled !== null ? "live expected" : "at last report");
+    }
+    if (source === "stale") status = { text: "Last known progress \xB7 waiting for fresh data", level: "info", deltaMin: null };
+    if (i.noEstimate) status = { text: "No live arrival estimate", level: "bad", deltaMin: null };
+    if (i.cancelled) status = { text: "Service cancelled \xB7 check your next step", level: "bad", deltaMin: null };
+    const progressLabel = source === "reported" ? "Calling-point progress" : source === "stale" ? "Last known progress" : source === "unknown" ? "Progress unavailable" : "Estimated time progress";
+    const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}; no passing-point position is claimed.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
+    return {
+      current,
+      currentIndex,
+      fraction,
+      source,
+      progressLabel,
+      evidenceLabel,
+      identityLabel: i.uncertainIdentity ? "Likely service \xB7 identity not confirmed" : "",
+      status,
+      calls,
+      legs: i.legs.map((l, index) => ({
+        ...l,
+        state: index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming",
+        fraction: index < currentIndex ? 1 : index === currentIndex ? fraction != null ? fraction : 0 : 0
+      }))
+    };
+  }
+  var kindLabel = (kind) => ({ walk: "Walk", rail: "Train", tube: "Tube", connection: "Connection" })[kind];
+  function segmentLegs(segments, start, prefix) {
+    const result = [];
+    let cursor = start, pending = null;
+    for (const segment of segments) {
+      if (!finite5(segment.secs) || segment.secs < 0) return [];
+      const end = cursor + segment.secs * 1e3;
+      const movement = segment.kind === "walk" ? "walk" : segment.kind === "ride" ? "tube" : segment.kind === "planned" ? "connection" : null;
+      if (movement && end > cursor) {
+        const previous = result[result.length - 1];
+        if ((previous == null ? void 0 : previous.kind) === movement) {
+          previous.end = end;
+          previous.travelEnd = end;
+        } else result.push({ id: `${prefix}-${result.length}`, kind: movement, label: kindLabel(movement), start: pending != null ? pending : cursor, end, travelStart: cursor, travelEnd: end });
+        pending = null;
+      } else if (result.length) {
+        result[result.length - 1].end = end;
+      } else if (end > cursor && pending === null) pending = cursor;
+      cursor = end;
+    }
+    if (!result.length && cursor > start) result.push({ id: `${prefix}-0`, kind: "connection", label: "Connection", start, end: cursor });
+    return result;
+  }
+  function progressLegsFromSteps(i) {
+    var _a;
+    const o = i.option, t = i.train || o.train, names = i.names || {};
+    if (!finite5(o.leave) || !finite5(t.dep)) return [];
+    const before = Array.isArray(o.before) ? o.before : ((_a = i.route) == null ? void 0 : _a.before) || [];
+    const steps = i.steps || (Array.isArray(o.legs) ? o.legs : []);
+    const railStep = steps.findIndex((l) => l.train);
+    const beforeSteps = railStep >= 0 ? steps.slice(0, railStep).filter((l) => finite5(l.t) && !l.calls) : [];
+    const movementKinds = before.filter((s) => ["walk", "ride", "planned"].includes(s.kind));
+    const legs = beforeSteps.flatMap((step, index) => {
+      var _a2;
+      const start = step.t, end = index + 1 < beforeSteps.length ? beforeSteps[index + 1].t : t.dep;
+      if (end <= start) return [];
+      const mode = (_a2 = movementKinds[index]) == null ? void 0 : _a2.kind;
+      const kind = step.tube || mode === "ride" ? "tube" : mode === "planned" ? "connection" : "walk";
+      return [{
+        id: `before-${index}`,
+        kind,
+        label: kindLabel(kind),
+        start,
+        end,
+        travelStart: start,
+        travelEnd: kind === "tube" && finite5(i.tubeRideSecs) && i.tubeRideSecs > 0 ? Math.min(end, start + i.tubeRideSecs * 1e3) : end
+      }];
+    });
+    if (!legs.length && o.leave < t.dep) legs.push({ id: "before-0", kind: "connection", label: "Access", start: o.leave, end: t.dep });
+    legs.push({
+      id: "rail",
+      kind: "rail",
+      label: "Train",
+      start: t.dep,
+      end: finite5(t.arr) ? t.arr : null,
+      travelStart: t.dep,
+      travelEnd: finite5(t.arr) ? t.arr : null,
+      from: names[t.from] || t.from,
+      to: names[t.to] || t.to,
+      fromCode: t.from,
+      toCode: t.to
+    });
+    const railEnd = finite5(t.arr) ? t.arr : finite5(o.train.arr) ? o.train.arr : null;
+    if (railEnd === null) return legs;
+    if (i.route) {
+      return [...legs, ...segmentLegs(i.route.after, railEnd, "after")];
+    }
+    const tube = steps.find((l) => l.tube && finite5(l.t) && l.t >= railEnd);
+    const arrival = steps.reduce((last, l) => finite5(l.t) && l.t > last ? l.t : last, railEnd);
+    if (tube && finite5(tube.t) && finite5(i.tubeRideSecs) && i.tubeRideSecs > 0) {
+      const end = tube.t + i.tubeRideSecs * 1e3;
+      legs.push({ id: "after-tube", kind: "tube", label: "Tube", start: railEnd, end, travelStart: tube.t, travelEnd: end });
+      if (arrival > end) legs.push({ id: "after-walk", kind: "walk", label: "Walk", start: end, end: arrival });
+    } else if (arrival > railEnd) {
+      legs.push({ id: "after-0", kind: tube ? "connection" : "walk", label: tube ? "Onward connection" : "Walk", start: railEnd, end: arrival });
+    }
+    return legs;
+  }
+  function retimeProgressLeg(i) {
+    return i.legs.map((l) => l.id === i.legId ? { ...l, start: i.start, travelStart: i.start, end: i.expectedEnd, travelEnd: i.expectedEnd } : finite5(i.tailEnd) && l.kind === "walk" && l.id.startsWith("after") && finite5(i.expectedEnd) ? { ...l, start: i.expectedEnd, end: i.tailEnd } : { ...l });
+  }
+  function progressContextCurrent(legs, observedAt, departure) {
+    const ends = legs.map((l) => l.end).filter(finite5);
+    return finite5(observedAt) && finite5(departure) && departure >= observedAt && ends.length > 0 && departure <= Math.max(...ends);
   }
 
   // src/core/index.ts
@@ -3116,10 +3536,10 @@ const fix = () => ({ here:state.here, acc:state.locAcc, at:state.lastFixAt });
 const onLine = () => C.onLine(fix(), state.atHub, LINE.KGX);
 const progressData = id => { const p=progressFor(id); return p && p.data || null; };
 // Which train you're probably on; remembers it once sure (state.trainLock).
-function whichTrain(now){
+function whichTrain(now,remember=true){
   if(!state.onLine || !state.boards) return null;
   const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null);
-  state.trainLock=r.lock; return r.result;
+  if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
@@ -3410,7 +3830,10 @@ async function fetchAldgateArrivals(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
   if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
   return (await r.json()).filter(a=>/^(circle|metropolitan)$/.test(a.lineId))
-    .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId, t:a.expectedArrival?new Date(a.expectedArrival).getTime():Date.now()+(a.timeToStation||0)*1000 }));
+    .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId,
+      t:a.expectedArrival?new Date(a.expectedArrival).getTime():Number.isFinite(a.timeToStation)&&a.timeToStation>=0?Date.now()+a.timeToStation*1000:NaN,
+      platform:a.platformName||'',stopId:a.naptanId||null,observedAt:a.timestamp?Date.parse(a.timestamp):null }))
+    .filter(a=>Number.isFinite(a.t));
 }
 async function fetchTfl(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
@@ -3478,8 +3901,8 @@ function demoLondon(){
 }
 function londonOrigin(){ return state.origin || (state.here ? `${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}` : ""); }
 
-const worst = C.worstStatus, lineOk = C.lineOk;
-const aldgateUnusable = () => C.tubeFallbackNeeded(state.status||null, ["circle","metropolitan"]);
+const worst = line => C.worstStatus(line,PROFILE.disruption), lineOk = line => C.lineOk(line,PROFILE.disruption);
+const aldgateUnusable = () => C.tubeFallbackNeeded(state.status||null, ["circle","metropolitan"],PROFILE.disruption);
 
 // ---------- Journey model ----------
 function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"office") : state.saved.dirMode; }
@@ -3512,7 +3935,13 @@ function buildJourneys(dir, now, o){
 // "Delayed" without an estimate) can be recommended on the top card.
 // Tube line status flags for a commute option (train flags come from the engine).
 const TUBE_FALLBACK_NOTE="Via Aldgate East: Circle and Met closed";
-const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:TUBE_FALLBACK_NOTE }).map(f=>({...f,network:true}));
+const tubeFlags = tube => {
+  const lines=(tube?.fallback?['hammersmith-city']:['circle','metropolitan']).filter(id=>{
+    const status=(state.status||[]).find(line=>line.id===id);return status&&!lineOk(status);
+  });
+  return C.tubeFlags(tube,state.status||null,{main:['circle','metropolitan'],fallback:['hammersmith-city'],fallbackNote:TUBE_FALLBACK_NOTE},PROFILE.disruption)
+    .map(flag=>({...flag,network:true,networkLines:flag.txt===TUBE_FALLBACK_NOTE?[]:lines}));
+};
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>(dir==="office" && !r.extra.outTo) || r.extra.planned);
@@ -3731,7 +4160,7 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network&&signalConsolidatesFlag(f)?' data-network-flag="true"':''}>${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -3757,7 +4186,7 @@ function vsBest(j, best, dest){
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
 // Departure board, Expected column: the engine's departure status, as the time (when it differs) or a word.
 function expectedHtml(t, cls){
-  const s=C.departureStatus(t);
+  const s=C.departureStatus(t,PROFILE.disruption);
   return s.showTime ? `<span class="t ${cls} exp ${s.level}">${hhmm(t.dep)}</span>` : `<span class="${cls} word exp ${s.level}">${esc(s.text)}</span>`;
 }
 // On a departure board an "On time" status pill repeats the Expected column; any delay still says its minutes.
@@ -3805,8 +4234,8 @@ function renderOnTrain(now, m){
   const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
   if(pgAt) { m.projected = pgAt; m.live = true; }
   // No status for a timetable train without a live report: never claimed on time without live data.
-  const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched);
-  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+  const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched,PROFILE.disruption);
+  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note" data-block="progress">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
@@ -3814,6 +4243,7 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : "Letchworth";
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
@@ -3841,7 +4271,7 @@ function renderNearlyHome(now){
   const e=C.nearlyHomeEta(now, state.here, letAt, state.saved.home||null, exit, walk, fast?"fast":"avg", PROFILE);
   if(e.kind==="train"){
     $("#hero").innerHTML=`${head}<div class="big" data-block="headline"><span class="arr t">${hhmm(e.at)}</span><span class="arrlbl">at home</span></div>
-      <div data-block="which"><span class="slack">On the ${esc(C.trainName(t))}${t.timetable&&!(pg&&pg.data)?"":(st=>` <span class="slackst ${st.level}">${esc(st.text)}</span>`)(C.arrivalStatus(e.stationAt, t.arr-(t.arrLate||0)*60e3))}</span></div>
+      <div data-block="which"><span class="slack">On the ${esc(C.trainName(t))}${t.timetable&&!(pg&&pg.data)?"":(st=>` <span class="slackst ${st.level}">${esc(st.text)}</span>`)(C.arrivalStatus(e.stationAt, t.arr-(t.arrLate||0)*60e3,PROFILE.disruption))}</span></div>
       <div data-block="then" style="font-size:14px">Letchworth <span class="t">${hhmm(e.stationAt)}</span> expected · then a ${dur(walk)} walk</div>`;
     return;
   }
@@ -3879,6 +4309,7 @@ function renderOnTubeHome(now){
   const legs=homeLegs(r.t, now).map(l=>({...l, stopAt:r.t+l.rideMs, arrive:r.t+l.rideMs+l.tailMs})).sort((a,b)=>a.arrive-b.arrive || a.stopAt-b.stopAt);
   if(!legs.length){ $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
   const best=legs[0], alt=legs.find(l=>l.stop!==best.stop);
+  state.rendered.progress={kind:'tube',option:best.o,ride:r,departure:r.t,arrival:best.stopAt,finalArrival:best.arrive,from:PROFILE.places.officeStops?.find(stop=>stop.id==='ALD')?.name||'Aldgate',to:best.stop,homeward:true};
   const line=(c,first)=>`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
   const a=state.saved.aldHome, auto=!r.picked && a ? whichTubeHome(now) : null;
   const other=auto && auto.other && auto.other.t!==r.t ? auto.other : null;
@@ -3916,8 +4347,13 @@ function renderOnTube(now){
   const others = C.otherTubes(lh&&lh.arrivals, r, now);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
-  const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;
+  const target=(PROFILE.places.officeStops||[]).find(stop=>stop.name===leg.stop);
+  const liveDirection=target?.arrivalDirections?.[lineIdOf(r.line)];
+  const prediction=leg.stop==='Aldgate'&&liveDirection?C.followTubeArrival(state.ald?.arrivals,{vehicle:w.best.vehicle||'',hub:r.hub,stopId:target.stopId,
+    lineId:lineIdOf(r.line),direction:liveDirection,now,fetchedAt:state.ald?.at,readyMs:0}):null;
+  const live=prediction?{vehicle:prediction.vehicle,t:prediction.arrival,at:prediction.at}:null;
   const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
+  state.rendered.progress={kind:'tube',ride:r,departure:r.t,arrival:aldT,finalArrival:office,from:HUB_NAME[r.hub],to:leg.stop,homeward:false,liveArrival:live||null,liveStopId:target?.stopId,liveDirection};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
     <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
@@ -4021,12 +4457,12 @@ function linesStatus(ids){
     if(id==="Great Northern"||id==="Thameslink"){
       const l=(state.nrStatus||[]).find(x=>new RegExp(id.replace(" ","[- ]?"),"i").test(x.name+" "+x.id));
       if(!l){ out.push({name:id, lvl:"info", desc: state.nrStatus ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name:id, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name:id, lvl:C.lineLevel(l,PROFILE.disruption), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     } else {
       const l=(state.status||[]).find(x=>x.id===id);
       const name={circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[id]||id;
       if(!l){ out.push({name, lvl:"info", desc: state.status ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name, lvl:C.lineLevel(l,PROFILE.disruption), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     }
   }
   return out;
@@ -4145,7 +4581,7 @@ function renderStatus(){
   const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
   if(!lines.length){ el.innerHTML=`<div class="st"><div class="s note">${state.status===null?"Loading…":"Unavailable"}</div></div>`; return; }
   const col={circle:"var(--circle)",metropolitan:"var(--met)","hammersmith-city":"var(--hc)"};
-  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=C.lineLevel(l);
+  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=C.lineLevel(l,PROFILE.disruption);
     return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
 }
 // Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
@@ -4182,11 +4618,11 @@ function renderBanners(){
   [...new Set(state.errors)].filter(e=>!missing.some(k=>failedNow[k]===e)).forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
-  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'])
+  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption)
     ? `<div class="banner bad"><b>Tube lines closed now</b><span>Circle, Metropolitan and Hammersmith &amp; City are closed now. Check onward travel before relying on the Tube estimate.</span></div>`
     : `<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
-  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
+  const lineBanner=l=>`<div class="banner ${C.lineLevel(l,PROFILE.disruption)}"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
   if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
   const elsewhere=[], facilities=[];
@@ -4197,7 +4633,7 @@ function renderBanners(){
     const impact={red:"bad", amber:"warn", none:"note"}[tiers.level];
     if(tiers.uncertain.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
     if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.hit) out.push(`<div class="banner ${tiers.level==="red"?"bad":"warn"}"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled${tiers.late?`; worst delay ${tiers.late} min`:""}.</span>${nowNote}</div>`);
+    if(tiers.hit) out.push(`<div class="banner ${tiers.level==="red"?"bad":"warn"}"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed ${C.resolveDisruptionPolicy(PROFILE.disruption).rail.warnMin}+ min or cancelled${tiers.late?`; worst delay ${tiers.late} min`:""}.</span>${nowNote}</div>`);
     // Notices naming your route, and your operators' status: coloured by the impact on your trains.
     tiers.onRoute.forEach(m=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(m)}"><summary>${esc(noticeTitle(m))}</summary><span class="msg">${linkify(m)}</span></details></div>`));
     (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(l.name)}"><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`));
@@ -4233,7 +4669,12 @@ function renderControls(){
     ? (dir==="office" ? (out ? `Cartref → ${out.name}` : "Cartref → King's Cross or St Pancras") : "Wherever you are → Cartref")
     : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
   const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
-  $("#dirNote").textContent = state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
+  const automaticNote=state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
+  // This is the existing inference diagnostic, independent of the chosen direction.
+  // It must remain visible while investigating location, even with a manual override.
+  const locationNote=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
+  const staleFix=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  $("#dirNote").textContent=S().signal?`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`:automaticNote;
   const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
   if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
@@ -4422,7 +4863,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
 function renderInner(){
- state.rendered={train:null,ride:null,follow:null,options:{count:0,usableCount:0}};
+ state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }
@@ -5657,6 +6098,161 @@ function followedTubeArrival(route, now) {
   return C.followTubeArrival(cached.predictions, { ...context, now, fetchedAt: cached.at });
 }
 
+// Signal's progress view is an adapter over existing selected itineraries/reports.
+// No fetches, service selection, GPS inference or timing arithmetic belong here.
+let signalProgressMemory=null;
+function progressName(code){return STATIONS[code]||HUB_NAME[code]||code||'';}
+function progressRoute(option){return routesFor(direction(),currentMode()).find(route=>route.hub===option.hub);}
+function progressSavedRideSeconds(option){return option?.tube?.ride?.[option.hub]??null;}
+function progressRailCalls(train,details){
+  const raw=Array.isArray(details?.calls)?details.calls:[];
+  const from=raw.findIndex(c=>c.code===train.from),to=raw.findIndex((c,index)=>index>=from&&c.code===train.to);
+  if(from>=0&&to>from)return raw.slice(from,to+1);
+  const known=Array.isArray(train.calls)?train.calls:[];
+  const first=known.findIndex(c=>c.code===train.from),last=known.findIndex((c,index)=>index>=first&&c.code===train.to);
+  const scoped=first>=0&&last>first?known.slice(first,last+1):[
+    {code:train.from,name:progressName(train.from),t:train.dep},{code:train.to,name:progressName(train.to),t:train.arr}];
+  // The board's best time is not a scheduled baseline or a reported observation.
+  return scoped.map(c=>raw.find(item=>item.code===c.code)||{code:c.code,name:c.name,scheduledAt:null,expectedAt:c.t??null,actualAt:null});
+}
+function progressTubeCalls(ride,from,to,arrival,fromName,toName){
+  const lineId=lineIdOf(ride.line);
+  const corridor=(PROFILE.tubeCorridors||[]).find(c=>c.lineId===lineId&&c.from===from&&c.to===to);
+  const stops=corridor?.stops||[{id:from,name:fromName||progressName(from)},{id:to,name:toName||progressName(to)}];
+  return stops.map((stop,index)=>({code:stop.id,name:stop.name,scheduledAt:null,
+    expectedAt:index===stops.length-1?arrival:null,actualAt:null}));
+}
+function progressHtml(model){
+  const percentage=value=>`${Math.round(value*100)}%`;
+  const current=model.current;
+  const unknownPast=current.id==='tube-current';
+  return `<div class="jp-heading"><b>Journey stages</b><span class="jp-status ${model.status.level}">${esc(model.status.text)}</span></div>
+    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-name">${esc(leg.label)}</span></li>`).join('')}</ol>
+    <div class="jp-current">
+      <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
+      ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
+      <div class="jp-current-track" role="progressbar" aria-label="${esc(model.progressLabel)}" aria-valuemin="0" aria-valuemax="100"${model.fraction===null?'':` aria-valuenow="${Math.round(model.fraction*100)}"`} aria-valuetext="${esc(model.progressLabel)}"><i style="--complete:${percentage(model.fraction??0)}"></i></div>
+      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
+      <p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>
+    </div>`;
+}
+function renderJourneyProgress(){
+  document.querySelectorAll('.journey-progress').forEach(node=>node.remove());
+  if(state.rendered){state.rendered.progressModel=null;state.rendered.activeRailDisruption=null;}
+  if(!S().signal)return;
+  const now=Date.now(),dir=direction(),mode=currentMode();
+  if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
+  const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
+  let context=state.rendered?.progress;
+  let target=$('#hero');
+  if(!context&&followed?.phase==='on-train'){
+    context={kind:'rail',option:followed.option,train:followed.lastTrain,
+      expectedArrival:followed.lastTrain.arr,details:state.progressById?.[followed.lastTrain.serviceId],uncertainIdentity:false};
+    target=$('#followPanel');
+  }
+  if(!context&&state.rendered?.ride){
+    const ride=state.rendered.ride;
+    context={kind:'tube',ride,departure:ride.t,arrival:null,finalArrival:null,homeward:dir==='home',from:ride.from||ride.hub,to:ride.stop||'Stop not established'};
+  }
+  if(!context)return;
+  let legs,active,evidence,calls,railFacts,uncertain=false,cancelled=false,noEstimate=false;
+  const option=followed?.option||context.option;
+  if(context.kind==='rail'){
+    const train=followed?.lastTrain||context.train;if(!train)return;
+    const details=context.details;
+    const ordered=progressRailCalls(train,details?.data),endpoint=ordered.find(call=>call.code===train.to);
+    const knownIdentity=!!train.serviceId&&(!details?.id||details.id===train.serviceId);
+    const observedAt=details?.at??state.boardsAt;
+    const factualEnd=endpoint?.actualAt!=null&&endpoint.actualAt<=observedAt?endpoint.actualAt:endpoint?.expectedAt;
+    const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);
+    const currentTrain={...train,arr:context.expectedArrival??train.arr};
+    legs=option?C.progressLegsFromSteps({option,train:currentTrain,route:followed?undefined:progressRoute(option),
+      steps:followed?C.followedLegs(followed):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
+      [{id:'rail',kind:'rail',label:'Train',start:train.dep,end:context.expectedArrival??train.arr,from:progressName(train.from),to:progressName(train.to),fromCode:train.from,toCode:train.to}];
+    active='rail';calls=ordered;
+    evidence={source:details?.data?'reported':context.arrivalLive?'prediction':'modelled',observedAt,
+      expectedAt:expectedArrival,scheduledAt:endpoint?.scheduledAt??null,identityMatched:knownIdentity};
+    uncertain=!!context.uncertainIdentity;cancelled=!!train.cancelled;noEstimate=!!(train.depUnknown||train.arrUnknown||train.arr===null);
+    railFacts={train,endpoint,details,expectedArrival};
+    if(!uncertain&&option&&legs.length)signalProgressMemory={epoch:sourceEpoch,dir,mode,observedAt:now,hub:option.hub,option,legs};
+  }else{
+    const ride=context.ride;if(!ride)return;
+    const memory=signalProgressMemory;
+    const sameHub=memory&&(memory.hub===ride.hub||(PROFILE.sharesTubeWith?.[memory.hub]||memory.hub)===(PROFILE.sharesTubeWith?.[ride.hub]||ride.hub));
+    const remembered=!context.homeward&&sameHub&&C.progressContextCurrent(memory.legs,memory.observedAt,context.departure)?memory:null;
+    const chosen=option||remembered?.option;
+    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
+    else legs=[];
+    const railIndex=legs.findIndex(leg=>leg.kind==='rail');
+    const tubeIndex=legs.findIndex((leg,index)=>leg.kind==='tube'&&(context.homeward?index<railIndex:index>railIndex));
+    let arrival=context.arrival,fromCode=context.homeward?'ALD':ride.hub,toCode=context.homeward?(chosen?.hub||''):(PROFILE.places.officeStops||[]).find(stop=>stop.name===context.to)?.id||'';
+    if(fromCode==='STP')fromCode=PROFILE.sharesTubeWith?.[fromCode]||fromCode;
+    if(toCode==='STP')toCode=PROFILE.sharesTubeWith?.[toCode]||toCode;
+    let live=null;
+    if(context.homeward&&followed){
+      // Read the existing source/route-guarded cache directly. Calling the live
+      // inference controller here could clear a ride while merely drawing it.
+      const cached=state.followTransport,expected={routeId:followed.id,vehicle:String(ride.vehicle||''),hub:toCode,
+        lineId:lineIdOf(ride.line),direction:'westbound'};
+      if(cached?.epoch===sourceEpoch&&cached.stopId===TUBE_STOP[toCode]&&sameFollowTransport(cached,expected))live=C.followTubeArrival(cached.predictions,
+        {...expected,stopId:TUBE_STOP[toCode],now,fetchedAt:cached.at,readyMs:cached.readyMs});
+      if(live)arrival=live.arrival;
+      else arrival=C.tubeHomeConnections(ride.t,S(),state.saved.pace==='fast'?'fast':'avg').reach[chosen.hub]??null;
+    }
+    else if(!context.homeward&&ride.vehicle&&context.liveStopId&&state.ald){
+      live=C.followTubeArrival(state.ald.arrivals,{vehicle:String(ride.vehicle),hub:toCode,stopId:context.liveStopId,
+        lineId:lineIdOf(ride.line),direction:context.liveDirection,now,fetchedAt:state.ald.at,readyMs:0});
+      if(live)arrival=live.arrival;
+    }
+    const plannedEnd=tubeIndex>=0?legs[tubeIndex].travelEnd??legs[tubeIndex].end:null;
+    if(tubeIndex>=0){active=legs[tubeIndex].id;legs=C.retimeProgressLeg({legs,legId:active,start:context.departure,expectedEnd:arrival,tailEnd:context.homeward?undefined:context.finalArrival});}
+    else{
+      active='tube-current';legs=[{id:'earlier',kind:'connection',label:'Earlier legs',start:context.departure,end:context.departure},
+        {id:active,kind:'tube',label:'Tube',start:context.departure,end:arrival,from:context.from,to:context.to}];
+      if(context.finalArrival!=null&&arrival!=null)legs.push({id:'after-walk',kind:'walk',label:'Walk',start:arrival,end:context.finalArrival});
+    }
+    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line)}:leg);
+    calls=progressTubeCalls(ride,fromCode,toCode,arrival,context.from,context.to);
+    // followTubeArrival already checks provider timestamps (including its small
+    // allowed clock offset); freshness here uses our validated capture time.
+    evidence={source:live?'prediction':'modelled',observedAt:live?(context.homeward?state.followTransport?.at:state.ald?.at):null,expectedAt:live?.arrival??null,
+      scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle};
+    uncertain=!(ride.picked||ride.confirmed);
+  }
+  const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,cancelled,noEstimate,policy:PROFILE.disruption};
+  let model=C.journeyProgress(input);
+  if(!model)return;
+  if(railFacts){
+    // The pure source model validates cache age/identity. A fresh report may add
+    // an incident, but a residual expected time cannot clear an explicit board
+    // cancellation/unknown-delay flag; recovery comes from its normal controller.
+    const {train,endpoint,details,expectedArrival}=railFacts;
+    if(details?.data&&endpoint&&(model.source==='reported'||model.source==='prediction')){
+      cancelled=!!(cancelled||details.data.cancelled||endpoint.cancelled);
+      noEstimate=!!(noEstimate||endpoint.noEstimate);
+      model=C.journeyProgress({...input,cancelled,noEstimate});
+    }
+    state.rendered.activeRailDisruption=C.disruptionTrainObservation(train,{source:model.source,delayMin:model.status.deltaMin,
+      cancelled,noEstimate,reason:details?.data?.reason,expectedArrival});
+  }
+  if(context.kind==='tube'&&model.status.deltaMin!==null)model.status.text=model.status.text.replace('ahead','ahead of plan').replace('behind','behind plan');
+  state.rendered.progressModel=model;
+  const section=document.createElement('section');section.className='journey-progress';section.dataset.block='progress';section.dataset.source=model.source;section.setAttribute('aria-label','Journey progress');section.innerHTML=progressHtml(model);
+  // Keep full legacy report/expected/timetable/error diagnostics accessible once,
+  // without repeating their prose above the visual progress view.
+  if(target.id==='hero'){
+    const original=[...target.querySelectorAll('[data-block="progress"]')];
+    if(original.length){
+      const details=document.createElement('details');details.className='jp-source-details';
+      details.dataset.key='journey-progress-source|'+(context.train?.serviceId||context.ride?.vehicle||context.kind);
+      const summary=document.createElement('summary');summary.textContent='Report details';details.append(summary,...original);section.append(details);
+    }
+  }
+  if(context.kind==='rail'&&context.details?.err){const note=document.createElement('p');note.className='jp-evidence';note.textContent=context.details.err;section.querySelector('.jp-current').append(note);}
+  const before=target.querySelector(target.id==='hero'?'[data-block="then"], [data-block="lines"], [data-block="source"]':'.steps');
+  if(before)before.before(section);else target.append(section);
+}
+
 // Signal and Follow a route shell. Decisions and timing belong to src/core; this file draws
 // those results and adapts existing observations. Both designs share this single controller.
 const followChoices = new Map();
@@ -5709,6 +6305,7 @@ function applySignalLayout(){
       network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
       other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
       boardHeading:make('div','signalBoardHeading',''),
+      disruptions:make('section','signalDisruptions',''),
       connections:make('div','signalConnections',''),
       freshness:make('span','signalFreshness','')
     };
@@ -5719,7 +6316,7 @@ function applySignalLayout(){
     signalParts.planning.append(signalRemember(document.querySelector('[data-view]').closest('.controls')),signalRemember($('#byForm')));
     signalParts.notices.append(signalRemember($('#banners')));
     signalParts.network.append(signalRemember($('#status').previousElementSibling),signalRemember($('#status')),signalRemember($('#modelNote')),signalRemember(root.querySelector('footer > span')));
-    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));
+    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));signalRemember($('#dirNote'));
     signalParts.toolbar.append($('#journeyViewControl'),signalParts.adjustments);
     root.querySelector('footer').prepend(signalParts.freshness);
   }
@@ -5738,7 +6335,7 @@ function applySignalLayout(){
   if(footerSpan)p.network.append(footerSpan);
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
-  for(const node of [header,p.toolbar,p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
   signalActive=true;
 }
 function signalReadingVisible(node){
@@ -5752,6 +6349,15 @@ function renderSignalCompact(){
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
   p.notices.hidden=!$('#banners').children.length;
   $('#signalNoticeCount').textContent=$('#banners').children.length?`· ${$('#banners').children.length}`:'';
+  p.notices.querySelector('summary').firstChild.textContent=state.signalDisruptionItems?.length?'All alerts ':'Travel alerts ';
+  // Consolidate only background line issues or impacts actually represented above.
+  // An unused alternative's serious problem must remain on that option's row.
+  const foreground=new Set((state.signalDisruptionItems||[]).filter(item=>item.scope==='tube').map(item=>item.id.slice(5)));
+  document.querySelectorAll('#hero [data-network-lines],#list [data-network-lines],.follow-alternative [data-network-lines]').forEach(flag=>{
+    const ids=flag.dataset.networkLines.split(',').filter(Boolean);
+    const represented=ids.length&&ids.every(id=>foreground.has(id)||!C.significantLineDisruption((state.status||[]).find(line=>line.id===id)||{id,name:id,statuses:[]},PROFILE.disruption));
+    flag.toggleAttribute('data-network-flag',flag.dataset.networkFallback==='true'||!!represented);
+  });
   $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
   p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
   // A compact, accessible fallback row; full metadata and actions remain on expansion.
@@ -5779,7 +6385,7 @@ function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalP
 function journeyInteracting(){
   const a=document.activeElement;
   return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
-    [...document.querySelectorAll('#banners details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
+    [...document.querySelectorAll('#banners details[open],#signalDisruptions details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
 }
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
@@ -5797,6 +6403,7 @@ function journeyPresentation(now,s){
   const auto=C.chooseView(s);
   if(!journeyEnabled())return auto;
   const current=journeySituation(now,s);
+  state.journeyLivePresentation=current.live;
   let override=state.saved.viewOverride,legacyPinPending=false;
   if(!Object.prototype.hasOwnProperty.call(state.saved,'viewOverride')&&Number.isFinite(state.saved.viewAt)&&(s.plan==='by'||s.plan==='at')){
     const reliable=state.locStatus==='ok'&&state.lastFixAt&&now-state.lastFixAt<=90e3&&state.locAcc<=150;
@@ -5957,7 +6564,7 @@ function renderFollowPanel(){
   const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
   const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
     !(state.routeFailed&&state.routeFailed[selectedBoard])&&!(state.followFailedBoards||[]).includes(selectedBoard);
-  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation});
+  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,policy:PROFILE.disruption});
   state.followUpdate=result;
   if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
   const r=result.route,t=r.lastTrain, alt=result.alternative,st=result.trainStatus;
@@ -5982,34 +6589,77 @@ function renderFollowPanel(){
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
 }
-function signalNetworkLine(){
-  const fallback=aldgateUnusable();
-  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
-    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),
-    tubeLines:state.status||[],operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false});
+function signalDisruptionEvidence(){
+  const now=Date.now(),view=state.journeyLivePresentation?.view||state.rendered?.view;
+  const followed=state.followUpdate?.route;
+  const current=state.rendered?.progress;
+  const railComplete=followed?followed.phase==='after-train'||followed.phase==='arrived':
+    direction()==='office'?['at-hub','on-tube','in-london'].includes(view):view==='nearly-home';
+  const railActive=followed?.phase==='on-train'||state.onLine;
+  const tubeComplete=direction()==='home'?(railActive||followed?.phase==='after-train'||['on-train','nearly-home'].includes(view)):view==='in-london';
+  // Drawing an alert must not select, finish or persist a ride. The normal
+  // journey controller has already established any current Tube journey.
+  const cachedRide=state.saved.tubeRide;
+  const ride=tubeComplete?null:(state.rendered?.ride||(cachedRide&&C.rideActive(cachedRide,now,fix())&&!C.rideEnded(cachedRide,now,fix())?cachedRide:null));
+  const option=followed?.option||current?.option;
+  const usesFallback=option?.tube?.fallback??aldgateUnusable();
+  const tubeIds=currentMode()==='leisure'||tubeComplete?[]:ride?.line?[lineIdOf(ride.line)]:
+    option?(usesFallback?['hammersmith-city']:['circle','metropolitan']):
+    usesFallback?['circle','metropolitan','hammersmith-city']:['circle','metropolitan'];
+  let boards=state.boards;
+  let activeTrains=[];
+  const currentTrain=state.rendered?.train?.t||current?.train||(state.onLine?whichTrain(now,false)?.t:null)||
+    (railActive&&state.trainLock?.picked?C.lockedTrain(state.boards,state.trainLock):null);
+  const chosen=followed?.option?.train||currentTrain;
+  if(railComplete)boards={};
+  else if(chosen){
+    const matches=t=>followed?C.followMatchesService(followed,{...followed.option,train:t}):
+      t===chosen||!!(t.serviceId&&t.serviceId===chosen.serviceId&&t.std===chosen.std&&t.from===chosen.from);
+    const preferred=`${chosen.from}-${chosen.to}`,entries=Object.entries(boards||{});
+    const scoped=entries.some(([key])=>key===preferred)?entries.filter(([key])=>key===preferred):entries;
+    boards=Object.fromEntries(scoped.map(([key,board])=>[key,board?{...board,services:(board.services||[]).filter(matches)}:board]));
+    const observed=Object.values(boards).flatMap(board=>board?.services||[]).find(matches);
+    if(railActive&&observed)activeTrains=[observed];
+  }
+  if(!railComplete&&railActive&&state.rendered?.activeRailDisruption){
+    if(!boards)boards={};
+    activeTrains=[state.rendered.activeRailDisruption];
+  }
+  const keys=state.railSource==='darwin'?livePairs().map(pair=>pair.join('-')):boardKeys();
+  return {railComplete,tiers:boards?C.railWarnings(boards,keys,now,PROFILE,{activeTrains}):null,
+    tubeLines:(state.status||[]).filter(line=>tubeIds.includes(line.id)),
+    fallback:!tubeComplete&&usesFallback&&aldgateUnusable()};
 }
-function signalConsolidatesFlag(flag){
-  // Fold only information represented by the visible summary. Mixed closures and
-  // delays on the surviving line remain per-option warnings, including H&C delays.
-  return flag.txt===TUBE_FALLBACK_NOTE||
-    (aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']))||
-    flag.txt===signalNetworkLine().text;
+function signalNetworkLine(context=signalDisruptionEvidence()){
+  const fallback=context.fallback;
+  return C.statusLine({errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:fallback,
+    fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),
+    tubeLines:context.tubeLines,operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false,policy:PROFILE.disruption});
 }
 function renderSignalStatus(){
   const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const context=signalDisruptionEvidence();
   const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
-  const input={errors:state.errors||[],notLoaded:failed,stale:!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
-    tubeFallback:aldgateUnusable(),fallbackUnavailable:aldgateUnusable()&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city']),tiers:state.boards?railWarnings():null,tubeLines:state.status||[],operators:state.nrStatus||[],
+  const input={errors:state.errors||[],notLoaded:context.railComplete?[]:failed,stale:!context.railComplete&&!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
+    tubeFallback:context.fallback,fallbackUnavailable:context.fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),tiers:context.tiers,tubeLines:context.tubeLines,operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
-    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl'};
+    planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl',policy:PROFILE.disruption};
+  const items=C.visibleDisruptions(input);state.signalDisruptionItems=items;
+  const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
+  region.innerHTML=items.map(item=>{
+    const preview=item.detail.length?C.noticeTitle(item.detail[0]):'';
+    const comparable=text=>String(text||'').replace(/\s+/g,' ').trim().replace(/[.!?]$/,'');
+    const full=item.detail.length>1||comparable(item.detail[0])!==comparable(preview);
+    return `<article class="signal-disruption ${item.level}" data-alert-id="${esc(item.id)}" data-scope="${item.scope}"><h3 class="signal-disruption-title">${esc(item.title)}</h3>${item.qualifier?`<p class="signal-disruption-qualifier">${esc(item.qualifier)}</p>`:''}${preview?`<p class="signal-disruption-detail">${linkify(preview)}</p>`:''}${full&&item.detail.length?`<details data-key="impact|${esc(item.id)}|${esc(item.title)}"><summary>Full details</summary><ul>${item.detail.map(detail=>`<li>${linkify(detail)}</li>`).join('')}</ul></details>`:''}</article>`;
+  }).join('');
   const result=C.statusLine(input);
   const planBoards=state.saved.view==='by'?state.by?.boards:state.saved.view==='at'?state.at?.boards:null;
-  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length&&!items.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;
   el.textContent=result.text;
   // Consolidated network flags must remain visible even when a train cancellation
   // or a feed failure takes precedence. The engine still chooses both summaries.
-  const network=signalNetworkLine();
+  const network=signalNetworkLine(context);
   if(['bad','warn'].includes(network.level)&&network.text!==result.text){
     const impact=document.createElement('span');impact.className='signal-network-impact '+network.level;impact.textContent=' · '+network.text;el.append(impact);
   }
@@ -6018,7 +6668,21 @@ function renderSignalStatus(){
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
 }
-function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();renderSignalCompact();}
+function renderSignalLocation(){
+  if(!S().signal)return;
+  const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
+  const station=atStation(true),ride=state.rendered?.ride;
+  const rail=state.onLine||state.followUpdate?.route?.phase==='on-train';
+  const phase=rail?'On the train':ride?`On the ${ride.line||'Tube'}`:station?`At ${station}`:
+    view==='nearly-home'?'Nearly home':view==='in-london'?'Walking to the office':'';
+  const report=rail&&progress?.calls?.filter(call=>call.state==='reported').slice(-1)[0];
+  const reportText=report?` · last ${progress.source==='stale'?'known ':''}report ${report.name}${report.time==null?'':' '+hhmm(report.time)}`:'';
+  const fallback=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
+  const phone=phase?` · phone: ${fallback.replace(/^you're /,'')}`:fallback;
+  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
+}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   if(!journeyEnabled()&&!signalActive)return null;

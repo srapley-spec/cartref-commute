@@ -447,10 +447,10 @@ const fix = () => ({ here:state.here, acc:state.locAcc, at:state.lastFixAt });
 const onLine = () => C.onLine(fix(), state.atHub, LINE.KGX);
 const progressData = id => { const p=progressFor(id); return p && p.data || null; };
 // Which train you're probably on; remembers it once sure (state.trainLock).
-function whichTrain(now){
+function whichTrain(now,remember=true){
   if(!state.onLine || !state.boards) return null;
   const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null);
-  state.trainLock=r.lock; return r.result;
+  if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
@@ -741,7 +741,10 @@ async function fetchAldgateArrivals(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
   if(!r.ok) throw new Error(`TfL tube arrivals error (HTTP ${r.status}).`);
   return (await r.json()).filter(a=>/^(circle|metropolitan)$/.test(a.lineId))
-    .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId, t:a.expectedArrival?new Date(a.expectedArrival).getTime():Date.now()+(a.timeToStation||0)*1000 }));
+    .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId,
+      t:a.expectedArrival?new Date(a.expectedArrival).getTime():Number.isFinite(a.timeToStation)&&a.timeToStation>=0?Date.now()+a.timeToStation*1000:NaN,
+      platform:a.platformName||'',stopId:a.naptanId||null,observedAt:a.timestamp?Date.parse(a.timestamp):null }))
+    .filter(a=>Number.isFinite(a.t));
 }
 async function fetchTfl(){
   const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
@@ -809,8 +812,8 @@ function demoLondon(){
 }
 function londonOrigin(){ return state.origin || (state.here ? `${state.here[0].toFixed(5)},${state.here[1].toFixed(5)}` : ""); }
 
-const worst = C.worstStatus, lineOk = C.lineOk;
-const aldgateUnusable = () => C.tubeFallbackNeeded(state.status||null, ["circle","metropolitan"]);
+const worst = line => C.worstStatus(line,PROFILE.disruption), lineOk = line => C.lineOk(line,PROFILE.disruption);
+const aldgateUnusable = () => C.tubeFallbackNeeded(state.status||null, ["circle","metropolitan"],PROFILE.disruption);
 
 // ---------- Journey model ----------
 function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"office") : state.saved.dirMode; }
@@ -843,7 +846,13 @@ function buildJourneys(dir, now, o){
 // "Delayed" without an estimate) can be recommended on the top card.
 // Tube line status flags for a commute option (train flags come from the engine).
 const TUBE_FALLBACK_NOTE="Via Aldgate East: Circle and Met closed";
-const tubeFlags = tube => C.tubeFlags(tube, state.status||null, { main:["circle","metropolitan"], fallback:["hammersmith-city"], fallbackNote:TUBE_FALLBACK_NOTE }).map(f=>({...f,network:true}));
+const tubeFlags = tube => {
+  const lines=(tube?.fallback?['hammersmith-city']:['circle','metropolitan']).filter(id=>{
+    const status=(state.status||[]).find(line=>line.id===id);return status&&!lineOk(status);
+  });
+  return C.tubeFlags(tube,state.status||null,{main:['circle','metropolitan'],fallback:['hammersmith-city'],fallbackNote:TUBE_FALLBACK_NOTE},PROFILE.disruption)
+    .map(flag=>({...flag,network:true,networkLines:flag.txt===TUBE_FALLBACK_NOTE?[]:lines}));
+};
 function buildLeisure(dir, now, o){
   // Going home, nothing can be planned until the London leg is known (or you're already at the station).
   const routes=routesFor(dir,"leisure",o).filter(r=>(dir==="office" && !r.extra.outTo) || r.extra.planned);
@@ -1062,7 +1071,7 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network&&signalConsolidatesFlag(f)?' data-network-flag="true"':''}>${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -1088,7 +1097,7 @@ function vsBest(j, best, dest){
 // A train's time as people say it: timetabled, and the expected time when it's running late ("07:00 exp 07:03").
 // Departure board, Expected column: the engine's departure status, as the time (when it differs) or a word.
 function expectedHtml(t, cls){
-  const s=C.departureStatus(t);
+  const s=C.departureStatus(t,PROFILE.disruption);
   return s.showTime ? `<span class="t ${cls} exp ${s.level}">${hhmm(t.dep)}</span>` : `<span class="${cls} word exp ${s.level}">${esc(s.text)}</span>`;
 }
 // On a departure board an "On time" status pill repeats the Expected column; any delay still says its minutes.
@@ -1136,8 +1145,8 @@ function renderOnTrain(now, m){
   const stopCode = dir==="office" ? m.hub : "LET", pgAt = pg && pg.data ? pg.data.at(stopCode) : null;
   if(pgAt) { m.projected = pgAt; m.live = true; }
   // No status for a timetable train without a live report: never claimed on time without live data.
-  const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched);
-  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+  const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched,PROFILE.disruption);
+  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note" data-block="progress">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
@@ -1145,6 +1154,7 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : "Letchworth";
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
@@ -1172,7 +1182,7 @@ function renderNearlyHome(now){
   const e=C.nearlyHomeEta(now, state.here, letAt, state.saved.home||null, exit, walk, fast?"fast":"avg", PROFILE);
   if(e.kind==="train"){
     $("#hero").innerHTML=`${head}<div class="big" data-block="headline"><span class="arr t">${hhmm(e.at)}</span><span class="arrlbl">at home</span></div>
-      <div data-block="which"><span class="slack">On the ${esc(C.trainName(t))}${t.timetable&&!(pg&&pg.data)?"":(st=>` <span class="slackst ${st.level}">${esc(st.text)}</span>`)(C.arrivalStatus(e.stationAt, t.arr-(t.arrLate||0)*60e3))}</span></div>
+      <div data-block="which"><span class="slack">On the ${esc(C.trainName(t))}${t.timetable&&!(pg&&pg.data)?"":(st=>` <span class="slackst ${st.level}">${esc(st.text)}</span>`)(C.arrivalStatus(e.stationAt, t.arr-(t.arrLate||0)*60e3,PROFILE.disruption))}</span></div>
       <div data-block="then" style="font-size:14px">Letchworth <span class="t">${hhmm(e.stationAt)}</span> expected · then a ${dur(walk)} walk</div>`;
     return;
   }
@@ -1210,6 +1220,7 @@ function renderOnTubeHome(now){
   const legs=homeLegs(r.t, now).map(l=>({...l, stopAt:r.t+l.rideMs, arrive:r.t+l.rideMs+l.tailMs})).sort((a,b)=>a.arrive-b.arrive || a.stopAt-b.stopAt);
   if(!legs.length){ $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
   const best=legs[0], alt=legs.find(l=>l.stop!==best.stop);
+  state.rendered.progress={kind:'tube',option:best.o,ride:r,departure:r.t,arrival:best.stopAt,finalArrival:best.arrive,from:PROFILE.places.officeStops?.find(stop=>stop.id==='ALD')?.name||'Aldgate',to:best.stop,homeward:true};
   const line=(c,first)=>`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
   const a=state.saved.aldHome, auto=!r.picked && a ? whichTubeHome(now) : null;
   const other=auto && auto.other && auto.other.t!==r.t ? auto.other : null;
@@ -1247,8 +1258,13 @@ function renderOnTube(now){
   const others = C.otherTubes(lh&&lh.arrivals, r, now);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
-  const live=leg.stop==="Aldgate" ? (state.ald&&state.ald.arrivals||[]).find(a=>a.vehicle && a.vehicle===w.best.vehicle) : null;
+  const target=(PROFILE.places.officeStops||[]).find(stop=>stop.name===leg.stop);
+  const liveDirection=target?.arrivalDirections?.[lineIdOf(r.line)];
+  const prediction=leg.stop==='Aldgate'&&liveDirection?C.followTubeArrival(state.ald?.arrivals,{vehicle:w.best.vehicle||'',hub:r.hub,stopId:target.stopId,
+    lineId:lineIdOf(r.line),direction:liveDirection,now,fetchedAt:state.ald?.at,readyMs:0}):null;
+  const live=prediction?{vehicle:prediction.vehicle,t:prediction.arrival,at:prediction.at}:null;
   const aldT = live ? live.t : w.best.t+ride, office=aldT+tail;
+  state.rendered.progress={kind:'tube',ride:r,departure:r.t,arrival:aldT,finalArrival:office,from:HUB_NAME[r.hub],to:leg.stop,homeward:false,liveArrival:live||null,liveStopId:target?.stopId,liveDirection};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
     <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
@@ -1352,12 +1368,12 @@ function linesStatus(ids){
     if(id==="Great Northern"||id==="Thameslink"){
       const l=(state.nrStatus||[]).find(x=>new RegExp(id.replace(" ","[- ]?"),"i").test(x.name+" "+x.id));
       if(!l){ out.push({name:id, lvl:"info", desc: state.nrStatus ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name:id, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name:id, lvl:C.lineLevel(l,PROFILE.disruption), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     } else {
       const l=(state.status||[]).find(x=>x.id===id);
       const name={circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[id]||id;
       if(!l){ out.push({name, lvl:"info", desc: state.status ? "no live status" : "checking…"}); continue; }
-      const w=worst(l); out.push({name, lvl:C.lineLevel(l), desc:w?w.desc:"Unknown", reason:w&&w.reason});
+      const w=worst(l); out.push({name, lvl:C.lineLevel(l,PROFILE.disruption), desc:w?w.desc:"Unknown", reason:w&&w.reason});
     }
   }
   return out;
@@ -1476,7 +1492,7 @@ function renderStatus(){
   const el=$("#status"); const lines=[...(state.status||[]),...(state.nrStatus||[])];
   if(!lines.length){ el.innerHTML=`<div class="st"><div class="s note">${state.status===null?"Loading…":"Unavailable"}</div></div>`; return; }
   const col={circle:"var(--circle)",metropolitan:"var(--met)","hammersmith-city":"var(--hc)"};
-  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=C.lineLevel(l);
+  el.innerHTML=lines.map(l=>{ const w=worst(l), ok=lineOk(l), lvl=C.lineLevel(l,PROFILE.disruption);
     return `<div class="st"><div class="n"><span class="dot" style="background:${col[l.id]||"var(--muted)"}"></span>${esc(l.name)}</div><div class="s"><span class="pill ${lvl}">${esc(w?w.desc:"Unknown")}</span></div></div>`; }).join("");
 }
 // Stations between Baldock and Farringdon on your routes (Baldock: trains from Cambridge pass it before Letchworth).
@@ -1513,11 +1529,11 @@ function renderBanners(){
   [...new Set(state.errors)].filter(e=>!missing.some(k=>failedNow[k]===e)).forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
-  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'])
+  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption)
     ? `<div class="banner bad"><b>Tube lines closed now</b><span>Circle, Metropolitan and Hammersmith &amp; City are closed now. Check onward travel before relying on the Tube estimate.</span></div>`
     : `<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
-  const lineBanner=l=>`<div class="banner warn"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
+  const lineBanner=l=>`<div class="banner ${C.lineLevel(l,PROFILE.disruption)}"><details><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`;
   // Tube lines: only the ones a commute journey uses (leisure legs carry their own TfL disruption flags).
   if(state.saved.mode==="commute") (state.status||[]).filter(l=>!lineOk(l) && (l.id!=="hammersmith-city"||aldgateUnusable())).forEach(l=>out.push(lineBanner(l)));
   const elsewhere=[], facilities=[];
@@ -1528,7 +1544,7 @@ function renderBanners(){
     const impact={red:"bad", amber:"warn", none:"note"}[tiers.level];
     if(tiers.uncertain.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.uncertain.length} train${tiers.uncertain.length>1?"s":""} delayed with no estimate: listed, not recommended</summary>${tiers.uncertain.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
     if(tiers.cancelled.length) out.push(`<div class="banner bad"><details><summary>${planIsLater()?"Now: ":""}${tiers.cancelled.length} of your trains cancelled</summary>${tiers.cancelled.map(t=>`<span class="msg"><span class="t">${esc(t.std)}</span> ${esc(STATIONS[t.from])} → ${esc(STATIONS[t.to])}${t.reason?`: ${esc(t.reason)}`:""}</span>`).join("")}</details></div>`);
-    if(tiers.hit) out.push(`<div class="banner ${tiers.level==="red"?"bad":"warn"}"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed 5+ min or cancelled${tiers.late?`; worst delay ${tiers.late} min`:""}.</span>${nowNote}</div>`);
+    if(tiers.hit) out.push(`<div class="banner ${tiers.level==="red"?"bad":"warn"}"><b>Your line is disrupted</b><span class="msg">${tiers.affected} of the next ${tiers.total} trains on your routes are delayed ${C.resolveDisruptionPolicy(PROFILE.disruption).rail.warnMin}+ min or cancelled${tiers.late?`; worst delay ${tiers.late} min`:""}.</span>${nowNote}</div>`);
     // Notices naming your route, and your operators' status: coloured by the impact on your trains.
     tiers.onRoute.forEach(m=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(m)}"><summary>${esc(noticeTitle(m))}</summary><span class="msg">${linkify(m)}</span></details></div>`));
     (state.nrStatus||[]).filter(l=>!lineOk(l)).forEach(l=>out.push(`<div class="banner ${impact}"><details data-key="notice|${esc(l.name)}"><summary>${esc(l.name)}: ${esc(w(l).desc)}</summary><span class="msg">${w(l).reason?linkify(w(l).reason):"No details given."}</span></details></div>`));
@@ -1564,7 +1580,12 @@ function renderControls(){
     ? (dir==="office" ? (out ? `Cartref → ${out.name}` : "Cartref → King's Cross or St Pancras") : "Wherever you are → Cartref")
     : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
   const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
-  $("#dirNote").textContent = state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
+  const automaticNote=state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
+  // This is the existing inference diagnostic, independent of the chosen direction.
+  // It must remain visible while investigating location, even with a manual override.
+  const locationNote=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
+  const staleFix=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  $("#dirNote").textContent=S().signal?`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`:automaticNote;
   const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
   if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
@@ -1753,7 +1774,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
   const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
 function renderInner(){
- state.rendered={train:null,ride:null,follow:null,options:{count:0,usableCount:0}};
+ state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
   // arrived after the first load), reload instead of showing an empty list.
   if(!awaitingLocation() && state.railSource==="tfl" && state.boards && boardKeys().some(k=>!(k in state.boards))){ state.boards=null; refresh({force:true}); }

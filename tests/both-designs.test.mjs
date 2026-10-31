@@ -14,7 +14,9 @@ test("Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal 
   const r = spawnSync(process.execPath, ["--import", "./tests/clock.mjs", "--test", "--test-reporter=tap", `--test-name-pattern=${SCENARIOS.join("|")}`, "tests/rules.test.mjs"],
     { cwd: ROOT, env, encoding: "utf8", timeout: 240e3 });
   const out = r.stdout + r.stderr, pass = +(/^# pass (\d+)/m.exec(out) || [])[1], fail = +(/^# fail (\d+)/m.exec(out) || [])[1];
-  assert.equal(fail, 0, out.split("\n").filter((l) => /^not ok|error:/.test(l)).join("\n"));
+  assert.ifError(r.error);
+  assert.equal(r.signal, null, `Signal rule subprocess ended by ${r.signal}\n${out}`);
+  assert.equal(fail, 0, out);
   assert.ok(pass >= 14, `ran ${pass} scenarios in Signal`);
-  assert.equal(r.status, 0);
+  assert.equal(r.status, 0, out);
 });

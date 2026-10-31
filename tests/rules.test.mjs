@@ -545,7 +545,10 @@ test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not
   const first = c.ranked(Date.now()).find(o => o.recommended === 1), atDesk = leaveFor(first);
   assert.match(app.text("#hero"), /Leave office/);
   await app.moveTo(51.5142, -0.0755, 7);                                  // on the platform at Aldgate, ±7 m
-  assert.match(app.text("#dirNote"), /^Heading home · you're at Aldgate \(±7 m\)/);
+  if (process.env.CARTREF_DESIGN === "signal") {
+    assert.match(app.text("#dirNote"), /^Location: .*at Aldgate \(±7 m\)/i);
+    assert.match(c.state.autoSrc, /^you're at Aldgate \(±7 m\)/, "Signal retains the phone's actual location interpretation");
+  } else assert.match(app.text("#dirNote"), /^Heading home · you're at Aldgate \(±7 m\)/);
   assert.equal(leaveFor(first), atDesk + 420e3, "the 7-minute walk from the office is gone; the platform walk stays");
   const steps = c.routesFor("home", "commute", { here: true });
   assert.ok(steps.every(r => /^You're at Aldgate: go to the platform/.test(r.before[0].step.d)), steps.map(r => r.before[0].step && r.before[0].step.d).join());

@@ -1,5 +1,5 @@
 # Signal design system and automatic journey presentation
-Status: Behind toggle (compact v2 independently and visually reviewed; release gates in Signal testing) · Since: 29 Oct 2026
+Status: Behind toggle (Signal; current validation and release evidence in Signal testing) · Since: 29 Oct 2026
 
 ## Story
 As a commuter, I want the appropriate planning or live journey view to appear automatically, with a manual override, so I can act quickly without losing control or information.
@@ -19,6 +19,32 @@ This decision intentionally revises the earlier inventory's always-exposed direc
 direction/mode and pace. No duplicate state, cloned controls or mock settings are introduced. Auto / Plan / Live
 and Leave now / Arrive by / Leave around remain exposed. The compact-v2 criteria below supersede older Signal
 geometry where they differ; journey calculations, current features and status semantics remain authoritative.
+
+### Journey clarity refinements (Sam, 31 Oct 2026)
+The compact design remains the visual foundation. Sam's subsequent live/simulator screenshots identify six
+refinements: significant route disruption must be exposed, inferred location must remain visible, station and
+planning times need shared column anchors, and rail/Tube views need overall and current-leg progress.
+
+- **Disruption:** apply the agreed [impact rules](warnings.md), with central configuration and shared consumers.
+  Significant relevant disruption must not require opening Travel alerts. Minor/unrelated detail may fold;
+  severity, source/freshness and individual train flags remain truthful. The full notice remains reachable.
+- **Location diagnostic:** keep a compact, visible account of where the existing inference thinks the user is,
+  its source/accuracy and unavailable/old-fix qualifications. It is useful in both Auto and manual direction.
+  Restoring this text does not change permission prompts, GPS watches, inference or direction selection.
+- **Station columns:** primary card, Next best and every departure row share the same horizontal anchors:
+  Train at the left, Expected at the centre, and the destination arrival at the right. Labels and values align
+  across the page; Follow and route/service metadata cannot consume the time columns.
+- **Planning columns:** Leave uses the same left anchor and arrival the same right anchor. The middle remains
+  reserved when no Expected departure belongs in the planning view; a decorative arrow does not change the
+  column geometry or introduce a second time. Next best is a heading above its full-width time columns.
+- **Journey progress:** rail and Tube views show the overall journey's legs and a current-leg view underneath,
+  using the pure [journey-progress contract](journey-progress.md). Reported/expected/modelled/stale evidence
+  must remain explicit, including calling points and any live ahead/behind information.
+- Apply the common geometry to the rest of the Signal UI where the same semantic fields recur. Reflow enlarged
+  text without overlaps; consistency must not be achieved by clipping words or shrinking touch targets.
+
+These refinements supersede the first compact release's blanket folding of full disruption banners and its
+content-sized time columns. Existing layout/data preservation constraints and the feature switch remain.
 
 ### Compact v2 acceptance criteria
 - Show a short masthead, always-available Auto / Plan / Live and planning-mode controls, effective journey context,
@@ -89,6 +115,28 @@ geometry where they differ; journey calculations, current features and status se
   train status, correction controls, Aldgate platform planning, interchange timings and simulator survive.
 
 ## Tests
+Production-browser geometry/source checks: [browser-signal-journey-clarity.py](../../tests/browser-signal-journey-clarity.py).
+These include semantic time-column anchors at phone widths, enlarged text, serious-versus-background disruption,
+visible location and rail/Tube progress. The final release record must report executed results, not only test creation.
+
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: serious service-specific cause is visible before opening Travel alerts"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: minor or unused-line disruption stays background while its full details remain reachable"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: feed priority cannot hide separate serious train and remaining Tube impacts"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: a profile threshold override reaches rendered status, train flag and visible card"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: manual direction keeps location diagnostics visible without restarting location"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: confirmed boarding with unavailable GPS retains old current-rail problems and folds the completed Tube"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: a fresh current-train report promotes a serious arrival delay even when its board still says on time"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: Tube headline and progress share vehicle, target-platform and freshness guards"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: an otherwise fresh arrival report preserves a current cancellation until the board explicitly recovers"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: an explicitly picked current train keeps its cancellation visible after it leaves the board lookback without Follow"
+- tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: reading expanded significant details defers Auto and preserves disclosure focus across refresh"
+- tests/journey-progress.test.mjs: "Signal progress: an inferred train without Follow shows complete stages, factual calling points and no additional requests"
+- tests/journey-progress.test.mjs: "Signal progress: live expected arrival changes show behind and ahead against the original timetable"
+- tests/journey-progress.test.mjs: "Signal progress: stale reports freeze the confirmed bar and keep report details accessible"
+- tests/journey-progress.test.mjs: "Signal progress: an inferred Tube without Follow shows route stops and honest modelled progress"
+- tests/journey-progress.test.mjs: "Signal progress: a location projection without a live arrival stays modelled"
+- tests/journey-progress.test.mjs: "Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents"
+- tests/journey-progress.test.mjs: "Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports"
 The shared Signal/Follow a route implementation is behind the switch; compact v2 review is approved and release verification is recorded separately. [Signal testing](../signal-testing.md) records the required evidence
 and hands-on morning checks; do not treat the standalone mockup as regression evidence.
 
