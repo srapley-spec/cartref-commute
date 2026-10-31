@@ -77,3 +77,16 @@ Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layo
 Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.
 Signal/current-main integration adds independent `tests/simulator-signal-review.test.mjs`; the eight complete normal-journey cases verify all route/direction combinations under both real designs.
 Train-stop/current-main integration adds independent `tests/simulator-stop-review.test.mjs`: four route/direction cases check provider/GPS/clock agreement, predeparture waiting, freeze/reset and the return stop's station; a fifth checks restoration through both exit paths. Broken approach speed must cause a visible runtime stop-clock failure.
+
+## Next-control test synchronization (31 Oct compact Signal review)
+
+A real Tube selection can queue checkpoint verification after the test has observed the preceding verification
+finish. The UI correctly disables Next during that new verification. The old test clicked without checking the
+control, so the browser ignored the click and the test later timed out without advancing. A scratch-only 150 ms
+hold after a real platform choice reproduced this at the outbound Farringdon interchange: Next was disabled and
+verification pending before the click; both cleared normally, but the checkpoint remained unchanged.
+
+The journey UX test helper now waits for the actual Next button to be enabled, with stepping and verification
+settled, and clicks synchronously when that condition is true. Readiness and movement share the original six-second
+deadline; the timeout is not extended and production simulator behavior is unchanged. Failure messages include
+checkpoint index, elapsed virtual time, disabled state, stepping and verification state.

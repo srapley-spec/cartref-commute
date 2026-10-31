@@ -10,7 +10,7 @@ async function createApp(options){const a=await loadApp(options);apps.push(a);re
 after(async()=>{await sleep(350);await until(()=>apps.every(a=>!a.c.state.loading&&!a.c.state.again),'all test refreshes finish before document teardown');closeAll();for(const window of isolated)window.close();});
 const click=(a,id)=>{const element=a.d.querySelector('#'+id);assert.ok(element,'control '+id+' exists');element.click();};
 const select=(a,id,value)=>{const e=a.d.querySelector('#'+id);assert.ok(e,'select '+id+' exists');e.value=value;e.dispatchEvent(new a.w.Event('change',{bubbles:true}));};
-async function until(predicate,message,timeout=6000){const end=Date.now()+timeout;while(!predicate()){assert.ok(Date.now()<end,message);await sleep(10);}}
+async function until(predicate,message,timeout=6000){const end=Date.now()+timeout;while(!predicate()){assert.ok(Date.now()<end,typeof message==='function'?message():message);await sleep(10);}}
 const view=a=>a.c.simulator.getView();
 async function checked(a){await until(()=>{const v=view(a);return !v.verification.pending&&v.verification.current?.index===v.index;},'checkpoint verification settles');return view(a).verification.current;}
 async function openJourney(a){click(a,'journeySimulatorBtn');await sleep(0);assert.equal(a.d.querySelector('#simPanel').hidden,false);}
@@ -18,7 +18,16 @@ async function startJourney(a,{direction='outbound',route='kgx',scenario='normal
  await openJourney(a);select(a,'journeyDirection',direction);select(a,'journeyRoute',route);select(a,'journeyScenario',scenario);click(a,'journeyStart');
  await until(()=>a.c.simulator.sim.active&&a.d.querySelector('#simPanel').hidden,'guided start collapses to real app');await checked(a);
 }
-async function next(a){const index=view(a).index;click(a,'journeyNext');await until(()=>view(a).index===index+1,'Next advances one adjacent checkpoint');return checked(a);}
+async function next(a){
+ const index=view(a).index,button=a.d.querySelector('#journeyNext'),deadline=Date.now()+6000;
+ const context=()=>{const v=view(a);return JSON.stringify({from:index,index:v.index,elapsed:v.elapsed,disabled:button.disabled,stepping:v.stepping,pending:v.verification.pending});};
+ // A real app selection can queue another verification after checked() resolves. A click
+ // while the actual button is disabled is ignored: wait for readiness and click in that
+ // same synchronous predicate, rather than racing a second await against its redraw.
+ await until(()=>{const v=view(a);if(button.disabled||v.stepping||v.verification.pending)return false;click(a,'journeyNext');return true;},()=>'Next control becomes ready: '+context(),Math.max(1,deadline-Date.now()));
+ await until(()=>view(a).index===index+1,()=>'Next advances one adjacent checkpoint: '+context(),Math.max(1,deadline-Date.now()));
+ return checked(a);
+}
 async function finish(a){if(a.c.simulator.sim.active||a.c.S().simulatorEnabled||a.c.S().simulatedFeeds)a.c.simulator.simStop({resume:false});await sleep(50);assert.deepEqual(a.errors,[]);}
 function scheduler(a){const nativeSet=a.w.setInterval.bind(a.w),nativeClear=a.w.clearInterval.bind(a.w),tasks=new Map();let id=97000;
  a.w.setInterval=(fn,ms)=>{if(ms!==1000)return nativeSet(fn,ms);const n=id++;tasks.set(n,fn);return n;};
