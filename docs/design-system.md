@@ -1,6 +1,6 @@
 # Cartref — Signal design system
 
-Signal selected by Sam, 29 October 2026. No production app changes. iPhone-first, with automatic light/dark appearance and manual appearance overrides. Sam's refinement: planning and live views switch automatically, with a manual override.
+Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (independent review approved; release gates recorded in docs/signal-testing.md). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Signal selected by Sam, 29 October 2026. No production app changes. iPhone-first
 - [Semantic tokens](design/signal-tokens.json)
 - [Independent review and resolution notes](design/review.md)
 
-The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. No production code changes are included.
+The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
 ## Evidence and scope
 
@@ -146,7 +146,14 @@ tracking" accent. None may be carried forward without retuning. Signal complies.
 
 ## Implementation handoff
 
-This review package contains the specification, semantic tokens, review prototype and acceptance story. Implement the selected system as a separate change. Reference the existing stories; do not replace their thresholds. Integrate only the presentation layer, using engine outputs for all timings and rankings. Keep new functionality behind the existing Experimental policy.
+The review package supplies visual references, not production planning logic. Implementation starts from latest `main`, preserving improvements since the prototype audit. Signal changes presentation; the shared Follow a route engine supplies journey behavior. Reference existing stories and thresholds. Signal design and Follow a route are separate Experimental switches, both initially off; selecting Signal checks Follow a route, which remains independently configurable. Panda and Signal share saved journey state. See [preservation and verification](signal-testing.md).
+
+Latest-code reconciliation also preserves the concurrent Follow a route improvements from `d330e95`: visible
+original arrival, explicit recovery and boarding correction, stable same-train progress, deliberate run/car
+selection, quiet ordinary alternatives during a Tube approach and a one-minute ETA-change threshold. Known
+homeward Tube vehicle predictions are accepted only through the recorded-data validated stop/line/direction
+matching path with three-minute freshness and source guards; modelled fallback remains explicit. This does
+not solve missing Met departures at Aldgate or establish provider-wide vehicle reliability.
 
 Implementation verification: existing engine, golden and app suites; document any intentional presentation snapshot changes; run build and commit generated index.html; typecheck and check-docs. Add targeted UI/accessibility coverage for theme persistence, manual correction, full-board retention and responsive controls. No claim of production regression protection is made by this mockup alone.
 
@@ -187,20 +194,20 @@ Native extension points: reserve a compact journey summary using the same semant
 
 ## Agreed interaction: automatic view, manual override
 
-Sam approved automatic switching with manual override and all three supporting policies on 29 October 2026: override lifetime, deferral during editing/service selection, and tracking plus important alerts while Planner is pinned. The architecture document records these decisions.
+Sam approved automatic switching, interaction deferral and tracking/important alerts while Planner is pinned on 29 October 2026. On 30 October he selected the newer [Follow a route](stories/follow-a-route.md) behavior, including its override lifetime. The architecture document records this superseding decision.
 
 - Default `viewOverride = auto`. Derive the screen from the existing engine's situation: planning before departure, contextual walking/station boards, active rail, interchange, Tube, final walk and arrival. Do not add a second set of GPS or timetable heuristics in the view layer.
 - **Auto · Plan** or **Auto · Live** makes the current automatic choice visible. Tap Plan or Live to pin that view; the Auto control becomes **Return to Auto**. No modal or confirmation is needed.
-- A pinned view survives refresh, theme changes and brief loss of signal. The active journey continues updating independently, with its train identity and deadline retained. A manual planning view must still expose a compact journey-impact alert if the tracked service is disrupted.
+- A pinned view survives refresh, theme changes and brief loss of GPS, within its 20-minute lifetime and while the underlying situation stays the same. The active journey continues updating independently, with its train identity and deadline retained. A manual planning view must still expose a compact journey-impact alert if the tracked service is disrupted.
 - When the user returns to Auto, immediately display the latest situation, not the situation from when they overrode it. Avoid moving a screen while the user is editing a date/time, choosing a service or reading an expanded notice; finish that interaction first and expose the pending live state.
 - Preserve the existing inference confidence rules. If train identity is uncertain, show the candidate choice, not a confident fabricated journey. Choosing Live with no active journey shows a clear empty state.
 - Keep **view override**, **direction override**, and **train/Tube confirmation** separate. Changing the screen does not change the trip. Direction controls retain the existing Auto/office/home behavior.
-- Approved lifecycle for implementation: keep the view override for the current journey/session; reset to Auto on a genuinely new trip, with its identity determined by the existing engine. Do not use a time-of-day reset or clear it on a location blip. The lifecycle boundary still needs integration validation.
+- Current lifecycle (Sam, 30 Oct; supersedes 29 Oct): Return to Auto clears a manual view override immediately; otherwise it expires after 20 minutes or when the underlying situation changes (reaching/leaving a station, starting/stopping rail travel). A refresh, theme change or transient location failure alone is not a situation change. The followed route itself persists independently until completion, Stop following, or explicitly following another option.
 - The mockup's Journey state selector simulates new situation evidence. With Auto selected the screen follows it; with Plan pinned it stays on planning; Return to Auto shows the latest simulated situation. It does not perform real background or location detection.
 
 ## Decision
 
-Signal is the chosen primary structure. Automatic planning/live switching with manual override, journey-scoped override lifetime, interaction deferral, and ongoing tracking/alerts while Planner is pinned are required. No capability deletion is proposed. Other reductions to repeated explanatory copy remain recommendations rather than permission to remove information.
+Signal is the chosen primary structure. Automatic planning/live switching with manual override, the newer 20-minute/situation-change override lifetime, interaction deferral, and ongoing tracking/alerts while Planner is pinned are required. No capability deletion is proposed. Other reductions to repeated explanatory copy remain recommendations rather than permission to remove information.
 
 ## Component contracts
 

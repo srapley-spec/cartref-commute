@@ -70,7 +70,7 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
     section.append(block);
    }
    if(result.revisions?.length){section.append(element('p',result.status==='FAIL'?'A failure has been recorded. Observation history is retained below.':'Earlier observations are retained below.'));const history=element('details');history.append(element('summary','Observation history'));for(const revision of result.revisions){history.append(element('p',`${localTime(revision.at)} · ${pretty(revision.actualDisplay||revision.assertions||revision)}`));}section.append(history);}
-   if(result.actualDisplay){const actual=element('details');actual.append(element('summary','What the real app showed'));const display=result.actualDisplay;actual.append(element('p',`View: ${display.view||'Unknown'}`),element('p',display.mainCard||'No main card text was available.'));if(Array.isArray(display.notices)&&display.notices.length)actual.append(element('p',display.notices.join('\n')));section.append(actual);}
+   if(result.actualDisplay){const actual=element('details');actual.append(element('summary','What the real app showed'));const display=result.actualDisplay;actual.append(element('p',`View: ${display.view||'Unknown'}`),element('p',display.mainCard||'No main card text was available.'));if(display.followCard)actual.append(element('p',display.followCard));if(Array.isArray(display.notices)&&display.notices.length)actual.append(element('p',display.notices.join('\n')));section.append(actual);}
    panel.append(section);
   }
  }

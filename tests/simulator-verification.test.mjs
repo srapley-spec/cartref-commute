@@ -131,3 +131,26 @@ test('initial office arrival still requires arrival wording and sufficient actua
  const c=base({point:'office',label:'Arrive at office',mode:undefined});c.app.nearOffice=true;c.app.heroText='At the office';assert.equal(evaluate(c).status,'PASS');c.app.heroText='If you leave now · home';assert.equal(row(evaluate(c),'office-presentation').status,'FAIL','homeward wording is not substituted for initial arrival');
  const dwell=base({point:'office',label:'Office dwell',mode:undefined});dwell.app.direction='home';dwell.app.nearOffice=true;dwell.app.onLine=false;dwell.app.view='plan-now';dwell.app.heroText='If you leave now · home';delete dwell.app.ride;assert.equal(evaluate(dwell).status,'INCONCLUSIVE','missing ride evidence does not prove completion');
 });
+
+test('manual Plan and Live pins are inconclusive without concealing automatic presentation defects',()=>{
+ const c=base();c.app.view='plan-now';c.app.heroText='If you leave now';
+ for(const mode of ['plan','live']){c.app.presentationMode=mode;assert.equal(evaluate(c).status,'INCONCLUSIVE');assert.equal(row(evaluate(c),'presentation-override').status,'INCONCLUSIVE');}
+ c.app.presentationMode='auto';assert.equal(evaluate(c).status,'FAIL','the same wrong automatic card remains a real failure');
+});
+
+test('followed train checkpoint verifies actual inference, phase and separate real Follow card',()=>{
+ const c=base();c.app.view='following';c.app.following=true;c.app.follow={serviceId:'SIM-GN-0905',phase:'on-train',state:'on-track'};c.app.followText='Following your route · On your train · Arriving 10:21';c.app.heroText='Other journeys';
+ assert.equal(evaluate(c).status,'PASS');
+ c.app.view='on-train';c.app.heroText='On the train';assert.equal(row(evaluate(c),'follow-phase').status,'PASS');c.app.follow.phase='before-train';assert.equal(row(evaluate(c),'follow-phase').status,'FAIL','richer on-train view cannot hide the wrong follower phase');c.app.view='following';
+ c.app.follow.phase='before-train';assert.equal(row(evaluate(c),'follow-phase').status,'FAIL');
+ c.app.follow.phase='on-train';c.app.train.serviceId='WRONG';assert.equal(row(evaluate(c),'rail-identity').status,'FAIL');
+ c.app.train.serviceId='SIM-GN-0905';c.point='stp';assert.equal(evaluate(c).status,'PASS');c.app.follow.phase='before-train';assert.equal(row(evaluate(c),'follow-phase').status,'FAIL');c.app.follow.phase='on-train';c.point='north';c.app.followText='';assert.equal(row(evaluate(c),'rail-presentation').status,'INCONCLUSIVE');
+});
+
+
+test('deliberate reading deferral is inconclusive until the real automatic view is applied',()=>{
+ const c=base();c.app.presentationMode='auto';c.app.presentationPending=true;c.app.presentationInteracting=true;c.app.view='plan-now';c.app.heroText='If you leave now';
+ assert.equal(row(evaluate(c),'presentation-deferred').status,'INCONCLUSIVE');
+ c.app.presentationInteracting=false;assert.equal(evaluate(c).status,'FAIL','pending without actual passenger interaction must not hide an automatic view defect');
+ c.app.presentationInteracting=true;c.app.presentationPending=false;assert.equal(evaluate(c).status,'FAIL','ending the legitimate deferral cannot conceal the same wrong automatic view');
+});

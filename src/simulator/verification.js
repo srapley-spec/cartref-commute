@@ -6,8 +6,9 @@ function evaluateSimulationCheckpoint(context={}) {
  const add=(id,expected,actual,condition,evidence={})=>assertions.push({id,expected,actual,status:condition==null?'INCONCLUSIVE':condition?'PASS':'FAIL',evidence});
  const unknown=(id,expected,actual)=>add(id,expected,actual,null);
  const bool=(id,expected,value,wanted=true)=>add(id,expected,typeof value==='boolean'?String(value):'Not observed',typeof value==='boolean'?value===wanted:null,{value:typeof value==='boolean'?value:null});
- const text=typeof app.heroText==='string'?app.heroText:'';
- const displayText=[app.heroText,app.bannersText,app.listText].flat().filter(x=>typeof x==='string').join(' ');
+ const following=app.following&&app.view==='following';
+ const text=following?(typeof app.followText==='string'?app.followText:''):(typeof app.heroText==='string'?app.heroText:'');
+ const displayText=[app.heroText,app.followText,app.bannersText,app.listText].flat().filter(x=>typeof x==='string').join(' ');
  const display=(id,expected,pattern)=>add(id,expected,displayText?(pattern.test(displayText)?'Expected wording observed in the real application':'Expected wording not observed in the real application'):'Application display not observed',displayText?pattern.test(displayText):null,{screenMatch:displayText?pattern.test(displayText):null});
  const screen=(id,expected,pattern)=>add(id,expected,text?(pattern.test(text)?'Expected wording observed on the main card':'Expected wording not observed on the main card'):'Main card not observed',text?pattern.test(text):null,{view:typeof app.view==='string'?app.view:null,screenMatch:text?pattern.test(text):null});
  const result=()=>({sessionId:c.sessionId??null,index:Number.isInteger(c.index)?c.index:null,point:typeof point==='string'?point:null,label,at:Number.isFinite(c.now)?c.now:null,
@@ -19,6 +20,8 @@ function evaluateSimulationCheckpoint(context={}) {
  if(!['kgx','far'].includes(config.route)||!['outbound','return'].includes(config.direction)||!scenarios.includes(config.scenario)){
   unknown('undefined-expectation','A defined route, direction and scenario assertion','No supported assertion is defined for this configuration');return result();
  }
+ if(app.presentationPending===true&&app.presentationInteracting===true){unknown('presentation-deferred','Observe the next automatic view after the passenger finishes reading or editing','The real app is deliberately deferring its next view while the passenger interacts with it');return result();}
+ if(['plan','live'].includes(app.presentationMode)){unknown('presentation-override','Observe the automatic current-journey view','The passenger explicitly pinned Plan or Live; the current-trip presentation assertion is not applicable');return result();}
  if(['by','at'].includes(app.planMode)&&app.view===`plan-${app.planMode}`){
   unknown('planning-view','Observe the current journey rather than a different requested planning time','The passenger is inspecting an explicit planning view; current-trip checkpoint assertions are not applicable');return result();
  }
@@ -55,10 +58,15 @@ function evaluateSimulationCheckpoint(context={}) {
  if(config.scenario==='outage'&&elapsed!=null&&elapsed>=40){
   add('provider-recovery','Resume parsed transport data after the provider recovers',`${boards.length} service(s), source ${app.railSource||'unknown'}`,boards.length>0&&app.railSource==='darwin',{serviceCount:boards.length,railSource:app.railSource||null});
  }
+ if(app.following&&['north','approach','stp'].includes(point)&&app.follow?.serviceId===expectedId&&config.scenario!=='uncertain'&&accurate&&app.locAcc<=500){
+  add('follow-phase','Recognise the followed service in its actual on-train phase',app.follow?.phase||'Not observed',app.follow?.phase==='on-train',{serviceId:app.follow?.serviceId||null});
+ }
+ if(following&&(!['north','approach','stp'].includes(point)||config.scenario==='uncertain'||app.follow?.serviceId!==expectedId)){unknown('followed-presentation','Inspect the explicitly followed route and its actual decisions','The passenger is following a chosen route; ordinary unselected-journey card expectations do not apply at this checkpoint');return result();}
  if(point==='north'){
   if(!accurate||app.locAcc>500){unknown('rail-position','Use sufficiently accurate rail movement evidence','Rail position accuracy is missing or worse than ±500 m');return result();}
   bool('rail-movement','Recognise that the passenger is on National Rail',app.onLine);
-  screen('rail-presentation','Show the real On the train card',/On the train/i);
+  if(following){screen('rail-presentation','Show the genuine followed-journey card',/Following your route/i);}
+  else screen('rail-presentation','Show the real On the train card',/On the train/i);
   const train=app.train;
   if(!c.source?.feeds){unknown('rail-identity','Compare actual inference with a synthetic service identity','Transport feeds are live; synthetic timetable identities are not applicable');return result();}
   if(config.scenario==='uncertain'){
@@ -130,7 +138,10 @@ function evaluateSimulationCheckpoint(context={}) {
   else unknown('underground-boarding','Recognise boarding once there is sufficient evidence or a passenger choice','No ride has been established at the departure instant; reaching this checkpoint does not prove boarding');
  } else if(c.mode==='rail'&&['approach','stp'].includes(point)){
   bool('rail-progress','Keep tracking the passenger on National Rail while the service continues',app.onLine);
-  screen('rail-progress-presentation','Continue displaying the real On the train card before the alighting stop',/On the train/i);
+  if(following){
+   add('rail-progress-identity',`Keep inferring ${expectedId} from the continuing service`,app.train?.serviceId||'No service inferred',app.train?.serviceId===expectedId,{serviceId:app.train?.serviceId||null});
+   screen('rail-progress-presentation','Continue displaying the genuine followed-journey card before alighting',/Following your route/i);
+  }else screen('rail-progress-presentation','Continue displaying the real On the train card before the alighting stop',/On the train/i);
  } else if(c.mode==='rail'){
   unknown('rail-boarding','Identify the train only after sufficient movement or an explicit passenger choice','Boarding or passing a station alone cannot establish a service identity');
  } else if(point==='kxTube'||point==='farTube'||(point==='ald'&&ret)){

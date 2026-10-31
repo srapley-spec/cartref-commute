@@ -120,9 +120,9 @@ test('Journey results distinguish assertion counts and copy a credential-free di
  assert.equal(a.c.simClock.active,false,'opening finished results does not resume simulation');await finish(a);
 });
 
-for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
- test(`Journey verification: ${direction} ${route} evaluates real checkpoints through completion`,async()=>{
-  const a=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:80});await startJourney(a,{direction,route});select(a,'simSpeed','20');const calls=a.calls.length;let svg=null;
+for(const design of ['panda','signal'])for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
+ test(`${design==='signal'?'Signal ':''}Journey verification: ${direction} ${route} evaluates real checkpoints through completion`,async()=>{
+  const a=await createApp({settings:{provider:'rdm',rdmKey:'test',signal:design==='signal'},settle:80});await startJourney(a,{direction,route});select(a,'simSpeed','20');const calls=a.calls.length;let svg=null;
   const total=view(a).checkpoints.length;
   while(true){const v=view(a),p=v.checkpoints[v.index],result=await checked(a);assert.equal(result.index,v.index);assert.ok(['PASS','FAIL','INCONCLUSIVE'].includes(result.status));
    if(p.label.includes('Walk to Underground platforms')||p.label.includes('At Aldgate westbound platforms')){
@@ -196,43 +196,43 @@ test('Journey runtime verification observes the real provider outage and its rec
 });
 
 test('Journey simulation isolates real Follow state while actual synthetic Follow and Stop following remain usable',async()=>{
- const a=await createApp({settings:{provider:'tfl',follow:true},settle:200});
+ const a=await createApp({settings:{provider:'tfl',followRoute:true},settle:200});
  await until(()=>a.d.querySelector('[data-follow]'),'real application offers a journey Follow button');
  a.d.querySelector('[data-follow]').click();
- assert.ok(a.c.state.saved.follow,'the real application selected a real journey before simulation');
- assert.match(a.text('#hero .follow'),/Following/);
- const realFollow=JSON.stringify(a.c.state.saved.follow),realSaved=a.w.localStorage.getItem('cartrefCommute.v1');
- assert.equal(JSON.stringify(JSON.parse(realSaved).follow),realFollow,'ordinary Follow selection is persisted normally');
+ assert.ok(a.c.state.saved.followRoute,'the real application selected a real journey before simulation');
+ assert.match(a.text('#followPanel'),/Following/);
+ const realFollow=JSON.stringify(a.c.state.saved.followRoute),realSaved=a.w.localStorage.getItem('cartrefCommute.v1');
+ assert.equal(JSON.stringify(JSON.parse(realSaved).followRoute),realFollow,'ordinary Follow selection is persisted normally');
  await startJourney(a);
- assert.equal(a.c.state.saved.follow,undefined,'starting simulation clears the real followed journey from the simulated session');
+ assert.equal(a.c.state.saved.followRoute,undefined,'starting simulation clears the real followed journey from the simulated session');
  assert.equal(a.c.readSimulationActual().following,false);
  assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),realSaved,'starting cannot alter the saved real follow');
- const pick=[...a.d.querySelectorAll('[data-follow]')].find(button=>String(a.c.state.followable?.[button.dataset.follow]?.train?.serviceId||'').startsWith('SIM'));
+ const pick=[...a.d.querySelectorAll('[data-follow]')].find(button=>String(a.c.followChoices.get(button.dataset.follow)?.train?.serviceId||'').startsWith('SIM'));
  assert.ok(pick,'synthetic services are offered by the genuine app Follow controls');pick.click();
- const syntheticId=a.c.state.saved.follow?.train?.serviceId;
- assert.match(syntheticId,/^SIM/);assert.match(a.text('#hero .follow'),/Following/);
+ const syntheticId=a.c.state.saved.followRoute?.lastTrain?.serviceId;
+ assert.match(syntheticId,/^SIM/);assert.match(a.text('#followPanel'),/Following/);
  assert.equal(a.c.readSimulationActual().follow?.serviceId,syntheticId,'diagnostics observe the actual rendered Follow state');
  assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),realSaved,'synthetic Follow selection remains in memory');
  await until(()=>a.c.simulationReporter.getReport().events.some(event=>event.message.includes('followedServiceId changed')&&event.message.includes(syntheticId)),'report observes actual followed-service selection');
- const stop=a.d.querySelector('[data-follow-stop]');assert.ok(stop,'normal Stop following action remains available');stop.click();
- assert.equal(a.c.state.saved.follow,null);assert.equal(a.c.readSimulationActual().follow,null);assert.equal(a.d.querySelector('#hero .follow'),null);
+ const stop=a.d.querySelector('[data-follow-action=stop]');assert.ok(stop,'normal Stop following action remains available');stop.click();
+ assert.equal(a.c.state.saved.followRoute,null);assert.equal(a.c.readSimulationActual().follow,null);assert.equal(a.d.querySelector('#followPanel').hidden,true);
  assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),realSaved,'synthetic Stop following cannot erase the real followed journey');
  await until(()=>a.c.simulationReporter.getReport().events.some(event=>event.message.includes('followedServiceId changed from '+syntheticId+' to unknown')),'report observes actual follow cancellation');
  click(a,'simExit');
- assert.equal(JSON.stringify(a.c.state.saved.follow),realFollow,'Stop restores the exact pre-simulation followed journey');
- assert.equal(JSON.stringify(JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1')).follow),realFollow,'persistent real follow is retained after Stop');
+ assert.equal(JSON.stringify(a.c.state.saved.followRoute),realFollow,'Stop restores the exact pre-simulation followed journey');
+ assert.equal(JSON.stringify(JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1')).followRoute),realFollow,'persistent real follow is retained after Stop');
  assert.equal(a.c.simClock.active,false);await finish(a);
 });
 
 test('Journey delayed services remain followable through genuine boarding and reported inference events',async()=>{
- const a=await createApp({settings:{provider:'rdm',rdmKey:'private-follow-delay-key',follow:true},settle:100});
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'private-follow-delay-key',followRoute:true},settle:100});
  const saved=a.w.localStorage.getItem('cartrefCommute.v1');await startJourney(a,{scenario:'delay'});select(a,'simSpeed','20');
- const button=[...a.d.querySelectorAll('[data-follow]')].find(b=>a.c.state.followable?.[b.dataset.follow]?.train?.serviceId==='SIM-GN-0905');
+ const button=[...a.d.querySelectorAll('[data-follow]')].find(b=>a.c.followChoices.get(b.dataset.follow)?.train?.serviceId==='SIM-GN-0905');
  assert.ok(button,'the actual app offers the delayed train as a followable journey');
- const option=a.c.state.followable[button.dataset.follow];assert.equal(option.train.depLate,8,'real planner consumed the synthetic eight-minute delay');
- button.click();assert.match(a.text('#hero .follow'),/Following/);
+ const option=a.c.followChoices.get(button.dataset.follow);assert.equal(option.train.depLate,8,'real planner consumed the synthetic eight-minute delay');
+ button.click();assert.match(a.text('#followPanel'),/Following/);
  while(view(a).checkpoints[view(a).index].point!=='north')await next(a);
- const actual=a.c.readSimulationActual();assert.equal(actual.train.serviceId,'SIM-GN-0905');assert.equal(actual.follow?.serviceId,'SIM-GN-0905');assert.match(a.text('#hero .follow'),/On the/,'genuine app Follow card recognises boarding the selected delayed train');
+ const actual=a.c.readSimulationActual();assert.equal(actual.train.serviceId,'SIM-GN-0905');assert.equal(actual.follow?.serviceId,'SIM-GN-0905');assert.match(a.text('#followPanel'),/On your train|On the/i,'genuine app Follow card recognises boarding the selected delayed train');
  const report=a.c.simulationReporter.getReport();assert.ok(report.events.some(event=>event.message.includes('followedServiceId changed')&&event.message.includes('SIM-GN-0905')));
  const json=a.c.simulationReporter.serialize();assert.doesNotMatch(json,/private-follow-delay-key/);assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),saved);await finish(a);
 });

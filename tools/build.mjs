@@ -17,6 +17,11 @@ const core = iife.outputFiles[0].text;
 
 const stamp = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false }).replace(",", "") + " UTC";
 let page = readFileSync(path.join(ROOT, "src/page.html"), "utf8").replace("__BUILD__", stamp);
+if (!page.includes('/*__SIGNAL_STYLES__*/') || !page.includes('/*__PRESENTATION_BLOCKS__*/') || !page.includes('/*__FOLLOW_TRANSPORT__*/') || !page.includes('/*__JOURNEY_UI__*/')) throw new Error('Missing journey presentation build insertion point');
+page = page.replace('/*__SIGNAL_STYLES__*/', readFileSync(path.join(ROOT, 'src/signal.css'), 'utf8'))
+  .replace('/*__PRESENTATION_BLOCKS__*/', readFileSync(path.join(ROOT, 'src/presentation-blocks.js'), 'utf8'))
+  .replace('/*__FOLLOW_TRANSPORT__*/', readFileSync(path.join(ROOT, 'src/follow-transport.js'), 'utf8'))
+  .replace('/*__JOURNEY_UI__*/', readFileSync(path.join(ROOT, 'src/journey-ui.js'), 'utf8'));
 // Embed the development simulator from its own source module and panel asset.
 // The web app is a static single-file GitHub Pages deployment.
 const simController = ["scenarios.js", "gps.js", "catalog.js", "verification.js", "report.js", "controller.js", "session.js", "journey-ui.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");

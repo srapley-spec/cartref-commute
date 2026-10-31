@@ -126,3 +126,11 @@ test('repeated assertion changes remain bounded while preserving recorded failur
  assert.ok(row.assertions.some(item=>item.id==='first-79'),'existing failure retained');
  assert.equal(r.getReport().truncated.assertions,60);
 });
+
+
+test('separate actual Follow card is exported and redacted using the same privacy boundary',()=>{
+ const r=create({privateValues:['private-follow-card-key','Personal Follow Destination']});r.start(config);
+ r.recordCheckpoint(check(4,'FAIL',{actualDisplay:{view:'following',mainCard:'Other journeys',followCard:'Following your route · Personal Follow Destination · private-follow-card-key · GPS 51.975,-0.23 · Cancelled',rawFollow:{secret:'NEVER EXPORT'}}}));
+ const out=JSON.parse(r.serialize());assert.match(out.checkpoints[0].actualDisplay.followCard,/Following your route/);assert.match(out.checkpoints[0].actualDisplay.followCard,/Cancelled/);
+ for(const value of ['private-follow-card-key','Personal Follow Destination','51.975','-0.23','rawFollow','NEVER EXPORT'])assert.ok(!r.serialize().includes(value),value);
+});

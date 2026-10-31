@@ -171,3 +171,89 @@ current green main, and exact merged-commit CI/deployment. Independent review do
 ## Reviewed implementation CI evidence
 
 The release lead pinned the approved source and final oracle correction as `c965e04`. Its [GitHub push check](https://github.com/srapley-spec/cartref-commute/actions/runs/41149135000) and [PR check](https://github.com/srapley-spec/cartref-commute/actions/runs/41149141080) both passed: **499/499 tests**, including all eleven independent regressions together. This records the executed follow-up to the focused review, not a replacement for independent review. Exact fresh-copy local CI and merged-commit/deployment evidence belongs to [PR #37](https://github.com/srapley-spec/cartref-commute/pull/37), so the report can link stable evidence without a self-referential commit hash.
+
+## Additional independent review after Signal main integration
+
+Reviewer: `/root/signal_integration_review`, separate from both the simulator implementation and the
+Signal implementation. The reviewer wrote only retained review tests and this report, with no feature fixes.
+Reviewed integration: released main `4ee24c7` (PR #36) plus the resolved simulator candidate built
+31 October at **00:48 UTC**. **Technical and assertion review approved; no significant findings remain open.**
+The release lead must still record final committed-code CI, exact branch/merged checks and the final mobile rerun.
+
+The new main was read against its architecture, Signal/presentation/Follow stories and reconciliation record.
+It replaces legacy `saved.follow` with validated `saved.followRoute`, uses `viewOverride`/`planInputs`, moves
+chosen-route output to the separate actual `followPanel`, and adds transport/source state. The integration:
+
+- Clears/restores the full real saved Follow/planning snapshot; clears simulated selections on Restart;
+  clears old choice maps, presentation, followed-route progress and provider/vehicle caches at source boundaries.
+  Incoming Follow transport still checks source epoch and route/vehicle/target identity after asynchronous work.
+- Records already-computed fit, ride and Follow results during normal rendering. Repeated observational reads
+  preserve saved state, train locks, rendered output and Follow updates byte-for-byte.
+- Includes the real Follow panel in sanitized expected/actual evidence without changing the ordinary main-card
+  observation or injecting a chosen identity into the engine. Following is based on the actual visible panel.
+- Keeps genuine explicit app Planner/Live choices INCONCLUSIVE where the ordinary checkpoint view expectation
+  is inapplicable. Actual rail tracking/identity remains intact, and Return to Auto restores the live assertion.
+- Checks a visible followed service's on-train phase at known rail checkpoints even when the main app correctly
+  shows the richer ordinary On the train card. This closes a detector gap found during review: checking Follow
+  phase only when the main view was `following` could miss a broken follower under an otherwise correct rail card.
+- Excludes simulator technical inputs from the real app's interaction-deferral policy. Otherwise leaving the
+  Advanced speed selector focused made genuine rail movement retain an old planning view indefinitely. Real
+  app Settings/date inputs, service choices and expanded notices retain the existing deferral policy.
+- Treats a deferred presentation as INCONCLUSIVE only when both the actual pending result and genuine
+  app interaction are observed. A pending flag without an actual interaction does not exempt a wrong automatic
+  view from its normal FAIL assertion.
+
+### Retained execution evidence
+
+The first ten `tests/simulator-ux-review.test.mjs` cases are unchanged (prefix compared with `3d4c225`). Its
+last Follow-isolation case now uses the actual current-main controls and fields while retaining its original
+snapshot, source-cache, Restart, persistence and read-only requirements. It passes (**1/1**, 3.81s).
+
+`tests/simulator-signal-review.test.mjs` adds four actual-output regressions:
+
+1. Signal enabled, real train inferred, explicit app Planner pin → INCONCLUSIVE with continued tracking,
+   unchanged identity, no simulator mode side effect, and genuine Return to Auto → rail identity PASS.
+2. The genuine app Follow control selects synthetic Thameslink; its normal inferred train continues through
+   St Pancras, with runtime identity/phase/progress PASS, an actual separate Follow panel in report evidence,
+   no fixture credential in export and no extra inference from observation.
+3. Follow panel text and every retained revision use the diagnostic privacy allowlist, and earlier failures
+   remain visible after recovery.
+4. A focused Advanced speed selector cannot defer the actual app's live transition: sequential normal
+   GPS/feed playback reaches Stevenage, the selector stays focused, and the real app still shows On the train,
+   without a pending presentation or failed identity assertion. The same case then restarts, holds genuine
+   Settings editing open during movement, requires actual pending + INCONCLUSIVE, and closes editing to require
+   normal On the train / identity PASS again.
+
+The first three passed together (**3/3**, 18.37s). The strengthened Follow phase case passed separately
+(**1/1**, 11.98s); the final paired technical-focus/genuine-editing regression passed separately
+(**1/1**, 11.88s total).
+The final committed suite must run all four together. Evidence:
+`/tmp/cartref-signal-review-actual-final.log`, `/tmp/cartref-signal-review-follow-final.log`,
+`/tmp/cartref-signal-review-isolation.log`, `/tmp/cartref-signal-review-focus.log`,
+`/tmp/cartref-signal-review-focus-editing.log`.
+
+### Additional independent adverse probes
+
+| Temporary defect | Intended detector | Observed result |
+| --- | --- | --- |
+| Remove the new saved Follow/planning clear entries from both entry/reset guards | Retained isolation test after an actual real Follow and Arrive-by selection | FAIL: real `followRoute` survives instead of being absent |
+| Disable the choice Map's `clear` method with one line | Retained stale-choice sentinel assertion after Start | FAIL: stale option remains available |
+| Change production `followedObservation`'s inferred on-train phase to before-train with one line | Retained actual followed-Thameslink case at Stevenage | The real runtime `follow-phase` assertion and visible badge both become **FAIL**; the positive regression fails `FAIL != PASS` |
+| Return unsanitized strings from the shared report sanitizer with one line | Retained Follow-panel/revision privacy assertion | FAIL: private credential appears in exported evidence |
+| Remove only the simulator-input exclusion from interaction deferral with one line | Retained focused speed-selector playback regression | FAIL: actual app remains `plan-now` instead of `on-train` |
+| Weaken the verification deferral guard to trust pending without actual interaction | Explicit wrong-auto-view counterexample in the verifier suite | FAIL: INCONCLUSIVE would hide a view defect that must be FAIL |
+
+All probes used copied generated pages/modules in temporary directories; shared production source was never
+mutated. A preliminary probe bypassing only the Follow field's first sanitization **survived safely**: export
+sanitization independently removed the sensitive text. This is evidence of the second guard, not a claimed
+mutation kill. The shared-sanitizer defect above produced the intended assertion failure. Initial mutation
+target-count/setup errors were corrected and were not counted as detected defects.
+
+Evidence: `/tmp/cartref-signal-review-mutant.log`, `/tmp/cartref-signal-review-choices-mutant.log`,
+`/tmp/cartref-signal-review-phase-mutant.log`, `/tmp/cartref-signal-review-privacy-mutant.log`,
+`/tmp/cartref-signal-review-privacy-disabled-mutant.log`, `/tmp/cartref-signal-review-focus-mutant.log`,
+`/tmp/cartref-signal-review-pending-mutant.log`.
+
+The earlier independent UX, source-isolation and synthetic-consistency findings remain covered. This review
+adds current-main compatibility evidence; it does not replace final all-suite CI or the release lead's actual
+36-layout/8-journey browser run. Physical iPhone Safari/VoiceOver/background delivery remains a hardware limit.

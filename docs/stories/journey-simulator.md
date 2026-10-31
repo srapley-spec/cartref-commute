@@ -31,6 +31,8 @@ so that I can inspect inference and onward planning without travelling.
 - Read outputs already computed by normal application rendering. Verification never calls mutating inference functions just to observe them, assigns a train/tube or replaces the main app interface.
 - Evaluate each meaningful checkpoint after normal refresh settles. Explicit assertions produce PASS/FAIL; missing evidence, pending work, unsupported/manual inputs or a legitimate unresolved passenger decision produce INCONCLUSIVE. Reaching a location is not itself a pass.
 - Session/index/playback generations reject stale asynchronous verification after restart, Stop, source changes or continued playback. Device clock advancement in GPS-only mode must not leave verification permanently pending.
+- Optional Signal and Panda share the same simulator. Explicit Plan/Live pins are reported as INCONCLUSIVE for automatic-view expectations; Return to Auto restores those assertions. A displayed followed service has an independent phase assertion at Stevenage/approach/through-station checkpoints, even when the main card uses the richer on-train view. The separate real Follow card is retained and sanitized alongside the main card.
+- Reading/editing deferral is INCONCLUSIVE only when the real application reports a pending transition and actual app interaction is present. A pending flag alone cannot conceal a wrong automatic view. Simulator inputs are excluded from the real app's interaction deferral, so inspecting Advanced controls cannot hold back normal journey presentation.
 - Keep earlier failures and later revisions. A small failure indicator opens expected/actual explanations and the actual displayed main-card text without hiding that card.
 - Preserve genuine application failures; never weaken an assertion or change GPS/provider fixtures merely to obtain a passing simulator run. Deliberate production inference mutations must result in visible runtime failures.
 
@@ -38,6 +40,7 @@ so that I can inspect inference and onward planning without travelling.
 - Show reached checkpoint counts separately from passed, failed and inconclusive assertions and significant inference events. Results remain inspectable/copyable/exportable after Stop until a new run or reload.
 - Export a versioned JSON allowlist: scenario configuration, relevant virtual timestamps, assertions, sanitized display text, bounded revisions and selected diagnostic facts. Do not export raw settings/state, API URLs/credentials, precise coordinates, postcodes or home/work addresses.
 - Refresh the union of private values throughout the session and before exporting; credentials changed during a session must remain redacted after Stop restores the original settings.
+- Current main's `followRoute`, `viewOverride`, `planInputs` and legacy migration metadata are session-isolated together. Source changes clear the Follow option Map, transport prediction cache and presentation state; guarded pending predictions cannot populate a newer session.
 - Report format identifiers and validated structural enums remain intact while untrusted messages and service identifiers are sanitized. Unavailable clipboard access offers a selectable text fallback; download URLs are revoked.
 
 ## Tests
@@ -65,6 +68,7 @@ records executed assertions. Exact committed CI, merge and deployment evidence i
 
 Test lifecycle cleanup waits for native GPS and the resulting refresh to settle before closing a simulated browser. This prevents pending asynchronous callbacks from running after document teardown; CI correctly rejected the earlier incomplete cleanup.
 
-Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides. Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
+Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides in both Panda and Signal (36 combinations). Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
 
 Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.
+Signal/current-main integration adds independent `tests/simulator-signal-review.test.mjs`; the eight complete normal-journey cases verify all route/direction combinations under both real designs.

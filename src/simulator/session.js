@@ -16,7 +16,7 @@ function createJourneySimulationSession({simulator,reporter,evaluate,readActual,
  }
  function event(type,message,evidence={}){refreshPrivacy();const v=simulator.getView();reporter.recordEvent({sessionId:sim.sessionId,type,message,evidence,index:v.index,point:v.checkpoints[v.index]?.point,at:v.clockNow});}
  function publish(result){
-  result.actualDisplay={view:result.observed?.view||'',mainCard:result.observed?.heroText||'',notices:result.observed?.bannersText?[result.observed.bannersText]:[]};delete result.observed;
+  result.actualDisplay={view:result.observed?.view||'',mainCard:result.observed?.heroText||'',followCard:result.observed?.followText||'',notices:result.observed?.bannersText?[result.observed.bannersText]:[]};delete result.observed;
   refreshPrivacy();const stored=reporter.recordCheckpoint(result);
   const results=sim.verification.results.filter(item=>item.index!==result.index);
   // Reports retain FAIL and revisions. Keep that verdict visible even after a later recovery.

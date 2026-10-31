@@ -39,7 +39,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Late trains say so](late-trains.md) · Done
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done
-- [Presentation model: the engine decides what comes first](presentation-model.md) · Done (status line not yet drawn)
+- [Presentation model: the engine decides what comes first](presentation-model.md) · Done for Panda; Signal behind toggle (release verification pending)
 - [Live and timetable data](live-and-timetable.md) · Done
 - [Reliability when feeds fail](reliability.md) · Done
 
@@ -56,7 +56,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
-- [Follow a route](follow-a-route.md) · Behind toggle
+- [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
 
 ### Beyond the commute
 - [Any start and end point](any-start-and-end-point.md) · Behind toggle
@@ -75,4 +75,4 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 
 ### Design and presentation
 - [Every live train says how late it is, in colour](train-status.md) · Done
-- [Signal design system and automatic journey presentation](signal-design-system.md) · Planned (design and interaction policies agreed; implementation pending)
+- [Signal design system and automatic journey presentation](signal-design-system.md) · Behind toggle (release verification pending)

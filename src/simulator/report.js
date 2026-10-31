@@ -54,9 +54,9 @@ function createJourneySimulationReporter({now=()=>Date.now(),privateValues=[]}={
   return {id:id(value.id,'assertion-'+index),expected:text(value.expected,'No expectation recorded'),actual:text(value.actual,'No observation recorded'),status:defined?status(value.status):'INCONCLUSIVE',evidence:evidence(value.evidence)};
  }
  function display(value){
-  if(!value||typeof value!=='object'||Array.isArray(value))return {view:'',mainCard:'',notices:[]};
+  if(!value||typeof value!=='object'||Array.isArray(value))return {view:'',mainCard:'',followCard:'',notices:[]};
   const notices=Array.isArray(value.notices)?value.notices:typeof value.notices==='string'?[value.notices]:[];
-  return {view:id(value.view),mainCard:text(value.mainCard),notices:notices.filter(item=>typeof item==='string').slice(0,20).map(item=>text(item))};
+  return {view:id(value.view),mainCard:text(value.mainCard),followCard:text(value.followCard),notices:notices.filter(item=>typeof item==='string').slice(0,20).map(item=>text(item))};
  }
  const classify=assertions=>assertions.some(value=>value.status==='FAIL')?'FAIL':!assertions.length||assertions.some(value=>value.status==='INCONCLUSIVE')?'INCONCLUSIVE':'PASS';
  function checkpoint(value={}){
