@@ -133,7 +133,17 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
   card's "from when your train stopped" on the next trip.
 - Worked-out tubes use the same start: the earliest tube you could be on is the stop + the walk (less a minute).
 
+## Both designs (Sam, 31 Oct)
+Everything above works the same in Panda and in Signal (Settings → Signal): Signal draws the same card and reorders
+its blocks; it hides nothing. Checked 31 Oct: line colours measured in Chromium in both designs, light and dark
+(Circle #FFD329, Met #9B0058, H&C #F4A9BE with dark ink, on lozenges and on the chips in pick buttons); the tests
+below run each feature in both.
+
 ## Tests
+- tests/rules.test.mjs: "Both designs (panda): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
+- tests/rules.test.mjs: "Both designs (signal): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
+- tests/rules.test.mjs: "Both designs (panda): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
+- tests/rules.test.mjs: "Both designs (signal): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
 - tests/core/engine.test.mjs: "Rides: last until your stop or the ride time is over; asked only on a good, fresh fix back where you started"
 - tests/core/engine.test.mjs: "bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never"
