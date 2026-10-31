@@ -37,9 +37,19 @@ test('Signal status summary follows actual engine warning precedence and handles
   const a=await app({signal:true});
   assert.match(a.text('#signalStatus'),/cancelled/);
   a.c.state.errors=['Feed key refused'];a.c.render();
-  assert.equal(a.text('#signalStatus'),'Feed key refused');
+  assert.match(a.text('#signalStatus'),/^Feed key refused/);
+  assert.equal(a.d.querySelector('#signalStatus').className,'bad');
   a.c.state.errors=[];a.c.state.boards=null;a.c.state.loading=true;a.c.render();
   assert.match(a.text('#signalStatus'),/Loading journey data/);
+  assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('Signal keeps example and timetable provenance visible when train warnings take precedence',async()=>{
+  const a=await app({signal:true});
+  assert.match(a.text('#signalStatus'),/cancelled/);assert.match(a.text('#signalStatus'),/Example trains/);
+  a.c.state.saved.settings.provider='tfl';a.c.state.railSource='tfl';a.c.render();
+  assert.match(a.text('#signalStatus'),/cancelled/);assert.match(a.text('#signalStatus'),/Timetable times, not live/);
+  assert.equal(a.d.querySelector('#signalNotices').open,false);
   assert.deepEqual(a.errors,[]);a.close();
 });
 test('manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation',async()=>{

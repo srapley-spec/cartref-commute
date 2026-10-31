@@ -130,6 +130,7 @@ release checks remain required.
 - tests/signal-compact-review.test.mjs: "compact review: a closed Hammersmith and City fallback is qualified before opening any alert"
 - tests/signal-compact-review.test.mjs: "compact review: a cancellation summary cannot hide the currently closed onward fallback"
 - tests/core/present.test.mjs: "statusLine: a closed fallback asks to check onward travel without claiming a future closure"
+- tests/signal.test.mjs: "Signal keeps example and timetable provenance visible when train warnings take precedence"
 
 - tests/signal-compact-plan.test.mjs: "compact Plan: explicitly choosing Plan keeps its primary answer visible while following continues"
 - tests/signal-compact-plan.test.mjs: "compact Plan: live Tube choices remain outside folded recommendations and keep working while following"

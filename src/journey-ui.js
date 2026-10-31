@@ -354,6 +354,10 @@ function renderSignalStatus(){
   if(['bad','warn'].includes(network.level)&&network.text!==result.text){
     const impact=document.createElement('span');impact.className='signal-network-impact '+network.level;impact.textContent=' · '+network.text;el.append(impact);
   }
+  if(input.demo||input.timetableOnly){
+    const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
+    if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
+  }
 }
 function renderJourneyExtras(){renderFollowPanel();renderSignalStatus();renderSignalCompact();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
