@@ -49,7 +49,7 @@ function baseRoutes(i: RouteInput): Route[] {
   // Away from home: set off from where you are (the screen replaces the walk with the one from here once it has a
   // location) and the trip back ends at the station you started from.
   const leaveStep = (walk: number) => st.away ? { at: "start" as const, d: "Set off from where you are", note: `walk to ${LOCAL_NAME} station ${dur(sec(walk))} (from your usual walk until your location is known)` } : { at: "start" as const, d: "Leave Cartref", note: `walk ${dur(sec(walk))}` };
-  const homeEnd = (walk: number): Segment[] => st.away ? [seg("station", s.letExit * k, { at: "end", d: `Arrive ${LOCAL_NAME}`, note: "where you started" })] : [seg("station", s.letExit * k), seg("walk", walk, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walk))}` })];
+  const homeEnd = (walk: number): Segment[] => st.away ? [seg("station", s.letExit * k, { at: "end", d: `Out of ${LOCAL_NAME} station`, note: "where you started" })] : [seg("station", s.letExit * k), seg("walk", walk, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walk))}` })];
   const ic: Record<string, number> = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
   const routes: Route[] = [];
   if (!leisure) {

@@ -99,7 +99,8 @@ test("Start station: routes from Hitchin set off from where you are and come bac
   assert.deepEqual(back.map(r => r.board), ["KGX-HIT", "STP-HIT", "ZFD-HIT"]);
   for (const r of back) {
     assert.equal(r.arriveLabel, "Arrive Hitchin");
-    assert.equal(r.after.at(-1).step.d, "Arrive Hitchin");
+    // The train's own step already says "Arrive Hitchin"; the last one is leaving the station (review 31 Oct).
+    assert.equal(r.after.at(-1).step.d, "Out of Hitchin station");
     assert.ok(!r.after.some(s => s.kind === "walk"), "no walk to Cartref at the end");
   }
   // Leisure both ways too.
@@ -414,5 +415,17 @@ test("Starting from Hitchin: Live before a journey is Hitchin's departure board;
   const rows = [...b.d.querySelectorAll("#list .live-board .row.board")].map(r => r.textContent.replace(/\s+/g, " "));
   assert.ok(rows.length > 0);
   assert.ok(rows.every(r => /Hitchin\s*\d\d:\d\d/.test(r) && !/Home/.test(r)), rows.join("\n"));
+  assert.deepEqual(b.errors, []); b.close();
+});
+
+test("Starting from Hitchin, at the office going home (default design): tubes from Aldgate to the Hitchin train, never 'home'", async () => {
+  const EVENING = Date.parse("2026-11-03T17:30:00Z");
+  const aldgate = (u) => /940GZZLUALD\/Arrivals/.test(u) ? json([9, 15].map((m, i) => ({ vehicleId: `c${i}`, lineId: "circle", platformName: "Westbound - Platform 1",
+    destinationName: "Edgware Road (Circle Line) Underground Station", expectedArrival: new Date(EVENING + m * 60e3).toISOString(), timeToStation: m * 60 }))) : undefined;
+  const b = await createApp({ now: EVENING, geo: { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } }, settings: { provider: "demo" },
+    saved: { dirMode: "home", startFrom: { code: "HIT", day: "2026-11-03" } }, route: aldgate, settle: 800 });
+  assert.match(b.text("#hero"), /Tubes from Aldgate.*Hitchin \d\d:\d\d/);
+  assert.match(b.text("#hero"), /Arrive Hitchin/);
+  assert.doesNotMatch(b.text("#hero"), /\bhome\b|Cartref|Letchworth/);
   assert.deepEqual(b.errors, []); b.close();
 });

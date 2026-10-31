@@ -54,8 +54,9 @@ stations nearby with their walks.
 - Arlesey journey times (live, 31 Oct, Saturday): Thameslink (Peterborough) every 30 min, St Pancras 39 min,
   Farringdon 44; no direct King's Cross train in the 2 hours shown. Not stopping trains by the shared thresholds.
 - Going back (from London) while starting elsewhere: boards to that station (King's Cross, St Pancras, Farringdon →
-  Hitchin), the arrival is "Arrive Hitchin" (never "Arrive home"), ending with the station exit and no walk to
-  Cartref. "Nearly home" doesn't apply: there's no walk home to count.
+  Hitchin), the arrival is "Arrive Hitchin" (never "Arrive home"), ending with the station exit ("Out of Hitchin
+  station · where you started") and no walk to Cartref. At the office, the tubes from Aldgate name the Hitchin
+  arrival. "Nearly home" doesn't apply: there's no walk home to count.
 - "Back to home" clears it and reloads. A choice from another day, or an unknown station, is ignored: the app is
   the Letchworth commute exactly as before.
 - Only Hitchin and Arlesey are offered besides Letchworth. A station is added only after its live times are checked against
@@ -92,6 +93,7 @@ stations nearby with their walks.
   walking range you're always "on your way", so Live shows that walk rather than the board; the board appears
   when no journey is under way (e.g. beyond walking range).
 - tests/start-station.test.mjs: "Starting from Hitchin: Live before a journey is Hitchin's departure board; going back, arrivals are at Hitchin"
+- tests/start-station.test.mjs: "Starting from Hitchin, at the office going home (default design): tubes from Aldgate to the Hitchin train, never 'home'"
 
 ## Independent review (31 Oct, on a0e0c3e)
 A separate agent made 43 one-line breakages: 27 caught, 16 survived (mostly the trip back, no location, TfL source,
@@ -100,7 +102,10 @@ Fixed (also "at home" on the tube-home headline, the effort lines and the "Nearl
 tests added (adapted: the walk limit is now 10 km; tapping at home now says so instead of switching). Each fix was
 re-broken and is caught. Still uncaught, needing a Service Details fixture: the on-train stop code and
 nearly-home progress lookups by station code when starting elsewhere (M37/M38), and an engine-only
-`startsAtHome` mutation with no visible effect (the page's `atHome()` already answers false away).
+`startsAtHome` mutation with no visible effect (the page's `atHome()` already answers false away). Re-review on the
+merge with main (c862f0b): satisfied; 12 of the 16 survivors killed, 15 new-code mutations killed. Untested labels
+on the trip back while away: the on-tube-home headline ("at Hitchin"), Arrive-by effort lines, and the Live board's
+"No train to Hitchin connects".
 
 ## Not yet / open questions
 - The choice is read when the page loads: a page left open past midnight keeps yesterday's station until reloaded.

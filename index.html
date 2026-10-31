@@ -645,7 +645,7 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 12:15 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 12:32 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2777,7 +2777,7 @@ var CommuteCore = (() => {
     const s = i.timings, dir = i.dir, leisure = i.mode === "leisure", fast = !leisure && i.pace === "fast", k = paceFactor(i);
     const st = i.start || { code: "LET", name: "Letchworth", away: false }, LOCAL = st.code, LOCAL_NAME = st.name;
     const leaveStep = (walk) => st.away ? { at: "start", d: "Set off from where you are", note: `walk to ${LOCAL_NAME} station ${dur(sec(walk))} (from your usual walk until your location is known)` } : { at: "start", d: "Leave Cartref", note: `walk ${dur(sec(walk))}` };
-    const homeEnd = (walk) => st.away ? [seg("station", s.letExit * k, { at: "end", d: `Arrive ${LOCAL_NAME}`, note: "where you started" })] : [seg("station", s.letExit * k), seg("walk", walk, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walk))}` })];
+    const homeEnd = (walk) => st.away ? [seg("station", s.letExit * k, { at: "end", d: `Out of ${LOCAL_NAME} station`, note: "where you started" })] : [seg("station", s.letExit * k), seg("walk", walk, { at: "end", d: "Arrive Cartref", note: `walk ${dur(sec(walk))}` })];
     const ic = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
     const routes = [];
     if (!leisure) {
