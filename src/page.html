@@ -403,6 +403,9 @@ const START = (()=>{ try{ const s=JSON.parse(localStorage.getItem(LS)||"{}").sta
 const PROFILE = C.profileFromStation(C.profiles.samCommute, START && START.code);
 // AWAY: you're not at home, so plans start where you are. HOME: the station trains go from (Letchworth unless AWAY).
 const AWAY = !!START && (START.code===PROFILE.home), HOME = PROFILE.home, HOME_NAME = PROFILE.stationNames[HOME];
+// Going back while away, the trip ends at the station you started from, not at home (independent review, 31 Oct:
+// the arrival said "Arrive home" while it was the time at Hitchin).
+const HOME_DEST = AWAY ? HOME_NAME : "home", AT_HOME = AWAY ? `at ${HOME_NAME}` : "at home";
 const { pad, hhmm, mins, dur, countdown, km, clock, resolve, plannable, keepEveryRoute, topPicks } = C;
 const STATIONS = PROFILE.stationNames, HUB_NAME = PROFILE.hubNames, COORDS = PROFILE.coords;
 const LINE = PROFILE.lines, MAX_TRAIN_MIN = PROFILE.maxTrainMin;
@@ -888,7 +891,9 @@ function walkFromHere(){
   const est = C.walkSecs(state.here, GEO.HOME, leisure?"leisure":fast?"fast":"avg", PROFILE);
   return est<homeWalk() ? est : null;
 }
-const START_WALK_MAX_KM = 5;
+// The same limit as the station search, so a station it offers always gets a walk from where you are (review 31 Oct:
+// between 5 and 10 km the step said "until your location is known" while it was known).
+const START_WALK_MAX_KM = C.START_STATION_MAX_KM;
 // Your usual walk from home to Letchworth station at the current pace (seconds).
 function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
   return leisure ? s.walkHomeStationAvg*s.leisureFactor : (fast?s.walkHomeStationFast:s.walkHomeStationAvg); }
@@ -1123,7 +1128,7 @@ function effortLine(j, dest, best){
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
-  const dest=j.dest||(direction()==="office"?"office":"home");
+  const dest=j.dest||(direction()==="office"?"office":HOME_DEST);
   return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
@@ -1184,7 +1189,8 @@ function renderOnTrain(now, m){
 // The train you're on (as remembered), from the loaded boards.
 const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
-const nearlyHome = () => C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
+// Away from home the trip back ends at the station you started from: there's no walk home to count.
+const nearlyHome = () => !AWAY && C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
   const lock=state.trainLock;
@@ -1220,7 +1226,7 @@ function tubesFromAldgate(now){
   const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
   if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{}), ...(plan.best.dest?{dest:boardDest(plan.best.dest)}:{})}; save(); }
   const row=(t,mark)=>{ const o=t.leg.o;
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
+    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||HOME_DEST)} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
   const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
   const btns=boardBtns("ALD", [...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)), d.list, now, "");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
@@ -1244,7 +1250,7 @@ function renderOnTubeHome(now){
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
-    <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
+    <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">${esc(AT_HOME)}</span></div>
     <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -1423,7 +1429,7 @@ function renderHero(list, now){
     return;
   }
   const picks=list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended), first=list.find(o=>o.first);
-  const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":"home");
+  const t0=now+30e3, dest=(list[0]&&list[0].dest)||(dir==="office"?"office":HOME_DEST);
   // Only the run / car trains that arrive sooner than the card's best (engine: offer).
   const hurryOpts=list.filter(o=>o.offer);
   const hurryHtml=(o,best)=>effortLine(o,dest,best);
@@ -1750,7 +1756,7 @@ function renderByHero(opts){
   h.innerHTML=`
     <div class="lbl">${esc(lbl)} · best, and the next best</div>
     ${picks.map(j=>optionBlock(j,{timing:timing(j), late:j.late})).join("")}
-    ${opts.filter(o=>o.offer).map(o=>effortLine(o, o.dest||(dir==="office"?"office":"home"), picks[0])).join("")}
+    ${opts.filter(o=>o.offer).map(o=>effortLine(o, o.dest||(dir==="office"?"office":HOME_DEST), picks[0])).join("")}
     ${statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])])}`;
 }
 
@@ -2189,6 +2195,11 @@ function setStartStation(code){
 function chooseNearestStart(){
   // A rough fix is enough to tell stations ~5 km apart.
   const near = state.here && state.locAcc<=1000 ? C.nearestStartStation(state.here, PROFILE) : null;
+  // At home (within 500 m of your saved home) the nearest is your own station: the normal commute already plans it,
+  // with your measured walk and the car. Say so rather than switch (review 31 Oct). Picking a station still works.
+  const home=state.saved.home;
+  if(near && near.code===PROFILE.home && !AWAY && home && km(state.here,home)<0.5){
+    state.startChoose={ msg:"You're at home: the commute already starts here." }; renderStartRow(); return; }
   if(near){ setStartStation(near.code); return; }
   state.startChoose={ msg: state.here ? `No station within ${C.START_STATION_MAX_KM} km that the app can start from.` : "Your location isn't known yet." };
   renderStartRow();

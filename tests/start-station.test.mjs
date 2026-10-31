@@ -3,7 +3,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createApp, sleep, closeAll, json, NEAR_LETCHWORTH } from "./harness.mjs";
+import { createApp, sleep, closeAll, json, iso, IN_LONDON, NEAR_LETCHWORTH } from "./harness.mjs";
 import * as C from "../dist/core.mjs";
 
 after(closeAll);
@@ -15,6 +15,7 @@ const IN_HITCHIN = { coords: { latitude: 51.9490, longitude: -0.2790, accuracy: 
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 // Values from the page are jsdom-realm objects: compare as plain data.
 const plain = (x) => JSON.parse(JSON.stringify(x));
+const HIT_TODAY = () => ({ code: "HIT", day: today() });
 const FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/darwin-hit-2026-10-31T1130Z.json", import.meta.url)));
 const ARL_FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/darwin-arl-2026-10-31.json", import.meta.url)));
 const ARLESEY_STATION = [52.0260, -0.2663];   // TfL 910GARLSEY
@@ -271,4 +272,124 @@ test("Starting from Arlesey: boards from Arlesey, real Thameslink trains planned
   assert.ok(!app.c.isStopping(t.train));
   assert.match(app.text("#hero"), /^On your way to Arlesey/);
   app.close();
+});
+
+// From the independent review (31 Oct), adapted to its fixes.
+const southOfHitchin = (k, acc = 20) => ({ coords: { latitude: HITCHIN_STATION[0] - k / 111.2, longitude: HITCHIN_STATION[1], accuracy: acc } });
+
+test("Starting from Hitchin, going back: boards to Hitchin, the trip ends at Hitchin with no walk to Cartref", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "home", startFrom: HIT_TODAY() }, geo: IN_LONDON, settle: 800 });
+  const c = app.c;
+  assert.deepEqual(plain(c.boardKeys()), ["KGX-HIT", "ZFD-HIT"]);
+  assert.equal(app.text("#routeLabel"), "20 Mansfield Street → Hitchin");
+  const opts = c.ranked(Date.now());
+  assert.ok(opts.length > 0);
+  for (const j of opts) {
+    assert.equal(j.train.to, "HIT");
+    assert.ok(j.arrive - j.train.arr <= 2 * 60e3, `arrives at Hitchin, not Cartref: ${(j.arrive - j.train.arr) / 60e3} min after the train`);
+  }
+  assert.doesNotMatch(app.text("#hero") + app.text("#list"), /Cartref|Letchworth/);
+  // Review 31 Oct: the arrival was labelled "Arrive home" while it was the time at Hitchin.
+  assert.doesNotMatch(app.text("#hero"), /Arrive home|at home/);
+  assert.match(app.text("#hero"), /Arrive Hitchin/);
+  app.close();
+  // Back near Hitchin (1 km from the station, not on a train): not "Nearly home", which counts the walk to your
+  // saved home; the trip ended at Hitchin.
+  const near = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "home", startFrom: HIT_TODAY() }, geo: southOfHitchin(1), settle: 800 });
+  assert.doesNotMatch(near.text("#hero"), /at home|Nearly home|walk home|Set your home/);
+  assert.doesNotMatch(near.text("#hero"), /Cartref|Letchworth/);
+  near.close();
+});
+
+test("Starting from Hitchin with no saved home: the walk from 2.5 km still counts as on your way, never at home", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", home: null, startFrom: HIT_TODAY() }, geo: southOfHitchin(2.5) });
+  const c = app.c, w = c.walkFromHere();
+  assert.ok(w > 35 * 60 && w < 45 * 60, `${w}`);   // 2.5 km × 1.3 at 5 km/h ≈ 39 min, longer than the home walk
+  assert.equal(c.onWay().walk, w);
+  assert.equal(c.atHome(), false);
+  assert.match(app.text("#hero"), /^On your way to Hitchin/);
+  assert.doesNotMatch(app.text("#hero"), /Train from/);
+  app.close();
+});
+
+test("Starting from Hitchin: the walk is worked out up to 10 km (the station search's limit), not beyond", async () => {
+  for (const k of [4, 9]) {
+    const a = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", startFrom: HIT_TODAY() }, geo: southOfHitchin(k) });
+    const d = a.c.km(a.c.state.here, HITCHIN_STATION);
+    assert.ok(Math.abs(a.c.walkFromHere() - d * 1.3 / 5 * 3600) < 1, `${k} km`);
+    assert.doesNotMatch(a.text("#hero"), /until your location is known/);
+    a.close();
+  }
+  const b = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", startFrom: HIT_TODAY() }, geo: southOfHitchin(10.5) });
+  assert.equal(b.c.walkFromHere(), null);
+  b.close();
+});
+
+test("Starting from Hitchin without a location: set off from where you are, never 'Leave Cartref'", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", startFrom: HIT_TODAY() }, geo: null });
+  const best = app.c.ranked(Date.now())[0];
+  assert.equal(best.train.from, "HIT");
+  assert.doesNotMatch(app.text("#hero"), /Cartref/);
+  assert.match(app.text("#hero"), /Set off from where you are/);
+  app.close();
+});
+
+test("Starting from Hitchin, at Hitchin station: departures from Hitchin", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", startFrom: HIT_TODAY() },
+    geo: { coords: { latitude: HITCHIN_STATION[0], longitude: HITCHIN_STATION[1], accuracy: 15 } } });
+  assert.match(app.text("#hero"), /^You're at Hitchin · departures/);
+  app.close();
+});
+
+test("Starting from Hitchin on TfL timetables: Hitchin's position in the request, Hitchin trains planned", async () => {
+  const H = HITCHIN_STATION, HC = `${H[0]},${H[1]}`;
+  const NAME = { [HC]: "Hitchin Rail Station", "51.53197,-0.12341": "London Kings Cross Rail Station", "51.52036,-0.10514": "Farringdon Rail Station", "51.53062,-0.12594": "London St Pancras International Rail Station" };
+  const route = (u) => {
+    const m = /JourneyResults\/([^/]+)\/to\/([^?]+)\?.*date=(\d{8})&time=(\d{4})/.exec(u); if (!m) return undefined;
+    const a = NAME[decodeURIComponent(m[1])], b = NAME[decodeURIComponent(m[2])];
+    const t = new Date(+m[3].slice(0, 4), +m[3].slice(4, 6) - 1, +m[3].slice(6), +m[4].slice(0, 2), +m[4].slice(2)).getTime();
+    const journeys = !a || !b ? [] : [10, 40, 70].map(o => { const dep = t + o * 60e3; return { legs: [{ mode: { id: "national-rail" },
+      departureTime: iso(dep), arrivalTime: iso(dep + 35 * 60e3), departurePoint: { commonName: a }, arrivalPoint: { commonName: b },
+      instruction: { summary: /Farringdon|Pancras/.test(b) ? "Thameslink" : "Great Northern" } }] }; });
+    return { ok: true, status: 200, json: async () => ({ journeys }) };
+  };
+  const app = await createApp({ settings: { provider: "tfl" }, saved: { dirMode: "office", startFrom: HIT_TODAY() }, geo: southOfHitchin(1), route, settle: 1200 });
+  const rail = app.calls.filter(u => /JourneyResults\/51\.9/.test(u));
+  assert.ok(rail.length > 0 && rail.every(u => u.includes(`JourneyResults/${HC}/to/`)), rail.join("\n"));
+  const opts = app.c.ranked(Date.now());
+  assert.ok(opts.length > 0 && opts.every(o => o.train.from === "HIT"));
+  app.close();
+});
+
+test("Starting from Hitchin, going back on live boards: King's Cross, St Pancras and Farringdon to Hitchin", async () => {
+  const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120" };
+  const route = (u) => /GetDepBoardWithDetails/.test(u) ? { ok: true, status: 200, json: async () => ({ trainServices: [] }) } : undefined;
+  const app = await createApp({ settings: RDM, saved: { dirMode: "home", startFrom: HIT_TODAY() }, geo: IN_LONDON, route, settle: 800 });
+  const boards = app.calls.filter(u => /GetDepBoardWithDetails/.test(u)).map(u => /GetDepBoardWithDetails\/(\w+)\?.*filterCrs=(\w+)/.exec(u).slice(1).join("-"));
+  assert.deepEqual([...new Set(boards)].sort(), ["KGX-HIT", "STP-HIT", "ZFD-HIT"]);
+  app.close();
+});
+
+test("Starting from Hitchin, leisure out: trains from Hitchin to King's Cross and St Pancras", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { mode: "leisure", dirMode: "office", startFrom: HIT_TODAY() }, geo: southOfHitchin(1) });
+  assert.deepEqual(plain(app.c.boardKeys()), ["HIT-KGX", "HIT-STP"]);
+  assert.equal(app.text("#routeLabel"), "Near Hitchin → King's Cross or St Pancras");
+  app.close();
+});
+
+test("At home, 'nearest' says the commute already starts here; near Letchworth but not at home, it picks Letchworth", async () => {
+  // The test persona's saved home is NEAR_LETCHWORTH: tapping there changes nothing (review 31 Oct).
+  const app = await createApp({ settings: { provider: "demo" }, geo: NEAR_LETCHWORTH });
+  let reloads = 0; app.w.__commuteReload = () => { reloads++; };
+  app.d.querySelector('[data-start="nearest"]').click();
+  assert.equal(app.c.state.saved.startFrom, undefined);
+  assert.equal(reloads, 0);
+  assert.match(app.text("#startRow"), /^You're at home: the commute already starts here\. Start from: Letchworth · Hitchin · Arlesey · Cancel$/);
+  app.close();
+  // A friend's house in Letchworth, 1.5 km from the saved home: Letchworth, walking from there.
+  const away = await createApp({ settings: { provider: "demo" }, geo: { coords: { latitude: 51.988, longitude: -0.215, accuracy: 20 } } });
+  away.w.__commuteReload = () => {};
+  away.d.querySelector('[data-start="nearest"]').click();
+  assert.deepEqual(plain(away.c.state.saved.startFrom), { code: "LET", day: today() });
+  away.close();
 });

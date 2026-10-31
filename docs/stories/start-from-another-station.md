@@ -30,7 +30,11 @@ stations nearby with their walks.
 
 ## Acceptance criteria
 - At home the header shows "Not at home? Start from the nearest station". Tapping it with a fix good to 1 km picks
-  the nearest start station within 10 km, saves it for today and reloads.
+  the nearest start station within 10 km, saves it for today and reloads. If that is your own station and you're
+  within 500 m of your saved home, it says "You're at home: the commute already starts here." and changes nothing
+  (the normal commute has your measured walk and the car); the stations stay pickable.
+- Letchworth while away from home (a friend's house, or "Letchworth instead" from Fairfield) plans from Letchworth
+  with the walk from where you are: no measured home walk, no car.
 - No fix yet, or no start station within 10 km: the header says why and lists the stations to pick from
   (Letchworth · Hitchin · Arlesey), with Cancel. Nothing is saved until one is picked.
 - Starting from Hitchin: the header says "Starting from Hitchin (about N min walk) today, walking from where you are",
@@ -39,7 +43,7 @@ stations nearby with their walks.
   the route label is "Near Hitchin → 20 Mansfield Street"; live boards are requested from Hitchin only (`HIT`); all
   options are trains from Hitchin.
 - The walk to the station is the straight line × 1.3 from where you are at your pace (5 km/h average, 6 fast,
-  4.3 leisure), up to 5 km; the saved home and its measured walk don't apply. "On your way to Hitchin" shows from
+  4.3 leisure), up to 10 km (the station search's own limit, so an offered station always gets a walk); the saved home and its measured walk don't apply. "On your way to Hitchin" shows from
   the first good fix (no "left home" test). Without a fix the walk is your usual home walk, labelled as such.
 - Hitchin journey times (live, 31 Oct, Saturday): King's Cross 49 min (stopping Great Northern), St Pancras 33–34,
   Farringdon 38–39 (Thameslink). The shared stopping thresholds (45/45/52) flag the 49-min train as stopping and not
@@ -49,6 +53,9 @@ stations nearby with their walks.
   where you are, never from Cartref.
 - Arlesey journey times (live, 31 Oct, Saturday): Thameslink (Peterborough) every 30 min, St Pancras 39 min,
   Farringdon 44; no direct King's Cross train in the 2 hours shown. Not stopping trains by the shared thresholds.
+- Going back (from London) while starting elsewhere: boards to that station (King's Cross, St Pancras, Farringdon →
+  Hitchin), the arrival is "Arrive Hitchin" (never "Arrive home"), ending with the station exit and no walk to
+  Cartref. "Nearly home" doesn't apply: there's no walk home to count.
 - "Back to home" clears it and reloads. A choice from another day, or an unknown station, is ignored: the app is
   the Letchworth commute exactly as before.
 - Only Hitchin and Arlesey are offered besides Letchworth. A station is added only after its live times are checked against
@@ -67,10 +74,29 @@ stations nearby with their walks.
 - tests/start-station.test.mjs: "Starting from Hitchin: live boards are requested from Hitchin, and real Hitchin trains are planned (31 Oct recording)"
 - tests/start-station.test.mjs: "Starting from a station is for today only; an unknown station is ignored"
 - tests/start-station.test.mjs: "Starting from Hitchin works in the Signal design too: the header line stays visible"
+- tests/start-station.test.mjs: "Starting from Hitchin, going back: boards to Hitchin, the trip ends at Hitchin with no walk to Cartref"
+- tests/start-station.test.mjs: "Starting from Hitchin with no saved home: the walk from 2.5 km still counts as on your way, never at home"
+- tests/start-station.test.mjs: "Starting from Hitchin: the walk is worked out up to 10 km (the station search's limit), not beyond"
+- tests/start-station.test.mjs: "Starting from Hitchin without a location: set off from where you are, never 'Leave Cartref'"
+- tests/start-station.test.mjs: "Starting from Hitchin, at Hitchin station: departures from Hitchin"
+- tests/start-station.test.mjs: "Starting from Hitchin on TfL timetables: Hitchin's position in the request, Hitchin trains planned"
+- tests/start-station.test.mjs: "Starting from Hitchin, going back on live boards: King's Cross, St Pancras and Farringdon to Hitchin"
+- tests/start-station.test.mjs: "Starting from Hitchin, leisure out: trains from Hitchin to King's Cross and St Pancras"
+- tests/start-station.test.mjs: "At home, 'nearest' says the commute already starts here; near Letchworth but not at home, it picks Letchworth"
 - Recorded data: tests/fixtures/darwin-hit-2026-10-31T1130Z.json and darwin-arl-2026-10-31.json (Darwin boards from
   Hitchin and Arlesey to KGX/STP/ZFD, no key).
 
+## Independent review (31 Oct, on a0e0c3e)
+A separate agent made 43 one-line breakages: 27 caught, 16 survived (mostly the trip back, no location, TfL source,
+no saved home). It found a real bug: going back, the arrival said "Arrive home" while it was the time at Hitchin.
+Fixed (also "at home" on the tube-home headline, the effort lines and the "Nearly home" view), and its proposed
+tests added (adapted: the walk limit is now 10 km; tapping at home now says so instead of switching). Each fix was
+re-broken and is caught. Still uncaught, needing a Service Details fixture: the on-train stop code and
+nearly-home progress lookups by station code when starting elsewhere (M37/M38), and an engine-only
+`startsAtHome` mutation with no visible effect (the page's `atHome()` already answers false away).
+
 ## Not yet / open questions
+- The choice is read when the page loads: a page left open past midnight keeps yesterday's station until reloaded.
 - "Nearest" is by straight-line distance, not by which station gets you there first. Where two are close (Fairfield),
   the other is one tap away with its walk; comparing their trains automatically is the discovered-alternatives
   work (#13).
