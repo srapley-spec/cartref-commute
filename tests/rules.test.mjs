@@ -14,7 +14,8 @@ const pad = (n) => String(n).padStart(2, "0");
 const hm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const OFFICE = { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } };
-const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k" };
+// CARTREF_DESIGN=signal re-runs these rules in the Signal design (tests/both-designs.test.mjs).
+const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k", ...(process.env.CARTREF_DESIGN === "signal" ? { signal: true } : {}) };
 const st = (id, name, sev = 10, desc = "Good Service") => ({ id, name, lineStatuses: [{ statusSeverity: sev, statusSeverityDescription: desc }] });
 
 /** A fresh app on the deterministic railway. `tube`: [circleSev, metSev]. `fail(u)` returns a status code to fail a request. */
@@ -1070,6 +1071,7 @@ test("Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon â€
   const MOORGATE = [51.5186, -0.0886], FARRINGDON = [51.5203, -0.1053];
   const { app, c } = await homeApp(T("16:30"));
   const fromOffice = () => /Leave office|leave the office/.test(app.text("#hero"));
+  assert.equal(app.d.documentElement.dataset.design, process.env.CARTREF_DESIGN === "signal" ? "signal" : "panda", "the design under test");
   await app.fix(...OFFICE_PT, 15, T("16:30"));
   assert.ok(fromOffice(), "at the desk: timed from the office");
   await app.fix(...ALD, 7, T("16:44"));                                // on the platform at Aldgate

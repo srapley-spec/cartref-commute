@@ -64,6 +64,7 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - A ride home is never treated as a ride to work, or the reverse.
 
 ## Tests
+- tests/both-designs.test.mjs: "Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal too" (re-runs this story's rules tests with the Signal design on; the whole-evening test checks which design is on screen)
 - tests/rules.test.mjs: "Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office"
 - tests/rules.test.mjs: "Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not"
 - tests/rules.test.mjs: "Review 30 Oct: an old finished ride doesn't stop tonight's tube being worked out; a pick that hasn't left wins"
