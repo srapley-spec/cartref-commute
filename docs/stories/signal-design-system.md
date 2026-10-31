@@ -81,7 +81,7 @@ content-sized time columns. Existing layout/data preservation constraints and th
   recorded homes, retaining their handlers and values; it does not replace the production application.
 
 ## Acceptance criteria — agreed direction and existing constraints
-- Automatic is the default view selection; manual Planner/Live and Return to Auto are available.
+- Automatic is the default view selection; manual Plan/Live and Auto are available in both Panda and Signal. The button always reads **Auto**, including while Plan or Live is pinned (Sam, 31 Oct 2026); selecting it clears the manual override.
 - Live with no journey under way shows the next stop's departure board, not an empty state (Sam, 31 Oct). → [Live before a journey](live-station-board.md)
 - Situation, service identity, confidence, ranking and times come from the engine; view selection does not change trip direction or train identity.
 - Uncertain identity asks for confirmation. Live without an active journey is explicit, not invented.
@@ -102,7 +102,7 @@ content-sized time columns. Existing layout/data preservation constraints and th
   ([train-status](train-status.md)). → [specification](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
 
 ## Additional policies agreed by Sam (29 Oct; lifetime updated 30 Oct 2026)
-- Use the newer Follow a route behavior, selected by Sam on 30 Oct. Return to Auto clears the override; otherwise
+- Use the newer Follow a route behavior, selected by Sam on 30 Oct. Selecting Auto clears the override; otherwise
   it expires after 20 minutes or an underlying situation change. This replaces the original journey-scoped
   lifetime. Refresh, appearance changes and temporary GPS loss alone do not end it.
 - Automatic transitions defer during editing, selection or expanded-notice reading.

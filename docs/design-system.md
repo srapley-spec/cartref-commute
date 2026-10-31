@@ -129,7 +129,7 @@ Both use the same sample journeys and states. The data is illustrative, not an a
 1. Consolidate repeated explanations of the same delay into one affected-service message, while retaining the scheduled/expected time and short delay label on every occurrence. This reduces repetition, not the available information.
 2. Keep technical source diagnostics under the existing **Why these trains?** disclosure. Keep source type and freshness visible. Do not move the stale warning into that disclosure.
 3. Keep unrelated network and facility notices folded, as today. No new hiding of safety-relevant or journey-impacting notices.
-4. **Accepted with refinement:** automatic planning/live switching is the default. Plan and Live are manual overrides, with a visible **Return to Auto** action. Overriding the view must not reset a tracked train, direction or deadline or stop background updates.
+4. **Accepted with refinement:** automatic planning/live switching is the default. Plan and Live are manual overrides, with a visible **Auto** action. Overriding the view must not reset a tracked train, direction or deadline or stop background updates.
 5. Do not remove any current capability. Retain Leisure and Settings entry points while their full redesign is deferred.
 
 ## Draft shared system
@@ -262,12 +262,12 @@ Native extension points: reserve a compact journey summary using the same semant
 Sam approved automatic switching, interaction deferral and tracking/important alerts while Planner is pinned on 29 October 2026. On 30 October he selected the newer [Follow a route](stories/follow-a-route.md) behavior, including its override lifetime. The architecture document records this superseding decision.
 
 - Default `viewOverride = auto`. Derive the screen from the existing engine's situation: planning before departure, contextual walking/station boards, active rail, interchange, Tube, final walk and arrival. Do not add a second set of GPS or timetable heuristics in the view layer.
-- **Auto · Plan** or **Auto · Live** makes the current automatic choice visible. Tap Plan or Live to pin that view; the Auto control becomes **Return to Auto**. No modal or confirmation is needed.
+- **Auto · Plan** or **Auto · Live** makes the current automatic choice visible. Tap Plan or Live to pin that view; the button stays labelled **Auto** in every mode (Sam, 31 Oct 2026). Tap Auto to clear the pin. No modal or confirmation is needed.
 - A pinned view survives refresh, theme changes and brief loss of GPS, within its 20-minute lifetime and while the underlying situation stays the same. The active journey continues updating independently, with its train identity and deadline retained. A manual planning view must still expose a compact journey-impact alert if the tracked service is disrupted.
 - When the user returns to Auto, immediately display the latest situation, not the situation from when they overrode it. Avoid moving a screen while the user is editing a date/time, choosing a service or reading an expanded notice; finish that interaction first and expose the pending live state.
 - Preserve the existing inference confidence rules. If train identity is uncertain, show the candidate choice, not a confident fabricated journey. Choosing Live with no active journey shows a clear empty state.
 - Keep **view override**, **direction override**, and **train/Tube confirmation** separate. Changing the screen does not change the trip. Direction controls retain the existing Auto/office/home behavior.
-- Current lifecycle (Sam, 30 Oct; supersedes 29 Oct): Return to Auto clears a manual view override immediately; otherwise it expires after 20 minutes or when the underlying situation changes (reaching/leaving a station, starting/stopping rail travel). A refresh, theme change or transient location failure alone is not a situation change. The followed route itself persists independently until completion, Stop following, or explicitly following another option.
+- Current lifecycle (Sam, 30 Oct; supersedes 29 Oct): selecting Auto clears a manual view override immediately; otherwise it expires after 20 minutes or when the underlying situation changes (reaching/leaving a station, starting/stopping rail travel). A refresh, theme change or transient location failure alone is not a situation change. The followed route itself persists independently until completion, Stop following, or explicitly following another option.
 - The mockup's Journey state selector simulates new situation evidence. With Auto selected the screen follows it; with Plan pinned it stays on planning; Return to Auto shows the latest simulated situation. It does not perform real background or location detection.
 
 ## Decision
@@ -279,7 +279,7 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 | Component | Required data and behaviour |
 | --- | --- |
 | JourneyContext | Direction + inference/manual label; pace; visible location diagnostic; keep Settings and Leisure discoverable |
-| ViewControl | Auto by default; explicit Plan/Live overrides; Return to Auto; never mutate selected service |
+| ViewControl | Auto by default; explicit Plan/Live overrides; select Auto to clear the override; button always labelled Auto; never mutate selected service |
 | PlanningQuestion | Leave now / Arrive by / Leave around; retain date/time values per mode |
 | PrimaryAnswer | Situation-labelled leave/depart/arrive time; data source; deadline consequence; no ETA for unplannable services |
 | JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps |
