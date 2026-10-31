@@ -12,6 +12,11 @@ Go to: [quick start](#start-your-first-journey) · [playback](#move-through-the-
 
 ## Start your first journey
 
+For consistent train times, run the app with your browser/device timezone set to **Europe/London**.
+The simulator bar displays British time, but the production Darwin time parser still uses the device
+timezone. Testing abroad with a different device timezone can shift parsed departures and invalidate
+train-identification results; the British display alone does not correct that difference.
+
 1. Open [Cartref Commute](https://srapley-spec.github.io/cartref-commute/) and select **Simulator** in the
    application header. **Journey mode** opens without starting a simulation.
 2. Choose **To London / Office** or **To Letchworth / Home**, then **Great Northern via King’s Cross** or
@@ -246,6 +251,10 @@ when real GPS resumes; a simulated denial does not change the browser’s actual
 
 - **Fixtures are illustrative, not live travel advice.** Service identities, departure times and vehicle
   progress are coordinated test data. They do not certify a real timetable, platform or future service.
+- **Timezone and clock-change limits apply.** Use Europe/London for consistent Darwin parsing. Ordinary
+  midnight playback is tested, but Darwin’s date-less `HH:mm` cannot reliably distinguish the repeated
+  autumn London hour when clocks go back. Do not use that overnight interval to validate exact service
+  identity. The normal daytime commute fixtures avoid it.
 - **Geometry is approximate.** Rail positions interpolate corridor waypoints, not surveyed tracks.
   Alternative-origin TfL fixtures support a bounded London area and named examples, not arbitrary
   worldwide journeys or full live geocoding.
