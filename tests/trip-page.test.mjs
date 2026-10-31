@@ -31,9 +31,10 @@ function googleStub(w, opts = {}) {
         return { suggestions: rows.map(p => ({ placePrediction: { placeId: p.id, mainText: { text: p.primary }, secondaryText: { text: p.secondary }, text: { text: p.primary } } })) }; } },
       Place: class { constructor({ id }) { this.id = id; } async fetchFields() { const p = Object.values(PLACES).find(x => x.id === this.id); seen.resolve.push(this.id);
         this.displayName = p.primary; this.formattedAddress = p.secondary; this.location = { lat: () => p.geo[0], lng: () => p.geo[1] }; } } };
-    if (name === "routes") return { RouteMatrix: { computeRouteMatrix: async ({ origins, destinations }) => { seen.matrix++;
+    if (name === "routes") return { RouteMatrix: { computeRouteMatrix: async ({ origins, destinations, travelMode }) => { seen.matrix++;
       const d = (a, b) => Math.hypot((a.lat - b.lat) * 111, (a.lng - b.lng) * 70) * 1300;
-      const item = (a, b) => ({ distanceMeters: Math.round(d(a, b)), durationMillis: Math.round(d(a, b) / 1.3) * 1000, condition: "ROUTE_EXISTS" });
+      const extra = travelMode === "DRIVING" && opts.driveExtraMin ? opts.driveExtraMin() * 60e3 : 0;
+      const item = (a, b) => ({ distanceMeters: Math.round(d(a, b)), durationMillis: Math.round(d(a, b) / (travelMode === "DRIVING" ? 9 : 1.3)) * 1000 + extra, condition: "ROUTE_EXISTS" });
       return { matrix: { rows: origins.map(o => ({ items: destinations.map(x => item(o, x)) })) } }; } } };
   } } };
   return seen;
@@ -262,4 +263,85 @@ test("Trip settings: the Google key is never shown back, only its last 4 charact
   assert.equal(app.d.querySelector("#s_googleKey").value, "");
   assert.match(app.text("#googleKeyNote"), /ends …1234/);
   assert.ok(!app.d.querySelector("#settings").innerHTML.includes("AIzaSECRET"));
+});
+
+// ---------- Re-review survivors (of 7e4a1ad) ----------
+PLACES.westgate = { id: "G-WG", primary: "Westgate Gardens", secondary: "St Peter's Place, Kent CT1 2BX", geo: [51.2800, 1.0720] };
+PLACES.dane = { id: "G-DJ", primary: "Dane John Gardens", secondary: "Watling Street, Kent CT1 2QS", geo: [51.2755, 1.0790] };
+const choose = async (app, end, text) => { await type(app, end, text); await sleep(320); key(app, end, "ArrowDown"); key(app, end, "Enter"); await sleep(80); };
+const boardCalls = calls => calls.filter(u => /departures\/[A-Z]{3}\/to\/[A-Z]{3}/.test(u));
+
+test("Trip live: one plan asks for at most 6 boards, never the same pair twice within 30 s", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length);
+  await sleep(1500);
+  const b = boardCalls(app.calls).map(u => /departures\/([A-Z]{3})\/to\/([A-Z]{3})/.exec(u).slice(1).join("-"));
+  assert.ok(b.length >= 1 && b.length <= 6, b.join(","));
+  assert.equal(new Set(b).size, b.length, `a pair asked twice: ${b.join(",")}`);
+});
+
+test("Trip live: boards are asked for as soon as round 1 is drawn, before the later searches come back", async () => {
+  let laterDone = null, firstBoard = null;
+  const slowLater = async (u, o) => {
+    if (/departures\/[A-Z]{3}\/to\//.test(u) && firstBoard == null) firstBoard = Date.now();
+    if (/JourneyResults\/90000899\/to\/1001160/.test(u) && !/time=10\d\d&/.test(u)) { await sleep(1500); laterDone = Date.now(); }
+    return route(u, o);
+  };
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: slowLater });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => laterDone, 5000);
+  assert.ok(firstBoard != null && laterDone != null && firstBoard < laterDone, `${firstBoard} ${laterDone}`);
+});
+
+test("Trip drive: re-checked every 5 min; 2 min or more moves the leave time and says which way; 1 min doesn't", async () => {
+  const T = Date.parse("2026-11-03T09:00:00");
+  let extra = 0;
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route, now: T });
+  googleStub(app.w, { driveExtraMin: () => extra });
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  app.d.querySelector('[data-trip-mode="from:drive"]').click(); await sleep(30);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length);
+  await sleep(300);
+  const step = async (min, mins) => { extra = mins; app.setNow(T + min * 60e3); app.d.querySelector("#refreshBtn").click(); await sleep(900); return app.text("#tripStage"); };
+  assert.equal(await step(5.1, 2), "Traffic: leave 2 min earlier");
+  assert.doesNotMatch(await step(10.2, 1), /Traffic/, "1 min less: no notice");
+  assert.equal(await step(15.3, -1), "Traffic: leave 2 min later");
+});
+
+test("Trip: places close together show the 'no train needed' card", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "canterbury cath"); await choose(app, "to", "westgate");
+  await until(() => /Close enough/.test(app.text("#tripResults")), 3000);
+  assert.match(app.text("#tripResults"), /Close enough to walk: no train needed/);
+});
+
+test("Trip search: with two rows, Up from nothing goes to the last and Down from the last wraps to the first", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "to", "kent"); await sleep(320);
+  assert.equal(options(app, "to").length, 2);
+  const input = app.d.querySelector("#tripInput-to");
+  key(app, "to", "ArrowUp"); assert.equal(input.getAttribute("aria-activedescendant"), "tripOpt-to-1");
+  key(app, "to", "ArrowDown"); assert.equal(input.getAttribute("aria-activedescendant"), "tripOpt-to-0");
+  key(app, "to", "ArrowUp"); assert.equal(input.getAttribute("aria-activedescendant"), "tripOpt-to-1");
+});
+
+test("Trip search: the same field starts a new session after a choice", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  let tokens = 0; const g = app.w.google.maps, orig = g.importLibrary;
+  g.importLibrary = async (n) => { const lib = await orig(n); if (n !== "places") return lib; const Tk = lib.AutocompleteSessionToken; return { ...lib, AutocompleteSessionToken: class extends Tk { constructor() { super(); tokens++; } } }; };
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "to", "kent");
+  await type(app, "to", "westgate"); await sleep(320);
+  assert.equal(tokens, 2);
 });

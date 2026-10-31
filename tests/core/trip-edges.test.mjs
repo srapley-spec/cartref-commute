@@ -26,7 +26,7 @@ function planner({ log = [], slow = {}, via = {}, none = new Set() } = {}) {
     if (none.has(`${a.crs}-${b.crs}`)) return { journeys: [], refused: ["none"] };
     const mins = 60 + (slow[a.crs] || 0) + (slow[b.crs] || 0), dep = timeIs === "Arriving" ? t - mins * MIN - 5 * MIN : t + 10 * MIN;
     const v = via[`${a.crs}-${b.crs}`];
-    const rides = v ? [rideOf(a.crs, v, dep, 20), rideOf(v, b.crs, dep + 25 * MIN, mins - 25)] : [rideOf(a.crs, b.crs, dep, mins)];
+    const rides = v ? [rideOf(a.crs, v, dep, 20), rideOf(v, b.crs, dep + 25 * MIN, mins - 25)] : [rideOf(a.crs, b.crs, dep, mins, { fromSt: a, toSt: b })];
     return { journeys: [{ rides, source: "fake", notes: [] }], refused: [] };
   } };
 }
@@ -268,4 +268,67 @@ test("Trip defaults are the story's numbers (docs/stories/leisure-journeys.md)",
   assert.deepEqual([d.betterMin, d.otherStationsMax, d.topWindowMin], [5, 4, 20]);
   assert.deepEqual(d.drive, { recheckMs: 5 * 60e3, withinMin: 60, moveMin: 2 });
   assert.deepEqual(d.allow, { parkMin: 10, lockMin: 4, stationMin: 3, exitMin: 3, carBackMin: 5 });
+});
+
+// ---------- Re-review survivors (31 Oct night, of 7e4a1ad) ----------
+test("Follow: restore checks each part of a saved trip on its own", () => {
+  const f = JSON.parse(JSON.stringify(core.startFollowTrip(trip(), now)));
+  const bad = (mut) => { const x = JSON.parse(JSON.stringify(f)); mut(x); return core.restoreFollowTrip(x); };
+  assert.equal(bad(x => { x.journey.rides[1].to.name = 7; }), null, "a station without a name");
+  assert.equal(bad(x => { x.journey.changes = {}; }), null, "changes not a list");
+  assert.equal(bad(x => { x.journey.flags = "x"; }), null, "flags not a list");
+  assert.equal(bad(x => { delete x.journey.rides[0].schedDep; }), null, "no timetabled departure");
+  assert.equal(bad(x => { delete x.journey.rides[2].schedArr; }), null, "no timetabled arrival");
+  assert.equal(bad(x => { delete x.journey.rides[0].live; }), null, "no live marker");
+  assert.equal(bad(x => { x.journey.fromStation = null; }), null, "no first station");
+  assert.equal(bad(x => { x.journey.toStation = { name: "X" }; }), null, "a last station without a code");
+  assert.equal(bad(x => { x.journey.modes = null; }), null, "no ways to and from the station");
+});
+test("Live budget: a pick whose first ride has already arrived gets no board", () => {
+  const done = one("D1", "D2", -60); done.recommended = 1;
+  const next = one("D3", "D4", 10); next.recommended = 2;
+  assert.deepEqual(core.liveBudget([done, next], null, now, cfg).map(x => x.key), ["D3-D4"]);
+});
+test("planTrip: asking about a later day flags nothing as Tomorrow on that day", async () => {
+  const T = at("2026-11-06", "09:00");
+  const r = await core.planTrip(req({ question: { kind: "at", t: T }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: access(), planner: planner() });
+  assert.ok(r.journeys.length && r.journeys.every(j => !j.tomorrow && !j.flags.some(f => /Tomorrow|Nov/.test(f.txt))), JSON.stringify(r.journeys.map(j => j.flags)));
+});
+test("Station reach: a station just inside the reach is a candidate, just outside is not", () => {
+  const edge = core.stationIndex([S("IN", 51.23 + 2.99 / 111.2, 0.97), S("OUT", 51.23 - 3.01 / 111.2, 0.97), S("FAR", 51.40, 0.97)]);
+  assert.deepEqual(core.candidates(village, "walk", edge, cfg).list.map(c => c.station.crs), ["IN"]);
+});
+test("Rounds at once: a refusal in round 1 stops round 2 for every item, with the reason", async () => {
+  const sent = [];
+  const res = await core.runRounds(["a", "b"], [k => 1, k => 2], async (k, q) => { sent.push(`${k}${q}`); if (k === "a") throw Object.assign(new Error("refused"), { refused: true }); }, { concurrency: 2 });
+  assert.deepEqual(sent.sort(), ["a1", "b1"]);
+  assert.equal(res.stopped, "refused"); assert.equal(res.why.get("b"), "refused");
+  const capped = []; await core.runRounds(["a", "b", "c"], [() => 1], async (k) => { capped.push(k); }, { concurrency: 3, maxRequests: 2 });
+  assert.equal(capped.length, 2);
+});
+test("planTrip: no route from the last station is flagged too; a journey to a station never timed is not shown", async () => {
+  const r = await core.planTrip(req({ cfg: core.tripConfig({ nearest: 2, wellServed: 0 }) }), { stations: idx, access: access(new Set([by("D1").geo.join(",")])), planner: planner() });
+  assert.ok(r.journeys.some(j => j.toStation.crs === "D1" && j.uncertain && j.flags.some(f => /Google found no driving route from D1/.test(f.txt))));
+  const odd = { name: "odd", plan: async (a, b, t) => ({ journeys: [{ rides: [rideOf(a.crs, "D5", t + 10 * MIN, 60)], source: "x", notes: [] }], refused: [] }) };
+  // Walking at the To end: D5 (about 6.6 km from the city) is beyond reach, so it is neither a candidate nor promoted.
+  const r2 = await core.planTrip(req({ modes: { from: "drive", to: "walk" }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: access(), planner: odd }).catch(e => e);
+  assert.ok(!(r2 instanceof Error) && r2.journeys.length === 0, "a journey ending at D5 isn't timed or shown");
+});
+test("planTrip: sharing a station that isn't the nearest at both ends is not 'close enough'", async () => {
+  const two = core.stationIndex([S("ONE", 51.50, 0.40), S("MID", 51.50, 0.45), S("TWO", 51.50, 0.50)]);
+  const r = await core.planTrip(req({ from: place("A", [51.50, 0.395]), to: place("B", [51.50, 0.505]), modes: { from: "drive", to: "drive" } }), { stations: two, access: access(), planner: planner() });
+  assert.equal(r.close, false);
+});
+test("planTrip: a drive for Arrive by is first timed 2 h before; walking is timed once per end (never re-timed)", async () => {
+  const T = at("2026-11-03", "14:00"), a = access();
+  await core.planTrip(req({ question: { kind: "by", t: T }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: a, planner: planner() });
+  assert.equal(a.calls[0].t, T - 2 * 3600e3);
+  const w = access();
+  const r = await core.planTrip(req({ modes: { from: "walk", to: "walk" }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: w, planner: planner() });
+  assert.equal(w.calls.length, 2); assert.equal(r.requests.access, 2);
+});
+test("Days count by the local calendar in summer time too (23:30 to 00:30 in July is the next day)", () => {
+  const ride = rideOf("AAA", "BBB", at("2026-07-02", "00:30"), 30);
+  const j = core.buildJourney({ rides: [ride], source: "t", notes: [] }, null, null, { from: "walk", to: "walk" }, [], [], cfg, at("2026-07-01", "23:30"));
+  assert.equal(j.tomorrow, true); assert.ok(j.flags.some(f => /^Tomorrow · Thu 2 Jul/.test(f.txt)), JSON.stringify(j.flags));
 });

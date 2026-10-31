@@ -217,6 +217,16 @@ Independent mutation review before merging (CLAUDE.md).
   station list widened to 1,136). Live boards now start after round 1. Drives re-timed once for the chosen journey.
   Tests added for the survivors (`trip-edges`, `trip-state`, page and contract edges, Worker masks); defaults pinned.
   Equivalent: W2 (the path pattern already allows only capital letters).
+- Independent test review 2 (of 7e4a1ad): bugs 1–6 confirmed fixed; 67 of 82 earlier survivors caught. New bug: live
+  boards fetched twice per plan (the first answer and the complete plan both forced a fetch): fixed with a 30-s board
+  cache per pair. Also fixed: the drive re-check's cache ignored when it was asked (it could never see new traffic);
+  ArrowUp from nothing selected now goes to the last row. Tests for the remaining survivors (restore checks one by
+  one, a pick already arrived, a later asked day, reach edge, concurrent rounds stop and cap, no route from the last
+  station, untimed stations, shared non-nearest station, Arrive-by drive first guess, walk not re-timed, summer-time
+  days; page: board count and pairs, boards before later searches, Traffic note edge and sign, close card, wrap,
+  session per field). Equivalent: E90 (commute default view name), W2, N6 (the outline lies inside the box), A6 (the
+  "from" matrix has one destination, so both readings agree). A13/A15/A16 were caught by tests/trip-google.test.mjs
+  (the reviewer's run didn't include that file).
 
 ## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live

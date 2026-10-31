@@ -680,7 +680,7 @@ html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;paddin
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 22:14 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 23:17 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -8080,7 +8080,7 @@ function createTripUi(deps) {
   const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
-  let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, lastBest = null, better = false;
+  let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -8110,7 +8110,9 @@ function createTripUi(deps) {
   const accessCache = new Map();
   const access = {
     async matrix(place, list, mode, at, dir) {
-      const slot = mode === "drive" ? Math.floor(at / (5 * 60e3)) : 0;
+      // Drive times depend on when you'd set off and on the traffic now: keyed by both (5-min slots), so the 5-min
+      // re-check asks again even for the same set-off. Walk and cycle don't change: kept for the session.
+      const slot = mode === "drive" ? `${Math.floor(at / (5 * 60e3))}@${Math.floor(now() / (5 * 60e3))}` : 0;
       const keys = list.map(g => `${mode}|${dir}|${place.join(",")}|${g.join(",")}|${slot}`);
       const missing = list.filter((_, i) => !accessCache.has(keys[i]));
       if (missing.length) { const got = await google().matrix(place, missing, mode, at, dir); missing.forEach((g, i) => accessCache.set(`${mode}|${dir}|${place.join(",")}|${g.join(",")}|${slot}`, got[i])); }
@@ -8215,7 +8217,7 @@ function createTripUi(deps) {
       if (list.hidden) return;
       const n = items.length;
       if (e.key === "ArrowDown") { e.preventDefault(); highlight(n ? (active + 1) % n : -1); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); highlight(n ? (active - 1 + n) % n : -1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); highlight(n ? (active <= 0 ? n - 1 : active - 1) : -1); }
       else if (e.key === "Enter" && active >= 0) { e.preventDefault(); choose(active); }
       else if (e.key === "Escape") { e.preventDefault(); close(); input.focus(); }
     });
@@ -8274,7 +8276,10 @@ function createTripUi(deps) {
     lastLiveAt = now();
     const followed = st().follow ? st().follow.journey : null;
     const want = C.liveBudget(result.journeys, followed, now(), cfg());
-    await Promise.all(want.map(async b => { try { liveBoards[b.key] = await fetchBoard(b.from, b.to); } catch (e) { liveBoards[b.key] = undefined; } }));
+    // One board per station pair per 30 s (refreshMs), however often the screen asks: a forced redraw reuses it.
+    await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
+      boardAt[b.key] = now();
+      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); } catch (e) { liveBoards[b.key] = undefined; } }));
     const q = st().question.kind === "now" ? { kind: "now", t: now() } : st().question;
     const js = C.rankTrips(result.journeys.map(j => C.applyLive(j, liveBoards, cfg())), q, now(), cfg());
     const picks = js.filter(j => j.recommended).sort((a, b) => a.recommended - b.recommended);
@@ -8354,7 +8359,7 @@ function createTripUi(deps) {
     show() { mount(); root.hidden = false; fill(); renderResults(); if (!result && st().to) plan(); },
     hide() { root.hidden = true; },
     refresh, plan, renderResults,
-    reset() { result = null; liveBoards = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
+    reset() { result = null; liveBoards = {}; boardAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
     state: () => ({ result, error, stage: stageText }),
   };
 }
