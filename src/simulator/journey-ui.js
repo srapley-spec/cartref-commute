@@ -81,6 +81,24 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
   panel.append(element('p',`${summary.passedAssertions||0} assertions passed · ${summary.failedAssertions||0} failed · ${summary.inconclusiveAssertions||0} inconclusive`));
   if(summary.finished)panel.append(element('p',summary.reason==='completed'?'Journey complete. Review failures and inconclusive results before drawing a conclusion.':`Session ended: ${summary.reason||'stopped'}.`));
   const report=reporter&&reporter.getReport?reporter.getReport():null,events=report?.events||[];
+  if(report?.config?.recoveryReason)panel.append(element('p',`Fresh inference attempt from checkpoint ${(report.config.initialCheckpoint||0)+1}. Earlier journey choices were discarded.`));
+  if(report?.previousAttempts?.length){
+   const history=element('details');history.append(element('summary',`${report.previousAttempts.length} previous attempt(s)`));
+   for(const previous of report.previousAttempts){
+    const attempt=element('details'),failures=previous.checkpoints.flatMap(row=>row.assertions).filter(row=>row.status==='FAIL').length;
+    attempt.append(element('summary',`${localTime(previous.startedAt)} → ${localTime(previous.finishedAt)} · ${previous.checkpoints.length} checkpoint(s) · ${failures} failed assertion(s)`));
+    for(const checkpoint of previous.checkpoints){
+     const item=element('details');item.append(element('summary',`${checkpoint.label} · ${checkpoint.status}`));
+     for(const assertion of checkpoint.assertions)item.append(element('p',`${assertion.status} · Expected: ${assertion.expected}\nActual: ${assertion.actual}`));
+     if(checkpoint.actualDisplay?.mainCard)item.append(element('p',`What the real app showed: ${checkpoint.actualDisplay.mainCard}`));
+     if(checkpoint.actualDisplay?.followCard)item.append(element('p',checkpoint.actualDisplay.followCard));
+     attempt.append(item);
+    }
+    history.append(attempt);
+   }
+   panel.append(history);
+  }
+  if(report?.truncated?.attempts)panel.append(element('p',`${report.truncated.attempts} older attempt(s) exceeded the history limit. Export results before further resets.`));
   if(events.length){const details=element('details');details.append(element('summary',`${events.length} journey events`));const list=element('ol');events.forEach(e=>list.append(element('li',`${localTime(e.at)} · ${e.label||e.message||e.type||'Journey event'}`)));details.append(list);panel.append(details);}
  }
  function render(v=view()){
@@ -96,6 +114,10 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
   const play=$('journeyPlay')||$('simAdvance');if(play){play.setAttribute('aria-label',v.playing?'Pause simulation':'Play to the next checkpoint');}
   const complete=started&&index>=points.length-1;
   $('journeyNext').disabled=!!(busy||v.stepping||v.verification?.pending);text('journeyNext',complete?'Results':'Next checkpoint');$('journeyNext').setAttribute('aria-label',complete?'Open the journey summary':'Continue sequentially to the next checkpoint');
+  $('journeyBack').disabled=!!(busy||!v.canBack);
+  $('journeyStateTools').hidden=!v.active;
+  $('journeyResetState').disabled=!!(busy||v.pendingRestart||!v.sources?.gps&&!v.sources?.feeds);$('simClear').disabled=!!(busy||!v.sources?.gps&&!v.sources?.feeds);
+  text('journeyResetNotice',v.recovery?'Journey state cleared. The app is inferring afresh; previous attempts remain in Results.':'Reset forgets journey history at the current location and time.');
   if(v.sources){$('simAdvancedGPS').checked=!!v.sources.gps;$('simAdvancedFeeds').checked=!!v.sources.feeds;}
   text('journeyStart',v.active?'Restart journey':'Start journey');$('journeyStart').disabled=busy;
   text('journeySourceDiagnostics',JSON.stringify({sources:v.sources||{},clock:localDate(v.clockNow),playing:!!v.playing,checkpoint:started?index+1:null,pendingRestart:!!v.pendingRestart,verificationPending:!!v.verification?.pending,actual:v.diagnostics||{}},null,2));
@@ -121,6 +143,8 @@ function createJourneySimulatorUI({simulator,document,onStartJourney,onRememberS
  listen('simAdvance','click',()=>{const v=view();if(!v.active&&!v.sources?.gps&&!v.sources?.feeds){startJourney();return;}if(v.playing)simulator.pause();else if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1)simulator.restart();else simulator.continuePlayback();});
  listen('journeyNext','click',async()=>{const v=view();if(!v.active){await startJourney();return;}if(Number.isFinite(v.startTime)&&v.index>=(v.checkpoints?.length||1)-1){inspect('journeyResultsDetails');return;}if(simulator.nextCheckpoint)await simulator.nextCheckpoint();else simulator.continuePlayback();render();});
  listen('journeyTimelineToggle','click',()=>inspect('journeyTimelineDetails'));listen('journeyVerificationBadge','click',()=>inspect('journeyVerificationDetails'));
+ listen('journeyBack','click',()=>{simulator.previousCheckpoint();render();});
+ listen('journeyResetState','click',()=>{simulator.resetJourneyState();render();});
  listen('journeyCopyResults','click',copyResults);listen('journeyExportResults','click',exportResults);
  for(const id of ['simAdvancedGPS','simAdvancedFeeds'])listen(id,'change',async()=>{try{await onSetSources({gps:$('simAdvancedGPS').checked,feeds:$('simAdvancedFeeds').checked});$('journeySetupError').hidden=true;}catch(error){text('journeySetupError',error?.message||'Could not change simulation sources.');$('journeySetupError').hidden=false;}render();});
  const unsubscribe=typeof simulator.subscribe==='function'?simulator.subscribe(()=>render()):null;

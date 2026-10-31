@@ -42,6 +42,7 @@ the simulator does not save a replacement home for you.
 | **Continue** | Plays towards the next checkpoint at the selected speed. The same button becomes **Pause** while moving. |
 | **Pause** | Stops playback immediately. With synthetic feeds enabled, simulated time freezes too. |
 | **Next checkpoint** | Advances sequentially to the next checkpoint, processing intermediate observations and refreshes. It can take a moment; it is not an arbitrary teleport. |
+| **Back** | Returns one waypoint, deliberately forgets journey state, and pauses for fresh inference. Between waypoints, returns to the last one reached. Requires simulated GPS and feeds. |
 | **Show controls / Hide controls** | Opens or collapses the panel without changing playback, time or journey state. |
 | Progress count, such as **4 / 14** | Opens the expandable journey timeline. |
 | Verification badge | Opens **Expected and actual** to explain the current result and recorded failures. |
@@ -58,7 +59,44 @@ intervening journey quickly regardless of that speed selection.
 
 Open **Journey timeline** to see completed, current and upcoming steps and their simulated times. Tap a
 step to inspect its recorded assertions. Inspecting a future step does not travel there or count it as
-verified. Travel stays sequential so that inference has the preceding journey history.
+verified. Next preserves sequential history; Back deliberately discards it, as described below.
+
+## Test recovery after losing journey state
+
+**Back** is a fresh-start test at an earlier waypoint. It rewinds the shared GPS/provider clock together,
+clears the app’s journey memory and pauses. It does **not** replay earlier movement or restore your old
+train, Underground or Follow choices. At the first waypoint it is disabled; during a segment it returns
+to the last waypoint reached. It is also disabled with live GPS or live transport feeds, because those
+cannot be rewound, and while a changed scenario is waiting for Restart.
+
+To test the same loss of memory **without moving**, use **Show controls → Reset journey state**.
+This pauses playback but keeps the current position, accuracy and time. It preserves the observation’s
+original age: a stale fix stays stale, and unavailable Underground GPS stays unavailable. It works with
+independent simulation sources too; real GPS and device time continue naturally in those combinations.
+With live feeds, Reset preserves real TfL backoff and request accounting; it does not reset API allowances.
+
+Both controls discard train locks, boarding and tube choices, Follow, inferred direction, station/office
+visits, movement history, presentation pins and cached transport results. A transient typed London origin
+is cleared so the app can plan from its actual current GPS. Permanent settings, home, destination and
+the configured Letchworth profile are preserved. Stop still restores the real pre-simulation context.
+
+This tests whether the real app can pick up a journey with no earlier evidence. It may ask for a direction
+or service choice, offer a different route, or wait for GPS. The simulator does not supply those answers.
+Verification checks that the old state was actually cleared, tests current location facts where possible,
+and reports history-dependent conclusions as **INCONCLUSIVE** until new evidence supports them. Normal
+service-identity assertions resume after new movement and journey context are established; they can fail
+if the real engine identifies a different service.
+
+Each Back or Reset starts a new diagnostic attempt. Future waypoints are no longer marked verified.
+Open **Journey results → Previous attempt(s)** to compare earlier expected/actual observations and cards;
+Copy results and Export JSON include them too. The last ten attempts are retained, with a visible warning
+and a truncation count if older attempts exceed that limit. Export before repeated resets to keep a full
+investigation history.
+
+The temporary nearest-station demo has been removed from the application. Old saved demo origins
+remain ignored; Reset does not reactivate them or change the configured Letchworth profile.
+Leisure mode is preserved too; its real planning response remains visible, while commute-specific
+checkpoint assertions are inconclusive until you choose Commute again.
 
 At the final checkpoint you can inspect **Journey results**, export the report, or restart. **Restart**
 starts a fresh run from its first checkpoint and clears simulated journey choices and results. Export
@@ -104,8 +142,9 @@ a pass.** While refreshes settle, the badge may say **Checking**.
 
 **Expected and actual** shows the individual assertions, their evidence, and **What the real app showed**,
 including the main card and any Follow card or notices. Results can be updated as observations settle;
-recorded failures remain discoverable rather than disappearing when the app later recovers. The badge
+recorded failures remain discoverable rather than disappearing when the app later recovers. Within an attempt, the badge
 continues to flag failures elsewhere in the run even if the current checkpoint passes.
+Back and Reset create a fresh attempt, retaining those earlier failures under Previous attempt(s).
 
 Common reasons for an inconclusive result include rough or missing GPS, unresolved train identity,
 missing boarding/alighting evidence, a manually pinned Plan or Live view, independent simulation sources,
@@ -195,9 +234,15 @@ previously established train may legitimately remain known through a rough fix. 
 is whether the app invents new certainty from insufficient evidence. Precision-dependent assertions can
 be inconclusive, while an unsupported confident inference can still fail.
 
-Applying manual coordinates, jumping, or using **Reset journey context** leaves the guided checkpoint
-history unsupported. Verification explains this as inconclusive until you restart a coherent scenario.
-Reset journey context clears in-session journey memory; it does not erase your real saved journey.
+Applying manual coordinates or jumping leaves ordinary guided checkpoint history unsupported. Use the
+new **Reset journey state** to test fresh inference at that manual position, or restart a coherent
+scenario. Subsequent normal playback can restore applicable verification as new evidence arrives.
+Repeated resets retain the manual-position marker; they cannot silently turn arbitrary coordinates
+into a verified scenario waypoint. The dock says Manual location until a new playback fix arrives,
+Towards the next checkpoint when paused between steps, and Real GPS for independent real location.
+
+Advanced **Reset and restart** retains the older reset capability: it applies the selected configuration
+and starts at its first waypoint. It changes the simulated time and position, unlike Reset journey state.
 
 ### Changing a run
 
@@ -220,7 +265,8 @@ Use **Copy results** to copy the JSON report or **Export JSON** to download `car
 access is unavailable, a selectable text fallback is offered. Reports include scenario configuration,
 source settings, relevant timestamps, checkpoint expectations, actual observations, display evidence
 and diagnostic events. After Stop, reopen **Simulator → Journey results** to inspect the retained report.
-Export before another Start/Restart or a reload; results are not a permanent history.
+Start/Restart and reload discard the in-memory report. Back/Reset retain bounded previous attempts;
+results are not a permanent history, so export anything needed for investigation.
 
 Reports use a restricted set of diagnostic fields and redact known credentials, precise coordinates,
 postcodes and address-like text. They omit raw saved settings. This filtering can shorten or redact useful
@@ -284,6 +330,8 @@ when real GPS resumes; a simulated denial does not change the browser’s actual
 | Nothing moves after starting. | The first checkpoint starts paused. Select **Continue** or **Next checkpoint**. |
 | Next checkpoint is temporarily disabled. | A step or application refresh is settling. Wait for its check to finish. |
 | A changed route or scenario has not taken effect. | Guided choices apply on Start/Restart; Advanced changes require the indicated Restart. |
+| Back is disabled. | It needs both synthetic sources, an earlier reachable waypoint, and no pending configuration restart. |
+| The app no longer knows which train or tube I am on after Back/Reset. | Expected: earlier evidence was deliberately discarded. Inspect the actual response, continue for new fixes, or use the app’s normal choices. |
 | The app recommends a different route. | The selector controls passenger movements, not recommendations. Inspect the real board and use the app’s normal choice/alighting controls. |
 | The app keeps showing a planning view. | Check whether you pinned Plan or Live. Use **Return to Auto** for automatic journey presentation. |
 | Home arrival is inconclusive. | A saved home is required for that assertion. Configure it outside simulation, then start again. |
