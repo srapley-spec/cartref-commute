@@ -96,7 +96,7 @@ def capture_baseline(browser):
 def check_density(page,label,width,noisy):
  m=metrics(page)
  # The journey-clarity release deliberately exposes location evidence and serious disruption before the
- # answer; the later duration release also adds readable facts to board rows.
+ # answer; the later centred-duration release deliberately stacks its two duration facts.
  # Measure layout overhead separately so those required facts cannot be hidden
  # merely to satisfy thresholds from the earlier compact-only design.
  allowances=page.evaluate('''()=>{
@@ -105,17 +105,21 @@ def check_density(page,label,width,noisy):
   const boarding=[...document.querySelectorAll('#hero .signal-alt-boarding')].filter(e=>e.checkVisibility());
   const location=document.querySelector('#dirNote');
   const status=document.querySelector('#signalStatus');
+  const durations=[...document.querySelectorAll('#hero .journey-facts')].filter(e=>e.checkVisibility());
+  const rowDurations=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-facts')));
   if([...disruption.children].some(e=>!e.checkVisibility()))throw Error('Significant disruption is concealed');
   return {alerts:[disruption,location,status].reduce((total,e)=>total+height(e)+(height(e)?8:0),0),
-   boarding:boarding.reduce((total,e)=>total+height(e)+4,0)};
+   boarding:boarding.reduce((total,e)=>total+height(e)+4,0),
+   durations:durations.reduce((total,e)=>total+height(e),0),rowDurations};
  }''')
  assert m['scrollWidth']<=width+1,(label,'horizontal overflow',m)
  assert m['answer']['top']-allowances['alerts']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
  assert m['answer']['bottom']-allowances['alerts']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
- assert m['board']['top']-allowances['alerts']-allowances['boarding']<(650 if width==393 else 740),(label,'board starts too far down',m)
+ assert m['board']['top']-allowances['alerts']-allowances['boarding']-allowances['durations']<(650 if width==393 else 740),(label,'board starts too far down',m)
  assert all(r is not None and r['height']>0 for r in m['rows']),(label,'a loaded train was visually hidden',m)
  if width==393:
-  assert max(r['height'] for r in m['rows'])<220,(label,'rows remain excessively tall',m)
+  assert all(0<h<=48 for h in allowances['rowDurations']),(label,'centred duration facts are hidden or oversized',allowances)
+  assert max(r['height']-h for r,h in zip(m['rows'],allowances['rowDurations']))<220,(label,'row overhead remains excessively tall',m)
  assert all(c['height']>=43.9 and c['width']>=43.9 for c in m['controlHeights']),(label,'touch targets below44',m['controlHeights'])
  assert all(c['ratio']>=4.5 for c in m['contrast']),(label,'actual text contrast below4.5',m['contrast'])
  return m

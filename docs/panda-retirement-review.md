@@ -152,3 +152,11 @@ only presentation recordings changed, including the retained Done/Now/Next stage
 The final main integration also retains the approved centred **Total journey** lozenge and separate train caption.
 It uses that wording unconditionally in the sole design, with unknown totals still explicit. Acceptance stories
 and native Plan/Live/station/Follow checks follow the new centre anchors; the numerical facts are unchanged.
+
+The old compact-density limits also failed the centred layout on unchanged archived main: 393 px board rows are
+identical in archive/candidate (230.953–255.547 px), with 45 px duration blocks. The candidate board begins
+20.796875 px lower because it preserves alternate boarding facts. Compact checks now measure row/board overhead
+apart from visible duration blocks, bound normal 393 px duration blocks to 48 px, and retain the 220 px row-overhead
+limit. Canonical facts, visibility, overflow, overlap, touch, contrast and full notices remain checked. The new native
+centre-anchor checks and ordinary journey-facts browser scenes pass on final-source build SHA-256
+`1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4`.

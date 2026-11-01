@@ -216,5 +216,86 @@
     "progressNativeLayouts": 6,
     "progressNormalAndDoubledText": true,
     "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46"
+  },
+  "centredDensityComparison": [
+    {
+      "name": "archiveSignal",
+      "boardTop": 797.15625,
+      "facts": {
+        "rows": [
+          {
+            "row": 230.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          }
+        ],
+        "visibleHero": [
+          45,
+          42
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "candidate",
+      "boardTop": 817.953125,
+      "facts": {
+        "rows": [
+          {
+            "row": 230.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          }
+        ],
+        "visibleHero": [
+          45,
+          42
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "latestMainVerification": {
+    "baselineCommit": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+    "sourceCommit": "c757c70f9f52273ddc85dfe2cf306c9eb53ba27a",
+    "buildSha256": "1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4",
+    "focusedSignalAlongAndDurationTests": 20,
+    "goldenScenarios": 22,
+    "engineOptionRequestOrErrorChanges": 0,
+    "centredNativeLayouts": 6,
+    "centredPlanLiveStationFollowAndDoubledText": true,
+    "journeyFactBrowserScenes": 24,
+    "journeyFactEnlargedScenes": 24,
+    "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46"
   }
 }
