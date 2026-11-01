@@ -77,6 +77,83 @@ def enlarge(page, enabled):
         page.evaluate('''()=>{for(const {e,prior,priority} of connectionFonts){if(prior)e.style.setProperty('font-size',prior,priority);else e.style.removeProperty('font-size');}delete window.connectionFonts;}''')
 
 
+def trip_questions(page, label):
+    """Exercise the exposed controls with Journey options closed, including native editing."""
+    adjustments = page.locator('#signalAdjustments')
+    was_open = adjustments.evaluate('e=>e.open')
+    if was_open:
+        adjustments.locator(':scope>summary').click()
+    field = page.locator('#tripWhen')
+    reports = []
+    ready = "document.querySelector('#tripStage').textContent===''&&document.querySelector('#tripResults .trip-row')"
+    for kind in ['now', 'by', 'at']:
+        page.locator(f'[data-trip-q="{kind}"]').click()
+        if kind != 'now':
+            field.fill('2026-11-03T11:24')
+            field.press('Tab')
+            page.wait_for_function("kind=>__commute.state.saved.tripMode.question.kind===kind&&__commute.state.saved.tripMode.question.t===Date.parse('2026-11-03T11:24')", arg=kind)
+        page.wait_for_function(ready)
+        normal = inspect(page, label + '-' + kind)
+        normal_size = page.locator('#tripResults .trip-label').evaluate('e=>parseFloat(getComputedStyle(e).fontSize)')
+        field_size = field.evaluate('e=>parseFloat(getComputedStyle(e).fontSize)')
+        assert field.is_visible() == (kind != 'now'), ('Trip target visibility', label, kind)
+        enlarge(page, True)
+        try:
+            if kind != 'now':
+                # Chromium's native datetime editor scrolls the active segment into view at large text.
+                # Reach its minute segment by keyboard, edit it, and verify the existing model/label handler.
+                field.focus()
+                for _ in range(6):
+                    field.press('ArrowLeft')
+                for _ in range(4):
+                    field.press('ArrowRight')
+                field.press('ArrowUp')
+                assert field.input_value() == '2026-11-03T11:25', ('Native minute editing failed', label, kind, field.input_value())
+                page.wait_for_function("kind=>__commute.state.saved.tripMode.question.kind===kind&&__commute.state.saved.tripMode.question.t===Date.parse('2026-11-03T11:25')", arg=kind)
+                page.wait_for_function(ready)
+                box = field.bounding_box()
+                field.click(position={'x': box['width'] - 12, 'y': box['height'] / 2})
+                assert field.evaluate("e=>e.matches(':open')"), ('Native picker could not open', label, kind)
+                page.screenshot(path=str(ART / f'{label}-{kind}-picker-200.png'))
+                page.keyboard.press('ArrowRight')
+                page.keyboard.press('Enter')
+                field.press('Tab')
+                assert field.input_value() == '2026-11-04T11:25', ('Native picker date editing failed', label, kind, field.input_value())
+                page.wait_for_function("kind=>__commute.state.saved.tripMode.question.kind===kind&&__commute.state.saved.tripMode.question.t===Date.parse('2026-11-04T11:25')", arg=kind)
+                page.wait_for_function(ready)
+                # Planning replaces result nodes. Reapply enlargement to the completed answer as well as controls.
+                enlarge(page, False)
+                enlarge(page, True)
+            large = inspect(page, label + '-' + kind + '-200')
+            target = page.evaluate('''({kind,normalSize,fieldSize})=>{
+              const field=document.querySelector('#tripWhen'),row=document.querySelector('#tripWhenRow'),heading=document.querySelector('#tripResults .trip-label');
+              if(parseFloat(getComputedStyle(heading).fontSize)<normalSize*2-.1)throw Error('Target headline was not enlarged');
+              const range=document.createRange();range.selectNodeContents(heading);
+              const bounds=heading.getBoundingClientRect();
+              if([...range.getClientRects()].some(b=>b.left<bounds.left-1||b.right>bounds.right+1))throw Error('Target headline text clips');
+              if(kind==='now')return {text:heading.innerText,fieldVisible:field.checkVisibility()};
+              const label=document.querySelector('#tripWhenLabel'),b=field.getBoundingClientRect(),l=label.getBoundingClientRect();
+              if(b.left<0||b.right>innerWidth||b.width<44||b.height<44)throw Error('Date/time control escapes the Trip column or loses its touch target');
+              if(l.bottom>b.top+.1)throw Error('Date/time label did not reflow above its input');
+              if(parseFloat(getComputedStyle(field).fontSize)<fieldSize*2-.1)throw Error('Date/time text was reduced to fit');
+              const hit=document.elementFromPoint(b.right-12,b.top+b.height/2);
+              if(hit!==field)throw Error('Native calendar affordance is covered');
+              if(!heading.innerText.includes('11:25 tomorrow'))throw Error('Selected target missing from visible headline: '+heading.innerText);
+              return {text:heading.innerText,value:field.value,fieldWidth:b.width,scrollWidth:document.documentElement.scrollWidth};
+            }''', {'kind': kind, 'normalSize': normal_size, 'fieldSize': field_size})
+            # Capture the native editor's focused segment as well as the complete target headline.
+            page.evaluate('scrollTo(0,0)')
+            page.screenshot(path=str(ART / f'{label}-{kind}-200.png'))
+            reports.append({'kind': kind, 'normal': normal, 'enlarged': large, 'target': target})
+        finally:
+            enlarge(page, False)
+    page.locator('[data-trip-q="now"]').click()
+    page.wait_for_function(ready)
+    if was_open:
+        adjustments.locator(':scope>summary').click()
+    return reports
+
+
 def live_snapshot(browser, root):
     server, context, page, errors = compact.boot(browser, root)
     try:
@@ -145,6 +222,7 @@ def trip_scene(browser, theme, width):
             positions = card.evaluate("e=>{const a=e.querySelector('.steps>summary').getBoundingClientRect(),b=e.querySelector('.follow-btn').getBoundingClientRect();return {stepsRight:a.right,buttonLeft:b.left,stepsMiddle:(a.top+a.bottom)/2,buttonMiddle:(b.top+b.bottom)/2};}")
             assert positions['stepsRight'] <= positions['buttonLeft'], 'Trip Follow competes with Journey steps'
             assert abs(positions['stepsMiddle'] - positions['buttonMiddle']) < 1, 'Trip action alignment diverged'
+        questions = trip_questions(page, label)
         row = page.locator('#tripResults .trip-row').filter(has_text='3 changes').first
         page.locator('.trip-recommendations').screenshot(path=str(ART / f'implemented-trip-{theme}-{width}.png'))
         if theme == 'dark' and width == 393:
@@ -170,7 +248,7 @@ def trip_scene(browser, theme, width):
         assert page.locator('#tripResults .journey-heading [data-cd]').first.inner_text().startswith('leave in 2m'), 'Trip fixture countdown uses the wrong clock'
         assert page.locator('.trip-follow-connections .journey-connection').count() == 4
         assert not errors, errors
-        return {'state': label, 'normal': normal, 'enlarged': large, 'following': following}
+        return {'state': label, 'normal': normal, 'enlarged': large, 'following': following, 'questions': questions}
     finally:
         context.close()
         server.shutdown()

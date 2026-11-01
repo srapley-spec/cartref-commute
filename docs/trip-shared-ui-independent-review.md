@@ -69,3 +69,20 @@ mode-change and feature-toggle assertions, including their existing waits, remai
 case passes five successive focused runs; all nine tests in its file pass. A deliberate one-microtask delay of
 Follow persistence still fails the immediate captured-ID assertion, proving the persistence check was not
 weakened. No application, Signal or harness runtime code is changed by this correction.
+
+## Exposed Trip date/time control at enlarged text
+
+The independent browser probe found that Arrive by and Leave around retained the native datetime field's
+intrinsic width: at 320 px and 200% text their pages grew to 483/507 px. The correction is limited to the two
+existing Trip selectors: stack the label above the native input and constrain that input to its Trip column.
+It retains the native control, model and handlers; Signal and global input styles do not change.
+
+`tests/browser-connection-panels.py` now exercises all three Trip questions at 320/393 px in both appearances,
+with Journey options closed, at normal and 200% text. All 12 question scenes pass. It edits the minute by native
+keyboard and the date through the native calendar, verifies the existing saved question updates, and checks
+the complete selected time/day in the enlarged, unclipped answer headline. The native editor scrolls its active
+segment into view when the whole date/time cannot fit simultaneously. The field remains 300/369 px wide, the
+calendar affordance remains usable, and the page stays 320/393 px wide. The same scenes retain the existing
+connection checks, expanded-step refresh and Follow checks. Removing the input constraints in a deliberate
+one-line mutation reproduces horizontal overflow and fails the new check; the source was restored afterward.
+Browser evidence is under `/workspace/scratch/trip-final-questions`.
