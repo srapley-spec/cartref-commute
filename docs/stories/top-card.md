@@ -22,7 +22,7 @@ was a different route.
 - **Departure wording (Sam, 1 Nov 2026):** before setting off, the precise `leave in …` countdown is the only
   departure instruction on each option. Never add `leave now` alongside a positive countdown, including below
   90 seconds. At expiry retain `leave time passed`; leave times, catchability and required pace are unchanged.
-  The same shared rule applies to Panda and Signal. Station/platform instructions and on-the-way progress
+  The same shared rule applies across Signal views. Station/platform instructions and on-the-way progress
   retain their separate meanings; the planning-mode label remains a way to choose the current planning question.
 - Train duration, total journey duration and the existing “Arrives first” meaning are shared facts, not separate
   choices made by each design or view. Live departures, station lists, planning and Follow consume the same

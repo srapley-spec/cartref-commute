@@ -4,7 +4,7 @@ Current implementation (1 Nov 2026): Signal is the only design. Panda is archive
 cross-design parity rule are removed. Follow is still an independent preference. [Retirement and audit](panda-retirement-review.md)
 supersedes older references below to Panda as live, implementation pending, or design on/off restoration.
 
-Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (independent review approved; release gates recorded in docs/signal-testing.md). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
+Signal selected by Sam, 29 October 2026; sole production design from 1 November (initial implementation and review recorded in docs/signal-testing.md). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
 
 ## Start here
 
@@ -26,12 +26,12 @@ opening Next best retains that row in place. Longer route labels get the full av
 actions in a consistent right-aligned slot beside the countdown, away from route labels. Preserve natural
 vertical growth for long details and enlarged text. See the [acceptance criteria](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
 
-### Binding parity and glanceability (Sam, 31 October, evening)
+### Journey facts and glanceability (Sam, 1 November)
 
-Every supported design and applicable UI view receives a feature or correction in the same change. Designs may
-use different geometry, but must expose the same journey identity, timing, duration, ranking meaning, warnings,
-uncertainty and actions. A design switch is not a waiver. A UI remains supported until Sam explicitly retires it;
-the [mandatory parity gate](stories/journey-facts.md) covers the registered designs and surfaces on every release.
+Signal is the sole supported design. Preserve journey identity, timing, duration, ranking meaning, warnings,
+uncertainty and actions across its applicable views. Ordinary [journey-fact regressions](stories/journey-facts.md)
+cover these behaviours. Panda and the cross-design registry and release rule are retired; recovery and the
+functionality review are recorded in the [retirement audit](panda-retirement-review.md).
 
 Show train duration and total journey duration from the same existing itinerary wherever that journey is shown:
 planning, Live departures, station cards/lists and Follow. “Arrives first” retains the engine's existing earliest
@@ -42,7 +42,7 @@ The shared pure `journeyFacts` helper supplies duration facts; the shell formats
 Commuter copy must make sense at a glance: state the time, result or action in plain language. A departures heading
 already explains what is shown. Do not add a paragraph explaining that no journey is underway or narrating how
 the app chooses views. A short hint may explain that Auto shows when to leave. These are information/copy rules
-for all supported designs, not a new visual theme.
+across Signal views.
 
 Sam authorised a substantial Flighty/Railboard-inspired redesign after comparing the live designs. The compact
 revision supersedes the older prototype's sizing and always-exposed direction/pace controls below. The effective

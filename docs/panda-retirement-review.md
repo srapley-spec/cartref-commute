@@ -13,7 +13,7 @@ and switch-off restoration requirements. Follow and Along the line retain their 
 ## Archived source and recovery
 
 The remote branch [archive/panda-2026-11-01](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01)
-points at `a27b1f6af96ce133762353df3924c841e752ae94` (latest pre-retirement main). The original `0d6bf6e103246fefa68412d90f58d314af1cad9d` snapshot remains in its history.
+points at `a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f` (latest pre-retirement main). The original `0d6bf6e103246fefa68412d90f58d314af1cad9d` snapshot remains in its history.
 Its GitHub Tests and Pages runs succeeded before reconciliation. The branch includes both designs, all Panda
 styles/documentation, tests, build and lockfile, and the former parity machinery.
 
@@ -121,8 +121,9 @@ No live transport credentials or real iPhone/VoiceOver session were available. C
 and geometry, not provider-wide reliability or complete hardware accessibility.
 
 ## Latest-main reconciliation (1 Nov)
-Before release, main advanced to `a27b1f6`. It adds the separately enabled Trip mode, stable train/total
-duration anchors and the precise departure countdown. Those changes are retained; the eight Trip view
+Before release, main advanced through `a27b1f6` to `a45f08d`. These updates add the separately enabled Trip mode, stable train/total
+duration anchors, the precise departure countdown and progress tied to the displayed train rather than a
+different Follow selection. Stage labels and simulator verification remain present. Those changes are retained; the eight Trip view
 contracts remain ordinary regression cases, and an old disabled Signal preference cannot hide an enabled Trip.
 The independent review and final full checks apply to this combined candidate. The archive was fast-forwarded
 without rewriting history to retain this final Panda implementation as well as its initial snapshot.

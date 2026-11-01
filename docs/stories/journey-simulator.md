@@ -58,6 +58,13 @@ and real mobile Chromium `tests/browser-simulator-context-reset.py`.
 ## Expected versus actual
 - Read outputs already computed by normal application rendering. Verification never calls mutating inference functions just to observe them, assigns a train/tube or replaces the main app interface.
 - Evaluate each meaningful checkpoint after normal refresh settles. Explicit assertions produce PASS/FAIL; missing evidence, pending work, unsupported/manual inputs or a legitimate unresolved passenger decision produce INCONCLUSIVE. Reaching a location is not itself a pass.
+- On a rendered on-train view at Stevenage, the London approach or through St Pancras, an enabled journey
+  progress model must identify the current rail leg. Signal's actual diagram must label stages Done/Now/Next
+  consistently. Fresh current-service actual calling reports must survive in the model and the drawn station
+  states; correct train detection alone cannot pass a diagram that discards Hitchin's report. Panda with Along
+  the line checks the same shared station facts without requiring Signal geometry. Unavailable, future-dated
+  or three-minute-old reports cannot prove fresh progress. Verification remains read-only and uses scoped
+  provider calling points, never fabricated passing reports.
 - Session/index/playback generations reject stale asynchronous verification after restart, Stop, source changes or continued playback. Device clock advancement in GPS-only mode must not leave verification permanently pending.
 - Signal uses the same production simulator. Explicit Plan/Live pins are reported as INCONCLUSIVE for automatic-view expectations; Return to Auto restores those assertions. A displayed followed service has an independent phase assertion at Stevenage/approach/through-station checkpoints, even when the main card uses the richer on-train view. The separate real Follow card is retained and sanitized alongside the main card.
 - Reading/editing deferral is INCONCLUSIVE only when the real application reports a pending transition and actual app interaction is present. A pending flag alone cannot conceal a wrong automatic view. Simulator inputs are excluded from the real app's interaction deferral, so inspecting Advanced controls cannot hold back normal journey presentation.
@@ -83,6 +90,8 @@ and real mobile Chromium `tests/browser-simulator-context-reset.py`.
 - tests/simulator.test.mjs: "playback starts at the selected end and supports multiple speeds"
 - tests/simulator.test.mjs: "each route and direction starts paused at first checkpoint"
 - tests/simulation-clock.test.mjs: "simulated clock freezes at waypoint and moves only when explicitly advanced"
+- tests/simulator-verification.test.mjs: "rail verification rejects discarded reports and wrong stages even when train inference is correct"
+- Real-control different-Follow regressions for both designs/corridors: `tests/progress-follow-conflict.test.mjs`.
 - Additional application scenario assertions and their actual results: [coverage matrix](../simulator-scenario-coverage.md).
 - Original simulator regressions and mutation results: [review](../simulator-review.md). Guided redesign staged mobile/technical review and additional mutations: [UX review](../simulator-ux-review.md).
 - Real Chromium control/playback verification: `python3 tests/browser-simulator.py` (Playwright and Chromium required).

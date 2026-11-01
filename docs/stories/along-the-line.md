@@ -39,7 +39,7 @@ conflict explains the flyover without claiming that a London-bound service trave
 - **Settings → Experimental → Along the line** is an independent boolean, off by default. It works independently of Follow in the sole Signal design. Disabling it immediately removes its entry and closes
   the view. Existing settings, train identity, followed journey, direction, pace and location watches are retained.
 - With the flag enabled, show one clearly labelled **Along the line ›** navigation action directly below the
-  app heading, in both designs. Keep it accessible while scrolling and across simulator checkpoints, including
+  app heading in Signal. Keep it accessible while scrolling and across simulator checkpoints, including
   the initial Home/Office stage, planning, station and uncertain-location states. Before an identified train,
   open an explicitly labelled browse view; never manufacture a live position or put automatic landmark prompts
   onto station boards, walking or Tube views. Settings retains **Browse Along the line** too.

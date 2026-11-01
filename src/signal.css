@@ -1,4 +1,4 @@
-/* Signal: the app’s compact journey presentation. */
+/* Signal: a compact journey instrument. Scope every rule so Panda remains the baseline. */
 html {
   color-scheme: light;
   --paper:#f2f5f8; --card:#ffffff; --ink:#142436; --muted:#506174; --line:#d4dde7;
@@ -293,8 +293,12 @@ html .journey-progress .jp-overall {display:flex;gap:5px;list-style:none;padding
 html .journey-progress .jp-leg {display:flex;flex-direction:column;flex:1 1 0;min-width:0;color:var(--muted)}
 html .journey-progress .jp-leg-bar {display:block;flex:0 0 6px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 html .journey-progress :is(.jp-leg-bar,.jp-current-track)>i {display:block;width:var(--complete,0%);height:100%;border-radius:inherit;background:var(--accent)}
-html .journey-progress .jp-leg-name {display:block;margin-top:4px;font-size:12px;line-height:1.35;overflow-wrap:break-word}
-html .journey-progress .jp-leg[data-state="current"] .jp-leg-name {color:var(--accent);font-weight:700}
+html .journey-progress .jp-leg-caption {display:flex;flex-wrap:wrap;align-items:baseline;gap:0 5px;margin-top:4px;line-height:1.35}
+html .journey-progress .jp-leg-name {display:block;font-size:12px;overflow-wrap:break-word}
+html .journey-progress .jp-leg-state {font-size:11px;color:var(--muted)}
+html .journey-progress .jp-leg[data-state="complete"] .jp-leg-bar>i {background:var(--muted)}
+html .journey-progress .jp-leg[data-state="current"] .jp-leg-bar {outline:1px solid var(--accent);outline-offset:1px}
+html .journey-progress .jp-leg[data-state="current"] :is(.jp-leg-name,.jp-leg-state) {color:var(--accent);font-weight:700}
 html .journey-progress .jp-current {display:grid;gap:6px;min-width:0}
 html .journey-progress .jp-current-title {display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13px;font-weight:650;overflow-wrap:break-word}
 html .journey-progress .jp-current-title>span {font-size:12px;font-weight:500;color:var(--muted)}

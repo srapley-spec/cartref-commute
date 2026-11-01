@@ -96,14 +96,14 @@ give repeated information stable homes:
   text may expand the action and use the existing single-column reflow.
 - The shared duration renderer supplies the same neutral total treatment in Signal's followed and inferred
   journey surfaces. All facts still come from `journeyFacts` / `connectionJourneyFacts`; unknown values remain
-  explicitly unavailable. Panda retains its inline geometry and the same facts and actions.
+  explicitly unavailable. Signal retains these facts and actions across planning and live views.
 - Light/dark at 320, 393 and 430 px and doubled computed text must remain readable, with no horizontal page
   overflow or overlapping times/actions. Follow retains a target of at least 44 × 44 px. Long/absent platform
   text and disabled actions are exercised through the real rendered application.
 
 Regression checks: [browser-signal-stable-layout.py](../../tests/browser-signal-stable-layout.py) measures the
 actual badge offsets across cards/rows, changes platform evidence, opens/refreshed disclosures and stresses
-200% text. [browser-ui-parity.py](../../tests/browser-ui-parity.py) covers the remaining planning/Live/Follow,
+200% text. [browser-ui-parity.py](../../tests/browser-journey-facts.py) covers the remaining planning/Live/Follow,
 inferred rail and Tube surfaces in both supported designs. The existing Signal field-preservation test compares
 each service's facts, alternatives, flags and actions independently of the intentionally changed sentence order.
 

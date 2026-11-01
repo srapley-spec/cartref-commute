@@ -333,7 +333,7 @@ Newest first. Each entry records the decision and its consequences; linked stori
 - **1 Nov, Panda retirement** Sam no longer sees enough value in maintaining Panda alongside Signal.
   Retire Panda and make Signal the sole supported design; preserve the complete pre-retirement implementation
   on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01),
-  commit `a27b1f6af96ce133762353df3924c841e752ae94`, so it can be recovered later. Remove the Signal feature
+  commit `a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f`, so it can be recovered later. Remove the Signal feature
   toggle, Panda restoration path, supported-UI concurrency rule and design-parity registry/release gate.
   This supersedes the 31 Oct parity and feature-off restoration decisions below. Retain ordinary journey-view,
   duration, action and uncertainty regressions. Old saved Signal on/off values must not select another design;
