@@ -26,8 +26,8 @@ def anchors(page):
       const items=[];
       for(const times of document.querySelectorAll('#hero .optrow')){
         if(!times.checkVisibility())continue;
-        const owner=times.closest('summary')||times.closest('.opt');
-        items.push({owner,times:[...times.querySelectorAll('.optbig')],facts:owner.querySelector('.journey-facts'),kind:owner.tagName==='SUMMARY'?'next-best':'primary'});
+        const owner=times.closest('.opt');
+        items.push({owner,times:[...times.querySelectorAll('.optbig')],facts:owner.querySelector('.journey-facts'),kind:owner.classList.contains('signal-alternative')?'next-best':'primary'});
       }
       for(const owner of document.querySelectorAll('#list .row[data-journey-service]')){
         if(owner.checkVisibility())items.push({owner,times:[...owner.querySelectorAll(':scope>.leave>.t,:scope>.arrive>.t,:scope>.exp>.t,:scope>.exp>.word')],facts:owner.querySelector('.journey-facts'),kind:'row'});
@@ -43,11 +43,26 @@ def anchors(page):
     }''')
 
 
+def full_recommendations(page, label):
+    cards = page.locator('#hero>.opt')
+    assert cards.count() == 2, (label, 'Both recommendations must remain present')
+    sizes = []
+    for card in cards.all():
+        for selector in ['.optrow', '.journey-facts', '.optroute', '.journey-service', '.journey-countdown', '.steps>summary', '[data-follow]']:
+            assert card.locator(selector).is_visible(), (label, 'A recommendation hides '+selector)
+        assert card.locator('.journey-facts').count() == 1, (label, 'Duplicated duration facts')
+        assert card.evaluate("e=>e.closest('details')===null"), (label, 'A recommendation is collapsed')
+        sizes.append(card.locator('.optrow .optbig').evaluate_all("nodes=>nodes.map(e=>getComputedStyle(e).fontSize)"))
+    assert sizes[0] == sizes[1], (label, 'The second recommendation uses smaller time text', sizes)
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'), (label, 'Page overflows')
+
+
 def check(page, label, aligned=True, planning=True):
     rows = anchors(page)
     if planning:
         assert any(r['kind'] == 'primary' for r in rows), (label, 'Missing primary answer')
         assert any(r['kind'] == 'next-best' for r in rows), (label, 'Missing Next best')
+        full_recommendations(page, label)
     assert len([r for r in rows if r['kind'] == 'row']) >= 5, (label, 'A loaded train disappeared')
     assert all(r['gap'] >= 3 for r in rows), (label, 'Duration is not below the time values', rows)
     center = page.viewport_size['width'] / 2
@@ -71,14 +86,14 @@ def check(page, label, aligned=True, planning=True):
     return rows
 
 
-def stress(page, label, planning=True):
+def stress(page, label, planning=True, full_only=False):
     page.evaluate('''()=>{
       window.durationFonts=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility())
         .map(e=>({e,size:parseFloat(getComputedStyle(e).fontSize),prior:e.style.fontSize,priority:e.style.getPropertyPriority('font-size')}));
       for(const {e,size} of durationFonts)e.style.setProperty('font-size',size*2+'px','important');
     }''')
     try:
-        result = check(page, label + '-200', aligned=False, planning=planning)
+        result = full_recommendations(page, label + '-200') if full_only else check(page, label + '-200', aligned=False, planning=planning)
         page.screenshot(path=str(ART / f'signal-stable-{label}-200.png'), full_page=True)
         return result
     finally:
@@ -108,15 +123,14 @@ def run(browser):
                 assert [(r['kind'],r['key'],r['center'],r['gap'],r['totalMs'],r['trainMs']) for r in before] == [
                     (r['kind'],r['key'],r['center'],r['gap'],r['totalMs'],r['trainMs']) for r in changed
                 ], (label, 'Platform text changed the duration anchor or value')
-                summary = page.locator('#hero .signal-alternative>summary')
+                assert page.locator('#hero .signal-alternative [data-follow]').is_visible()
+                summary = page.locator('#hero .signal-alternative .steps>summary')
                 summary.click()
                 expanded = check(page, label + '-expanded')
-                assert before[1]['center'] == expanded[1]['center'] and before[1]['gap'] == expanded[1]['gap'], (label, 'Expanding Next best moves duration')
-                assert page.locator('#hero .signal-alternative .opt [data-follow]').is_visible()
-                page.locator('#hero .signal-alternative .steps>summary').click()
+                assert before[1]['center'] == expanded[1]['center'] and before[1]['gap'] == expanded[1]['gap'], (label, 'Opening Next best journey steps moves duration')
+                assert page.locator('#hero .signal-alternative [data-follow]').is_visible()
                 assert page.locator('#hero .signal-alternative .legs').is_visible()
                 page.evaluate('__commute.render()')
-                assert page.locator('#hero .signal-alternative').get_attribute('open') is not None
                 assert page.locator('#hero .signal-alternative .steps').get_attribute('open') is not None
                 check(page, label + '-refreshed')
                 summary.click()
@@ -140,6 +154,24 @@ def run(browser):
                 assert follow.is_visible() and follow.inner_text().startswith('Total journey')
                 bounds=follow.bounding_box()
                 assert abs(bounds['x']+bounds['width']/2-width/2)<=1.5, (label, 'Follow total lost its centre anchor')
+                # The user's earlier Thameslink is a full alternative to the latest-leaving Great Northern.
+                page.evaluate('''()=>{
+                  const c=__commute,s=c.state,T=h=>Date.parse('2026-11-04T'+h+':00Z');
+                  const train=(to,std,arr,operator,id)=>({from:'LET',to,std,dep:T(std),arr:T(arr),operator,serviceId:id,
+                    platform:'',timetable:true,depLate:0,arrLate:0,cancelled:false,depUnknown:false,arrUnknown:false,reason:''});
+                  s.saved.followRoute=null;s.saved.viewOverride=null;s.saved.view='by';s.saved.pace='fast';
+                  s.here=s.saved.home.slice();s.onLine=false;s.atHub=null;
+                  s.by={T:T('08:30'),live:false,failed:{},boards:{
+                    'LET-KGX':{services:[train('KGX','07:30','08:03','Great Northern','gn0730')],msgs:[]},
+                    'LET-STP':{services:[train('STP','07:20','07:59','Thameslink','tl0720')],msgs:[]},
+                    'LET-ZFD':{services:[train('ZFD','07:20','08:04','Thameslink','tl0720')],msgs:[]}}};
+                  document.querySelector('#byDate').value='2026-11-04';document.querySelector('#byTime').value='08:30';c.render();
+                }''')
+                full_recommendations(page, label + '-tomorrow')
+                assert '07:20' in page.locator('#hero .signal-alternative .journey-service').inner_text()
+                compact.assert_time_legibility(page, label + '-tomorrow')
+                page.screenshot(path=str(ART / f'signal-full-recommendations-{label}.png'), full_page=True)
+                stress(page, label + '-tomorrow', full_only=True)
                 assert not errors, (label, errors)
                 results.append({'label':label,'normal':before,'platforms':changed,'enlarged':enlarged,
                     'live':live,'liveEnlarged':live_enlarged,'station':station,'stationEnlarged':station_enlarged})

@@ -48,15 +48,16 @@ content-sized time columns. Existing layout and data preservation constraints re
 
 ### Compact v2 acceptance criteria
 - Before the station, Auto and Plan expose Leave / Leave by and its precise countdown as the core product
-  answer, including on-the-way departure layouts and collapsed Next best. Keep the current time columns and
+  answer, including on-the-way departure layouts and both complete recommendations. Keep the current time columns and
   centred duration geometry. Hiding/replacing the deadline is a material change that must be flagged to Sam
   before shipping; a layout refinement does not authorise it. See the [protected requirement](../design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026).
 - Show a short masthead, always-available Auto / Plan / Live and planning-mode controls, effective journey context,
   then the current answer with one dominant time. Journey options expands to the real Commute/Leisure,
   Auto/office/home and pace controls; each changed value is reflected in the closed summary.
-- Keep the primary recommendation prominent. Render Next best as a compact native disclosure rather than a
-  second large card. Expansion preserves its service/platform/status, scheduled/expected and arrival times,
-  duration, same-train boarding alternatives, flags, complete steps and Follow action. No train is omitted.
+- Keep both recommendations complete and exposed (Sam, 1 Nov; supersedes the compact second-option summary).
+  Use the same renderer and time sizes for each card, with its own service/platform/status, route/line chips,
+  scheduled/expected and arrival times, duration, countdown/margin, same-train boarding alternatives, flags,
+  Journey steps and Follow action. Only Journey steps folds; the second option is not a reduced disclosure.
 - Keep one concise network-impact line visible near the answer. Full original banners and their full notices
   remain under Travel alerts, with a reachable control from the summary. Never hide a train-specific
   cancellation, no-estimate or uncertainty flag inside only the global disclosure.
@@ -95,8 +96,8 @@ give repeated information stable homes:
   and Live, with the separate train-duration caption centred beneath it. This supersedes the first revision's
   left/right duration anchors. Route names, platform length, flags, missing durations and the Follow/Unavailable
   label cannot displace the centre anchor. Do not put duration into Live's Expected departure column.
-- Next best keeps the same duration row visible in its summary when opened, closed and refreshed; expansion
-  does not move the total below the route or duplicate it visually.
+- Both complete cards keep the same duration row visible when their Journey steps are opened, closed and
+  refreshed; expansion does not move the total below the route or duplicate it visually.
 - Route labels get the full row width. Service/platform and countdown have separate homes; board actions share
   a consistent right-aligned 96 px slot beside the countdown instead of competing with route chips. Enlarged
   text may expand the action and use the existing single-column reflow.

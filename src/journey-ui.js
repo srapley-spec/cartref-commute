@@ -90,25 +90,13 @@ function renderSignalCompact(){
       if(meta!==mid&&!meta.textContent.trim())meta.remove();
     }
   }
-  // A compact, accessible fallback row; full metadata and actions remain on expansion.
+  // Both recommendations keep the same complete option renderer and actions.
   const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
   for(const opt of options.slice(1)){
-    const detail=document.createElement('details');detail.className='signal-alternative';
-    detail.dataset.journeyService=opt.dataset.journeyService;
-    detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
-    const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
-    const deadline=opt.querySelector(':scope>.journey-leave-by');if(deadline)summary.append(deadline);
-    const times=opt.querySelector('.optrow');
-    const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
-    if(times)summary.append(times);
-    const service=document.createElement('span');service.className='signal-alt-service';service.textContent=opt.dataset.serviceLabel||'';summary.append(service);
-    const boarding=opt.querySelector('.altstop');
-    if(boarding){const compact=boarding.cloneNode(true);compact.className='signal-alt-boarding';summary.append(compact);}
-    const facts=opt.querySelector('.journey-facts');
-    if(facts){const compact=facts.cloneNode(true);compact.classList.add('signal-alt-facts');summary.append(compact);}
-    const comparison=opt.querySelector('[data-fact="arrives-first"]');
-    if(comparison){const compact=comparison.cloneNode(true);compact.classList.add('signal-alt-comparison');summary.append(compact);}
-    opt.before(detail);detail.append(summary,opt);
+    opt.classList.add('signal-alternative');
+    if(!opt.querySelector(':scope>.signal-alt-label')){
+      const label=document.createElement('h3');label.className='signal-alt-label';label.textContent='Next best';opt.prepend(label);
+    }
   }
   p.connections.replaceChildren();
   const following=!$('#followPanel').hidden;

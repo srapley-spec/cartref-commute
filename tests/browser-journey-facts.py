@@ -163,9 +163,9 @@ def scene(page, label, design, mode):
     if mode in ['auto', 'plan']:
         assert_option_facts(page, label + '-hero', '#hero', require_fastest=True)
         if design == 'signal':
-            summaries = page.locator('#hero .signal-alternative>summary')
-            for summary in summaries.all():
-                assert summary.locator('[data-fact="total-duration"]').is_visible(), (label, 'Collapsed Next best hides duration')
+            for card in page.locator('#hero .signal-alternative').all():
+                for selector in ['[data-fact="total-duration"]', '.optroute', '.journey-service', '.journey-countdown', '.steps>summary', '[data-follow]']:
+                    assert card.locator(selector).is_visible(), (label, 'Next best hides '+selector)
     page.evaluate('scrollTo(0,0)')
     page.screenshot(path=str(ART / f'journey-facts-{label}.png'), full_page=True)
     enlarge(page)

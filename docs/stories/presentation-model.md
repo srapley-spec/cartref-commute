@@ -48,8 +48,9 @@ that integration, including a deliberate change to the model order. Panda was su
   summary must not recommend that fallback as a resolution. A more important train/feed failure retains priority,
   with the current onward-travel qualification still visible. Current closures are labelled “now” when the
   planning question is for later; displayed-plan missing routes use that plan's own failures.
-- Compact v2 foregrounds the current answer and uses a compact expandable Next best rather than two equally
-  large recommendation cards. The shell may consolidate repeated geometry and reparent the existing controls,
+- Both top recommendations use the same complete card renderer and time sizes (Sam, 1 Nov); the second
+  option is not hidden inside a compact disclosure. Journey steps folds equally on both cards. The shell may
+  consolidate repeated geometry and reparent the existing controls,
   but may not change priority, ranking, current selection or the complete set of journey/notice information.
   In Auto/Live, active followed-route presentation leads and unrelated recommendations may fold. Explicit Plan
   keeps its primary answer exposed while following/alerts continue. Tube choices/corrections are extracted

@@ -97,25 +97,23 @@ def check_density(page,label,width,noisy):
  m=metrics(page)
  # The journey-clarity release deliberately exposes location evidence and serious disruption before the
  # answer; the later centred-duration release deliberately stacks its two duration facts.
+ # Both top recommendations now expose the same complete content (Sam, 1 Nov).
  # Measure layout overhead separately so those required facts cannot be hidden
  # merely to satisfy thresholds from the earlier compact-only design.
  allowances=page.evaluate('''()=>{
   const disruption=document.querySelector('#signalDisruptions');
   const height=e=>e?.checkVisibility()?e.getBoundingClientRect().height:0;
-  const boarding=[...document.querySelectorAll('#hero .signal-alt-boarding')].filter(e=>e.checkVisibility());
   const location=document.querySelector('#dirNote');
   const status=document.querySelector('#signalStatus');
-  const durations=[...document.querySelectorAll('#hero .journey-facts')].filter(e=>e.checkVisibility());
   const rowDurations=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-facts')));
   if([...disruption.children].some(e=>!e.checkVisibility()))throw Error('Significant disruption is concealed');
   return {alerts:[disruption,location,status].reduce((total,e)=>total+height(e)+(height(e)?8:0),0),
-   boarding:boarding.reduce((total,e)=>total+height(e)+4,0),
-   durations:durations.reduce((total,e)=>total+height(e),0),rowDurations};
+   rowDurations};
  }''')
  assert m['scrollWidth']<=width+1,(label,'horizontal overflow',m)
  assert m['answer']['top']-allowances['alerts']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
  assert m['answer']['bottom']-allowances['alerts']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
- assert m['board']['top']-allowances['alerts']-allowances['boarding']-allowances['durations']<(650 if width==393 else 740),(label,'board starts too far down',m)
+ assert m['board']['top']-m['hero']['bottom']<100,(label,'unexplained space between the full recommendations and board',m)
  assert all(r is not None and r['height']>0 for r in m['rows']),(label,'a loaded train was visually hidden',m)
  if width==393:
   assert all(0<h<=48 for h in allowances['rowDurations']),(label,'centred duration facts are hidden or oversized',allowances)
@@ -153,8 +151,8 @@ def run_current(browser):
      assert len(m['rows'])==len(expected),(label,'train rows hidden',len(m['rows']),len(expected))
      assert all(any(o['std'] in row for row in m['trainRows']) for o in expected),(label,'a loaded departure disappeared',expected,m['trainRows'])
      assert any('Cancelled' in row for row in m['trainRows']),'cancelled train must remain visible'
-     alternative_service=page.locator('#hero .signal-alternative > summary .signal-alt-service')
-     assert alternative_service.is_visible(),'collapsed next-best option has no train identity'
+     alternative_service=page.locator('#hero .signal-alternative .journey-service')
+     assert alternative_service.is_visible(),'the full next-best option has no train identity'
      assert all(text in alternative_service.inner_text() for text in ['05:20','Thameslink','platform 1'])
      if noisy:
       status=page.locator('#signalStatus');assert status.is_visible()
@@ -177,12 +175,12 @@ def run_current(browser):
      assert service in page.locator('#signalNetwork').inner_text(),('missing line status',service)
     page.locator('#signalNetwork > summary').click()
     fallback=page.locator('#hero .signal-alternative')
-    fallback.locator(':scope > summary').click()
     assert fallback.locator('.optmeta').is_visible(),'next-best train details are inaccessible'
     assert fallback.locator('[data-follow]').is_visible(),'next-best train cannot be followed'
+    fallback.locator('.steps>summary').click()
     if theme=='dark' and width==393:
      page.screenshot(path=str(ART/'signal-compact-expanded-nextbest-dark-393.png'),full_page=True)
-    fallback.locator(':scope > summary').click()
+    fallback.locator('.steps>summary').click()
     # Manual appearance overrides work on either device appearance, using real Settings.
     for appearance in ['light','dark','system']:
      page.locator('#settingsBtn').click();page.select_option('#s_appearance',appearance);page.locator('#saveBtn').click()

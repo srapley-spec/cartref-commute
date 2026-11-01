@@ -93,16 +93,15 @@ async function twoStation(platform='C'){
   boardsAt:now,boardsDir:'home',railSource:'darwin',routeFailed:{},loading:false,errors:[],atHub:null});
  a.c.render();return a;
 }
-for(const platform of ['C',''])test(`independent Panda retirement: a collapsed two-station option retains each time and ${platform?'different':'unknown'} platform`,async()=>{
+for(const platform of ['C',''])test(`independent Panda retirement: a full two-station option retains each time and ${platform?'different':'unknown'} platform`,async()=>{
  const a=await twoStation(platform),detail=a.d.querySelector('#hero .signal-alternative');
- assert.ok(detail&&!detail.open);
- const summary=detail.querySelector(':scope>summary'),boarding=summary.querySelector('.signal-alt-boarding');
- assert.ok(exposed(a,boarding),'the two boarding points are available without expanding Next best');
+ assert.equal(detail?.tagName,'SECTION');
+ const boarding=detail.querySelector('.altstop');
+ assert.ok(exposed(a,boarding),'the two boarding points are exposed on the complete card');
  assert.equal(norm(boarding),`Board at Farringdon 17:55 platform 5 or St Pancras 18:00${platform?' platform C':''}`);
- assert.doesNotMatch(norm(summary.querySelector('.signal-alt-service')),/platform/,'a shared service label cannot assign one station platform to both');
- const original=detail.querySelector('.opt .altstop');assert.equal(norm(original),norm(boarding));
- detail.open=true;
- assert.ok(exposed(a,original));assert.ok(exposed(a,detail.querySelector('[data-follow]:not([disabled])')));
+ assert.doesNotMatch(norm(detail.querySelector('.journey-service')),/platform/,'a shared service label cannot assign one station platform to both');
+ assert.equal(detail.querySelectorAll('.altstop').length,1,'boarding information is not duplicated in a summary');
+ assert.ok(exposed(a,detail.querySelector('[data-follow]:not([disabled])')));
  detail.querySelector('[data-follow]').click();
  assert.equal(a.c.state.saved.followRoute.option.train.from,'ZFD');
  assert.equal(a.c.state.saved.followRoute.option.train.platform,'5');

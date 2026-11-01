@@ -44,10 +44,10 @@ test('Leave by: Auto near Letchworth exposes the deadline on the primary answer,
  const options=a.c.ranked(NOW),best=options.find(o=>o.recommended===1),next=options.find(o=>o.recommended===2);
  assert.equal(best.train.std,'13:27');assert.equal(hm(best.leave),'13:07');
  deadline(a,a.d.querySelector('#hero>.opt'),best);
- deadline(a,a.d.querySelector('#hero .signal-alternative>summary'),next);
+ deadline(a,a.d.querySelector('#hero .signal-alternative'),next);
  for(const option of options)deadline(a,row(a,option.train.std),option);
  assert.equal(a.d.querySelector('#hero .steps').open,false);
- assert.equal(a.d.querySelector('#hero .signal-alternative').open,false);
+ assert.equal(a.d.querySelector('#hero .signal-alternative').tagName,'SECTION');
  assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -55,9 +55,9 @@ test('Leave by: pinning Plan and refreshing cannot turn a planning answer into o
  const a=await fixture({appearance:'dark'});pin(a,'plan');a.c.render();
  const best=a.c.ranked(NOW).find(o=>o.recommended===1);
  deadline(a,a.d.querySelector('#hero>.opt'),best);
- a.d.querySelector('#hero .signal-alternative').open=true;
- a.c.render();assert.equal(a.d.querySelector('#hero .signal-alternative').open,true);
- deadline(a,a.d.querySelector('#hero .signal-alternative>summary'),a.c.ranked(NOW).find(o=>o.recommended===2));
+ a.d.querySelector('#hero .signal-alternative .steps').open=true;
+ a.c.render();assert.equal(a.d.querySelector('#hero .signal-alternative .steps').open,true);
+ deadline(a,a.d.querySelector('#hero .signal-alternative'),a.c.ranked(NOW).find(o=>o.recommended===2));
  assert.deepEqual(a.errors,[]);a.close();
 });
 

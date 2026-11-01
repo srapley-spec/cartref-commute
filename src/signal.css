@@ -101,8 +101,6 @@ html .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;ov
 html .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:center;max-width:100%;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600;text-align:center}
 html .journey-facts .journey-train-time {grid-column:1;grid-row:2;justify-self:center;text-align:center}
 html :is(.journey-facts-divider,.journey-meta-divider) {display:none}
-html .signal-alternative>.opt>.journey-facts,
-html .signal-alternative[open] .signal-alt-comparison {display:none}
 html .hero .opt>:is(.optrow,.journey-facts,.optroute,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
 html .hero .opt>.optroute {justify-content:flex-start;margin:0;padding:0}
 html .hero .journey-meta {display:grid;gap:2px}
@@ -118,9 +116,7 @@ html .hero .optrow>div:nth-child(3) {grid-column:3;text-align:right}
 html .hero .optrow .optroute {grid-column:1/-1;grid-row:3;justify-content:flex-start;margin:5px 0 0;padding:0;min-width:0}
 html .hero .optrow small {font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;opacity:1;color:var(--muted);line-height:1.4}
 html .hero .optbig {font-size:36px;font-weight:750;letter-spacing:-.035em;line-height:1.1}
-html .hero .opt:first-of-type>.optrow:not(.board)>div:nth-child(3) .optbig {font-size:32px}
-html .hero .opt+.opt .optbig {font-size:26px}
-html .hero .opt+.opt .optrow small {font-size:12px}
+html .hero .opt>.optrow:not(.board)>div:nth-child(3) .optbig {font-size:32px}
 html .hero .optrow>.optarrow {grid-row:2;align-self:end;font-size:20px;color:var(--muted);opacity:1;padding-bottom:3px}
 html .hero .optrow.board {grid-template-columns:repeat(3,minmax(0,1fr))}
 html .hero .optrow.board .optbig {font-size:30px}
@@ -133,25 +129,7 @@ html .hero .opt>.steps {grid-column:1;min-width:0}
 html .hero .opt>.follow-btn {grid-column:2;align-self:center;width:auto;margin:0}
 html .hero .opt:has(>.steps[open])>.steps {grid-column:1/-1}
 html .hero .opt:has(>.steps[open])>.follow-btn {justify-self:end}
-html .hero .signal-alternative {border-top:1px solid var(--line);padding-top:3px}
-html .hero .signal-alternative>summary {position:relative;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 8px;min-height:44px;cursor:pointer;list-style:none;padding:5px 0;color:var(--ink)}
-html .hero .signal-alternative>summary::-webkit-details-marker {display:none}
-html .hero .signal-alternative>summary>span {grid-column:1;font-size:12px;font-weight:650;color:var(--muted)}
-html .hero .signal-alternative>summary>.signal-alt-label {grid-column:1;grid-row:1}
-html .hero .signal-alternative>summary>.signal-alt-service {grid-column:2;grid-row:1;padding-right:24px;min-width:0;font-weight:500;text-align:right;overflow-wrap:break-word}
-html .hero .signal-alternative>summary::after {content:'›';position:absolute;right:0;top:5px;font-size:22px;color:var(--accent);line-height:1}
-html .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
-html .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
-html .hero .signal-alternative>summary>.signal-alt-facts {grid-column:1/-1;grid-row:3;display:grid}
-html .hero .signal-alternative>summary>.journey-leave-by {grid-column:1/-1;grid-row:2;font-size:16px;font-weight:650;color:var(--ink)}
-html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:3}
-html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:4}
-html .hero .signal-alternative>summary .optbig {font-size:24px}
-html .hero .signal-alternative>summary .optbig.word {font-size:16px}
-html .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
-html .hero .signal-alternative>summary .optroute {font-size:12px}
-html .hero .signal-alternative>.opt {padding-top:7px;border:0}
-html .hero .signal-alternative>.opt>.optroute {grid-column:1/-1;justify-content:flex-start;margin:0;padding:0}
+html .hero .opt>.signal-alt-label {grid-column:1/-1;margin:0;padding:0;font-size:14px;line-height:1.4;font-weight:650;color:var(--muted)}
 html .hero .steps summary,html #followPanel .steps summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer}
 html .hero .steps summary::before,html #followPanel .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
 html .hero .steps[open]>summary::before,html #followPanel .steps[open]>summary::before {transform:rotate(90deg)}
@@ -361,13 +339,6 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
   html .hero .optrow>div:not(.optroute):not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html .hero .optrow .optroute {grid-row:auto}
   html .hero .optrow .optarrow {display:none}
-  html .hero .signal-alternative>summary {grid-template-columns:minmax(0,1fr)}
-  html .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
-  html .hero .signal-alternative>summary>.optrow {grid-row:3}
-  html .hero .signal-alternative>summary>.signal-alt-facts {grid-row:4}
-  html .hero .signal-alternative>summary>.journey-leave-by {grid-row:3}
-  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:4}
-  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:5}
   html .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html .row>.arrive {grid-row:2}
   html .row.board>.exp {grid-row:2}
@@ -413,6 +384,3 @@ html .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
 html .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
 html .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
-
-/* A multi-station service keeps each boarding time/platform visible in Next best. */
-html .signal-alternative>summary>.signal-alt-boarding{grid-column:1/-1;font-size:12px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}

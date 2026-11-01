@@ -41,7 +41,7 @@ def inject(page):
 def geometry(page, label):
     result = page.evaluate('''() => {
       const issues=[],durations=[];
-      for(const e of document.querySelectorAll('#hero .signal-alternative>summary,#hero .optrow,#list .row')){
+      for(const e of document.querySelectorAll('#hero .optrow,#list .row')){
         if(!e.checkVisibility())continue;
         const r=e.getBoundingClientRect();if(r.right>innerWidth+1||r.left< -1)issues.push('outside viewport: '+e.innerText);
       }
@@ -82,16 +82,17 @@ with sync_playwright() as p:
                 try:
                     expected = inject(page)
                     detail = page.locator('#hero .signal-alternative')
-                    summary = detail.locator(':scope>summary')
-                    text = summary.inner_text()
+                    summary = detail.locator('.steps>summary')
+                    text = detail.inner_text()
                     assert 'Farringdon '+expected['zfd']+' platform 5' in text, text
                     assert 'St Pancras '+expected['stp'] in text, text
-                    assert 'platform' not in summary.locator('.signal-alt-service').inner_text()
-                    assert not detail.evaluate('e=>e.open')
-                    page.screenshot(path=str(ART / f'{theme}-{width}-collapsed.png'), full_page=True)
+                    assert 'platform' not in detail.locator('.journey-service').inner_text()
+                    assert detail.evaluate('e=>e.tagName') == 'SECTION'
+                    assert detail.locator('[data-follow]').is_visible()
+                    page.screenshot(path=str(ART / f'{theme}-{width}-full.png'), full_page=True)
                     summary.focus()
                     page.keyboard.press('Enter')
-                    assert detail.evaluate('e=>e.open'), 'native keyboard disclosure must expose the retained original content'
+                    assert detail.locator('.steps').evaluate('e=>e.open'), 'native keyboard disclosure must expose journey steps'
                     assert detail.locator('.optmeta').is_visible()
                     assert detail.locator('[data-follow]').is_visible()
                     for enlarged in [False, True]:
