@@ -67,11 +67,11 @@ def metrics(page):
   contrast,trainRows:rows.map(e=>e.innerText),heroText:hero.innerText};
  }''')
 
-def boot(browser,root,theme='dark',width=393):
+def boot(browser,root,theme='dark',width=393,epoch=EPOCH):
  server=server_for(root)
  context=browser.new_context(viewport={'width':width,'height':852 if width==393 else 700},color_scheme=theme,geolocation={'latitude':51.975,'longitude':-.23,'accuracy':12},permissions=['geolocation'])
- context.add_init_script('''(()=>{const D=Date,t=D.parse('2026-11-03T03:22:00Z');window.Date=class extends D{constructor(...x){super(...(x.length?x:[t]));}static now(){return t;}};
- if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',followRoute:true}}));})();''')
+ context.add_init_script('''(()=>{const D=Date,t=D.parse(__BROWSER_EPOCH__);window.Date=class extends D{constructor(...x){super(...(x.length?x:[t]));}static now(){return t;}};
+ if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',followRoute:true}}));})();'''.replace('__BROWSER_EPOCH__',json.dumps(epoch)))
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def network(r):
   if r.request.url.startswith('http://127.0.0.1:'):r.continue_()

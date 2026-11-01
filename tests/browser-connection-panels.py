@@ -38,11 +38,16 @@ def inspect(page, label):
         const bounds=box(panel);
         for(const leaf of leaves){const b=box(leaf);if(b.x<bounds.x-1||b.right>bounds.right+1)throw Error('Connection detail escapes panel: '+leaf.innerText);}
         const scheduled=panel.querySelector('[data-connection-time="scheduled"]'),expected=panel.querySelector('[data-connection-time="expected"]');
+        if(!scheduled||!shown(scheduled)||!scheduled.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}))throw Error('Scheduled connection clock is concealed');
+        if(expected&&(!shown(expected)||!expected.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})))throw Error('Expected connection clock is concealed');
+        const scale=window.connectionFonts?2:1,minSize=(panel.closest('.journey-row')?30:36)*scale;
+        if(parseFloat(getComputedStyle(scheduled).fontSize)<minSize-.1)throw Error('Connection clock lost prominence: '+getComputedStyle(scheduled).fontSize+' < '+minSize+'px');
         if(expected&&getComputedStyle(scheduled).fontSize!==getComputedStyle(expected).fontSize)throw Error('Expected and Scheduled use different sizes');
         return {text:panel.innerText,size:getComputedStyle(scheduled).fontSize};
       }));
-      const headlines=owners.map(owner=>owner.querySelector('.journey-heading')).filter(e=>e&&shown(e));
+      const headlines=owners.map(owner=>owner.querySelector('.journey-heading')).filter(Boolean);
       for(const heading of headlines){
+        if(!shown(heading))throw Error('Journey headline is concealed');
         const values=[...heading.querySelectorAll('.optbig')];
         if(values.some(e=>!shown(e)))throw Error('Hidden journey clock');
         if(heading.hasAttribute('data-fact')){
@@ -87,13 +92,12 @@ def live_snapshot(browser, root):
 
 
 def trip_scene(browser, theme, width):
-    server, context, page, errors = compact.boot(browser, ROOT, theme, width)
+    server, context, page, errors = compact.boot(browser, ROOT, theme, width, epoch='2026-11-03T10:00:00Z')
     try:
         fixture = json.loads((ROOT / 'tests/fixtures/trip/tfl-brighton-canterburywest.json').read_text())['body']
         stub = json.loads(subprocess.check_output(['node', '--input-type=module', '-e',
             "import {stubGoogle,TRIP_PLACES} from './tests/trip-fixtures.mjs';console.log(JSON.stringify({fn:stubGoogle.toString(),places:TRIP_PLACES}));"], cwd=ROOT, text=True))
         page.evaluate("s=>{window.TRIP_PLACES=s.places;(0,eval)('('+s.fn+')(window)');}", stub)
-        page.evaluate("()=>{const D=Date,t=D.parse('2026-11-03T10:00:00Z');window.Date=class extends D{constructor(...a){super(...(a.length?a:[t]));}static now(){return t;}};}")
         def planner(route):
             good = '/90000899/to/1001160' in route.request.url
             route.fulfill(status=200 if good else 404, content_type='application/json', body=json.dumps(fixture if good else {'message':'No journey found'}))
@@ -125,6 +129,8 @@ def trip_scene(browser, theme, width):
         row.locator('[data-trip-follow]').click()
         page.locator('[data-trip-stop]').wait_for(state='visible')
         following = inspect(page, label + '-follow')
+        assert page.evaluate("Date.now()===Date.parse('2026-11-03T10:00:00Z')"), 'Trip fixture clock changed after source/session setup'
+        assert page.locator('#tripResults .journey-heading [data-cd]').first.inner_text().startswith('leave in 2m'), 'Trip fixture countdown uses the wrong clock'
         assert page.locator('.trip-follow-connections .journey-connection').count() == 4
         assert not errors, errors
         return {'state': label, 'normal': normal, 'enlarged': large, 'following': following}

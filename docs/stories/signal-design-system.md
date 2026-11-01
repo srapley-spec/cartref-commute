@@ -260,3 +260,15 @@ functional audit, executed checks and remaining limitations are in [the retireme
 - tests/signal.test.mjs: "Signal is the default with Auto Plan Live and independently disabled Follow"
 - tests/panda-retirement.test.mjs: "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
 - tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"
+
+## Independent connection-panel review (1 Nov 2026)
+
+The [review record](../journey-connection-panels-independent-review.md) covers deliberately broken source/CSS,
+visible train-clock prominence, unusable departures, explicit Live geometry, Trip confidence and fixture clocks.
+
+- tests/connection-panel-review.test.mjs: "connection panel review: first and next-best connection clocks stay visible and prominent"
+- tests/connection-panel-review.test.mjs: "connection panel review: unusable future services with passed access deadlines have no departure promise, while a known missed train keeps its countdown"
+- tests/connection-panel-review.test.mjs: "connection panel review: cancellation while following retracts the current access promise without replacing the selected service"
+- tests/connection-panel-review.test.mjs: "connection panel review: Live keeps its original alternative layout while Auto exposes the journey panel"
+- tests/connection-panel-review.test.mjs: "connection panel review: a delayed second Trip train owns its expected clock, station and warning"
+- tests/connection-panel-review.test.mjs: "connection panel review: a failed Trip board refresh qualifies retained connection facts instead of claiming current On time"
