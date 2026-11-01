@@ -3,12 +3,14 @@
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp,closeAll} from './harness.mjs';
+import {TRIP_SETTINGS,tripRoute,planBrightonCanterbury,until} from './trip-fixtures.mjs';
 after(closeAll);
 
 const NOW=Date.parse('2026-11-03T10:00:00Z'),MIN=60000;
 const surfaces=[
   ...['awaiting-location','plan-now','plan-by','plan-at','following','on-train','at-hub','on-tube','in-london','on-tube-home','nearly-home'].map(id=>({id,view:id})),
-  {id:'live-departures',view:'plan-now'},{id:'along-the-line',view:'on-train'}
+  {id:'live-departures',view:'plan-now'},{id:'along-the-line',view:'on-train'},
+  ...['plan-trip-now','plan-trip-by','plan-trip-at','trip-follow','trip-access','trip-ride','trip-change','trip-final'].map(id=>({id,view:id}))
 ];
 const norm=value=>String(value||'').replace(/\s+/g,' ').trim();
 function visible(a,node){
@@ -67,7 +69,37 @@ function locate(s,here,extra={}){
  Object.assign(s,{here,locStatus:'ok',locAcc:12,lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false,...extra});
  s.saved.view='now';s.saved.viewOverride=null;s.saved.tubeRide=null;s.saved.tubePick=null;
 }
+// Trip mode's real screens remain functional regressions after the parity policy is removed; planned from a
+// recorded TfL reply, drawn in the engine's order; its view is the one the engine chose (present.ts chooseTripView).
+const isTrip=surface=>/^(plan-trip-|trip-)/.test(surface.view);
+function assertTripHealthy(a,surface){
+ assert.equal(a.d.documentElement.dataset.design,'signal');
+ assert.equal(a.d.documentElement.dataset.trip,'on');
+ assert.ok(visible(a,a.d.querySelector('#tripRoot')),'the Trip screen is exposed');
+ assert.equal(a.d.querySelector('#tripResults').dataset.view,surface.view,'the real presentation model reaches the registered Trip surface');
+ assert.ok(visible(a,a.d.querySelector('#settingsBtn')),'settings stay reachable');
+ assert.ok(shown(a,'[data-mode="commute"]').length||a.d.querySelector('[data-mode="commute"]'),'the way back to the commute remains');
+ assert.deepEqual(a.errors,[]);
+}
+async function followFirst(a){
+ const b=[...a.d.querySelectorAll('#tripResults .trip-row')].find(r=>/10:06/.test(r.textContent))?.querySelector('[data-trip-follow]');
+ assert.ok(b,'the 10:06 can be followed');b.click();
+ await until(()=>a.d.querySelector('[data-trip-stop]'));
+}
+async function tripAt(a,iso){a.setNow(Date.parse(iso));a.d.querySelector('#refreshBtn').click();await new Promise(r=>setTimeout(r,700));}
+const tripPlanChecks=a=>{
+ assert.ok(shown(a,'#tripResults .trip-row').length>=3,'every journey is listed');
+ assert.match(a.text('#tripResults'),/Leave by|Departs/);
+ assert.match(a.text('#tripResults'),/Every journey, in leaving order/);
+ assert.ok(shown(a,'#tripResults [data-trip-follow]:not([disabled])').length,'journeys can be followed');
+ assert.match(a.text('#tripResults'),/3 changes/,'changes are stated on the row');
+};
+const tripFollowChecks=a=>{
+ assert.ok(shown(a,'[data-trip-stop]').length,'the followed trip can be stopped');
+ assert.match(a.text('#tripResults'),/Arriving \d\d:\d\d|Arrived/);
+};
 async function open(surface){
+ if(isTrip(surface))return createApp({now:NOW,settings:TRIP_SETTINGS,route:tripRoute});
  const waiting=surface.id==='awaiting-location';
  return createApp({now:NOW,geo:waiting?'denied':undefined,
   settings:{provider:'demo',followRoute:true},saved:{dirMode:waiting?'auto':'office'}});
@@ -199,6 +231,22 @@ const factories={
   a.d.querySelector('#alongClose').click();s.boards['LET-KGX'].services[0].arrUnknown=false;
   s.trainLock={from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true};a.c.render();
  },
+ 'plan-trip-now':async a=>{await planBrightonCanterbury(a);tripPlanChecks(a);},
+ 'plan-trip-by':async a=>{await planBrightonCanterbury(a);a.d.querySelector('[data-trip-q="by"]').click();
+  const when=a.d.querySelector('#tripWhen');when.value='2026-11-03T13:30';when.dispatchEvent(new a.w.Event('change',{bubbles:true}));
+  await until(()=>/Late by \d+ min/.test(a.text('#tripResults')));tripPlanChecks(a);
+  assert.match(a.text('#tripResults'),/Arrive by 13:30/);
+  assert.ok(shown(a,'#tripResults .trip-row .flag.bad').some(n=>/^Late by \d+ min$/.test(norm(n.textContent))),'a late journey says by how much, in red');},
+ 'plan-trip-at':async a=>{await planBrightonCanterbury(a);a.d.querySelector('[data-trip-q="at"]').click();
+  const when=a.d.querySelector('#tripWhen');when.value='2026-11-03T10:15';when.dispatchEvent(new a.w.Event('change',{bubbles:true}));
+  await until(()=>/Leave around 10:15/.test(a.text('#tripResults'))&&a.d.querySelectorAll('#tripResults .trip-row').length>=3);tripPlanChecks(a);},
+ 'trip-follow':async a=>{await planBrightonCanterbury(a);await followFirst(a);tripFollowChecks(a);},
+ 'trip-access':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T10:04:30Z');tripFollowChecks(a);},
+ 'trip-ride':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T10:10:00Z');tripFollowChecks(a);
+  assert.match(a.text('#tripResults'),/Your trip/);},
+ 'trip-change':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T10:25:00Z');tripFollowChecks(a);
+  assert.match(a.text('#tripResults'),/Change at Lewes/);},
+ 'trip-final':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T12:36:00Z');tripFollowChecks(a);},
  'live-departures':async a=>{
   a.d.querySelector('[data-journey-view="live"]').click();
   assert.equal(a.c.state.presentation.noActiveJourney,true);
@@ -217,7 +265,7 @@ assert.deepEqual(new Set(surfaces.map(surface=>surface.id)),new Set(Object.keys(
 for(const surface of surfaces){
  test(`journey view: ${surface.id}`,async()=>{
   const a=await open(surface);
-  try{await factories[surface.id](a);assertHealthy(a,surface);}
+  try{await factories[surface.id](a);(isTrip(surface)?assertTripHealthy:assertHealthy)(a,surface);}
   finally{a.close();}
  });
 }

@@ -229,6 +229,20 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   matched to the best guess. Searchable picker considered (#25).
 - **Planned/considered**: proxy with offsets and Service Details (#17), staff board for early platforms (#19),
   structured incidents (#20), train length and crowding (#21), passing points via Darwin real-time (#23).
+- **Google Maps Platform** (Trip mode; Sam's key, set up 31 Oct night; the key lives only in the phone's Settings or,
+  later, as the proxy's `GOOGLE_KEY` secret, never in the repo or chat). APIs enabled on the key:
+  - **Used by Trip now**: Maps JavaScript API (loads the library in the browser), Places API (New) (address search
+    and place details), Routes API (walk / cycle / drive times to and from stations, route matrix).
+  - **Used by Trip via the proxy later**: the same Places API (New) and Routes API, as web services
+    ([leisure architecture §5](leisure-architecture.md#5-google-maps-js-now-proxy-later-one-adapter--a-setting)).
+  - **Enabled, not used**: Address Validation, Aerial View, Air Quality, Geocoding, Geolocation, Isochrones, Map
+    Management, Map Tiles, Maps 3D SDK for Android, Maps 3D SDK for iOS, Maps Elevation, Maps Embed, Maps Experience
+    agent tools, Maps Platform Datasets, Maps SDK for Android, Maps SDK for iOS, Maps Static, Navigation Connect,
+    Navigation SDK, Places Aggregate, Places UI Kit, Pollen, Roads, Route Optimization, Solar, Street View Publish,
+    Street View Static, Time Zone, Weather. Candidates later: Maps SDK for iOS / Navigation SDK (native app #2–#7),
+    Time Zone (none needed in the region), Weather (a day out). Use one only with a story; each is billed separately.
+  - Not yet verified from code: no session has the key, so class names and limits in `src/trip-adapters.js` are from
+    Google's documentation until a check on the phone (or a session given the key as an environment secret).
 - **Lift status**: TfL lift outages are available for TfL stations; no known live lift feed for National Rail
   stations (step-free access is known, outages are not).
 
@@ -272,6 +286,8 @@ type-checks, rebuilds, tests and checks the docs on every push. Pages publishes 
 independently of the tests. Every change passes `npm run ci` (all of GitHub's checks on a fresh copy of the commit)
 before merging; most then merge without waiting for GitHub (fast path), and GitHub's result on `main` is checked
 after every push. The rules, and which changes must wait for GitHub, are in `CLAUDE.md` ("Merging to `main`").
+Once authorised work meets its testing and independent-review requirements, carry it through to `main` and verify
+the live deployment. Do not leave completed changes waiting on a PR or introduce another approval step (Sam, 1 Nov).
 
 ## Known risks and technical debt
 Accepted on purpose, with a plan to resolve. Each has a story or issue.
@@ -301,6 +317,7 @@ Native backlog: #2–#7, #10–#12.
    the generic connection model. → [tube-home](stories/tube-home.md)
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
+3b. Leisure journeys: any address to any address in the region by rail (design 31 Oct; behind a switch). → [leisure-journeys](stories/leisure-journeys.md), [design](leisure-architecture.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
@@ -308,14 +325,19 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 Newest first. Each entry records the decision and its consequences; linked stories and reviews hold the detail.
 
+- **1 Nov, finish completed changes** Sam: leaving completed items on PRs raises risk. Once the authorised work
+  and required testing/review are complete, merge to `main` and verify Tests/Pages and the live app. Branches and
+  PRs support those checks; their existence is not a reason to stop or ask for routine merge approval. Preserve
+  explicit wait instructions and report genuine blockers. The existing independent review and release checks
+  still apply. → [working rules](../CLAUDE.md#release).
 - **1 Nov, Panda retirement** Sam no longer sees enough value in maintaining Panda alongside Signal.
   Retire Panda and make Signal the sole supported design; preserve the complete pre-retirement implementation
   on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01),
-  commit `0d6bf6e103246fefa68412d90f58d314af1cad9d`, so it can be recovered later. Remove the Signal feature
+  commit `a27b1f6af96ce133762353df3924c841e752ae94`, so it can be recovered later. Remove the Signal feature
   toggle, Panda restoration path, supported-UI concurrency rule and design-parity registry/release gate.
   This supersedes the 31 Oct parity and feature-off restoration decisions below. Retain ordinary journey-view,
   duration, action and uncertainty regressions. Old saved Signal on/off values must not select another design;
-  preserve trips, planning pins, home, provider/timing settings and the independent Follow and Along the line
+  preserve trips, planning pins, home, provider/timing settings and the independent Trip, Follow and Along the line
   preferences. Retirement requires checking Signal against Panda's full functionality inventory.
   → [Signal story](stories/signal-design-system.md), [journey facts](stories/journey-facts.md),
   [archive recovery and audit](panda-retirement-review.md).
@@ -329,6 +351,12 @@ Newest first. Each entry records the decision and its consequences; linked stori
   an independent reviewer must check functionality, edge cases and deliberate breakages before release.
   `main` is unchanged. → [Findings and limits](panda-retirement-review.md),
   [recorded evidence](panda-retirement-review-results.json).
+- **1 Nov, early hours** Trip mode stays Signal-only as an explicit exception to "every supported UI advances together"
+  (Sam, asked when merging `main`'s new parity gate into the Trip branch: build Trip in Panda, a Signal-only exception,
+  or hold it; chose the exception). The parity gate gains a recorded-exception mechanism (`designs` + `exception`
+  decision with Sam's approval line per surface); Panda stays supported for everything else.
+  This earlier exception is superseded by Panda retirement; Trip keeps its own opt-in in the sole Signal design.
+  → [decision](decisions/trip-signal-only.md), [journey facts](stories/journey-facts.md)
 - **31 Oct, Along access correction** Sam: location chooses the initial position on Along the line, never
   whether it is available. Keep navigation visible whenever enabled and every route point browsable regardless
   of interests. Retain the established corridor and open article through GPS/identity loss; reset on source,
@@ -339,6 +367,21 @@ Newest first. Each entry records the decision and its consequences; linked stori
   The pure model consumes injected evidence and profile content; the shell starts no extra feeds or location
   watches. Preferences are additive saved data, with existing simulation isolation.
   → [Along the line](stories/along-the-line.md).
+- **31 Oct, night** Leisure journeys (Sam): door to door by rail between any two addresses in London, the South East
+  and the East of England; walk / cycle / drive to and from the station, timed by Google (key required, no estimated
+  fallback); stations discovered and ranked door to door; trips with changes; National Rail's journey planner, TfL
+  station to station until access arrives (TfL returns 404 for coordinates outside London; a guessed ID was matched to
+  a Feltham bus stop, so IDs are looked up and replies checked); live times per leg and at each change; Follow across
+  legs; Signal only, behind Settings → Experimental, off by default. Independent review of the design before building.
+  Revision 2 after that review (verdict "rework") and Sam's brief "reuse, loose coupling and speed": a third mode,
+  **Trip** (Leisure unchanged); Google via its Maps JS library; one shared `Journey` core (the commute's `Option` a
+  one-ride case, converging step by step) instead of a parallel type; providers behind ports; bundled station data
+  (CRS + TfL IDs + car park + departures per hour); stations = nearest + well-served; first answer ≤ 4 s.
+  Revision 3 after the second review (approve with changes): page mode contract first; Follow notices and view
+  switching are reviewed refactors, not moves; plain-data Google ports with a contract suite so Maps JS → proxy is one
+  adapter and a setting (Sam); stations promoted from live round-1 data; one change rule using the best known time at
+  each end; speed proved by call order, not wall-clock.
+  → [leisure-journeys](stories/leisure-journeys.md), [leisure architecture](leisure-architecture.md)
 - **31 Oct, evening, UI parity** Sam: Live must show the same duration and fastest-route information as every
   other view, and all supported designs/UIs must be updated together until explicitly retired. Duration comes
   from the same canonical option or concrete connection projection, not a second Live calculation. Existing “Arrives first” means earliest usable

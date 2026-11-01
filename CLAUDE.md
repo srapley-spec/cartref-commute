@@ -59,6 +59,10 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Release
 - `main` is live (GitHub Pages publishes every push at once, before GitHub's tests finish). Work on a branch; merge
   to `main` as below.
+- **Finish authorised work through release (Sam, 1 Nov).** Once the work, tests and required independent review
+  are complete, merge to `main` and verify its tests and live deployment. Do not leave completed work on an open
+  PR or ask Sam for routine merge approval. A PR is a merge mechanism, not another approval gate; create one only
+  when useful or required. Respect an explicit instruction to wait and report any actual blocker.
 - **Bigger changes get an independent test review before merging** (Sam, 29 Oct): a separate agent that didn't
   write the code makes deliberate one-line breakages (mutation testing) and probes edge cases against the story;
   fix what it finds, re-run its survivors, and merge only once it's satisfied. Give it the commit to review (an

@@ -74,6 +74,22 @@ function renderSignalCompact(){
   });
   $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
   p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
+  // Duration has a dedicated home immediately after the headline times. Long
+  // routes, platforms, flags and Follow labels must never displace that row.
+  for(const opt of $('#hero').querySelectorAll('.opt')){
+    const times=opt.querySelector('.optrow'),facts=opt.querySelector('.journey-facts');
+    if(times&&facts){
+      times.after(facts);
+      const route=times.querySelector('.optroute');if(route)facts.after(route);
+    }
+  }
+  for(const row of $('#list').querySelectorAll('.row')){
+    const mid=row.querySelector('.mid'),facts=mid?.querySelector('.journey-facts');
+    if(facts){
+      const meta=facts.parentElement;mid.prepend(facts);
+      if(meta!==mid&&!meta.textContent.trim())meta.remove();
+    }
+  }
   // A compact, accessible fallback row; full metadata and actions remain on expansion.
   const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
   for(const opt of options.slice(1)){

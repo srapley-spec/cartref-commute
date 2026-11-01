@@ -1,0 +1,1188 @@
+{
+ "recorded": "2026-10-31T21:10:29.145Z",
+ "request": "Journey/JourneyResults/910GWNCHSTR/to/910GNRCH?date=20261103&time=1000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": 200,
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T10:18:00",
+    "duration": 208,
+    "arrivalDateTime": "2026-11-03T13:46:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 62,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "South Western Railway to London Waterloo",
+       "detailed": "South Western Railway towards London Waterloo",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T10:18:00",
+      "arrivalTime": "2026-11-03T11:20:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWNCHSTR",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90007958",
+       "individualStopId": "9100WNCHSTR1",
+       "commonName": "Winchester Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.067211072393995,
+       "lon": -1.3200709913220001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWATRLMN",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9100WATRLMN1",
+       "commonName": "London Waterloo Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.502346048156,
+       "lon": -0.114372958897
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "South Western Railway",
+        "directions": [
+         "London Waterloo Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "south-western-railway",
+         "name": "South Western Railway",
+         "uri": "/Line/south-western-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 31,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:18:00",
+      "scheduledArrivalTime": "2026-11-03T11:20:00",
+      "interChangeDuration": "6",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 4,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Waterloo & City line to Bank",
+       "detailed": "Waterloo & City line towards Bank",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "UP",
+        "stopId": 1000013,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "LEVEL",
+        "stopId": 1000013,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "DOWN",
+        "stopId": 1000013,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T11:30:00",
+      "arrivalTime": "2026-11-03T11:34:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUWLO",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9400ZZLUWLO5",
+       "commonName": "Waterloo Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.502710932557,
+       "lon": -0.113017882198
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK8",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512882375198,
+       "lon": -0.091397547207
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Waterloo & City",
+        "directions": [
+         "Bank Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "waterloo-city",
+         "name": "Waterloo & City",
+         "uri": "/Line/waterloo-city",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 32,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:30:00",
+      "scheduledArrivalTime": "2026-11-03T11:34:00",
+      "interChangeDuration": "5",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Central line to Liverpool Street",
+       "detailed": "Central line towards Epping",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "UP",
+        "stopId": 1000138,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "UP",
+        "stopId": 1000138,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T11:39:00",
+      "arrivalTime": "2026-11-03T11:41:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK1",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.513503983,
+       "lon": -0.088705305787
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLULVT",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9400ZZLULVT1",
+       "commonName": "Liverpool Street Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518116481183995,
+       "lon": -0.08260260372299999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Central",
+        "directions": [
+         "Epping Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "central",
+         "name": "Central",
+         "uri": "/Line/central",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 25,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:39:00",
+      "scheduledArrivalTime": "2026-11-03T11:41:00",
+      "interChangeDuration": "6",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 106,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Greater Anglia to Norwich",
+       "detailed": "Greater Anglia towards Norwich",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:00:00",
+      "arrivalTime": "2026-11-03T13:46:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLIVST",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9100LIVST0",
+       "commonName": "London Liverpool Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518379547636,
+       "lon": -0.08109252348
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNRCH",
+       "platformName": "",
+       "icsCode": "90005280",
+       "individualStopId": "9100NRCH0",
+       "commonName": "Norwich Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 52.626616150511,
+       "lon": 1.3070013397909999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Greater Anglia",
+        "directions": [
+         "Norwich Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "greater-anglia",
+         "name": "Greater Anglia",
+         "uri": "/Line/greater-anglia",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 85,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:00:00",
+      "scheduledArrivalTime": "2026-11-03T13:46:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T10:48:00",
+    "duration": 210,
+    "arrivalDateTime": "2026-11-03T14:18:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 59,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "South Western Railway to London Waterloo",
+       "detailed": "South Western Railway towards London Waterloo",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "WALKWAY",
+        "incline": "LEVEL",
+        "stopId": 1000254,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T10:48:00",
+      "arrivalTime": "2026-11-03T11:47:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWNCHSTR",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90007958",
+       "individualStopId": "9100WNCHSTR1",
+       "commonName": "Winchester Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.067211072393995,
+       "lon": -1.3200709913220001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWATRLMN",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9100WATRLMN1",
+       "commonName": "London Waterloo Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.502346048156,
+       "lon": -0.114372958897
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "South Western Railway",
+        "directions": [
+         "London Waterloo Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "south-western-railway",
+         "name": "South Western Railway",
+         "uri": "/Line/south-western-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 31,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:48:00",
+      "scheduledArrivalTime": "2026-11-03T11:47:00",
+      "interChangeDuration": "8",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 20,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Jubilee line to Stratford",
+       "detailed": "Jubilee line towards Stratford",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "WALKWAY",
+        "incline": "LEVEL",
+        "stopId": 1000226,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "DOWN",
+        "stopId": 1000226,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "UP",
+        "stopId": 1000226,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T12:09:00",
+      "arrivalTime": "2026-11-03T12:29:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUWLO",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9400ZZLUWLO4",
+       "commonName": "Waterloo Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.503359356358,
+       "lon": -0.113077549875
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUSTD",
+       "platformName": "",
+       "icsCode": "1000226",
+       "individualStopId": "9400ZZLUSTD3",
+       "commonName": "Stratford Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.540944939172995,
+       "lon": -0.003149833654
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Jubilee",
+        "directions": [
+         "Stratford Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "jubilee",
+         "name": "Jubilee",
+         "uri": "/Line/jubilee",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 52,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:09:00",
+      "scheduledArrivalTime": "2026-11-03T12:29:00",
+      "interChangeDuration": "6",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 101,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Greater Anglia to Norwich",
+       "detailed": "Greater Anglia towards Norwich",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:37:00",
+      "arrivalTime": "2026-11-03T14:18:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GSTFD",
+       "platformName": "",
+       "icsCode": "1000226",
+       "individualStopId": "9100STFD5",
+       "commonName": "Stratford (London) Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.542234252619,
+       "lon": -0.0028193823470000004
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNRCH",
+       "platformName": "",
+       "icsCode": "90005280",
+       "individualStopId": "9100NRCH0",
+       "commonName": "Norwich Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 52.626616150511,
+       "lon": 1.3070013397909999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Greater Anglia",
+        "directions": [
+         "Norwich Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "greater-anglia",
+         "name": "Greater Anglia",
+         "uri": "/Line/greater-anglia",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 85,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:37:00",
+      "scheduledArrivalTime": "2026-11-03T14:18:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T11:18:00",
+    "duration": 209,
+    "arrivalDateTime": "2026-11-03T14:47:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 62,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "South Western Railway to London Waterloo",
+       "detailed": "South Western Railway towards London Waterloo",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "DOWN",
+        "stopId": 1000254,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T11:18:00",
+      "arrivalTime": "2026-11-03T12:20:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWNCHSTR",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90007958",
+       "individualStopId": "9100WNCHSTR1",
+       "commonName": "Winchester Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.067211072393995,
+       "lon": -1.3200709913220001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWATRLMN",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9100WATRLMN1",
+       "commonName": "London Waterloo Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.502346048156,
+       "lon": -0.114372958897
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "South Western Railway",
+        "directions": [
+         "London Waterloo Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "south-western-railway",
+         "name": "South Western Railway",
+         "uri": "/Line/south-western-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 31,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:18:00",
+      "scheduledArrivalTime": "2026-11-03T12:20:00",
+      "interChangeDuration": "6",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 4,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Waterloo & City line to Bank",
+       "detailed": "Waterloo & City line towards Bank",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "UP",
+        "stopId": 1000013,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "LEVEL",
+        "stopId": 1000013,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "DOWN",
+        "stopId": 1000013,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T12:40:00",
+      "arrivalTime": "2026-11-03T12:44:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUWLO",
+       "platformName": "",
+       "icsCode": "1000254",
+       "individualStopId": "9400ZZLUWLO5",
+       "commonName": "Waterloo Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.502710932557,
+       "lon": -0.113017882198
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK8",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512882375198,
+       "lon": -0.091397547207
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Waterloo & City",
+        "directions": [
+         "Bank Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "waterloo-city",
+         "name": "Waterloo & City",
+         "uri": "/Line/waterloo-city",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 32,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:40:00",
+      "scheduledArrivalTime": "2026-11-03T12:44:00",
+      "interChangeDuration": "5",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Central line to Liverpool Street",
+       "detailed": "Central line towards Hainault",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "UP",
+        "stopId": 1000138,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "STAIRS",
+        "incline": "UP",
+        "stopId": 1000138,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T12:52:00",
+      "arrivalTime": "2026-11-03T12:54:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK1",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.513503983,
+       "lon": -0.088705305787
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLULVT",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9400ZZLULVT1",
+       "commonName": "Liverpool Street Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518116481183995,
+       "lon": -0.08260260372299999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Central",
+        "directions": [
+         "Hainault Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "central",
+         "name": "Central",
+         "uri": "/Line/central",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 25,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:52:00",
+      "scheduledArrivalTime": "2026-11-03T12:54:00",
+      "interChangeDuration": "6",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 107,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Greater Anglia to Norwich",
+       "detailed": "Greater Anglia towards Norwich",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T13:00:00",
+      "arrivalTime": "2026-11-03T14:47:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLIVST",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9100LIVST0",
+       "commonName": "London Liverpool Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518379547636,
+       "lon": -0.08109252348
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNRCH",
+       "platformName": "",
+       "icsCode": "90005280",
+       "individualStopId": "9100NRCH0",
+       "commonName": "Norwich Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 52.626616150511,
+       "lon": 1.3070013397909999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Greater Anglia",
+        "directions": [
+         "Norwich Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "greater-anglia",
+         "name": "Greater Anglia",
+         "uri": "/Line/greater-anglia",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 85,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T13:00:00",
+      "scheduledArrivalTime": "2026-11-03T14:47:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "central",
+    "name": "Central",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Central&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Central&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "jubilee",
+    "name": "Jubilee",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Jubilee&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Jubilee&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "waterloo-city",
+    "name": "Waterloo & City",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Waterloo & City&serviceTypes=Regular"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-03T10:00:00",
+   "dateTimeType": "Departing",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gwnchstr/to/910gnrch?date=20261103&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "0945",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gwnchstr/to/910gnrch?date=20261103&time=0945&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "1119",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gwnchstr/to/910gnrch?date=20261103&time=1119&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gwnchstr/to/910gnrch?date=20261104&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "90007958",
+   "to": "90005280",
+   "via": "",
+   "uri": "/journey/journeyresults/910gwnchstr/to/910gnrch?date=20261103&time=1000&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL; app_key removed; leg path geometry removed (unused)"
+}

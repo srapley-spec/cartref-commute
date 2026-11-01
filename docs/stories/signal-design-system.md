@@ -80,6 +80,33 @@ content-sized time columns. Existing layout and data preservation constraints re
   Preserve saved journeys, provider settings, home, timings, planning inputs and the separate Follow preference.
   The two-design parity release rule is removed; useful visible-view regressions remain.
 
+### Stable glance layout (Sam, 1 Nov 2026)
+Sam's live screenshot showed total journey time wrapping through the operator/platform sentence, and Follow
+squeezing the longer Farringdon / St Pancras route onto different lines. Keep the existing compact design, but
+give repeated information stable homes:
+
+- In Signal's primary recommendation, Next best and planning/station/Live departure rows, duration occupies its
+  own full-width row immediately below the headline times, before route or service text. Total is a neutral
+  lozenge at the common left inset, with train duration at the common right inset. Route names, platform length, flags and the
+  Follow/Unavailable label cannot change that duration anchor.
+- Next best keeps the same duration row visible in its summary when opened, closed and refreshed; expansion
+  does not move the total below the route or duplicate it visually.
+- Route labels get the full row width. Service/platform and countdown have separate homes; board actions share
+  a consistent right-aligned 96 px slot beside the countdown instead of competing with route chips. Enlarged
+  text may expand the action and use the existing single-column reflow.
+- The shared duration renderer supplies the same neutral total treatment in Signal's followed and inferred
+  journey surfaces. All facts still come from `journeyFacts` / `connectionJourneyFacts`; unknown values remain
+  explicitly unavailable. Panda retains its inline geometry and the same facts and actions.
+- Light/dark at 320, 393 and 430 px and doubled computed text must remain readable, with no horizontal page
+  overflow or overlapping times/actions. Follow retains a target of at least 44 × 44 px. Long/absent platform
+  text and disabled actions are exercised through the real rendered application.
+
+Regression checks: [browser-signal-stable-layout.py](../../tests/browser-signal-stable-layout.py) measures the
+actual badge offsets across cards/rows, changes platform evidence, opens/refreshed disclosures and stresses
+200% text. [browser-ui-parity.py](../../tests/browser-ui-parity.py) covers the remaining planning/Live/Follow,
+inferred rail and Tube surfaces in both supported designs. The existing Signal field-preservation test compares
+each service's facts, alternatives, flags and actions independently of the intentionally changed sentence order.
+
 ## Acceptance criteria — agreed direction and existing constraints
 - Automatic is the default view selection; manual Plan/Live and Auto are available throughout Signal. The button always reads **Auto**, including while Plan or Live is pinned (Sam, 31 Oct 2026); selecting it clears the manual override.
 - Live with no journey under way shows the next stop's departure board, not an empty state (Sam, 31 Oct). → [Live before a journey](live-station-board.md)

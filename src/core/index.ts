@@ -27,8 +27,8 @@ export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearch
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
 export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, StopWatch, RailTrackingInput, RailTrackingContext, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
-export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName } from "./present";
-export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel } from "./present";
+export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, chooseTripView, TRIP_VIEWS } from "./present";
+export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel, TripSituation } from "./present";
 export { segmentArrival, compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";
 import { samCommute } from "./profiles/sam";
@@ -52,6 +52,27 @@ export type { RailWarningContext } from './warnings';
 export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent } from './journeyProgress';
 export type { ProgressKind, JourneyProgressLeg, JourneyProgressCall, JourneyProgressEvidence, JourneyProgressInput, JourneyProgressModel, ProgressItineraryInput, JourneyTimingShiftInput } from './journeyProgress';
 export type { ServiceCall, ServiceProgress } from './adapters/darwin';
+// Trip mode (leisure journeys): docs/leisure-architecture.md. Shared round runner first.
+export { runRounds, stopsRequests } from "./rounds";
+export type { RoundError, RoundOf, RoundsResult } from "./rounds";
+export { serviceFlags, walkSteps } from "./journey";
+export { TRIP_DEFAULTS, tripConfig, inRegion, OUTSIDE_REGION } from "./trip/config";
+export type { AccessMode, Region, TripAllowances, TripConfig } from "./trip/config";
+export type { Suggestion, Place, PlaceSearch, Timing, AccessTimer, StationIndex, PlannerReply, RailPlanner, LiveBoards, TripPorts } from "./trip/ports";
+export { isMain, mainRides, journeyTimes, changeStatus, journeyChanges, journeyFlags, buildJourney, journeySteps } from "./trip/journeyCore";
+export type { Station, RideKind, Ride as TripRide, RailJourney, ChangeStatus, Journey } from "./trip/journeyCore";
+export { stationIndex, candidates, promote, roundOnePairs } from "./trip/stations";
+export type { Candidate, Candidates, CandidateWhy } from "./trip/stations";
+export { travelSecs, beforeSegments, afterSegments } from "./trip/access";
+export { TFL_TRIP_MODES, tflStation, tflRailJourneys, cleanName } from "./trip/tflJourney";
+export { rankTrips, otherStations, betterOption } from "./trip/tripRank";
+export type { TripQuestion, OtherStation } from "./trip/tripRank";
+export { planTrip, TripError } from "./trip/tripPlan";
+export type { TripRequest, TripResult, TripStageName } from "./trip/tripPlan";
+export { liveBudget, matchRide, applyLive } from "./trip/tripLive";
+export type { BoardRequest } from "./trip/tripLive";
+export { startFollowTrip, restoreFollowTrip, tripPhase, updateFollowTrip, confirmTripRide, dismissTripAlternative } from "./trip/followTrip";
+export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpdate } from "./trip/followTrip";
 
 export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
 export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';

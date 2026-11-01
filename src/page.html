@@ -195,6 +195,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="seg" role="group" aria-label="Mode">
       <button type="button" data-mode="commute">Commute</button>
       <button type="button" data-mode="leisure">Leisure</button>
+      <button type="button" data-mode="trip" id="tripModeBtn" hidden>Trip</button>
     </div>
     <div class="seg" role="group" aria-label="Direction">
       <button type="button" data-dir="auto">Auto</button>
@@ -251,6 +252,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div id="signalStatus" role="status" hidden></div>
   <section class="hero" id="hero" aria-live="polite"></section>
 
+  <section id="tripRoot" class="trip" aria-label="Trip" hidden></section>
   <h2 id="listTitle">Next trains, in leaving order</h2>
   <div class="list" id="list"></div>
   <details class="diag" id="diag" hidden><summary>Why these trains?</summary><div id="diagBody"></div></details>
@@ -338,12 +340,26 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <fieldset>
       <legend>Experimental</legend>
       <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
-      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
+      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Independent of appearance.</span></label>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station).</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
+    </fieldset>
+
+    <fieldset id="tripFields">
+      <legend>Trip</legend>
+      <p class="hint">Addresses and the time to and from the station come from Google; trains from TfL's journey planner, with live
+        National Rail times. Station list: UK railway stations (ODbL 1.0, github.com/davwheat/uk-railway-stations).</p>
+      <label class="f wide"><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
+      <label class="f wide" id="googleKeyRow"><span>Google Maps key (website-restricted)</span><input id="s_googleKey" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="googleKeyNote"></span></label>
+      <label class="f"><span>Park and reach the platform (min)</span><input id="s_tripParkMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Lock the bike and reach the platform (min)</span><input id="s_tripLockMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Station entrance to platform (min)</span><input id="s_tripStationMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Off the train to the street (min)</span><input id="s_tripExitMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Off the train back to the car (min)</span><input id="s_tripCarBackMin" type="number" step="1" min="0" max="60"></label>
     </fieldset>
 
     <fieldset>
@@ -1069,7 +1085,7 @@ const journeyServiceKey = train => [train.from,train.to,train.std,train.operator
 function journeyFactsMarkup(option,context={}){
   const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
   const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
-  return `<span class="journey-facts">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'} · ${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span>`;
+  return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span></span>`;
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -1121,7 +1137,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>`}
-    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)}${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta journey-meta"><span class="journey-service">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${opt.timing?`<span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span> · `:""}${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -1432,8 +1448,8 @@ function renderHero(list, now){
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
     // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
     if(way){ const k=wayMin(j), on=j.effort==="fast"?"walk fast":"on track"; return k>=1?`${on} · ${k} min to spare`:`${on} · keep going`; }
-    // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
-    return m>=1?"":"leave now"; };
+    // Before setting off, the precise countdown is the departure instruction.
+    return ""; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":way?"Next one you can make: the":"Leaving right now? The"} ${stdExp(first.train)} ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=hurryOpts.map(o=>hurryHtml(o,picks[0])).join("");
@@ -1462,7 +1478,7 @@ function renderList(list, now, opts){
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)} · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}
@@ -1523,7 +1539,7 @@ function renderLiveBoard(now){
       <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
       <div class="mid">
         <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
-        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""} · ${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
+        <div class="meta journey-meta"><span class="journey-service">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?`<span class="journey-meta-divider"> · </span><span class="journey-provenance">timetable</span>`:""}${t.cancelled||t.depUnknown?"":`<span class="journey-meta-divider"> · </span><span class="journey-countdown"><span data-dep="${t.dep}"></span></span>`}</div>
         <div>${[reachMarkup,pills(uniqueFlags,true)].filter(Boolean).join(" ")}</div>
         ${r.option?followButton(r.option):""}
       </div>
@@ -1649,7 +1665,7 @@ function linkify(t){
 function trainsNote(){ const r=state.railSource||source(); return r==="tfl"?"Train times are TfL timetable, not live.":r==="demo"?"Train times are examples.":"Trains are live from National Rail."; }
 function renderControls(){
   const leisure=state.saved.mode==="leisure";
-  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.saved.mode)));
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(tripActive() ? b.dataset.mode==="trip" : b.dataset.mode===state.saved.mode)));
   document.querySelectorAll("[data-dir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.dir===state.saved.dirMode)));
   document.querySelectorAll("[data-pace]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.pace===state.saved.pace)));
   $("#paceSeg").hidden=leisure;
@@ -1822,6 +1838,8 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
+  renderTrip();
   const focus=journeyFocus();
   applyJourneyAppearance();
   restoreReleasedFollow();
@@ -1955,6 +1973,7 @@ async function loadTflTimetable(prev){
 // How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
 // a refresh you ask for, or a change of direction or settings, always runs.
 async function refresh(opts){
+ if(tripActive()){ await tripUiFor().refresh(); return; }
  const epoch=sourceEpoch;
   const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
   if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
@@ -2197,6 +2216,29 @@ $("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey')
 /*__PRESENTATION_BLOCKS__*/
 /*__FOLLOW_TRANSPORT__*/
 /*__JOURNEY_UI__*/
+/*__TRIP_UI__*/
+// ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
+// The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
+const tripEnabled = () => !!S().trip;
+const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
+let tripUi=null;
+function tripUiFor(){
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, now:()=>Date.now(),
+    store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
+    net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
+    here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,
+    fetchBoard:(from,to)=>fetchBoard(from,to), leisureKmh:()=>PROFILE.walking.kmh.leisure,
+    loadScript:src=>new Promise((ok,no)=>{ const el=document.createElement("script"); el.src=src; el.async=true; el.onload=ok; el.onerror=()=>no(new Error("network")); document.head.append(el); }),
+    openSettings:()=>$("#settingsBtn").click() });
+  return tripUi;
+}
+function renderTrip(){
+  document.documentElement.dataset.trip = tripActive() ? "on" : "off";
+  $("#tripModeBtn").hidden = !tripEnabled();
+  if(!tripActive()){ if(tripUi) tripUi.hide(); else $("#tripRoot").hidden=true; return false; }
+  const tb=document.querySelector(".signal-toolbar"); if(tb && tb.nextElementSibling!==$("#tripRoot")) tb.after($("#tripRoot"));
+  tripUiFor().show(); return true;
+}
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
@@ -2207,7 +2249,13 @@ function fillSettings(){
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
+  $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
+  $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
+  const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
+  showTripFields();
 }
+function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"; }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
   const o={};
@@ -2221,11 +2269,16 @@ function readSettings(){
   if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_trip").checked) o.trip=true;
+  o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
+  { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
+  ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
+["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -2289,7 +2342,10 @@ document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",(
   if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; if(journeyEnabled())rememberPlanningInput(); save(); planView(); }));
 $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planView(); });
 { const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
-document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.mode==="trip"){ if(!tripEnabled()) return; state.saved.tripMode={...(state.saved.tripMode||{}),active:true}; save(); invalidateSources(); render(); return; }
+  const wasTrip=tripActive(); if(state.saved.tripMode) state.saved.tripMode={...state.saved.tripMode,active:false};
+  state.saved.mode=b.dataset.mode; if(wasTrip){ save(); invalidateSources(); } onRouteChange(); }));
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
 $("#destRow").addEventListener("submit",e=>{ e.preventDefault(); state.saved.dest=$("#destInput").value.trim(); save(); state.londonTo=null; state.londonToErr=""; state.byCache={}; state.atCache={}; render(); refresh({force:true}); planView(); });
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });

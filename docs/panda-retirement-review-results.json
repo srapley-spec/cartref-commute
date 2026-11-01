@@ -2,7 +2,7 @@
   "candidateCommit": "6798b5e03216c537631444ce106ed2ef2aadb2d4",
   "candidateBuildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
   "archiveBranch": "archive/panda-2026-11-01",
-  "archiveCommit": "0d6bf6e103246fefa68412d90f58d314af1cad9d",
+  "archiveCommit": "a27b1f6af96ce133762353df3924c841e752ae94",
   "archiveTests": {
     "pass": 941,
     "fail": 0,
@@ -193,5 +193,7 @@
       "passed": true
     }
   },
-  "separateIndependentReview": "pending"
+  "separateIndependentReview": "in progress against latest-main integration",
+  "initialArchiveCommit": "0d6bf6e103246fefa68412d90f58d314af1cad9d",
+  "integrationBaselineCommit": "a27b1f6af96ce133762353df3924c841e752ae94"
 }

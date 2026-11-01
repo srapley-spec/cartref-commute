@@ -72,8 +72,9 @@ walkable St Pancras train showed "Fast walk"), a fast-walk pick whose total and 
 the card and "Arrives first" breaking ties differently, and Leave around near now marking a train whose leave time
 had passed. All fixed, with a test for each gap; each of those breakages re-run and now caught. Second review of the fixes (30 Oct):
 verdict merge; probes confirm the fixes; its three follow-up tests added (going-home fast-walk steps, Leave around
-near now with the toggle off, Arrive by's own grades). Left: three boundaries that can't matter in practice
-(sub-millisecond rounding, exactly 100 m from home, 'leave now' counted from now rather than now + 30 s).
+near now with the toggle off, Arrive by's own grades). Two numerical boundaries remain that can't matter in practice
+(sub-millisecond rounding, exactly 100 m from home). The old 'leave now' rounding boundary was superseded on
+1 Nov: the pre-journey option uses only its exact countdown. See [top-card wording](top-card.md).
 
 ## Tests
 - tests/core/effort.test.mjs: "effortNeeds: walk, fast walk, run (400 m at 1.8×, the rest fast), own car from home, a cab elsewhere"

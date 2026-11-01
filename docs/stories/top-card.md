@@ -19,6 +19,11 @@ was a different route.
 - One card is fine when nothing qualifies. The list always has everything.
 - Leave now also says which train you'd catch by setting off this minute, if it's a different one.
 - Cancelled and "Delayed, no estimate" are never on the card.
+- **Departure wording (Sam, 1 Nov 2026):** before setting off, the precise `leave in …` countdown is the only
+  departure instruction on each option. Never add `leave now` alongside a positive countdown, including below
+  90 seconds. At expiry retain `leave time passed`; leave times, catchability and required pace are unchanged.
+  The same shared rule applies to Panda and Signal. Station/platform instructions and on-the-way progress
+  retain their separate meanings; the planning-mode label remains a way to choose the current planning question.
 - Train duration, total journey duration and the existing “Arrives first” meaning are shared facts, not separate
   choices made by each design or view. Live departures, station lists, planning and Follow consume the same
   itinerary and retain effort qualifiers. The fastest-to-arrive option need not have the shortest train ride or
@@ -30,3 +35,5 @@ was a different route.
 - tests/core/plan.test.mjs: "rankNow: leaving order; first catchable; fastest; card picks within the window"
 - tests/logic.test.mjs: "Leave now card: best train, then the next best (same route allowed), total time, and the train you'd catch right now"
 - tests/logic.test.mjs: "A train you'd have to hurry for stays on the list and the card, with a departure countdown"
+- tests/effort.test.mjs: "Departure countdown: Panda has no redundant leave-now instruction below ninety seconds"
+- tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"

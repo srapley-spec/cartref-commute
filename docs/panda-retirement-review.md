@@ -1,6 +1,6 @@
 # Panda retirement and Signal functionality audit — 1 November 2026
 
-Status: implementation and author audit complete; separate independent reviewer approval pending.
+Status: latest-main reconciliation in progress; separate independent reviewer is actively reviewing the combined candidate.
 This records executed evidence, not independent sign-off by the implementation author.
 
 Approved by: Sam
@@ -13,8 +13,8 @@ and switch-off restoration requirements. Follow and Along the line retain their 
 ## Archived source and recovery
 
 The remote branch [archive/panda-2026-11-01](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01)
-points at `0d6bf6e103246fefa68412d90f58d314af1cad9d` (pre-retirement main, PR #45).
-Its GitHub Tests and Pages runs succeeded before this work. The branch includes both designs, all Panda
+points at `a27b1f6af96ce133762353df3924c841e752ae94` (latest pre-retirement main). The original `0d6bf6e103246fefa68412d90f58d314af1cad9d` snapshot remains in its history.
+Its GitHub Tests and Pages runs succeeded before reconciliation. The branch includes both designs, all Panda
 styles/documentation, tests, build and lockfile, and the former parity machinery.
 
 Inspect it without changing the active app:
@@ -32,8 +32,7 @@ A future reintroduction should integrate subsequent engine fixes and follow norm
 ## Functional inventory
 
 The audit compared the pre-retirement Panda page, its component inventory and acceptance stories, Signal's
-preservation/counterexample tests, actual rendered views and 22 recorded journey scenarios. No changes were
-made to the pure engine, profiles, provider adapters, endpoints or polling policy.
+preservation/counterexample tests, actual rendered views and 22 recorded journey scenarios. Retirement makes no changes to the pure engine, profiles, provider adapters, endpoints or polling policy relative to the integrated main.
 
 | Panda capability | Signal destination and retained evidence |
 | --- | --- |
@@ -114,10 +113,16 @@ subprocess test proves the runner still discovers page/core tests and propagates
 ## Remaining review and limits
 
 A separate reviewer who did not implement the change must compare archive/candidate, probe edge cases and
-mutation-test the final code before merge, as required by `CLAUDE.md`. Delegation authorization was requested
-during this session; no independent sign-off is claimed while it is unanswered. Clean committed-HEAD local CI
+mutation-test the final code before merge, as required by `CLAUDE.md`. The independent reviewer is now checking the latest-main integration; sign-off will be recorded before merge. Clean committed-HEAD local CI
 and GitHub green are required because saved settings and build/test machinery change. Main remains live and
 is not changed before these checks.
 
 No live transport credentials or real iPhone/VoiceOver session were available. Chromium covers its fixtures
 and geometry, not provider-wide reliability or complete hardware accessibility.
+
+## Latest-main reconciliation (1 Nov)
+Before release, main advanced to `a27b1f6`. It adds the separately enabled Trip mode, stable train/total
+duration anchors and the precise departure countdown. Those changes are retained; the eight Trip view
+contracts remain ordinary regression cases, and an old disabled Signal preference cannot hide an enabled Trip.
+The independent review and final full checks apply to this combined candidate. The archive was fast-forwarded
+without rewriting history to retain this final Panda implementation as well as its initial snapshot.
