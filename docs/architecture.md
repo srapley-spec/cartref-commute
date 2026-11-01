@@ -305,23 +305,40 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+
+Newest first. Each entry records the decision and its consequences; linked stories and reviews hold the detail.
+
+- **1 Nov, Panda retirement** Sam no longer sees enough value in maintaining Panda alongside Signal.
+  Retire Panda and make Signal the sole supported design; preserve the complete pre-retirement implementation
+  on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01),
+  commit `0d6bf6e103246fefa68412d90f58d314af1cad9d`, so it can be recovered later. Remove the Signal feature
+  toggle, Panda restoration path, supported-UI concurrency rule and design-parity registry/release gate.
+  This supersedes the 31 Oct parity and feature-off restoration decisions below. Retain ordinary journey-view,
+  duration, action and uncertainty regressions. Old saved Signal on/off values must not select another design;
+  preserve trips, planning pins, home, provider/timing settings and the independent Follow and Along the line
+  preferences. Retirement requires checking Signal against Panda's full functionality inventory.
+  → [Signal story](stories/signal-design-system.md), [journey facts](stories/journey-facts.md),
+  [archive recovery and audit](panda-retirement-review.md).
+- **1 Nov, retirement audit and release status** The implementation-author audit found an ambiguous platform
+  in collapsed Next best for services boardable at Farringdon and St Pancras. The summary now retains each
+  station's boarding time and platform. All 22 recorded scenarios preserve their engine options, request lists
+  and errors. Implementation `8267055` passed clean committed-HEAD local CI (905 tests),
+  [GitHub Tests](https://github.com/srapley-spec/cartref-commute/actions/runs/41293369587), six Chromium reviews
+  and all 12 author mutation probes. These checks do not constitute the separate independent review Sam
+  requested. [PR #46](https://github.com/srapley-spec/cartref-commute/pull/46) remains a draft, not merged;
+  an independent reviewer must check functionality, edge cases and deliberate breakages before release.
+  `main` is unchanged. → [Findings and limits](panda-retirement-review.md),
+  [recorded evidence](panda-retirement-review-results.json).
 - **31 Oct, Along access correction** Sam: location chooses the initial position on Along the line, never
   whether it is available. Keep navigation visible whenever enabled and every route point browsable regardless
   of interests. Retain the established corridor and open article through GPS/identity loss; reset on source,
   direction, mode or actual corridor/endpoints changes. → [Along the line](stories/along-the-line.md).
-- **1 Nov** Sam asks to deprecate Panda, preserve it on a branch, independently review Signal for lost
-  functionality, and remove the Signal feature toggle and parity rule. Panda is retained at
-  `archive/panda-2026-11-01` (`0d6bf6e103246fefa68412d90f58d314af1cad9d`). Signal becomes the only
-  design; the former supported-UI concurrency/registry gate and feature-off restoration requirements below
-  are superseded. Journey functionality and independent release review remain required.
-  → [retirement review and recovery](panda-retirement-review.md), [journey facts](stories/journey-facts.md).
 - **31 Oct** Sam authorises Along the line as a Signal-based journey companion, with a separate Experimental
   toggle off by default. Interests and reading depth are independent. Start with bundled curated
   Letchworth–London stories and approximate phone-led cues, never exact position from timetable interpolation.
   The pure model consumes injected evidence and profile content; the shell starts no extra feeds or location
   watches. Preferences are additive saved data, with existing simulation isolation.
   → [Along the line](stories/along-the-line.md).
-Newest first. One line each; the story or issue holds the detail.
 - **31 Oct, evening, UI parity** Sam: Live must show the same duration and fastest-route information as every
   other view, and all supported designs/UIs must be updated together until explicitly retired. Duration comes
   from the same canonical option or concrete connection projection, not a second Live calculation. Existing “Arrives first” means earliest usable
