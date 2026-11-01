@@ -13,7 +13,7 @@ function visibleThroughAncestors(node){
 }
 async function app(home=false){
  return createApp({now:NOW,geo:home?{coords:{latitude:51.5139,longitude:-.071,accuracy:10}}:undefined,
-  settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:home?'home':'office'},
+  settings:{provider:'demo',followRoute:true},saved:{dirMode:home?'home':'office'},
   route:u=>/940GZZLUALD\/Arrivals/.test(u)?json([4,10,16].map((minutes,index)=>({vehicleId:`circle-${index}`,lineId:'circle',platformName:'Westbound - Platform 1',destinationName:'Edgware Road (Circle Line) Underground Station',expectedArrival:new Date(NOW+minutes*MIN).toISOString(),timeToStation:minutes*60}))):undefined});
 }
 function follow(a){

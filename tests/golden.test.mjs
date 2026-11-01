@@ -61,7 +61,7 @@ async function scenario(name, { now, geo, settings, saved = {}, disrupt = {}, tu
   const app = await createApp({ now, geo, settings, saved: { pace: "avg", ...saved }, route, settle: 700 });
   const c = app.c, out = {};
   const snap = () => ({
-    dirNote: app.text("#dirNote"), banners: app.banners(), hero: app.text("#hero"), rows: app.rows(),
+    dirNote: app.text("#dirNote"), context: app.text("#signalContextSummary"), lineStatus: app.text("#signalCurrentLines"), statusSummary: app.text("#signalStatus"), significantDisruptions: app.text("#signalDisruptions"), banners: app.banners(), hero: app.text("#hero"), rows: app.rows(),
     diag: app.d.querySelector("#diag")?.hidden ? null : app.text("#diagBody"),
   });
   out.load = snap();

@@ -1,0 +1,587 @@
+{
+  "candidate": "99bab4a2a5d9dd954bc368d42fa0860905422a5e",
+  "baseline": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+  "calibration": [
+    {
+      "id": "M05",
+      "purpose": "Leave summary reachable but conceal full original notices",
+      "file": "src/journey-ui.js",
+      "before": "p.notices.append($('#banners'));",
+      "after": "p.notices.append($('#banners'));$('#banners').hidden=true;",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "collapsed full notices",
+      "buildPassed": true,
+      "exitCode": 0,
+      "signal": null,
+      "killed": false,
+      "failures": [],
+      "summary": [
+        "# tests 1",
+        "# pass 1",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M07",
+      "purpose": "Collapse notices and network while the user reads through a redraw",
+      "file": "src/journey-ui.js",
+      "before": "p.notices.hidden=!$('#banners').children.length;",
+      "after": "p.notices.hidden=!$('#banners').children.length;p.notices.open=false;p.network.open=false;",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "collapsed full notices",
+      "buildPassed": true,
+      "exitCode": 0,
+      "signal": null,
+      "killed": false,
+      "failures": [],
+      "summary": [
+        "# tests 1",
+        "# pass 1",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "id": "M01",
+      "purpose": "Lose actual Along preferences during old-design migration",
+      "file": "src/page.html",
+      "before": "if(saved?.settings)delete saved.settings.signal;",
+      "after": "if(saved?.settings){delete saved.settings.signal;delete saved.alongLinePreferences;}",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "signal=false preserves",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: signal=false preserves the real Along preferences and followed itinerary through save and reload"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M02",
+      "purpose": "Clone original Journey options controls, losing their handler identity",
+      "file": "src/journey-ui.js",
+      "before": "p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls'));",
+      "after": "p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls').cloneNode(true));",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "original controls retain nodes",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: original controls retain nodes, values and handlers after repeated appearance changes"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M03",
+      "purpose": "Lose unknown-platform two-station context from collapsed Next best",
+      "file": "src/journey-ui.js",
+      "before": "if(boarding){const compact=boarding.cloneNode(true);compact.className='signal-alt-boarding';summary.append(compact);}",
+      "after": "if(false&&boarding){const compact=boarding.cloneNode(true);compact.className='signal-alt-boarding';summary.append(compact);}",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "unknown platform",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: a collapsed two-station option retains each time and unknown platform"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M04",
+      "purpose": "Attribute a boarding platform to the whole two-station service",
+      "file": "src/page.html",
+      "before": "j.train.platform&&!(j.alts?.length&&direction()!=='office')",
+      "after": "j.train.platform",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "different platform",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: a collapsed two-station option retains each time and different platform"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M05",
+      "purpose": "Persistently conceal full original notices while retaining summary and significant impact",
+      "file": "src/page.html",
+      "before": "$(\"#banners\").hidden=!out.length;",
+      "after": "$(\"#banners\").hidden=true;",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "collapsed full notices",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: collapsed full notices remain reachable and retain their source detail while severe impact stays exposed"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M06",
+      "purpose": "Drop current rail no-live-status detail during line-strip consolidation",
+      "file": "src/journey-ui.js",
+      "before": "$('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));",
+      "after": "$('#hero').querySelectorAll('.strip').forEach(node=>node.remove());$('#signalCurrentLines').replaceChildren();",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "collapsed full notices",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: collapsed full notices remain reachable and retain their source detail while severe impact stays exposed"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M07",
+      "purpose": "Lose the nested full-line notice reading position across redraw",
+      "file": "src/page.html",
+      "before": "function restoreOpen(){ if(!openKeys.size) return;",
+      "after": "function restoreOpen(){ return; if(!openKeys.size) return;",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "collapsed full notices",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: collapsed full notices remain reachable and retain their source detail while severe impact stays exposed"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M08",
+      "purpose": "Suppress active cancellation monitoring while Plan is pinned",
+      "file": "src/journey-ui.js",
+      "before": "panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();",
+      "after": "panel.hidden=state.presentation?.mode==='plan'||!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();",
+      "test": "tests/independent-signal-review.test.mjs",
+      "pattern": "planning pin retains the followed-route cancellation alert",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent review: planning pin retains the followed-route cancellation alert"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M09",
+      "purpose": "Reintroduce retired design gating for an enabled saved Trip",
+      "file": "src/page.html",
+      "before": "const tripEnabled = () => !!S().trip;",
+      "after": "const tripEnabled = () => !!S().trip&&!!S().signal;",
+      "test": "tests/trip-page.test.mjs",
+      "pattern": "Trip upgrade:",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M10",
+      "purpose": "Silently enable Trip for phones whose independent opt-in is off",
+      "file": "src/page.html",
+      "before": "const tripEnabled = () => !!S().trip;",
+      "after": "const tripEnabled = () => true;",
+      "test": "tests/trip-page.test.mjs",
+      "pattern": "^Trip switch off:",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M11",
+      "purpose": "Alias the real saved-state snapshot to synthetic edits",
+      "file": "src/page.html",
+      "before": "simulationSnapshot=JSON.parse(JSON.stringify(state.saved));",
+      "after": "simulationSnapshot=state.saved;",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "synthetic Along and journey edits",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: synthetic Along and journey edits cannot replace the upgraded real itinerary or preferences"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M12",
+      "purpose": "Stop discovering core tests after removing parity machinery",
+      "file": "tools/run-tests.mjs",
+      "before": "['tests','tests/core']",
+      "after": "['tests']",
+      "test": "tests/test-runner.test.mjs",
+      "pattern": "test runner discovers",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "test runner discovers page and core suites and propagates either failure"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    },
+    {
+      "id": "M13",
+      "purpose": "Disable new live-progress verification through the obsolete design preference",
+      "file": "src/page.html",
+      "before": "const railProgress={enabled:true,diagram:true,kind:",
+      "after": "const railProgress={enabled:!!S().signal,diagram:!!S().signal,kind:",
+      "test": "tests/panda-independent-review.test.mjs",
+      "pattern": "signal=false preserves",
+      "buildPassed": true,
+      "exitCode": 1,
+      "signal": null,
+      "killed": true,
+      "failures": [
+        "independent Panda retirement: signal=false preserves the real Along preferences and followed itinerary through save and reload"
+      ],
+      "summary": [
+        "# tests 1",
+        "# pass 0",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 0"
+      ]
+    }
+  ],
+  "originalReview": {
+    "reviewedCandidate": "022422f9724e2449ebb52df8a2389eb5f80be923",
+    "mutationSource": "a3845e04e421d1639dcd1a5b865294c5fe07a6cf",
+    "baseline": "a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f"
+  },
+  "sourceCandidate": "c757c70f9f52273ddc85dfe2cf306c9eb53ba27a",
+  "incrementalReviews": [
+    {
+      "sourceCandidate": "c757c70f9f52273ddc85dfe2cf306c9eb53ba27a",
+      "baseline": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+      "previousCandidate": "022422f9724e2449ebb52df8a2389eb5f80be923",
+      "mutations": [
+        {
+          "id": "C01",
+          "purpose": "Restore an obsolete design prerequisite for explicit whole-journey wording",
+          "file": "src/page.html",
+          "before": "const totalLabel='Total journey ',totalUnknown='Total journey time unavailable';",
+          "after": "const totalLabel=S().signal?'Total journey ':'total ',totalUnknown=S().signal?'Total journey time unavailable':'Total time unavailable';",
+          "kind": "node",
+          "test": "tests/panda-independent-review.test.mjs",
+          "pattern": "signal=false preserves",
+          "buildPassed": true,
+          "exitCode": 1,
+          "signal": null,
+          "killed": true,
+          "failures": [
+            "independent Panda retirement: signal=false preserves the real Along preferences and followed itinerary through save and reload"
+          ]
+        },
+        {
+          "id": "C02",
+          "purpose": "Turn an unknown whole-journey duration into a zero-minute number",
+          "file": "src/page.html",
+          "before": "facts.totalDurationMs==null?fact('total-duration',null,totalUnknown):totalLabel+fact('total-duration',facts.totalDurationMs)",
+          "after": "facts.totalDurationMs==null?totalLabel+fact('total-duration',0,totalUnknown):totalLabel+fact('total-duration',facts.totalDurationMs)",
+          "kind": "node",
+          "test": "tests/panda-independent-review.test.mjs",
+          "pattern": "unknown platform",
+          "buildPassed": true,
+          "exitCode": 1,
+          "signal": null,
+          "killed": true,
+          "failures": [
+            "independent Panda retirement: a collapsed two-station option retains each time and unknown platform"
+          ]
+        },
+        {
+          "id": "C03",
+          "purpose": "Return the Total journey badge to the left edge",
+          "file": "src/signal.css",
+          "before": "html .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:center;",
+          "after": "html .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:start;",
+          "kind": "browser",
+          "test": "tests/browser-panda-independent-review.py",
+          "pattern": null,
+          "buildPassed": true,
+          "exitCode": 1,
+          "signal": null,
+          "killed": true,
+          "failures": [
+            "AssertionError: ('light-320-normal', {'scrollWidth': 320, 'width': 320, 'issues': ['duration is not centred', 'duration is not centred', 'duration is not centred', 'duration is not centred'], 'durations': [{'text': 'Total journey 1h 26m', 'totalCenter': 93.5390625, 'trainCenter': 160, 'totalBottom': 305.4375, 'trainTop': 307.4375}, {'text': 'Total journey 1h 26m', 'totalCenter': 88.578125, 'trainCenter': 159.9921875, 'totalBottom': 637.078125, 'trainTop': 639.078125}, {'text': 'Total journey 1h 26m', 'totalCenter': 93.5390625, 'trainCenter': 160, 'totalBottom': 1057.90625, 'trainTop': 1059.90625}, {'text': 'Total journey 1h 26m', 'totalCenter': 93.5390625, 'trainCenter': 160, 'totalBottom': 1335.046875, 'trainTop': 1337.046875}], 'follow': {'width': 68.328125, 'height': 44}})"
+          ]
+        },
+        {
+          "id": "C04",
+          "purpose": "Place train duration on top of the Total journey row",
+          "file": "src/signal.css",
+          "before": "html .journey-facts .journey-train-time {grid-column:1;grid-row:2;justify-self:center;",
+          "after": "html .journey-facts .journey-train-time {grid-column:1;grid-row:1;justify-self:center;",
+          "kind": "browser",
+          "test": "tests/browser-panda-independent-review.py",
+          "pattern": null,
+          "buildPassed": true,
+          "exitCode": 1,
+          "signal": null,
+          "killed": true,
+          "failures": [
+            "AssertionError: ('light-320-normal', {'scrollWidth': 320, 'width': 320, 'issues': ['train duration is not below Total journey', 'train duration is not below Total journey', 'train duration is not below Total journey', 'train duration is not below Total journey'], 'durations': [{'text': 'Total journey 1h 26m', 'totalCenter': 159.9921875, 'trainCenter': 160, 'totalBottom': 347.4375, 'trainTop': 325.9375}, {'text': 'Total journey 1h 26m', 'totalCenter': 160, 'trainCenter': 159.9921875, 'totalBottom': 657.578125, 'trainTop': 637.578125}, {'text': 'Total journey 1h 26m', 'totalCenter': 159.9921875, 'trainCenter': 160, 'totalBottom': 1058.40625, 'trainTop': 1036.90625}, {'text': 'Total journey 1h 26m', 'totalCenter': 159.9921875, 'trainCenter': 160, 'totalBottom': 1314.046875, 'trainTop': 1292.546875}], 'follow': {'width': 68.328125, 'height': 44}})"
+          ]
+        }
+      ],
+      "reviewedCandidate": "99bab4a2a5d9dd954bc368d42fa0860905422a5e",
+      "decision": "satisfied",
+      "regressions": {
+        "passed": 42,
+        "failed": 0,
+        "independentPreservationProbes": 9
+      },
+      "nativeBrowsers": {
+        "independentCases": 8,
+        "stableLayoutCases": 6,
+        "pageErrors": [],
+        "buildSha256": "1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4"
+      },
+      "goldenComparison": {
+        "scenarios": 22,
+        "unchanged": [
+          "options",
+          "requests",
+          "errors"
+        ],
+        "baselines": [
+          "0d6bf6e103246fefa68412d90f58d314af1cad9d",
+          "dc1918905ec6e4d12da0b95a1290c5e429a98dcf"
+        ]
+      },
+      "independentCompactArchiveComparison": [
+        {
+          "appearance": "light",
+          "build": "archive",
+          "boardTop": 797.15625,
+          "rows": [
+            {
+              "height": 230.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            }
+          ],
+          "heroFacts": [
+            45,
+            42
+          ],
+          "errors": []
+        },
+        {
+          "appearance": "light",
+          "build": "candidate",
+          "boardTop": 817.953125,
+          "rows": [
+            {
+              "height": 230.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            }
+          ],
+          "heroFacts": [
+            45,
+            42
+          ],
+          "errors": []
+        },
+        {
+          "appearance": "dark",
+          "build": "archive",
+          "boardTop": 797.15625,
+          "rows": [
+            {
+              "height": 230.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            }
+          ],
+          "heroFacts": [
+            45,
+            42
+          ],
+          "errors": []
+        },
+        {
+          "appearance": "dark",
+          "build": "candidate",
+          "boardTop": 817.953125,
+          "rows": [
+            {
+              "height": 230.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 231.953125,
+              "facts": 45
+            },
+            {
+              "height": 255.546875,
+              "facts": 45
+            }
+          ],
+          "heroFacts": [
+            45,
+            42
+          ],
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

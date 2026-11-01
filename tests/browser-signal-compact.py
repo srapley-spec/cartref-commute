@@ -39,7 +39,7 @@ def inject(page,noisy=False):
  const line=(id,name,closed=false)=>({id,name,statuses:[{sev:closed?20:10,desc:closed?'Service Closed':'Good Service',reason:closed?name+' service will resume later this morning. Full overnight service details remain available.':''}]});
  s.status=[line('circle','Circle',noisy),line('metropolitan','Metropolitan',noisy),line('hammersmith-city','Hammersmith & City',noisy)];
  s.nrStatus=[line('great-northern','Great Northern'),line('thameslink','Thameslink')];
- s.saved.settings={...s.saved.settings,provider:'rdm',rdmKey:'fixture-only',signal:true,followRoute:true};
+ s.saved.settings={...s.saved.settings,provider:'rdm',rdmKey:'fixture-only',followRoute:true};
  s.saved.mode='commute';s.saved.dirMode='office';s.saved.pace='fast';s.saved.view='now';s.saved.home=[51.975,-.23];
  s.saved.followRoute=null;s.saved.viewOverride=null;s.presentation=null;s.journeySituationKey=null;
  Object.assign(s,{autoDir:'office',here:[51.975,-.23],locAcc:12,locStatus:'ok',lastFixAt:now,lastFixRecvAt:now,
@@ -71,7 +71,7 @@ def boot(browser,root,theme='dark',width=393):
  server=server_for(root)
  context=browser.new_context(viewport={'width':width,'height':852 if width==393 else 700},color_scheme=theme,geolocation={'latitude':51.975,'longitude':-.23,'accuracy':12},permissions=['geolocation'])
  context.add_init_script('''(()=>{const D=Date,t=D.parse('2026-11-03T03:22:00Z');window.Date=class extends D{constructor(...x){super(...(x.length?x:[t]));}static now(){return t;}};
- if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',signal:true,followRoute:true}}));})();''')
+ if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',followRoute:true}}));})();''')
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def network(r):
   if r.request.url.startswith('http://127.0.0.1:'):r.continue_()
@@ -95,13 +95,31 @@ def capture_baseline(browser):
 
 def check_density(page,label,width,noisy):
  m=metrics(page)
+ # The journey-clarity release deliberately exposes location evidence and serious disruption before the
+ # answer; the later centred-duration release deliberately stacks its two duration facts.
+ # Measure layout overhead separately so those required facts cannot be hidden
+ # merely to satisfy thresholds from the earlier compact-only design.
+ allowances=page.evaluate('''()=>{
+  const disruption=document.querySelector('#signalDisruptions');
+  const height=e=>e?.checkVisibility()?e.getBoundingClientRect().height:0;
+  const boarding=[...document.querySelectorAll('#hero .signal-alt-boarding')].filter(e=>e.checkVisibility());
+  const location=document.querySelector('#dirNote');
+  const status=document.querySelector('#signalStatus');
+  const durations=[...document.querySelectorAll('#hero .journey-facts')].filter(e=>e.checkVisibility());
+  const rowDurations=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-facts')));
+  if([...disruption.children].some(e=>!e.checkVisibility()))throw Error('Significant disruption is concealed');
+  return {alerts:[disruption,location,status].reduce((total,e)=>total+height(e)+(height(e)?8:0),0),
+   boarding:boarding.reduce((total,e)=>total+height(e)+4,0),
+   durations:durations.reduce((total,e)=>total+height(e),0),rowDurations};
+ }''')
  assert m['scrollWidth']<=width+1,(label,'horizontal overflow',m)
- assert m['answer']['top']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
- assert m['answer']['bottom']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
- assert m['board']['top']<(650 if width==393 else 740),(label,'board starts too far down',m)
+ assert m['answer']['top']-allowances['alerts']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
+ assert m['answer']['bottom']-allowances['alerts']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
+ assert m['board']['top']-allowances['alerts']-allowances['boarding']-allowances['durations']<(650 if width==393 else 740),(label,'board starts too far down',m)
  assert all(r is not None and r['height']>0 for r in m['rows']),(label,'a loaded train was visually hidden',m)
  if width==393:
-  assert max(r['height'] for r in m['rows'])<200,(label,'rows remain excessively tall',m)
+  assert all(0<h<=48 for h in allowances['rowDurations']),(label,'centred duration facts are hidden or oversized',allowances)
+  assert max(r['height']-h for r,h in zip(m['rows'],allowances['rowDurations']))<220,(label,'row overhead remains excessively tall',m)
  assert all(c['height']>=43.9 and c['width']>=43.9 for c in m['controlHeights']),(label,'touch targets below44',m['controlHeights'])
  assert all(c['ratio']>=4.5 for c in m['contrast']),(label,'actual text contrast below4.5',m['contrast'])
  return m
@@ -205,7 +223,7 @@ def run_current(browser):
     assert page.evaluate('__commute.state.saved.followRoute.id')==chosen
     page.reload();page.wait_for_function('!!window.__commute && !!__commute.state.saved.followRoute')
     assert page.evaluate('__commute.state.saved.followRoute.id')==chosen
-    assert page.evaluate('__commute.S().signal')
+    assert page.evaluate("document.documentElement.dataset.design==='signal'")
     page.locator('[data-follow-action="stop"]').click();assert not page.locator('#followPanel').is_visible()
     inject(page,True)
     # Twofold text stress is allowed to grow vertically, but no information may clip horizontally.

@@ -17,7 +17,7 @@ const aldgate=now=>u=>/940GZZLUALD\/Arrivals/.test(u)?json([3,9,15].map((m,i)=>(
   destinationName:'Edgware Road (Circle Line) Underground Station',expectedArrival:new Date(now+m*MIN).toISOString(),timeToStation:m*60}))):undefined;
 
 test('Live at home with no journey: every train leaving Letchworth, each saying whether you can make it',async()=>{
-  const a=await createApp({now:MORNING,settings:{provider:'demo',signal:true}});
+  const a=await createApp({now:MORNING,settings:{provider:'demo'}});
   assert.equal(a.c.state.presentation.view,'plan-now','Auto at home is still the plan');
   assert.match(a.text('#hero'),/If you leave now/);
   live(a);
@@ -44,7 +44,7 @@ test('Live at home with no journey: every train leaving Letchworth, each saying 
 });
 
 test('Live in the office going home: Aldgate westbound departures, the train home each connects to, and whether you can make it',async()=>{
-  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home'},route:aldgate(EVENING)});
   live(a);
   assert.equal(a.c.state.presentation.noActiveJourney,true);
   assert.match(a.text('#hero'),/departures from Aldgate/);
@@ -60,7 +60,7 @@ test('Live in the office going home: Aldgate westbound departures, the train hom
 });
 
 test('Live going home away from the office says Aldgate departures load near the office (no extra requests)',async()=>{
-  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo'},saved:{dirMode:'home'},route:aldgate(EVENING)});
   live(a);
   assert.equal(a.c.state.presentation.noActiveJourney,true);
   assert.match(a.text('#list'),/Live departures from Aldgate load when you're near the office/);
@@ -71,7 +71,7 @@ test('Live going home away from the office says Aldgate departures load near the
 test('Live with Circle and Met closed: the next stop is Aldgate East, which has no live departures in the app',async()=>{
   const closed=id=>({id,name:id,lineStatuses:[{statusSeverity:20,statusSeverityDescription:'Closed',reason:'Closed (test)'}]});
   const route=u=>/Line\/circle,metropolitan,hammersmith-city\/Status/.test(u)?json([closed('circle'),closed('metropolitan'),{id:'hammersmith-city',name:'H&C',lineStatuses:[{statusSeverity:10,statusSeverityDescription:'Good Service'}]}]):aldgate(EVENING)(u);
-  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route});
+  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home'},route});
   live(a);
   assert.match(a.text('#hero'),/departures from Aldgate East/);
   assert.match(a.text('#list'),/No live departures for Aldgate East in the app/);
@@ -80,7 +80,7 @@ test('Live with Circle and Met closed: the next stop is Aldgate East, which has 
 });
 
 test('Live in Leisure going home: each London station grouped, with station lozenges that jump to its departures',async()=>{
-  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true},saved:{dirMode:'home',mode:'leisure'}});
+  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo'},saved:{dirMode:'home',mode:'leisure'}});
   live(a);
   assert.equal(a.c.state.presentation.noActiveJourney,true);
   const names=[...a.d.querySelectorAll('#list .live-board-name')].map(h=>h.textContent);
@@ -100,7 +100,7 @@ test('Live in Leisure going home: each London station grouped, with station loze
 });
 
 test('Live without a location keeps asking where you are and never assumes home',async()=>{
-  const a=await createApp({now:MORNING,geo:'denied',settings:{provider:'demo',signal:true}});
+  const a=await createApp({now:MORNING,geo:'denied',settings:{provider:'demo'}});
   live(a);
   assert.equal(a.c.state.presentation.view,'awaiting-location');
   assert.match(a.text('#hero'),/Location needed|Finding your location/);
@@ -111,7 +111,7 @@ test('Live without a location keeps asking where you are and never assumes home'
 test('Live board rows: a cancelled train has no countdown, nor does a delayed one with no estimate whose time has passed',async()=>{
   const lateNoEstimate=u=>/GetDepBoardWithDetails\/LET/.test(u)?json({trainServices:[{std:'09:50',etd:'Delayed',operator:'Great Northern',platform:'2',serviceID:'x1',
     destination:[{locationName:'London Kings Cross',crs:'KGX'}],subsequentCallingPoints:[{callingPoint:[{locationName:'London Kings Cross',crs:'KGX',st:'10:30',et:'Delayed'}]}]}]}):undefined;
-  const a=await createApp({now:MORNING,settings:{provider:'rdm',rdmKey:'k',rdmBase:'https://darwin.test/LDBWS/api/20220120',signal:true},route:lateNoEstimate});
+  const a=await createApp({now:MORNING,settings:{provider:'rdm',rdmKey:'k',rdmBase:'https://darwin.test/LDBWS/api/20220120'},route:lateNoEstimate});
   live(a);
   const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
   const late=text.find(t=>/09:50/.test(t));
@@ -119,7 +119,7 @@ test('Live board rows: a cancelled train has no countdown, nor does a delayed on
   assert.equal(rows[text.indexOf(late)].querySelector('[data-dep]'),null,'no countdown: its time has passed but it has not left');
   assert.equal(reach(rows[text.indexOf(late)]),'unknown');
   a.close();
-  const b=await createApp({now:MORNING,settings:{provider:'demo',signal:true}});
+  const b=await createApp({now:MORNING,settings:{provider:'demo'}});
   live(b);
   const brows=boardRows(b), at=std=>brows.find(r=>r.querySelector('.leave .t').textContent===std);
   assert.match(at('10:51').textContent,/Cancelled/);
@@ -129,7 +129,7 @@ test('Live board rows: a cancelled train has no countdown, nor does a delayed on
 });
 
 test('Live with the timetable source says so in its heading',async()=>{
-  const a=await createApp({now:MORNING,settings:{provider:'tfl',signal:true}});
+  const a=await createApp({now:MORNING,settings:{provider:'tfl'}});
   live(a);
   assert.match(a.text('#hero'),/Live · departures from Letchworth · 10:00 · timetable/);
   assert.ok(boardRows(a).length>0);
@@ -138,7 +138,7 @@ test('Live with the timetable source says so in its heading',async()=>{
 
 test('Live Aldgate board: leave-by time at your pace, greyed when you cannot make it, and from Aldgate itself the walk is just the platform',async()=>{
   const by=row=>(row.textContent.match(/leave (the office|for the platform) by\s*(\d\d:\d\d)/)||[]).slice(1).join(' ');
-  const office=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  const office=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home'},route:aldgate(EVENING)});
   live(office);
   let rows=boardRows(office);
   assert.ok(rows[0].classList.contains('gone')); assert.ok(!rows[1].classList.contains('gone'));
@@ -146,12 +146,12 @@ test('Live Aldgate board: leave-by time at your pace, greyed when you cannot mak
   assert.deepEqual(rows.map(by),['','the office 17:30','the office 17:36']);
   office.close();
   // Fast pace (× 0.82): 418 s. 17:39 → 17:32:02.
-  const fast=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home',pace:'fast'},route:aldgate(EVENING)});
+  const fast=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home',pace:'fast'},route:aldgate(EVENING)});
   live(fast);
   assert.deepEqual(boardRows(fast).map(by),['','the office 17:32','the office 17:38']);
   fast.close();
   // At Aldgate: only the platform (90 s), so the 17:33 is within reach.
-  const atAld=await createApp({now:EVENING,geo:{coords:{latitude:51.5143,longitude:-0.0755,accuracy:10}},settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  const atAld=await createApp({now:EVENING,geo:{coords:{latitude:51.5143,longitude:-0.0755,accuracy:10}},settings:{provider:'demo'},saved:{dirMode:'home'},route:aldgate(EVENING)});
   live(atAld);
   assert.equal(atAld.c.state.presentation.noActiveJourney,true);
   rows=boardRows(atAld);
@@ -162,11 +162,11 @@ test('Live Aldgate board: leave-by time at your pace, greyed when you cannot mak
 
 test('Live Aldgate board says why when the departures fail to load or are over 3 minutes old',async()=>{
   const fail=u=>/940GZZLUALD\/Arrivals/.test(u)?json({},500):undefined;
-  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:fail});
+  const a=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home'},route:fail});
   live(a);
   assert.match(a.text('#list'),/TfL tube departures error \(HTTP 500\)/);
   a.close();
-  const b=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo',signal:true},saved:{dirMode:'home'},route:aldgate(EVENING)});
+  const b=await createApp({now:EVENING,geo:AT_OFFICE,settings:{provider:'demo'},saved:{dirMode:'home'},route:aldgate(EVENING)});
   live(b);
   assert.equal(boardRows(b).length,3);
   b.c.state.aldDeps.at=EVENING-3*MIN-1;b.c.render();
@@ -176,7 +176,7 @@ test('Live Aldgate board says why when the departures fail to load or are over 3
 });
 
 test('Live board Follow: each row follows that train from that station',async()=>{
-  const a=await createApp({now:MORNING,settings:{provider:'demo',signal:true,followRoute:true}});
+  const a=await createApp({now:MORNING,settings:{provider:'demo',followRoute:true}});
   live(a);
   const rows=boardRows(a);
   assert.equal(rows[0].querySelector('[data-follow]')?.disabled,true,'one you cannot make cannot be followed');
@@ -186,7 +186,7 @@ test('Live board Follow: each row follows that train from that station',async()=
   assert.equal(a.c.state.saved.followRoute.id,'2026-11-03|Great Northern|10:37|LET|KGX|KGX');
   assert.equal(a.c.state.presentation.view,'following');
   a.close();
-  const b=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:'home',mode:'leisure'}});
+  const b=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',followRoute:true},saved:{dirMode:'home',mode:'leisure'}});
   live(b);
   for(const section of b.d.querySelectorAll('#list .live-board')){
     const name=section.querySelector('.live-board-name').textContent;
@@ -197,7 +197,7 @@ test('Live board Follow: each row follows that train from that station',async()=
 });
 
 test('Live in Leisure going home: Farringdon still lists the Thameslinks when only the St Pancras board has them (from their calling points)',async()=>{
-  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo',signal:true},saved:{dirMode:'home',mode:'leisure'}});
+  const a=await createApp({now:EVENING,geo:SOHO,settings:{provider:'demo'},saved:{dirMode:'home',mode:'leisure'}});
   // St Pancras trains that call at Farringdon first (as Darwin lists them); Farringdon's own board missing.
   const stp=a.c.state.boards['STP-LET'].services;
   for(const t of stp) t.calls=[{name:'London St Pancras International',code:'STP',t:t.dep},{name:'Farringdon',code:'ZFD',t:t.dep-4*MIN},{name:'Letchworth Garden City',code:'LET',t:t.arr}];

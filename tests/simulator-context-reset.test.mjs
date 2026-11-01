@@ -13,8 +13,8 @@ const click=(a,id)=>a.d.querySelector('#'+id).click();
 function select(a,id,value){const e=a.d.querySelector('#'+id);e.value=value;e.dispatchEvent(new a.w.Event('change',{bubbles:true}));}
 async function until(predicate,message,timeout=60000){const end=performance.now()+timeout;while(!predicate()){assert.ok(performance.now()<end,message);await sleep(10);}}
 async function checked(a){await until(()=>!view(a).verification.pending&&view(a).verification.current?.index===view(a).index,'cold checkpoint verification settles');return view(a).verification.current;}
-async function start({direction='outbound',route='kgx',signal=false,scenario='normal',fetchRoute,...options}={}){
- const a=await createApp({settings:{provider:'rdm',rdmKey:'test',signal,followRoute:true},settle:100,...(fetchRoute?{route:fetchRoute}:{}),...options});apps.push(a);
+async function start({direction='outbound',route='kgx',appearance='light',scenario='normal',fetchRoute,...options}={}){
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'test',appearance,followRoute:true},settle:100,...(fetchRoute?{route:fetchRoute}:{}),...options});apps.push(a);
  a.original=a.w.localStorage.getItem('cartrefCommute.v1');
  click(a,'journeySimulatorBtn');select(a,'journeyDirection',direction);select(a,'journeyRoute',route);select(a,'journeyScenario',scenario);click(a,'journeyStart');
  await until(()=>view(a).active&&a.d.querySelector('#simPanel').hidden,'guided start');await checked(a);return a;
@@ -33,9 +33,9 @@ async function next(a){
 async function reach(a,predicate){while(!predicate(view(a).checkpoints[view(a).index]))await next(a);}
 async function stop(a){click(a,'simExit');assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),a.original,'simulation never overwrites persistent real state');await sleep(350);assert.deepEqual(a.errors,[]);}
 
-for(const signal of [false,true])for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
- test(`cold Back and Reset: ${signal?'Signal':'Panda'} ${direction} ${route}`,async()=>{
-  const a=await start({signal,direction,route});await reach(a,p=>p.point==='north');
+for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
+ test(`cold Back and Reset: Signal ${direction} ${route}`,async()=>{
+  const a=await start({direction,route});await reach(a,p=>p.point==='north');
   assert.equal(a.c.state.onLine,true,'real journey engine establishes movement before losing state');
   if(route==='kgx'&&direction==='outbound')assert.ok(a.c.state.trainLock,'the real app has an automatic lock which must be discarded');
   const old=view(a),oldReport=a.c.simulationReporter.getReport(),target=old.index-1;
@@ -195,7 +195,7 @@ test('cold Reset leaves retired demo origins ignored and preserves saved data',a
 });
 
 test('Reset clears transient origin and Follow choices while Stop restores real drafts and saved journey',async()=>{
- const a=await createApp({settings:{provider:'tfl',signal:true,followRoute:true},saved:{dest:'Original private destination'},settle:150});apps.push(a);
+ const a=await createApp({settings:{provider:'tfl',followRoute:true},saved:{dest:'Original private destination'},settle:150});apps.push(a);
  await until(()=>a.d.querySelector('[data-follow]'),'real journey Follow option');a.d.querySelector('[data-follow]').click();
  const originalFollow=plain(a.c.state.saved.followRoute);a.c.state.origin='51.4966,-0.1764';a.d.querySelector('#originInput').value='Original private draft';a.original=a.w.localStorage.getItem('cartrefCommute.v1');
  click(a,'journeySimulatorBtn');click(a,'journeyStart');await until(()=>view(a).active&&!view(a).verification.pending,'guided start');

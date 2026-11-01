@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp, closeAll } from './harness.mjs';
 after(closeAll);
 const NOW=Date.parse('2026-11-03T10:00:00Z'), MIN=60000;
-const app=()=>createApp({now:NOW,settings:{provider:'demo',signal:true},saved:{dirMode:'office'}});
+const app=()=>createApp({now:NOW,settings:{provider:'demo'},saved:{dirMode:'office'}});
 const blocks=a=>[...a.d.querySelector('#hero').children].map(n=>n.dataset.block).filter(Boolean);
 function assertCanonical(a,view){
  const order=a.w.CommuteCore.BLOCKS[view], emitted=blocks(a).filter(block=>order.includes(block));

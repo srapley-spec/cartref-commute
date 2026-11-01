@@ -137,9 +137,9 @@ test('Journey results distinguish assertion counts and copy a credential-free di
  assert.equal(a.c.simClock.active,false,'opening finished results does not resume simulation');await finish(a);
 });
 
-for(const design of ['panda','signal'])for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
- test(`${design==='signal'?'Signal ':''}Journey verification: ${direction} ${route} evaluates real checkpoints through completion`,async()=>{
-  const a=await createApp({settings:{provider:'rdm',rdmKey:'test',signal:design==='signal'},settle:80});await startJourney(a,{direction,route});select(a,'simSpeed','20');const calls=a.calls.length;let svg=null;
+for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
+ test(`Signal Journey verification: ${direction} ${route} evaluates real checkpoints through completion`,async()=>{
+  const a=await createApp({settings:{provider:'rdm',rdmKey:'test'},settle:80});await startJourney(a,{direction,route});select(a,'simSpeed','20');const calls=a.calls.length;let svg=null;
   const total=view(a).checkpoints.length;
   while(true){const v=view(a),p=v.checkpoints[v.index],result=await checked(a);assert.equal(result.index,v.index);assert.ok(['PASS','FAIL','INCONCLUSIVE'].includes(result.status));
    if(p.label.includes('Walk to Underground platforms')||p.label.includes('At Aldgate westbound platforms')){

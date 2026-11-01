@@ -1,0 +1,306 @@
+{
+  "candidateCommit": "6798b5e03216c537631444ce106ed2ef2aadb2d4",
+  "candidateBuildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+  "archiveBranch": "archive/panda-2026-11-01",
+  "archiveCommit": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+  "archiveTests": {
+    "pass": 941,
+    "fail": 0,
+    "skip": 0,
+    "commit": "0d6bf6e103246fefa68412d90f58d314af1cad9d"
+  },
+  "goldenScenarios": 22,
+  "engineOrRequestChanges": 0,
+  "mutations": [
+    {
+      "id": "M1",
+      "description": "retired design is selected",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=undefined opens Signal without enabling Follow",
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow",
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M2",
+      "description": "legacy appearance flag stays effective",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow"
+      ]
+    },
+    {
+      "id": "M3",
+      "description": "Follow is silently enabled",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M4",
+      "description": "saved trip is lost on upgrade",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M5",
+      "description": "ambiguous single platform returns",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Platform is on the card and the list without expanding; with two boarding stations, each has its own"
+      ]
+    },
+    {
+      "id": "M6",
+      "description": "collapsed boarding alternatives disappear",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Platform is on the card and the list without expanding; with two boarding stations, each has its own"
+      ]
+    },
+    {
+      "id": "M7",
+      "description": "location stays inside collapsed options",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M8",
+      "description": "live blocks ignore engine priority",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal dispatch enforces the canonical order on the actual live hero"
+      ]
+    },
+    {
+      "id": "M9",
+      "description": "journey progress disappears",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal progress: an inferred train without Follow shows complete stages, factual calling points and no additional requests",
+        "Signal progress: live expected arrival changes show behind and ahead against the original timetable",
+        "Signal progress: stale reports freeze the confirmed bar and keep report details accessible",
+        "Signal progress: an inferred Tube without Follow shows route stops and honest modelled progress",
+        "Signal progress: a location projection without a live arrival stays modelled",
+        "Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents",
+        "Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports"
+      ]
+    },
+    {
+      "id": "M10",
+      "description": "status is hidden",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M11",
+      "description": "settings reopen feed caches",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=undefined opens Signal without enabling Follow",
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow",
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M12",
+      "description": "test runner suppresses failures",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "test runner discovers page and core suites and propagates either failure"
+      ]
+    }
+  ],
+  "compactGeometryComparison": [
+    {
+      "root": "/workspace/scratch/panda-browser-baseline",
+      "answerTop": 330.8125,
+      "boardTop": 717.953125,
+      "maxRow": 202.53125,
+      "errors": []
+    },
+    {
+      "root": "/workspace/cartref-signal",
+      "answerTop": 330.8125,
+      "boardTop": 738.75,
+      "maxRow": 202.53125,
+      "errors": []
+    }
+  ],
+  "browserResults": {
+    "compact": {
+      "layouts": 20,
+      "passed": true
+    },
+    "journeyFacts": {
+      "browser": "Chromium",
+      "buildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+      "designAppearanceWidthCases": 4,
+      "viewScenes": 24,
+      "textEnlargementScenes": 24,
+      "followScenes": 4,
+      "activeRailScenes": 2,
+      "enlargedActiveRailScenes": 2,
+      "tubeConnectionFixtures": 1,
+      "followDisabledViewControls": true,
+      "pageErrors": []
+    },
+    "journeyClarity": {
+      "browser": "Chromium",
+      "baseline": false,
+      "deviceAppearanceCases": 4,
+      "journeyStateCaptures": 20,
+      "buildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+      "disruptionCases": 60,
+      "locationCases": 36,
+      "appearanceOverrides": 12,
+      "progressEvidence": [
+        "rail ahead",
+        "rail behind",
+        "rail stale",
+        "rail timetable only",
+        "Tube matching vehicle",
+        "Tube wrong vehicle",
+        "Tube stale"
+      ]
+    },
+    "controlsAndPersistence": {
+      "passed": true
+    },
+    "alongLineAccess": {
+      "passed": true
+    }
+  },
+  "separateIndependentReview": {
+    "status": "satisfied",
+    "report": "docs/panda-independent-review.md",
+    "mutationResults": "docs/panda-independent-mutation-results.json",
+    "regressions": 9,
+    "effectiveMutationsCaught": 17,
+    "nativeLayouts": 8,
+    "initialMutations": 13,
+    "centredIntegrationMutations": 4
+  },
+  "initialArchiveCommit": "0d6bf6e103246fefa68412d90f58d314af1cad9d",
+  "integrationBaselineCommit": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+  "earlierIntegrationBaselineCommit": "a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f",
+  "preCentredIntegrationVerification": {
+    "baselineCommit": "a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f",
+    "sourceCommit": "a3845e04e421d1639dcd1a5b865294c5fe07a6cf",
+    "buildSha256": "9e0f6ace49346801a0a6a871b41f7c92814ef07476e77a1df14efde116f4dd99",
+    "focusedTripRetirementViewTests": 65,
+    "goldenScenarios": 22,
+    "engineOptionRequestOrErrorChanges": 0,
+    "progressAndVerificationTests": 48,
+    "progressNativeLayouts": 6,
+    "progressNormalAndDoubledText": true,
+    "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46"
+  },
+  "centredDensityComparison": [
+    {
+      "name": "archiveSignal",
+      "boardTop": 797.15625,
+      "facts": {
+        "rows": [
+          {
+            "row": 230.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          }
+        ],
+        "visibleHero": [
+          45,
+          42
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "candidate",
+      "boardTop": 817.953125,
+      "facts": {
+        "rows": [
+          {
+            "row": 230.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 231.953125,
+            "facts": 45
+          },
+          {
+            "row": 255.546875,
+            "facts": 45
+          }
+        ],
+        "visibleHero": [
+          45,
+          42
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "latestMainVerification": {
+    "baselineCommit": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
+    "sourceCommit": "c757c70f9f52273ddc85dfe2cf306c9eb53ba27a",
+    "buildSha256": "1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4",
+    "focusedSignalAlongAndDurationTests": 20,
+    "goldenScenarios": 22,
+    "engineOptionRequestOrErrorChanges": 0,
+    "centredNativeLayouts": 6,
+    "centredPlanLiveStationFollowAndDoubledText": true,
+    "journeyFactBrowserScenes": 24,
+    "journeyFactEnlargedScenes": 24,
+    "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46",
+    "compactLayouts": 20,
+    "independentRegressions": 42,
+    "independentNativeLayouts": 8
+  }
+}

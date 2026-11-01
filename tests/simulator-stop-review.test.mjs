@@ -77,7 +77,7 @@ test('independent train-stop simulation: Stop restores a real saved stop before 
 test('independent simulation isolation: real planning dates and runtime origin return after dock Stop and source disable',async()=>{
  const results=[],expected=[];
  for(const question of ['by','at'])for(const exit of ['dock','settings']){
-  const a=await createApp({now:Date.parse('2026-11-03T10:00:00Z'),saved:{mode:'leisure',dirMode:'home'},settings:{provider:'tfl',tflKey:'input-review-fixture',signal:true,followRoute:false,anyPlace:true},geo:{coords:{latitude:51.515,longitude:-.08,accuracy:12}},settle:150,
+  const a=await createApp({now:Date.parse('2026-11-03T10:00:00Z'),saved:{mode:'leisure',dirMode:'home'},settings:{provider:'tfl',tflKey:'input-review-fixture',followRoute:false,anyPlace:true},geo:{coords:{latitude:51.515,longitude:-.08,accuracy:12}},settle:150,
    route:url=>url.includes('/JourneyResults/')&&!url.includes('timeIs=')?{ok:true,status:200,json:async()=>({journeys:[{duration:12,arrivalDateTime:'2026-11-03T10:12:00Z',legs:[{mode:{id:'walking'},duration:12}]}]})}:undefined});apps.push(a);await settled(a);
   const submit=(id)=>a.d.getElementById(id).dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));
   a.d.getElementById('originInput').value='Aldgate';submit('originRow');await sleep(30);

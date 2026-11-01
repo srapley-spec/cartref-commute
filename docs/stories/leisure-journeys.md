@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Behind toggle (Settings → Experimental → Trip, off by default; needs Signal). Built 31 Oct night; independent
+Status: Behind toggle (Settings → Experimental → Trip, off by default; Signal is the sole design). Built 31 Oct night; independent
 mutation review before merging; Google unverified until Sam has a key · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
@@ -54,10 +54,10 @@ Minutes are whole minutes, rounded down.
 - Settings → Experimental → "Trip: plan door to door by rail between any two addresses in the region". Off by default.
   Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
   script loaded, no Trip request).
-- On, with Signal on: a third mode button **Trip** beside Commute and Leisure. With Signal off: no Trip button; the
-  switch's hint says "Needs the Signal design". Leisure is the same with the switch on or off. Signal-only is Sam's
-  explicit exception to the UI-parity rule ([decision](../decisions/trip-signal-only.md), 1 Nov); Trip's eight views are
-  registered parity surfaces with real-page Signal cases.
+- On: a third mode button **Trip** beside Commute and Leisure. Trip's opt-in remains independent and off by
+  default. With Panda retired, no Signal design switch or design requirement hint remains; old `signal:false`
+  data cannot hide an enabled saved Trip. The former [two-design exception](../decisions/trip-signal-only.md) is
+  historical. All eight Trip view contracts remain ordinary regressions in `tests/journey-views.test.mjs`.
 - Trip with no Google key: the setup card "Add a Google Maps key in Settings to search addresses and time the trip to
   the station", with Open Settings. Nothing planned, no request, no script loaded.
 
@@ -239,7 +239,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
 - tests/trip-page.test.mjs: "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
-- tests/trip-page.test.mjs: "Trip switch on without Signal: no Trip button; a saved Trip screen falls back to the commute"
+- tests/trip-page.test.mjs: "Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip"
 - tests/trip-page.test.mjs: "Trip without a Google key: the setup card, nothing planned, no Google script or request"
 - tests/trip-page.test.mjs: "Trip: address drop-down after 3 characters and 250 ms; keyboard choose; a late reply for older text is ignored"
 - tests/trip-page.test.mjs: "Trip: Brighton → Canterbury plans door to door from TfL, every journey listed, and makes no commute requests"

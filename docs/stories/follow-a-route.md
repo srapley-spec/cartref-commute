@@ -21,8 +21,8 @@ click."
 
 ## Delivery boundary
 Sam selected this newer behavior as the basis for Signal on 30 Oct, then authorised implementation with regular
-independent reviews of behavior, tests and architecture. The selected route is shared by Panda and Signal; the
-Follow a route Experimental setting is independent of the Signal design switch. Both start off.
+independent reviews of behavior, tests and architecture. Signal is the sole design since 1 Nov. The Follow a route Experimental setting remains independent and off
+by default; removing the design switch does not change its preference or chosen journey.
 
 The implementation follows the existing complete route snapshot and live rail service. A caught homeward Tube
 uses current connection readiness to test the chosen rail service, rather than restarting the journey from the
@@ -104,10 +104,9 @@ not a claim that every criterion has already passed release verification. See [S
   following works for any journey the app can plan (future: any start and end point).
 
 ## Tests
-- Every scenario in tests/follow-main-regression.test.mjs runs twice: Panda, then Signal ("(Signal)" in the name;
-  Sam, 31 Oct). The later same-evening [parity rule](ui-parity.md) supersedes the old design-specific override
-  distinction: with Follow off, Arrive by saves the shared planning override in both designs. View pins do not
-  enable Follow, reset the selected train, change direction or pause tracking.
+- Every scenario in tests/follow-main-regression.test.mjs runs against the production Signal presentation.
+  With Follow off, Arrive by still saves the planning override. View pins do not enable Follow, reset the selected
+  train, change direction or pause tracking. The old cross-design parity rule is retired.
 - Implementation tests include the pure engine, real built-page integration and independent whole-journey probes.
   Release verification and final review are pending. Required evidence includes stable arrival despite
   re-ranking, an explicit reason for live changes, cancellation/missed recovery without automatic replacement,
@@ -131,7 +130,7 @@ not a claim that every criterion has already passed release verification. See [S
 - tests/follow.test.mjs: "follow page: cancellation keeps selected service and offers an explicit way on; switching and Stop are deliberate"
 - tests/follow.test.mjs: "follow page: no-estimate null arrival remains selected through repeated renders and persisted reload"
 - tests/follow.test.mjs: "follow page: an actual departed selected train continues through movement inference, never becomes missed"
-- tests/follow.test.mjs: "follow page: Signal to Panda and reload retain route, full steps and planning question"
+- tests/follow.test.mjs: "follow page: appearance changes and reload retain route, full steps and planning question"
 - tests/follow.test.mjs: "follow page: simulator restart clears simulated selection and Stop restores the real followed route"
 - tests/independent-signal-review.test.mjs: "independent review: a Follow selection is saved immediately before any later interaction"
 - tests/independent-signal-review.test.mjs: "independent review: planning pin retains the followed-route cancellation alert"

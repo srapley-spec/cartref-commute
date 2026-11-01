@@ -1,12 +1,7 @@
-// Independent user-facing parity probes. Deliberately compare reached pages,
+// Independent user-facing journey facts probes. Deliberately compare reached pages,
 // rather than accepting a fact retained in a closed disclosure or hidden design.
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,copyFileSync,writeFileSync,rmSync,symlinkSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
-import {spawnSync} from 'node:child_process';
 import {createApp,closeAll,json} from './harness.mjs';
 after(closeAll);
 
@@ -46,9 +41,9 @@ function facts(a,node,option){
  assert.match(text,new RegExp(escape(duration(option.train.arr-option.train.dep))+' (?:train|on (?:the )?train)'),`${option.train.std}: distinguish train time from total`);
  return text;
 }
-async function fixture(signal,atStation=false){
+async function fixture(appearance,atStation=false){
  const a=await createApp({now:NOW,...(atStation?{geo:station}:{}),
-  settings:{provider:'demo',signal,followRoute:true},saved:{dirMode:'office',pace:'avg'}});
+  settings:{provider:'demo',appearance,followRoute:true},saved:{dirMode:'office',pace:'avg'}});
  const s=a.c.state;
  Object.assign(s,{boards:{'LET-KGX':{services:services(),msgs:[]},'LET-STP':{services:[],msgs:[]},'LET-ZFD':{services:[],msgs:[]}},
   railSource:'darwin',boardsDir:'office',boardsAt:NOW,loading:false,routeFailed:{},errors:[],
@@ -58,10 +53,10 @@ async function fixture(signal,atStation=false){
  return a;
 }
 
-for(const signal of [false,true])for(const atStation of [false,true]){
- const label=`${signal?'Signal':'Panda'} ${atStation?'at station':'from home'}`;
- test(`independent UI parity: ${label} keeps canonical duration and earliest-arrival ownership in Auto, Plan and Live`,async()=>{
-  const a=await fixture(signal,atStation),list=a.c.ranked(NOW);
+for(const appearance of ['light','dark'])for(const atStation of [false,true]){
+ const label=`${appearance} ${atStation?'at station':'from home'}`;
+ test(`journey facts review: ${label} keeps canonical duration and earliest-arrival ownership in Auto, Plan and Live`,async()=>{
+  const a=await fixture(appearance,atStation),list=a.c.ranked(NOW);
   const first=list.find(o=>o.train.serviceId==='arrives-first'),short=list.find(o=>o.train.serviceId==='shorter-later');
   assert.ok(first&&short);assert.ok(first.arrive<short.arrive);
   assert.ok(first.arrive-first.leave>short.arrive-short.leave,'the later route is deliberately shorter, not first to arrive');
@@ -81,8 +76,8 @@ for(const signal of [false,true])for(const atStation of [false,true]){
  });
 }
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} follows the same duration and arrival-first route across view and design switches`,async()=>{
- const a=await fixture(signal),first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} follows the same duration and arrival-first route across view and appearance changes`,async()=>{
+ const a=await fixture(appearance),first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
  pin(a,'live');row(a,'07:35').querySelector('[data-follow]').click();
  const selected=a.c.state.saved.followRoute.id,requests=a.calls.slice();
  for(const mode of ['auto','plan','live']){
@@ -90,7 +85,7 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
   const panel=a.d.querySelector('#followPanel');assert.equal(visible(a,panel),true);
   assert.match(facts(a,panel,first),/Arrives first/,'Follow retains the same comparison semantics');
  }
- a.c.state.saved.settings.signal=!signal;a.c.render();
+ a.c.state.saved.settings.appearance=appearance==='light'?'dark':'light';a.c.render();
  assert.equal(a.c.state.saved.followRoute.id,selected,'appearance never changes the selected route');
  facts(a,a.d.querySelector('#followPanel'),first);
  const onTrain=first.train.dep+MIN,s=a.c.state;
@@ -103,8 +98,8 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.calls,requests);assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} supports Auto Plan and Live without enabling Follow`,async()=>{
- const a=await fixture(signal);a.c.state.saved.settings.followRoute=false;a.c.render();
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} supports Auto Plan and Live without enabling Follow`,async()=>{
+ const a=await fixture(appearance);a.c.state.saved.settings.followRoute=false;a.c.render();
  const first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
  assert.equal(visible(a,a.d.querySelector('#journeyViewControl')),true,'view selection is independent of the Follow feature');
  for(const mode of ['auto','plan','live']){
@@ -115,8 +110,8 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} cannot present retained Follow durations or a winner when the current arrival disappears`,async()=>{
- const a=await fixture(signal),first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} cannot present retained Follow durations or a winner when the current arrival disappears`,async()=>{
+ const a=await fixture(appearance),first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
  pin(a,'live');row(a,'07:35').querySelector('[data-follow]').click();
  a.c.state.boards['LET-KGX'].services.find(t=>t.serviceId==='arrives-first').arr=null;
  a.c.render();assert.equal(a.c.state.followUpdate.status,'unknown');
@@ -132,8 +127,8 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} Live introduction is concise and does not explain the app at paragraph length`,async()=>{
- const a=await fixture(signal);pin(a,'live');
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} Live introduction is concise and does not explain the app at paragraph length`,async()=>{
+ const a=await fixture(appearance);pin(a,'live');
  const copy=a.text('#hero .live-note');
  assert.ok(copy.length<=80,'commuting copy is glanceable');
  assert.ok(copy.trim().split(/\s+/).length<=14,'no long explanatory paragraph');
@@ -141,8 +136,8 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('independent UI parity: collapsed Signal Next best retains both durations before opening its details',async()=>{
- const a=await fixture(true),second=a.c.ranked(NOW).find(o=>o.train.serviceId==='shorter-later');
+test('journey facts review: collapsed Signal Next best retains both durations before opening its details',async()=>{
+ const a=await fixture('light'),second=a.c.ranked(NOW).find(o=>o.train.serviceId==='shorter-later');
  for(const mode of ['auto','plan']){
   pin(a,mode);
   const alternative=a.d.querySelector('#hero .signal-alternative');assert.ok(alternative);
@@ -153,10 +148,10 @@ test('independent UI parity: collapsed Signal Next best retains both durations b
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} Tube connections share their actual start and winner across Auto Plan Live and a slower selection`,async()=>{
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} Tube connections share their actual start and winner across Auto Plan Live and a slower selection`,async()=>{
  const now=Date.parse('2026-11-03T17:30:00Z');
  const a=await createApp({now,geo:{coords:{latitude:51.5139,longitude:-.071,accuracy:10}},
-  settings:{provider:'demo',signal,followRoute:true},saved:{dirMode:'home',pace:'avg'},
+  settings:{provider:'demo',appearance,followRoute:true},saved:{dirMode:'home',pace:'avg'},
   route:url=>/940GZZLUALD\/Arrivals/.test(url)?json([3,9,15].map((minutes,index)=>({vehicleId:'parity-circle-'+index,
    lineId:'circle',platformName:'Westbound - Platform 1',destinationName:'Edgware Road (Circle Line) Underground Station',
    expectedArrival:new Date(now+minutes*MIN).toISOString(),timeToStation:minutes*60}))):undefined});
@@ -196,10 +191,10 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} alternative boarding uses its own duration and cannot inherit the winning boarding point`,async()=>{
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} alternative boarding uses its own duration and cannot inherit the winning boarding point`,async()=>{
  const now=Date.parse('2026-11-03T17:30:00Z');
  const a=await createApp({now,geo:{coords:{latitude:51.5136,longitude:-.1365,accuracy:20}},
-  settings:{provider:'demo',signal,followRoute:true},saved:{dirMode:'home',mode:'leisure'}});
+  settings:{provider:'demo',appearance,followRoute:true},saved:{dirMode:'home',mode:'leisure'}});
  const common={to:'LET',serviceId:'same-tl',operator:'Thameslink',arr:now+90*MIN,platform:'2',
   depLate:0,arrLate:0,depUnknown:false,arrUnknown:false,cancelled:false,reason:'',
   calls:[{code:'ZFD',name:'Farringdon',t:now+35*MIN},{code:'STP',name:'St Pancras',t:now+40*MIN},{code:'LET',name:'Letchworth',t:now+90*MIN}]};
@@ -222,8 +217,8 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':'Panda'} Live preserves one qualified arrival-first lozenge for fast walk run and car`,async()=>{
- const a=await fixture(signal),departure=short=>NOW+(30+1337+180-short*60)*1000;
+for(const appearance of ['light','dark'])test(`journey facts review: ${appearance} Live preserves one qualified arrival-first lozenge for fast walk run and car`,async()=>{
+ const a=await fixture(appearance),departure=short=>NOW+(30+1337+180-short*60)*1000;
  a.c.state.boards['LET-KGX'].services=[[-5,60,'walk'],[2,52,'fast'],[5,48,'run'],[10,45,'car'],[20,35,'none']].map(([short,arrival,id])=>{
   const dep=departure(short),std=new Date(dep).toISOString().slice(11,16);
   return {...train(std,0,arrival,'effort-'+id),dep};
@@ -240,46 +235,4 @@ for(const signal of [false,true])test(`independent UI parity: ${signal?'Signal':
   }
  }
  assert.deepEqual(a.errors,[]);a.close();
-});
-
-test('independent UI parity gate: actual runner rejects zero-exit skipped omitted and merely declared coverage',()=>{
- const root=fileURLToPath(new URL('..',import.meta.url)),fixtureRoot=mkdtempSync(join(tmpdir(),'cartref-independent-parity-'));
- try{
-  for(const directory of ['tools','config','dist','tests','src'])mkdirSync(join(fixtureRoot,directory));
-  mkdirSync(join(fixtureRoot,'tests','core'));
-  symlinkSync(join(root,'node_modules'),join(fixtureRoot,'node_modules'),'dir');
-  writeFileSync(join(fixtureRoot,'src','journey-ui.js'),"document.documentElement.dataset.design=flag?'signal':'panda';\n");
-  for(const file of ['check-ui-parity.mjs','run-tests.mjs'])copyFileSync(join(root,'tools',file),join(fixtureRoot,'tools',file));
-  writeFileSync(join(fixtureRoot,'config','ui-parity.json'),JSON.stringify({version:1,
-   designs:[{id:'panda',settings:{signal:false}},{id:'signal',settings:{signal:true}}],
-   surfaces:[{id:'plan-now',view:'plan-now'}],retired:[]}));
-  writeFileSync(join(fixtureRoot,'dist','core.mjs'),"export const BLOCKS={'plan-now':[]};\n");
-  writeFileSync(join(fixtureRoot,'tests','clock.mjs'),'export {};\n');
-  const source=body=>"import {test} from 'node:test';\n"+body;
-  const passing="test('UI parity: panda / plan-now',()=>{});\ntest('UI parity: signal / plan-now',()=>{});\n";
-  const testPath=join(fixtureRoot,'tests','ui-parity.test.mjs');writeFileSync(testPath,source(passing));
-  const git=args=>{
-   const result=spawnSync('git',args,{cwd:fixtureRoot,encoding:'utf8'});
-   assert.equal(result.status,0,result.stderr);
-  };
-  git(['init','-q']);git(['add','.']);git(['-c','user.name=Parity fixture','-c','user.email=parity@example.invalid','-c','commit.gpgsign=false','commit','-qm','Isolated parity fixture']);
-  const env={...process.env,UI_PARITY_BASE:'HEAD'};delete env.NODE_TEST_CONTEXT;
-  const run=(onlyParity=true)=>spawnSync(process.execPath,['tools/run-tests.mjs',...(onlyParity?['--ui-parity-only']:[])],{cwd:fixtureRoot,env,encoding:'utf8',timeout:15000});
-  const baseline=run();assert.equal(baseline.status,0,baseline.stdout+baseline.stderr);
-  for(const body of [passing.replace("test('UI parity: signal / plan-now',()=>{});","test('UI parity: signal / plan-now',{skip:true},()=>{});"),
-   "test('UI parity: panda / plan-now',()=>{});\n",
-   "console.log('ok 1 - UI parity: panda / plan-now\\nok 2 - UI parity: signal / plan-now');\n"]){
-   writeFileSync(testPath,source(body));const rejected=run();
-   assert.equal(rejected.status,1,rejected.stdout+rejected.stderr);
-   assert.match(rejected.stderr,/Missing UI parity result|did not pass/);
-  }
-  writeFileSync(testPath,source(passing+"test('unrelated failure',()=>{throw new Error('required unrelated test failed');});\n"));
-  const unrelated=run();assert.equal(unrelated.status,1,'all parity cases passing cannot erase another child-test failure');
-  assert.match(unrelated.stdout,/unrelated failure/);
-  writeFileSync(testPath,source(passing));
-  writeFileSync(join(fixtureRoot,'tests','required-extra.test.mjs'),source("test('required page discovery',()=>{throw new Error('page regression');});\n"));
-  writeFileSync(join(fixtureRoot,'tests','core','required-extra.test.mjs'),source("test('required core discovery',()=>{throw new Error('core regression');});\n"));
-  const full=run(false);assert.equal(full.status,1,'the normal release runner executes the full suite as well as parity');
-  assert.match(full.stdout,/required page discovery/);assert.match(full.stdout,/required core discovery/);
- }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });

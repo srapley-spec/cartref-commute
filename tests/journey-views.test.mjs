@@ -1,14 +1,17 @@
-// The release gate executes every registered design/surface pair. These fixtures
+// Journey-view regression fixtures
 // reach real controller views; they never substitute markup or force a view result.
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp,closeAll} from './harness.mjs';
-import {loadParityRegistry,parityTestName,parityExceptionName,surfaceDesigns,exceptedDesigns} from '../tools/check-ui-parity.mjs';
 import {TRIP_SETTINGS,tripRoute,planBrightonCanterbury,until} from './trip-fixtures.mjs';
 after(closeAll);
 
 const NOW=Date.parse('2026-11-03T10:00:00Z'),MIN=60000;
-const registry=loadParityRegistry();
+const surfaces=[
+  ...['awaiting-location','plan-now','plan-by','plan-at','following','on-train','at-hub','on-tube','in-london','on-tube-home','nearly-home'].map(id=>({id,view:id})),
+  {id:'live-departures',view:'plan-now'},{id:'along-the-line',view:'on-train'},
+  ...['plan-trip-now','plan-trip-by','plan-trip-at','trip-follow','trip-access','trip-ride','trip-change','trip-final'].map(id=>({id,view:id}))
+];
 const norm=value=>String(value||'').replace(/\s+/g,' ').trim();
 function visible(a,node){
  if(!node)return false;
@@ -21,13 +24,13 @@ function visible(a,node){
 }
 const shown=(a,selector)=>[...a.d.querySelectorAll(selector)].filter(node=>visible(a,node));
 const serviceKey=t=>[t.from,t.to,t.std,t.operator].join('|');
-function assertHealthy(a,design,surface){
- assert.equal(a.d.documentElement.dataset.design,design.id);
- assert.equal(a.c.state.presentation.view,surface.view,'the real presentation model reaches the registered surface');
+function assertHealthy(a,surface){
+ assert.equal(a.d.documentElement.dataset.design,'signal');
+ assert.equal(a.c.state.presentation.view,surface.view,'the real presentation model reaches the expected view');
  const answer=a.d.querySelector(surface.id==='following'?'#followPanel':'#hero');
  assert.ok(visible(a,answer),'the active answer is exposed');
  assert.ok(visible(a,a.d.querySelector('#settingsBtn')),'settings stay reachable');
- assert.ok(visible(a,a.d.querySelector('#journeyViewControl')),'Auto, Plan and Live are available in every supported design');
+ assert.ok(visible(a,a.d.querySelector('#journeyViewControl')),'Auto, Plan and Live are available throughout the app');
  for(const mode of ['auto','plan','live'])assert.ok(shown(a,`[data-journey-view="${mode}"]`).length,mode+' remains reachable');
  for(const row of shown(a,'#list .row[data-journey-service]')){
   const flags=[...row.querySelectorAll('.pill')].filter(node=>visible(a,node)).map(node=>norm(node.textContent));
@@ -66,11 +69,11 @@ function locate(s,here,extra={}){
  Object.assign(s,{here,locStatus:'ok',locAcc:12,lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false,...extra});
  s.saved.view='now';s.saved.viewOverride=null;s.saved.tubeRide=null;s.saved.tubePick=null;
 }
-// Trip mode's views (a Signal-only exception, docs/decisions/trip-signal-only.md): the real Trip screen, planned from a
+// Trip mode's real screens remain functional regressions after the parity policy is removed; planned from a
 // recorded TfL reply, drawn in the engine's order; its view is the one the engine chose (present.ts chooseTripView).
 const isTrip=surface=>/^(plan-trip-|trip-)/.test(surface.view);
-function assertTripHealthy(a,design,surface){
- assert.equal(a.d.documentElement.dataset.design,design.id);
+function assertTripHealthy(a,surface){
+ assert.equal(a.d.documentElement.dataset.design,'signal');
  assert.equal(a.d.documentElement.dataset.trip,'on');
  assert.ok(visible(a,a.d.querySelector('#tripRoot')),'the Trip screen is exposed');
  assert.equal(a.d.querySelector('#tripResults').dataset.view,surface.view,'the real presentation model reaches the registered Trip surface');
@@ -95,11 +98,11 @@ const tripFollowChecks=a=>{
  assert.ok(shown(a,'[data-trip-stop]').length,'the followed trip can be stopped');
  assert.match(a.text('#tripResults'),/Arriving \d\d:\d\d|Arrived/);
 };
-async function open(design,surface){
- if(isTrip(surface))return createApp({now:NOW,settings:{...TRIP_SETTINGS,...design.settings},route:tripRoute});
+async function open(surface){
+ if(isTrip(surface))return createApp({now:NOW,settings:TRIP_SETTINGS,route:tripRoute});
  const waiting=surface.id==='awaiting-location';
  return createApp({now:NOW,geo:waiting?'denied':undefined,
-  settings:{provider:'demo',followRoute:true,...design.settings},saved:{dirMode:waiting?'auto':'office'}});
+  settings:{provider:'demo',followRoute:true},saved:{dirMode:waiting?'auto':'office'}});
 }
 const factories={
  'awaiting-location':async a=>{
@@ -208,7 +211,7 @@ const factories={
   s.saved.settings.alongLine=true;a.c.render();
   assert.ok(visible(a,a.d.querySelector('#alongEntry')));a.d.querySelector('#alongEntry').click();
   const dialog=a.d.querySelector('#alongLine'),progress=s.rendered.progress;
-  assert.ok(dialog.open&&visible(a,dialog),'the same story view is available in both designs');
+  assert.ok(dialog.open&&visible(a,dialog),'the journey companion stays available');
   assert.match(a.text('#alongJourney'),/09:45 Great Northern/);
   assertDuration(a,dialog,progress.option,{train:{...t,arr:progress.expectedArrival},arrival:progress.finalArrival});
   assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
@@ -257,26 +260,12 @@ const factories={
  }
 };
 
-assert.deepEqual(new Set(registry.surfaces.map(surface=>surface.id)),new Set(Object.keys(factories)),
- 'Every registered surface needs a real scenario factory, including newly added views');
-// A design excepted from a surface really lacks it (a stale exception fails here): Trip in Panda.
-for(const surface of registry.surfaces)for(const design of exceptedDesigns(registry,surface)){
- test(parityExceptionName(design.id,surface.id),async()=>{
-  assert.ok(isTrip(surface),'only Trip surfaces have a recorded exception');
-  const a=await createApp({now:NOW,settings:{...TRIP_SETTINGS,...design.settings},saved:{tripMode:{active:true}},route:tripRoute});
-  try{
-   assert.equal(a.d.documentElement.dataset.design,design.id);
-   assert.equal(a.d.querySelector('#tripModeBtn').hidden,true,'no Trip button');
-   assert.equal(a.d.querySelector('#tripRoot').hidden,true,'no Trip screen, even with a saved Trip state');
-   assert.notEqual(a.d.documentElement.dataset.trip,'on');
-   assert.ok(!a.calls.some(u=>/stations\.json|JourneyResults\/\d+\/to\/\d+|maps\.googleapis/.test(u)),'no Trip request');
-  }finally{a.close();}
- });
-}
-for(const surface of registry.surfaces)for(const design of surfaceDesigns(registry,surface)){
- test(parityTestName(design.id,surface.id),async()=>{
-  const a=await open(design,surface);
-  try{await factories[surface.id](a);(isTrip(surface)?assertTripHealthy:assertHealthy)(a,design,surface);}
+assert.deepEqual(new Set(surfaces.map(surface=>surface.id)),new Set(Object.keys(factories)),
+ 'Every expected view needs a real scenario factory, including newly added views');
+for(const surface of surfaces){
+ test(`journey view: ${surface.id}`,async()=>{
+  const a=await open(surface);
+  try{await factories[surface.id](a);(isTrip(surface)?assertTripHealthy:assertHealthy)(a,surface);}
   finally{a.close();}
  });
 }

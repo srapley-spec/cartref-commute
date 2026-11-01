@@ -120,7 +120,6 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/core/terminus.test.mjs: "terminusDepartures platform: only 'At <terminus> Platform N' for the named terminus; not Aldgate East, not approaching, not without a name"
 - tests/rules.test.mjs: "Met departures from Aldgate, review: Liverpool Street refusing (429), hanging, or answering OK with a page or an object never loses the Circles; a Met isn't listed twice"
 - tests/core/terminus.test.mjs: "terminusDepartures: anything but a list (an error page, an object) gives none"
-- tests/both-designs.test.mjs: "Both designs: the 30 Oct going-home tube and Aldgate rules pass in Signal too" (re-runs this story's rules tests with the Signal design on; the whole-evening test checks which design is on screen)
 - tests/rules.test.mjs: "Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon — once you've left, the card never times from the office"
 - tests/rules.test.mjs: "Aldgate's real feed (recorded 30 Oct 19:32): westbound Circles are kept; Met arrivals ending at Aldgate, phantom H&C and eastbound Circles are not"
 - tests/rules.test.mjs: "Review 30 Oct: an old finished ride doesn't stop tonight's tube being worked out; a pick that hasn't left wins"
@@ -137,8 +136,8 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/rules.test.mjs: "Going home 2: the ride heads for the best stop and ends there or when its time is over; morning and evening rides never mix"
 - tests/rules.test.mjs: "Going home 2: 'On a different tube?' switches you to one that has left; after 'No, still here' the app looks for the next one"
 - tests/rules.test.mjs: "Review: going home, 'On a different tube?' at Aldgate lists the nearest to yours first"
-- tests/rules.test.mjs: "Both designs (panda): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
-- tests/rules.test.mjs: "Both designs (signal): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
+- tests/rules.test.mjs: "Signal (light): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
+- tests/rules.test.mjs: "Signal (dark): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'"
 - tests/core/connections.test.mjs: "Several stops to get off at: the earliest arrival is the leg; ties go to the earlier stop; the others are kept"
 - tests/core/situation.test.mjs: "onTube / whichTube: left the station after a tube left; not while there with a fresh fix; not near Aldgate"
 - tests/core/situation.test.mjs: "Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one"

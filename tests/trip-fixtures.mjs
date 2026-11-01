@@ -10,7 +10,7 @@ export const TRIP_PLACES = {
   brighton: { id: "G-BTN", primary: "Brighton Station", secondary: "Queens Road, Brighton BN1 3XP", geo: [50.8290, -0.1412] },
   cathedral: { id: "G-CAT", primary: "Canterbury Cathedral", secondary: "The Precincts, Canterbury CT1 2EH", geo: [51.2798, 1.0828] },
 };
-export const TRIP_SETTINGS = { provider: "tfl", tflKey: "k", signal: true, followRoute: true, trip: true, googleKey: "AIzaTEST" };
+export const TRIP_SETTINGS = { provider: "tfl", tflKey: "k", followRoute: true, trip: true, googleKey: "AIzaTEST" };
 export function tripRoute(u) {
   if (/data\/stations\.json/.test(u)) return json(STATIONS);
   if (/JourneyResults\/90000899\/to\/1001160/.test(u)) return json(BTN_CBW);

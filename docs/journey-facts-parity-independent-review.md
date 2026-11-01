@@ -88,7 +88,7 @@ Each mutation changed one production/tool/configuration decision, built successf
 
 The first reduced selection left mutation 9 alive because it checked the qualified text but not the visible reach state. The existing full-suite core regression already killed it. The additional reached assertion now independently catches the actual UI inconsistency too; both its passing baseline and failing mutant were run. This was a test-selection/coverage improvement, not an outstanding production defect.
 
-Session artifacts are under `/workspace/scratch/journey-facts-parity-review/`: `baseline.log`, `final-baseline.log`, `mutations.json`, `mutation-run.log`, `mutant-01.log` through `mutant-39.log`, the mutation runner, and the explicit mutation-9 follow-up logs. Durable regressions are [independent page/runner tests](../tests/ui-parity-review.test.mjs), [enforcement tests](../tests/ui-parity-enforcement.test.mjs), [journey facts](../tests/core/journeyFacts.test.mjs), [station-board reach](../tests/core/stationBoard.test.mjs), and the registered [runtime parity matrix](../tests/ui-parity.test.mjs).
+Session artifacts are under `/workspace/scratch/journey-facts-parity-review/`: `baseline.log`, `final-baseline.log`, `mutations.json`, `mutation-run.log`, `mutant-01.log` through `mutant-39.log`, the mutation runner, and the explicit mutation-9 follow-up logs. Durable regressions are [independent page/runner tests](../tests/journey-facts-review.test.mjs), [enforcement tests](../tests/ui-parity-enforcement.test.mjs), [journey facts](../tests/core/journeyFacts.test.mjs), [station-board reach](../tests/core/stationBoard.test.mjs), and the registered [runtime parity matrix](../tests/journey-views.test.mjs).
 
 ## Release rule and limits
 

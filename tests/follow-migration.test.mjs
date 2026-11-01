@@ -22,7 +22,7 @@ test('released saved Follow switch and journey restore without deleting the old 
  assert.deepEqual(plain(a.c.state.saved.follow),old);assert.equal(a.d.querySelector('#followPanel').hidden,false);
  assert.ok(a.d.querySelector('.followtag'),'selected row is inert rather than resetting the saved journey');
  const before=a.calls.length,board=a.c.state.boards,chosen=a.c.state.saved.followRoute.id;
- a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_signal').checked=true;
+ a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_appearance').value='dark';
  a.d.querySelector('#settingsForm').dispatchEvent(new a.w.Event('submit',{cancelable:true,bubbles:true}));
  assert.equal(a.c.state.boards,board);assert.equal(a.calls.length,before);assert.equal(a.c.state.saved.followRoute.id,chosen);
  assert.deepEqual(a.errors,[]);a.close();

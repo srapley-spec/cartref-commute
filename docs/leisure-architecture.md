@@ -158,9 +158,9 @@ change moves the leave time with a reason; passed → "Leave now: N min late for
 ## 10. Screen and page contract
 - `trip-ui.js`: `mount(root, { ports, store, clock, net, present, onFollow })`, `net = { fetchT, logRequest, epoch }`.
   Every adapter (Google included) logs to `reqLog` (request-count goldens, simulator) and checks the source epoch.
-  No page globals; Panda's DOM untouched.
+  No page globals; the commute journey state stays independent.
 - `page.html`: mode becomes three-valued; `refresh` and `render` return early for Trip (no commute requests); a mode
-  switch calls `invalidateSources()`; restoring `mode: "trip"` with the switch or Signal off falls back to Commute.
+  switch calls `invalidateSources()`; restoring `mode: "trip"` with the Trip switch off falls back to Commute; retired Signal values are ignored.
   Signal's controls relocation (`journey-ui.js`) includes the Trip button. Page test: Trip makes 0 commute requests.
 
 ## 11. Speed

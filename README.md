@@ -2,6 +2,10 @@
 
 When to leave the office or Cartref, using live National Rail trains via King's Cross (Great Northern) or Farringdon (Thameslink), Circle/Met to Aldgate, and your measured walks.
 
+Signal is the app's default and only design, with System/Light/Dark appearance in Settings. Panda is preserved
+on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01);
+see the [retirement review](docs/panda-retirement-review.md). Follow remains an independent Experimental option.
+
 ## Try the journey simulator
 Open **Simulator** in the app header to replay a journey through the real application without travelling.
 The [simulator user guide](docs/simulator-user-guide.md) covers starting a journey, controls, scenarios,

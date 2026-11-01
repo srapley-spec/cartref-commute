@@ -1,6 +1,10 @@
 {
  "load": {
-  "dirNote": "",
+  "dirNote": "Location: Walking to the office · phone: in London (±20 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "",
+  "statusSummary": "Good service on your lines",
+  "significantDisruptions": "",
   "banners": [],
   "hero": "Walking to the office · 08:20 · from your location 08:23at the office · about 4 min walk 243 m to 20 Mansfield Street in a straight line.",
   "rows": [],

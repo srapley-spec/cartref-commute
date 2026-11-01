@@ -1,5 +1,5 @@
 // Signal and Follow a route shell. Decisions and timing belong to src/core; this file draws
-// those results and adapts existing observations. Both designs share this single controller.
+// those results and adapts existing observations. All journey views share this single controller.
 const followChoices = new Map();
 // View choice is a shared app capability. A skin or Follow preference cannot
 // remove Auto/Plan/Live; Follow itself remains independently configurable.
@@ -13,84 +13,51 @@ function restoreReleasedFollow(){
   if(imported){state.saved.followRoute=imported;save();}
 }
 function applyJourneyAppearance(){
-  document.documentElement.dataset.design=S().signal?'signal':'panda';
+  document.documentElement.dataset.design='signal';
   const theme=S().appearance;
   if(theme==='light'||theme==='dark')document.documentElement.dataset.theme=theme;
   else delete document.documentElement.dataset.theme;
   $('#journeyViewControl').hidden=!journeyEnabled();
   applySignalLayout();
 }
-// Reparent existing controls, never clone their handlers or maintain a second journey state.
-const signalHomes=new Map();
+// Arrange the existing controls once, retaining their handlers and saved values.
 let signalParts=null;
-let signalActive=false;
-function signalRemember(node){
-  if(!signalHomes.has(node)){const anchor=document.createComment('Signal layout home');node.before(anchor);signalHomes.set(node,anchor);}
-  return node;
-}
 function applySignalLayout(){
+  if(signalParts)return;
   const root=$('#hero').closest('.wrap');
-  if(!S().signal){
-    if(!signalActive)return;
-    for(const[node,anchor]of signalHomes)anchor.after(node);
-    if(signalParts)for(const node of Object.values(signalParts))if(node instanceof HTMLElement)node.hidden=true;
-    root.querySelector('h1').textContent='Cartref Commute';
-    signalActive=false;
-    return;
-  }
-  if(signalActive)return;
-  if(!signalParts){
-    // Remember every original root child before moving any of them, including hidden
-    // controls. Their anchors restore Panda's exact order on every skin transition.
-    [...root.children].forEach(signalRemember);
-    const make=(tag,id,html)=>{const node=document.createElement(tag);node.id=id;node.innerHTML=html;root.append(node);return node;};
-    signalParts={
-      toolbar:make('div','signalToolbar',''),
-      adjustments:make('details','signalAdjustments','<summary id="signalContextSummary">Journey options</summary><div class="signal-adjustment-body"></div>'),
-      planning:make('div','signalPlanningControls',''),
-      notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
-      network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
-      other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
-      boardHeading:make('div','signalBoardHeading',''),
-      disruptions:make('section','signalDisruptions',''),
-      connections:make('div','signalConnections',''),
-      freshness:make('span','signalFreshness','')
-    };
-    signalParts.toolbar.className='signal-toolbar';
-    for(const key of ['adjustments','notices','network','other'])signalParts[key].dataset.key='signal-'+key;
-    const context=signalRemember(document.querySelector('[data-mode]').closest('.controls'));
-    signalParts.adjustments.querySelector('div').append(context);
-    signalParts.planning.append(signalRemember(document.querySelector('[data-view]').closest('.controls')),signalRemember($('#byForm')));
-    signalParts.notices.append(signalRemember($('#banners')));
-    signalParts.network.append(signalRemember($('#status').previousElementSibling),signalRemember($('#status')),signalRemember($('#modelNote')),signalRemember(root.querySelector('footer > span')));
-    signalRemember($('#journeyViewControl'));signalRemember($('#hero'));signalRemember($('#dirNote'));
-    signalParts.toolbar.append($('#journeyViewControl'),signalParts.adjustments);
-    root.querySelector('footer').prepend(signalParts.freshness);
-  }
+  const make=(tag,id,html)=>{const node=document.createElement(tag);node.id=id;node.innerHTML=html;root.append(node);return node;};
+  signalParts={
+    toolbar:make('div','signalToolbar',''),
+    adjustments:make('details','signalAdjustments','<summary id="signalContextSummary">Journey options</summary><div class="signal-adjustment-body"></div>'),
+    planning:make('div','signalPlanningControls',''),
+    notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
+    network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
+    other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
+    boardHeading:make('div','signalBoardHeading',''),
+    disruptions:make('section','signalDisruptions',''),
+    connections:make('div','signalConnections',''),
+    freshness:make('span','signalFreshness','')
+  };
   const p=signalParts;
-  for(const key of ['toolbar','adjustments','planning','notices','network','freshness','boardHeading'])p[key].hidden=false;
-  // Switching skins restores these exact same elements and their input values.
+  p.toolbar.className='signal-toolbar';
+  for(const key of ['adjustments','notices','network','other'])p[key].dataset.key='signal-'+key;
   p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls'));
   p.toolbar.append($('#journeyViewControl'),p.adjustments);
   p.planning.append(document.querySelector('[data-view]').closest('.controls'),$('#byForm'));
   p.notices.append($('#banners'));
   p.boardHeading.append($('#listTitle'),p.notices);
-  const statusTitle=[...signalHomes.keys()].find(n=>n.tagName==='H2'&&n.textContent==='Line status');
-  if(statusTitle)p.network.append(statusTitle);
-  p.network.append($('#status'),$('#modelNote'));
-  const footerSpan=[...signalHomes.keys()].find(n=>n.tagName==='SPAN'&&n.querySelector('#updated'));
-  if(footerSpan)p.network.append(footerSpan);
+  const statusTitle=$('#status').previousElementSibling;
+  p.network.append(statusTitle,$('#status'),$('#modelNote'),root.querySelector('footer > span'));
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
   for(const node of [header,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
-  signalActive=true;
 }
 function signalReadingVisible(node){
   for(let p=node;p;p=p.parentElement)if(p.hidden||(p.tagName==='DETAILS'&&!p.open))return false;
   return true;
 }
 function renderSignalCompact(){
-  if(!S().signal||!signalParts)return;
+  if(!signalParts)return;
   const p=signalParts;
   $('#signalContextSummary').textContent=`${state.saved.mode==='leisure'?'Leisure':direction()==='home'?'To home':'To office'} · ${state.saved.mode==='leisure'?'Journey options':state.saved.pace==='fast'?'Fast pace':'Average pace'}`;
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
@@ -134,6 +101,8 @@ function renderSignalCompact(){
     const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
     if(times)summary.append(times);
     const service=document.createElement('span');service.className='signal-alt-service';service.textContent=opt.dataset.serviceLabel||'';summary.append(service);
+    const boarding=opt.querySelector('.altstop');
+    if(boarding){const compact=boarding.cloneNode(true);compact.className='signal-alt-boarding';summary.append(compact);}
     const facts=opt.querySelector('.journey-facts');
     if(facts){const compact=facts.cloneNode(true);compact.classList.add('signal-alt-facts');summary.append(compact);}
     const comparison=opt.querySelector('[data-fact="arrives-first"]');
@@ -216,7 +185,7 @@ function followButton(option){
   const selected=C.restoreFollowRoute(state.saved.followRoute);
   if(selected&&selected.phase!=='arrived'&&selected.direction===direction()&&selected.mode===currentMode()&&C.followMatchesService(selected,option))return '<span class="followtag pill info">Following this route</span>';
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
-  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${S().signal?(possible?'Follow':'Unavailable'):(possible?'Follow this route':'Cannot follow this train')}</button>`;
+  return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow':'Unavailable'}</button>`;
 }
 function selectFollowRoute(option){
   const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
@@ -419,7 +388,7 @@ function journeyDisruptions(){
   return {context,failed,input,items:C.visibleDisruptions(input)};
 }
 function renderSignalStatus(){
-  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const el=$('#signalStatus');el.hidden=false;
   const {context,failed,input,items}=journeyDisruptions();
   state.signalDisruptionItems=items;
   const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
@@ -446,7 +415,6 @@ function renderSignalStatus(){
   }
 }
 function renderSignalLocation(){
-  if(!S().signal)return;
   const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
   const station=atStation(true),ride=state.rendered?.ride;
   const rail=state.onLine||state.followUpdate?.route?.phase==='on-train';
@@ -462,7 +430,6 @@ function renderSignalLocation(){
 function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
-  if(!journeyEnabled()&&!signalActive)return null;
   const a=document.activeElement;
   if(!a||a===document.body)return null;
   const keys=['data-follow','data-follow-action','data-pick','data-tubepick','data-ride'];

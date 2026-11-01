@@ -29,7 +29,5 @@ jobs:
           if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then base=origin/main; fi
           if [ "$(git rev-parse "$base")" = "$(git rev-parse HEAD)" ]; then node tools/check-docs.mjs; exit; fi
           node tools/check-docs.mjs --since "$base"
-      - name: All tests and required UI parity
-        env:
-          UI_PARITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - name: All tests
         run: node tools/run-tests.mjs

@@ -11,7 +11,7 @@ async function until(check,why){for(let n=0;n<1200;n++){if(check())return;await 
 const view=a=>a.c.simulator.getView();
 async function checked(a){await until(()=>!view(a).verification.pending&&view(a).verification.current?.index===view(a).index,'normal checkpoint observation settles');return view(a).verification.current;}
 async function start(route='kgx'){
- const a=await createApp({settings:{provider:'rdm',rdmKey:'review-fixture-secret',signal:true,followRoute:true},settle:120});apps.push(a);
+ const a=await createApp({settings:{provider:'rdm',rdmKey:'review-fixture-secret',followRoute:true},settle:120});apps.push(a);
  click(a,'journeySimulatorBtn');choose(a,'journeyRoute',route);click(a,'journeyStart');await until(()=>a.c.simulator.sim.active&&a.d.getElementById('simPanel').hidden,'guided Start collapses');await checked(a);
  assert.equal(a.d.documentElement.dataset.design,'signal','guided Start preserves the real application design');assert.equal(a.c.S().followRoute,true,'guided Start preserves Follow capability');return a;
 }

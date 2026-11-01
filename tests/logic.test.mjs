@@ -227,8 +227,12 @@ test("Leave now card: best train, then the next best (same route allowed), total
   c.render();
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
   assert.equal(opts.length, 2);
-  assert.match(opts[0], new RegExp(`${hm(now + 39 * m)} Great Northern · 29 min train · total \\d+h \\d\\dm`), "best: the fast one");
-  assert.match(opts[1], new RegExp(`${hm(now + 55 * m)} Great Northern · 29 min train`), "next best: the next fast one, same route");
+  const nodes=[...app.d.querySelectorAll("#hero .opt")];
+  for(const [index,departure] of [[0,39],[1,55]]){
+    assert.match(nodes[index].querySelector(".journey-service").textContent,new RegExp(`${hm(now+departure*m)} Great Northern`));
+    assert.equal(Number(nodes[index].querySelector('[data-fact="train-duration"]').dataset.ms),29*m);
+  }
+  assert.match(nodes[0].querySelector(".journey-total-time").textContent,/Total journey \d+h \d\dm/);
   assert.match(app.text("#hero"), new RegExp(`Leaving right now\\? The ${hm(now + 30 * m)} Great Northern — stopping train, 52 min; office \\d\\d:\\d\\d, \\d+ min later than the ${hm(now + 39 * m)} \\(office \\d\\d:\\d\\d\\)`));
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
 });
@@ -379,6 +383,10 @@ test("Platform is on the card and the list without expanding; with two boarding 
     assert.match(s, /Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
     assert.doesNotMatch(s, /Thameslink · platform/);
   }
+  const next=app.d.querySelector('.signal-alternative>summary');
+  assert.ok(next,'the second train uses the actual compact summary');
+  assert.match(next.textContent,/Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
+  assert.doesNotMatch(next.textContent,/Thameslink · platform/);
 });
 
 test("Disruption banners say they're about trains now when the plan on screen is later", () => {

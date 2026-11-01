@@ -14,8 +14,7 @@ const pad = (n) => String(n).padStart(2, "0");
 const hm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const OFFICE = { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } };
-// CARTREF_DESIGN=signal re-runs these rules in the Signal design (tests/both-designs.test.mjs).
-const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k", ...(process.env.CARTREF_DESIGN === "signal" ? { signal: true } : {}) };
+const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k" };
 const st = (id, name, sev = 10, desc = "Good Service") => ({ id, name, lineStatuses: [{ statusSeverity: sev, statusSeverityDescription: desc }] });
 
 /** A fresh app on the deterministic railway. `tube`: [circleSev, metSev]. `fail(u)` returns a status code to fail a request. */
@@ -478,13 +477,17 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   c.state.here = [51.9700, -0.2400]; c.state.locAcc = 20; c.state.onLine = false;
   c.render();
   const s = c.S(), walk = s.walkStationHomeAvg + s.letExit;
-  assert.match(app.text("#hero"), new RegExp(`Nearly home · 20:14 ?${hm(T("20:18") + walk * 1000)} ?at home On the 19:48 Great Northern About 2 min late Letchworth 20:18 expected`));
+  assert.match(app.text('#hero [data-block="label"]'),/Nearly home · 20:14/);
+  assert.match(app.text('#hero [data-block="headline"]'),new RegExp(`${hm(T("20:18")+walk*1000)} ?at home`));
+  assert.match(app.text('#hero [data-block="which"]'),/On the 19:48 Great Northern About 2 min late/);
+  assert.match(app.text('#hero [data-block="then"]'),/Letchworth 20:18 expected/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok", "2 min late is green (amber from 5, Sam 30 Oct)");
   t.arr = T("20:21"); t.arrLate = 5; c.render();
   assert.match(app.text("#hero"), /On the 19:48 Great Northern About 5 min late/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst warn", "5 min late is amber");
   t.arr = T("20:17"); t.arrLate = 1; c.render();
-  assert.match(app.text("#hero"), /On the 19:48 Great Northern On time Letchworth 20:17 expected/, "1 min: green, on time");
+  assert.match(app.text('#hero [data-block="which"]'),/On the 19:48 Great Northern On time/,'1 min: green, on time');
+  assert.match(app.text('#hero [data-block="then"]'),/Letchworth 20:17 expected/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok");
   t.timetable = true; c.render();
   assert.equal(app.w.document.querySelector("#hero .slackst"), null, "a timetable train is never claimed on time");
@@ -545,10 +548,10 @@ test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not
   const first = c.ranked(Date.now()).find(o => o.recommended === 1), atDesk = leaveFor(first);
   assert.match(app.text("#hero"), /Leave office/);
   await app.moveTo(51.5142, -0.0755, 7);                                  // on the platform at Aldgate, ±7 m
-  if (process.env.CARTREF_DESIGN === "signal") {
+  {
     assert.match(app.text("#dirNote"), /^Location: .*at Aldgate \(±7 m\)/i);
     assert.match(c.state.autoSrc, /^you're at Aldgate \(±7 m\)/, "Signal retains the phone's actual location interpretation");
-  } else assert.match(app.text("#dirNote"), /^Heading home · you're at Aldgate \(±7 m\)/);
+  }
   assert.equal(leaveFor(first), atDesk + 420e3, "the 7-minute walk from the office is gone; the platform walk stays");
   const steps = c.routesFor("home", "commute", { here: true });
   assert.ok(steps.every(r => /^You're at Aldgate: go to the platform/.test(r.before[0].step.d)), steps.map(r => r.before[0].step && r.before[0].step.d).join());
@@ -755,12 +758,17 @@ test("Arriving at the office: 'you've arrived', and still the morning journey un
   await app.moveTo(51.5139 + 0.003, -0.0710, 15);                    // 330 m away: walking to the office
   assert.match(app.text("#hero"), /^Walking to the office/);
   await app.moveTo(51.5139 + 0.0005, -0.0710, 14);                   // at the door (55 m)
-  assert.match(app.text("#dirNote"), /^Heading to the office · you're at the office/);
+  assert.equal(c.direction(),'office');
+  assert.match(app.text('#signalContextSummary'),/To office/);
+  assert.match(app.text("#dirNote"), /^Location: .*at the office/);
   assert.match(app.text("#hero"), /At the office · 08:04.*you've arrived/);
   app.at(T("08:08")); await app.moveTo(51.5139, -0.0710, 30);
-  assert.match(app.text("#dirNote"), /^Heading to the office/, "4 min: still arriving");
+  assert.equal(c.direction(),'office','4 min: still arriving');
+  assert.match(app.text('#signalContextSummary'),/To office/);
   app.at(T("08:10")); await app.moveTo(51.5139, -0.0711, 30);
-  assert.match(app.text("#dirNote"), /^Heading home · you're at the office/, "6 min there: the journey turns round");
+  assert.equal(c.direction(),'home','6 min there: the journey turns round');
+  assert.match(app.text('#signalContextSummary'),/To home/);
+  assert.match(app.text('#dirNote'),/^Location: .*at the office/);
   app.close();
 });
 
@@ -963,9 +971,11 @@ test("At the desk with GPS reading 217 m: after 10 minutes within 300 m the jour
   await app.moveTo(51.5139 + 0.00195, -0.0710, 15);                  // 217 m, ±15 m (30 Oct screenshot)
   assert.match(app.text("#hero"), /^Walking to the office/);
   app.at(T("09:19")); await app.moveTo(51.5139 + 0.00196, -0.0710, 15);
-  assert.match(app.text("#dirNote"), /^Heading to the office/, "9 min: still arriving");
+  assert.equal(app.c.direction(),'office','9 min: still arriving');
+  assert.match(app.text('#signalContextSummary'),/To office/);
   app.at(T("09:21")); await app.moveTo(51.5139 + 0.00195, -0.0711, 15);
-  assert.match(app.text("#dirNote"), /^Heading home/, "11 min nearby: heading home");
+  assert.equal(app.c.direction(),'home','11 min nearby: heading home');
+  assert.match(app.text('#signalContextSummary'),/To home/);
   assert.doesNotMatch(app.text("#hero"), /Walking to the office/);
   app.close();
 });
@@ -976,7 +986,7 @@ test("Review: office arrival — 120 m is 'you've arrived', 200 m is still walki
   assert.match(app.text("#hero"), /^Walking to the office/);
   await app.fix(51.5139 + 0.0011, -0.0710, 15, now + 30e3);          // 120 m
   assert.match(app.text("#hero"), /you've arrived/);
-  assert.match(app.text("#dirNote"), /you're at the office/);
+  assert.match(app.text("#dirNote"), /Location: .*at the office/);
   app.close();
 });
 
@@ -1052,7 +1062,9 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
   const hero = app.text("#hero");
   assert.match(hero, /You're on the 07:51 H&C/);
   assert.match(hero, /Aldgate East/);
-  assert.match(hero, /H&C: /); assert.doesNotMatch(hero, /Circle: |Met: /);
+  app.d.querySelector('#signalNetwork').open=true;
+  const lines=app.text('#signalCurrentLines');
+  assert.match(lines,/H&C: /);assert.doesNotMatch(lines,/Circle: |Met: /);
   app.close();
 });
 
@@ -1158,7 +1170,7 @@ test("Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon �
   const MOORGATE = [51.5186, -0.0886], FARRINGDON = [51.5203, -0.1053];
   const { app, c } = await homeApp(T("16:30"));
   const fromOffice = () => /Leave office|leave the office/.test(app.text("#hero"));
-  assert.equal(app.d.documentElement.dataset.design, process.env.CARTREF_DESIGN === "signal" ? "signal" : "panda", "the design under test");
+  assert.equal(app.d.documentElement.dataset.design, "signal", "the design under test");
   await app.fix(...OFFICE_PT, 15, T("16:30"));
   assert.ok(fromOffice(), "at the desk: timed from the office");
   await app.fix(...ALD, 7, T("16:44"));                                // on the platform at Aldgate
@@ -1638,14 +1650,14 @@ test("Train stop review 2: timed by when the phone took the fix, so a fix that a
   app3.close();
 });
 
-// ---------- Both designs (Sam, 31 Oct: everything from 30 Oct must work in Panda and in Signal) ----------
-const designSettings = (design) => design === "signal" ? { ...RDM, signal: true } : RDM;
+// ---------- Signal: Tube regression scenarios in both appearances ----------
+const designSettings = (appearance) => ({...RDM,appearance});
 const btnText = (app) => [...app.d.querySelectorAll("#hero [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
 
 async function kingsCrossCardScenario(design) {
     const DS = designSettings(design);
     const app = await open({ now: T("08:38") + 50e3, geo: null, settings: DS, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
-    assert.equal(app.d.documentElement.dataset.design, design);
+    assert.equal(app.d.documentElement.dataset.design, "signal");
     await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
     await app.fix(...KX, 20, T("08:40"), 6);
     await app.fix(...KX, 20, T("08:40") + 30e3, 0);
@@ -1700,9 +1712,9 @@ async function aldgateHomeScenario(design) {
     assert.match(app.text("#hero"), /On a different tube\?\s*Met Amersham · left 7 min ago/);
     app.close();
   }
-test("Both designs (panda): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("panda"));
-test("Both designs (signal): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("signal"));
-test("Both designs (panda): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("panda"));
-test("Both designs (signal): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("signal"));
-test("Both designs (panda): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("panda"));
-test("Both designs (signal): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("signal"));
+test("Signal (light): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("light"));
+test("Signal (dark): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("dark"));
+test("Signal (light): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("light"));
+test("Signal (dark): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("dark"));
+test("Signal (light): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("light"));
+test("Signal (dark): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("dark"));

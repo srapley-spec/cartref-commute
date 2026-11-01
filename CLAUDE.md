@@ -29,12 +29,10 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.
 - Don't overwhelm the interface: detail replaces a line or folds away.
-- **Maintain every supported UI concurrently (Sam, 31 Oct).** A feature, bug fix, shared rule or new journey fact
-  ships in every supported design and applicable view in the same change. Geometry may differ; availability,
-  meaning, values, status and actions must remain equivalent. Do not defer another design as follow-up work.
-  Reuse shared renderers and engine facts rather than duplicating calculations or making artificial file edits.
-  The only exception is one Sam explicitly approves for named surfaces, recorded as below (Trip mode is Signal-only:
-  `docs/decisions/trip-signal-only.md`, 1 Nov). Never assume one.
+- **Signal is the sole supported design (Sam, 1 Nov).** Panda is archived on
+  `archive/panda-2026-11-01`; its switch and the design-parity release rule are retired.
+  Keep journey facts, actions, status and unknowns correct across planning and live views using normal
+  regression coverage. See `docs/panda-retirement-review.md`; do not reintroduce a design toggle or parity registry.
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.
@@ -47,26 +45,6 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Build and test
 - `npm ci` once. `npm test` builds and runs everything (≈2–3 min). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
-- **UI parity is a mandatory release gate, without a waiver.** `config/ui-parity.json` registers supported designs
-  and surfaces. `tests/ui-parity.test.mjs` exercises their actual visible semantic contracts. `npm test`, the clean
-  committed-HEAD CI and GitHub all require every design/surface tuple to pass; missing, skipped, TODO, duplicate
-  or failed cases block release. `Docs: none` does not waive parity. `npm run check-ui-parity` runs this matrix alone.
-  Add a surface and its actual-page cases when adding a view; all engine views must be represented. Extend the
-  shared contract when adding information or actions, including appropriate missing/stale/unknown states.
-  Production `data-design` selectors and assignments under `src/` must match the registry. Select design IDs
-  through explicit literals/conditional branches; opaque computed assignments fail the gate rather than evade
-  inventory. Historical design proposals under `docs/` are outside the production inventory.
-- A surface may be limited to some designs **only with Sam's explicit exception**: its registry entry lists `designs` and
-  an `exception` decision under `docs/` containing `Approved by: Sam` and, per surface,
-  `Design exception: surface:<id> designs:<ids>` (IDs sorted, comma-separated, e.g. `designs:signal`). Only a new surface
-  can start as an exception (one every design already had cannot lose a design that way). The gate then requires the
-  listed designs' cases and, for each left-out design, a negative case proving the surface really is absent there.
-  Do not invent approval; an exception is not retirement and covers only the surfaces it names.
-- A UI leaves the matrix **only after Sam explicitly retires it and the implementation is removed**. In the same
-  change, retain a `retired` record (`kind`, `id`, `decision`) and a decision under `docs/` containing the exact lines
-  `Approved by: Sam` and `Retired UI: design:<id>` (or `surface:<id>`). Record the real decision and its context;
-  do not invent approval. CI rejects silent registry shrinkage or removed retirement history. A design being old,
-  experimental or temporarily inconvenient is not retirement.
 - `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
   committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
 - After editing `src/`, run `npm run build` and commit `index.html`; CI fails if it's stale.
@@ -81,6 +59,10 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Release
 - `main` is live (GitHub Pages publishes every push at once, before GitHub's tests finish). Work on a branch; merge
   to `main` as below.
+- **Finish authorised work through release (Sam, 1 Nov).** Once the work, tests and required independent review
+  are complete, merge to `main` and verify its tests and live deployment. Do not leave completed work on an open
+  PR or ask Sam for routine merge approval. A PR is a merge mechanism, not another approval gate; create one only
+  when useful or required. Respect an explicit instruction to wait and report any actual blocker.
 - **Bigger changes get an independent test review before merging** (Sam, 29 Oct): a separate agent that didn't
   write the code makes deliberate one-line breakages (mutation testing) and probes edge cases against the story;
   fix what it finds, re-run its survivors, and merge only once it's satisfied. Give it the commit to review (an

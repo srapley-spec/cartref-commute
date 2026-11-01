@@ -6,7 +6,7 @@ import {createApp,closeAll,at,sleep,json,parseJourneyUrl} from './harness.mjs';
 import {services,darwinResponder,tflResponder} from './golden/feeds.mjs';
 after(closeAll);
 const NOW=at('2026-11-03','07:00'),MIN=60000;
-const app=(extra={})=>createApp({now:NOW,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:'office'},...extra});
+const app=(extra={})=>createApp({now:NOW,settings:{provider:'demo',followRoute:true},saved:{dirMode:'office'},...extra});
 function pick(a){const b=a.d.querySelector('[data-follow]:not([disabled])');assert.ok(b,'a reachable planned option has a Follow action');b.click();return JSON.parse(JSON.stringify(a.c.state.saved.followRoute));}
 function option(extra={},trainExtra={}){return {hub:'MID',leave:NOW+10*MIN,arrive:NOW+70*MIN,effort:'walk',flags:[],legs:[{t:NOW+10*MIN,d:'Walk to Central'},{t:NOW+30*MIN,d:'Train to Riverside',train:true},{t:NOW+70*MIN,d:'Arrive destination'}],train:{from:'MID',to:'END',std:'07:30',dep:NOW+30*MIN,arr:NOW+60*MIN,depLate:0,arrLate:0,depUnknown:false,platform:'1',operator:'Example Rail',cancelled:false,reason:'',serviceId:'chosen',...trainExtra},...extra};}
 const start=()=>core.startFollowRoute(option(),{now:NOW,direction:'home',mode:'commute'});
@@ -61,7 +61,7 @@ test('independent review: planning pin retains the followed-route cancellation a
 test('independent review: a failed chosen live board stays stale when a sibling route refreshes successfully',async()=>{
  let now=NOW,failedBoard=null;const hits=[];
  const all=services('2026-11-03'),darwin=darwinResponder(all,()=>now),tfl=tflResponder(all);
- const a=await createApp({now,settings:{provider:'rdm',rdmKey:'test',rdmBase:'https://darwin.test/LDBWS/api/20220120',signal:true,followRoute:true},saved:{dirMode:'office'},settle:700,
+ const a=await createApp({now,settings:{provider:'rdm',rdmKey:'test',rdmBase:'https://darwin.test/LDBWS/api/20220120',followRoute:true},saved:{dirMode:'office'},settle:700,
   route:u=>{
    if(u.includes('darwin.test')){
     const m=/GetDepBoardWithDetails\/([A-Z]{3})\?/.exec(u),key=m?m[1]+'-'+new URL(u).searchParams.get('filterCrs'):null;

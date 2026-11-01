@@ -48,13 +48,13 @@ with sync_playwright() as p:
  def set_design(design,appearance='system'):
   if page.locator('#simPanel').is_visible():page.locator('#simToggle').click()
   page.locator('#settingsBtn').click()
-  page.locator('#s_signal').set_checked(design=='signal')
+  assert page.locator('#s_signal').count()==0
   page.locator('#s_followRoute').uncheck()
   page.select_option('#s_appearance',appearance);page.locator('#saveBtn').click()
   assert page.evaluate("document.documentElement.dataset.design")==design
  # Preserve all previous readability assertions, now opening progressive disclosure
  # before inspecting its controls. Check both mode surfaces, including native checkbox labels.
- for design in ['panda','signal']:
+ for design in ['signal']:
   set_design(design)
   for theme in ['light','dark']:
    page.emulate_media(color_scheme=theme)
@@ -92,7 +92,7 @@ with sync_playwright() as p:
  assert page.evaluate('__commute.simClock.now()')==frozen
  page.locator('#simAdvance').click();assert page.locator('#simAdvance').inner_text()=='Continue'
  assert page.evaluate('playback.size')==0
- for design in ['panda','signal']:
+ for design in ['signal']:
   set_design(design)
   for direction in ['outbound','return']:
    for route in ['kgx','far']:
@@ -125,4 +125,4 @@ with sync_playwright() as p:
  assert not errors,errors
  browser.close()
 server.shutdown()
-print(json.dumps({'browser':'Chromium','phoneLayouts':36,'designs':['panda','signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'reloadRestoresReal':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))
+print(json.dumps({'browser':'Chromium','phoneLayouts':18,'designs':['signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'reloadRestoresReal':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))

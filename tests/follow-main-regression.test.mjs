@@ -12,13 +12,12 @@ const RDM={provider:'rdm',rdmKey:'test',rdmBase:'https://darwin.test/LDBWS/api/2
 const plain=x=>JSON.parse(JSON.stringify(x));
 const status=(id,name)=>({id,name,lineStatuses:[{statusSeverity:10,statusSeverityDescription:'Good Service'}]});
 async function settle(a){for(let n=0;n<100;n++){await sleep(10);if(!a.c.state.loading)return;}assert.fail('fixture refresh did not finish');}
-// Every scenario runs in both designs (Panda and Signal; Sam, 31 Oct: everything recent must work in both).
-let SIGNAL=false;
+// Every scenario runs in the production Signal presentation.
 async function open({now=T('18:19'),geo=OFFICE,enabled=true,saved={},extra}={}){
  let current=now;const svcs=[...services('2026-11-02'),...services(DAY),...services('2026-11-04')];
  const dar=darwinResponder(svcs,()=>current),tfl=tflResponder(svcs),details=serviceDetailsResponder(svcs,()=>current);
  const a=await createApp({now,geo:geo?{coords:{latitude:geo[0],longitude:geo[1],accuracy:10}}:null,
-  settings:{...RDM,...(SIGNAL?{signal:true}:{}),...(enabled?{followRoute:true}: {})},saved:{dirMode:'home',...saved},settle:650,
+  settings:{...RDM,...(enabled?{followRoute:true}: {})},saved:{dirMode:'home',...saved},settle:650,
   route:u=>{
    const response=extra?.(u,current);if(response!==undefined)return response;
    if(/darwin\.test\/SD\//.test(u)){const r=details(u);return r?json(r):json({},404);}
@@ -146,5 +145,4 @@ scenario('main Follow preservation: a planning pin survives nineteen minutes at 
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-for(const signal of [false,true])for(const [name,fn] of scenarios)
- test(`${name}${signal?' (Signal)':''}`,async()=>{SIGNAL=signal;try{await fn();}finally{SIGNAL=false;}});
+for(const [name,fn] of scenarios)test(name,fn);

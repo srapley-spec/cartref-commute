@@ -50,7 +50,7 @@ so that I can inspect inference and onward planning without travelling.
   The new in-place button is `journeyResetState`, and the compact Back button is `journeyBack`.
 - Stop and reload retain the existing real-context restoration and persistence safeguards.
 
-Tests: `tests/simulator-context-reset.test.mjs` (both routes/directions in Panda and Signal, recovery,
+Tests: `tests/simulator-context-reset.test.mjs` (both routes/directions in Signal; appearance geometry is covered by the browser suite, recovery,
 actual choices, unavailable/stale/rough GPS, async cancellation, independent sources and real context),
 `tests/simulator-verification.test.mjs` (cold oracles), `tests/simulator-report.test.mjs` (epochs/history/privacy),
 and real mobile Chromium `tests/browser-simulator-context-reset.py`.
@@ -66,7 +66,7 @@ and real mobile Chromium `tests/browser-simulator-context-reset.py`.
   or three-minute-old reports cannot prove fresh progress. Verification remains read-only and uses scoped
   provider calling points, never fabricated passing reports.
 - Session/index/playback generations reject stale asynchronous verification after restart, Stop, source changes or continued playback. Device clock advancement in GPS-only mode must not leave verification permanently pending.
-- Optional Signal and Panda share the same simulator. Explicit Plan/Live pins are reported as INCONCLUSIVE for automatic-view expectations; Return to Auto restores those assertions. A displayed followed service has an independent phase assertion at Stevenage/approach/through-station checkpoints, even when the main card uses the richer on-train view. The separate real Follow card is retained and sanitized alongside the main card.
+- Signal uses the same production simulator. Explicit Plan/Live pins are reported as INCONCLUSIVE for automatic-view expectations; Return to Auto restores those assertions. A displayed followed service has an independent phase assertion at Stevenage/approach/through-station checkpoints, even when the main card uses the richer on-train view. The separate real Follow card is retained and sanitized alongside the main card.
 - Reading/editing deferral is INCONCLUSIVE only when the real application reports a pending transition and actual app interaction is present. A pending flag alone cannot conceal a wrong automatic view. Simulator inputs are excluded from the real app's interaction deferral, so inspecting Advanced controls cannot hold back normal journey presentation.
 - Deliberately poor GPS from Advanced uses coarse-location expectations even if Normal journey is selected. It remains INCONCLUSIVE for precision-dependent decisions, still fails a confident station claim from a coarse fix, and returns to ordinary assertions after precise recovery.
 - Keep earlier failures and later revisions. A small failure indicator opens expected/actual explanations and the actual displayed main-card text without hiding that card.
@@ -108,7 +108,7 @@ records executed assertions. Exact committed CI, merge and deployment evidence i
 
 Test lifecycle cleanup waits for native GPS and the resulting refresh to settle before closing a simulated browser. This prevents pending asynchronous callbacks from running after document teardown; CI correctly rejected the earlier incomplete cleanup.
 
-Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides in both Panda and Signal (36 combinations). Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
+Phone UI regression: the Chromium check covers320×568,393×852 and852×393 layouts under system light/dark plus manual light/dark overrides in Signal (both system appearances and manual overrides). Every button/input/select must have4.5:1 text contrast and a44px target, with no panel overflow or overlap with the playback bar. Hiding the controller is tested independently of stopping the simulation.
 
 Redesign regression suites: `tests/simulator-journey-ux.test.mjs`, `tests/simulator-verification.test.mjs`, `tests/simulator-report.test.mjs`, and independent `tests/simulator-ux-review.test.mjs`. The complete scenario matrix and staged review record carry executed results.
 The Journey UX Next helper waits for the actual enabled control, clicks once and requires monotonic

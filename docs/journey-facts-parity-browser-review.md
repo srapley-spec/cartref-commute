@@ -11,7 +11,7 @@ With Python Playwright and Chromium installed, run from the repository:
 
 ```sh
 npm run build
-python tests/browser-ui-parity.py
+python tests/browser-journey-facts.py
 ```
 
 `CHROMIUM_PATH` overrides `/usr/bin/chromium`; `UI_PARITY_ARTIFACT_DIR` overrides `/workspace/scratch`.

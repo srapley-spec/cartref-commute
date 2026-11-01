@@ -1,8 +1,8 @@
 import {test,after} from 'node:test';import assert from 'node:assert/strict';
 import {createApp,closeAll} from './harness.mjs';after(closeAll);
 const NOW=Date.parse('2026-11-03T09:20:00Z'),MIN=60000;
-for(const signal of [false,true])test(`reconciliation: ${signal?'Signal':'Panda'} commentary uses the current endpoint and preserves explicit unknown duration`,async()=>{
- const a=await createApp({now:NOW,settings:{provider:'demo',signal,alongLine:true,followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
+for(const appearance of ['light','dark'])test(`reconciliation: ${appearance} commentary uses the current endpoint and preserves explicit unknown duration`,async()=>{
+ const a=await createApp({now:NOW,settings:{provider:'demo',appearance,alongLine:true,followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
  const t={from:'LET',to:'KGX',std:'09:05',dep:NOW-15*MIN,arr:NOW+20*MIN,operator:'Great Northern',serviceId:'composition-service',depLate:0,arrLate:0,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'',calls:[{code:'LET',name:'Letchworth',t:NOW-15*MIN},{code:'KGX',name:'Kings Cross',t:NOW+20*MIN}]};
  const raw={locationName:'Letchworth',crs:'LET',std:'09:05',atd:'09:05',subsequentCallingPoints:[{callingPoint:[{locationName:'Kings Cross',crs:'KGX',st:'09:40',et:'10:00'}]}]};
  Object.assign(s,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:NOW,railSource:'darwin',boardsDir:'office',here:[51.8158,-.1972],locAcc:10,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:true,atHub:null,inLondon:false,trainLock:{from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true},progressById:{[t.serviceId]:{id:t.serviceId,at:NOW,data:a.w.CommuteCore.parseServiceDetails(raw,NOW)}}});
@@ -18,7 +18,7 @@ for(const signal of [false,true])test(`reconciliation: ${signal?'Signal':'Panda'
  for(const mode of ['auto','plan','live'])assert.ok(a.d.querySelector(`[data-journey-view="${mode}"]`));
  s.rendered.progress.finalArrival=null;a.d.querySelector('#alongScroll').dispatchEvent(new a.w.Event('wheel'));a.d.querySelector('#alongNow').click();
  assert.equal(a.d.querySelector('#alongJourney [data-fact="total-duration"]').hasAttribute('data-ms'),false);
- assert.match(a.text('#alongJourney'),signal?/Total journey time unavailable/:/Total time unavailable/);
+ assert.match(a.text('#alongJourney'),/Total journey time unavailable/);
  assert.equal(Number(a.d.querySelector('#alongJourney [data-fact="train-duration"]').dataset.ms),55*MIN);
  s.rendered.progress.expectedArrival=null;a.d.querySelector('#alongScroll').dispatchEvent(new a.w.Event('wheel'));a.d.querySelector('#alongNow').click();
  assert.equal(a.d.querySelector('#alongJourney [data-fact][data-ms]'),null,'unknown rail end cannot retain train or total duration');

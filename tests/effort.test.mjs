@@ -162,7 +162,7 @@ test("Effort levels on: a fast-walk pick's total time and steps are at a fast wa
   assert.equal(x.legs.find((l) => l.train).t, T.X.dep, "the train is unchanged");
   const hero = a.text("#hero");
   const mins = Math.round((x.arrive - leave) / 60e3);
-  assert.match(hero, new RegExp(`total ${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m`), "total from the fast-walk leave");
+  assert.match(hero, new RegExp(`Total journey ${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m`), "total from the fast-walk leave");
   assert.doesNotMatch(hero.slice(hero.indexOf("→"), hero.indexOf("Journey steps")), /leave now/, "2 min 41 s to leave at a fast walk (the label above says 'If you leave now')");
   a.close();
 });
@@ -187,7 +187,7 @@ async function assertDepartureCountdown(signal) {
   assert.deepEqual(a.errors, []);
   a.close();
 }
-test('Departure countdown: Panda has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(false));
+test('Departure countdown: an obsolete disabled Signal preference retains the precise countdown', () => assertDepartureCountdown(false));
 test('Departure countdown: Signal has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(true));
 
 test("Effort levels on: on your way, a train that needs a fast walk says 'walk fast'", async () => {

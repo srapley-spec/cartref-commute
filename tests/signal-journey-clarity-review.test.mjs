@@ -24,7 +24,7 @@ const visibleText=(a,selector)=>{
  return out.join(' ').replace(/\s+/g,' ').trim();
 };
 async function app(home=false){
- const a=await createApp({now:NOW,geo:null,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:home?'home':'office'}}),s=a.c.state;
+ const a=await createApp({now:NOW,geo:null,settings:{provider:'demo',followRoute:true},saved:{dirMode:home?'home':'office'}}),s=a.c.state;
  s.saved.settings.provider='rdm';s.saved.settings.rdmKey='fixture-only';s.saved.view='now';s.saved.mode='commute';
  s.boards=home?{
   'KGX-LET':{services:[rail('KGX','LET','08:00',NOW+60*MIN,NOW+90*MIN,'home-gn')],msgs:[]},
@@ -145,15 +145,9 @@ test('independent Signal clarity: a fresh current-train report promotes a seriou
  assert.match(visibleText(a,'#signalDisruptions'),/points failure/i,'retain the current report cause');
  assert.equal(t.arrLate,0,'the diagnostic view does not rewrite the original board');
  const requests=a.calls.slice();
- s.saved.settings.signal=false;a.c.render();
- assert.equal(a.d.documentElement.dataset.design,'panda');
- assert.equal(a.d.querySelector('.journey-progress'),null,'the optional Signal visual cannot leak into Panda on an actual selected live train');
- const legacy=[...a.d.querySelectorAll('#hero [data-block="progress"]')];
- assert.ok(legacy.length&&legacy.every(node=>visible(a,node)),'Panda retains its original visible report diagnostics');
- assert.deepEqual(a.calls,requests,'switching designs cannot add provider requests');
- s.saved.settings.signal=true;a.c.render();
+ s.saved.settings.appearance='dark';a.c.render();
  assert.equal(a.d.documentElement.dataset.design,'signal');
- assert.match(visibleText(a,'.journey-progress'),/20 min behind/,'turning Signal back on restores the same selected report');
+ assert.match(visibleText(a,'.journey-progress'),/20 min behind/,'changing appearance retains the same selected report');
  assert.equal(s.trainLock.serviceId,t.serviceId);assert.equal(t.arrLate,0);
  assert.deepEqual(a.calls,requests);
  assert.deepEqual(a.errors,[]);a.close();

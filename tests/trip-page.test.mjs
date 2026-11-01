@@ -16,7 +16,7 @@ const PLACES = {
   brighton: { id: "G-BTN", primary: "Brighton Station", secondary: "Queens Road, Brighton BN1 3XP", geo: [50.8290, -0.1412] },
   cathedral: { id: "G-CAT", primary: "Canterbury Cathedral", secondary: "The Precincts, Canterbury CT1 2EH", geo: [51.2798, 1.0828] },
 };
-const ON = { provider: "tfl", tflKey: "k", signal: true, followRoute: true, trip: true };
+const ON = { provider: "tfl", tflKey: "k", followRoute: true, trip: true };
 const isTrip = u => /data\/stations\.json|JourneyResults\/\d+\/to\/\d+|maps\.googleapis|google:/.test(u);
 
 function googleStub(w, opts = {}) {
@@ -56,19 +56,21 @@ const options = (app, end) => [...app.d.querySelectorAll(`#tripList-${end} [role
 async function until(fn, ms = 4000) { const end = Date.now() + ms; while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(25); } return fn(); }
 
 test("Trip switch off: no Trip button, the commute as before, and no Trip or Google request", async () => {
-  const app = await createApp({ settings: { provider: "tfl", signal: true }, route });
+  const app = await createApp({ settings: { provider: "tfl" }, route });
   assert.equal(app.d.querySelector("#tripModeBtn").hidden, true);
   assert.equal(app.d.querySelector("#tripRoot").hidden, true);
   assert.equal(app.d.documentElement.dataset.trip, "off");
   assert.ok(!app.calls.some(isTrip), app.calls.filter(isTrip).join("\n"));
 });
 
-test("Trip switch on without Signal: no Trip button; a saved Trip screen falls back to the commute", async () => {
-  const app = await createApp({ settings: { ...ON, signal: false }, saved: { tripMode: { active: true } }, route });
-  assert.equal(app.d.querySelector("#tripModeBtn").hidden, true);
-  assert.equal(app.d.querySelector("#tripRoot").hidden, true);
-  assert.ok(app.d.querySelector("#list"));
-  assert.ok(!app.calls.some(isTrip));
+test("Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip", async () => {
+  const app=await createApp({settings:{...ON,signal:false},saved:{tripMode:{active:true}},route});
+  assert.equal(app.d.documentElement.dataset.design,'signal');
+  assert.equal(app.d.querySelector('#tripModeBtn').hidden,false);
+  assert.equal(app.d.querySelector('#tripRoot').hidden,false);
+  assert.equal(app.d.documentElement.dataset.trip,'on');
+  assert.equal(app.c.state.saved.tripMode.active,true);
+  assert.deepEqual(app.errors,[]);app.close();
 });
 
 test("Trip without a Google key: the setup card, nothing planned, no Google script or request", async () => {
