@@ -34,6 +34,10 @@ the key connection into service metadata. This supersedes the older Auto/Plan wa
   Keep engine severity, early running, timetable/derived confidence, cancellation and no-estimate meanings.
 - Multi-ride Trip options repeat the same component for the existing itinerary's train/Tube/bus rides and retain
   each change's engine-provided location, allowance and warning. No first-train-only summary or invented connection.
+- Trip also uses the entire same recommendation/list UI and shared headline, facts, steps and flags (Sam, 1 Nov).
+  Preserve both complete picks, compact list sizing and actions; no separate repeated Trip headline/summary.
+  Total journey remains door to door; the rail caption sums time aboard trains, excluding transfers/non-rail rides.
+  Unknown/cancelled timing remains explicit. Trip-specific address and access inputs remain available.
 - Cancelled/unknown journeys remain listed without a usable leave clock/countdown or a confident arrival.
   Passed access deadlines remain distinct from a train that has yet to depart. Route alternatives, effort
   qualifiers, warnings, Journey steps, Follow and the selected service survive redraw and mode/theme changes.
@@ -41,6 +45,8 @@ the key connection into service metadata. This supersedes the older Auto/Plan wa
   saved-state schema or refresh policy changes. Both themes, 320/393 px, 200% text and 44 px targets are checked.
 
 Tests:
+- tests/trip-shared-ui.test.mjs: "Trip cards: one complete recommendation and compact rows retain every connection, canonical facts and shared actions"
+- tests/trip-shared-ui.test.mjs: "Trip cards: Journey steps keep their own disclosure state through refresh and Follow uses the selected itinerary"
 - tests/journey-connection-panels.test.mjs: "connection panels: Auto and Plan keep journey and train clocks on both recommendations and every row in all three questions and directions"
 - tests/journey-connection-panels.test.mjs: "connection panels: scheduled and expected clocks retain engine status, early running, timetable confidence and unknown platforms"
 - tests/journey-connection-panels.test.mjs: "connection panels: cancelled and no-estimate trains remain visible without usable journey clocks"

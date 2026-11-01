@@ -1084,6 +1084,9 @@ function pills(flags, short){
 const journeyServiceKey = train => [train.from,train.to,train.std,train.operator].join('|');
 function journeyFactsMarkup(option,context={}){
   const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
+  return journeyFactsContentMarkup(facts);
+}
+function journeyFactsContentMarkup(facts){
   const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
   const totalLabel='Total journey ',totalUnknown='Total journey time unavailable';
   return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,totalUnknown):totalLabel+fact('total-duration',facts.totalDurationMs)}</span></span>`;
@@ -1144,15 +1147,22 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){
     level:departure.level,status,operator:t.operator||'Train',platform:t.platform});
 }
 function journeyHeadlineMarkup(j,dest,timing=''){
-  const known=plannable(j.train)&&Number.isFinite(j.leave),arrival=known&&Number.isFinite(j.arrive);
-  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${j.leave}"`:''}>
+  return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
+}
+// Shared by commute and Trip; callers supply the canonical itinerary and availability.
+function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing=''}){
+  const known=available&&Number.isFinite(leave),arrival=known&&Number.isFinite(arrive);
+  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${leave}"`:''}>
     <div class="optrow journey-times">
-      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(j.leave):'Unavailable'}</span></div>
+      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(leave):'Unavailable'}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
-      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(j.arrive):'Unavailable'}</span></div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(arrive):'Unavailable'}</span></div>
     </div>
-    <div class="journey-countdown">${known?`<span data-cd="${j.leave}"></span>${j.effort==='run'||j.effort==='car'?' · at walking pace':''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+    <div class="journey-countdown">${known?`<span data-cd="${leave}">${leave>Date.now()?'leave in '+C.countdown(leave-Date.now()):'leave time passed'}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
   </div>`;
+}
+function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass=''}={}){
+  return `<details class="steps${extraClass?' '+esc(extraClass):''}"${key?` data-key="${esc(key)}"`:''}${open?' open':''}><summary>${esc(summary)}</summary><ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d${l.tube?' tube':''}">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>`;
 }
 function journeyOverviewMarkup(j,opt={}){
   const dest=j.dest||(direction()==='office'?'office':'home');
@@ -1166,7 +1176,7 @@ function optionBlock(j, opt){
   if(state.presentation?.mode!=='live')return `<section class="opt journey-option" data-journey-service="${esc(journeyServiceKey(j.train))}">
     ${journeyOverviewMarkup(j,opt)}${altLines(j)}
     ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:''}
-    <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    ${journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')})}
     ${followButton(j)}
   </section>`;
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
@@ -2282,7 +2292,8 @@ const tripEnabled = () => !!S().trip;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
-  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup, now:()=>Date.now(),
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup,
+    journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,

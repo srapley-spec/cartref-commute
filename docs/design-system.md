@@ -60,6 +60,13 @@ it across modes other than Live. The train departure is a key connection to make
 - A multi-ride Trip repeats this panel for its existing train, Tube and bus rides in itinerary order, keeping
   each ride's boarding station, time, destination, platform and source qualification attached to that ride.
   Existing change allowances and warnings stay visible; the renderer never calculates new connections.
+- **Trip uses the complete same UI (Sam, 1 Nov):** use the shared recommendation card, Leave by → At destination
+  headline/countdown, centred duration rows, connection panels, route/status chips and Journey steps / Follow action
+  placement. Next best has equal content and sizing; the full list uses the same compact planning rows. Do not add
+  a separate repeated headline or total/operator summary. Multi-train duration sums time aboard rail services,
+  excluding changes, Tube, bus and access; the total remains door to door. Unknowns remain explicit. Trip's
+  address and access controls are the only form differences; before boarding Follow uses the same card primitives,
+  while arrival/next action still lead once aboard. Journey steps retain their disclosure state on refresh.
 - Explicit **Live** retains its timetable columns and current journey presentation. Once aboard in Auto or
   Follow, current arrival and next action still lead; completed departures must not replace that answer.
   Auto's homeward Tube view uses panels for the existing next rail connections while retaining its arrival headline.
@@ -392,7 +399,7 @@ review and polish, as was done for Signal. Until that review they are functional
 | L4 | **Access mode control** | Walk / Cycle / Drive per end, a segmented control with word labels | existing `.seg` | Glyphs alongside words; one control or two |
 | L5 | **Access leg row** | First / last step in Journey steps and the journey strip: mode + time + allowance ("Drive 18 min · park 10") | step row | Mode glyph in the strip |
 | L6 | **Change marker** | Between rail legs: "Change at Clapham Junction · 7 min"; amber "Tight change" / red "Connection at risk" uses status tokens | step row + status lozenge | Visual weight of a change vs a leg |
-| L7 | **Multi-leg journey summary** | One line on a journey row: "2 changes · 2 h 05" and the operators in order | service metadata line (14 px) | Long operator lists at 320 px |
+| L7 | **Multi-leg journey summary** | Change-count chip; shared centred Total journey / train-duration rows; operators on their own connection panels | approved journey + train card | Shared UI from 1 Nov supersedes the separate repeated summary |
 | L8 | **Station lozenge (leisure)** | The boarding station on each journey row, as the commute's station lozenge, plus "No station car park" / "N km away" flags | existing lozenge (neutral) | none |
 | L9 | **Other stations** | Disclosure under the journey list: each other station with its consequence ("arrive 12 min later") | native disclosure | Whether it sits in Next best |
 | L10 | **Setup-needed card** | Empty state when the key is missing or the place is outside the region | Signal card, muted text, one action (Open Settings) | Tone |

@@ -94,9 +94,20 @@ def live_snapshot(browser, root):
 def trip_scene(browser, theme, width):
     server, context, page, errors = compact.boot(browser, ROOT, theme, width, epoch='2026-11-03T10:00:00Z')
     try:
-        fixture = json.loads((ROOT / 'tests/fixtures/trip/tfl-brighton-canterburywest.json').read_text())['body']
+        # Compare actual computed production styles, not a second set of Trip CSS.
+        style_probe = '''s=>{
+          const row=document.querySelector(s),rules={card:'',leave:'.journey-times>div:first-child .optbig',arrival:'.journey-times>div:last-child .optbig',
+            total:'.journey-total-time',caption:'.journey-train-time',panel:'.journey-connection',clock:'[data-connection-time="scheduled"]',button:'.follow-btn'};
+          return Object.fromEntries(Object.entries(rules).map(([key,selector])=>{
+            const e=selector?row.querySelector(selector):row,c=getComputedStyle(e);
+            return [key,Object.fromEntries(['display','fontSize','fontWeight','lineHeight','padding','borderRadius','backgroundColor','rowGap','columnGap','gridColumn'].map(p=>[p,c[p]]))];
+          }));
+        }'''
+        commute_card = page.evaluate(style_probe, '#hero>.journey-option')
+        commute_row = page.evaluate(style_probe, '#list>.journey-row.best')
         stub = json.loads(subprocess.check_output(['node', '--input-type=module', '-e',
-            "import {stubGoogle,TRIP_PLACES} from './tests/trip-fixtures.mjs';console.log(JSON.stringify({fn:stubGoogle.toString(),places:TRIP_PLACES}));"], cwd=ROOT, text=True))
+            "import {stubGoogle,TRIP_PLACES,TRIP_REPLY_WITH_NEXT_BEST} from './tests/trip-fixtures.mjs';console.log(JSON.stringify({fn:stubGoogle.toString(),places:TRIP_PLACES,fixture:TRIP_REPLY_WITH_NEXT_BEST}));"], cwd=ROOT, text=True))
+        fixture = stub['fixture']
         page.evaluate("s=>{window.TRIP_PLACES=s.places;(0,eval)('('+s.fn+')(window)');}", stub)
         def planner(route):
             good = '/90000899/to/1001160' in route.request.url
@@ -118,7 +129,19 @@ def trip_scene(browser, theme, width):
             raise
         label = f'trip-{theme}-{width}'
         normal = inspect(page, label)
+        assert page.locator('.trip-recommendations>.journey-option').count() == 2
+        assert page.evaluate(style_probe, '.trip-recommendations>.journey-option') == commute_card, 'Trip recommendation styles diverged from Auto/Plan'
+        trip_row = page.evaluate(style_probe, '.trip-list>.journey-row.best')
+        assert trip_row == commute_row, ('Trip list styles diverged from Auto/Plan', {k:(commute_row[k],trip_row[k]) for k in commute_row if commute_row[k] != trip_row[k]})
+        sizes = page.locator('.trip-recommendations>.journey-option').evaluate_all("rows=>rows.map(row=>[...row.querySelectorAll('.optbig,[data-connection-time]')].map(e=>getComputedStyle(e).fontSize))")
+        assert sizes[0] == sizes[1], 'Next best lost equal clock prominence'
+        assert page.locator('#tripResults>.trip-headline').count() == 0, 'Trip repeats the planning headline'
+        for card in page.locator('.trip-recommendations>.journey-option').all():
+            positions = card.evaluate("e=>{const a=e.querySelector('.steps>summary').getBoundingClientRect(),b=e.querySelector('.follow-btn').getBoundingClientRect();return {stepsRight:a.right,buttonLeft:b.left,stepsMiddle:(a.top+a.bottom)/2,buttonMiddle:(b.top+b.bottom)/2};}")
+            assert positions['stepsRight'] <= positions['buttonLeft'], 'Trip Follow competes with Journey steps'
+            assert abs(positions['stepsMiddle'] - positions['buttonMiddle']) < 1, 'Trip action alignment diverged'
         row = page.locator('#tripResults .trip-row').filter(has_text='3 changes').first
+        page.locator('.trip-recommendations').screenshot(path=str(ART / f'implemented-trip-{theme}-{width}.png'))
         if theme == 'dark' and width == 393:
             row.screenshot(path=str(ART / 'implemented-multiple-connections.png'))
         enlarge(page, True)
@@ -126,9 +149,18 @@ def trip_scene(browser, theme, width):
             large = inspect(page, label + '-200')
         finally:
             enlarge(page, False)
+        row.locator('.steps>summary').click()
+        page.locator('#refreshBtn').click()
+        assert row.locator('.steps').evaluate('e=>e.open'), 'Refresh closed the Trip itinerary being read'
+        inspect(page, label + '-expanded')
         row.locator('[data-trip-follow]').click()
         page.locator('[data-trip-stop]').wait_for(state='visible')
         following = inspect(page, label + '-follow')
+        enlarge(page, True)
+        try:
+            inspect(page, label + '-follow-200')
+        finally:
+            enlarge(page, False)
         assert page.evaluate("Date.now()===Date.parse('2026-11-03T10:00:00Z')"), 'Trip fixture clock changed after source/session setup'
         assert page.locator('#tripResults .journey-heading [data-cd]').first.inner_text().startswith('leave in 2m'), 'Trip fixture countdown uses the wrong clock'
         assert page.locator('.trip-follow-connections .journey-connection').count() == 4

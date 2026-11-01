@@ -1,6 +1,7 @@
 // Common journey facts for every design and view. These are presentation facts
 // from an existing itinerary, never another planner or a shortest-route ranking.
 import type { Option, Train } from './types';
+import type { Journey } from './trip/journeyCore';
 
 export interface JourneyFacts {
   trainDurationMs: number | null;
@@ -50,4 +51,18 @@ export function journeyFacts(option: TimingOption | null, context: JourneyFactsC
  */
 export function connectionJourneyFacts(option: TimingOption | null, context: ConnectionJourneyFactsContext): JourneyFacts {
   return journeyFacts(option ? {train: option.train, leave: context.leaveBy ?? NaN, arrive: context.arrive ?? NaN} : null);
+}
+
+/** The same facts for a multi-ride itinerary. Rail time adds only time on trains:
+ * changes, Tube/bus rides and access belong to the door-to-door total instead.
+ * Missing access timing can leave rail time known without inventing a total.
+ */
+export function tripJourneyFacts(journey: Pick<Journey, 'rides' | 'leave' | 'arrive' | 'uncertain'>): JourneyFacts {
+  const unavailable = (ride: Journey['rides'][number]) =>
+    ride.cancelled || unknownTrain(ride.train ?? null) || interval(ride.dep, ride.arr) === null;
+  const rail = journey.rides.filter(ride => ride.kind === 'rail');
+  return {
+    trainDurationMs: !rail.length || rail.some(unavailable) ? null : rail.reduce((total, ride) => total + (ride.arr - ride.dep), 0),
+    totalDurationMs: journey.uncertain || !journey.rides.length || journey.rides.some(unavailable) ? null : interval(journey.leave, journey.arrive),
+  };
 }

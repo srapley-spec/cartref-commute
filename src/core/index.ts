@@ -77,5 +77,5 @@ export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpda
 export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
 export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';
 export { samAlongLine, samAlongStations } from './profiles/samAlongLine';
-export { journeyFacts, connectionJourneyFacts } from './journeyFacts';
+export { journeyFacts, connectionJourneyFacts, tripJourneyFacts } from './journeyFacts';
 export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

@@ -315,10 +315,10 @@ html .hero .opt>.follow-btn {grid-column:2;align-self:center;width:auto;margin:0
 html .hero .opt:has(>.steps[open])>.steps {grid-column:1/-1}
 html .hero .opt:has(>.steps[open])>.follow-btn {justify-self:end}
 html .hero .opt>.signal-alt-label {grid-column:1/-1;margin:0;padding:0;font-size:14px;line-height:1.4;font-weight:650;color:var(--muted)}
-html .hero .steps summary,html #followPanel .steps summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer}
-html .hero .steps summary::before,html #followPanel .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
-html .hero .steps[open]>summary::before,html #followPanel .steps[open]>summary::before {transform:rotate(90deg)}
-html .hero .steps summary::-webkit-details-marker,html #followPanel .steps summary::-webkit-details-marker {display:none}
+html :is(.hero,#followPanel,.journey-row) .steps summary {display:flex;align-items:center;min-height:44px;min-width:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer;list-style:none}
+html :is(.hero,#followPanel,.journey-row) .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
+html :is(.hero,#followPanel,.journey-row) .steps[open]>summary::before {transform:rotate(90deg)}
+html :is(.hero,#followPanel,.journey-row) .steps summary::-webkit-details-marker {display:none}
 html .hero .steps .legs {margin-top:3px}
 html .hero :is(.empty,.alt,.legs) {font-size:14px;opacity:1}
 html .hero .alt {padding-top:8px;border-color:var(--line)}
@@ -540,6 +540,7 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
 html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):not(footer) {display:none!important}
 html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
 html .trip {display:grid;gap:10px;min-width:0}
+html .trip-results {display:grid;gap:10px;min-width:0}
 html .trip-form {display:grid;grid-template-columns:1fr;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
 html .trip-field label {display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
 html .trip-combo {position:relative}
@@ -555,22 +556,13 @@ html .trip-when {display:flex;gap:8px;align-items:center;font-size:14px}
 html .trip-when input {min-height:44px}
 html .trip-stage {margin:0;font-size:13px;color:var(--muted);min-height:1em}
 html :is(.trip-setup,.trip-card) {background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
-html .trip-headline {display:grid;gap:2px;background:var(--hero-accent);border-radius:16px;padding:12px}
-html .trip-headline .big {font-size:36px;line-height:1.05;font-variant-numeric:tabular-nums}
-html .trip-headline.bad {background:var(--bad-bg)} html .trip-headline.warn {background:var(--warn-bg)}
+html .trip-headline {display:grid;gap:8px;min-width:0}
+html .trip-headline p {margin:0;font-size:14px;line-height:1.4}
+html .trip-headline>b.bad {color:var(--bad)} html .trip-headline>b.warn {color:var(--warn)}
 html .trip-h {font-size:14px;margin:6px 0 0;color:var(--muted)}
-html .trip-row {display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
-html .trip-row.best {border-color:var(--accent)}
-html .trip-times {display:grid;grid-template-columns:repeat(3,1fr);gap:var(--signal-time-gap)}
-html .trip-times b {display:block;font-size:24px;font-variant-numeric:tabular-nums}
-html .trip-times div:last-child {text-align:right}
-html .trip-times .exp {display:block;font-size:12px;color:var(--warn)}
-html .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
-html .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
-html .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
 /* Journey + connection panels (Sam, 1 Nov). Explicit Live retains its board geometry. */
-html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown) {grid-column:1/-1;min-width:0}
+html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown,.connection-transfer) {grid-column:1/-1;min-width:0}
 html .journey-heading {min-width:0}
 html .journey-heading .journey-times {display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);grid-template-rows:auto auto;align-items:end;gap:0 8px;min-width:0}
 html .journey-heading .journey-times>div:not(.optarrow) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
@@ -605,19 +597,15 @@ html .journey-next-connection {display:grid;gap:6px;min-width:0;font-size:14px}
 html .row.journey-row {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:8px;padding:10px var(--signal-content-inset)}
 html .row.journey-row>* {grid-column:1/-1;min-width:0}
 html .row.journey-row>:is(.follow-btn,.followtag) {grid-column:1/-1;justify-self:end;margin:0}
+html .row.journey-row .journey-countdown {padding-right:0}
+html .journey-row>.flags {display:flex;flex-wrap:wrap;gap:4px}
 html .journey-row .optroute {display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 html .journey-row .journey-facts {margin:0}
 html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
 html .journey-row .journey-connection .connection-time {font-size:30px}
 html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
 html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
-html .trip-row .journey-facts {margin:4px 0}
-html .trip-row .journey-connection {margin:3px 0}
 html .trip-follow-connections {display:grid;gap:8px;min-width:0}
-html .trip-steps>summary {display:flex;align-items:center;min-height:44px;min-width:44px;color:var(--accent);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
-html .trip-steps>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
-html .trip-steps[open]>summary::before {transform:rotate(90deg)}
-html .trip-steps>summary::-webkit-details-marker {display:none}
 html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
 @container (max-width:18em) {
   html .journey-heading .journey-times {grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:4px}
@@ -770,7 +758,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:36 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 20:30 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1236,6 +1224,7 @@ var CommuteCore = (() => {
     trainStatus: () => trainStatus,
     travelSecs: () => travelSecs,
     tripConfig: () => tripConfig,
+    tripJourneyFacts: () => tripJourneyFacts,
     tripPhase: () => tripPhase,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
@@ -4767,6 +4756,17 @@ var CommuteCore = (() => {
     var _a, _b;
     return journeyFacts(option ? { train: option.train, leave: (_a = context.leaveBy) != null ? _a : NaN, arrive: (_b = context.arrive) != null ? _b : NaN } : null);
   }
+  function tripJourneyFacts(journey) {
+    const unavailable = (ride) => {
+      var _a;
+      return ride.cancelled || unknownTrain((_a = ride.train) != null ? _a : null) || interval(ride.dep, ride.arr) === null;
+    };
+    const rail = journey.rides.filter((ride) => ride.kind === "rail");
+    return {
+      trainDurationMs: !rail.length || rail.some(unavailable) ? null : rail.reduce((total2, ride) => total2 + (ride.arr - ride.dep), 0),
+      totalDurationMs: journey.uncertain || !journey.rides.length || journey.rides.some(unavailable) ? null : interval(journey.leave, journey.arrive)
+    };
+  }
 
   // src/core/index.ts
   var profiles = { samCommute };
@@ -5479,6 +5479,9 @@ function pills(flags, short){
 const journeyServiceKey = train => [train.from,train.to,train.std,train.operator].join('|');
 function journeyFactsMarkup(option,context={}){
   const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
+  return journeyFactsContentMarkup(facts);
+}
+function journeyFactsContentMarkup(facts){
   const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
   const totalLabel='Total journey ',totalUnknown='Total journey time unavailable';
   return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,totalUnknown):totalLabel+fact('total-duration',facts.totalDurationMs)}</span></span>`;
@@ -5539,15 +5542,22 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){
     level:departure.level,status,operator:t.operator||'Train',platform:t.platform});
 }
 function journeyHeadlineMarkup(j,dest,timing=''){
-  const known=plannable(j.train)&&Number.isFinite(j.leave),arrival=known&&Number.isFinite(j.arrive);
-  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${j.leave}"`:''}>
+  return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
+}
+// Shared by commute and Trip; callers supply the canonical itinerary and availability.
+function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing=''}){
+  const known=available&&Number.isFinite(leave),arrival=known&&Number.isFinite(arrive);
+  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${leave}"`:''}>
     <div class="optrow journey-times">
-      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(j.leave):'Unavailable'}</span></div>
+      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(leave):'Unavailable'}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
-      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(j.arrive):'Unavailable'}</span></div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(arrive):'Unavailable'}</span></div>
     </div>
-    <div class="journey-countdown">${known?`<span data-cd="${j.leave}"></span>${j.effort==='run'||j.effort==='car'?' · at walking pace':''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+    <div class="journey-countdown">${known?`<span data-cd="${leave}">${leave>Date.now()?'leave in '+C.countdown(leave-Date.now()):'leave time passed'}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
   </div>`;
+}
+function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass=''}={}){
+  return `<details class="steps${extraClass?' '+esc(extraClass):''}"${key?` data-key="${esc(key)}"`:''}${open?' open':''}><summary>${esc(summary)}</summary><ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d${l.tube?' tube':''}">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>`;
 }
 function journeyOverviewMarkup(j,opt={}){
   const dest=j.dest||(direction()==='office'?'office':'home');
@@ -5561,7 +5571,7 @@ function optionBlock(j, opt){
   if(state.presentation?.mode!=='live')return `<section class="opt journey-option" data-journey-service="${esc(journeyServiceKey(j.train))}">
     ${journeyOverviewMarkup(j,opt)}${altLines(j)}
     ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:''}
-    <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    ${journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')})}
     ${followButton(j)}
   </section>`;
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
@@ -8636,7 +8646,8 @@ function validTripState(x, C) {
 }
 
 function createTripUi(deps) {
-  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup } = deps;
+  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup,
+    journeyTimesMarkup, journeyFactsMarkup, journeyStepsMarkup, flagsMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
@@ -8860,7 +8871,6 @@ function createTripUi(deps) {
   }
 
   // ---------- Drawing (engine block order: present.ts) ----------
-  const flagHtml = f => `<span class="flag ${f.lvl === "bad" ? "bad" : f.lvl === "warn" ? "warn" : f.lvl === "ok" ? "ok" : "info"}">${esc(f.txt)}</span>`;
   const mains = j => C.mainRides(j.rides);
   const summary = j => { const m = mains(j), ch = m.length - 1; return `${ch ? `${ch} change${ch > 1 ? "s" : ""}` : "Direct"} · ${dur(j.arrive - j.leave)} · ${[...new Set(m.map(r => r.operator || r.label))].join(", ")}`; };
   function connections(j, firstRide = 0) {
@@ -8883,20 +8893,20 @@ function createTripUi(deps) {
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
-    return `<div class="journey-heading"${!j.uncertain?` data-fact="leave-by" data-ms="${j.leave}"`:''}><div class="optrow journey-times"><div><small>Leave by</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(j.leave)}</b></div><div class="optarrow" aria-hidden="true">→</div><div><small>Arrive</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(arrival)}</b></div></div>${!j.uncertain?`<div class="journey-countdown"><span data-cd="${j.leave}">${j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'}</span></div>`:''}</div>`;
+    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:!j.uncertain});
   }
   function journeyRow(j, opts = {}) {
-    const steps = C.journeySteps(j).map(s => `<li${s.tube ? ' class="tube"' : ""}><time>${s.t != null ? hhmm(s.t) : ""}</time> ${esc(s.d)}${s.note ? ` <span class="note">${esc(s.note)}</span>` : ""}</li>`).join("");
-    const followed = st().follow && st().follow.id === j.id;
-    return `<article class="trip-row${j.recommended === 1 ? " best" : ""}" data-trip-id="${esc(j.id)}">
+    const followed = st().follow && st().follow.id === j.id, changes = Math.max(0,mains(j).length-1);
+    return `<section class="trip-row ${opts.compact?'row journey-row'+(j.recommended?' best':''):'opt journey-option'+(opts.next?' signal-alternative':'')}" data-trip-id="${esc(j.id)}">
+      ${opts.next?'<h3 class="signal-alt-label">Next best</h3>':''}
       ${journeyHeading(j)}
-      <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
+      ${journeyFactsMarkup(C.tripJourneyFacts(j))}
       ${connections(j)}
-      <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
-      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${j.flags.filter(f=>!f.status).map(flagHtml).join("")}</div>` : ""}
-      <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
+      <div class="optroute route"><span class="chip rail">${esc(j.fromStation.name)} → ${esc(j.toStation.name)}</span><span class="chip rail">${changes?`${changes} change${changes>1?'s':''}`:'Direct'}</span></div>
+      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${flagsMarkup(j.flags.filter(f=>!f.status))}</div>` : ""}
+      ${journeyStepsMarkup(C.journeySteps(j),{key:`trip|${opts.compact?'list':'pick'}|${j.id}`,extraClass:'trip-steps'})}
       ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
-    </article>`;
+    </section>`;
   }
   function blocks() {
     const s = st(), f = s.follow, ph = f ? C.tripPhase(f.journey, now(), f.confirmed).phase : null;
@@ -8911,22 +8921,26 @@ function createTripUi(deps) {
     const out = root.querySelector("#tripResults");
     if (error) { out.innerHTML = `<div class="trip-card empty" role="alert">${esc(error)}</div>`; return; }
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
-    const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
+    const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate, following = fu && pres.view.startsWith("trip-");
+    const label = `${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}`;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
-    const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
-      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival):''}<b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
+    const html = { label: () => close + (following||!best?`<div class="lbl trip-label">${label}</div>`:''),
+      headline: () => following ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival)+journeyFactsMarkup(C.tripJourneyFacts({...fu.route.journey,arrive:fu.route.expectedArrival})):''}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
-        : best ? `<div class="trip-headline">${journeyHeading(best)}<span>${esc(summary(best))}</span></div>`
+        : best ? ""
         : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
-      options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
+      options: () => r.picks.length ? `<div class="hero trip-recommendations"><div class="lbl trip-label">${label} · best${r.picks[1] ? ", and the next best" : ""}</div>${r.picks.map((j,i) => journeyRow(j,{next:i>0})).join("")}</div>` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
-      board: () => `<h3 class="trip-h">Every journey, in leaving order</h3>${r.journeys.map(j => journeyRow(j)).join("") || `<p class="note">None found.</p>`}`,
+      board: () => `<h3 class="trip-h">Every journey, in leaving order</h3><div class="list trip-list">${r.journeys.map(j => journeyRow(j,{compact:true})).join("") || `<p class="note">None found.</p>`}</div>`,
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
-      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
-    out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");
+      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}${journeyStepsMarkup(C.journeySteps(fu.route.journey),{key:`trip|follow|${fu.route.id}`,summary:'Your trip',open:true,extraClass:'trip-steps'})}` : "" };
+    const disclosures = new Map([...out.querySelectorAll('details[data-key]')].map(el=>[el.dataset.key,el.open]));
+    const content = pres.blocks.filter(b=>!following||b!=='source').map(b => (html[b] ? html[b]() : "")).join("");
+    out.innerHTML = following ? `<div class="hero trip-follow-card">${content}</div>${pres.blocks.includes('source')?html.source():''}` : content;
+    for(const el of out.querySelectorAll('details[data-key]'))if(disclosures.has(el.dataset.key))el.open=disclosures.get(el.dataset.key);
     out.dataset.view = pres.view;
   }
   function onResultClick(e) {
@@ -8953,7 +8967,8 @@ const tripEnabled = () => !!S().trip;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
-  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup, now:()=>Date.now(),
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup,
+    journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,

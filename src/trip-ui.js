@@ -24,7 +24,8 @@ function validTripState(x, C) {
 }
 
 function createTripUi(deps) {
-  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup } = deps;
+  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup,
+    journeyTimesMarkup, journeyFactsMarkup, journeyStepsMarkup, flagsMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
@@ -248,7 +249,6 @@ function createTripUi(deps) {
   }
 
   // ---------- Drawing (engine block order: present.ts) ----------
-  const flagHtml = f => `<span class="flag ${f.lvl === "bad" ? "bad" : f.lvl === "warn" ? "warn" : f.lvl === "ok" ? "ok" : "info"}">${esc(f.txt)}</span>`;
   const mains = j => C.mainRides(j.rides);
   const summary = j => { const m = mains(j), ch = m.length - 1; return `${ch ? `${ch} change${ch > 1 ? "s" : ""}` : "Direct"} · ${dur(j.arrive - j.leave)} · ${[...new Set(m.map(r => r.operator || r.label))].join(", ")}`; };
   function connections(j, firstRide = 0) {
@@ -271,20 +271,20 @@ function createTripUi(deps) {
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
-    return `<div class="journey-heading"${!j.uncertain?` data-fact="leave-by" data-ms="${j.leave}"`:''}><div class="optrow journey-times"><div><small>Leave by</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(j.leave)}</b></div><div class="optarrow" aria-hidden="true">→</div><div><small>Arrive</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(arrival)}</b></div></div>${!j.uncertain?`<div class="journey-countdown"><span data-cd="${j.leave}">${j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'}</span></div>`:''}</div>`;
+    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:!j.uncertain});
   }
   function journeyRow(j, opts = {}) {
-    const steps = C.journeySteps(j).map(s => `<li${s.tube ? ' class="tube"' : ""}><time>${s.t != null ? hhmm(s.t) : ""}</time> ${esc(s.d)}${s.note ? ` <span class="note">${esc(s.note)}</span>` : ""}</li>`).join("");
-    const followed = st().follow && st().follow.id === j.id;
-    return `<article class="trip-row${j.recommended === 1 ? " best" : ""}" data-trip-id="${esc(j.id)}">
+    const followed = st().follow && st().follow.id === j.id, changes = Math.max(0,mains(j).length-1);
+    return `<section class="trip-row ${opts.compact?'row journey-row'+(j.recommended?' best':''):'opt journey-option'+(opts.next?' signal-alternative':'')}" data-trip-id="${esc(j.id)}">
+      ${opts.next?'<h3 class="signal-alt-label">Next best</h3>':''}
       ${journeyHeading(j)}
-      <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
+      ${journeyFactsMarkup(C.tripJourneyFacts(j))}
       ${connections(j)}
-      <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
-      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${j.flags.filter(f=>!f.status).map(flagHtml).join("")}</div>` : ""}
-      <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
+      <div class="optroute route"><span class="chip rail">${esc(j.fromStation.name)} → ${esc(j.toStation.name)}</span><span class="chip rail">${changes?`${changes} change${changes>1?'s':''}`:'Direct'}</span></div>
+      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${flagsMarkup(j.flags.filter(f=>!f.status))}</div>` : ""}
+      ${journeyStepsMarkup(C.journeySteps(j),{key:`trip|${opts.compact?'list':'pick'}|${j.id}`,extraClass:'trip-steps'})}
       ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
-    </article>`;
+    </section>`;
   }
   function blocks() {
     const s = st(), f = s.follow, ph = f ? C.tripPhase(f.journey, now(), f.confirmed).phase : null;
@@ -299,22 +299,26 @@ function createTripUi(deps) {
     const out = root.querySelector("#tripResults");
     if (error) { out.innerHTML = `<div class="trip-card empty" role="alert">${esc(error)}</div>`; return; }
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
-    const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
+    const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate, following = fu && pres.view.startsWith("trip-");
+    const label = `${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}`;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
-    const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
-      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival):''}<b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
+    const html = { label: () => close + (following||!best?`<div class="lbl trip-label">${label}</div>`:''),
+      headline: () => following ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival)+journeyFactsMarkup(C.tripJourneyFacts({...fu.route.journey,arrive:fu.route.expectedArrival})):''}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
-        : best ? `<div class="trip-headline">${journeyHeading(best)}<span>${esc(summary(best))}</span></div>`
+        : best ? ""
         : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
-      options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
+      options: () => r.picks.length ? `<div class="hero trip-recommendations"><div class="lbl trip-label">${label} · best${r.picks[1] ? ", and the next best" : ""}</div>${r.picks.map((j,i) => journeyRow(j,{next:i>0})).join("")}</div>` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
-      board: () => `<h3 class="trip-h">Every journey, in leaving order</h3>${r.journeys.map(j => journeyRow(j)).join("") || `<p class="note">None found.</p>`}`,
+      board: () => `<h3 class="trip-h">Every journey, in leaving order</h3><div class="list trip-list">${r.journeys.map(j => journeyRow(j,{compact:true})).join("") || `<p class="note">None found.</p>`}</div>`,
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
-      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
-    out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");
+      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}${journeyStepsMarkup(C.journeySteps(fu.route.journey),{key:`trip|follow|${fu.route.id}`,summary:'Your trip',open:true,extraClass:'trip-steps'})}` : "" };
+    const disclosures = new Map([...out.querySelectorAll('details[data-key]')].map(el=>[el.dataset.key,el.open]));
+    const content = pres.blocks.filter(b=>!following||b!=='source').map(b => (html[b] ? html[b]() : "")).join("");
+    out.innerHTML = following ? `<div class="hero trip-follow-card">${content}</div>${pres.blocks.includes('source')?html.source():''}` : content;
+    for(const el of out.querySelectorAll('details[data-key]'))if(disclosures.has(el.dataset.key))el.open=disclosures.get(el.dataset.key);
     out.dataset.view = pres.view;
   }
   function onResultClick(e) {
