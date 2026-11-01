@@ -112,6 +112,9 @@ Minutes are whole minutes, rounded down.
   chosen time and journey answers remain exposed. Access controls explicitly label To/From the station.
   The collapsed summary keeps the selected per-end modes visible, mirroring the commute's exposed pace.
   The exposed question selector uses the existing Signal planning-control rules, including equal-width buttons.
+  In Arrive by and Leave around, the exposed native date/time field stays within the Trip column at 320/393 px
+  and 200% text; its label reflows above it, keyboard/picker editing remains available, and the selected target
+  is readable in the question headline. No Signal or global input sizing rule changes for this adaptation.
 - **Exactly the same journey UI (Sam, 1 Nov):** Trip recommendations, Next best and the full list use the shared
   Auto/Plan card structure, type sizes, headline/countdown, duration rows, connection panels, route/status chips
   and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations
