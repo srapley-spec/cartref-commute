@@ -41,6 +41,11 @@ The review also caught an unscoped alternative-card grid rule affecting explicit
 alternatives with the new journey heading preserves Live's original block layout; independent coverage checks
 both modes. The first complete CI run rejected one old inline Tube-to-train text assertion; its canonical
 connection and catchability were unchanged. The assertion now reads the new visible connection panel.
+Finally, a network-level Trip probe found that a failed board refresh retained a Train object whose former
+on-time status outlived its ride's live evidence. Connection panels now honor the ride's endpoint qualification:
+Not live instead of an unqualified On time; changed retained times are labelled Last known. Known delay,
+cancellation and no-estimate warnings remain. Repeated train-status flags are represented by those qualified
+per-ride panels, while ranking/change/incident flags remain. Fetching, retry and engine state are unchanged.
 
 All 17 changed golden recordings were audited recursively: only rendered hero/row text changes. Canonical
 options, leave/arrival times, ranking, flags, legs, feed requests, errors and every other field are unchanged.

@@ -770,7 +770,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:29 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:36 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5526,10 +5526,10 @@ function leaveByMarkup(j){
 }
 // Shared geometry for one connection, repeated for each ride in a multi-ride Trip.
 // Callers supply canonical times and engine-qualified status; this draws no timing or routing rules.
-function connectionPanelMarkup({from,scheduled,expected=null,level='info',status,operator,platform,kind='Train',destination=''}){
+function connectionPanelMarkup({from,scheduled,expected=null,expectedLabel='Expected',level='info',status,operator,platform,kind='Train',destination=''}){
   return `<div class="journey-connection" data-connection-kind="${esc(kind.toLowerCase())}">
     <div class="connection-heading">${esc(kind)} from ${esc(from)}</div>
-    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>Expected</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
+    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>${esc(expectedLabel)}</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
   </div>`;
 }
 function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){
@@ -8871,8 +8871,15 @@ function createTripUi(deps) {
       if (index < firstRide) return '';
       if (r.kind === 'walk') return `<p class="connection-transfer">Walk from ${esc(r.from.name)} to ${esc(r.to.name)}</p>`;
       const departure = r.train ? C.departureStatus(r.train) : {level:'info',text:r.live.dep?'Live departure':'Not live',showTime:r.dep!==r.schedDep};
-      const status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
-      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':'Train',destination:r.to.name})}`;
+      let status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
+      // The ride's endpoint evidence is authoritative after a failed board refresh.
+      // A retained Train still carries its last status; it must not claim current on-time running.
+      if(!r.live.dep){
+        const unqualified=status.text==='On time'||status.text==='Not live';
+        status={level:unqualified?'info':status.level,text:unqualified?'Not live':`${status.text} · Not live`};
+      }
+      const expectedLabel=!r.live.dep&&r.train&&!r.train.timetable?'Last known':'Expected';
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',destination:r.to.name})}`;
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
@@ -8886,7 +8893,7 @@ function createTripUi(deps) {
       <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
       ${connections(j)}
       <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
-      ${j.flags.length ? `<div class="flags">${j.flags.map(flagHtml).join("")}</div>` : ""}
+      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${j.flags.filter(f=>!f.status).map(flagHtml).join("")}</div>` : ""}
       <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
       ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
     </article>`;

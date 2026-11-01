@@ -1131,10 +1131,10 @@ function leaveByMarkup(j){
 }
 // Shared geometry for one connection, repeated for each ride in a multi-ride Trip.
 // Callers supply canonical times and engine-qualified status; this draws no timing or routing rules.
-function connectionPanelMarkup({from,scheduled,expected=null,level='info',status,operator,platform,kind='Train',destination=''}){
+function connectionPanelMarkup({from,scheduled,expected=null,expectedLabel='Expected',level='info',status,operator,platform,kind='Train',destination=''}){
   return `<div class="journey-connection" data-connection-kind="${esc(kind.toLowerCase())}">
     <div class="connection-heading">${esc(kind)} from ${esc(from)}</div>
-    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>Expected</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
+    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>${esc(expectedLabel)}</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
   </div>`;
 }
 function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){

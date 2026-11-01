@@ -259,8 +259,15 @@ function createTripUi(deps) {
       if (index < firstRide) return '';
       if (r.kind === 'walk') return `<p class="connection-transfer">Walk from ${esc(r.from.name)} to ${esc(r.to.name)}</p>`;
       const departure = r.train ? C.departureStatus(r.train) : {level:'info',text:r.live.dep?'Live departure':'Not live',showTime:r.dep!==r.schedDep};
-      const status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
-      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':'Train',destination:r.to.name})}`;
+      let status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
+      // The ride's endpoint evidence is authoritative after a failed board refresh.
+      // A retained Train still carries its last status; it must not claim current on-time running.
+      if(!r.live.dep){
+        const unqualified=status.text==='On time'||status.text==='Not live';
+        status={level:unqualified?'info':status.level,text:unqualified?'Not live':`${status.text} · Not live`};
+      }
+      const expectedLabel=!r.live.dep&&r.train&&!r.train.timetable?'Last known':'Expected';
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',destination:r.to.name})}`;
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
@@ -274,7 +281,7 @@ function createTripUi(deps) {
       <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
       ${connections(j)}
       <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
-      ${j.flags.length ? `<div class="flags">${j.flags.map(flagHtml).join("")}</div>` : ""}
+      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${j.flags.filter(f=>!f.status).map(flagHtml).join("")}</div>` : ""}
       <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
       ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
     </article>`;
