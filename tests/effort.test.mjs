@@ -167,6 +167,29 @@ test("Effort levels on: a fast-walk pick's total time and steps are at a fast wa
   a.close();
 });
 
+async function assertDepartureCountdown(signal) {
+  const a = await app({ signal, followRoute: true });
+  const pick = a.c.ranked(now).find(o => o.recommended === 1);
+  assert.equal(pick.effort, 'fast', 'the real recommended journey retains its required pace');
+  for (const seconds of [91, 90, 89, 86, 60, 31]) {
+    a.setNow(pick.leave - seconds * S);
+    a.c.render();
+    const option = a.d.querySelector('#hero > .opt');
+    assert.ok(option, 'the actual primary recommendation stays available');
+    const counter = option.querySelector('[data-cd]');
+    assert.ok(counter, 'a pre-journey option exposes its leave countdown');
+    assert.equal(Number(counter.dataset.cd), pick.leave, 'removing wording cannot change the canonical leave time');
+    assert.equal(counter.textContent, `leave in ${a.w.CommuteCore.countdown(seconds * S)}`);
+    assert.equal(option.querySelector('.journey-countdown').textContent, counter.textContent, 'the countdown is the only departure instruction');
+    assert.doesNotMatch(option.textContent, /\bleave now\b/i, `${seconds} seconds remain`);
+    assert.match(option.textContent, /Arrives first · fast walk/, 'the effort qualification remains visible');
+  }
+  assert.deepEqual(a.errors, []);
+  a.close();
+}
+test('Departure countdown: Panda has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(false));
+test('Departure countdown: Signal has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(true));
+
 test("Effort levels on: on your way, a train that needs a fast walk says 'walk fast'", async () => {
   // ~1 km from home, 550 m from the station: 474 s of your walk left (fast 385 s), plus 180 s fixed.
   const f = svc({ dep: now + 30 * S + 600 * S, arr: now + 45 * MIN }), later = svc({ dep: now + 40 * MIN, arr: now + 70 * MIN });

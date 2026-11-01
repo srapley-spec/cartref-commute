@@ -1490,8 +1490,8 @@ function renderHero(list, now){
     if(board) return m>=1?`walk to the platform by ${hhmm(j.leave)}`:"go to the platform now";
     // On your way: how much time you have in hand at your pace (the leave time is the latest you can be here).
     if(way){ const k=wayMin(j), on=j.effort==="fast"?"walk fast":"on track"; return k>=1?`${on} · ${k} min to spare`:`${on} · keep going`; }
-    // Otherwise the live countdown says how long until you need to leave; only "leave now" is added.
-    return m>=1?"":"leave now"; };
+    // Before setting off, the precise countdown is the departure instruction.
+    return ""; };
   // The train you'd catch by setting off this minute, if it isn't already one of the options above.
   const now1 = first && !picks.includes(first) ? `<div class="alt">${board?"Next train: the":way?"Next one you can make: the":"Leaving right now? The"} ${stdExp(first.train)} ${esc(first.train.operator)}${board?` from ${esc(depStation(first))}`:""} — ${vsBest(first, picks[0], dest)}.</div>` : "";
   const hurry=hurryOpts.map(o=>hurryHtml(o,picks[0])).join("");
