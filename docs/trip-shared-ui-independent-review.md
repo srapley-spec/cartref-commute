@@ -33,3 +33,25 @@ renderer and existing Journey options host, 24 sampled full-app screenshots matc
 both recommendations' expanded Journey steps. Trip uses the current components, with no new Signal palette or
 card design. Its place names and controls are scoped to Trip; returning to commute restores the existing screen.
 Rerun full checks and independent review on the final Trip-only candidate before release.
+
+## Independent review of the current-Signal Trip controls
+
+Reviewed `4b6ef2a` in `/workspace/scratch/trip-only-final-review`, separately from the implementation worktree.
+The current commute screen is the fixed reference; historical blue-card proposals are excluded. No further
+implementation defect was found in the reviewed delta. Eleven existing focused checks and four independent
+lifecycle regressions pass. The new probes cover the original field nodes, typed query/caret/focus and keyboard
+selection through a theme redraw, a late place reply after leaving Trip, saved-active startup with simulated feeds
+off/on, and feature-off/re-enable cleanup with the original access-mode handlers.
+
+Six deliberate one-line mutations were rejected: re-appending the focused form, leaving its controls in Signal on
+exit, allowing the hidden Trip error renderer to overwrite commute context, forgetting moved access controls,
+not mounting saved-active Trip in the shared host, and changing the shared recommendation padding. The last
+mutation fails the immutable `c299074` screenshot comparison even though both candidate modes would share the
+modified padding. After restoring the source, all six independently replayed dark/393px baseline screenshots
+match again. Mutation logs are under `/workspace/scratch/trip-only-final-review-mutations`.
+
+An initial test expectation that an obsolete planner success would render after leaving Trip was corrected:
+the existing source epoch rejects it. The regression instead exercises the reachable late Google-place error
+render and proves that this hidden renderer cannot change the commute context. This was a test assumption,
+not an application finding. Full committed CI, the remaining browser matrix and exact-main release checks are
+the releasing agent's responsibility.
