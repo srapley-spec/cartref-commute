@@ -125,4 +125,4 @@ with sync_playwright() as p:
  assert not errors,errors
  browser.close()
 server.shutdown()
-print(json.dumps({'browser':'Chromium','phoneLayouts':36,'designs':['signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'reloadRestoresReal':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))
+print(json.dumps({'browser':'Chromium','phoneLayouts':18,'designs':['signal'],'modes':['journey','advanced'],'minimumControlContrast':4.5,'guidedActions':3,'dockHideShow':True,'reportDownload':True,'reloadRestoresReal':True,'journeys':results,'pageErrors':errors,'liveCallsDuringSimulation':0},indent=2))
