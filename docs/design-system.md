@@ -24,15 +24,15 @@ take and when it arrives. Before reaching the station, Auto and Plan must expose
 Leave now, Arrive by and Leave around, both complete recommendations and the full planning list.
 An active followed route must also retain its current access deadline before boarding.
 
-In the walking-to-station layout, put **Leave by** above the existing Train / Expected / At destination grid;
+In Auto and Plan, use the approved **journey + train panel** below, including while walking to the station;
 retain the centred Total journey lozenge and train-duration caption. List rows retain their own leave deadline
 alongside their departure information. “At the station about…”, minutes to spare, a train departure clock or
 countdown, and an itinerary step do not substitute for the leave deadline. A passed leave time must remain
 distinct from a train that has not departed. Use the option's engine timing and required pace; do not derive a
 second deadline in CSS or the renderer, or advertise a usable one for cancelled/unknown services.
 
-At the actual station, departure-first information and platform instructions remain appropriate. Explicit
-Live is a timetable view. Once aboard, arrival and the next action lead. These contextual exceptions do not
+At the actual station, retain the canonical platform-access deadline and platform instruction alongside the
+prominent train panel. Explicit Live is a timetable view. Once aboard, arrival and the next action lead. These contextual exceptions do not
 allow Auto to hide the deadline merely because a person is somewhere near their local station.
 
 Removing, concealing or substituting this answer is a **material product change**, which must be flagged to
@@ -42,9 +42,40 @@ time; a screenshot looking tidy or text merely existing inside Journey steps is 
 
 ## Current compact production revision — 31 October 2026
 
+### Journey + train panel (Sam, 1 November 2026)
+
+Sam approved option 2 of the three rendered time-hierarchy proposals: **journey + train panel**, and requested
+it across modes other than Live. The train departure is a key connection to make, not secondary service metadata.
+
+- In Auto and Plan, retain **Leave by → At destination** as the journey headline and expose the precise leave
+  countdown. Then show the existing centred Total journey / train-duration facts and a distinct inset connection
+  panel: **Train from [boarding station]**, a prominent **scheduled departure**, operator and platform.
+- Use the same complete layout and clock sizes for the first recommendation and Next best. Apply the same
+  hierarchy to the full planning list in both directions, Leave now / Arrive by / Leave around, Commute and Leisure.
+  Before boarding, Follow retains the chosen connection panel and its current canonical access deadline where
+  that deadline applies. An active Tube approach does not restart the journey from its original origin.
+- In a delayed or early panel, label **Scheduled** and **Expected** separately at equal time size. Keep the
+  scheduled identity; no strike-through or journey arrow between those clocks. Use the existing engine status
+  and severity, including Not live / Estimated / Cancelled / No estimate. Unknown platforms say **Platform unannounced**.
+- A multi-ride Trip repeats this panel for its existing train, Tube and bus rides in itinerary order, keeping
+  each ride's boarding station, time, destination, platform and source qualification attached to that ride.
+  Existing change allowances and warnings stay visible; the renderer never calculates new connections.
+- Explicit **Live** retains its timetable columns and current journey presentation. Once aboard in Auto or
+  Follow, current arrival and next action still lead; completed departures must not replace that answer.
+  Auto's homeward Tube view uses panels for the existing next rail connections while retaining its arrival headline.
+- Recommendation clocks are 36 px for Leave by and the train, 32 px for arrival. Planning rows use the same
+  geometry at 28 px journey clocks / 30 px train clocks. Long labels and 200% text reflow naturally. Actions
+  remain at least 44×44 px. No panel, deadline or second recommendation is hidden to meet an old density target.
+
+This supersedes the former departure-first walking/station geometry in Auto/Plan and the small inline train
+time in origin planning. It does not change ranking, route timings, view selection, Follow state or live feeds.
+Removing, concealing or reducing the connection clock to small metadata is a material change to flag to Sam
+before shipping, just as with the protected Leave by answer. A cosmetic request does not authorise either loss.
+The [acceptance story](stories/signal-design-system.md#journey--train-panel-sam-1-november-2026) records regression coverage.
+
 ### Stable information placement — 1 November 2026
 
-Total journey time occupies a centred neutral lozenge in a dedicated row directly under the headline times,
+Total journey time occupies a centred neutral lozenge in a dedicated row under the headline times and leave countdown,
 labelled **Total journey**, with a separate centred train-duration caption beneath it. Sam approved this
 placement in both Plan and Live on 1 November; it supersedes the first left/right duration anchors. Keep Live's
 Expected departure in its original time column, and do not relabel total duration as time remaining. Use the
@@ -100,7 +131,7 @@ space for requested journey information is preferable to hiding the information 
 
 ### Shared geometry and live-journey clarity (Sam, 31 October 2026)
 
-Position carries meaning as well as type and colour. Repeated time fields use the same page-wide anchors in the
+Position carries meaning as well as type and colour. Explicit Live's repeated time fields use the same page-wide anchors in the
 primary answer, Next best and the complete board: Train/Leave at the left, Expected at the centre when this is a
 departure board, and destination arrival at the right. Use the same content inset and column widths; route chips,
 service metadata, disclosure labels and Follow actions cannot squeeze a time into a different position. Place
@@ -213,8 +244,8 @@ as prominent as the expected time. Chosen from three options
   hides the name you match against); never "08:00 › 08:03" in one slot (reads as a journey).
 - The delay's word and minutes appear once, in the status pill; an "On time" pill is left off (Expected says it).
 - Never "On time" without live data. TfL's reported delays count as data: shown as the expected time, coloured.
-- Leave mode keeps Leave → Arrive as the big times, with "08:00 exp 08:03" on the train line.
-- List rows use the same three columns, with route, operator and flags on a line below.
+- Auto/Plan use the approved journey + train panel above: Leave by → Arrive, then prominent Scheduled/Expected
+  connection clocks. Explicit Live list rows retain the three departure columns with route/operator/flags below.
 - Engine: `departureStatus` in `src/core/rules.ts`. Story: [late-trains](stories/late-trains.md).
 - **Panda** (the live build): built 30 Oct; tokens `--hero-ok/warn/bad` on the card, `--ok/warn/bad` in the list.
   → [panda](design/panda.md#departure-board)
@@ -336,6 +367,7 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 | PlanningQuestion | Leave now / Arrive by / Leave around; retain date/time values per mode |
 | PrimaryAnswer | Before the station, exposed canonical Leave / Leave by time and leave countdown; retain it in departure-first walking layouts; contextual depart/arrive time, data source and deadline consequence; no ETA for unplannable services |
 | JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps |
+| JourneyConnection | Distinct inset panel per connection; prominent scheduled time, equally prominent separately labelled expected time when different, station/operator/platform and truthful status; repeated for multi-ride Trips; explicit Live keeps its board |
 | TrainBoard | All engine-returned options in engine order; do not filter by aesthetic preference; cancelled/unknown remain |
 | SharedTimeGrid | Common left Train/Leave, centre Expected when relevant, right destination arrival anchors; Next best heading and actions outside the grid |
 | ActiveJourney | Confirmed/inferred identity, source timestamp, last reported station, expected arrival and next action |

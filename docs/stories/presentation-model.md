@@ -26,7 +26,8 @@ that integration, including a deliberate change to the model order. Panda was su
   office-bound live situation but not to the last stretch home; Arrive by for today while under way shows the live
   view with the verdict band first; an Arrive by plan for another day stays a plan; no direction yet shows nothing
   else.
-- **Headline kind**: "departs" when at or walking to the station, "leave" when planning, "arrive" when under way.
+- **Headline kind** (Sam, 1 Nov): "leave" in Auto/Plan, including at or walking to the station; "departs" for
+  explicit Live's station/walking board; "arrive" when under way. The train has its own prominent planning panel.
 - **Block order** per view: the headline is never below an option, context line, board, line status or notice; the
   board is always after the top card. Every view has an order.
 - **Status line precedence**, worst first and never promoted from below: errors > routes not loaded > stale (3 min)
@@ -34,8 +35,9 @@ that integration, including a deliberate change to the model order. Panda was su
   late > a tube line with delays > an operator not on good service > a notice on your route with no impact yet >
   timetable-only / example data > good service. Lower tiers are counted in the detail, so a cancellation can never
   hide behind "minor delays". When the plan on screen is for later, train warnings say they're about trains now.
-- `src/page.html` dispatches on the pure presentation result and uses `headlineKind` for the departure board
-  (Train · Expected) or Leave. Signal uses semantic
+- `src/page.html` dispatches on the pure presentation result. `headlineKind` keeps Leave as Auto/Plan's
+  journey headline at the station or while walking, with a separate prominent train panel (Sam, 1 Nov).
+  Explicit Live retains the departure board (Train · Expected); active arrival views still lead with arrival. Signal uses semantic
   `data-block` boundaries and `src/presentation-blocks.js` to render actual live-card nodes in the supplied
   `BLOCKS` order. The shell has no second priority table. Untagged context and unknown blocks are retained;
   rearrangement preserves listeners, disclosures, focused controls and text selection.
@@ -62,7 +64,7 @@ that integration, including a deliberate change to the model order. Panda was su
 ## Tests
 - tests/core/present.test.mjs: "chooseView: live situations win over Leave now, in the order the situations are checked"
 - tests/core/present.test.mjs: "chooseView: Arrive by for today while under way shows the live view with the verdict first; otherwise the plan"
-- tests/core/present.test.mjs: "headlineKind: departs at or on the way to the station, leave when planning, arrive when under way"
+- tests/core/present.test.mjs: "headlineKind: Auto and Plan retain leave at the station, explicit Live retains departures, arrive when under way"
 - tests/core/present.test.mjs: "Blocks: every view has an order; the headline comes before any option, context line, board or notice"
 - tests/core/present.test.mjs: "statusLine: all good says so; a cancellation on your route is red whatever the operator's status says"
 - tests/core/present.test.mjs: "statusLine: data you can't trust comes before anything about trains"

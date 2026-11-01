@@ -536,8 +536,8 @@ test("Tube going home: at Aldgate the next tube is noted; underground the card s
   const hero = app.text("#hero");
   assert.match(hero, /^On the tube · 16:45 · worked out from when you left Aldgate/);
   assert.match(hero, /Probably the Met to Uxbridge that left Aldgate at 16:41/);
-  assert.match(hero, /Get off at Farringdon 16:48 → 16:56 Thameslink · platform 4 · home (\d\d:\d\d)/);
-  assert.match(hero, /or get off at King's Cross 16:51 → .* \(\d+ min later\)/);
+  assert.match(hero, /Get off at Farringdon 16:48 · home \d\d:\d\d.*Train from Farringdon 16:56 Thameslink Platform 4/);
+  assert.match(hero, /or get off at King's Cross 16:51 · home .* \(\d+ min later\)/);
   app.close();
 });
 
@@ -567,6 +567,8 @@ const trn = (o) => Object.assign({ depLate: 0, arrLate: 0, depUnknown: false, pl
 test("At Letchworth station going to work, Leave now is a departure board too", async () => {
   const app = await open({ now: T("07:00"), geo: { coords: { latitude: 51.9800, longitude: -0.2292, accuracy: 15 } }, settings: RDM, saved: { dirMode: "office" } });
   assert.match(app.text("#hero"), /^You're at Letchworth · departures · 07:00/);
+  assert.match(app.text('#hero .journey-connection'),/Train from Letchworth.*07:\d\d.*On time/);
+  app.d.querySelector('[data-journey-view="live"]').click();
   assert.match(app.text("#hero"), /Train ?07:\d\d Expected ?On time At office ?\d\d:\d\d/);
   app.close();
 });
@@ -670,7 +672,8 @@ test("On your way to Letchworth: departures, when you'll reach the station, and 
   assert.match(hero, /^On your way to Letchworth · 06:50/);
   const walk = c.walkFromHere(), at = new Date(now + walk * 1000);
   assert.match(hero, new RegExp(`At the station about ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`));
-  assert.match(hero, /Train ?0[67]:\d\d Expected ?(0[67]:\d\d|On time) At office ?\d\d:\d\d/);
+  assert.match(app.text('#hero .journey-times'),/Leave by0[67]:\d\d.*At office\d\d:\d\d/);
+  assert.match(app.text('#hero .journey-connection'),/Train from Letchworth.*0[67]:\d\d.*On time/);
   assert.match(hero, /on track · (\d+ min to spare|keep going)/);
   assert.doesNotMatch(hero, /If you leave now/);
   // Without a saved home: on the way only when clearly nearer the station than home is (3+ min of walking).
@@ -946,6 +949,7 @@ test("At Letchworth station a late train shows Train and Expected side by side, 
       disrupt: late ? { "Great Northern 07:08 from LET": { late, reason: "late" } } : {} }), c = app.c;
     await c.refresh({ force: true }); await sleep(400);
     await app.fix(51.9799, -0.2290, 10, now);
+    app.d.querySelector('[data-journey-view="live"]').click();
     assert.equal(c.fastRefresh(), true);
     const j = c.ranked(now).find((o) => o.train.std === "07:08");
     assert.ok(j, "the 07:08 is listed");

@@ -24,7 +24,7 @@ function validTripState(x, C) {
 }
 
 function createTripUi(deps) {
-  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc } = deps;
+  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
@@ -251,16 +251,37 @@ function createTripUi(deps) {
   const flagHtml = f => `<span class="flag ${f.lvl === "bad" ? "bad" : f.lvl === "warn" ? "warn" : f.lvl === "ok" ? "ok" : "info"}">${esc(f.txt)}</span>`;
   const mains = j => C.mainRides(j.rides);
   const summary = j => { const m = mains(j), ch = m.length - 1; return `${ch ? `${ch} change${ch > 1 ? "s" : ""}` : "Direct"} · ${dur(j.arrive - j.leave)} · ${[...new Set(m.map(r => r.operator || r.label))].join(", ")}`; };
+  function connections(j, firstRide = 0) {
+    let mainIndex = 0;
+    return j.rides.map((r, index) => {
+      const main = C.isMain(r), change = main && mainIndex > 0 ? j.changes[mainIndex - 1] : null;
+      if (main) mainIndex++;
+      if (index < firstRide) return '';
+      if (r.kind === 'walk') return `<p class="connection-transfer">Walk from ${esc(r.from.name)} to ${esc(r.to.name)}</p>`;
+      const departure = r.train ? C.departureStatus(r.train) : {level:'info',text:r.live.dep?'Live departure':'Not live',showTime:r.dep!==r.schedDep};
+      let status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
+      // The ride's endpoint evidence is authoritative after a failed board refresh.
+      // A retained Train still carries its last status; it must not claim current on-time running.
+      if(!r.live.dep){
+        const unqualified=status.text==='On time'||status.text==='Not live';
+        status={level:unqualified?'info':status.level,text:unqualified?'Not live':`${status.text} · Not live`};
+      }
+      const expectedLabel=!r.live.dep&&r.train&&!r.train.timetable?'Last known':'Expected';
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',destination:r.to.name})}`;
+    }).join('');
+  }
+  function journeyHeading(j, arrival = j.arrive) {
+    return `<div class="journey-heading"${!j.uncertain?` data-fact="leave-by" data-ms="${j.leave}"`:''}><div class="optrow journey-times"><div><small>Leave by</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(j.leave)}</b></div><div class="optarrow" aria-hidden="true">→</div><div><small>Arrive</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(arrival)}</b></div></div>${!j.uncertain?`<div class="journey-countdown"><span data-cd="${j.leave}">${j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'}</span></div>`:''}</div>`;
+  }
   function journeyRow(j, opts = {}) {
-    const first = mains(j)[0], late = first.dep !== first.schedDep;
     const steps = C.journeySteps(j).map(s => `<li${s.tube ? ' class="tube"' : ""}><time>${s.t != null ? hhmm(s.t) : ""}</time> ${esc(s.d)}${s.note ? ` <span class="note">${esc(s.note)}</span>` : ""}</li>`).join("");
     const followed = st().follow && st().follow.id === j.id;
     return `<article class="trip-row${j.recommended === 1 ? " best" : ""}" data-trip-id="${esc(j.id)}">
-      <div class="trip-times"><div><span class="lbl">Leave</span><b>${hhmm(j.leave)}</b></div>
-        <div><span class="lbl">Train</span><b>${hhmm(first.schedDep)}</b>${late ? `<span class="exp">exp ${hhmm(first.dep)}</span>` : ""}</div>
-        <div><span class="lbl">Arrive</span><b>${hhmm(j.arrive)}</b></div></div>
+      ${journeyHeading(j)}
+      <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
+      ${connections(j)}
       <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
-      ${j.flags.length ? `<div class="flags">${j.flags.map(flagHtml).join("")}</div>` : ""}
+      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${j.flags.filter(f=>!f.status).map(flagHtml).join("")}</div>` : ""}
       <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
       ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
     </article>`;
@@ -281,10 +302,10 @@ function createTripUi(deps) {
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
     const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
-      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}"><b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
+      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival):''}<b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
-        : best ? `<div class="trip-headline"><span class="lbl">${best.rides[0].from.crs && best.before.every(x => x.kind === "station") ? "Departs" : "Leave by"}</span><b class="big">${hhmm(best.before.every(x => x.kind === "station") ? mains(best)[0].dep : best.leave)}</b><span>Arrive ${hhmm(best.arrive)} · ${esc(summary(best))}</span></div>`
+        : best ? `<div class="trip-headline">${journeyHeading(best)}<span>${esc(summary(best))}</span></div>`
         : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
       options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
@@ -292,7 +313,7 @@ function createTripUi(deps) {
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
-      then: () => fu ? `<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
+      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
     out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");
     out.dataset.view = pres.view;
   }

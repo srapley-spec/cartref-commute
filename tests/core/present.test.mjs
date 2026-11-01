@@ -30,10 +30,14 @@ test("chooseView: Arrive by for today while under way shows the live view with t
   assert.equal(view({ plan: "at", nearlyHome: true }), "plan-at", "…but not to the last stretch home");
 });
 
-test("headlineKind: departs at or on the way to the station, leave when planning, arrive when under way", () => {
+test("headlineKind: Auto and Plan retain leave at the station, explicit Live retains departures, arrive when under way", () => {
   assert.equal(core.headlineKind("plan-now", { atStation: false, onWay: false }), "leave");
-  assert.equal(core.headlineKind("plan-now", { atStation: true, onWay: false }), "departs");
-  assert.equal(core.headlineKind("plan-now", { atStation: false, onWay: true }), "departs");
+  for(const mode of [undefined,'auto','plan']){
+    assert.equal(core.headlineKind("plan-now", { atStation: true, onWay: false, mode }), "leave");
+    assert.equal(core.headlineKind("plan-now", { atStation: false, onWay: true, mode }), "leave");
+  }
+  assert.equal(core.headlineKind("plan-now", { atStation: true, onWay: false, mode:'live' }), "departs");
+  assert.equal(core.headlineKind("plan-now", { atStation: false, onWay: true, mode:'live' }), "departs");
   assert.equal(core.headlineKind("plan-by", { atStation: true, onWay: false }), "leave");
   for (const v of ["on-train", "at-hub", "on-tube", "in-london", "on-tube-home", "nearly-home"]) assert.equal(core.headlineKind(v, { atStation: false, onWay: false }), "arrive", v);
 });

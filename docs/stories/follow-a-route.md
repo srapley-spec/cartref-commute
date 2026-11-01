@@ -54,7 +54,10 @@ not a claim that every criterion has already passed release verification. See [S
   remains selected, its saved journey start stays intact, and an uncertain/unusable option has no invented
   deadline. This preserves the [core product answer](../design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026)
   when Auto folds the other planning recommendations (Sam, 1 Nov).
-- One headline: **arriving HH:MM** for the followed route, and the next step ("Walk to Aldgate: leave by 18:27",
+- Before boarding, use the approved **Leave by → At destination** headline and prominent train panel when an
+  access deadline applies (Sam, 1 Nov); keep the selected service and saved start intact. During an active Tube
+  approach show the next rail panel without restarting the origin walk. Once aboard, the headline remains
+  **arriving HH:MM** for the followed route, and the next step ("Walk to Aldgate: leave by 18:27",
   "Circle from Aldgate 18:34, platform 2", "Change at King's Cross: 10 min", "18:54 Great Northern, platform 10").
 - Train duration and whole-journey duration use the same shared facts as planning and Live. The total starts at
   the chosen option's canonical leave time, never the Follow-tap time. A current expected arrival updates the

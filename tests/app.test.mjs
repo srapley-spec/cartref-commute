@@ -264,7 +264,7 @@ test("Arrive by 08:30 offers both the King's Cross and the Farringdon train (no 
   const app = await createApp({ journeys: morning(tomorrow()), settings: { provider: "tfl", kxInterchange: 300 } });
   await arriveBy(app, "08:30");
   const rows = app.rows();
-  assert.ok(rows.some((r) => /via King's Cross.*07:30 Great Northern/.test(r)), rows.join("\n"));
+  assert.match(rowFor(app,/07:30 Great Northern/).querySelector('.route').textContent,/via King's Cross/);
   const thameslink=rowFor(app,/07:20 Thameslink/);
   assertTrainFacts(thameslink,/07:20 Thameslink/,44);
   assert.match(thameslink.querySelector('.route').textContent,/via Farringdon/);
@@ -333,7 +333,8 @@ test("Arrive by lists trains either side of the recommended one, including late 
   const optionNodes=[...app.d.querySelectorAll('#hero .opt')];
   assertTrainFacts(optionNodes[0],/07:30 Great Northern/,33);
   assertTrainFacts(optionNodes[1],/07:20 Thameslink/,44,/Total journey 1h \d\dm/);
-  assert.match(app.text("#hero"), /Arrive office ?08:\d\d.* · (\d+ min early|just in time)/);
+  assert.match(app.text("#hero .journey-times"), /At office ?08:\d\d/);
+  assert.match(app.text("#hero .journey-countdown"), /\d+ min early|just in time/);
   app.close();
 });
 
@@ -456,6 +457,8 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   const app = await createApp({ geo: IN_LONDON });
   await moveTo(app, AT_KINGS_CROSS);
   assert.match(app.text("#dirNote"), /Location: .*at King's Cross/i);
+  assert.match(app.text('#hero .journey-connection'),/Train from King's Cross.*Not live/);
+  app.d.querySelector('[data-journey-view="live"]').click();
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · departures · \d\d:\d\d/);
   assert.match(hero, /^You're at King's Cross · departures · .*?Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/, "a departure board: the train, Expected (TfL timetable: not live), arrival");
@@ -597,8 +600,8 @@ test("Trains from St Pancras are kept on the King's Cross route; dropped journey
   const app = await createApp({ geo: IN_LONDON, journeys });
   const rows = app.rows();
   // The St Pancras and Farringdon Thameslink here are the same train (same arrival): one row, both stations.
-  assert.ok(rows.some((r) => /via (St Pancras or Farringdon|Farringdon or St Pancras).*Thameslink.*Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/.test(r)), "merged Thameslink:\n" + rows.join("\n"));
-  assert.ok(rows.some((r) => /via King's Cross.*Great Northern/.test(r)));
+  assert.ok(rows.some((r) => /Thameslink.*via (St Pancras or Farringdon|Farringdon or St Pancras).*Board at (Farringdon|St Pancras) \d\d:\d\d or (St Pancras|Farringdon) \d\d:\d\d/.test(r)), "merged Thameslink:\n" + rows.join("\n"));
+  assert.ok(rows.some((r) => /Great Northern.*via King's Cross/.test(r)));
   const diag = app.text("#diagBody");
   assert.match(diag, /King's Cross → Letchworth, timetable: 1 search; TfL returned 3 journeys; 2 direct trains kept \(\d\d:\d\d St Pancras, \d\d:\d\d King's Cross\); 1 with a change of train/);
   app.close();
@@ -751,6 +754,8 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
   assert.equal(plain.d.querySelectorAll("#list .row.board").length, 0, "leave mode: no board columns");
   plain.setNow(now + 1000); // A later fix is required by the real location-resume guard.
   await moveTo(plain, AT_KINGS_CROSS);
+  assert.ok(plain.d.querySelector('#hero .journey-connection'),'Auto retains the journey and connection panel');
+  plain.d.querySelector('[data-journey-view="live"]').click();
   const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector(".leave"));
   assert.ok(rows.length > 0 && rows.every((r) => r.classList.contains("board")), "at the station: every train row is a board row");
   assert.match(plain.text("#hero"), /Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/);
@@ -772,6 +777,7 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     const app = await createApp({ geo: IN_LONDON, journeys, now });
     app.setNow(now + 1000);
     await moveTo(app, AT_KINGS_CROSS);
+    app.d.querySelector('[data-journey-view="live"]').click();
     const hero = app.text("#hero"), m = hero.match(/Train ?(\d\d:\d\d) Expected ?(\d\d:\d\d) At home/);
     assert.ok(m, `TfL ${late} min late: the expected time, not 'Not live' — ${hero.slice(0, 200)}`);
     const [h, mm] = m[1].split(":").map(Number), exp = new Date(2026, 10, 3, h, mm + late);

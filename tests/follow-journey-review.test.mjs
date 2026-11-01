@@ -25,7 +25,7 @@ test('journey review: a caught Circle still reaches the followed Thameslink, rat
  const now=evening+20*MIN;fresh(a,now,[51.5186,-.0886]);
  a.c.state.saved.tubeRide={hub:'ALD',from:'ALD',t:evening+18*MIN,line:'Circle',vehicle:'tube-review',picked:true,confirmed:true,rideMs:7*MIN,stop:'Farringdon',stopGeo:[51.52036,-.10514]};
  a.c.render();
- assert.match(a.text('#hero'),/Farringdon 18:25 → 18:34 Thameslink/,'existing connection engine proves the selected train remains catchable');
+ assert.match(a.text('#hero .journey-next-connection'),/Farringdon 18:25.*Train from Farringdon 18:34 Thameslink/,'the existing connection remains exposed in its own panel');
  assert.equal(a.c.state.followUpdate.status,'on-track');
  assert.equal(a.c.state.saved.followRoute.id,r.id);
  assert.equal(a.c.state.saved.followRoute.expectedArrival,r.expectedArrival);

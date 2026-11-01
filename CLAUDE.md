@@ -29,7 +29,11 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   leave clock and countdown in both complete recommendations and planning rows, including walking
   layouts. Train departure time, spare minutes and hidden Journey steps cannot substitute for it. Removing,
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
-  approval. Preserve the actual-station and explicit-Live exceptions in `docs/design-system.md`.
+  approval. The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit
+  Live's timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
+- **The key connection clock is protected too (Sam, 1 Nov).** Auto/Plan expose the scheduled train departure
+  prominently in the approved journey + train panel. Concealing it or demoting it to small service metadata is
+  a material change to flag before shipping; preserve separately labelled expected times and both recommendations.
 - When unsure, ask and remember; don't silently overrule the person.
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.

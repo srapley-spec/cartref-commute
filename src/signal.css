@@ -384,3 +384,62 @@ html .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
 html .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
 html .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
+/* Journey + connection panels (Sam, 1 Nov). Explicit Live retains its board geometry. */
+html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown) {grid-column:1/-1;min-width:0}
+html .journey-heading {min-width:0}
+html .journey-heading .journey-times {display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);grid-template-rows:auto auto;align-items:end;gap:0 8px;min-width:0}
+html .journey-heading .journey-times>div:not(.optarrow) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
+html .journey-heading .journey-times>div:first-child {grid-column:1;text-align:left}
+html .journey-heading .journey-times>div:nth-child(3) {grid-column:3;text-align:right}
+html .journey-heading .journey-times small {display:block;font-size:12px;font-weight:600;line-height:1.4;color:var(--muted);text-transform:none;letter-spacing:0;opacity:1}
+html .journey-heading .journey-times .optbig {font-size:36px;font-weight:750;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums;align-self:end}
+html .journey-heading .journey-times>div:nth-child(3) .optbig {font-size:32px}
+html .journey-heading .journey-times .optbig.word {font-size:18px;line-height:1.5;overflow-wrap:anywhere}
+html .journey-heading .journey-times>.optarrow {display:block;grid-column:2;grid-row:2;align-self:end;text-align:center;font-size:20px;color:var(--muted);padding-bottom:3px}
+html .journey-heading .journey-countdown {margin-top:8px;font-size:13px;line-height:1.5;color:var(--muted);padding-right:0}
+html .journey-countdown:empty {display:none}
+html .journey-connection {display:grid;gap:5px;min-width:0;padding:10px 11px;border-radius:9px;border-left:3px solid var(--accent);background:var(--signal-inset);color:var(--ink)}
+html .connection-heading {font-size:12px;line-height:1.4;font-weight:650;color:var(--muted);overflow-wrap:break-word}
+html .journey-connection .connection-main {display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:8px 12px;min-width:0;margin:0;font-size:14px;grid-row:auto}
+html .connection-clock {display:grid;gap:2px;min-width:0}
+html .connection-clock>small {font-size:12px;line-height:1.4;font-weight:600;color:var(--muted)}
+html .journey-connection .connection-time {display:block;font-size:36px;font-weight:750;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;text-decoration:none}
+html .connection-details {display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html .connection-details>.plat {color:var(--ink);font-weight:650}
+html .connection-status {font-size:12px;line-height:1.4;font-weight:650}
+html .connection-main.has-expected {grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
+html .connection-main.has-expected>.connection-details {grid-column:1/-1;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:3px 8px}
+html .connection-main.has-expected .connection-status {margin-left:auto}
+html .connection-expected {text-align:right}
+html .journey-connection .exp.ok {color:var(--ok)}
+html .journey-connection .exp.warn {color:var(--warn)}
+html .journey-connection .exp.bad {color:var(--bad)}
+html .connection-status.info {background:transparent;color:var(--muted);padding:0}
+html .connection-countdown {font-size:13px;color:var(--muted)}
+html .journey-next-connection {display:grid;gap:6px;min-width:0;font-size:14px}
+html .row.journey-row {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:8px;padding:10px var(--signal-content-inset)}
+html .row.journey-row>* {grid-column:1/-1;min-width:0}
+html .row.journey-row>:is(.follow-btn,.followtag) {grid-column:1/-1;justify-self:end;margin:0}
+html .journey-row .optroute {display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+html .journey-row .journey-facts {margin:0}
+html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
+html .journey-row .journey-connection .connection-time {font-size:30px}
+html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
+html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
+html .trip-row .journey-facts {margin:4px 0}
+html .trip-row .journey-connection {margin:3px 0}
+html .trip-follow-connections {display:grid;gap:8px;min-width:0}
+html .trip-steps>summary {display:flex;align-items:center;min-height:44px;min-width:44px;color:var(--accent);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+html .trip-steps>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
+html .trip-steps[open]>summary::before {transform:rotate(90deg)}
+html .trip-steps>summary::-webkit-details-marker {display:none}
+html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
+@container (max-width:18em) {
+  html .journey-heading .journey-times {grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:4px}
+  html .journey-heading .journey-times>div:not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
+  html .journey-heading .journey-times>.optarrow {display:none}
+  html .journey-connection .connection-main {grid-template-columns:minmax(0,1fr);align-items:start}
+  html .connection-expected {text-align:left}
+  html .connection-main.has-expected .connection-status {margin-left:0}
+  html .row.journey-row>* {grid-row:auto}
+}

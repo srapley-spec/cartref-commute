@@ -179,6 +179,7 @@ const factories={
   const s=a.c.state;s.saved.dirMode='home';locate(s,[51.519,-.099]);
   s.saved.tubeRide={hub:'ALD',from:'ALD',t:NOW-2*MIN,line:'Circle',vehicle:'parity-home',picked:true,rideMs:10*MIN,stop:"King's Cross",stopGeo:[51.5308,-.1238]};
   a.c.render();assert.match(a.text('#hero'),/Get off at/);assert.match(a.text('#hero'),/home/);
+  assert.ok(shown(a,'#hero .journey-next-connection .journey-connection').length,'Auto exposes the next rail connection while the arrival still leads');
   assert.ok(shown(a,'#hero [data-block="headline"]').length);
   assert.ok(shown(a,'#list .row').length,'onward trains stay available');
   assert.equal(s.saved.tubeRide.vehicle,'parity-home');
