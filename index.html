@@ -210,6 +210,27 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
+/* Panda keeps the same readable time order when enlarged text needs more room.
+   One shared container reflows the main card and every departure/list row together. */
+html[data-design="panda"] .wrap{min-width:0;container-type:inline-size}
+html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
+@container (max-width:18em){
+  html[data-design="panda"] :is(.hero .optrow,.hero .optrow.board,.row){display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
+  html[data-design="panda"] .hero .optrow>div:not(.optarrow){grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
+  html[data-design="panda"] .hero .optrow .optarrow{display:none}
+  html[data-design="panda"] .hero .optrow .optroute{margin-left:0;padding-bottom:0}
+  html[data-design="panda"] .row>:is(.leave,.exp,.arrive){grid-column:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
+  html[data-design="panda"] .row>.leave{grid-row:1}
+  html[data-design="panda"] .row>.arrive{grid-row:2}
+  html[data-design="panda"] .row.board>.exp{grid-row:2}
+  html[data-design="panda"] .row.board>.arrive{grid-row:3}
+  html[data-design="panda"] .row>.mid{grid-column:1;grid-row:3}
+  html[data-design="panda"] .row.board>.mid{grid-row:4}
+  html[data-design="panda"] .row:has(>.mid.meta){display:block}
+  html[data-design="panda"] .seg{max-width:100%;flex-wrap:wrap}
+  html[data-design="panda"] :is(.pill,.chip){max-width:100%;white-space:normal;overflow-wrap:break-word}
+  html[data-design="panda"] :is(.hero,.list,#followPanel){overflow-wrap:break-word}
+}
 @media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
 /* Signal: a compact journey instrument. Scope every rule so Panda remains the baseline. */
 html[data-design="signal"] {
@@ -300,6 +321,9 @@ html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-sel
 html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
+html[data-design="signal"] .signal-alt-facts {display:block;font-size:12px;color:var(--muted)}
+html[data-design="signal"] .signal-alternative[open] .signal-alt-facts,
+html[data-design="signal"] .signal-alternative[open] .signal-alt-comparison {display:none}
 html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
 /* Every answer uses the same anchors: departure left, expected centre, destination right.
    Planning reserves the middle slot; actions and route metadata never take a time column. */
@@ -588,11 +612,55 @@ html[data-design="signal"] .trip-steps ol {margin:6px 0 0;padding-left:0;list-st
 html[data-design="signal"] .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
 
+/* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
+#alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
+.along-dialog::backdrop{background:#09152299}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]) #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}}
+html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}
+.along-dialog *{box-sizing:border-box;min-width:0}
+.along-dialog .al-header{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap}
+#alongLine #alongTitle{margin:0;font-size:24px;line-height:1.2;color:var(--ink);letter-spacing:-.03em}
+.along-dialog p{margin:8px 0}.al-header p,#alongEvidence,.al-foot,.al-visibility{color:var(--muted)}
+.along-dialog :is(button,select,summary){min-height:44px;font:inherit;color:var(--accent)}
+.along-dialog button,.along-dialog select{padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);white-space:normal}
+.along-dialog :is(button,summary,select,a,input):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.along-dialog a{color:var(--accent);text-decoration:underline;overflow-wrap:anywhere}
+.along-dialog small{display:block;color:var(--muted);margin-top:8px}
+#alongJourney,#alongImpact{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:10px 0;overflow-wrap:anywhere}
+#alongImpact{border-left:4px solid var(--accent);font-weight:600}
+#alongChoices{border-bottom:1px solid var(--line);padding-bottom:8px}
+#alongChoices>summary{display:flex;align-items:center;cursor:pointer}
+#alongChoices fieldset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;border:1px solid var(--line);gap:4px}
+#alongChoices label{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px}
+#alongChoices input{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0}
+.al-depth{display:flex;flex-wrap:wrap;margin-top:8px}.al-depth select{flex:1}
+.al-follow{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--accent);font-weight:600;min-height:44px}
+#alongScroll{position:relative;max-height:52dvh;min-height:120px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:8px 4px}
+#alongStrip{list-style:none;padding:0 0 0 20px;margin:0}
+#alongStrip>li{position:relative;border-left:2px solid var(--line);padding:4px 0 18px 18px}
+.al-dot{position:absolute;width:10px;height:10px;background:var(--card);border:2px solid var(--muted);border-radius:50%;left:-6px;top:14px}
+[data-featured="true"]>.al-dot{border-color:var(--accent);background:var(--accent)}
+.al-location{display:block;color:var(--muted);font-size:.87em;margin:4px 0}
+.al-story>details{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px}
+.al-story[data-featured="true"]>details{border-color:var(--accent);background:var(--signal-soft)}
+.al-story summary{cursor:pointer;color:var(--ink);overflow-wrap:anywhere}
+.al-title{font-weight:700}.al-hook{display:block;color:var(--muted);padding-top:4px}
+.al-story[data-state="passed"]>.al-location::before{content:'✓ ';color:var(--muted)}
+.al-story[data-selected="false"]:not(:has(details[open])){padding-bottom:10px}
+.al-story[data-selected="false"] .al-hook{display:none}
+.along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
+.along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
+@media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
+@media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
+
+#alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}
+
 /* Follow controls also work in Panda; status colours retain their usual meaning. */
 #followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
 .follow-btn,.follow-action{min-height:44px;font:inherit;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--accent)}
 #followPanel .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
 #journeyViewControl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#journeyViewControl button{min-height:44px;min-width:44px}
 #followPanel .follow-actions{display:flex;gap:8px;flex-wrap:wrap}
 #signalStatus{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent)}
 #signalStatus.bad{border-color:var(--bad)} #signalStatus.warn{border-color:var(--warn)} #signalStatus.note{border-color:var(--note)}
@@ -680,7 +748,7 @@ html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;paddin
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 31 Oct 23:52 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 08:58 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -758,6 +826,7 @@ html[data-design="signal"] .trip-others ul,.trip .diag ul {margin:6px 0 0;paddin
     <fieldset>
       <legend>Experimental</legend>
       <label class="f wide"><span><input type="checkbox" id="s_signal"> Signal design — the new light/dark journey screen. Off by default.</span></label>
+      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
       <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
@@ -924,9 +993,9 @@ var CommuteCore = (() => {
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __export = (target, all) => {
-    for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
+  var __export = (target, all2) => {
+    for (var name in all2)
+      __defProp(target, name, { get: all2[name], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -941,6 +1010,7 @@ var CommuteCore = (() => {
   // src/core/index.ts
   var core_exports = {};
   __export(core_exports, {
+    ALONG_INTERESTS: () => ALONG_INTERESTS,
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
@@ -974,6 +1044,8 @@ var CommuteCore = (() => {
     addCallingAlternatives: () => addCallingAlternatives,
     addJourneys: () => addJourneys,
     afterSegments: () => afterSegments,
+    alongLine: () => alongLine,
+    alongPreferences: () => alongPreferences,
     applyLive: () => applyLive,
     aroundOptions: () => aroundOptions,
     aroundRounds: () => aroundRounds,
@@ -1002,6 +1074,7 @@ var CommuteCore = (() => {
     compareWithBest: () => compareWithBest,
     confirmFollowBoarding: () => confirmFollowBoarding,
     confirmTripRide: () => confirmTripRide,
+    connectionJourneyFacts: () => connectionJourneyFacts,
     countdown: () => countdown,
     createViewOverride: () => createViewOverride,
     delayLevel: () => delayLevel,
@@ -1036,6 +1109,7 @@ var CommuteCore = (() => {
     isStopping: () => isStopping,
     isoDay: () => isoDay,
     journeyChanges: () => journeyChanges,
+    journeyFacts: () => journeyFacts,
     journeyFlags: () => journeyFlags,
     journeyProgress: () => journeyProgress,
     journeySteps: () => journeySteps,
@@ -1111,6 +1185,8 @@ var CommuteCore = (() => {
     roundOnePairs: () => roundOnePairs,
     routeCount: () => routeCount,
     runRounds: () => runRounds,
+    samAlongLine: () => samAlongLine,
+    samAlongStations: () => samAlongStations,
     samRoutes: () => samRoutes,
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
@@ -1686,12 +1762,12 @@ var CommuteCore = (() => {
   function addCallingAlternatives(boards, dir, profile) {
     var _a;
     const hubs = profile.mergeHubs;
-    const all = Object.values(boards).flatMap((b) => b ? b.services : []);
+    const all2 = Object.values(boards).flatMap((b) => b ? b.services : []);
     const hubOf = (t2) => dir === "office" ? t2.to : t2.from;
     const timeAt = (t2) => dir === "office" ? t2.arr : t2.dep;
     const same = (a, b) => a.operator === b.operator && a.arr != null && b.arr != null && Math.abs(dir === "office" ? a.dep - b.dep : a.arr - b.arr) <= 6e4;
     const gaps = {};
-    for (const a of all) for (const b of all) {
+    for (const a of all2) for (const b of all2) {
       const ha = hubOf(a), hb = hubOf(b);
       if (a === b || ha === hb || !hubs.includes(ha) || !hubs.includes(hb) || !same(a, b)) continue;
       const ta = timeAt(a), tb = timeAt(b);
@@ -1704,7 +1780,7 @@ var CommuteCore = (() => {
     };
     const out = {};
     for (const [k, b] of Object.entries(boards)) out[k] = b ? { services: b.services.slice(), msgs: b.msgs } : b;
-    for (const t2 of all) {
+    for (const t2 of all2) {
       const hub = hubOf(t2), ht = timeAt(t2);
       if (!hubs.includes(hub) || !t2.calls || ht == null || t2.arr == null) continue;
       t2.calls.forEach((c, i) => {
@@ -2042,6 +2118,7 @@ var CommuteCore = (() => {
       next,
       early,
       best,
+      fastest,
       chosen: !!picked,
       tight: !!picked && picked.t < ready - 6e4,
       spareMin: best ? Math.max(0, Math.floor((best.t - ready) / 6e4)) : 0
@@ -2169,10 +2246,10 @@ var CommuteCore = (() => {
     });
     return { boards, failed, diag };
   }
-  function routeCount(k, all, p) {
+  function routeCount(k, all2, p) {
     const hub = hubOfKey(k, p), twinHub = Object.keys(p.sharesTubeWith || {}).find((h) => p.sharesTubeWith[h] === hub);
     const twin = twinHub ? k.startsWith(p.home) ? `${p.home}-${twinHub}` : `${twinHub}-${p.home}` : null;
-    return (all[k] || { services: [] }).services.length + (twin && all[twin] ? all[twin].services.length : 0);
+    return (all2[k] || { services: [] }).services.length + (twin && all2[twin] ? all2[twin].services.length : 0);
   }
   var lastDep = (B) => B.services.length ? B.services[B.services.length - 1].dep : 0;
   function nowRounds(now, onTheLine, o) {
@@ -2180,7 +2257,7 @@ var CommuteCore = (() => {
     const rounds = [
       (k) => ({ t: start(k), timeIs: "Departing" }),
       // Without a key, a route with fewer than 2 trains gets one more search, 30 minutes later.
-      (k, B, all) => !o.keyed && routeCount(k, all, o.p) < 2 && !onTheLine ? { t: start(k) + 30 * 6e4, timeIs: "Departing" } : null
+      (k, B, all2) => !o.keyed && routeCount(k, all2, o.p) < 2 && !onTheLine ? { t: start(k) + 30 * 6e4, timeIs: "Departing" } : null
     ];
     if (o.keyed) for (let i = 0; i < 2; i++) rounds.push((k, B) => {
       const last = lastDep(B);
@@ -2196,7 +2273,7 @@ var CommuteCore = (() => {
     };
     const rounds = [
       (k) => ({ t: start(k), timeIs: "Departing" }),
-      (k, B, all) => o.keyed || B.services.length < 3 ? next(k, B, all) : null
+      (k, B, all2) => o.keyed || B.services.length < 3 ? next(k, B, all2) : null
     ];
     if (o.keyed) rounds.push(next);
     return rounds;
@@ -2509,8 +2586,8 @@ var CommuteCore = (() => {
     return reachable(lastHub.arrivals || [], ready).some((a) => a.t <= now);
   }
   function whichTube(lastHub, now, ready) {
-    const all = (lastHub.arrivals || []).filter((a) => a.t <= now + 3e4);
-    const could = reachable(all, ready), gone = could.length ? could : all;
+    const all2 = (lastHub.arrivals || []).filter((a) => a.t <= now + 3e4);
+    const could = reachable(all2, ready), gone = could.length ? could : all2;
     if (!gone.length) return null;
     const at = Math.max(lastHub.seen, ready != null ? ready : -Infinity), off = (a) => Math.abs(a.t - at);
     gone.sort((a, b) => off(a) - off(b));
@@ -2950,7 +3027,7 @@ var CommuteCore = (() => {
   var EASE = ["walk", "fast", "run", "car", "none", "unknown"];
   var reachOf = (o) => {
     var _a;
-    return o.missed ? "none" : (_a = o.effort) != null ? _a : "walk";
+    return (_a = o.effort) != null ? _a : o.missed ? "none" : "walk";
   };
   function railStationBoard(i) {
     const rail = i.stops.filter((s) => s.kind === "rail");
@@ -3456,8 +3533,8 @@ var CommuteCore = (() => {
     var _a, _b, _c, _d;
     try {
       if (!isLegacyFollowRoute(value) || !epoch(ctx.now) || !["commute", "leisure"].includes(ctx.mode)) return null;
-      const legacy = value, all = flatten(options);
-      const found = all.find((o) => o.hub === legacy.hub && matches(o.train, legacy.train, legacy));
+      const legacy = value, all2 = flatten(options);
+      const found = all2.find((o) => o.hub === legacy.hub && matches(o.train, legacy.train, legacy));
       if (!found || !finite4(found.train.arr) || !Array.isArray(found.legs) || !found.legs.length) return null;
       const snapshot = JSON.parse(JSON.stringify(found));
       const actualTrain = JSON.parse(JSON.stringify(found.train));
@@ -3480,7 +3557,7 @@ var CommuteCore = (() => {
       snapshot.arrive = legacy.planned;
       snapshot.train.arr = baselineRail;
       snapshot.train.arrLate = Math.round((baselineRail - (found.train.arr - found.train.arrLate * MIN2)) / MIN2);
-      const calls = all.filter((o) => o !== found && legacy.calls.some((id2) => matches(o.train, id2, legacy)) && o.hub !== found.hub);
+      const calls = all2.filter((o) => o !== found && legacy.calls.some((id2) => matches(o.train, id2, legacy)) && o.hub !== found.hub);
       snapshot.alts = calls.filter((o, index) => calls.findIndex((other) => followServiceKey(other) === followServiceKey(o)) === index).slice(0, 20).map((o) => JSON.parse(JSON.stringify(o)));
       const id = followServiceKey(snapshot), notices = [], seenEvents = [];
       const reasonKind = ((_a = legacy.reason) == null ? void 0 : _a.kind) === "cancelled" ? "cancelled" : ((_b = legacy.reason) == null ? void 0 : _b.kind) === "missed" ? "missed" : "arrival";
@@ -3494,7 +3571,7 @@ var CommuteCore = (() => {
       const incident = ((_c = legacy.reason) == null ? void 0 : _c.kind) === "cancelled" || legacy.dismissed === "cancelled" ? "cancelled" : ((_d = legacy.reason) == null ? void 0 : _d.kind) === "missed" || legacy.dismissed === "missed" ? "missed" : null;
       const chosenDay = id.split("|", 1)[0];
       const dismissedAlternatives = legacy.declined.map((key) => {
-        const actual = all.find((o) => idKey(o.train) === key);
+        const actual = all2.find((o) => idKey(o.train) === key);
         const serviceDay = actual ? followServiceKey(actual).split("|", 1)[0] : chosenDay;
         return legacyFollowDeclineMarker(serviceDay, key);
       });
@@ -3940,8 +4017,8 @@ var CommuteCore = (() => {
     const reach = cfg.reachKm[mode];
     const within = idx.near(geo, reach).map((s) => ({ station: s, km: km(geo, s.geo) }));
     if (!within.length) {
-      const all = idx.all().map((s) => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km);
-      return all.length ? { list: [{ ...all[0], why: "fallback" }], farKm: all[0].km } : { list: [] };
+      const all2 = idx.all().map((s) => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km);
+      return all2.length ? { list: [{ ...all2[0], why: "fallback" }], farKm: all2[0].km } : { list: [] };
     }
     const nearest = within.slice(0, cfg.nearest).map((c) => ({ ...c, why: "nearest" }));
     const bar = Math.max(0, ...nearest.map((c) => c.station.servicePerHour || 0)) * cfg.wellServedFactor;
@@ -4463,6 +4540,213 @@ var CommuteCore = (() => {
   var confirmTripRide = (route, ride) => ({ ...clone2(route), confirmed: [.../* @__PURE__ */ new Set([...route.confirmed, ride])] });
   var dismissTripAlternative = (route, id) => ({ ...clone2(route), dismissed: [.../* @__PURE__ */ new Set([...route.dismissed, id])] });
 
+  // src/core/alongLine.ts
+  var ALONG_INTERESTS = ["views", "places", "engineering", "operations"];
+  function alongPreferences(value) {
+    const v = value && typeof value === "object" ? value : {};
+    const interests = Array.isArray(v.interests) ? ALONG_INTERESTS.filter((i) => v.interests.includes(i)) : ["views", "places"];
+    return { interests, depth: v.depth === "glance" || v.depth === "explore" ? v.depth : "discover" };
+  }
+  function alongLine(input) {
+    var _a, _b, _c, _d;
+    const { line, now, here } = input, preferences = alongPreferences(input.preferences);
+    const totalM = line.slice(1).reduce((sum, p, i) => sum + km(line[i], p) * 1e3, 0);
+    const finitePoint = (p) => !!p && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
+    const usableLine = line.length > 1 && totalM > 0 && line.every(finitePoint);
+    const position = usableLine && finitePoint(here) ? lineProgress(here, line) : null;
+    const fresh = Number.isFinite(input.fixAt) && now >= input.fixAt && now - input.fixAt <= 6e4;
+    const reliable = !!position && fresh && input.locationOK && input.onboard && input.identityCertain && Number.isFinite(input.accuracy) && input.accuracy >= 0 && input.accuracy <= 100 && position.offKm <= 0.5;
+    const bounds = usableLine && input.from && input.to ? [lineProgress(input.from, line).frac, lineProgress(input.to, line).frac].sort((a, b) => a - b) : [0, 1];
+    const points = usableLine ? input.points.filter((p) => p.hubs.includes(input.hub)).map((point) => {
+      var _a2, _b2;
+      const frac = lineProgress(point.geo, line).frac;
+      const distanceM = reliable ? (frac - position.frac) * totalM * (input.reverse ? -1 : 1) : null;
+      const radius = ((_a2 = point.radiusM) != null ? _a2 : 250) + ((_b2 = input.accuracy) != null ? _b2 : 0);
+      const state = distanceM === null ? "browse" : distanceM > radius ? "upcoming" : distanceM < -radius ? "passed" : "nearby";
+      return { point, frac, distanceM, state, selected: point.kind === "station" || point.tags.some((tag) => preferences.interests.includes(tag)) };
+    }).filter((p) => p.frac >= bounds[0] - 2e-3 && p.frac <= bounds[1] + 2e-3).sort((a, b) => (a.frac - b.frac) * (input.reverse ? -1 : 1)) : [];
+    const relevant = points.filter((p) => p.selected && p.point.kind !== "station");
+    const featured = (_a = relevant.find((p) => p.state === "nearby")) != null ? _a : relevant.find((p) => p.state === "upcoming");
+    return {
+      points,
+      preferences,
+      reliable,
+      markerBeforeId: reliable ? (_c = (_b = points.find((p) => p.distanceM !== null && p.distanceM >= 0)) == null ? void 0 : _b.point.id) != null ? _c : null : null,
+      featuredId: (_d = featured == null ? void 0 : featured.point.id) != null ? _d : null,
+      evidence: reliable ? "Approximate position from your phone \xB7 route locations are approximate" : "Browse this route \xB7 current position unavailable or uncertain",
+      empty: relevant.length === 0
+    };
+  }
+
+  // src/core/profiles/samAlongLine.ts
+  var all = ["KGX", "STP", "ZFD"];
+  var samAlongLine = [
+    {
+      id: "hitchin",
+      title: "Hitchin junction",
+      geo: [51.9533, -0.2635],
+      hubs: all,
+      tags: ["engineering", "operations"],
+      hook: "How do two busy railways cross paths?",
+      notice: "Around Hitchin, the Cambridge route meets the East Coast Main Line.",
+      discover: "The Hitchin flyover carries the northbound Cambridge line over the East Coast Main Line. It avoids the conflict of crossing the main tracks on the level.",
+      explore: "A flat junction makes intersecting trains take turns across the same piece of railway. A flyover separates their paths vertically. The old flat connection remains, so not every train here uses the flyover. Travelling towards London does not mean you cross it.",
+      visibility: "Railway context nearby \xB7 the flyover is north of Hitchin station",
+      source: "https://en.wikipedia.org/wiki/Hitchin_Flyover",
+      sourceTitle: "Hitchin Flyover"
+    },
+    {
+      id: "knebworth",
+      title: "Knebworth",
+      geo: [51.8667, -0.1876],
+      hubs: all,
+      tags: ["places"],
+      hook: "A country-house story beyond the tracks",
+      notice: "The railway passes Knebworth, whose nearby country house sits in a historic park.",
+      discover: "Knebworth House and its gardens are both Grade II* listed. The surrounding park includes the medieval St Mary\u2019s Church and the Lytton family mausoleum.",
+      explore: "A station name can be the beginning of a story rather than just a stop. Here it connects the everyday journey with a country estate and the families who shaped it. Save the name for a visit; the house is not a promised view from the train.",
+      visibility: "Nearby place \xB7 house visibility is not verified",
+      source: "https://en.wikipedia.org/wiki/Knebworth_House",
+      sourceTitle: "Knebworth House"
+    },
+    {
+      id: "welwyn-north",
+      title: "Welwyn North",
+      geo: [51.8233, -0.192],
+      hubs: all,
+      tags: ["engineering", "operations"],
+      hook: "A village station on a main-line railway",
+      notice: "Welwyn North serves Digswell and Welwyn on the East Coast Main Line.",
+      discover: "The station sits just north of the viaduct. The viaduct carries only two tracks, shared by trains making different journeys along this part of the main line.",
+      explore: "Stopping and faster trains need to share the available railway. Track layout helps explain why the order of trains matters: the number of tracks and the places where trains can pass each other shape the timetable.",
+      visibility: "Station and railway context",
+      source: "https://en.wikipedia.org/wiki/Welwyn_North_railway_station",
+      sourceTitle: "Welwyn North railway station; Digswell Viaduct",
+      radiusM: 200
+    },
+    {
+      id: "digswell",
+      title: "Digswell Viaduct \xB7 Welwyn",
+      geo: [51.8158, -0.1972],
+      hubs: all,
+      tags: ["views", "engineering"],
+      hook: "The view opens up here",
+      notice: "Around the viaduct, look out across the Mimram valley. Take a moment away from your screen.",
+      discover: "Digswell Viaduct, often called Welwyn Viaduct, carries the railway over the River Mimram and its valley. From a train on it, you see the valley rather than the arches beneath you.",
+      explore: "Opened in 1850, the viaduct was designed by William and Joseph Cubitt and engineered by Thomas Brassey. It still carries two tracks of the East Coast Main Line. Its Grade II* listing recognises the structure as well as its place in the landscape.",
+      visibility: "Valley view from the railway \xB7 the viaduct is beneath the train",
+      source: "https://en.wikipedia.org/wiki/Digswell_Viaduct",
+      sourceTitle: "Digswell Viaduct",
+      radiusM: 400
+    },
+    {
+      id: "garden-city",
+      title: "Welwyn Garden City",
+      geo: [51.801, -0.204],
+      hubs: all,
+      tags: ["places", "views"],
+      hook: "A town planned around an idea",
+      notice: "Here the railway passes Welwyn Garden City, England\u2019s second garden city.",
+      discover: "The town brings together two chapters of planned development: the garden-city movement and the later new towns. Its layout reflects ideas about how people should live and work.",
+      explore: "As the view changes between town and countryside, consider how much of a landscape is designed. Welwyn Garden City is unusual in being both a garden city and a new town: two attempts to plan a better place to live.",
+      visibility: "Town and landscape context \xB7 individual features may be obscured",
+      source: "https://en.wikipedia.org/wiki/Welwyn_Garden_City",
+      sourceTitle: "Welwyn Garden City"
+    },
+    {
+      id: "hatfield",
+      title: "Hatfield",
+      geo: [51.7638, -0.2156],
+      hubs: all,
+      tags: ["places", "engineering"],
+      hook: "An estate beside a commuter town",
+      notice: "Hatfield House stands in a large park on the eastern side of Hatfield.",
+      discover: "The house is Grade I listed. Its Great Park adds another layer to this railway landscape: a historic estate alongside a modern town.",
+      explore: "A passing train gives you only fragments of a place. The town, station and estate belong to different chapters of Hatfield\u2019s story. The house is a nearby discovery for later, rather than a guaranteed sight through the window.",
+      visibility: "Nearby place \xB7 house visibility is not verified",
+      source: "https://en.wikipedia.org/wiki/Hatfield_House",
+      sourceTitle: "Hatfield House"
+    },
+    {
+      id: "potters-bar",
+      title: "Potters Bar",
+      geo: [51.6973, -0.1925],
+      hubs: all,
+      tags: ["operations"],
+      hook: "One railway, several kinds of journey",
+      notice: "Potters Bar sits on the Great Northern route into London.",
+      discover: "The station is served by Great Northern, with Thameslink services also calling in peak hours. A shared stretch of track can support both local journeys and trains continuing across London.",
+      explore: "The name on a train tells you more than which company runs it. Its stopping pattern and destination determine how it fits among the other services. This is background context, not a live promise that your train will stop here.",
+      visibility: "Railway context \xB7 your own calling points stay on the journey screen",
+      source: "https://en.wikipedia.org/wiki/Potters_Bar_railway_station",
+      sourceTitle: "Potters Bar railway station"
+    },
+    {
+      id: "alexandra",
+      title: "Alexandra Palace",
+      geo: [51.5983, -0.1201],
+      hubs: all,
+      tags: ["views", "places", "engineering"],
+      hook: "A palace for the people, above north London",
+      notice: "Around Alexandra Palace station, the nearby hill is home to \u201CAlly Pally\u201D. Views depend on your seat and obstructions.",
+      discover: "Alexandra Palace was intended as the People\u2019s Palace. It opened in 1873, suffered a fire just two weeks later, and was rebuilt.",
+      explore: "The building was designed by John Johnson and Alfred Meeson; Johnson also worked on its rebuilding. Today it is an entertainment and sports venue, and a Grade II listed landmark in the north London landscape.",
+      visibility: "Nearby hilltop landmark \xB7 window side and visibility are unverified",
+      source: "https://en.wikipedia.org/wiki/Alexandra_Palace",
+      sourceTitle: "Alexandra Palace"
+    },
+    {
+      id: "gasworks",
+      title: "Beneath Regent\u2019s Canal",
+      geo: [51.539, -0.1224],
+      hubs: ["KGX"],
+      tags: ["engineering", "places"],
+      hook: "There is a canal above the railway",
+      notice: "On the King\u2019s Cross approach, Gasworks Tunnel takes the railway underneath Regent\u2019s Canal.",
+      discover: "The tunnel consists of three parallel bores carrying six tracks. Roads and housing sit above the railway too: several layers of London in a short stretch.",
+      explore: "Each bore is about 483 metres long. The tunnel is also historically known as Maiden Lane Tunnel. You cannot see the canal from inside it; this is the story of what is above your train.",
+      visibility: "Infrastructure above and around the train \xB7 no canal view inside the tunnel",
+      source: "https://en.wikipedia.org/wiki/Gasworks_Tunnel",
+      sourceTitle: "Gasworks Tunnel",
+      radiusM: 350
+    },
+    {
+      id: "canal-tunnels",
+      title: "The link beneath London",
+      geo: [51.539, -0.126],
+      hubs: ["STP", "ZFD"],
+      tags: ["engineering", "operations"],
+      hook: "How does this railway become Thameslink?",
+      notice: "The Canal Tunnels link the East Coast Main Line with the low-level railway at St Pancras.",
+      discover: "Two single-track tunnels connect Belle Isle Junction to the Thameslink route. They pass close beneath Regent\u2019s Canal, which gives them their name.",
+      explore: "The link lets trains from the East Coast Main Line join the cross-London Thameslink route. A junction above ground becomes a connection underneath the city. The tunnel story remains readable when your phone loses its position.",
+      visibility: "Tunnel context \xB7 GPS may be unavailable",
+      source: "https://en.wikipedia.org/wiki/Canal_Tunnels",
+      sourceTitle: "Canal Tunnels",
+      radiusM: 350
+    }
+  ];
+  var samAlongStations = [{ code: "LET", name: "Letchworth" }, { code: "HIT", name: "Hitchin" }, { code: "SVG", name: "Stevenage" }, { code: "KBW", name: "Knebworth" }, { code: "WLW", name: "Welwyn North" }, { code: "WGC", name: "Welwyn Garden City" }, { code: "HAT", name: "Hatfield" }, { code: "PBR", name: "Potters Bar" }, { code: "AAP", name: "Alexandra Palace" }, { code: "FPK", name: "Finsbury Park" }];
+
+  // src/core/journeyFacts.ts
+  var finite6 = (value) => typeof value === "number" && Number.isFinite(value);
+  var interval = (start, end) => finite6(start) && finite6(end) && end >= start && finite6(end - start) ? end - start : null;
+  var unknownTrain = (train) => !!train && (train.cancelled || train.depUnknown || train.arrUnknown === true || interval(train.dep, train.arr) === null);
+  function journeyFacts(option, context = {}) {
+    var _a, _b;
+    const train = context.train === void 0 ? (_a = option == null ? void 0 : option.train) != null ? _a : null : context.train;
+    const arrival = Object.prototype.hasOwnProperty.call(context, "arrival") ? context.arrival : option == null ? void 0 : option.arrive;
+    const unavailable = (_b = context.unavailable) != null ? _b : unknownTrain(train);
+    return {
+      trainDurationMs: !train || unknownTrain(train) ? null : interval(train.dep, train.arr),
+      totalDurationMs: !option || unavailable ? null : interval(option.leave, arrival)
+    };
+  }
+  function connectionJourneyFacts(option, context) {
+    var _a, _b;
+    return journeyFacts(option ? { train: option.train, leave: (_a = context.leaveBy) != null ? _a : NaN, arrive: (_b = context.arrive) != null ? _b : NaN } : null);
+  }
+
   // src/core/index.ts
   var profiles = { samCommute };
   var ENGINE_VERSION = "1";
@@ -4541,7 +4825,7 @@ function whichTrain(now,remember=true){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,signal:false,followRoute:false,appearance:"system",
+  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,signal:false,followRoute:false,appearance:"system",
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -5159,7 +5443,15 @@ function chips(j){
   return rail+tube;
 }
 function pills(flags, short){
-  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
+  return flags.filter(f=>!(short&&f.long)).map(f=>`<span class="pill ${f.lvl}"${f.txt.startsWith('Arrives first')?' data-fact="arrives-first"':''}${f.network?` data-network-lines="${esc((f.networkLines||[]).join(','))}"${f.txt===TUBE_FALLBACK_NOTE?' data-network-fallback="true"':''}`:''}>${esc(f.txt)}</span>`).join(" ");
+}
+// The same itinerary facts are drawn in every skin and planning/live surface.
+// This key identifies displayed information only; it never selects a service.
+const journeyServiceKey = train => [train.from,train.to,train.std,train.operator].join('|');
+function journeyFactsMarkup(option,context={}){
+  const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
+  const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
+  return `<span class="journey-facts">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'} · ${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span>`;
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -5199,7 +5491,7 @@ function effortLine(j, dest, best){
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  return `<section class="opt" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
+  return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -5211,7 +5503,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>`}
-    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b>${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)}${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -5242,11 +5534,12 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(arrive)}</span><span class="arrlbl">projected at ${esc(dest)}</span></div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
+    <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${m.conflict?`<div class="note" data-block="which"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
     ${(m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
@@ -5294,12 +5587,18 @@ function tubesFromAldgate(now){
   const atAld=C.atOfficeTube("home", fix(), PROFILE), walkMs=aldWalkMs(atAld);
   const pk=state.saved.tubePick && state.saved.tubePick.hub==="ALD" ? state.saved.tubePick : null;
   // Engine planConnection: what you can catch from here (the office, or Aldgate), getting off where you're home soonest.
-  const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:3 });
+  const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), pick:pk, max:Infinity });
   if(plan.chosen && pk && (pk.t!==plan.best.t || pk.vehicle!==plan.best.vehicle)){ state.saved.tubePick={...pk, t:plan.best.t, ...(plan.best.vehicle?{vehicle:plan.best.vehicle}:{}), ...(plan.best.dest?{dest:boardDest(plan.best.dest)}:{})}; save(); }
-  const row=(t,mark)=>{ const o=t.leg.o;
-    return `<div class="tuberow"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(t.t-walkMs)}</span>`}${mark?` · <b>you're getting this one</b>`:""}</div>`; };
-  const rows=[...(atAld?plan.early:[]), ...plan.next].map(t=>row(t, plan.chosen && t.t===plan.best.t && t.line===plan.best.line));
-  const btns=boardBtns("ALD", [...(atAld?plan.early:[]), ...plan.next].filter(t=>!(plan.chosen && t.t===plan.best.t && t.line===plan.best.line)), d.list, now, "");
+  const board=C.tubeStationBoard(d.list,plan,now,walkMs,atAld);
+  const row=(t,mark)=>{ const o=t.leg.o, connection=board.find(row=>row.timed===t);
+    return `<div class="tuberow" data-journey-service="${esc(journeyServiceKey(o.train))}"><b>${esc(t.line)} <span class="t">${hhmm(t.t)}</span></b> → ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span>: <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}, ${esc(o.dest||"home")} <span class="t">${hhmm(t.arrive)}</span> · ${t.early?`<span class="latetxt warn">if you're near the platform</span>`:connection?.leaveBy!=null?`leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(connection.leaveBy)}</span>`:''}${mark?` · <b>you're getting this one</b>`:""}<div class="meta">${journeyFactsMarkup(o,{connection:{leaveBy:connection?.leaveBy??null,arrive:t.arrive}})}${t===plan.fastest?' · '+pills([{lvl:'ok',txt:'Arrives first'}],true):''}</div></div>`; };
+  // Keep the compact choice list, always including the fastest connection and
+  // the person's selection even when either is beyond the first three Tubes.
+  const shown=plan.next.slice(0,3);
+  for(const special of [plan.fastest,plan.chosen?plan.best:null])if(special&&!shown.includes(special)&&!special.early)shown.push(special);
+  const choices=[...(atAld?plan.early:[]),...shown];
+  const rows=choices.map(t=>row(t,plan.chosen&&t===plan.best));
+  const btns=boardBtns("ALD",choices.filter(t=>!(plan.chosen&&t===plan.best)),d.list,now,"");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
@@ -5323,6 +5622,7 @@ function renderOnTubeHome(now){
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(best.arrive)}</span><span class="arrlbl">at home</span></div>
     <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
     <div class="note" data-block="source" style="color:inherit;opacity:.75">Tube times: live departures from Aldgate plus typical ride times (Settings).</div>`;
@@ -5358,6 +5658,7 @@ function renderOnTube(now){
   $("#hero").innerHTML=`${head}
     <div class="big" data-block="headline"><span class="arr t">${hhmm(office)}</span><span class="arrlbl">at the office${live?"":" · estimate"}</span></div>
     <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${ride}">~${dur(ride)} Tube</span></div>
     ${ask}
     <ol class="legs" data-block="then">
       <li class="t">${hhmm(aldT)}</li><li class="d">${esc(leg.stop)} <small>· ${live?"live arrival time for this train":`about ${dur(ride)} after leaving ${esc(HUB_NAME[r.hub])}`}</small></li>
@@ -5539,11 +5840,11 @@ function renderList(list, now, opts){
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
-    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}">
+    <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · <b>${dur(j.train.arr-j.train.dep)} train</b> · total <b>${dur(j.arrive-j.leave)}</b> · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)} · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}
@@ -5573,12 +5874,13 @@ function renderLiveBoard(now){
         const plan=C.planConnection({ now, departures:d.list, arrivedAt:null, walkMs, leg:x=>homeLegs(x.t, now), max:Infinity });
         const rows=C.tubeStationBoard(d.list, plan, now, walkMs, atAld);
         body=rows.length ? rows.map(r=>{ const t=r.timed, o=t&&t.leg.o;
-          return `<div class="row board live-row${r.reach==="none"?" gone":""}">
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}"${o?` data-journey-service="${esc(journeyServiceKey(o.train))}"`:''}>
       <div class="leave"><small>${esc(r.dep.line)}</small><span class="t">${hhmm(r.dep.t)}</span></div>
       <div class="mid">
         <div class="meta">${esc(r.dep.dest||"")}${C.platformNo(r.dep.platform)?` · <b class="plat">platform ${esc(C.platformNo(r.dep.platform))}</b>`:""} · <span data-dep="${r.dep.t}"></span></div>
         <div class="meta">${t?`Off at ${esc(t.leg.stop)} <span class="t">${hhmm(t.stopAt)}</span> for the <span class="t">${esc(o.train.std)}</span> ${esc(o.train.operator)}${o.hub==="STP"?" from St Pancras":""}`:"No train home connects with this one"}</div>
-        <div>${pill(r.reach)}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
+        ${o?`<div class="meta">${journeyFactsMarkup(o,{connection:{leaveBy:r.leaveBy,arrive:t.arrive}})}</div>`:''}
+        <div>${pill(r.reach)}${t&&t===plan.fastest&&r.reach==='walk'?' '+pills([{lvl:'ok',txt:'Arrives first'}],true):''}${r.leaveBy!=null?` <small>leave ${atAld?"for the platform":"the office"} by <span class="t">${hhmm(r.leaveBy)}</span></small>`:""}</div>
       </div>
       <div class="arrive"><small>Home</small><span class="t">${t?hhmm(t.arrive):"–"}</span></div>
     </div>`; }).join("") : `<div class="row"><div></div><div class="mid meta">No westbound Circle or Met departures listed at Aldgate right now.</div><div></div></div>`;
@@ -5594,12 +5896,17 @@ function renderLiveBoard(now){
       const opts=ranked(now);
       for(const g of C.railStationBoard({ stops:railStops, boards:C.addCallingAlternatives(state.boards, dir, PROFILE), options:opts, now })){
         const html=g.rows.length ? g.rows.map(r=>{ const t=r.train;
-          return `<div class="row board live-row${r.reach==="none"?" gone":""}${t.cancelled?" missed":""}">
+          const flags=boardFlags(r.option?.flags||C.trainFlags(t,PROFILE));
+          const reach=r.reach==null?null:C.reachFlag(r.reach);
+          const qualified=r.reach!=='walk'&&r.option?.firstAt===r.reach?flags.find(flag=>flag.txt.startsWith('Arrives first')):null;
+          const reachMarkup=qualified?`<span class="pill ${qualified.lvl}" data-reach="${esc(r.reach)}" data-fact="arrives-first">${esc(qualified.txt)}</span>`:pill(r.reach);
+          const uniqueFlags=flags.filter(flag=>flag!==qualified&&(!reach||flag.txt!==reach.txt&&!(r.reach==='none'&&flag.txt==="Can't make it")));
+          return `<div class="row board live-row${r.reach==="none"?" gone":""}${t.cancelled?" missed":""}" data-journey-service="${esc(journeyServiceKey(r.option?.train||t))}">
       <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
       <div class="mid">
         <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
-        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
-        <div>${[pill(r.reach),pills(boardFlags(C.trainFlags(t,PROFILE)),true)].filter(Boolean).join(" ")}</div>
+        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""} · ${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
+        <div>${[reachMarkup,pills(uniqueFlags,true)].filter(Boolean).join(" ")}</div>
         ${r.option?followButton(r.option):""}
       </div>
       <div class="arrive"><small>Arrive</small><span class="t">${r.arrive!=null?hhmm(r.arrive):"–"}</span></div>
@@ -5610,7 +5917,7 @@ function renderLiveBoard(now){
   }
   const where=groups.map(g=>g.name).join(", ");
   const jumps=groups.length>1?`<div class="live-stops" role="navigation" aria-label="Stations">${groups.map(g=>`<button type="button" class="pill info live-stop" data-board-jump="${esc(g.id)}">${esc(g.name)}</button>`).join(" ")}</div>`:"";
-  $("#hero").innerHTML=`<div class="lbl">Live · departures from ${esc(where||"your next stop")} · ${esc(hhmm(now))}${state.railSource==="tfl"?" · timetable":""}</div><div class="meta live-note">No journey under way: what's leaving your next stop now, and whether you can make it from here. Auto shows when to leave.</div>${jumps}`;
+  $("#hero").innerHTML=`<div class="lbl">Live · departures from ${esc(where||"your next stop")} · ${esc(hhmm(now))}${state.railSource==="tfl"?" · timetable":""}</div><div class="meta live-note">Auto shows when to leave.</div>${jumps}`;
   $("#listTitle").textContent=groups.length>1?"Departures by station":`Departures from ${where}`;
   $("#list").innerHTML=groups.map(g=>`<section class="live-board" id="${esc(g.id)}" aria-label="${esc(g.name)}">${groups.length>1?`<h3 class="live-board-name">${esc(g.name)}</h3>`:""}${g.html}</section>`).join("");
   state.rendered.liveBoard={ stops:groups.map(g=>g.name) };
@@ -7326,7 +7633,8 @@ function progressHtml(model){
 function renderJourneyProgress(){
   document.querySelectorAll('.journey-progress').forEach(node=>node.remove());
   if(state.rendered){state.rendered.progressModel=null;state.rendered.activeRailDisruption=null;}
-  if(!S().signal)return;
+  const drawProgress=!!S().signal;
+  if(!drawProgress&&S().alongLine!==true)return;
   const now=Date.now(),dir=direction(),mode=currentMode();
   if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
   const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
@@ -7424,6 +7732,8 @@ function renderJourneyProgress(){
   }
   if(context.kind==='tube'&&model.status.deltaMin!==null)model.status.text=model.status.text.replace('ahead','ahead of plan').replace('behind','behind plan');
   state.rendered.progressModel=model;
+  // Along the line shares validated reports in Panda without drawing the Signal diagram.
+  if(!drawProgress)return;
   const section=document.createElement('section');section.className='journey-progress';section.dataset.block='progress';section.dataset.source=model.source;section.setAttribute('aria-label','Journey progress');section.innerHTML=progressHtml(model);
   // Keep full legacy report/expected/timetable/error diagnostics accessible once,
   // without repeating their prose above the visual progress view.
@@ -7443,7 +7753,9 @@ function renderJourneyProgress(){
 // Signal and Follow a route shell. Decisions and timing belong to src/core; this file draws
 // those results and adapts existing observations. Both designs share this single controller.
 const followChoices = new Map();
-const journeyEnabled = () => !!(S().signal || S().followRoute);
+// View choice is a shared app capability. A skin or Follow preference cannot
+// remove Auto/Plan/Live; Follow itself remains independently configurable.
+const journeyEnabled = () => true;
 const pendingReleasedFollow = () => S().followRoute&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
 const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
 function restoreReleasedFollow(){
@@ -7551,12 +7863,17 @@ function renderSignalCompact(){
   const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
   for(const opt of options.slice(1)){
     const detail=document.createElement('details');detail.className='signal-alternative';
+    detail.dataset.journeyService=opt.dataset.journeyService;
     detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
     const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
     const times=opt.querySelector('.optrow');
     const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
     if(times)summary.append(times);
     const service=document.createElement('span');service.className='signal-alt-service';service.textContent=opt.dataset.serviceLabel||'';summary.append(service);
+    const facts=opt.querySelector('.journey-facts');
+    if(facts){const compact=facts.cloneNode(true);compact.classList.add('signal-alt-facts');summary.append(compact);}
+    const comparison=opt.querySelector('[data-fact="arrives-first"]');
+    if(comparison){const compact=comparison.cloneNode(true);compact.classList.add('signal-alt-comparison');summary.append(compact);}
     opt.before(detail);detail.append(summary,opt);
   }
   p.connections.replaceChildren();
@@ -7609,7 +7926,6 @@ function journeyPresentation(now,s){
   state.pendingView=shown.pending;
   document.querySelectorAll('[data-journey-view]').forEach(b=>{
     b.setAttribute('aria-pressed',String(b.dataset.journeyView===shown.mode));
-    if(b.dataset.journeyView==='auto')b.textContent=shown.mode==='auto'?'Auto':'Return to Auto';
   });
   $('#journeyViewNote').textContent=shown.pending?'Journey update ready · finish what you’re reading or choose Live':
     shown.mode==='auto'?`Auto · ${current.active?'Live':'Plan'}`:shown.mode==='plan'?'Planning pinned · tracking continues':'Live pinned';
@@ -7758,9 +8074,15 @@ function renderFollowPanel(){
   const unknown=r.incident==='boarding'||result.status==='missed'||result.status==='cancelled'||(result.status==='unknown'&&result.level==='bad');
   const notice=result.notice;
   const delta=result.deltaMin;
+  // Compare only before boarding, using the same current ranked options as the
+  // other views. A saved winning label is not evidence that a route still wins.
+  const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
+  const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
+  panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
     <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
+    <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
     <div class="follow-status ${result.level}">${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
@@ -7768,7 +8090,7 @@ function renderFollowPanel(){
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
-    ${alt?`<div class="follow-alternative"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}${pills(alt.flags,true)}
+    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}<div class="meta">${journeyFactsMarkup(alt)}</div>${pills(alt.flags,true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?'<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>':''}
@@ -7823,15 +8145,19 @@ function signalNetworkLine(context=signalDisruptionEvidence()){
     fallbackUnavailable:fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),
     tubeLines:context.tubeLines,operators:[],statusUnavailable:false,planLater:false,demo:false,timetableOnly:false,policy:PROFILE.disruption});
 }
-function renderSignalStatus(){
-  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+function journeyDisruptions(){
   const context=signalDisruptionEvidence();
   const failed=Object.keys(displayedFailures()).map(k=>HUB_NAME[hubOfKey(k)]||k);
   const input={errors:state.errors||[],notLoaded:context.railComplete?[]:failed,stale:!context.railComplete&&!!state.boardsAt&&Date.now()-state.boardsAt>=3*60e3,
     tubeFallback:context.fallback,fallbackUnavailable:context.fallback&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption),tiers:context.tiers,tubeLines:context.tubeLines,operators:state.nrStatus||[],
     statusUnavailable:!state.status?.length||!state.nrStatus?.length,
     planLater:planIsLater(),demo:S().provider==='demo',timetableOnly:state.railSource==='tfl',policy:PROFILE.disruption};
-  const items=C.visibleDisruptions(input);state.signalDisruptionItems=items;
+  return {context,failed,input,items:C.visibleDisruptions(input)};
+}
+function renderSignalStatus(){
+  const el=$('#signalStatus');el.hidden=!S().signal;if(el.hidden)return;
+  const {context,failed,input,items}=journeyDisruptions();
+  state.signalDisruptionItems=items;
   const region=$('#signalDisruptions');region.hidden=!items.length;region.setAttribute('aria-label','Significant disruption on your journey');
   region.innerHTML=items.map(item=>{
     const preview=item.detail.length?C.noticeTitle(item.detail[0]):'';
@@ -7869,7 +8195,7 @@ function renderSignalLocation(){
   const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
 }
-function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   if(!journeyEnabled()&&!signalActive)return null;
@@ -7884,6 +8210,137 @@ function restoreJourneyFocus(f){
   let el=f.id?document.getElementById(f.id):f.key?[...document.querySelectorAll(`[${f.key}]`)].find(e=>e.getAttribute(f.key)===f.value):null;
   if(f.detail){const d=[...document.querySelectorAll('details')].find(d=>detailsKey(d)===f.detail);el=d?.querySelector('summary');}
   if(el&&el!==document.activeElement){el.focus({preventScroll:true});if(window.scrollX!==f.x||window.scrollY!==f.y)window.scrollTo(f.x,f.y);}
+}
+
+// Along the line adapts the existing journey and phone fix; it never fetches or starts location.
+const alongDialog=document.createElement('dialog');
+alongDialog.id='alongLine';alongDialog.className='along-dialog';alongDialog.setAttribute('aria-labelledby','alongTitle');
+alongDialog.innerHTML=`<header class="al-header"><div><h2 id="alongTitle">Along the line</h2><p>Discover the journey outside your window</p></div><button type="button" id="alongClose">Back to journey</button></header>
+ <div id="alongJourney"></div><div id="alongImpact" role="status" hidden></div>
+ <details id="alongChoices"><summary>Your interests and reading depth</summary>
+ <fieldset><legend>What catches your interest?</legend>${[['views','Views and landscape'],['places','Places and their stories'],['engineering','Architecture and engineering'],['operations','How the railway works']].map(([id,label])=>`<label><input type="checkbox" value="${id}" name="alongInterest"> ${label}</label>`).join('')}</fieldset>
+ <label class="al-depth">Reading depth <select id="alongDepth"><option value="glance">A glance</option><option value="discover">A little more</option><option value="explore">The full story</option></select></label>
+ <p>Interests choose the highlights. Saved on this device.</p><label><input type="checkbox" id="alongShowAll"> Show other discoveries too</label></details>
+ <p id="alongEvidence"></p><p id="alongEmpty" hidden>No highlights selected. Choose an interest, or show other discoveries to explore every story.</p>
+ <div class="al-follow"><span id="alongFeatured"></span><button type="button" id="alongNow" hidden>Back to now</button></div>
+ <div id="alongScroll" tabindex="0" aria-label="Stations and discoveries in journey order"><ol id="alongStrip"></ol></div>
+ <p class="al-foot">Curated Letchworth–London stories · available offline once the app is loaded. Locations are approximate; views can be obscured.</p>`;
+document.body.append(alongDialog);
+const alongEntry=document.createElement('button');alongEntry.id='alongEntry';alongEntry.type='button';alongEntry.hidden=true;alongEntry.textContent='Along the line ›';
+$('#hero').after(alongEntry);
+let alongContextKey='',alongFollowing=true,alongLastFeatured=null,alongOpener=null,alongLastEpoch=null;
+function alongClose(){alongDialog.close();alongOpener?.focus({preventScroll:true});}
+$('#alongClose').addEventListener('click',alongClose);
+alongDialog.addEventListener('cancel',()=>{alongOpener?.focus({preventScroll:true});});
+function openAlongLine(){
+  if(S().alongLine!==true)return;
+  alongOpener=document.activeElement;alongFollowing=true;alongLastFeatured=null;
+  renderAlongLine();
+  try{alongDialog.showModal();}catch(e){alongDialog.setAttribute('open','');}
+  renderAlongLine();$('#alongClose').focus();
+}
+alongEntry.addEventListener('click',openAlongLine);
+const alongBrowse=document.createElement('button');alongBrowse.type='button';alongBrowse.id='alongBrowse';alongBrowse.className='ghost';alongBrowse.textContent='Browse Along the line';
+$('#s_alongLine').closest('label').after(alongBrowse);
+alongBrowse.addEventListener('click',()=>{dlg.close();openAlongLine();});
+const alongPause=()=>{alongFollowing=false;$('#alongNow').hidden=false;};
+for(const type of ['wheel','touchstart','pointerdown'])$('#alongScroll').addEventListener(type,alongPause,{passive:true});
+$('#alongScroll').addEventListener('keydown',e=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key))alongPause();});
+$('#alongScroll').addEventListener('scroll',()=>{if(!alongAutoScrolling)alongPause();});
+let alongAutoScrolling=false;
+function alongScrollToNow(){
+  const marker=$('#alongPosition');
+  const target=marker&&!marker.hidden?marker:$('#alongStrip [data-featured="true"]');
+  if(!target)return;
+  alongAutoScrolling=true;
+  // Scroll just the strip, never the page or the open article into a new position.
+  $('#alongScroll').scrollTop=Math.max(0,target.offsetTop-$('#alongStrip').offsetTop-12);
+  setTimeout(()=>{alongAutoScrolling=false;},0);
+}
+$('#alongNow').addEventListener('click',()=>{alongFollowing=true;$('#alongNow').hidden=true;renderAlongLine(true);alongScrollToNow();});
+$('#alongChoices').addEventListener('change',()=>{
+  state.saved.alongLinePreferences=C.alongPreferences({interests:[...alongDialog.querySelectorAll('[name="alongInterest"]:checked')].map(el=>el.value),depth:$('#alongDepth').value});
+  if(S().alongLine===true)save();renderAlongLine();
+});
+function alongContext(){
+  const progress=state.rendered?.progress;
+  const followed=S().followRoute&&state.followUpdate?.route;
+  const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
+  const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
+  const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
+  return {train,hub,onboard,option:progress?.kind==='rail'?progress.option:followed?.option,
+    finalArrival:progress?.kind==='rail'?progress.finalArrival:followed?.expectedArrival,
+    arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
+}
+function renderAlongLine(resumePosition=false){
+  const enabled=S().alongLine===true;
+  const context=alongContext();
+  alongEntry.hidden=!enabled||!context.onboard||!context.hub||state.presentation?.view?.startsWith('plan-');
+  alongBrowse.hidden=!enabled;
+  if(!enabled){if(alongDialog.open)alongClose();alongContextKey='';return;}
+  if(!alongDialog.open)return;
+  if(alongLastEpoch!==sourceEpoch){alongLastEpoch=sourceEpoch;alongContextKey='';alongLastFeatured=null;}
+  const hub=context.hub||'KGX',line=LINE[hub]||LINE.KGX,reverse=context.onboard?context.train.to===PROFILE.home:direction()==='home';
+  const key=[sourceEpoch,hub,direction(),context.train?.serviceId||context.train?.std||'browse',context.train?.from||'',context.train?.to||''].join('|');
+  // Calling-point times come from the existing progress model, not a second timetable.
+  const calls=state.rendered?.progressModel?.calls||[];
+  const stations=[...C.samAlongStations,{code:hub,name:HUB_NAME[hub]}].map(station=>{
+    const call=calls.find(c=>c.code===station.code);
+    return {id:'station-'+station.code,kind:'station',title:station.name,geo:PROFILE.stationGeo[station.code],hubs:[hub],tags:[],
+      stationTime:call?.time??null,stationTiming:call?call.state==='reported'?(state.rendered.progressModel.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable':'No live report':'Station · route reference',
+      hook:'',notice:'',discover:'',explore:'',source:'',sourceTitle:'',visibility:''};
+  }).filter(s=>s.geo);
+  const model=C.alongLine({points:[...C.samAlongLine,...stations],line,hub,reverse,now:Date.now(),preferences:state.saved.alongLinePreferences,
+    here:state.here,accuracy:state.locAcc,fixAt:state.lastFixAt,onboard:context.onboard,identityCertain:context.certain,locationOK:state.locStatus==='ok',
+    from:context.train&&PROFILE.stationGeo[context.train.from],to:context.train&&PROFILE.stationGeo[context.train.to]});
+  const preferences=model.preferences;
+  alongDialog.querySelectorAll('[name="alongInterest"]').forEach(el=>{el.checked=preferences.interests.includes(el.value);});
+  $('#alongDepth').value=preferences.depth;
+  const timingSource=state.rendered?.progressModel?.source;
+  const currentReport=timingSource==='reported'||timingSource==='prediction';
+  const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
+  const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
+  $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
+  if(context.onboard){
+    const facts=document.createElement('div');facts.className='al-journey-facts';
+    facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
+    $('#alongJourney').append(facts);
+  }
+  const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
+  $('#alongImpact').hidden=!impacts.length;
+  $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');
+  $('#alongEvidence').textContent=model.evidence;
+  $('#alongEmpty').hidden=!model.empty;
+  if(alongContextKey!==key){
+    alongContextKey=key;alongLastFeatured=null;alongFollowing=true;
+    $('#alongNow').hidden=true;
+    $('#alongStrip').innerHTML=model.points.map(({point:p})=>p.kind==='station'?`<li class="al-station" data-point="${esc(p.id)}"><span class="al-dot" aria-hidden="true"></span><b>${esc(p.title)}</b><span class="al-location"></span></li>`:
+      `<li class="al-story" data-point="${esc(p.id)}"><span class="al-dot" aria-hidden="true"></span><span class="al-location"></span><details data-key="along|${esc(key)}|${esc(p.id)}"><summary><span class="al-title">${esc(p.title)}</span><span class="al-hook">${esc(p.hook)}</span></summary>
+      <p>${esc(p.notice)}</p><div class="al-discover"><p>${esc(p.discover)}</p></div><div class="al-explore"><p>${esc(p.explore)}</p></div>
+      <button type="button" class="al-more">Read the full story</button><p class="al-visibility">${esc(p.visibility)}</p><a href="${esc(p.source)}" target="_blank" rel="noopener noreferrer">Source: ${esc(p.sourceTitle)}</a><small>Original curated text · checked 31 October 2026</small></details></li>`).join('');
+    const marker=document.createElement('li');marker.id='alongPosition';marker.className='al-position';marker.hidden=true;$('#alongStrip').append(marker);
+    $('#alongScroll').scrollTop=0;
+    $('#alongStrip').querySelectorAll('.al-more').forEach(button=>button.addEventListener('click',()=>{button.closest('details').dataset.full='true';button.hidden=true;}));
+  }
+  alongDialog.dataset.depth=preferences.depth;
+  for(const item of model.points){
+    const row=[...$('#alongStrip').children].find(el=>el.dataset.point===item.point.id);if(!row)continue;
+    row.hidden=!item.selected&&!$('#alongShowAll').checked&&!row.querySelector('details[open]');
+    row.dataset.state=item.state;row.dataset.featured=String(item.point.id===model.featuredId);row.dataset.selected=String(item.selected);
+    row.querySelector('.al-location').textContent=item.point.kind==='station'?`${item.point.stationTiming}${item.point.stationTime==null?'':' '+hhmm(item.point.stationTime)}`:
+      item.state==='browse'?'Route discovery':item.state==='nearby'?'Near here · approximate':item.state==='passed'?'Passed · approximate':`Coming up · about ${Math.max(1,Math.round(item.distanceM/1000))} km along the route`;
+  }
+  const marker=$('#alongPosition');
+  if(resumePosition||!$('#alongStrip details[open]')){
+    marker.hidden=!model.reliable;marker.textContent='You are around here · approximate';
+    const before=[...$('#alongStrip').children].find(el=>el.dataset.point===model.markerBeforeId);
+    if(before)before.before(marker);else $('#alongStrip').append(marker);
+  }else if(!marker.hidden){marker.textContent='Last shown position · reading paused';}
+  const featured=model.points.find(p=>p.point.id===model.featuredId);
+  $('#alongFeatured').textContent=featured?`${featured.state==='nearby'?'Near here':'Coming up'} · ${featured.point.title}`:'Explore the places along this route';
+  // Never move the reading position while a story is open.
+  if(alongFollowing&&model.featuredId!==alongLastFeatured&&!$('#alongStrip details[open]'))alongScrollToNow();
+  alongLastFeatured=model.featuredId;
 }
 
 // Trip mode adapters: each implements one port (src/core/trip/ports.ts) with plain data in and out. The engine never
@@ -8250,7 +8707,9 @@ function createTripUi(deps) {
     if (!hasGoogle()) { renderResults(); return; }
     const f = resolvedFrom();
     if (!s.to || !f.place) { result = null; error = s.to ? f.err : ""; renderResults(); return; }
-    const mine = ++planToken; stageText = "Finding trains…"; renderResults();
+    // A new question or place: the old journeys go, so they are never shown under the new question's label. A
+    // refresh of the same plan (prev) keeps them on screen until the new answer arrives.
+    const mine = ++planToken; stageText = "Finding trains…"; if (!prev) result = null; renderResults();
     try {
       const index = await stations();
       const q = s.question.kind === "now" ? { kind: "now", t: now() } : s.question;
@@ -8391,6 +8850,7 @@ function renderTrip(){
 const dlg=$("#settings");
 function fillSettings(){
   const s=S();
+  $("#s_alongLine").checked=s.alongLine===true;
   $("#s_signal").checked=!!s.signal; $("#s_followRoute").checked=!!s.followRoute;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
@@ -8413,6 +8873,7 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_signal").checked) o.signal=true;
+  if($("#s_alongLine").checked) o.alongLine=true;
   if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
@@ -8460,7 +8921,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["signal","followRoute","appearance","follow"]);
+ const presentationKeys=new Set(["signal","followRoute","appearance","follow","alongLine"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

@@ -55,7 +55,9 @@ Minutes are whole minutes, rounded down.
   Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
   script loaded, no Trip request).
 - On, with Signal on: a third mode button **Trip** beside Commute and Leisure. With Signal off: no Trip button; the
-  switch's hint says "Needs the Signal design". Leisure is the same with the switch on or off.
+  switch's hint says "Needs the Signal design". Leisure is the same with the switch on or off. Signal-only is Sam's
+  explicit exception to the UI-parity rule ([decision](../decisions/trip-signal-only.md), 1 Nov); Trip's eight views are
+  registered parity surfaces with real-page Signal cases.
 - Trip with no Google key: the setup card "Add a Google Maps key in Settings to search addresses and time the trip to
   the station", with Open Settings. Nothing planned, no request, no script loaded.
 
@@ -261,6 +263,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-page.test.mjs: "Trip drive: the 5-min re-check asks Google again for the same set-off (traffic now, not the cached answer)"
 - tests/trip-page.test.mjs: "Trip live: a redraw within 30 s reuses the boards; after 30 s they are asked for again"
 - tests/trip-page.test.mjs: "Trip search through the proxy: the same field sends a new session after a choice"
+- tests/trip-page.test.mjs: "Trip: changing the question clears the old journeys until the new plan arrives (never shown under the new label)"
 - tests/trip-state.test.mjs: "Trip saved state: at most 5 recent places; a bad way to the station or question falls back to the defaults"
 - tests/trip-state.test.mjs: "Trip saved state: a place without a proper position is dropped; Current location keeps no position"
 - tests/trip-state.test.mjs: "Trip saved state: a followed trip is only kept when it passes the engine's checks"

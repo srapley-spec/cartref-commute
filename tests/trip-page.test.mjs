@@ -399,3 +399,15 @@ test("Trip search through the proxy: the same field sends a new session after a 
   await type(app, "to", "westgate"); await sleep(320);
   assert.equal(tokens.length, 2); assert.notEqual(tokens[0], tokens[1]);
 });
+
+test("Trip: changing the question clears the old journeys until the new plan arrives (never shown under the new label)", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: async (u, o) => { if (/JourneyResults/.test(u)) await sleep(400); return route(u, o); } });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "from", "brighton station"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "canterbury cath"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length, 6000);
+  app.d.querySelector('[data-trip-q="by"]').click(); await sleep(50);
+  assert.equal(app.d.querySelectorAll("#tripResults .trip-row").length, 0);
+  assert.match(app.text("#tripStage"), /Finding trains/);
+});

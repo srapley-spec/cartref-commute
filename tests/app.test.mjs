@@ -346,8 +346,9 @@ function tubeArrivals(now) {
 }
 
 test("Morning at King's Cross: which tube to get on and when you'll be at the office", async () => {
+  const feedAt = Date.now();
   const app = await createApp({ geo: NEAR_LETCHWORTH,
-    route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(Date.now())) : undefined) });
+    route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(feedAt)) : undefined) });
   assert.match(app.text("#dirNote"), /Heading to the office/);
   await moveTo(app, AT_KINGS_CROSS);
   assert.match(app.text("#dirNote"), /Heading to the office · you're at King's Cross/, "still heading to work, not flipped to home");
@@ -355,7 +356,7 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   assert.match(hero, /You're at King's Cross · \d\d:\d\d · live tube times/);
   // Default 6 min to the platform: the Circle in 2 min is too soon, so the Met in 8 min is the one.
   assert.match(hero, /Get on the Met to Aldgate eastbound, due \d\d:\d\d/);
-  const due = Date.now() + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
+  const due = feedAt + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
   assert.match(hero, new RegExp(`${hm(office)} ?at the office`));
   const rows = app.rows();
   assert.equal(rows.length, 4, "Met in 8 and Circle in 12, plus the Circle in 2 and the H&C in 3 if you're near the platform; not westbound");
@@ -364,6 +365,20 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
   assert.ok(!app.calls.some((u, i) => parseJourneyUrl(u) && i > app.calls.findIndex((x) => /Arrivals/.test(x))), "no Letchworth train searches while at King's Cross");
   app.close();
+});
+
+test("At King's Cross: a minute boundary after fetching cannot change the expected office arrival", async () => {
+  const feedAt = Date.parse("2026-11-03T10:00:29.900Z");
+  const app = await createApp({ geo: NEAR_LETCHWORTH, now: feedAt,
+    route: u => /StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(feedAt)) : undefined });
+  app.setNow(feedAt + 1000); // Resume with a newer fix, after the assertion's old rounding boundary.
+  await moveTo(app, AT_KINGS_CROSS);
+  assert.match(app.text("#hero"), /Get on the Met to Aldgate/);
+  assert.match(app.text("#hero"), /10:26 ?at the office/);
+  app.setNow(feedAt + 3000); app.c.render();
+  assert.match(app.text("#hero"), /10:26 ?at the office/, "the arrival belongs to the received prediction, not the later clock");
+  assert.doesNotMatch(app.text("#hero"), /10:27 ?at the office/);
+  assert.deepEqual(app.errors, []); app.close();
 });
 
 test("At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)", async () => {
@@ -703,10 +718,13 @@ test("Coming back with a cached position (taken before you came back) doesn't re
 });
 
 test("Departure board on TfL timetable data: Expected says 'Not live', never 'On time'; a delay TfL reports shows its expected time, coloured", async () => {
+  // Freeze this presentation case: a later clock can legitimately prefer boarding at Farringdon.
+  const now = Date.parse("2026-11-03T10:00:00Z");
   // At the office first (leave mode): rows are Leave → Arrive, not the board.
-  const plain = await createApp({ geo: IN_LONDON });
+  const plain = await createApp({ geo: IN_LONDON, now });
   assert.ok(plain.d.querySelectorAll("#list .row").length > 0);
   assert.equal(plain.d.querySelectorAll("#list .row.board").length, 0, "leave mode: no board columns");
+  plain.setNow(now + 1000); // A later fix is required by the real location-resume guard.
   await moveTo(plain, AT_KINGS_CROSS);
   const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector(".leave"));
   assert.ok(rows.length > 0 && rows.every((r) => r.classList.contains("board")), "at the station: every train row is a board row");
@@ -726,7 +744,8 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     const base = tflTimetable();
     const journeys = (q) => { const r = base(q); for (const j of r.journeys) { const l = j.legs[0], d = new Date(l.departureTime).getTime();
       l.scheduledDepartureTime = l.departureTime; l.departureTime = iso(d + late * 60e3); } return r; };
-    const app = await createApp({ geo: IN_LONDON, journeys });
+    const app = await createApp({ geo: IN_LONDON, journeys, now });
+    app.setNow(now + 1000);
     await moveTo(app, AT_KINGS_CROSS);
     const hero = app.text("#hero"), m = hero.match(/Train ?(\d\d:\d\d) Expected ?(\d\d:\d\d) At home/);
     assert.ok(m, `TfL ${late} min late: the expected time, not 'Not live' — ${hero.slice(0, 200)}`);

@@ -87,6 +87,9 @@ html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-sel
 html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
+html[data-design="signal"] .signal-alt-facts {display:block;font-size:12px;color:var(--muted)}
+html[data-design="signal"] .signal-alternative[open] .signal-alt-facts,
+html[data-design="signal"] .signal-alternative[open] .signal-alt-comparison {display:none}
 html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
 /* Every answer uses the same anchors: departure left, expected centre, destination right.
    Planning reserves the middle slot; actions and route metadata never take a time column. */

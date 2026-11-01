@@ -37,6 +37,9 @@ export interface ConnectionPlan<D> {
   early: Timed<D>[];
   /** The one to get: your pick if it's still to come, else the earliest arrival among those you can make. */
   best: Timed<D> | null;
+  /** Earliest arrival among `next`, independent of a slower explicit pick.
+   * This is the same candidate used for an unpicked `best`, not a second ranking. */
+  fastest: Timed<D> | null;
   /** True when `best` is your pick. */
   chosen: boolean;
   /** Your pick is over a minute earlier than we'd expect you can reach the platform (said, not overruled). */
@@ -68,7 +71,7 @@ export function planConnection<D extends Departure>(i: ConnectionInput<D>): Conn
   const fastest = next.reduce<Timed<D> | null>((b, d) => (!b || d.arrive < b.arrive ? d : b), null);
   const best = picked || fastest;
   return {
-    ready, next, early, best, chosen: !!picked,
+    ready, next, early, best, fastest, chosen: !!picked,
     tight: !!picked && picked.t < ready - 60e3,
     spareMin: best ? Math.max(0, Math.floor((best.t - ready) / 60e3)) : 0,
   };

@@ -73,3 +73,9 @@ export { liveBudget, matchRide, applyLive } from "./trip/tripLive";
 export type { BoardRequest } from "./trip/tripLive";
 export { startFollowTrip, restoreFollowTrip, tripPhase, updateFollowTrip, confirmTripRide, dismissTripAlternative } from "./trip/followTrip";
 export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpdate } from "./trip/followTrip";
+
+export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
+export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';
+export { samAlongLine, samAlongStations } from './profiles/samAlongLine';
+export { journeyFacts, connectionJourneyFacts } from './journeyFacts';
+export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

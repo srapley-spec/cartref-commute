@@ -1,0 +1,42 @@
+/* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
+#alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
+.along-dialog::backdrop{background:#09152299}
+@media(prefers-color-scheme:dark){html:not([data-theme="light"]) #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}}
+html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;--ink:#f0f5fc;--muted:#aabbd0;--line:#2c3b4e;--accent:#9bc3ff;--signal-soft:#182d48;color-scheme:dark}
+.along-dialog *{box-sizing:border-box;min-width:0}
+.along-dialog .al-header{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap}
+#alongLine #alongTitle{margin:0;font-size:24px;line-height:1.2;color:var(--ink);letter-spacing:-.03em}
+.along-dialog p{margin:8px 0}.al-header p,#alongEvidence,.al-foot,.al-visibility{color:var(--muted)}
+.along-dialog :is(button,select,summary){min-height:44px;font:inherit;color:var(--accent)}
+.along-dialog button,.along-dialog select{padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);white-space:normal}
+.along-dialog :is(button,summary,select,a,input):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.along-dialog a{color:var(--accent);text-decoration:underline;overflow-wrap:anywhere}
+.along-dialog small{display:block;color:var(--muted);margin-top:8px}
+#alongJourney,#alongImpact{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:10px 0;overflow-wrap:anywhere}
+#alongImpact{border-left:4px solid var(--accent);font-weight:600}
+#alongChoices{border-bottom:1px solid var(--line);padding-bottom:8px}
+#alongChoices>summary{display:flex;align-items:center;cursor:pointer}
+#alongChoices fieldset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px;border:1px solid var(--line);gap:4px}
+#alongChoices label{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px}
+#alongChoices input{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0}
+.al-depth{display:flex;flex-wrap:wrap;margin-top:8px}.al-depth select{flex:1}
+.al-follow{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--accent);font-weight:600;min-height:44px}
+#alongScroll{position:relative;max-height:52dvh;min-height:120px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:8px 4px}
+#alongStrip{list-style:none;padding:0 0 0 20px;margin:0}
+#alongStrip>li{position:relative;border-left:2px solid var(--line);padding:4px 0 18px 18px}
+.al-dot{position:absolute;width:10px;height:10px;background:var(--card);border:2px solid var(--muted);border-radius:50%;left:-6px;top:14px}
+[data-featured="true"]>.al-dot{border-color:var(--accent);background:var(--accent)}
+.al-location{display:block;color:var(--muted);font-size:.87em;margin:4px 0}
+.al-story>details{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px}
+.al-story[data-featured="true"]>details{border-color:var(--accent);background:var(--signal-soft)}
+.al-story summary{cursor:pointer;color:var(--ink);overflow-wrap:anywhere}
+.al-title{font-weight:700}.al-hook{display:block;color:var(--muted);padding-top:4px}
+.al-story[data-state="passed"]>.al-location::before{content:'✓ ';color:var(--muted)}
+.al-story[data-selected="false"]:not(:has(details[open])){padding-bottom:10px}
+.al-story[data-selected="false"] .al-hook{display:none}
+.along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
+.along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
+@media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
+@media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
+
+#alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}

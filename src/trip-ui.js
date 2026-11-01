@@ -197,7 +197,9 @@ function createTripUi(deps) {
     if (!hasGoogle()) { renderResults(); return; }
     const f = resolvedFrom();
     if (!s.to || !f.place) { result = null; error = s.to ? f.err : ""; renderResults(); return; }
-    const mine = ++planToken; stageText = "Finding trains…"; renderResults();
+    // A new question or place: the old journeys go, so they are never shown under the new question's label. A
+    // refresh of the same plan (prev) keeps them on screen until the new answer arrives.
+    const mine = ++planToken; stageText = "Finding trains…"; if (!prev) result = null; renderResults();
     try {
       const index = await stations();
       const q = s.question.kind === "now" ? { kind: "now", t: now() } : s.question;
