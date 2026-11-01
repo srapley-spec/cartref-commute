@@ -55,3 +55,17 @@ the existing source epoch rejects it. The regression instead exercises the reach
 render and proves that this hidden renderer cannot change the commute context. This was a test assumption,
 not an application finding. Full committed CI, the remaining browser matrix and exact-main release checks are
 the releasing agent's responsibility.
+
+## Upgrade-test teardown correction
+
+Committed local CI and GitHub both exposed an existing Trip upgrade fixture that closed its seed jsdom window
+immediately after Follow. Follow stores its selection synchronously, then completes a live refresh and draws
+the followed card asynchronously. Closing the document before that callback made the new context renderer read
+a destroyed document; the resulting test abort also produced secondary after-test callbacks.
+
+The test still captures localStorage and Trip state immediately after the click and asserts the captured Follow
+ID at that point. It now waits for the followed-card Stop control before closing the seed. All later upgrade,
+mode-change and feature-toggle assertions, including their existing waits, remain unchanged. The exact failing
+case passes five successive focused runs; all nine tests in its file pass. A deliberate one-microtask delay of
+Follow persistence still fails the immediate captured-ID assertion, proving the persistence check was not
+weakened. No application, Signal or harness runtime code is changed by this correction.
