@@ -77,6 +77,14 @@ test('Signal progress: a location projection without a live arrival stays modell
  assert.deepEqual(a.errors,[]);a.close();
 });
 
+test('Signal progress: a report for a different service cannot become confirmed progress',async()=>{
+ const a=await rail();a.c.state.progressById['progress-train'].id='different-service';a.c.render();
+ assert.equal(a.c.state.rendered.progressModel.source,'modelled');
+ assert.equal(a.d.querySelectorAll('.jp-stop[data-state="reported"]').length,0);
+ assert.equal(a.c.state.rendered.progressModel.status.deltaMin,null);
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
 test('Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents',async()=>{
  const a=await rail('Delayed'),s=a.c.state,t=s.boards['LET-KGX'].services[0];
  assert.equal(s.rendered.progressModel.status.text,'No live arrival estimate');
