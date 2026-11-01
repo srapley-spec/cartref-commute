@@ -24,12 +24,13 @@ needed its own view rather than "leave now".
   read as a warning. 3 min chosen by Sam, 30 Oct.) The rule is `wayLevel` in `src/core/present.ts`.
 - Shows departures, when you'll reach the station, and "on track" or minutes behind for each.
 - **Leave deadline (Sam, 1 Nov):** Auto and pinned Plan retain a prominent **Leave by HH:MM** and precise leave
-  countdown for the current location and pace, above both complete recommendations' departure columns.
+  countdown for the current location and pace, in both complete recommendations' journey headline.
   Planning-list rows expose the same fact for their own option. A passed access deadline and a train still
   awaiting departure must remain distinguishable; cancelled/unknown services do not advertise a usable
   deadline. This repairs the screenshot regression: the former walking layout showed only train clocks and
-  spare minutes, leaving the set-off time inside Journey steps. Keep the current Train / Expected / Arrival
-  columns and centred duration layout. At the actual station, the existing departure-first rule still applies.
+  spare minutes, leaving the set-off time inside Journey steps. The subsequently approved journey + train panel
+  keeps journey bookends and centred duration, with a prominent connection clock at the actual station too.
+  Explicit Live retains departure columns; the canonical platform instruction stays available in Auto/Plan.
   Run/car alternatives qualify their original deadline as **at walking pace**, with the existing required-effort
   flag retained; the renderer does not invent a later deadline for those conditional options.
 - "If you hurry" trains are listed nearest-to-making first, with a departure countdown; they stay on the list and
@@ -50,7 +51,7 @@ needed its own view rather than "leave now".
 - tests/leave-by.test.mjs: "Leave by: a passed access deadline stays distinct from a train that has not departed"
 - tests/leave-by.test.mjs: "Leave by: delayed trains use the updated canonical deadline without changing the timetable identity"
 - tests/leave-by.test.mjs: "Leave by: cancelled and unknown departure services cannot advertise a usable access deadline"
-- tests/leave-by.test.mjs: "Leave by: reaching the station and choosing Live retain departure-first timetable behavior"
+- tests/leave-by.test.mjs: "Leave by: reaching the station retains the train panel and choosing Live retains departure-first timetable behavior"
 - tests/leave-by.test.mjs: "Leave by: a running alternative qualifies its passed walking deadline instead of inventing a new leave time"
 
 Phone layout and disclosure-closed checks: [browser-leave-by.py](../../tests/browser-leave-by.py), including

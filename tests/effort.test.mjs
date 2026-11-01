@@ -47,7 +47,7 @@ test("Effort levels on: a fast walk tops the card with its lozenge and the time 
   assert.equal(best.train.std, T.X.std, "2 min short on a 22 min walk: a fast walk, and it arrives before the walkable train");
   const hero = a.text("#hero");
   assert.match(hero, /Arrives first · fast walk/);
-  assert.match(hero, new RegExp(`Leave\\s*${hm(T.X.dep - (1086 + 180) * S)}`), "leave by departure − (fast walk + station + margin)");
+  assert.match(hero, new RegExp(`Leave by\\s*${hm(T.X.dep - (1086 + 180) * S)}`), "leave by departure − (fast walk + station + margin)");
   assert.doesNotMatch(hero, /Still possible if you hurry|Leave time passed/);
   a.close();
 });

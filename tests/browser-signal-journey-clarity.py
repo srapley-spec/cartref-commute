@@ -74,7 +74,12 @@ def layout_metrics(page):
         const cells=[...node.children].filter(e=>!e.matches('.optarrow,.optroute'));
         return {source:index?'fallback':'primary',board:node.classList.contains('board'),box:box(node),cells:cells.map((e,i)=>item(e,node.classList.contains('board')?['left','center','right'][i]:i===0?'left':'right'))};
       });
-      const rows=[...document.querySelectorAll('#list>.row')].filter(shown).map((node,index)=>({source:'row-'+index,board:node.classList.contains('board'),box:box(node),cells:[['.leave','left'],['.exp','center'],['.arrive','right']].flatMap(([s,slot])=>{const e=node.querySelector(':scope>'+s);return e?[item(e,slot)]:[];})}));
+      const rows=[...document.querySelectorAll('#list>.row')].filter(shown).map((node,index)=>{
+        const journey=node.querySelector('.journey-times');
+        const cells=journey?[...journey.children].filter(e=>!e.matches('.optarrow')).map((e,i)=>item(e,i===0?'left':'right')):
+          [['.leave','left'],['.exp','center'],['.arrive','right']].flatMap(([s,slot])=>{const e=node.querySelector(':scope>'+s);return e?[item(e,slot)]:[];});
+        return {source:'row-'+index,board:node.classList.contains('board'),box:box(node),cells};
+      });
       return {width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth,pageHeight:document.documentElement.scrollHeight,
         hero,rows,nextBestLabel:box(document.querySelector('#hero .signal-alt-label')),
         location:box(document.querySelector('#dirNote')),progress:box(document.querySelector('.journey-progress')),

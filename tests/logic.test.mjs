@@ -379,9 +379,9 @@ test("Platform is on the card and the list without expanding; with two boarding 
   c.render();
   const hero = app.text("#hero"), rows = app.rows().join(" ");
   for (const s of [hero, rows]) {
-    assert.match(s, /Great Northern · platform 9/);
+    assert.match(s, /Great Northern Platform 9/);
     assert.match(s, /Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
-    assert.doesNotMatch(s, /Thameslink · platform/);
+    assert.match(s, /Train from Farringdon.*Thameslink Platform 4/,'the primary platform is attached to its own boarding station');
   }
   const next=app.d.querySelector('.opt.signal-alternative');
   assert.ok(next,'the second train uses the complete option card');
@@ -447,7 +447,8 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.equal(in2.recommended, 1, "and it's the best");
     assert.equal(stp.missed, true, "St Pancras in 3 min: the walk there is real");
     c.render();
-    assert.match(app.text("#hero"), new RegExp(`Train ?${hm(now + 2 * m)} Expected ?On time At home.*go to the platform now`));
+    assert.match(app.text('#hero .journey-countdown'),/go to the platform now/);
+    assert.match(app.text('#hero .journey-connection'),new RegExp(`Train from King's Cross\\s*${hm(now+2*m)}.*On time`));
     c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
     const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
     assert.equal(soon.missed, true); assert.equal(soon.effort, "none"); assert.equal(soon.flags[0].txt, "Can't make it");
@@ -463,8 +464,8 @@ test("At King's Cross, a St Pancras train on the card says 'Train from St Pancra
   try {
     c.render();
     const hero = app.text("#hero");
-    assert.match(hero, new RegExp(`Train from St Pancras ?${hm(now + 12 * m)} Expected ?On time`), hero.slice(0, 200));
-    assert.match(hero, new RegExp(`Train ?${hm(now + 20 * m)} Expected`), "a King's Cross train is just 'Train'");
+    assert.match(hero, new RegExp(`Train from St Pancras\\s*${hm(now + 12 * m)}.*On time`), hero.slice(0, 200));
+    assert.match(hero, new RegExp(`Train from King's Cross\\s*${hm(now + 20 * m)}`), "each connection explicitly names its boarding station");
   } finally { c.state.atHub = null; c.state.here = null; }
 });
 

@@ -20,6 +20,38 @@ direction/mode and pace. No duplicate state, cloned controls or mock settings ar
 and Leave now / Arrive by / Leave around remain exposed. The compact-v2 criteria below supersede older Signal
 geometry where they differ; journey calculations, current features and status semantics remain authoritative.
 
+### Journey + train panel (Sam, 1 November 2026)
+Sam approved the rendered option 2, keeping Leave by and destination arrival as the journey headline and giving
+the train departure its own prominent panel. Apply this in every non-Live journey option rather than shrinking
+the key connection into service metadata. This supersedes the older Auto/Plan walking/station departure columns.
+
+- Auto and Plan use the same headline, leave countdown, centred duration facts and connection panel in both
+  recommendations and every planning row, for all three planning questions, both directions and Commute/Leisure.
+- Before boarding, Follow exposes its selected connection and current access deadline when applicable; once
+  aboard, arrival and next action still lead. Active connections do not acquire a fresh origin-walk deadline.
+- Each panel shows its actual boarding station, prominent scheduled departure, operator and platform (explicitly
+  unannounced if unknown). A changed expected departure has its own labelled clock at the same type size.
+  Keep engine severity, early running, timetable/derived confidence, cancellation and no-estimate meanings.
+- Multi-ride Trip options repeat the same component for the existing itinerary's train/Tube/bus rides and retain
+  each change's engine-provided location, allowance and warning. No first-train-only summary or invented connection.
+- Cancelled/unknown journeys remain listed without a usable leave clock/countdown or a confident arrival.
+  Passed access deadlines remain distinct from a train that has yet to depart. Route alternatives, effort
+  qualifiers, warnings, Journey steps, Follow and the selected service survive redraw and mode/theme changes.
+- Explicit Live retains its departure board and active-journey layout. No inference, timing, ranking, feed,
+  saved-state schema or refresh policy changes. Both themes, 320/393 px, 200% text and 44 px targets are checked.
+
+Tests:
+- tests/journey-connection-panels.test.mjs: "connection panels: Auto and Plan keep journey and train clocks on both recommendations and every row in all three questions and directions"
+- tests/journey-connection-panels.test.mjs: "connection panels: scheduled and expected clocks retain engine status, early running, timetable confidence and unknown platforms"
+- tests/journey-connection-panels.test.mjs: "connection panels: cancelled and no-estimate trains remain visible without usable journey clocks"
+- tests/journey-connection-panels.test.mjs: "connection panels: following retains the chosen service and explicit Live retains its timetable layout"
+- tests/journey-connection-panels.test.mjs: "connection panels: Trip exposes every train in the recorded four-ride journey without opening steps"
+- tests/journey-connection-panels.test.mjs: "connection panels: Auto on a homeward Tube exposes the next rail connections and Live preserves its existing journey view"
+
+Production geometry and state checks: [browser-connection-panels.py](../../tests/browser-connection-panels.py),
+including both themes, 320/393 px, 200% type, delayed/unknown/timetable panels, refresh/disclosures, Follow,
+recorded four-train Trip planning/Follow, and an optional exact-DOM comparison of explicit Live against the prior build.
+
 ### Journey clarity refinements (Sam, 31 Oct 2026)
 The compact design remains the visual foundation. Sam's subsequent live/simulator screenshots identify six
 refinements: significant route disruption must be exposed, inferred location must remain visible, station and

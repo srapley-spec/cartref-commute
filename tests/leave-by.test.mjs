@@ -27,7 +27,7 @@ function visible(a,node){
  return true;
 }
 const pin=(a,mode)=>a.d.querySelector(`[data-journey-view="${mode}"]`).click();
-const row=(a,std)=>[...a.d.querySelectorAll('#list .row')].find(r=>r.querySelector('.leave .t')?.textContent===std);
+const row=(a,std)=>[...a.d.querySelectorAll('#list .row')].find(r=>r.querySelector('[data-connection-time="scheduled"]')?.textContent===std||r.querySelector('.leave .t')?.textContent===std);
 function deadline(a,container,option){
  const node=container?.querySelector('[data-fact="leave-by"]');
  assert.ok(visible(a,node),'Leave by must be visible without opening Journey steps or Next best');
@@ -78,7 +78,7 @@ test('Leave by: delayed trains use the updated canonical deadline without changi
  const best=a.c.ranked(NOW).find(o=>o.recommended===1);
  assert.equal(best.train.std,'13:27');assert.equal(hm(best.leave),'13:12');
  deadline(a,a.d.querySelector('#hero>.opt'),best);
- assert.match(a.text('#hero .optrow.board'),/13:27.*13:32/);
+ assert.match(a.text('#hero .journey-connection'),/13:27.*13:32/);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -108,11 +108,11 @@ test('Leave by: home, Arrive by and Leave around retain their visible canonical 
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('Leave by: reaching the station and choosing Live retain departure-first timetable behavior',async()=>{
+test('Leave by: reaching the station retains the train panel and choosing Live retains departure-first timetable behavior',async()=>{
  const a=await fixture();Object.assign(a.c.state,{here:[51.98002,-.22909],locAcc:4});a.c.render();
  assert.equal(a.c.onWay(),null);assert.equal(a.c.atHome(),false);
- assert.match(a.text('#hero>.opt .optrow'),/Train.*13:27.*Expected.*On time/);
- assert.equal(a.d.querySelector('#hero [data-fact="leave-by"]'),null);
+ assert.match(a.text('#hero>.opt .journey-connection'),/Train from Letchworth.*13:27.*On time/);
+ deadline(a,a.d.querySelector('#hero>.opt'),a.c.ranked(NOW).find(o=>o.recommended===1));
  assert.ok(a.d.querySelector('#hero [data-dep]'));
  pin(a,'live');assert.equal(a.d.querySelector('[data-fact="leave-by"]'),null);
  assert.equal(a.c.state.presentation.mode,'live');assert.match(a.text('#hero'),/departures/);

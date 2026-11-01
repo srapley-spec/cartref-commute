@@ -73,17 +73,17 @@ def check(page, label):
         if(node.querySelector('[data-cd]').innerText!=='leave in '+CommuteCore.countdown(option.leave-Date.now()))throw Error('Wrong leave countdown');
         return {text:node.innerText,box:box(node),clock:box(clock)};
       });
-      const times=primary.querySelector('.optrow'),deadline=primary.querySelector('[data-fact="leave-by"]');
-      if(box(deadline).bottom>box(times).y)throw Error('Leave deadline is not the first answer');
+      const times=primary.querySelector('.optrow'),deadline=primary.querySelector('[data-fact="leave-by"]'),connection=primary.querySelector('.journey-connection');
+      if(box(deadline).bottom>box(connection).y)throw Error('Leave deadline is not the first answer');
       if(parseFloat(getComputedStyle(deadline.querySelector('.t')).fontSize)<parseFloat(getComputedStyle(times.querySelector('.optbig')).fontSize))throw Error('Leave deadline lost prominence');
       const centers=[...document.querySelectorAll('#hero .journey-total-time,#list .journey-total-time')].filter(visible).map(e=>{const r=box(e);return (r.x+r.right)/2;});
       if(centers.some(x=>Math.abs(x-innerWidth/2)>1.5))throw Error('Centred Total journey layout changed');
       if(document.documentElement.scrollWidth>innerWidth+1)throw Error('Horizontal overflow');
-      return {deadlines,primaryTrain:times.innerText,centers};
+      return {deadlines,primaryTrain:connection.innerText,centers};
     }""")
     compact.assert_time_legibility(page, label)
     assert ' '.join(result['deadlines'][0]['text'].split()).startswith('Leave by 13:07'), (label, result)
-    assert '13:27' in result['primaryTrain'] and 'Expected' in result['primaryTrain'], (label, result)
+    assert '13:27' in result['primaryTrain'] and 'On time' in result['primaryTrain'], (label, result)
     assert page.locator('#hero .steps').first.get_attribute('open') is None
     return result
 

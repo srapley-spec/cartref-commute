@@ -98,6 +98,13 @@ Minutes are whole minutes, rounded down.
   consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
 
 ### The trains
+- **Connection panels (Sam, 1 Nov):** Trip options use the approved journey + train panel hierarchy: exposed
+  Leave by / arrival and leave countdown, total journey duration, then a panel for each existing train/Tube/bus
+  ride in itinerary order. Each panel retains its own scheduled/expected departure, boarding station,
+  destination, operator/platform and source-qualified status; existing change allowances/warnings remain.
+  Trip Follow retains the remaining connection panels using the engine's current ride index, keeps arrival/next
+  action first once aboard, and stops presenting completed rides as upcoming. The renderer repeats the component,
+  without calculating another itinerary or inventing a live status.
 - Journeys can have changes, including a cross-London Tube or walk; each change shows where and how long ("Change at
   Clapham Junction · 7 min"; "Waterloo → Bank → Liverpool Street by Tube · 18 min").
 - Rail planner: National Rail's when its address and key are in Settings; otherwise TfL, station to station by the

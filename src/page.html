@@ -1035,7 +1035,7 @@ function situation(now){
     onLine: !!state.onLine, atHubToOffice: atHubToOffice(), onTube: onTube(now), inLondonToOffice: inLondonToOffice(now),
     onTubeHome: onTubeHome(now), nearlyHome: nearlyHome() };
 }
-const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation(), onWay: !!onWay() })==="departs";
+const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation(), onWay: !!onWay(), mode:state.presentation?.mode })==="departs";
 
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
@@ -1129,8 +1129,46 @@ function leaveByMarkup(j){
   if(!j||!plannable(j.train)||!Number.isFinite(j.leave))return '';
   return `<span class="journey-leave-by" data-fact="leave-by" data-ms="${j.leave}"><span>Leave by</span> <strong class="t">${hhmm(j.leave)}</strong>${j.effort==='run'||j.effort==='car'?'<span class="leave-by-pace">at walking pace</span>':''}<small data-cd="${j.leave}"></small></span>`;
 }
+// Shared geometry for one connection, repeated for each ride in a multi-ride Trip.
+// Callers supply canonical times and engine-qualified status; this draws no timing or routing rules.
+function connectionPanelMarkup({from,scheduled,expected=null,level='info',status,operator,platform,kind='Train',destination=''}){
+  return `<div class="journey-connection" data-connection-kind="${esc(kind.toLowerCase())}">
+    <div class="connection-heading">${esc(kind)} from ${esc(from)}</div>
+    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>Expected</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
+  </div>`;
+}
+function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){
+  const departure=C.departureStatus(t,PROFILE.disruption),running=C.trainStatus(t,PROFILE.disruption);
+  const status=departure.text==='Early'?departure:running||departure;
+  return connectionPanelMarkup({from,scheduled:t.std,expected:departure.showTime?hhmm(t.dep):null,
+    level:departure.level,status,operator:t.operator||'Train',platform:t.platform});
+}
+function journeyHeadlineMarkup(j,dest,timing=''){
+  const known=plannable(j.train)&&Number.isFinite(j.leave),arrival=known&&Number.isFinite(j.arrive);
+  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${j.leave}"`:''}>
+    <div class="optrow journey-times">
+      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(j.leave):'Unavailable'}</span></div>
+      <div class="optarrow" aria-hidden="true">→</div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(j.arrive):'Unavailable'}</span></div>
+    </div>
+    <div class="journey-countdown">${known?`<span data-cd="${j.leave}"></span>${j.effort==='run'||j.effort==='car'?' · at walking pace':''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+  </div>`;
+}
+function journeyOverviewMarkup(j,opt={}){
+  const dest=j.dest||(direction()==='office'?'office':'home');
+  return `${journeyHeadlineMarkup(j,dest,opt.timing?`<span class="${opt.late?'latetxt':''}">${esc(opt.timing)}</span>`:'')}
+    ${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
+    <div class="optroute route">${chips(j)}</div>
+    ${j.missed||opt.board?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
+}
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
+  if(state.presentation?.mode!=='live')return `<section class="opt journey-option" data-journey-service="${esc(journeyServiceKey(j.train))}">
+    ${journeyOverviewMarkup(j,opt)}${altLines(j)}
+    ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:''}
+    <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    ${followButton(j)}
+  </section>`;
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
     ${opt.leaveBy?leaveByMarkup(j):''}
     ${opt.board ? `<div class="optrow board">
@@ -1251,7 +1289,7 @@ function renderOnTubeHome(now){
   if(!legs.length){ $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
   const best=legs[0], alt=legs.find(l=>l.stop!==best.stop);
   state.rendered.progress={kind:'tube',option:best.o,ride:r,departure:r.t,arrival:best.stopAt,finalArrival:best.arrive,from:PROFILE.places.officeStops?.find(stop=>stop.id==='ALD')?.name||'Aldgate',to:best.stop,homeward:true};
-  const line=(c,first)=>`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
+  const line=(c,first)=>state.presentation?.mode!=='live'?`<div data-block="then" class="journey-next-connection"><div>${first?'<b>Get off at':'or get off at'} ${esc(c.stop)}${first?'</b>':''} <span class="t">${hhmm(c.stopAt)}</span> · home <span class="t">${hhmm(c.arrive)}</span>${first?'':` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>${trainConnectionMarkup(c.o.train)}</div>`:`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
   const a=state.saved.aldHome, auto=!r.picked && a ? whichTubeHome(now) : null;
   const other=auto && auto.other && auto.other.t!==r.t ? auto.other : null;
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
@@ -1480,6 +1518,13 @@ function renderList(list, now, opts){
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   const board = departsFirst(), way=board&&!atStation()&&!!onWay(), fl = j => board ? boardFlags(j.flags) : j.flags;
+  if(state.presentation?.mode!=='live'){
+    el.innerHTML=list.map(j=>`<div class="row journey-row${isBest(j)?' best':''}${j.late?' late':''}${j.uncertain||j.effort==='none'?' gone':''}${j.missed?' missed':''}" data-journey-service="${esc(journeyServiceKey(j.train))}">
+      ${journeyOverviewMarkup(j,{board})}${altLines(j)}
+      ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),true)}</div>`:''}
+      ${followButton(j)}
+    </div>`).join('');return;
+  }
   el.innerHTML=list.map((j,i)=>`
     <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
@@ -2237,7 +2282,7 @@ const tripEnabled = () => !!S().trip;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
-  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, now:()=>Date.now(),
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup, now:()=>Date.now(),
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,

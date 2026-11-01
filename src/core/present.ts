@@ -128,9 +128,10 @@ export function chooseTripView(s: TripSituation): Presentation {
   return { view: v, underWay: false, blocks: BLOCKS[v] };
 }
 
-/** What the big number means on a planning view: departs when you're at or walking to the station, else leave. */
-export function headlineKind(view: View, ctx: { atStation: boolean; onWay: boolean }): HeadlineKind {
-  if (view === "plan-now") return ctx.atStation || ctx.onWay ? "departs" : "leave";
+/** Auto/Plan keep the journey's leave headline and a separate prominent connection.
+ * Explicit Live retains departure-first station/walking information. Active arrivals still lead. */
+export function headlineKind(view: View, ctx: { atStation: boolean; onWay: boolean; mode?: "auto" | "plan" | "live" }): HeadlineKind {
+  if (view === "plan-now") return ctx.mode === "live" && (ctx.atStation || ctx.onWay) ? "departs" : "leave";
   if (view === "plan-by" || view === "plan-at") return "leave";
   return "arrive";
 }

@@ -110,6 +110,13 @@ Implementation and release evidence are recorded in [Signal testing](signal-test
 is not evidence of production tracking, alert delivery or interaction deferral.
 
 ### Compact Signal v2 (Sam, 31 Oct 2026)
+- Sam approved the rendered **journey + train panel** on 1 Nov: in Auto/Plan retain the journey's Leave by and
+  arrival headline and precise countdown, then centred duration facts and a distinct prominent connection panel.
+  Both complete recommendations and every planning row use it across questions/directions; Trip repeats the same
+  component for each existing ride. Before boarding Follow retains the chosen connection; once aboard arrival
+  and next action lead. Explicit Live retains timetable geometry. This supersedes the older Auto/Plan station
+  and walking departure columns without changing engine timings, ranking, tracking or feed requests.
+  See [the component contract](design-system.md#journey--train-panel-sam-1-november-2026).
 - Sam requested substantially less bulk, informed by Flighty's current-journey hierarchy and Railboard's readable
   timetable rows. This intentionally changes the older Signal geometry; the latest engine, status thresholds,
   route-following, simulator and source behavior remain shared. See the

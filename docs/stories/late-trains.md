@@ -15,6 +15,11 @@ said once, small. Sam chose a departure-board layout (option A of three), amber 
 delays shown as expected times, coloured.
 
 ## Acceptance criteria
+The 1 Nov approved [journey + train panel](../design-system.md#journey--train-panel-sam-1-november-2026)
+supersedes the older geometry below in Auto/Plan: journey Leave by / arrival first, then the connection's large
+Scheduled / Expected clocks. Explicit Live retains the departure-board columns. Timing, status, equal prominence
+of scheduled/expected times, no-strike-through and truthful timetable/derived labels remain binding in both layouts.
+
 - **Departure board (at a station, or on your way to one):** the card and every list row show three times at the
   same size, labelled, in the platform board's order: **Train** (the timetabled time, the train's name; "Train from
   St Pancras" on the card when you'd board elsewhere) · **Expected** · **At office / At home** (card) or **Arrive**

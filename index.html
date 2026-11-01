@@ -569,6 +569,65 @@ html .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
 html .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
 html .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
+/* Journey + connection panels (Sam, 1 Nov). Explicit Live retains its board geometry. */
+html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown) {grid-column:1/-1;min-width:0}
+html .journey-heading {min-width:0}
+html .journey-heading .journey-times {display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);grid-template-rows:auto auto;align-items:end;gap:0 8px;min-width:0}
+html .journey-heading .journey-times>div:not(.optarrow) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
+html .journey-heading .journey-times>div:first-child {grid-column:1;text-align:left}
+html .journey-heading .journey-times>div:nth-child(3) {grid-column:3;text-align:right}
+html .journey-heading .journey-times small {display:block;font-size:12px;font-weight:600;line-height:1.4;color:var(--muted);text-transform:none;letter-spacing:0;opacity:1}
+html .journey-heading .journey-times .optbig {font-size:36px;font-weight:750;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums;align-self:end}
+html .journey-heading .journey-times>div:nth-child(3) .optbig {font-size:32px}
+html .journey-heading .journey-times .optbig.word {font-size:18px;line-height:1.5;overflow-wrap:anywhere}
+html .journey-heading .journey-times>.optarrow {display:block;grid-column:2;grid-row:2;align-self:end;text-align:center;font-size:20px;color:var(--muted);padding-bottom:3px}
+html .journey-heading .journey-countdown {margin-top:8px;font-size:13px;line-height:1.5;color:var(--muted);padding-right:0}
+html .journey-countdown:empty {display:none}
+html .journey-connection {display:grid;gap:5px;min-width:0;padding:10px 11px;border-radius:9px;border-left:3px solid var(--accent);background:var(--signal-inset);color:var(--ink)}
+html .connection-heading {font-size:12px;line-height:1.4;font-weight:650;color:var(--muted);overflow-wrap:break-word}
+html .journey-connection .connection-main {display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:8px 12px;min-width:0;margin:0;font-size:14px;grid-row:auto}
+html .connection-clock {display:grid;gap:2px;min-width:0}
+html .connection-clock>small {font-size:12px;line-height:1.4;font-weight:600;color:var(--muted)}
+html .journey-connection .connection-time {display:block;font-size:36px;font-weight:750;line-height:1.1;letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;text-decoration:none}
+html .connection-details {display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html .connection-details>.plat {color:var(--ink);font-weight:650}
+html .connection-status {font-size:12px;line-height:1.4;font-weight:650}
+html .connection-main.has-expected {grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
+html .connection-main.has-expected>.connection-details {grid-column:1/-1;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:3px 8px}
+html .connection-main.has-expected .connection-status {margin-left:auto}
+html .connection-expected {text-align:right}
+html .journey-connection .exp.ok {color:var(--ok)}
+html .journey-connection .exp.warn {color:var(--warn)}
+html .journey-connection .exp.bad {color:var(--bad)}
+html .connection-status.info {background:transparent;color:var(--muted);padding:0}
+html .connection-countdown {font-size:13px;color:var(--muted)}
+html .journey-next-connection {display:grid;gap:6px;min-width:0;font-size:14px}
+html .row.journey-row {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:8px;padding:10px var(--signal-content-inset)}
+html .row.journey-row>* {grid-column:1/-1;min-width:0}
+html .row.journey-row>:is(.follow-btn,.followtag) {grid-column:1/-1;justify-self:end;margin:0}
+html .journey-row .optroute {display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+html .journey-row .journey-facts {margin:0}
+html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
+html .journey-row .journey-connection .connection-time {font-size:30px}
+html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
+html .follow-alternative {display:grid;gap:8px}
+html .trip-row .journey-facts {margin:4px 0}
+html .trip-row .journey-connection {margin:3px 0}
+html .trip-follow-connections {display:grid;gap:8px;min-width:0}
+html .trip-steps>summary {display:flex;align-items:center;min-height:44px;min-width:44px;color:var(--accent);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+html .trip-steps>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
+html .trip-steps[open]>summary::before {transform:rotate(90deg)}
+html .trip-steps>summary::-webkit-details-marker {display:none}
+html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
+@container (max-width:18em) {
+  html .journey-heading .journey-times {grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:4px}
+  html .journey-heading .journey-times>div:not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
+  html .journey-heading .journey-times>.optarrow {display:none}
+  html .journey-connection .connection-main {grid-template-columns:minmax(0,1fr);align-items:start}
+  html .connection-expected {text-align:left}
+  html .connection-main.has-expected .connection-status {margin-left:0}
+  html .row.journey-row>* {grid-row:auto}
+}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -711,7 +770,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 14:14 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:13 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2638,7 +2697,7 @@ var CommuteCore = (() => {
     return { view: v, underWay: false, blocks: BLOCKS[v] };
   }
   function headlineKind(view, ctx) {
-    if (view === "plan-now") return ctx.atStation || ctx.onWay ? "departs" : "leave";
+    if (view === "plan-now") return ctx.mode === "live" && (ctx.atStation || ctx.onWay) ? "departs" : "leave";
     if (view === "plan-by" || view === "plan-at") return "leave";
     return "arrive";
   }
@@ -5371,7 +5430,7 @@ function situation(now){
     onLine: !!state.onLine, atHubToOffice: atHubToOffice(), onTube: onTube(now), inLondonToOffice: inLondonToOffice(now),
     onTubeHome: onTubeHome(now), nearlyHome: nearlyHome() };
 }
-const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation(), onWay: !!onWay() })==="departs";
+const departsFirst = () => C.headlineKind("plan-now", { atStation: !!atStation(), onWay: !!onWay(), mode:state.presentation?.mode })==="departs";
 
 // ---------- Top card: best option per route ----------
 // Arrive by: per route, the latest train that gets you there in time. Leave now: per route, the earliest arrival.
@@ -5465,8 +5524,46 @@ function leaveByMarkup(j){
   if(!j||!plannable(j.train)||!Number.isFinite(j.leave))return '';
   return `<span class="journey-leave-by" data-fact="leave-by" data-ms="${j.leave}"><span>Leave by</span> <strong class="t">${hhmm(j.leave)}</strong>${j.effort==='run'||j.effort==='car'?'<span class="leave-by-pace">at walking pace</span>':''}<small data-cd="${j.leave}"></small></span>`;
 }
+// Shared geometry for one connection, repeated for each ride in a multi-ride Trip.
+// Callers supply canonical times and engine-qualified status; this draws no timing or routing rules.
+function connectionPanelMarkup({from,scheduled,expected=null,level='info',status,operator,platform,kind='Train',destination=''}){
+  return `<div class="journey-connection" data-connection-kind="${esc(kind.toLowerCase())}">
+    <div class="connection-heading">${esc(kind)} from ${esc(from)}</div>
+    <div class="journey-service connection-main${expected?' has-expected':''}"><div class="connection-clock">${expected?'<small>Scheduled</small>':''}<span class="t connection-time" data-connection-time="scheduled">${esc(scheduled)}</span></div>${expected?` <div class="connection-clock connection-expected"><small>Expected</small><span class="t connection-time exp ${esc(level)}" data-connection-time="expected">${esc(expected)}</span></div>`:''} <div class="connection-details"><span class="connection-operator">${esc(operator)}</span> ${destination?`<span class="connection-destination">To ${esc(destination)}</span> `:''}<b class="plat">${platform?`Platform ${esc(platform)}`:'Platform unannounced'}</b>${status?` <span class="connection-status pill ${esc(status.level)}">${esc(status.text)}</span>`:''}</div></div>
+  </div>`;
+}
+function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from){
+  const departure=C.departureStatus(t,PROFILE.disruption),running=C.trainStatus(t,PROFILE.disruption);
+  const status=departure.text==='Early'?departure:running||departure;
+  return connectionPanelMarkup({from,scheduled:t.std,expected:departure.showTime?hhmm(t.dep):null,
+    level:departure.level,status,operator:t.operator||'Train',platform:t.platform});
+}
+function journeyHeadlineMarkup(j,dest,timing=''){
+  const known=plannable(j.train)&&Number.isFinite(j.leave),arrival=known&&Number.isFinite(j.arrive);
+  return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${j.leave}"`:''}>
+    <div class="optrow journey-times">
+      <div><small>Leave by</small><span class="t optbig${known?'':' word'}">${known?hhmm(j.leave):'Unavailable'}</span></div>
+      <div class="optarrow" aria-hidden="true">→</div>
+      <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(j.arrive):'Unavailable'}</span></div>
+    </div>
+    <div class="journey-countdown">${known?`<span data-cd="${j.leave}"></span>${j.effort==='run'||j.effort==='car'?' · at walking pace':''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+  </div>`;
+}
+function journeyOverviewMarkup(j,opt={}){
+  const dest=j.dest||(direction()==='office'?'office':'home');
+  return `${journeyHeadlineMarkup(j,dest,opt.timing?`<span class="${opt.late?'latetxt':''}">${esc(opt.timing)}</span>`:'')}
+    ${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
+    <div class="optroute route">${chips(j)}</div>
+    ${j.missed||opt.board?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
+}
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
+  if(state.presentation?.mode!=='live')return `<section class="opt journey-option" data-journey-service="${esc(journeyServiceKey(j.train))}">
+    ${journeyOverviewMarkup(j,opt)}${altLines(j)}
+    ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:''}
+    <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    ${followButton(j)}
+  </section>`;
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
     ${opt.leaveBy?leaveByMarkup(j):''}
     ${opt.board ? `<div class="optrow board">
@@ -5587,7 +5684,7 @@ function renderOnTubeHome(now){
   if(!legs.length){ $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">No train home found from Farringdon or King's Cross after this tube.</div>`; return; }
   const best=legs[0], alt=legs.find(l=>l.stop!==best.stop);
   state.rendered.progress={kind:'tube',option:best.o,ride:r,departure:r.t,arrival:best.stopAt,finalArrival:best.arrive,from:PROFILE.places.officeStops?.find(stop=>stop.id==='ALD')?.name||'Aldgate',to:best.stop,homeward:true};
-  const line=(c,first)=>`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
+  const line=(c,first)=>state.presentation?.mode!=='live'?`<div data-block="then" class="journey-next-connection"><div>${first?'<b>Get off at':'or get off at'} ${esc(c.stop)}${first?'</b>':''} <span class="t">${hhmm(c.stopAt)}</span> · home <span class="t">${hhmm(c.arrive)}</span>${first?'':` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>${trainConnectionMarkup(c.o.train)}</div>`:`<div data-block="then" style="font-size:15px">${first?"<b>Get off at":"or get off at"} ${esc(c.stop)}${first?"</b>":""} <span class="t">${hhmm(c.stopAt)}</span> → <span class="t">${esc(c.o.train.std)}</span> ${esc(c.o.train.operator)}${c.o.hub==="STP"?" from St Pancras":""}${c.o.train.platform?` · platform ${esc(c.o.train.platform)}`:""} · home <span class="t">${hhmm(c.arrive)}</span>${first?"":` (${Math.round((c.arrive-best.arrive)/60e3)} min later)`}</div>`;
   const a=state.saved.aldHome, auto=!r.picked && a ? whichTubeHome(now) : null;
   const other=auto && auto.other && auto.other.t!==r.t ? auto.other : null;
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
@@ -5816,6 +5913,13 @@ function renderList(list, now, opts){
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
   const board = departsFirst(), way=board&&!atStation()&&!!onWay(), fl = j => board ? boardFlags(j.flags) : j.flags;
+  if(state.presentation?.mode!=='live'){
+    el.innerHTML=list.map(j=>`<div class="row journey-row${isBest(j)?' best':''}${j.late?' late':''}${j.uncertain||j.effort==='none'?' gone':''}${j.missed?' missed':''}" data-journey-service="${esc(journeyServiceKey(j.train))}">
+      ${journeyOverviewMarkup(j,{board})}${altLines(j)}
+      ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),true)}</div>`:''}
+      ${followButton(j)}
+    </div>`).join('');return;
+  }
   el.innerHTML=list.map((j,i)=>`
     <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
@@ -7835,6 +7939,7 @@ function renderSignalCompact(){
   // Duration has a dedicated home immediately after the headline times. Long
   // routes, platforms, flags and Follow labels must never displace that row.
   for(const opt of $('#hero').querySelectorAll('.opt')){
+    if(opt.classList.contains('journey-option'))continue;
     const times=opt.querySelector('.optrow'),facts=opt.querySelector('.journey-facts');
     if(times&&facts){
       times.after(facts);
@@ -8058,12 +8163,14 @@ function renderFollowPanel(){
   // other views. A saved winning label is not evidence that a route still wins.
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
+  const panelLayout=state.presentation?.mode!=='live'&&r.phase==='before-train';
+  const access=panelLayout&&!unknown&&!observation.activeConnection?comparison:null;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${r.phase==='before-train'&&!unknown&&!atStation(true)&&!observation.activeConnection?leaveByMarkup(comparison):''}
-    <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
-    <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
+    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home'):`${r.phase==='before-train'&&!unknown&&!atStation(true)&&!observation.activeConnection?leaveByMarkup(comparison):''}<div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>`}
+    ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
     <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
+    ${panelLayout?trainConnectionMarkup(t):''}
     <div class="follow-status ${result.level}">${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
@@ -8071,7 +8178,7 @@ function renderFollowPanel(){
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
-    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}<div class="meta">${journeyFactsMarkup(alt)}</div>${pills(alt.flags,true)}
+    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${state.presentation?.mode!=='live'?`${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}`:`: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}<div class="meta">${journeyFactsMarkup(alt)}</div>`}${pills(alt.flags.filter(f=>state.presentation?.mode==='live'||!f.status),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?'<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>':''}
@@ -8175,7 +8282,7 @@ function renderSignalLocation(){
   const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
 }
-function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();}
+function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();if(state.presentation?.mode!=='live')tick();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.
 function journeyFocus(){
   const a=document.activeElement;
@@ -8529,7 +8636,7 @@ function validTripState(x, C) {
 }
 
 function createTripUi(deps) {
-  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc } = deps;
+  const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
@@ -8756,14 +8863,28 @@ function createTripUi(deps) {
   const flagHtml = f => `<span class="flag ${f.lvl === "bad" ? "bad" : f.lvl === "warn" ? "warn" : f.lvl === "ok" ? "ok" : "info"}">${esc(f.txt)}</span>`;
   const mains = j => C.mainRides(j.rides);
   const summary = j => { const m = mains(j), ch = m.length - 1; return `${ch ? `${ch} change${ch > 1 ? "s" : ""}` : "Direct"} · ${dur(j.arrive - j.leave)} · ${[...new Set(m.map(r => r.operator || r.label))].join(", ")}`; };
+  function connections(j, firstRide = 0) {
+    let mainIndex = 0;
+    return j.rides.map((r, index) => {
+      const main = C.isMain(r), change = main && mainIndex > 0 ? j.changes[mainIndex - 1] : null;
+      if (main) mainIndex++;
+      if (index < firstRide) return '';
+      if (r.kind === 'walk') return `<p class="connection-transfer">Walk from ${esc(r.from.name)} to ${esc(r.to.name)}</p>`;
+      const departure = r.train ? C.departureStatus(r.train) : {level:'info',text:r.live.dep?'Live departure':'Not live',showTime:r.dep!==r.schedDep};
+      const status = r.train ? (departure.text==='Early'?departure:C.trainStatus(r.train)||departure) : departure;
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):null,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':'Train',destination:r.to.name})}`;
+    }).join('');
+  }
+  function journeyHeading(j, arrival = j.arrive) {
+    return `<div class="journey-heading"${!j.uncertain?` data-fact="leave-by" data-ms="${j.leave}"`:''}><div class="optrow journey-times"><div><small>Leave by</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(j.leave)}</b></div><div class="optarrow" aria-hidden="true">→</div><div><small>Arrive</small><b class="t optbig${j.uncertain?' word':''}">${j.uncertain?'Unavailable':hhmm(arrival)}</b></div></div>${!j.uncertain?`<div class="journey-countdown"><span data-cd="${j.leave}">${j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'}</span></div>`:''}</div>`;
+  }
   function journeyRow(j, opts = {}) {
-    const first = mains(j)[0], late = first.dep !== first.schedDep;
     const steps = C.journeySteps(j).map(s => `<li${s.tube ? ' class="tube"' : ""}><time>${s.t != null ? hhmm(s.t) : ""}</time> ${esc(s.d)}${s.note ? ` <span class="note">${esc(s.note)}</span>` : ""}</li>`).join("");
     const followed = st().follow && st().follow.id === j.id;
     return `<article class="trip-row${j.recommended === 1 ? " best" : ""}" data-trip-id="${esc(j.id)}">
-      <div class="trip-times"><div><span class="lbl">Leave</span><b>${hhmm(j.leave)}</b></div>
-        <div><span class="lbl">Train</span><b>${hhmm(first.schedDep)}</b>${late ? `<span class="exp">exp ${hhmm(first.dep)}</span>` : ""}</div>
-        <div><span class="lbl">Arrive</span><b>${hhmm(j.arrive)}</b></div></div>
+      ${journeyHeading(j)}
+      <div class="journey-facts"><span class="journey-total-time">${j.uncertain?'Total journey time unavailable':`Total journey <b>${dur(j.arrive-j.leave)}</b>`}</span></div>
+      ${connections(j)}
       <div class="trip-meta"><span class="lozenge">${esc(j.fromStation.name)}</span> → <span class="lozenge">${esc(j.toStation.name)}</span> · ${esc(summary(j))}</div>
       ${j.flags.length ? `<div class="flags">${j.flags.map(flagHtml).join("")}</div>` : ""}
       <details class="trip-steps"><summary>Journey steps</summary><ol>${steps}</ol></details>
@@ -8786,10 +8907,10 @@ function createTripUi(deps) {
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
     const html = { label: () => close + `<div class="lbl trip-label">${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}</div>`,
-      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}"><b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
+      headline: () => fu && pres.view.startsWith("trip-") ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival):''}<b>${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
-        : best ? `<div class="trip-headline"><span class="lbl">${best.rides[0].from.crs && best.before.every(x => x.kind === "station") ? "Departs" : "Leave by"}</span><b class="big">${hhmm(best.before.every(x => x.kind === "station") ? mains(best)[0].dep : best.leave)}</b><span>Arrive ${hhmm(best.arrive)} · ${esc(summary(best))}</span></div>`
+        : best ? `<div class="trip-headline">${journeyHeading(best)}<span>${esc(summary(best))}</span></div>`
         : r.close ? "" : `<div class="trip-card empty">No journeys found.</div>`,
       options: () => r.picks.length ? `<h3 class="trip-h">Best${r.picks[1] ? " and next best" : ""}</h3>${r.picks.map(j => journeyRow(j)).join("")}` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
@@ -8797,7 +8918,7 @@ function createTripUi(deps) {
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
-      then: () => fu ? `<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
+      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}<details class="trip-steps" open><summary>Your trip</summary><ol>${C.journeySteps(fu.route.journey).map(x => `<li><time>${x.t != null ? hhmm(x.t) : ""}</time> ${esc(x.d)}${x.note ? ` <span class="note">${esc(x.note)}</span>` : ""}</li>`).join("")}</ol></details>` : "" };
     out.innerHTML = pres.blocks.map(b => (html[b] ? html[b]() : "")).join("");
     out.dataset.view = pres.view;
   }
@@ -8825,7 +8946,7 @@ const tripEnabled = () => !!S().trip;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
-  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, now:()=>Date.now(),
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup, now:()=>Date.now(),
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,
