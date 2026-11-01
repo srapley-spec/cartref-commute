@@ -8,7 +8,7 @@ in a colour that only ever means "is there a problem?", so that I can tell strai
 ## Where it came from
 30 Oct, on the 08:00 Great Northern (about 2 min late): the "You're on the 08:00" lozenge was orange, so being on
 your own train read as a warning, and nothing said in colour how late the train was. Sam: red, amber and green are
-reserved for whether there is an issue; this is critical and belongs in the design system (Panda, the live build,
+reserved for whether there is an issue; this is critical and belongs in the design system (Panda, the then-live build,
 and Signal). Sam chose: status inside the train's lozenge (option 2 of 4), amber from 2 min, Signal's blue as the
 accent. Later on 30 Oct Sam moved amber to start at 5 min (with the departure-board change, [late-trains](late-trains.md)).
 → [design-system](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal),

@@ -1,5 +1,5 @@
 # Visual progress for the journey and the current leg
-Status: Behind toggle (Signal; validation and release evidence recorded separately) · Since: 31 Oct 2026
+Status: Implemented in Signal, always active since 1 Nov; release evidence recorded separately · Since: 31 Oct 2026
 
 ## Story
 As a commuter on a train or Tube, I want to see my overall journey, the leg I am on, its calling points and how

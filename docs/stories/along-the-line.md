@@ -43,7 +43,7 @@ conflict explains the flyover without claiming that a London-bound service trave
   the initial Home/Office stage, planning, station and uncertain-location states. Before an identified train,
   open an explicitly labelled browse view; never manufacture a live position or put automatic landmark prompts
   onto station boards, walking or Tube views. Settings retains **Browse Along the line** too.
-- Signal layout changes and skin switching retain this navigation below the heading. It must not be stranded
+- Signal layout and appearance changes retain this navigation below the heading. It must not be stranded
   above the app header, folded into another panel, or depend on reaching an on-train checkpoint.
 - Use Signal's production light/dark palette, blue actions, system typography and compact rounded surfaces.
   The view has a labelled Back to journey action, native dialog semantics, focus return, 44px touch targets,

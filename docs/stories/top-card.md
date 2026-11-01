@@ -22,7 +22,7 @@ was a different route.
 - Train duration, total journey duration and the existing “Arrives first” meaning are shared facts, not separate
   choices made by each design or view. Live departures, station lists, planning and Follow consume the same
   itinerary and retain effort qualifiers. The fastest-to-arrive option need not have the shortest train ride or
-  total duration. → [UI parity](journey-facts.md)
+  total duration. → [Journey facts](journey-facts.md)
 
 ## Tests
 - tests/core/engine.test.mjs: "topPicks: best, then the next best on any route; strictly worse options are never the alternative"
