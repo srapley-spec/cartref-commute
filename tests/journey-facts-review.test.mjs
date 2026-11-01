@@ -136,13 +136,13 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('journey facts review: collapsed Signal Next best retains both durations before opening its details',async()=>{
+test('journey facts review: Signal Next best exposes its own durations and rank without an option-level disclosure',async()=>{
  const a=await fixture('light'),second=a.c.ranked(NOW).find(o=>o.train.serviceId==='shorter-later');
  for(const mode of ['auto','plan']){
   pin(a,mode);
   const alternative=a.d.querySelector('#hero .signal-alternative');assert.ok(alternative);
-  assert.equal(alternative.open,false);
-  const text=facts(a,alternative.querySelector(':scope > summary'),second);
+  assert.equal(alternative.tagName,'SECTION');
+  const text=facts(a,alternative,second);
   assert.doesNotMatch(text,/Arrives first|Fastest/,'Next best cannot inherit the primary winner');
  }
  assert.deepEqual(a.errors,[]);a.close();

@@ -41,7 +41,7 @@ from that description.
 - **Answer the real question**: when to leave, by which route, arriving when; at the station, when the train
   leaves.
 - **Protect the leave deadline** (Sam, 1 Nov). Before the station, Auto/Plan must expose the canonical leave
-  clock and countdown, including walking-to-station departure layouts and collapsed Next best. A train clock,
+  clock and countdown, including walking-to-station departure layouts and both complete recommendations. A train clock,
   spare minutes or a hidden itinerary step is not the answer. Removing or concealing it is a material product
   change to flag to Sam before shipping; a cosmetic refinement does not authorise that change. See the
   [design invariant](design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026).
@@ -119,7 +119,9 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   effective direction/mode and pace. Auto / Plan / Live and the planning question stay exposed. This supersedes
   the older always-visible direction/pace control requirement for Signal only. Move the same DOM controls and
   retain their handlers/values instead of cloning inputs or creating a second saved state.
-- One primary answer leads; Next best is a compact expandable option retaining all metadata, steps and actions.
+- Both recommendations use the same complete option renderer and time sizes (Sam, 1 Nov), with a Next best
+  heading on the second. This supersedes the first compact version's second-option disclosure. Only Journey
+  steps folds; service, route chips, platform, margin/countdown, warnings, boarding choices and Follow stay exposed.
   Board rows use full-width information and a Follow target of at least 44 px. All trains and individual
   cancellation/no-estimate/uncertainty flags survive; no aesthetics-based filtering is introduced.
 - One impact summary remains visible, with its existing severity precedence. The subsequent journey-clarity
@@ -327,6 +329,13 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+
+- **1 Nov, complete second recommendation** Sam's Arrive by screenshot showed the earlier 07:20 Thameslink as
+  a reduced summary below the 07:30 Great Northern, despite it being an attractive choice with more arrival
+  margin. Show the same content categories, actions and type sizes on both complete cards. Remove the
+  option-level disclosure and copied summary facts; reuse the existing option renderer, with Journey steps
+  available equally on each. Keep canonical values and flags per option and preserve the existing ranking.
+  This supersedes the compact-v2 Next best summary, not the accepted time-column or centred-duration layout.
 
 - **1 Nov, restore the leave deadline** Sam's screenshots showed Auto near Letchworth presenting only Train /
   Expected / At office, station-arrival estimates and spare minutes; the set-off time survived only in Journey

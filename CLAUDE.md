@@ -26,7 +26,7 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Find options from live data, don't hard-code them; known examples are test cases.
 - Real data over estimates; answer the real question (when to leave, which route, arriving when).
 - **Leave by is the core product answer (Sam, 1 Nov).** Before the station, Auto/Plan must expose the canonical
-  leave clock and countdown in the primary answer, collapsed Next best and planning rows, including walking
+  leave clock and countdown in both complete recommendations and planning rows, including walking
   layouts. Train departure time, spare minutes and hidden Journey steps cannot substitute for it. Removing,
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
   approval. Preserve the actual-station and explicit-Live exceptions in `docs/design-system.md`.

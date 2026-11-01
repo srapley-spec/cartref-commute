@@ -17,9 +17,13 @@ was a different route.
   margin, leaving no more than 20 min before it.
 - Never a strictly worse train (leaves earlier and arrives later) as the alternative.
 - One card is fine when nothing qualifies. The list always has everything.
+- **Complete recommendations (Sam, 1 Nov 2026):** the second train has the same visible information categories,
+  actions and time sizes as the first. Keep both complete cards exposed, with a Next best heading on the second;
+  only Journey steps folds. This supersedes the compact second-option summary. Reuse the same option renderer
+  and preserve each option's own route, margin, warnings, boarding points and Follow identity. Ranking is unchanged.
 - Leave now also says which train you'd catch by setting off this minute, if it's a different one.
 - Cancelled and "Delayed, no estimate" are never on the card.
-- **Core answer (Sam, 1 Nov 2026):** before reaching the station, the primary answer and collapsed Next best
+- **Core answer (Sam, 1 Nov 2026):** before reaching the station, both complete recommendations
   expose the canonical Leave / Leave by clock and precise leave countdown. Walking-to-station departure
   columns, station-arrival estimates and minutes to spare cannot replace it. Complete planning rows retain
   their own deadline; Journey steps alone do not count. → [protected design requirement](../design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026)
@@ -44,3 +48,6 @@ was a different route.
 - tests/leave-by.test.mjs: "Leave by: Auto near Letchworth exposes the deadline on the primary answer, Next best and every planning row"
 - tests/leave-by.test.mjs: "Leave by: pinning Plan and refreshing cannot turn a planning answer into only a departure board"
 - tests/leave-by.test.mjs: "Leave by: home, Arrive by and Leave around retain their visible canonical leave clock"
+- tests/recommendation-content.test.mjs: "recommendations: Arrive by tomorrow exposes the same fields and actions on the earlier train"
+- tests/recommendation-content.test.mjs: "recommendations: the second card keeps its steps and Follow action through refresh"
+- tests/recommendation-content.test.mjs: "recommendations: Auto and Plan expose complete alternatives for Leave now and Leave around"

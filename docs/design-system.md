@@ -21,7 +21,7 @@ The HTML is a review simulation. Consume the tokens and component contracts; do 
 The product answers **when to leave from the journey's origin or current location**, then which service to
 take and when it arrives. Before reaching the station, Auto and Plan must expose the route's canonical
 **Leave / Leave by HH:MM** and its precise leave countdown without opening Journey steps. This applies to
-Leave now, Arrive by and Leave around, the primary answer, collapsed Next best and the complete planning list.
+Leave now, Arrive by and Leave around, both complete recommendations and the full planning list.
 An active followed route must also retain its current access deadline before boarding.
 
 In the walking-to-station layout, put **Leave by** above the existing Train / Expected / At destination grid;
@@ -48,8 +48,8 @@ Total journey time occupies a centred neutral lozenge in a dedicated row directl
 labelled **Total journey**, with a separate centred train-duration caption beneath it. Sam approved this
 placement in both Plan and Live on 1 November; it supersedes the first left/right duration anchors. Keep Live's
 Expected departure in its original time column, and do not relabel total duration as time remaining. Use the
-same centre in the primary answer, Next best, departure rows and followed/inferred journey facts; opening Next
-best retains that row in place. Unknown totals explicitly say **Total journey time unavailable**. Longer route
+same centre in the primary answer, Next best, departure rows and followed/inferred journey facts; opening either
+recommendation's Journey steps retains that row in place. Unknown totals explicitly say **Total journey time unavailable**. Longer route
 labels get the full available width. Put board Follow
 actions in a consistent right-aligned slot beside the countdown, away from route labels. Preserve natural
 vertical growth for long details and enlarged text. See the [acceptance criteria](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
@@ -77,13 +77,26 @@ revision supersedes the older prototype's sizing and always-exposed direction/pa
 direction and pace remain visible in a labelled context disclosure containing the actual Commute/Leisure,
 Auto/office/home and pace controls. Auto/Plan/Live and Leave now/Arrive by/Leave around stay exposed.
 
-Production geometry and tokens live in `src/signal.css`: a 21px brand, 36px primary time, 32px secondary time,
-24px compact fallback times, 14px service metadata, 12px supporting labels, and at least 44×44px actions.
-Times and controls reflow at enlarged text sizes. The primary answer precedes a compact expandable Next best
-with visible service/platform identity, followed by full-width board rows. One impact summary stays visible;
+Production geometry and tokens live in `src/signal.css`: a 21px brand, 36px leave time, 32px arrival time,
+the same time sizes in both recommendations, 14px service metadata, 12px supporting labels, and at least 44×44px actions.
+Times and controls reflow at enlarged text sizes. Both recommendations use the same complete card layout,
+followed by full-width board rows. One impact summary stays visible;
 significant route-relevant disruption is exposed, while remaining Travel alerts and Lines & data use native
 disclosures. Every train and its individual problems remain
 on the complete board. Additional line problems and example/timetable provenance must not be lost to consolidation.
+
+### Complete second recommendation (Sam, 1 November 2026)
+
+Next best is a valid choice, including an earlier Arrive by train with more arrival margin. It shows the same
+content categories and type sizes as the first card: leave/arrival or departure/Expected times, train and total
+duration, route/line chips, service/platform, timing margin/countdown, applicable warnings, alternate boarding
+points, Journey steps and Follow when enabled. Each card uses its own canonical values and ranking flags;
+the earlier train does not inherit “Latest for” from the latest-leaving train.
+
+Show both complete cards immediately. There is no option-level disclosure; Journey steps uses the same
+disclosure on each card. This supersedes the 31 Oct compact Next best summary. Reuse the existing option
+renderer rather than cloning selected facts or constructing a second, reduced representation. More vertical
+space for requested journey information is preferable to hiding the information to meet an old density target.
 
 ### Shared geometry and live-journey clarity (Sam, 31 October 2026)
 

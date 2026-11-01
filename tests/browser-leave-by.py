@@ -60,7 +60,7 @@ def check(page, label):
       const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom};};
       const visible=e=>e&&e.checkVisibility()&&![...function*(n){for(;n;n=n.parentElement)yield n;}(e)]
         .some(n=>n.tagName==='DETAILS'&&!n.open&&!n.querySelector(':scope>summary')?.contains(e));
-      const primary=document.querySelector('#hero>.opt'),next=document.querySelector('#hero .signal-alternative>summary');
+      const primary=document.querySelector('#hero>.opt'),next=document.querySelector('#hero .signal-alternative');
       const options=__commute.ranked(Date.now());
       const owners=[primary,next,...document.querySelectorAll('#list .row[data-journey-service]')];
       const deadlines=owners.map(owner=>{
@@ -101,10 +101,10 @@ def run(browser):
                 page.screenshot(path=str(ART / f'leave-by-{label}.png'), full_page=True)
                 page.locator('[data-journey-view="plan"]').click()
                 check(page, label + '-plan')
-                page.locator('#hero .signal-alternative>summary').click()
+                page.locator('#hero .signal-alternative .steps>summary').click()
                 check(page, label + '-expanded')
                 page.evaluate('__commute.render()')
-                assert page.locator('#hero .signal-alternative').get_attribute('open') is not None
+                assert page.locator('#hero .signal-alternative .steps').get_attribute('open') is not None
                 check(page, label + '-refresh')
                 page.evaluate("""()=>{
                   window.leaveByFonts=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility())

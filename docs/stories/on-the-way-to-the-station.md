@@ -24,7 +24,7 @@ needed its own view rather than "leave now".
   read as a warning. 3 min chosen by Sam, 30 Oct.) The rule is `wayLevel` in `src/core/present.ts`.
 - Shows departures, when you'll reach the station, and "on track" or minutes behind for each.
 - **Leave deadline (Sam, 1 Nov):** Auto and pinned Plan retain a prominent **Leave by HH:MM** and precise leave
-  countdown for the current location and pace, above the primary and collapsed Next best departure columns.
+  countdown for the current location and pace, above both complete recommendations' departure columns.
   Planning-list rows expose the same fact for their own option. A passed access deadline and a train still
   awaiting departure must remain distinguishable; cancelled/unknown services do not advertise a usable
   deadline. This repairs the screenshot regression: the former walking layout showed only train clocks and
