@@ -28,6 +28,14 @@ redesign and the separate-looking Trip proposals. Use actual Signal as the fixed
 where possible, and show only proposed Trip changes for review. The previous blue-card redesign previews are
 withdrawn. Sharing renderer code must preserve non-Trip output and behaviour.
 
+Sam identified the **current commute screen** as the fixed reference (not the earlier Signal preview).
+Trip recommendations therefore call the existing Signal recommendation-frame renderer and use its current
+headline, duration, connection, flags, steps and Follow components without a new palette or card design.
+Trip's place names replace commute context only while Trip is active; leaving Trip restores the existing context.
+Trip's original address/access controls occupy the existing Journey options disclosure through an injected host.
+The question and answers stay exposed; leaving Trip removes its controls from that host. This reuses the existing
+Signal component without changing its appearance or behaviour in non-Trip modes.
+
 ## Protected product answer: when must I leave? (Sam, 1 November 2026)
 
 The product answers **when to leave from the journey's origin or current location**, then which service to

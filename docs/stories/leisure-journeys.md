@@ -103,6 +103,13 @@ Minutes are whole minutes, rounded down.
   hierarchy and components. Similar CSS values or shared tokens do not establish visual fidelity. The proposed
   commute redesign and separate Trip card direction are rejected. Review Trip against unchanged Signal, using
   matched journey data where possible; sharing renderers must not change non-Trip output or behaviour.
+  Sam selected the current commute screen as that reference. Trip recommendations call the same Signal card-frame
+  renderer; use the existing hierarchy, surfaces, time sizes, route/status badges and action row. A multi-connection
+  Trip repeats the existing connection component. Trip context displays its chosen places and never leaves Trip
+  labels on the commute screen after changing mode.
+  The existing Journey options disclosure hosts Trip's original From/To and per-end access controls; they are
+  moved without cloning or replacing handlers, and returned to the hidden Trip root on leaving Trip. The question,
+  chosen time and journey answers remain exposed. Access controls explicitly label To/From the station.
 - **Exactly the same journey UI (Sam, 1 Nov):** Trip recommendations, Next best and the full list use the shared
   Auto/Plan card structure, type sizes, headline/countdown, duration rows, connection panels, route/status chips
   and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations
@@ -198,6 +205,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-shared-ui.test.mjs: "Trip cards: one complete recommendation and compact rows retain every connection, canonical facts and shared actions"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Journey steps keep their own disclosure state through refresh and Follow uses the selected itinerary"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Next best has the same complete headline, facts, connections and actions in all planning questions"
+- tests/trip-shared-ui.test.mjs: "Trip context: the selected places replace commute copy only while Trip is active"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains canonical duration facts through access, rides, changes and the final leg"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"

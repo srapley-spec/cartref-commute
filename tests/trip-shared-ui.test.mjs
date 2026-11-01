@@ -77,3 +77,20 @@ test('Trip cards: Next best has the same complete headline, facts, connections a
  }
  assert.deepEqual(a.errors,[]);a.close();
 });
+
+test('Trip context: the selected places replace commute copy only while Trip is active',async()=>{
+ const a=await createApp({now:NOW,settings:TRIP_SETTINGS,route:tripRoute});
+ const route=a.text('#routeLabel'),context=a.text('#signalContextSummary');
+ await planBrightonCanterbury(a);
+ assert.equal(a.text('#routeLabel'),'Brighton Station → Canterbury Cathedral');
+ assert.equal(a.text('#signalContextSummary'),'Trip · Journey options');
+ assert.ok(a.d.querySelector('#signalAdjustments #tripForm'),'Trip uses the existing Journey options component');
+ assert.equal(a.d.querySelectorAll('#tripInput-from').length,1,'the original controls are moved, not cloned');
+ assert.ok(!a.d.querySelector('[aria-label="Trip question"]').closest('details'),'the planning question stays exposed');
+ a.d.querySelector('[data-mode="commute"]').click();
+ await sleep(400); // Let the existing mode-switch refresh settle before closing jsdom.
+ assert.equal(a.text('#routeLabel'),route);
+ assert.equal(a.text('#signalContextSummary'),context);
+ assert.equal(a.d.querySelector('#signalAdjustments #tripForm'),null,'Trip controls cannot leak into the commute');
+ assert.deepEqual(a.errors,[]);a.close();
+});

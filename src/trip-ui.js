@@ -1,6 +1,7 @@
 // Trip mode screen (docs/leisure-architecture.md §10). Draws what the engine returns, in the engine's block order;
 // fetches only through the ports it is given. Mounted by page.html into #tripRoot; uses no page globals beyond the
-// deps passed in, and never touches the commute's DOM.
+// deps passed in. Its controls can occupy an explicitly injected shared host;
+// only Trip-owned nodes are moved, and they return to the Trip root on hide.
 /* exported createTripUi, validTripState */
 /* global tripAdapters */
 const TRIP_RECENT_MAX = 5;
@@ -25,7 +26,7 @@ function validTripState(x, C) {
 
 function createTripUi(deps) {
   const { root, C, S, store, net, here, now, fetchBoard, loadScript, openSettings, esc, connectionMarkup,
-    journeyTimesMarkup, journeyFactsMarkup, journeyStepsMarkup, flagsMarkup } = deps;
+    journeyTimesMarkup, journeyFactsMarkup, journeyStepsMarkup, optionMarkup, flagsMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
@@ -33,6 +34,8 @@ function createTripUi(deps) {
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
   const save = (patch) => { store.set({ ...st(), ...patch }); };
+  const find = selector => root.querySelector(selector) || deps.controlsRoot?.querySelector(selector);
+  const findAll = selector => [...new Set([...root.querySelectorAll(selector), ...(deps.controlsRoot?.querySelectorAll(selector) || [])])];
 
   // ---------- Ports ----------
   async function stations() {
@@ -95,14 +98,16 @@ function createTripUi(deps) {
         <button type="button" class="ghost trip-swap" id="tripSwap" aria-label="Swap From and To">Swap</button>
         ${field("to", "To")}
         <div class="trip-modes">
+          <span class="trip-mode-label">To the station</span>
           <div class="seg" role="group" aria-label="Getting to the station">${modeBtns("from")}</div>
+          <span class="trip-mode-label">From the station</span>
           <div class="seg" role="group" aria-label="Getting from the station">${modeBtns("to")}</div>
         </div>
+      </form>
         <div class="seg" role="group" aria-label="Trip question">
           <button type="button" data-trip-q="now">Leave now</button><button type="button" data-trip-q="by">Arrive by</button><button type="button" data-trip-q="at">Leave around</button>
         </div>
         <label class="trip-when" id="tripWhenRow" hidden><span id="tripWhenLabel">Time</span><input type="datetime-local" id="tripWhen" step="60"></label>
-      </form>
       <p class="trip-stage" id="tripStage" role="status" aria-live="polite"></p>
       <div class="trip-results" id="tripResults"></div>`;
     root.querySelector("#tripSwap").addEventListener("click", () => { const s = st(); save({ from: s.to, to: s.from && s.from.kind === "current" ? null : s.from }); fill(); plan(); });
@@ -122,7 +127,7 @@ function createTripUi(deps) {
 
   // ---------- Address combobox (L1, L2, L11) ----------
   function combobox(end) {
-    const input = root.querySelector(`#tripInput-${end}`), list = root.querySelector(`#tripList-${end}`);
+    const input = find(`#tripInput-${end}`), list = find(`#tripList-${end}`);
     let session = null, seq = 0, timer = null, items = [], active = -1;
     const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; };
     const show = (rows, note) => {
@@ -175,8 +180,8 @@ function createTripUi(deps) {
   }
   function fill() {
     const s = st();
-    ["from", "to"].forEach(end => { const el = root.querySelector(`#tripInput-${end}`); if (document.activeElement !== el) el.value = s[end] ? s[end].name : ""; });
-    root.querySelectorAll("[data-trip-mode]").forEach(b => { const [end, m] = b.dataset.tripMode.split(":"); b.setAttribute("aria-pressed", String(s.modes[end] === m)); });
+    ["from", "to"].forEach(end => { const el = find(`#tripInput-${end}`); if (document.activeElement !== el) el.value = s[end] ? s[end].name : ""; });
+    findAll("[data-trip-mode]").forEach(b => { const [end, m] = b.dataset.tripMode.split(":"); b.setAttribute("aria-pressed", String(s.modes[end] === m)); });
     root.querySelectorAll("[data-trip-q]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tripQ === s.question.kind)));
     const row = root.querySelector("#tripWhenRow"); row.hidden = s.question.kind === "now";
     root.querySelector("#tripWhenLabel").textContent = s.question.kind === "by" ? "Be there by" : "Leave around";
@@ -276,15 +281,19 @@ function createTripUi(deps) {
   }
   function journeyRow(j, opts = {}) {
     const followed = st().follow && st().follow.id === j.id, changes = Math.max(0,mains(j).length-1);
-    return `<section class="trip-row ${opts.compact?'row journey-row'+(j.recommended?' best':''):'opt journey-option'+(opts.next?' signal-alternative':'')}" data-trip-id="${esc(j.id)}">
-      ${opts.next?'<h3 class="signal-alt-label">Next best</h3>':''}
-      ${journeyHeading(j)}
+    const overview=`${journeyHeading(j)}
       ${journeyFactsMarkup(C.tripJourneyFacts(j))}
       ${connections(j)}
-      <div class="optroute route"><span class="chip rail">${esc(j.fromStation.name)} → ${esc(j.toStation.name)}</span><span class="chip rail">${changes?`${changes} change${changes>1?'s':''}`:'Direct'}</span></div>
-      ${j.flags.filter(f=>!f.status).length ? `<div class="flags">${flagsMarkup(j.flags.filter(f=>!f.status))}</div>` : ""}
-      ${journeyStepsMarkup(C.journeySteps(j),{key:`trip|${opts.compact?'list':'pick'}|${j.id}`,extraClass:'trip-steps'})}
-      ${opts.noFollow ? "" : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`}
+      <div class="optroute route"><span class="chip rail">${esc(j.fromStation.name)} → ${esc(j.toStation.name)}</span><span class="chip rail">${changes?`${changes} change${changes>1?'s':''}`:'Direct'}</span></div>`;
+    const flags=j.flags.filter(f=>!f.status).length ? `<div class="flags">${flagsMarkup(j.flags.filter(f=>!f.status))}</div>` : '';
+    const steps=journeyStepsMarkup(C.journeySteps(j),{key:`trip|${opts.compact?'list':'pick'}|${j.id}`,extraClass:'trip-steps',tubeLegs:true});
+    const follow=opts.noFollow ? '' : `<button type="button" class="${followed ? "ghost" : "primary"} follow-btn" data-trip-follow="${esc(j.id)}"${followed ? " disabled" : ""}>${followed ? "Following" : "Follow"}</button>`;
+    if(!opts.compact)return optionMarkup({attributes:`data-trip-id="${esc(j.id)}"`,extraClass:'trip-row',next:opts.next,overview,flags,steps,follow});
+    return `<section class="trip-row row journey-row${j.recommended?' best':''}" data-trip-id="${esc(j.id)}">
+      ${overview}
+      ${flags}
+      ${steps}
+      ${follow}
     </section>`;
   }
   function blocks() {
@@ -294,6 +303,7 @@ function createTripUi(deps) {
   function renderResults() {
     if (!mounted) return;
     const s = st(), setup = root.querySelector("#tripSetup");
+    deps.renderContext?.(s);
     setup.hidden = hasGoogle();
     if (!hasGoogle()) setup.innerHTML = `<p>${S().googleVia === "proxy" ? "Set your proxy's address in Settings to search addresses and time the trip to the station." : "Add a Google Maps key in Settings to search addresses and time the trip to the station."}</p><button type="button" class="ghost" data-trip-settings>Open Settings</button>`;
     root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText || driveNote;
@@ -302,7 +312,10 @@ function createTripUi(deps) {
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate, following = fu && pres.view.startsWith("trip-");
     const followFacts = following ? journeyFactsMarkup(C.tripJourneyFacts({...fu.route.journey,arrive:fu.route.expectedArrival})) : '';
-    const label = `${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}`;
+    const questionDay=s.question.kind==='now'?'':deps.dayLabel?.(s.question.t)||'';
+    const label = following?'Following your trip':s.question.kind==='now'?`If you leave now · ${hhmm(now())}`
+      :s.question.kind==='by'?`To arrive by ${hhmm(s.question.t)} ${esc(questionDay)}`
+      :`Leaving around ${hhmm(s.question.t)} ${esc(questionDay)}`;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
     const html = { label: () => close + (following||!best?`<div class="lbl trip-label">${label}</div>`:''),
       headline: () => following ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival)+followFacts:''}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}${fu.phase==='before'?'':followFacts}
@@ -316,7 +329,7 @@ function createTripUi(deps) {
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",
-      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}${journeyStepsMarkup(C.journeySteps(fu.route.journey),{key:`trip|follow|${fu.route.id}`,summary:'Your trip',open:true,extraClass:'trip-steps'})}` : "" };
+      then: () => fu ? `${fu.phase==='final'||fu.phase==='arrived'?'':`<div class="trip-follow-connections">${connections(fu.route.journey,C.tripPhase(fu.route.journey,now(),fu.route.confirmed).ride)}</div>`}${journeyStepsMarkup(C.journeySteps(fu.route.journey),{key:`trip|follow|${fu.route.id}`,summary:'Your trip',open:true,extraClass:'trip-steps',tubeLegs:true})}` : "" };
     const disclosures = new Map([...out.querySelectorAll('details[data-key]')].map(el=>[el.dataset.key,el.open]));
     const content = pres.blocks.filter(b=>!following||b!=='source').map(b => (html[b] ? html[b]() : "")).join("");
     out.innerHTML = following ? `<div class="hero trip-follow-card">${content}</div>${pres.blocks.includes('source')?html.source():''}` : content;
@@ -332,8 +345,10 @@ function createTripUi(deps) {
       if (j) { save({ follow: C.startFollowTrip(j, now()) }); live(true).then(renderResults); } }
   }
   return {
-    show() { mount(); root.hidden = false; fill(); renderResults(); if (!result && st().to) plan(); },
-    hide() { root.hidden = true; },
+    show() { mount(); root.hidden = false;
+      const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
+      fill(); renderResults(); if (!result && st().to) plan(); },
+    hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults,
     reset() { result = null; liveBoards = {}; boardAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
     state: () => ({ result, error, stage: stageText }),

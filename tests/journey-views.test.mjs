@@ -236,11 +236,11 @@ const factories={
  'plan-trip-by':async a=>{await planBrightonCanterbury(a);a.d.querySelector('[data-trip-q="by"]').click();
   const when=a.d.querySelector('#tripWhen');when.value='2026-11-03T13:30';when.dispatchEvent(new a.w.Event('change',{bubbles:true}));
   await until(()=>/Late by \d+ min/.test(a.text('#tripResults')));tripPlanChecks(a);
-  assert.match(a.text('#tripResults'),/Arrive by 13:30/);
+  assert.match(a.text('#tripResults'),/To arrive by 13:30/);
   assert.ok(shown(a,'#tripResults .trip-row .pill.bad').some(n=>/^Late by \d+ min$/.test(norm(n.textContent))),'a late journey says by how much, in red');},
  'plan-trip-at':async a=>{await planBrightonCanterbury(a);a.d.querySelector('[data-trip-q="at"]').click();
   const when=a.d.querySelector('#tripWhen');when.value='2026-11-03T10:15';when.dispatchEvent(new a.w.Event('change',{bubbles:true}));
-  await until(()=>/Leave around 10:15/.test(a.text('#tripResults'))&&a.d.querySelectorAll('#tripResults .trip-row').length>=3);tripPlanChecks(a);},
+  await until(()=>/Leaving around 10:15/.test(a.text('#tripResults'))&&a.d.querySelectorAll('#tripResults .trip-row').length>=3);tripPlanChecks(a);},
  'trip-follow':async a=>{await planBrightonCanterbury(a);await followFirst(a);tripFollowChecks(a);},
  'trip-access':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T10:04:30Z');tripFollowChecks(a);},
  'trip-ride':async a=>{await planBrightonCanterbury(a);await followFirst(a);await tripAt(a,'2026-11-03T10:10:00Z');tripFollowChecks(a);

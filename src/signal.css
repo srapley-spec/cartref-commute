@@ -356,7 +356,7 @@ html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):no
 html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
 html .trip {display:grid;gap:10px;min-width:0}
 html .trip-results {display:grid;gap:10px;min-width:0}
-html .trip-form {display:grid;grid-template-columns:1fr;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+html .trip-form {display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0;padding:6px 0 0}
 html .trip-field label {display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
 html .trip-combo {position:relative}
 html .trip-combo input {width:100%;box-sizing:border-box;min-height:44px;font-size:16px;padding:8px 10px;border:1px solid var(--signal-control-line);border-radius:10px;background:var(--card);color:var(--ink)}
@@ -367,9 +367,11 @@ html .trip-suggest [aria-selected=true] {background:var(--signal-soft)}
 html :is(.trip-suggest-note,.trip-attrib) {padding:6px 10px;font-size:12px;color:var(--muted)}
 html .trip-swap {justify-self:end}
 html .trip-modes {display:grid;gap:6px}
+html .trip-mode-label {font-size:12px;color:var(--muted)}
 html .trip-when {display:flex;gap:8px;align-items:center;font-size:14px}
 html .trip-when input {min-height:44px}
 html .trip-stage {margin:0;font-size:13px;color:var(--muted);min-height:1em}
+html .trip-stage:empty {display:none}
 html :is(.trip-setup,.trip-card) {background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
 html .trip-headline {display:grid;gap:8px;min-width:0}
 html .trip-headline p {margin:0;font-size:14px;line-height:1.4}

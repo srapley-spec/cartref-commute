@@ -1161,8 +1161,8 @@ function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing='',
     <div class="journey-countdown">${known?`<span data-cd="${leave}">${esc(countdown)}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
   </div>`;
 }
-function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass=''}={}){
-  return `<details class="steps${extraClass?' '+esc(extraClass):''}"${key?` data-key="${esc(key)}"`:''}${open?' open':''}><summary>${esc(summary)}</summary><ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d${l.tube?' tube':''}">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>`;
+function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass='',tubeLegs=false}={}){
+  return `<details class="steps${extraClass?' '+esc(extraClass):''}"${key?` data-key="${esc(key)}"`:''}${open?' open':''}><summary>${esc(summary)}</summary><ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d${tubeLegs&&l.tube?' tube':''}">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>`;
 }
 function journeyOverviewMarkup(j,opt={}){
   const dest=j.dest||(direction()==='office'?'office':'home');
@@ -1171,14 +1171,22 @@ function journeyOverviewMarkup(j,opt={}){
     <div class="optroute route">${chips(j)}</div>
     ${plannable(j.train)&&Number.isFinite(j.train.dep)&&(j.missed||opt.board)?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
 }
+// One existing Signal recommendation frame; Trip supplies its own canonical
+// itinerary content and repeats the connection component inside that frame.
+function planningOptionMarkup({attributes='',extraClass='',next=false,overview,extra='',flags='',steps,follow}){
+  return `<section class="opt journey-option${extraClass?' '+esc(extraClass):''}${next?' signal-alternative':''}"${attributes?' '+attributes:''}>
+    ${next?'<h3 class="signal-alt-label">Next best</h3>':''}${overview}${extra}
+    ${flags}
+    ${steps}
+    ${follow}
+  </section>`;
+}
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  if(state.presentation?.mode!=='live')return `<section class="opt journey-option" data-journey-service="${esc(journeyServiceKey(j.train))}">
-    ${journeyOverviewMarkup(j,opt)}${altLines(j)}
-    ${j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:''}
-    ${journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')})}
-    ${followButton(j)}
-  </section>`;
+  if(state.presentation?.mode!=='live')return planningOptionMarkup({
+    attributes:`data-journey-service="${esc(journeyServiceKey(j.train))}"`,overview:journeyOverviewMarkup(j,opt),extra:altLines(j),
+    flags:j.flags.filter(f=>!f.status).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status),false)}</div>`:'',
+    steps:journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')}),follow:followButton(j)});
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
     ${opt.leaveBy?leaveByMarkup(j):''}
     ${opt.board ? `<div class="optrow board">
@@ -2293,7 +2301,9 @@ const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved
 let tripUi=null;
 function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup,
-    journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
+    journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
+    controlsRoot:$("#signalAdjustments .signal-adjustment-body"),dayLabel,
+    renderContext:s=>{if(tripActive()){$("#routeLabel").textContent=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$("#signalContextSummary").textContent='Trip · Journey options';}},
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,

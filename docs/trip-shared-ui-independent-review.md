@@ -28,5 +28,8 @@ stylesheet changes are confined to Trip selectors. Ten targeted Trip/source-conf
 before/after browser comparison of the saved `c299074` release and candidate produced identical full-app screenshot
 hashes in 16 states: Auto, Plan, Live and preboarding Follow at 320/393 px in light/dark (build/freshness footer
 metadata hidden equally). Evidence is in `/workspace/scratch/trip-only-scope/signal-freeze-check.json`.
-This verifies the sampled visual boundary, not the outstanding choice of exact Signal reference or final Trip
-design acceptance. Release stays paused; rerun full checks and review on the final accepted Trip candidate.
+Sam then selected the current commute screen as the fixed reference. After sharing the actual recommendation
+renderer and existing Journey options host, 24 sampled full-app screenshots match the saved release, including
+both recommendations' expanded Journey steps. Trip uses the current components, with no new Signal palette or
+card design. Its place names and controls are scoped to Trip; returning to commute restores the existing screen.
+Rerun full checks and independent review on the final Trip-only candidate before release.
