@@ -105,6 +105,10 @@ def trip_scene(browser, theme, width):
         }'''
         commute_card = page.evaluate(style_probe, '#hero>.journey-option')
         commute_row = page.evaluate(style_probe, '#list>.journey-row.best')
+        question_probe = '''selector=>[...document.querySelectorAll(selector)].map(e=>{
+          const c=getComputedStyle(e);return {width:e.getBoundingClientRect().width,fontSize:c.fontSize,paddingLeft:c.paddingLeft,paddingRight:c.paddingRight,flex:c.flex,minWidth:c.minWidth};
+        })'''
+        commute_questions = page.evaluate(question_probe, '#signalPlanningControls .seg button')
         stub = json.loads(subprocess.check_output(['node', '--input-type=module', '-e',
             "import {stubGoogle,TRIP_PLACES,TRIP_REPLY_WITH_NEXT_BEST} from './tests/trip-fixtures.mjs';console.log(JSON.stringify({fn:stubGoogle.toString(),places:TRIP_PLACES,fixture:TRIP_REPLY_WITH_NEXT_BEST}));"], cwd=ROOT, text=True))
         fixture = stub['fixture']
@@ -130,6 +134,7 @@ def trip_scene(browser, theme, width):
         label = f'trip-{theme}-{width}'
         normal = inspect(page, label)
         assert page.locator('.trip-recommendations>.journey-option').count() == 2
+        assert page.evaluate(question_probe, '[data-trip-q]') == commute_questions, 'Trip question controls diverged from current Signal'
         assert page.evaluate(style_probe, '.trip-recommendations>.journey-option') == commute_card, 'Trip recommendation styles diverged from Auto/Plan'
         trip_row = page.evaluate(style_probe, '.trip-list>.journey-row.best')
         assert trip_row == commute_row, ('Trip list styles diverged from Auto/Plan', {k:(commute_row[k],trip_row[k]) for k in commute_row if commute_row[k] != trip_row[k]})

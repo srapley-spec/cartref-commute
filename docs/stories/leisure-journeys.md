@@ -111,6 +111,7 @@ Minutes are whole minutes, rounded down.
   moved without cloning or replacing handlers, and returned to the hidden Trip root on leaving Trip. The question,
   chosen time and journey answers remain exposed. Access controls explicitly label To/From the station.
   The collapsed summary keeps the selected per-end modes visible, mirroring the commute's exposed pace.
+  The exposed question selector uses the existing Signal planning-control rules, including equal-width buttons.
 - **Exactly the same journey UI (Sam, 1 Nov):** Trip recommendations, Next best and the full list use the shared
   Auto/Plan card structure, type sizes, headline/countdown, duration rows, connection panels, route/status chips
   and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations

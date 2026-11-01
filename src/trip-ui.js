@@ -104,10 +104,12 @@ function createTripUi(deps) {
           <div class="seg" role="group" aria-label="Getting from the station">${modeBtns("to")}</div>
         </div>
       </form>
+      <div class="trip-planning-controls">
         <div class="seg" role="group" aria-label="Trip question">
           <button type="button" data-trip-q="now">Leave now</button><button type="button" data-trip-q="by">Arrive by</button><button type="button" data-trip-q="at">Leave around</button>
         </div>
         <label class="trip-when" id="tripWhenRow" hidden><span id="tripWhenLabel">Time</span><input type="datetime-local" id="tripWhen" step="60"></label>
+      </div>
       <p class="trip-stage" id="tripStage" role="status" aria-live="polite"></p>
       <div class="trip-results" id="tripResults"></div>`;
     root.querySelector("#tripSwap").addEventListener("click", () => { const s = st(); save({ from: s.to, to: s.from && s.from.kind === "current" ? null : s.from }); fill(); plan(); });

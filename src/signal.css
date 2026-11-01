@@ -72,8 +72,8 @@ html #signalAdjustments[open]>summary {justify-content:space-between}
 html #signalAdjustments[open]>summary::after {content:'⌃'}
 html #signalAdjustments .controls {display:flex;flex-wrap:wrap;gap:6px}
 html #signalAdjustments .dirnote {font-size:12px;line-height:1.4;margin-top:2px;color:var(--muted)}
-html #signalPlanningControls .seg {display:flex;width:100%}
-html #signalPlanningControls .seg button {flex:1;min-width:0;padding-inline:7px}
+html :is(#signalPlanningControls,.trip-planning-controls) .seg {display:flex;width:100%}
+html :is(#signalPlanningControls,.trip-planning-controls) .seg button {flex:1;min-width:0;padding-inline:7px}
 html :is(.origin,.byf) {font-size:13px}
 html :is(.originbar input,.byf input,.f input,.f select) {min-height:44px;font-size:16px;border-radius:8px;border-color:var(--signal-control-line)}
 html .byform {gap:8px}
@@ -355,6 +355,7 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
 html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):not(footer) {display:none!important}
 html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
 html .trip {display:grid;gap:10px;min-width:0}
+html .trip-planning-controls {display:grid;gap:8px;min-width:0}
 html .trip-results {display:grid;gap:10px;min-width:0}
 html .trip-form {display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0;padding:6px 0 0}
 html .trip-field label {display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
