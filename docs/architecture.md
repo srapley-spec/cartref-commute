@@ -40,6 +40,11 @@ from that description.
 - **Get it right with real data rather than estimates**, spending API calls where needed.
 - **Answer the real question**: when to leave, by which route, arriving when; at the station, when the train
   leaves.
+- **Protect the leave deadline** (Sam, 1 Nov). Before the station, Auto/Plan must expose the canonical leave
+  clock and countdown, including walking-to-station departure layouts and collapsed Next best. A train clock,
+  spare minutes or a hidden itinerary step is not the answer. Removing or concealing it is a material product
+  change to flag to Sam before shipping; a cosmetic refinement does not authorise that change. See the
+  [design invariant](design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026).
 - **When the app isn't sure, ask** (which train or tube you're on) and remember the answer. If your answer and
   the evidence disagree, say so or ask again; don't silently overrule.
 - **Everything personal is configurable**: walking pace, stops, deadlines, places (home location in Settings).
@@ -322,6 +327,15 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+
+- **1 Nov, restore the leave deadline** Sam's screenshots showed Auto near Letchworth presenting only Train /
+  Expected / At office, station-arrival estimates and spare minutes; the set-off time survived only in Journey
+  steps. The walking-to-station branch selected departure-first clocks and countdowns, and visibility tests
+  protected durations without requiring an exposed leave deadline. Retain that layout, add the existing
+  engine deadline above its primary/Next best clocks and into its planning rows, and retain it before boarding
+  a followed route. Home/Arrive by/Leave around leave clocks, actual-station departure behavior and explicit
+  Live remain contextual. This is a restoration of the product's core answer, not a new routing, location or
+  feed policy. The design system and regression tests now explicitly protect it as a material product fact.
 
 Newest first. Each entry records the decision and its consequences; linked stories and reviews hold the detail.
 

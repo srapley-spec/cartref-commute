@@ -47,6 +47,10 @@ These refinements supersede the first compact release's blanket folding of full 
 content-sized time columns. Existing layout and data preservation constraints remain; the feature switch was removed on 1 Nov.
 
 ### Compact v2 acceptance criteria
+- Before the station, Auto and Plan expose Leave / Leave by and its precise countdown as the core product
+  answer, including on-the-way departure layouts and collapsed Next best. Keep the current time columns and
+  centred duration geometry. Hiding/replacing the deadline is a material change that must be flagged to Sam
+  before shipping; a layout refinement does not authorise it. See the [protected requirement](../design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026).
 - Show a short masthead, always-available Auto / Plan / Live and planning-mode controls, effective journey context,
   then the current answer with one dominant time. Journey options expands to the real Commute/Leisure,
   Auto/office/home and pace controls; each changed value is reflected in the closed summary.
