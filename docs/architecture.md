@@ -328,6 +328,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   or hold it; chose the exception). The parity gate gains a recorded-exception mechanism (`designs` + `exception`
   decision with Sam's approval line per surface); Panda stays supported for everything else.
   → [decision](decisions/trip-signal-only.md), [UI parity](stories/ui-parity.md)
+- **31 Oct, Along access correction** Sam: location chooses the initial position on Along the line, never
+  whether it is available. Keep navigation visible whenever enabled and every route point browsable regardless
+  of interests. Retain the established corridor and open article through GPS/identity loss; reset on source,
+  direction, mode or actual corridor/endpoints changes. → [Along the line](stories/along-the-line.md).
 - **31 Oct** Sam authorises Along the line as a Signal-based journey companion, with a separate Experimental
   toggle off by default. Interests and reading depth are independent. Start with bundled curated
   Letchworth–London stories and approximate phone-led cues, never exact position from timetable interpolation.

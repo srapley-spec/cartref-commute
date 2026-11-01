@@ -321,10 +321,17 @@ html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-sel
 html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
-html[data-design="signal"] .signal-alt-facts {display:block;font-size:12px;color:var(--muted)}
-html[data-design="signal"] .signal-alternative[open] .signal-alt-facts,
+html[data-design="signal"] .journey-facts {display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:baseline;gap:4px 10px;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline;font-variant-numeric:tabular-nums}
+html[data-design="signal"] .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;overflow-wrap:break-word}
+html[data-design="signal"] .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:start;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600}
+html[data-design="signal"] .journey-facts .journey-train-time {grid-column:2;grid-row:1;justify-self:end;text-align:right}
+html[data-design="signal"] :is(.journey-facts-divider,.journey-meta-divider) {display:none}
+html[data-design="signal"] .signal-alternative>.opt>.journey-facts,
 html[data-design="signal"] .signal-alternative[open] .signal-alt-comparison {display:none}
-html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
+html[data-design="signal"] .hero .opt>:is(.optrow,.journey-facts,.optroute,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
+html[data-design="signal"] .hero .opt>.optroute {justify-content:flex-start;margin:0;padding:0}
+html[data-design="signal"] .hero .journey-meta {display:grid;gap:2px}
+html[data-design="signal"] .hero .journey-countdown {color:var(--muted)}
 /* Every answer uses the same anchors: departure left, expected centre, destination right.
    Planning reserves the middle slot; actions and route metadata never take a time column. */
 html[data-design="signal"] .hero .optrow {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;align-items:start;gap:0 var(--signal-time-gap);min-width:0}
@@ -360,6 +367,7 @@ html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service
 html[data-design="signal"] .hero .signal-alternative>summary::after {content:'›';position:absolute;right:0;top:5px;font-size:22px;color:var(--accent);line-height:1}
 html[data-design="signal"] .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
 html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
+html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-facts {grid-column:1/-1;grid-row:3;display:grid}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig {font-size:24px}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig.word {font-size:16px}
 html[data-design="signal"] .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
@@ -416,17 +424,24 @@ html[data-design="signal"] .row>.leave {grid-column:1;text-align:left}
 html[data-design="signal"] .row>.exp {grid-column:2;text-align:center}
 html[data-design="signal"] .row>.arrive {grid-column:3;text-align:right}
 html[data-design="signal"] .row .mid>:is(.route,.meta,div) {grid-column:1/-1;min-width:0;margin-top:4px}
-html[data-design="signal"] .row .mid>.route {grid-column:1/3;grid-row:3;align-self:center}
-html[data-design="signal"] .row:not(:has(.follow-btn,.followtag)) .mid>.route {grid-column:1/-1}
+html[data-design="signal"] .row .mid>.journey-facts {grid-column:1/-1;grid-row:3;margin-top:5px}
+html[data-design="signal"] .row .mid>.route {grid-column:1/-1;grid-row:4;align-self:center}
+html[data-design="signal"] .row .mid>.journey-meta {display:contents}
+html[data-design="signal"] .row .journey-service {grid-column:1/-1;grid-row:5;margin-top:4px;font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .row .journey-service .plat {color:var(--ink)}
+html[data-design="signal"] .row .journey-countdown {grid-column:1/-1;grid-row:6;align-self:center;margin-top:4px;font-size:13px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .row:has(.follow-btn,.followtag) .journey-countdown {padding-right:104px}
+html[data-design="signal"] .row .mid>.journey-meta~.meta {grid-row:7}
+html[data-design="signal"] .row .journey-provenance {grid-column:1/-1;grid-row:7;font-size:13px;line-height:1.4;color:var(--muted)}
 html[data-design="signal"] .row .route {gap:4px;align-items:center;font-size:13px;line-height:1.4}
 html[data-design="signal"] .row .meta {font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
 html[data-design="signal"] .row .meta b {font-weight:650;color:var(--ink)}
 html[data-design="signal"] .row .meta :is([data-cd],[data-dep]) {white-space:normal}
 html[data-design="signal"] .row :is(.leave small,.exp small,.arrive small) {display:block;font-size:12px;color:var(--muted);line-height:1.35;letter-spacing:0;text-transform:none}
 html[data-design="signal"] .row :is(.leave .t,.exp .t,.arrive .t) {font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.025em}
-html[data-design="signal"] .row .mid>.follow-btn {grid-column:3;grid-row:3;justify-self:end;align-self:center;min-width:44px;max-width:100%;padding:7px 8px;margin:4px 0 0;font-size:13px}
-html[data-design="signal"] .row .mid>.followtag {grid-column:3;grid-row:3;justify-self:end;align-self:center;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:100%;padding:4px 6px;margin:4px 0 0}
-html[data-design="signal"] .row .mid>div:has(>.pill) {display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
+html[data-design="signal"] .row .mid>.follow-btn {grid-column:1/-1;grid-row:6;justify-self:end;align-self:center;width:96px;min-width:max-content;max-width:100%;padding:7px 8px;margin:4px 0 0;font-size:13px}
+html[data-design="signal"] .row .mid>.followtag {grid-column:1/-1;grid-row:6;justify-self:end;align-self:center;width:96px;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:100%;padding:4px 6px;margin:4px 0 0}
+html[data-design="signal"] .row .mid>div:has(>.pill) {grid-row:8;display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
 html[data-design="signal"] .row .pill {white-space:normal}
 html[data-design="signal"] .row.best {background:color-mix(in srgb,var(--signal-soft) 45%,var(--card))}
 html[data-design="signal"] .row.gone {opacity:1}
@@ -560,6 +575,8 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
 /* Keep the same semantic order at enlarged type. A shared query container means the
    hero, fallback and board all reflow together instead of clipping large times. */
 @container (max-width:18em) {
+  html[data-design="signal"] .journey-facts {grid-template-columns:minmax(0,1fr)}
+  html[data-design="signal"] .journey-facts .journey-train-time {grid-column:1;grid-row:2;justify-self:start;text-align:left}
   html[data-design="signal"] :is(.hero .optrow,.hero .optrow.board,.row) {grid-template-columns:minmax(0,1fr);grid-template-rows:none;row-gap:4px}
   html[data-design="signal"] .hero .optrow>div:not(.optroute):not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html[data-design="signal"] .hero .optrow .optroute {grid-row:auto}
@@ -567,11 +584,13 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   html[data-design="signal"] .hero .signal-alternative>summary {grid-template-columns:minmax(0,1fr)}
   html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
   html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-row:3}
+  html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-facts {grid-row:4}
   html[data-design="signal"] .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html[data-design="signal"] .row>.arrive {grid-row:2}
   html[data-design="signal"] .row.board>.exp {grid-row:2}
   html[data-design="signal"] .row.board>.arrive {grid-row:3}
-  html[data-design="signal"] .row .mid>.route,html[data-design="signal"] .row .mid>.follow-btn,html[data-design="signal"] .row .mid>.followtag {grid-column:1;grid-row:auto}
+  html[data-design="signal"] .row .mid>:is(.journey-facts,.route,.meta,.follow-btn,.followtag),html[data-design="signal"] .row :is(.journey-service,.journey-countdown,.journey-provenance),html[data-design="signal"] .row .mid>div:has(>.pill) {grid-column:1;grid-row:auto}
+  html[data-design="signal"] .row:has(.follow-btn,.followtag) .journey-countdown {padding-right:0}
 }
 @media(prefers-reduced-motion:reduce) {
   html[data-design="signal"] *,html[data-design="signal"] *::before,html[data-design="signal"] *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}
@@ -648,12 +667,17 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
 .al-story[data-state="passed"]>.al-location::before{content:'✓ ';color:var(--muted)}
 .al-story[data-selected="false"]:not(:has(details[open])){padding-bottom:10px}
 .al-story[data-selected="false"] .al-hook{display:none}
+#alongLine[data-show-all="true"] .al-story .al-hook{display:block}
 .along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
 .along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
 @media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
 @media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
 
 #alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}
+
+/* Keep explicit access available while scrolling the journey or simulator checkpoints. */
+#alongNavigation{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;display:flex;align-items:center;min-height:44px;padding-block:4px;background:var(--paper);border-bottom:1px solid var(--line)}
+#alongNavigation button{min-height:44px;padding:8px 12px;font:inherit;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:9px;white-space:normal}
 
 /* Follow controls also work in Panda; status colours retain their usual meaning. */
 #followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
@@ -748,7 +772,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 09:50 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 10:04 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5451,7 +5475,7 @@ const journeyServiceKey = train => [train.from,train.to,train.std,train.operator
 function journeyFactsMarkup(option,context={}){
   const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
   const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
-  return `<span class="journey-facts">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'} · ${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span>`;
+  return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span></span>`;
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -5503,7 +5527,7 @@ function optionBlock(j, opt){
       <div><small>Arrive ${esc(dest)}</small><span class="t optbig">${hhmm(j.arrive)}</span></div>
       <div class="optroute">${chips(j)}</div>
     </div>`}
-    <div class="optmeta">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)}${opt.timing?` · <span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span>`:""} · ${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+    <div class="optmeta journey-meta"><span class="journey-service">${opt.board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${opt.timing?`<span class="${opt.late?"latetxt":""}">${esc(opt.timing)}</span> · `:""}${j.missed||opt.board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
     ${altLines(j)}
     ${(opt.board?boardFlags(j.flags):j.flags).length?`<div class="flags">${pills(opt.board?boardFlags(j.flags):j.flags,false)}</div>`:""}
     <details class="steps" data-key="steps|${esc(j.hub)}|${esc(j.train.std)}|${esc(j.train.operator)}"><summary>Journey steps</summary><ol class="legs">${j.legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol></details>
@@ -5844,7 +5868,7 @@ function renderList(list, now, opts){
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)} · ${journeyFactsMarkup(j)} · ${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</div>
+        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}
@@ -5905,7 +5929,7 @@ function renderLiveBoard(now){
       <div class="leave"><small>Train</small><span class="t">${esc(t.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(t,"")}</div>
       <div class="mid">
         <div class="route"><span class="chip rail">to ${esc(r.routes.map(name).join(" or "))}</span></div>
-        <div class="meta">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""} · ${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?" · timetable":""}${t.cancelled||t.depUnknown?"":` · <span data-dep="${t.dep}"></span>`}</div>
+        <div class="meta journey-meta"><span class="journey-service">${esc(t.operator)}${t.destination?` · ${esc(t.destination)}`:""}${t.platform?` · <b class="plat">platform ${esc(t.platform)}</b>`:""}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(r.option,{train:r.option?.train||t})}${t.timetable?`<span class="journey-meta-divider"> · </span><span class="journey-provenance">timetable</span>`:""}${t.cancelled||t.depUnknown?"":`<span class="journey-meta-divider"> · </span><span class="journey-countdown"><span data-dep="${t.dep}"></span></span>`}</div>
         <div>${[reachMarkup,pills(uniqueFlags,true)].filter(Boolean).join(" ")}</div>
         ${r.option?followButton(r.option):""}
       </div>
@@ -7834,7 +7858,7 @@ function applySignalLayout(){
   if(footerSpan)p.network.append(footerSpan);
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
-  for(const node of [header,p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
   signalActive=true;
 }
 function signalReadingVisible(node){
@@ -7859,6 +7883,22 @@ function renderSignalCompact(){
   });
   $('#signalCurrentLines').replaceChildren(...$('#hero').querySelectorAll('.strip'));
   p.freshness.textContent=($('#updated').textContent||'').split(' · requests')[0];
+  // Duration has a dedicated home immediately after the headline times. Long
+  // routes, platforms, flags and Follow labels must never displace that row.
+  for(const opt of $('#hero').querySelectorAll('.opt')){
+    const times=opt.querySelector('.optrow'),facts=opt.querySelector('.journey-facts');
+    if(times&&facts){
+      times.after(facts);
+      const route=times.querySelector('.optroute');if(route)facts.after(route);
+    }
+  }
+  for(const row of $('#list').querySelectorAll('.row')){
+    const mid=row.querySelector('.mid'),facts=mid?.querySelector('.journey-facts');
+    if(facts){
+      const meta=facts.parentElement;mid.prepend(facts);
+      if(meta!==mid&&!meta.textContent.trim())meta.remove();
+    }
+  }
   // A compact, accessible fallback row; full metadata and actions remain on expansion.
   const options=[...$('#hero').children].filter(n=>n.classList.contains('opt'));
   for(const opt of options.slice(1)){
@@ -8220,15 +8260,18 @@ alongDialog.innerHTML=`<header class="al-header"><div><h2 id="alongTitle">Along 
  <details id="alongChoices"><summary>Your interests and reading depth</summary>
  <fieldset><legend>What catches your interest?</legend>${[['views','Views and landscape'],['places','Places and their stories'],['engineering','Architecture and engineering'],['operations','How the railway works']].map(([id,label])=>`<label><input type="checkbox" value="${id}" name="alongInterest"> ${label}</label>`).join('')}</fieldset>
  <label class="al-depth">Reading depth <select id="alongDepth"><option value="glance">A glance</option><option value="discover">A little more</option><option value="explore">The full story</option></select></label>
- <p>Interests choose the highlights. Saved on this device.</p><label><input type="checkbox" id="alongShowAll"> Show other discoveries too</label></details>
- <p id="alongEvidence"></p><p id="alongEmpty" hidden>No highlights selected. Choose an interest, or show other discoveries to explore every story.</p>
+ <p>Interests choose the highlights. Every point stays on the line. Saved on this device.</p><label><input type="checkbox" id="alongShowAll"> Show previews for every point</label></details>
+ <p id="alongEvidence"></p><p id="alongEmpty" hidden>No highlights selected. Every point is still available below; choose interests for automatic highlights.</p>
  <div class="al-follow"><span id="alongFeatured"></span><button type="button" id="alongNow" hidden>Back to now</button></div>
  <div id="alongScroll" tabindex="0" aria-label="Stations and discoveries in journey order"><ol id="alongStrip"></ol></div>
  <p class="al-foot">Curated Letchworth–London stories · available offline once the app is loaded. Locations are approximate; views can be obscured.</p>`;
 document.body.append(alongDialog);
-const alongEntry=document.createElement('button');alongEntry.id='alongEntry';alongEntry.type='button';alongEntry.hidden=true;alongEntry.textContent='Along the line ›';
-$('#hero').after(alongEntry);
-let alongContextKey='',alongFollowing=true,alongLastFeatured=null,alongOpener=null,alongLastEpoch=null;
+const alongEntry=document.createElement('button');alongEntry.id='alongEntry';alongEntry.type='button';alongEntry.className='ghost';alongEntry.hidden=true;alongEntry.textContent='Along the line ›';
+alongEntry.setAttribute('aria-haspopup','dialog');alongEntry.setAttribute('aria-controls','alongLine');
+const alongNavigation=document.createElement('nav');alongNavigation.id='alongNavigation';alongNavigation.hidden=true;
+alongNavigation.setAttribute('aria-label','Along the line');alongNavigation.append(alongEntry);
+document.querySelector('.wrap > header').after(alongNavigation);
+let alongContextKey='',alongFollowing=true,alongLastFeatured=null,alongOpener=null,alongRouteScope='',alongRoute=null;
 function alongClose(){alongDialog.close();alongOpener?.focus({preventScroll:true});}
 $('#alongClose').addEventListener('click',alongClose);
 alongDialog.addEventListener('cancel',()=>{alongOpener?.focus({preventScroll:true});});
@@ -8237,7 +8280,7 @@ function openAlongLine(){
   alongOpener=document.activeElement;alongFollowing=true;alongLastFeatured=null;
   renderAlongLine();
   try{alongDialog.showModal();}catch(e){alongDialog.setAttribute('open','');}
-  renderAlongLine();$('#alongClose').focus();
+  renderAlongLine(true);$('#alongClose').focus();
 }
 alongEntry.addEventListener('click',openAlongLine);
 const alongBrowse=document.createElement('button');alongBrowse.type='button';alongBrowse.id='alongBrowse';alongBrowse.className='ghost';alongBrowse.textContent='Browse Along the line';
@@ -8264,24 +8307,36 @@ $('#alongChoices').addEventListener('change',()=>{
 });
 function alongContext(){
   const progress=state.rendered?.progress;
-  const followed=S().followRoute&&state.followUpdate?.route;
+  const candidate=S().followRoute&&state.followUpdate?.route;
+  const restored=candidate&&C.restoreFollowRoute(state.saved.followRoute);
+  const followed=restored&&candidate.id===restored.id&&candidate.direction===direction()&&candidate.mode===currentMode()&&candidate.phase!=='arrived'?candidate:null;
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
   const hub=train?(PROFILE.hubNames[train.to]?train.to:PROFILE.hubNames[train.from]?train.from:null):'KGX';
   const onboard=!!train&&!!hub&&!!PROFILE.stationGeo[train.from]&&!!PROFILE.stationGeo[train.to]&&!!state.onLine&&progress?.kind!=='tube'&&!state.rendered?.ride;
-  return {train,hub,onboard,option:progress?.kind==='rail'?progress.option:followed?.option,
+  return {train,hub,onboard,routeTrain:train||followed?.lastTrain||followed?.option?.train,option:progress?.kind==='rail'?progress.option:followed?.option,
     finalArrival:progress?.kind==='rail'?progress.finalArrival:followed?.expectedArrival,
     arrival:progress?.kind==='rail'?progress.expectedArrival:train?.arr,certain:!!train&&(progress?.kind==='rail'?!progress.uncertainIdentity:!!state.trainLock?.picked)};
 }
 function renderAlongLine(resumePosition=false){
   const enabled=S().alongLine===true;
   const context=alongContext();
-  alongEntry.hidden=!enabled||!context.onboard||!context.hub||state.presentation?.view?.startsWith('plan-');
+  // Navigation is available before boarding too; only the model may claim a live position.
+  alongNavigation.hidden=!enabled;alongEntry.hidden=!enabled;
   alongBrowse.hidden=!enabled;
   if(!enabled){if(alongDialog.open)alongClose();alongContextKey='';return;}
+  const routeScope=[sourceEpoch,direction(),currentMode()].join('|');
+  if(alongRouteScope!==routeScope){alongRouteScope=routeScope;alongRoute=null;alongContextKey='';alongLastFeatured=null;}
+  const routeTrain=context.routeTrain;
+  const knownHub=routeTrain&&(PROFILE.hubNames[routeTrain.to]?routeTrain.to:PROFILE.hubNames[routeTrain.from]?routeTrain.from:null);
+  if(knownHub&&PROFILE.stationGeo[routeTrain.from]&&PROFILE.stationGeo[routeTrain.to]){
+    alongRoute={hub:knownHub,from:routeTrain.from,to:routeTrain.to,reverse:routeTrain.to===PROFILE.home};
+  }
+  const fallbackHub='KGX',fallbackReverse=direction()==='home';
+  const route=alongRoute||{hub:fallbackHub,from:fallbackReverse?fallbackHub:PROFILE.home,to:fallbackReverse?PROFILE.home:fallbackHub,reverse:fallbackReverse};
   if(!alongDialog.open)return;
-  if(alongLastEpoch!==sourceEpoch){alongLastEpoch=sourceEpoch;alongContextKey='';alongLastFeatured=null;}
-  const hub=context.hub||'KGX',line=LINE[hub]||LINE.KGX,reverse=context.onboard?context.train.to===PROFILE.home:direction()==='home';
-  const key=[sourceEpoch,hub,direction(),context.train?.serviceId||context.train?.std||'browse',context.train?.from||'',context.train?.to||''].join('|');
+  const {hub,reverse}=route,line=LINE[hub]||LINE.KGX;
+  // Location or identity loss cannot remove the route being explored or close a story.
+  const key=[routeScope,hub,route.from,route.to].join('|');
   // Calling-point times come from the existing progress model, not a second timetable.
   const calls=state.rendered?.progressModel?.calls||[];
   const stations=[...C.samAlongStations,{code:hub,name:HUB_NAME[hub]}].map(station=>{
@@ -8292,7 +8347,7 @@ function renderAlongLine(resumePosition=false){
   }).filter(s=>s.geo);
   const model=C.alongLine({points:[...C.samAlongLine,...stations],line,hub,reverse,now:Date.now(),preferences:state.saved.alongLinePreferences,
     here:state.here,accuracy:state.locAcc,fixAt:state.lastFixAt,onboard:context.onboard,identityCertain:context.certain,locationOK:state.locStatus==='ok',
-    from:context.train&&PROFILE.stationGeo[context.train.from],to:context.train&&PROFILE.stationGeo[context.train.to]});
+    from:PROFILE.stationGeo[route.from],to:PROFILE.stationGeo[route.to]});
   const preferences=model.preferences;
   alongDialog.querySelectorAll('[name="alongInterest"]').forEach(el=>{el.checked=preferences.interests.includes(el.value);});
   $('#alongDepth').value=preferences.depth;
@@ -8300,7 +8355,7 @@ function renderAlongLine(resumePosition=false){
   const currentReport=timingSource==='reported'||timingSource==='prediction';
   const staleArrival=timingSource==='stale'||(!currentReport&&(!state.boardsAt||Date.now()-state.boardsAt>=180000));
   const arrivalLabel=staleArrival?'last known arrival':timingSource==='modelled'||context.train?.timetable?'estimated arrival':'expected arrival';
-  $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${reverse?HUB_NAME[hub]+' → Letchworth':'Letchworth → '+HUB_NAME[hub]}`;
+  $('#alongJourney').textContent=context.onboard?`${context.certain?'':'Likely train · '}${C.trainName(context.train)}${context.arrival==null||context.train.cancelled||context.train.arrUnknown?' · arrival uncertain':` · ${arrivalLabel} ${hhmm(context.arrival)}`} · ${reverse?'towards Letchworth':`towards ${HUB_NAME[hub]}`}`:`Browse ${progressName(route.from)} → ${progressName(route.to)}`;
   if(context.onboard){
     const facts=document.createElement('div');facts.className='al-journey-facts';
     facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
@@ -8322,10 +8377,10 @@ function renderAlongLine(resumePosition=false){
     $('#alongScroll').scrollTop=0;
     $('#alongStrip').querySelectorAll('.al-more').forEach(button=>button.addEventListener('click',()=>{button.closest('details').dataset.full='true';button.hidden=true;}));
   }
-  alongDialog.dataset.depth=preferences.depth;
+  alongDialog.dataset.depth=preferences.depth;alongDialog.dataset.showAll=String($('#alongShowAll').checked);
   for(const item of model.points){
     const row=[...$('#alongStrip').children].find(el=>el.dataset.point===item.point.id);if(!row)continue;
-    row.hidden=!item.selected&&!$('#alongShowAll').checked&&!row.querySelector('details[open]');
+    row.hidden=false; // Interests rank highlights; every route point remains browsable.
     row.dataset.state=item.state;row.dataset.featured=String(item.point.id===model.featuredId);row.dataset.selected=String(item.selected);
     row.querySelector('.al-location').textContent=item.point.kind==='station'?`${item.point.stationTiming}${item.point.stationTime==null?'':' '+hhmm(item.point.stationTime)}`:
       item.state==='browse'?'Route discovery':item.state==='nearby'?'Near here · approximate':item.state==='passed'?'Passed · approximate':`Coming up · about ${Math.max(1,Math.round(item.distanceM/1000))} km along the route`;
@@ -8338,8 +8393,9 @@ function renderAlongLine(resumePosition=false){
   }else if(!marker.hidden){marker.textContent='Last shown position · reading paused';}
   const featured=model.points.find(p=>p.point.id===model.featuredId);
   $('#alongFeatured').textContent=featured?`${featured.state==='nearby'?'Near here':'Coming up'} · ${featured.point.title}`:'Explore the places along this route';
-  // Never move the reading position while a story is open.
-  if(alongFollowing&&model.featuredId!==alongLastFeatured&&!$('#alongStrip details[open]'))alongScrollToNow();
+  // Opening/Back to now starts at the phone position even with no matching interests.
+  // Ordinary refresh never moves the reading position while a story is open.
+  if(alongFollowing&&(resumePosition||model.featuredId!==alongLastFeatured)&&(resumePosition||!$('#alongStrip details[open]')))alongScrollToNow();
   alongLastFeatured=model.featuredId;
 }
 

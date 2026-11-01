@@ -34,9 +34,14 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
 .al-story[data-state="passed"]>.al-location::before{content:'✓ ';color:var(--muted)}
 .al-story[data-selected="false"]:not(:has(details[open])){padding-bottom:10px}
 .al-story[data-selected="false"] .al-hook{display:none}
+#alongLine[data-show-all="true"] .al-story .al-hook{display:block}
 .along-dialog[data-depth="glance"] details:not([data-full="true"]) :is(.al-discover,.al-explore),.along-dialog[data-depth="discover"] details:not([data-full="true"]) .al-explore{display:none}
 .along-dialog[data-depth="explore"] .al-more,details[data-full="true"] .al-more{display:none}
 @media(max-width:360px){#alongChoices fieldset{grid-template-columns:1fr}#alongLine.along-dialog{padding:12px}}
 @media(prefers-reduced-motion:reduce){.along-dialog *{scroll-behavior:auto!important;transition:none!important}}
 
 #alongStrip>.al-position{padding:8px 12px;margin:0 0 12px 8px;background:var(--signal-soft);color:var(--accent);border:1px solid var(--accent);border-radius:9px;font-weight:600}
+
+/* Keep explicit access available while scrolling the journey or simulator checkpoints. */
+#alongNavigation{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;display:flex;align-items:center;min-height:44px;padding-block:4px;background:var(--paper);border-bottom:1px solid var(--line)}
+#alongNavigation button{min-height:44px;padding:8px 12px;font:inherit;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:9px;white-space:normal}
