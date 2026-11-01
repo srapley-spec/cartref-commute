@@ -1,7 +1,8 @@
 # Panda retirement and Signal functionality audit — 1 November 2026
 
-Status: latest-main reconciliation in progress; separate independent reviewer is actively reviewing the combined candidate.
-This records executed evidence, not independent sign-off by the implementation author.
+Status: separate independent functionality and mutation review satisfied.
+This author inventory is complemented by the [independent report](panda-independent-review.md);
+final committed-HEAD release checks are recorded on [change #46](https://github.com/srapley-spec/cartref-commute/pull/46).
 
 Approved by: Sam
 Retired UI: design:panda
@@ -79,6 +80,9 @@ subprocess test proves the runner still discovers page/core tests and propagates
 
 ## Executed verification
 
+The initial evidence below compares retirement against `0d6bf6e`. The latest-main reconciliation and separate
+review below cover subsequent Trip, duration/countdown and progress changes.
+
 - Typecheck and story-link checks passed during implementation.
 - All 22 golden scenarios were regenerated and reviewed: **every engine option set (timings, ranking, flags,
   legs and boarding alternatives), request list and error list is unchanged**. Board rows, full banners and
@@ -110,12 +114,19 @@ subprocess test proves the runner still discovers page/core tests and propagates
   [Recorded results](panda-retirement-review-results.json) include exact failing regression names, the archive
   geometry comparison and the candidate build hash. These are author evidence, not independent sign-off.
 
-## Remaining review and limits
+## Independent review, release checks and limits
 
-A separate reviewer who did not implement the change must compare archive/candidate, probe edge cases and
-mutation-test the final code before merge, as required by `CLAUDE.md`. The independent reviewer is now checking the latest-main integration; sign-off will be recorded before merge. Clean committed-HEAD local CI
-and GitHub green are required because saved settings and build/test machinery change. Main remains live and
-is not changed before these checks.
+A separate agent who did not implement the retirement completed the [functionality and test review](panda-independent-review.md):
+nine new upgrade/control/Trip/simulator regressions, thirteen effective deliberate breakages caught, and eight native
+Chromium layouts. The reviewer independently compared archived/candidate source and all 22 option/request/error
+recordings. Its [regressions](../tests/panda-independent-review.test.mjs),
+[browser check](../tests/browser-panda-independent-review.py) and
+[mutation evidence](panda-independent-mutation-results.json) remain in the repository.
+
+The review's satisfied decision is separate from the author's checks. Release uses clean committed-HEAD local CI
+and GitHub green first because saved settings and build/test machinery change. Once those pass, merge and verify
+Tests/Pages for the exact main commit and the live app; no further routine approval is required. Final exact-commit
+results belong to [change #46](https://github.com/srapley-spec/cartref-commute/pull/46).
 
 No live transport credentials or real iPhone/VoiceOver session were available. Chromium covers its fixtures
 and geometry, not provider-wide reliability or complete hardware accessibility.
@@ -127,3 +138,13 @@ different Follow selection. Stage labels and simulator verification remain prese
 contracts remain ordinary regression cases, and an old disabled Signal preference cannot hide an enabled Trip.
 The independent review and final full checks apply to this combined candidate. The archive was fast-forwarded
 without rewriting history to retain this final Panda implementation as well as its initial snapshot.
+
+The reconciled source passed 65 focused Trip/retirement/view cases and all 22 regenerated golden scenarios. Five
+old inline-sentence assertions exposed by main's newer duration row were corrected to check service identity,
+exact numeric duration, selection/order and their existing flags. The independent reviewer replayed all five.
+On the final source, the 48 progress/verification tests passed, and the new progress browser check passed light/dark
+at 320, 393 and 1280 px with normal and doubled text. The source-bound built page SHA-256 is
+`9e0f6ace49346801a0a6a871b41f7c92814ef07476e77a1df14efde116f4dd99`.
+The previous integrated source also passed native controls, journey clarity, journey-facts and stable-duration
+checks. All current engine options, requests and errors remain identical to the final archive in all 22 goldens;
+only presentation recordings changed, including the retained Done/Now/Next stage labels.
