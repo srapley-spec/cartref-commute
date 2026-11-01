@@ -40,7 +40,7 @@ def inject(page):
 
 def geometry(page, label):
     result = page.evaluate('''() => {
-      const issues=[];
+      const issues=[],durations=[];
       for(const e of document.querySelectorAll('#hero .signal-alternative>summary,#hero .optrow,#list .row')){
         if(!e.checkVisibility())continue;
         const r=e.getBoundingClientRect();if(r.right>innerWidth+1||r.left< -1)issues.push('outside viewport: '+e.innerText);
@@ -53,11 +53,21 @@ def geometry(page, label):
           if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)issues.push('time overlap');
         }
       }
+      for(const facts of document.querySelectorAll('#hero .journey-facts,#list .journey-facts')){
+        const total=facts.querySelector('.journey-total-time'),train=facts.querySelector('.journey-train-time');
+        if(!total?.checkVisibility()||!train?.checkVisibility())continue;
+        const t=total.getBoundingClientRect(),r=train.getBoundingClientRect(),center=innerWidth/2;
+        durations.push({text:total.innerText,totalCenter:(t.left+t.right)/2,trainCenter:(r.left+r.right)/2,totalBottom:t.bottom,trainTop:r.top});
+        if(Math.abs((t.left+t.right)/2-center)>1.5||Math.abs((r.left+r.right)/2-center)>1.5)issues.push('duration is not centred');
+        if(r.top<t.bottom-1)issues.push('train duration is not below Total journey');
+        if(!total.innerText.startsWith('Total journey'))issues.push('whole journey meaning is missing');
+      }
       const b=document.querySelector('#hero .signal-alternative [data-follow]').getBoundingClientRect();
-      return {scrollWidth:document.documentElement.scrollWidth,width:innerWidth,issues,follow:{width:b.width,height:b.height}};
+      return {scrollWidth:document.documentElement.scrollWidth,width:innerWidth,issues,durations,follow:{width:b.width,height:b.height}};
     }''')
     assert not result['issues'], (label, result)
     assert result['scrollWidth'] <= result['width'] + 1, (label, result)
+    assert len(result['durations']) >= 4, (label, 'primary, next best and both board rows retain visible totals', result)
     assert result['follow']['width'] >= 44 and result['follow']['height'] >= 44, (label, result)
     return result
 

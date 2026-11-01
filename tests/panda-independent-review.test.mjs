@@ -32,6 +32,8 @@ for(const signal of [undefined,false,true])test(`independent Panda retirement: s
  assert.equal(a.d.documentElement.dataset.design,'signal');
  assert.equal(a.c.readSimulationActual().railProgress.enabled,true,'an obsolete design value cannot suppress progress verification');
  assert.equal(a.c.readSimulationActual().railProgress.diagram,true,'the sole design always verifies its real diagram');
+ assert.match(a.text('#hero .journey-total-time'),/^Total journey /,'the new whole-journey label is independent of obsolete design settings');
+ assert.match(a.text('#followPanel .journey-total-time'),/^Total journey /,'the followed journey uses the same explicit whole-journey meaning');
  assert.equal(a.c.S().followRoute,true);assert.equal(a.c.S().alongLine,true);
  assert.equal(a.c.state.saved.followRoute.id,route.id);assert.equal(a.c.state.saved.followRoute.plannedArrival,route.plannedArrival);
  assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),route.option.legs);
@@ -105,6 +107,10 @@ for(const platform of ['C',''])test(`independent Panda retirement: a collapsed t
  assert.equal(a.c.state.saved.followRoute.option.train.from,'ZFD');
  assert.equal(a.c.state.saved.followRoute.option.train.platform,'5');
  assert.equal(a.c.state.saved.followRoute.option.train.std,'17:55');
+ for(const board of Object.values(a.c.state.boards))for(const train of board.services)if(train.serviceId==='second')train.arrUnknown=true;
+ a.c.render();
+ assert.match(a.text('#followPanel .journey-total-time'),/^Total journey time unavailable$/);
+ assert.equal(a.d.querySelector('#followPanel [data-fact="total-duration"]').hasAttribute('data-ms'),false,'the more explicit label cannot turn an unknown total into a retained number');
  assert.deepEqual(a.errors,[]);a.close();
 });
 

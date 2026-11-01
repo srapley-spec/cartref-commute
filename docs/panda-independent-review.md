@@ -4,21 +4,23 @@ Decision: **satisfied with the functionality and mutation review**. No lost Pand
 defect was found in the reviewed retirement. Final committed-HEAD local CI, GitHub branch green, merge and
 post-merge Tests/Pages verification remain required release work; this review does not waive them.
 
-Candidate reviewed: `022422f9724e2449ebb52df8a2389eb5f80be923`.
-All 13 effective application and test-runner mutations were executed against final integrated source
-`a3845e04e421d1639dcd1a5b865294c5fe07a6cf`; the candidate's subsequent change only updates tests, docs and golden
-recordings. Its application, generated page, engine and test-runner source is identical.
+Latest candidate reviewed: `99bab4a2a5d9dd954bc368d42fa0860905422a5e`.
+Its application and generated page are identical to source integration
+`c757c70f9f52273ddc85dfe2cf306c9eb53ba27a`. The centred-duration follow-up is recorded below and is also
+**satisfied**. The original review approved `022422f9724e2449ebb52df8a2389eb5f80be923`; its 13 effective mutations
+ran against `a3845e04e421d1639dcd1a5b865294c5fe07a6cf`. Their original source hashes and results remain history,
+alongside the four new mutations of the duration integration.
 
 This reviewer did not implement the retirement, edit the author's checkout, merge or push main. Review and
 deliberate breakages used the detached `/workspace/cartref-independent-review` worktree and disposable fixture
 copies. The author audit and earlier browser results were supporting evidence, not the basis of sign-off.
 
-## Archive and source comparison
+## Original review: archive and source comparison
 
 - Independently checked the remote with `git ls-remote origin refs/heads/archive/panda-2026-11-01`:
   `a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f`. The initial snapshot
-  `0d6bf6e103246fefa68412d90f58d314af1cad9d` and intervening main `a27b1f6` are ancestors. The archive retains the complete latest
-  pre-retirement main, including its build, dependencies, Panda/Signal implementations and tests.
+  `0d6bf6e103246fefa68412d90f58d314af1cad9d` and intervening main `a27b1f6` are ancestors. At this stage the archive retained the complete
+  pre-retirement main, including its build, dependencies, Panda/Signal implementations and tests. The later archive check is recorded below.
 - Read `CLAUDE.md`, architecture, the archived Panda component inventory, and the relevant planning,
   presentation, connection, source, journey-facts/progress, Follow, Along, simulator and Trip stories. Compared
   archived and candidate application source and the test/build/CI changes, including deleted gates and tests.
@@ -134,3 +136,50 @@ remain explicitly identified.
 **Independent review satisfied.** Carry the committed review tests into the final candidate and complete every
 normal local/GitHub release check. Settings and test/build machinery changed, so the GitHub-first release path
 still applies. The root agent remains responsible for the final integrated CI, exact main commit and live deployment.
+
+## Incremental review: centred Total journey
+
+Reviewed candidate `99bab4a2a5d9dd954bc368d42fa0860905422a5e`, application source
+`c757c70f9f52273ddc85dfe2cf306c9eb53ba27a`, against new pre-retirement main/archive
+`dc1918905ec6e4d12da0b95a1290c5e429a98dcf`. Independently verified the remote archive now points at that complete
+main commit; the earlier snapshots remain ancestors. Later candidate commits update only recordings, browser-test
+maintenance and result metadata; application, generated page and test-runner source remain identical to `c757c70`.
+
+The only new application behavior is the approved explicit **Total journey** label, centred beneath the headline
+times with separate train duration underneath. `journeyFactsMarkup` still uses the same canonical numeric facts;
+known and unavailable labels are unconditional in the sole Signal design. No obsolete design prerequisite was
+reintroduced. Latest-main CSS matches exactly after removing the retired selector prefix and retaining the existing
+boarding-summary rule. Engine, simulator, Trip/provider code, harness, clock and test machinery are unchanged from
+the prior reviewed application. The active retirement instructions, controls, migration and archive recovery remain.
+
+Executed independently on this application source:
+
+- **42/42 passed** across `panda-independent-review`, `signal`, `along-line-composition-review` and
+  `journey-facts-review`. This replays all nine preservation probes, adds explicit whole-journey wording under
+  absent/false/true obsolete preferences, and proves an unknown Follow total has no retained numeric value.
+- **8/8 independent Chromium cases passed** after extending the independent browser check to measure the total
+  and train-duration centres and their separate vertical rows. Both themes, 320/390 px and doubled text retained
+  readable station alternatives, native disclosure actions, full notices and 44 px Follow targets; zero page errors.
+- **6/6 updated stable-layout browser cases passed**, covering Plan, Live, station and Follow, long/missing platforms,
+  unavailable durations, expansion/refresh, doubled text, unchanged Expected departure columns and touch targets.
+  The committed page tested in both browser checks has SHA-256
+  `1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4`.
+- Re-compared all **22** golden `options`, `requests` and `errors` arrays to both original `0d6bf6e` and final
+  archived main `dc19189`: every array is unchanged. Source inspection confirms only presentation wording/layout.
+
+Reviewed the compact-test maintenance in `93e5fe5` rather than accepting a higher unexplained cap. Independent
+native measurements against archived `dc19189` Signal and the candidate, in both light and dark at 393 px, found
+identical row heights of 230.953125–255.546875 px with 45 px of visible stacked duration facts. The old 220 px raw
+row cap fails the approved archive too. The candidate board is 20.796875 px lower because of its retained alternate
+boarding facts. The updated check retains the 220 px layout-overhead bound, requires visible duration blocks to be
+greater than zero and at most 48 px, and measures board overhead separately from required visible durations. Its
+existing fact, cancellation, visibility, contrast, overlap and touch checks remain. This is an evidenced geometry
+contract update, not an excluded failing requirement. Measurements are in `/tmp/panda-independent-centred-archive.json`.
+
+All **four new isolated one-line mutations built and were caught**: C01 restores obsolete settings-gating for the
+new label; C02 fabricates a zero-minute unknown total; C03 left-aligns the total; C04 overlaps train duration with
+the total row. Exact code and failing assertions are appended to the mutation JSON. The earlier 13 results are
+preserved with their original source baseline; their retirement paths did not change in this small integration.
+
+**Incremental independent review satisfied.** No application defect, lost functionality or meaningful surviving
+mutation was found. Complete the normal committed-HEAD CI, GitHub-first merge and exact main/Pages verification.
