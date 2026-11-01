@@ -8,22 +8,22 @@
   "banners": [
    "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
   ],
-  "hero": "If you leave now · 10:00 · timetable · best, and the next best Leave10:09 → Arrive King's Cross11:07 to King's Cross 10:38 Great Northern · 29 min train · total 58 min · leave in 8m 59s Arrives first · walking Journey steps10:09Leave Cartref · walk 26 min10:3810:38 Great Northern from LetchworthCalls at · Letchworth 10:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 11:0711:07Arrive King's Cross · 29 min on the train Leaving right now? The 10:30 Great Northern — stopping train, 52 min; St Pancras 11:22, 15 min later than the 10:38 (St Pancras 11:07). Arrives first by car: the 10:20 Thameslink leaves Letchworth, train departs in 19m 55s — 39 min train; St Pancras 10:59, 8 min sooner than the 10:38.",
+  "hero": "If you leave now · 10:00 · timetable · best, and the next best Leave10:09 → Arrive King's Cross11:07 29 min train · total 58 minto King's Cross 10:38 Great Northern · · leave in 8m 59s Arrives first · walking Journey steps10:09Leave Cartref · walk 26 min10:3810:38 Great Northern from LetchworthCalls at · Letchworth 10:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 11:0711:07Arrive King's Cross · 29 min on the train Leaving right now? The 10:30 Great Northern — stopping train, 52 min; St Pancras 11:22, 15 min later than the 10:38 (St Pancras 11:07). Arrives first by car: the 10:20 Thameslink leaves Letchworth, train departs in 19m 55s — 39 min train; St Pancras 10:59, 8 min sooner than the 10:38.",
   "rows": [
-   "Leave09:51 to St Pancras 10:20 Thameslink · 39 min train · total 1h 08m · train departs in 19m 55s Arrives first · by car Arrive10:59",
-   "Leave10:01 to King's Cross 10:30 Great Northern · 52 min train · total 1h 21m · leave in 0m 59s Stopping train Arrive11:22",
-   "Leave10:09 to King's Cross 10:38 Great Northern · 29 min train · total 58 min · leave in 8m 59s Arrives first · walking Arrive11:07",
-   "Leave10:21 to St Pancras 10:50 Thameslink · 39 min train · total 1h 08m · leave in 20m 59s Arrive11:29",
-   "Leave10:31 to King's Cross 11:00 Great Northern · 52 min train · total 1h 21m · leave in 30m 59s Stopping train Arrive11:52",
-   "Leave10:39 to King's Cross 11:08 Great Northern · 29 min train · total 58 min · leave in 38m 59s Arrive11:37",
-   "Leave10:51 to St Pancras 11:20 Thameslink · 39 min train · total 1h 08m · leave in 50m 59s Arrive11:59",
-   "Leave11:01 to King's Cross 11:30 Great Northern · 52 min train · total 1h 21m · leave in 1h 0m Stopping train Arrive12:22",
-   "Leave11:09 to King's Cross 11:38 Great Northern · 29 min train · total 58 min · leave in 1h 8m Arrive12:07",
-   "Leave11:21 to St Pancras 11:50 Thameslink · 39 min train · total 1h 08m · leave in 1h 20m Arrive12:29",
-   "Leave11:51 to St Pancras 12:20 Thameslink · 39 min train · total 1h 08m · leave in 1h 50m Arrive12:59",
-   "Leave12:21 to St Pancras 12:50 Thameslink · 39 min train · total 1h 08m · leave in 2h 20m Arrive13:29",
-   "Leave12:51 to St Pancras 13:20 Thameslink · 39 min train · total 1h 08m · leave in 2h 50m Arrive13:59",
-   "Leave13:21 to St Pancras 13:50 Thameslink · 39 min train · total 1h 08m · leave in 3h 20m Arrive14:29"
+   "Leave09:51 39 min train · total 1h 08m to St Pancras 10:20 Thameslink · · train departs in 19m 55s Arrives first · by car Arrive10:59",
+   "Leave10:01 52 min train · total 1h 21m to King's Cross 10:30 Great Northern · · leave in 0m 59s Stopping train Arrive11:22",
+   "Leave10:09 29 min train · total 58 min to King's Cross 10:38 Great Northern · · leave in 8m 59s Arrives first · walking Arrive11:07",
+   "Leave10:21 39 min train · total 1h 08m to St Pancras 10:50 Thameslink · · leave in 20m 59s Arrive11:29",
+   "Leave10:31 52 min train · total 1h 21m to King's Cross 11:00 Great Northern · · leave in 30m 59s Stopping train Arrive11:52",
+   "Leave10:39 29 min train · total 58 min to King's Cross 11:08 Great Northern · · leave in 38m 59s Arrive11:37",
+   "Leave10:51 39 min train · total 1h 08m to St Pancras 11:20 Thameslink · · leave in 50m 59s Arrive11:59",
+   "Leave11:01 52 min train · total 1h 21m to King's Cross 11:30 Great Northern · · leave in 1h 0m Stopping train Arrive12:22",
+   "Leave11:09 29 min train · total 58 min to King's Cross 11:38 Great Northern · · leave in 1h 8m Arrive12:07",
+   "Leave11:21 39 min train · total 1h 08m to St Pancras 11:50 Thameslink · · leave in 1h 20m Arrive12:29",
+   "Leave11:51 39 min train · total 1h 08m to St Pancras 12:20 Thameslink · · leave in 1h 50m Arrive12:59",
+   "Leave12:21 39 min train · total 1h 08m to St Pancras 12:50 Thameslink · · leave in 2h 20m Arrive13:29",
+   "Leave12:51 39 min train · total 1h 08m to St Pancras 13:20 Thameslink · · leave in 2h 50m Arrive13:59",
+   "Leave13:21 39 min train · total 1h 08m to St Pancras 13:50 Thameslink · · leave in 3h 20m Arrive14:29"
   ],
   "diag": "Letchworth → King's Cross, timetable: 3 searches; TfL returned 9 journeys; 9 direct trains kept (10:20 Letchworth, 10:30 Letchworth, 10:38 Letchworth, 10:50 Letchworth, 11:00 Letchworth, 11:08 Letchworth, 11:20 Letchworth, 11:30 Letchworth, 11:38 Letchworth).Letchworth → St Pancras, timetable: 2 searches; TfL returned 6 journeys; 6 direct trains kept (10:20 Letchworth, 10:50 Letchworth, 11:20 Letchworth, 11:50 Letchworth, 12:20 Letchworth, 12:50 Letchworth).Letchworth → Farringdon, timetable: 6 searches; TfL returned 18 journeys; 18 direct trains kept (10:20 Letchworth, 10:50 Letchworth, 11:20 Letchworth, 11:50 Letchworth, 12:20 Letchworth, 12:50 Letchworth, 13:20 Letchworth, 13:50 Letchworth)."
  },
