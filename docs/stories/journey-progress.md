@@ -27,6 +27,8 @@ status-colour rule; Signal uses its own tokens and blue identity/accent.
   displayed train's reports. Reuse saved Follow history only when the existing service matcher confirms it
   belongs to this card's service (including known same-train boarding calls). Keep a different Follow choice
   intact in its own panel; do not discard matching current-train reports or silently change the choice.
+  A matched timetable Follow without a provider ID may retain history; qualify its reports using the actual
+  displayed train's ID. Two known conflicting IDs cannot reuse that saved history through a timetable fallback.
 - Label the completed stages **Done**, the current stage **Now**, and later stages **Next**. Completed bars
   use a neutral colour; the current stage has a blue outline even at zero/unknown progress. Text and
   `aria-current` distinguish the stages without relying on bar fill or colour.
@@ -109,6 +111,7 @@ claim for every configured intermediate station.
 - tests/journey-progress.test.mjs: "Signal progress: an inferred Tube without Follow shows route stops and honest modelled progress"
 - tests/journey-progress.test.mjs: "Signal progress: a location projection without a live arrival stays modelled"
 - tests/journey-progress.test.mjs: "Signal progress: a report for a different service cannot become confirmed progress"
+- tests/journey-progress.test.mjs: "Signal progress: a matched timetable Follow keeps fresh actual-train reports when its board is stale"
 - tests/journey-progress.test.mjs: "Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents"
 - tests/journey-progress.test.mjs: "Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports"
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: Tube headline and progress share vehicle, target-platform and freshness guards"

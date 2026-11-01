@@ -58,16 +58,21 @@ function renderJourneyProgress(){
   if(!context)return;
   // Saved history belongs only to the service displayed on this card. Keep a
   // different passenger Follow choice separate from the inferred train's reports.
-  if(context.kind==='rail'&&followed&&!C.followMatchesObservedTrain(followed,{
-    train:context.train,hub:context.option?.hub||(dir==='office'?context.train.to:context.train.from)
-  }))followed=null;
+  if(context.kind==='rail'&&followed){
+    const savedId=followed.lastTrain.serviceId,currentId=context.train.serviceId;
+    if((savedId&&currentId&&savedId!==currentId)||!C.followMatchesObservedTrain(followed,{
+      train:context.train,hub:context.option?.hub||(dir==='office'?context.train.to:context.train.from)
+    }))followed=null;
+  }
   let legs,active,evidence,calls,railFacts,uncertain=false,cancelled=false,noEstimate=false;
   const option=followed?.option||context.option;
   if(context.kind==='rail'){
     const train=followed?.lastTrain||context.train;if(!train)return;
     const details=context.details;
     const ordered=progressRailCalls(train,details?.data),endpoint=ordered.find(call=>call.code===train.to);
-    const knownIdentity=!!train.serviceId&&(!details?.id||details.id===train.serviceId);
+    // A matched timetable Follow can retain history without ever having a provider
+    // ID. The actual displayed train owns the identity of its fresh reports.
+    const knownIdentity=!!context.train.serviceId&&(!details?.id||details.id===context.train.serviceId);
     const observedAt=details?.at??state.boardsAt;
     const factualEnd=endpoint?.actualAt!=null&&endpoint.actualAt<=observedAt?endpoint.actualAt:endpoint?.expectedAt;
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);

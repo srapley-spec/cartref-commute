@@ -85,6 +85,21 @@ test('Signal progress: a report for a different service cannot become confirmed 
  assert.deepEqual(a.errors,[]);a.close();
 });
 
+test('Signal progress: a matched timetable Follow keeps fresh actual-train reports when its board is stale',async()=>{
+ const a=await rail(),s=a.c.state,C=a.w.CommuteCore,option=JSON.parse(JSON.stringify(s.rendered.progress.option));
+ delete option.train.serviceId;
+ s.saved.settings.followRoute=true;
+ s.saved.followRoute=C.startFollowRoute(option,{now:T('09:04'),direction:'office',mode:'commute'});assert.ok(s.saved.followRoute);
+ s.boardsAt=NOW-180000;a.c.render();
+ assert.equal(s.followUpdate.route.lastTrain.serviceId,undefined,'stale boards cannot upgrade the saved timetable identity');
+ assert.equal(s.rendered.progressModel.source,'reported','the actual train has independent fresh Service Details');
+ assert.equal(s.rendered.progressModel.calls.find(c=>c.code==='SVG').state,'reported');
+ s.saved.followRoute.lastTrain.serviceId='different-service';s.saved.followRoute.lastTrain.dep=T('09:10');s.saved.followRoute.lastTrain.depLate=5;a.c.render();
+ assert.equal(s.rendered.progressModel.current.start,T('09:05'),'a subsequently known conflicting ID cannot reuse the old timetable match');
+ assert.equal(s.rendered.progressModel.source,'reported');
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
 test('Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents',async()=>{
  const a=await rail('Delayed'),s=a.c.state,t=s.boards['LET-KGX'].services[0];
  assert.equal(s.rendered.progressModel.status.text,'No live arrival estimate');
