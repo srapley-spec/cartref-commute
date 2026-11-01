@@ -332,7 +332,7 @@ test("Arrive by lists trains either side of the recommended one, including late 
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
   const optionNodes=[...app.d.querySelectorAll('#hero .opt')];
   assertTrainFacts(optionNodes[0],/07:30 Great Northern/,33);
-  assertTrainFacts(optionNodes[1],/07:20 Thameslink/,44,/total 1h \d\dm/);
+  assertTrainFacts(optionNodes[1],/07:20 Thameslink/,44,/Total journey 1h \d\dm/);
   assert.match(app.text("#hero"), /Arrive office ?08:\d\d.* · (\d+ min early|just in time)/);
   app.close();
 });
@@ -626,7 +626,7 @@ test("Leave around 17:40: the best train (alone when nothing else is close) and 
   // and Farringdon's 17:56 leaves earlier and gets home later, so the card shows the 18:06 alone; the list has the rest.
   assert.equal(opts.length, 1);
   const choice=app.d.querySelector('#hero .opt');
-  assertTrainFacts(choice,/18:06 Great Northern/,29,/total 1h \d\dm/);
+  assertTrainFacts(choice,/18:06 Great Northern/,29,/Total journey 1h \d\dm/);
   assert.match(choice.querySelector('.journey-countdown').textContent,/leave 3 min before 17:40/);
   const rows = app.rows();
   assert.ok(rows.length >= 4, rows.join("\n"));

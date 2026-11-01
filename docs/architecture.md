@@ -333,7 +333,7 @@ Newest first. Each entry records the decision and its consequences; linked stori
 - **1 Nov, Panda retirement** Sam no longer sees enough value in maintaining Panda alongside Signal.
   Retire Panda and make Signal the sole supported design; preserve the complete pre-retirement implementation
   on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01),
-  commit `a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f`, so it can be recovered later. Remove the Signal feature
+  commit `dc1918905ec6e4d12da0b95a1290c5e429a98dcf`, so it can be recovered later. Remove the Signal feature
   toggle, Panda restoration path, supported-UI concurrency rule and design-parity registry/release gate.
   This supersedes the 31 Oct parity and feature-off restoration decisions below. Retain ordinary journey-view,
   duration, action and uncertainty regressions. Old saved Signal on/off values must not select another design;
@@ -353,6 +353,11 @@ Newest first. Each entry records the decision and its consequences; linked stori
   machinery change. Then merge and verify exact-main Tests/Pages and the live app, without another approval gate.
   → [Independent review](panda-independent-review.md), [inventory and recovery](panda-retirement-review.md),
   [final commit checks and release evidence](https://github.com/srapley-spec/cartref-commute/pull/46).
+- **1 Nov, centred journey duration** Sam approved centring the neutral **Total journey** lozenge immediately
+  beneath the headline times in both Plan and Live, with train duration as a separate caption. This replaces the
+  initial left/right duration arrangement while retaining Live's Expected column and all clock-time anchors.
+  The label means the complete journey, not remaining time; shared canonical facts remain; Panda is subsequently archived by the retirement decision above.
+  → [Signal acceptance](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
 - **1 Nov, early hours** Trip mode stays Signal-only as an explicit exception to "every supported UI advances together"
   (Sam, asked when merging `main`'s new parity gate into the Trip branch: build Trip in Panda, a Signal-only exception,
   or hold it; chose the exception). The parity gate gains a recorded-exception mechanism (`designs` + `exception`

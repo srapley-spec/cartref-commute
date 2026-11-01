@@ -1,10 +1,31 @@
 # Signal stable information placement — 1 Nov 2026
 
+Historical review of the first left/right duration layout. Sam subsequently approved a centred **Total journey**
+row in both Plan and Live; the current contract is in [Signal acceptance](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
+
+## Centred revision evidence
+
+The centred candidate's `index.html` SHA-256 is
+`1dedd8b154c6a7a1184ab1ccb6e7cf1b95d9d85f2400bdd9882195068e42f026`.
+
+- The updated `browser-signal-stable-layout.py` passed six light/dark × 320/393/430 px combinations. It checks
+  the actual Total journey centre below the time row in Plan, Live and station boards, repeats all three views
+  at 200% text, and checks Follow centring. Expected departure keeps its original centre column. Long/missing
+  platforms, unavailable totals, disabled actions, expanded Next best and refreshed disclosures retain their
+  facts and anchors. Train duration has a separate centred caption below the lozenge.
+- `browser-ui-parity.py` passed all eight design/appearance/width combinations: 48 ordinary and 48 enlarged
+  view scenes, eight Follow scenes, four inferred rail scenes repeated at 200%, and two Tube fixtures. There
+  were no page errors, horizontal overflow or time/action collisions.
+- All 13 focused Signal page tests passed. The preservation test now compares numeric/readable duration facts
+  and unavailable states independently of Signal's explicit label; Panda keeps its existing inline wording.
+  Phone screenshots were visually inspected. Full committed-HEAD CI and exact main deployment checks remain
+  release gates, with their final outcome recorded in the PR. Native Safari/VoiceOver remain unverified here.
+
 This is a bounded presentation refinement of the current Signal build, requested by Sam's live screenshot.
 Routing, ranking, feeds, clocks, saved data and location handling are unchanged. The release takes the default
 fast path after clean committed-HEAD CI; exact post-push GitHub Tests and Pages must still be checked.
 
-## Candidate browser evidence
+## Original candidate browser evidence
 
 Production `index.html` SHA-256:
 `4777d7341150e45fa207098ff53bbd281cced5534332c8d88a7abecdf8b9b954`.

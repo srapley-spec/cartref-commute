@@ -232,7 +232,7 @@ test("Leave now card: best train, then the next best (same route allowed), total
     assert.match(nodes[index].querySelector(".journey-service").textContent,new RegExp(`${hm(now+departure*m)} Great Northern`));
     assert.equal(Number(nodes[index].querySelector('[data-fact="train-duration"]').dataset.ms),29*m);
   }
-  assert.match(nodes[0].querySelector(".journey-total-time").textContent,/total \d+h \d\dm/);
+  assert.match(nodes[0].querySelector(".journey-total-time").textContent,/Total journey \d+h \d\dm/);
   assert.match(app.text("#hero"), new RegExp(`Leaving right now\\? The ${hm(now + 30 * m)} Great Northern — stopping train, 52 min; office \\d\\d:\\d\\d, \\d+ min later than the ${hm(now + 39 * m)} \\(office \\d\\d:\\d\\d\\)`));
   assert.equal(app.d.querySelectorAll("#list .row.best").length, 2);
 });

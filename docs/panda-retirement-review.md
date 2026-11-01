@@ -14,7 +14,7 @@ and switch-off restoration requirements. Follow and Along the line retain their 
 ## Archived source and recovery
 
 The remote branch [archive/panda-2026-11-01](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01)
-points at `a45f08d704bbe59e7b7fa0bd044ce29bae2dbd4f` (latest pre-retirement main). The original `0d6bf6e103246fefa68412d90f58d314af1cad9d` snapshot remains in its history.
+points at `dc1918905ec6e4d12da0b95a1290c5e429a98dcf` (latest pre-retirement main). The original `0d6bf6e103246fefa68412d90f58d314af1cad9d` snapshot remains in its history.
 Its GitHub Tests and Pages runs succeeded before reconciliation. The branch includes both designs, all Panda
 styles/documentation, tests, build and lockfile, and the former parity machinery.
 
@@ -132,9 +132,9 @@ No live transport credentials or real iPhone/VoiceOver session were available. C
 and geometry, not provider-wide reliability or complete hardware accessibility.
 
 ## Latest-main reconciliation (1 Nov)
-Before release, main advanced through `a27b1f6` to `a45f08d`. These updates add the separately enabled Trip mode, stable train/total
+Before release, main advanced through `a27b1f6` and `a45f08d` to `dc19189`. These updates add the separately enabled Trip mode, stable train/total
 duration anchors, the precise departure countdown and progress tied to the displayed train rather than a
-different Follow selection. Stage labels and simulator verification remain present. Those changes are retained; the eight Trip view
+different Follow selection. Stage labels, simulator verification and the centred Total journey revision remain present. Those changes are retained; the eight Trip view
 contracts remain ordinary regression cases, and an old disabled Signal preference cannot hide an enabled Trip.
 The independent review and final full checks apply to this combined candidate. The archive was fast-forwarded
 without rewriting history to retain this final Panda implementation as well as its initial snapshot.
@@ -143,8 +143,12 @@ The reconciled source passed 65 focused Trip/retirement/view cases and all 22 re
 old inline-sentence assertions exposed by main's newer duration row were corrected to check service identity,
 exact numeric duration, selection/order and their existing flags. The independent reviewer replayed all five.
 On the final source, the 48 progress/verification tests passed, and the new progress browser check passed light/dark
-at 320, 393 and 1280 px with normal and doubled text. The source-bound built page SHA-256 is
+at 320, 393 and 1280 px with normal and doubled text. The pre-centred source-bound built page SHA-256 is
 `9e0f6ace49346801a0a6a871b41f7c92814ef07476e77a1df14efde116f4dd99`.
 The previous integrated source also passed native controls, journey clarity, journey-facts and stable-duration
 checks. All current engine options, requests and errors remain identical to the final archive in all 22 goldens;
 only presentation recordings changed, including the retained Done/Now/Next stage labels.
+
+The final main integration also retains the approved centred **Total journey** lozenge and separate train caption.
+It uses that wording unconditionally in the sole design, with unknown totals still explicit. Acceptance stories
+and native Plan/Live/station/Follow checks follow the new centre anchors; the numerical facts are unchanged.

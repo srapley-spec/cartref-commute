@@ -86,9 +86,11 @@ squeezing the longer Farringdon / St Pancras route onto different lines. Keep th
 give repeated information stable homes:
 
 - In Signal's primary recommendation, Next best and planning/station/Live departure rows, duration occupies its
-  own full-width row immediately below the headline times, before route or service text. Total is a neutral
-  lozenge at the common left inset, with train duration at the common right inset. Route names, platform length, flags and the
-  Follow/Unavailable label cannot change that duration anchor.
+  own full-width row immediately below the headline times, before route or service text. **Centred revision,
+  approved by Sam on 1 Nov:** the neutral lozenge is centred and explicitly labelled **Total journey** in Plan
+  and Live, with the separate train-duration caption centred beneath it. This supersedes the first revision's
+  left/right duration anchors. Route names, platform length, flags, missing durations and the Follow/Unavailable
+  label cannot displace the centre anchor. Do not put duration into Live's Expected departure column.
 - Next best keeps the same duration row visible in its summary when opened, closed and refreshed; expansion
   does not move the total below the route or duplicate it visually.
 - Route labels get the full row width. Service/platform and countdown have separate homes; board actions share
@@ -96,16 +98,18 @@ give repeated information stable homes:
   text may expand the action and use the existing single-column reflow.
 - The shared duration renderer supplies the same neutral total treatment in Signal's followed and inferred
   journey surfaces. All facts still come from `journeyFacts` / `connectionJourneyFacts`; unknown values remain
-  explicitly unavailable. Signal retains these facts and actions across planning and live views.
+  explicitly unavailable, labelled **Total journey time unavailable** where appropriate. The label always means
+  the complete journey, not time remaining. Signal retains these facts and actions across planning and live views.
 - Light/dark at 320, 393 and 430 px and doubled computed text must remain readable, with no horizontal page
   overflow or overlapping times/actions. Follow retains a target of at least 44 × 44 px. Long/absent platform
   text and disabled actions are exercised through the real rendered application.
 
 Regression checks: [browser-signal-stable-layout.py](../../tests/browser-signal-stable-layout.py) measures the
-actual badge offsets across cards/rows, changes platform evidence, opens/refreshed disclosures and stresses
-200% text. [browser-journey-facts.py](../../tests/browser-journey-facts.py) covers the remaining planning/Live/Follow,
-inferred rail and Tube surfaces in both supported designs. The existing Signal field-preservation test compares
-each service's facts, alternatives, flags and actions independently of the intentionally changed sentence order.
+actual badge centres and offsets across cards/rows, changes platform evidence, opens/refreshed disclosures and
+stresses Plan, Live and station views at 200% text, including unchanged Expected columns and Follow centring.
+[browser-journey-facts.py](../../tests/browser-journey-facts.py) covers the remaining planning/Live/Follow,
+inferred rail and Tube surfaces across Signal views. The ordinary journey-fact regressions check
+each service's facts, alternatives, flags and actions independently of sentence order.
 
 ## Acceptance criteria — agreed direction and existing constraints
 - Automatic is the default view selection; manual Plan/Live and Auto are available throughout Signal. The button always reads **Auto**, including while Plan or Live is pinned (Sam, 31 Oct 2026); selecting it clears the manual override.

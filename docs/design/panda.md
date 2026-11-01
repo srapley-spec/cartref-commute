@@ -9,4 +9,4 @@ on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/
 See [retirement review and recovery](../panda-retirement-review.md) for the functionality audit and how to retrieve it.
 
 The archive was fast-forwarded from the initial `0d6bf6e` snapshot before retirement to retain the latest
-Trip, stable time-anchor and countdown changes from `main`. The initial snapshot remains in its history.
+Trip, time-anchor/countdown, centred Total journey and displayed-train progress changes from `main`. The initial snapshot remains in its history.
