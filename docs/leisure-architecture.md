@@ -231,6 +231,16 @@ Independent mutation review before merging (CLAUDE.md).
   fixes weren't proved (D3 old drive-cache key, D2 30-s board window) plus E19, U4 (proxy session), N24 (walk + drive).
   Tests added for all five; each mutation applied by hand fails them. N24 was a test gap, not a bug (3 requests).
 
+- Merge of `main` (UI parity, Along the line, journey facts) and Sam's Signal-only exception (1 Nov): parity gate gains
+  recorded exceptions; Trip's 8 views are Signal surfaces with real-page cases plus Panda negative cases. A new plan
+  clears old journeys (never shown under a new question).
+- Independent review 4 (of 4395b2a, after the merge): merge resolution correct; 1072 pass. Found: a drive-from /
+  walk-to re-time gap (N24b), walk times re-asked every 5 min untested (D3c), exception decisions outside docs/ or not
+  Markdown untested (X6/X7), the success line counting 42 contracts when 34 ran, and that one appended line could
+  except a commute view. Fixed with tests; the gate now refuses exceptions for surfaces that already existed, and
+  requires a negative case for each excepted design (a stale exception fails). Boundary survivors accepted: E19
+  `<=`→`<` at exactly 3.000 km, D2 `>=`→`>` at exactly 30 s; X4/X9 (duplicate check, sort) equivalent with two designs.
+
 ## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live
   boards; two tight-change rules; budget gaps; untested edges; Google claims; commute-specific views. → revision 2.

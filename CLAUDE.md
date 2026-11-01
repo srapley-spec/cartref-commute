@@ -58,7 +58,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   inventory. Historical design proposals under `docs/` are outside the production inventory.
 - A surface may be limited to some designs **only with Sam's explicit exception**: its registry entry lists `designs` and
   an `exception` decision under `docs/` containing `Approved by: Sam` and, per surface,
-  `Design exception: surface:<id> designs:<ids>`. The gate then expects (and requires) results only for those designs.
+  `Design exception: surface:<id> designs:<ids>` (IDs sorted, comma-separated, e.g. `designs:signal`). Only a new surface
+  can start as an exception (one every design already had cannot lose a design that way). The gate then requires the
+  listed designs' cases and, for each left-out design, a negative case proving the surface really is absent there.
   Do not invent approval; an exception is not retirement and covers only the surfaces it names.
 - A UI leaves the matrix **only after Sam explicitly retires it and the implementation is removed**. In the same
   change, retain a `retired` record (`kind`, `id`, `decision`) and a decision under `docs/` containing the exact lines

@@ -4,13 +4,13 @@ import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {loadParityRegistry, parityTestName, parityRegistryProblems, parityCoverageProblems, previousParityRegistry, productionDesignInventory, surfaceDesigns} from '../tools/check-ui-parity.mjs';
+import {loadParityRegistry, parityTestName, parityRegistryProblems, parityCoverageProblems, previousParityRegistry, productionDesignInventory, surfaceDesigns, expectedParityResults} from '../tools/check-ui-parity.mjs';
 import {core} from './core/helpers.mjs';
 
 const ROOT=fileURLToPath(new URL('..',import.meta.url));
 const registry=()=>structuredClone(loadParityRegistry());
 const views=Object.keys(core.BLOCKS);
-const passed=r=>r.surfaces.flatMap(s=>surfaceDesigns(r,s).map(d=>parityTestName(d.id,s.id)))
+const passed=r=>expectedParityResults(r)
  .map((name,index)=>`ok ${index+1} - ${name}`).join('\n');
 
 test('UI parity gate registers every supported design and every engine view, with no duplicate or empty entries',()=>{
@@ -120,7 +120,7 @@ test('UI parity gate accepts a design exception only with Sam\'s recorded decisi
  assert.deepEqual(trip.designs,['signal']);assert.equal(trip.exception,'docs/decisions/trip-signal-only.md');
  assert.deepEqual(parityRegistryProblems(r,{viewIds:views}),[]);
  const tap=passed(r);assert.deepEqual(parityCoverageProblems(r,tap),[]);
- assert.ok(!tap.includes('panda / plan-trip-now'),'an excepted design has no expected case');
+ assert.ok(!tap.includes('UI parity: panda / plan-trip-now'),'an excepted design has no expected positive case');
  assert.match(parityCoverageProblems(r,tap+'\nok 999 - UI parity: panda / plan-trip-now').join(' '),/Unexpected/);
  assert.match(parityCoverageProblems(r,tap.replace(/^ok \d+ - UI parity: signal \/ plan-trip-now$/m,'')).join(' '),/Missing UI parity result: UI parity: signal \/ plan-trip-now/);
  const edit=f=>{const x=registry();f(x.surfaces.find(y=>y.id==='plan-trip-now'),x);return parityRegistryProblems(x,{viewIds:views}).join(' ');};
@@ -138,4 +138,30 @@ test('UI parity gate accepts a design exception only with Sam\'s recorded decisi
   const problems=parityRegistryProblems(x,{viewIds:views,root:dir,inventory:{ids:['panda','signal'],problems:[]}}).filter(p=>/plan-trip-now/.test(p));
   assert.match(problems.join(' '),/record Sam's approval/,'no approval line: refused');
  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('UI parity gate: an existing surface cannot become an exception; a decision outside docs/ or not .md is refused; the excepted design must run its negative case',()=>{
+ const r=registry(),previous=registry();
+ // plan-now existed for every design: appending a line to a decision cannot take Panda off it.
+ const dir=mkdtempSync(join(tmpdir(),'parity-existing-'));
+ try{
+  mkdirSync(join(dir,'docs'));writeFileSync(join(dir,'docs','d.md'),'Approved by: Sam\nDesign exception: surface:plan-now designs:signal\n');
+  const x=registry(),p=x.surfaces.find(s=>s.id==='plan-now');p.designs=['signal'];p.exception='docs/d.md';
+  const inv={ids:['panda','signal'],problems:[]};
+  assert.match(parityRegistryProblems(x,{viewIds:views,previous,root:dir,inventory:inv}).join(' '),/existing surface cannot become/);
+  // A new surface (not in the previous registry) may: the Trip case.
+  const prevNoTrip=registry();prevNoTrip.surfaces=prevNoTrip.surfaces.filter(s=>!/trip/.test(s.id));
+  assert.deepEqual(parityRegistryProblems(r,{viewIds:views,previous:prevNoTrip}),[]);
+  // Real files with a valid approval, in the wrong places: outside docs/, and not Markdown.
+  const ok='Approved by: Sam\nDesign exception: surface:plan-trip-now designs:signal\n';
+  writeFileSync(join(dir,'outside.md'),ok);writeFileSync(join(dir,'docs','x.txt'),ok);writeFileSync(join(dir,'docs','good.md'),ok);
+  const at=path=>{const y=registry();y.surfaces.find(s=>s.id==='plan-trip-now').exception=path;
+   return parityRegistryProblems(y,{viewIds:views,root:dir,inventory:{ids:['panda','signal'],problems:[]}}).filter(p=>/plan-trip-now/.test(p)).join(' ');};
+  assert.equal(at('docs/good.md'),'','the same record under docs/ as Markdown is accepted');
+  for(const bad of ['outside.md','docs/../outside.md','docs/x.txt'])assert.match(at(bad),/needs an existing decision under docs\//,bad);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+ const tap=passed(r);
+ assert.ok(tap.includes('UI parity exception: panda / plan-trip-now'),'the negative case is required');
+ assert.match(parityCoverageProblems(r,tap.replace(/^ok \d+ - UI parity exception: panda \/ trip-final$/m,'')).join(' '),/Missing UI parity result: UI parity exception: panda \/ trip-final/);
+ assert.match(parityCoverageProblems(r,tap.replace(/^ok (\d+ - UI parity exception: panda \/ trip-ride)$/m,'not ok $1')).join(' '),/did not pass/);
 });

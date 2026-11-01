@@ -340,3 +340,11 @@ test("planTrip: walking to the station and driving from it re-times only the dri
   assert.ok(r.picks.length, "a journey is chosen, so its drive is re-timed");
   assert.deepEqual(a.calls.map(c => `${c.mode}:${c.dir}`), ["walk:to", "drive:from", "drive:from"]);
 });
+
+test("planTrip: driving to the station and walking from it re-times only the drive (the far end keeps its walking time)", async () => {
+  const a = access();
+  const r = await core.planTrip(req({ modes: { from: "drive", to: "walk" }, question: { kind: "at", t: now + 3600e3 }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: a, planner: planner() });
+  assert.ok(r.picks.length);
+  assert.deepEqual(a.calls.map(c => `${c.mode}:${c.dir}`), ["drive:to", "walk:from", "drive:to"]);
+  assert.ok(r.journeys.every(j => j.after.some(s => s.kind === "walk")), "the way from the station is still a walk");
+});

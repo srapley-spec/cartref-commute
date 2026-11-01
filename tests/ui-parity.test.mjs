@@ -3,7 +3,7 @@
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp,closeAll} from './harness.mjs';
-import {loadParityRegistry,parityTestName,surfaceDesigns} from '../tools/check-ui-parity.mjs';
+import {loadParityRegistry,parityTestName,parityExceptionName,surfaceDesigns,exceptedDesigns} from '../tools/check-ui-parity.mjs';
 import {TRIP_SETTINGS,tripRoute,planBrightonCanterbury,until} from './trip-fixtures.mjs';
 after(closeAll);
 
@@ -248,6 +248,20 @@ const factories={
 
 assert.deepEqual(new Set(registry.surfaces.map(surface=>surface.id)),new Set(Object.keys(factories)),
  'Every registered surface needs a real scenario factory, including newly added views');
+// A design excepted from a surface really lacks it (a stale exception fails here): Trip in Panda.
+for(const surface of registry.surfaces)for(const design of exceptedDesigns(registry,surface)){
+ test(parityExceptionName(design.id,surface.id),async()=>{
+  assert.ok(isTrip(surface),'only Trip surfaces have a recorded exception');
+  const a=await createApp({now:NOW,settings:{...TRIP_SETTINGS,...design.settings},saved:{tripMode:{active:true}},route:tripRoute});
+  try{
+   assert.equal(a.d.documentElement.dataset.design,design.id);
+   assert.equal(a.d.querySelector('#tripModeBtn').hidden,true,'no Trip button');
+   assert.equal(a.d.querySelector('#tripRoot').hidden,true,'no Trip screen, even with a saved Trip state');
+   assert.notEqual(a.d.documentElement.dataset.trip,'on');
+   assert.ok(!a.calls.some(u=>/stations\.json|JourneyResults\/\d+\/to\/\d+|maps\.googleapis/.test(u)),'no Trip request');
+  }finally{a.close();}
+ });
+}
 for(const surface of registry.surfaces)for(const design of surfaceDesigns(registry,surface)){
  test(parityTestName(design.id,surface.id),async()=>{
   const a=await open(design,surface);

@@ -33,6 +33,7 @@ function googleStub(w, opts = {}) {
         this.displayName = p.primary; this.formattedAddress = p.secondary; this.location = { lat: () => p.geo[0], lng: () => p.geo[1] }; } } };
     if (name === "routes") return { RouteMatrix: { computeRouteMatrix: async ({ origins, destinations, travelMode, departureTime }) => { seen.matrix++;
       if (travelMode === "DRIVING") (seen.drive = seen.drive || []).push(departureTime ? departureTime.getTime() : null);
+      (seen.modes = seen.modes || []).push(travelMode);
       const d = (a, b) => Math.hypot((a.lat - b.lat) * 111, (a.lng - b.lng) * 70) * 1300;
       const extra = travelMode === "DRIVING" && opts.driveExtraMin ? opts.driveExtraMin() * 60e3 : 0;
       const item = (a, b) => ({ distanceMeters: Math.round(d(a, b)), durationMillis: Math.round(d(a, b) / (travelMode === "DRIVING" ? 9 : 1.3)) * 1000 + extra, condition: "ROUTE_EXISTS" });
@@ -410,4 +411,17 @@ test("Trip: changing the question clears the old journeys until the new plan arr
   app.d.querySelector('[data-trip-q="by"]').click(); await sleep(50);
   assert.equal(app.d.querySelectorAll("#tripResults .trip-row").length, 0);
   assert.match(app.text("#tripStage"), /Finding trains/);
+});
+
+test("Trip: walking times are asked for once; the 5-min re-plan reuses them (only drives are asked again)", async () => {
+  const T = Date.parse("2026-11-03T09:00:00");
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route, now: T });
+  const g = googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length); await sleep(300);
+  const before = g.modes.length;
+  assert.ok(before >= 2 && g.modes.every(m => m === "WALKING"));
+  app.setNow(T + 5.1 * 60e3); app.d.querySelector("#refreshBtn").click(); await sleep(900);
+  assert.equal(g.modes.length, before, `re-asked: ${g.modes.slice(before)}`);
 });
