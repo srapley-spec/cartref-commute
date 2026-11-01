@@ -33,9 +33,9 @@ async function next(a){
 async function reach(a,predicate){while(!predicate(view(a).checkpoints[view(a).index]))await next(a);}
 async function stop(a){click(a,'simExit');assert.equal(a.w.localStorage.getItem('cartrefCommute.v1'),a.original,'simulation never overwrites persistent real state');await sleep(350);assert.deepEqual(a.errors,[]);}
 
-for(const appearance of ['light','dark'])for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
- test(`cold Back and Reset: ${appearance} ${direction} ${route}`,async()=>{
-  const a=await start({appearance,direction,route});await reach(a,p=>p.point==='north');
+for(const direction of ['outbound','return'])for(const route of ['kgx','far']){
+ test(`cold Back and Reset: Signal ${direction} ${route}`,async()=>{
+  const a=await start({direction,route});await reach(a,p=>p.point==='north');
   assert.equal(a.c.state.onLine,true,'real journey engine establishes movement before losing state');
   if(route==='kgx'&&direction==='outbound')assert.ok(a.c.state.trainLock,'the real app has an automatic lock which must be discarded');
   const old=view(a),oldReport=a.c.simulationReporter.getReport(),target=old.index-1;

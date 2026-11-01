@@ -477,13 +477,17 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   c.state.here = [51.9700, -0.2400]; c.state.locAcc = 20; c.state.onLine = false;
   c.render();
   const s = c.S(), walk = s.walkStationHomeAvg + s.letExit;
-  assert.match(app.text("#hero"), new RegExp(`Nearly home · 20:14 ?${hm(T("20:18") + walk * 1000)} ?at home On the 19:48 Great Northern About 2 min late Letchworth 20:18 expected`));
+  assert.match(app.text('#hero [data-block="label"]'),/Nearly home · 20:14/);
+  assert.match(app.text('#hero [data-block="headline"]'),new RegExp(`${hm(T("20:18")+walk*1000)} ?at home`));
+  assert.match(app.text('#hero [data-block="which"]'),/On the 19:48 Great Northern About 2 min late/);
+  assert.match(app.text('#hero [data-block="then"]'),/Letchworth 20:18 expected/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok", "2 min late is green (amber from 5, Sam 30 Oct)");
   t.arr = T("20:21"); t.arrLate = 5; c.render();
   assert.match(app.text("#hero"), /On the 19:48 Great Northern About 5 min late/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst warn", "5 min late is amber");
   t.arr = T("20:17"); t.arrLate = 1; c.render();
-  assert.match(app.text("#hero"), /On the 19:48 Great Northern On time Letchworth 20:17 expected/, "1 min: green, on time");
+  assert.match(app.text('#hero [data-block="which"]'),/On the 19:48 Great Northern On time/,'1 min: green, on time');
+  assert.match(app.text('#hero [data-block="then"]'),/Letchworth 20:17 expected/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok");
   t.timetable = true; c.render();
   assert.equal(app.w.document.querySelector("#hero .slackst"), null, "a timetable train is never claimed on time");
@@ -754,12 +758,17 @@ test("Arriving at the office: 'you've arrived', and still the morning journey un
   await app.moveTo(51.5139 + 0.003, -0.0710, 15);                    // 330 m away: walking to the office
   assert.match(app.text("#hero"), /^Walking to the office/);
   await app.moveTo(51.5139 + 0.0005, -0.0710, 14);                   // at the door (55 m)
-  assert.match(app.text("#dirNote"), /^Heading to the office · you're at the office/);
+  assert.equal(c.direction(),'office');
+  assert.match(app.text('#signalContextSummary'),/To office/);
+  assert.match(app.text("#dirNote"), /^Location: .*at the office/);
   assert.match(app.text("#hero"), /At the office · 08:04.*you've arrived/);
   app.at(T("08:08")); await app.moveTo(51.5139, -0.0710, 30);
-  assert.match(app.text("#dirNote"), /^Heading to the office/, "4 min: still arriving");
+  assert.equal(c.direction(),'office','4 min: still arriving');
+  assert.match(app.text('#signalContextSummary'),/To office/);
   app.at(T("08:10")); await app.moveTo(51.5139, -0.0711, 30);
-  assert.match(app.text("#dirNote"), /^Heading home · you're at the office/, "6 min there: the journey turns round");
+  assert.equal(c.direction(),'home','6 min there: the journey turns round');
+  assert.match(app.text('#signalContextSummary'),/To home/);
+  assert.match(app.text('#dirNote'),/^Location: .*at the office/);
   app.close();
 });
 
@@ -962,9 +971,11 @@ test("At the desk with GPS reading 217 m: after 10 minutes within 300 m the jour
   await app.moveTo(51.5139 + 0.00195, -0.0710, 15);                  // 217 m, ±15 m (30 Oct screenshot)
   assert.match(app.text("#hero"), /^Walking to the office/);
   app.at(T("09:19")); await app.moveTo(51.5139 + 0.00196, -0.0710, 15);
-  assert.match(app.text("#dirNote"), /^Heading to the office/, "9 min: still arriving");
+  assert.equal(app.c.direction(),'office','9 min: still arriving');
+  assert.match(app.text('#signalContextSummary'),/To office/);
   app.at(T("09:21")); await app.moveTo(51.5139 + 0.00195, -0.0711, 15);
-  assert.match(app.text("#dirNote"), /^Heading home/, "11 min nearby: heading home");
+  assert.equal(app.c.direction(),'home','11 min nearby: heading home');
+  assert.match(app.text('#signalContextSummary'),/To home/);
   assert.doesNotMatch(app.text("#hero"), /Walking to the office/);
   app.close();
 });
@@ -975,7 +986,7 @@ test("Review: office arrival — 120 m is 'you've arrived', 200 m is still walki
   assert.match(app.text("#hero"), /^Walking to the office/);
   await app.fix(51.5139 + 0.0011, -0.0710, 15, now + 30e3);          // 120 m
   assert.match(app.text("#hero"), /you've arrived/);
-  assert.match(app.text("#dirNote"), /you're at the office/);
+  assert.match(app.text("#dirNote"), /Location: .*at the office/);
   app.close();
 });
 
@@ -1051,7 +1062,9 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
   const hero = app.text("#hero");
   assert.match(hero, /You're on the 07:51 H&C/);
   assert.match(hero, /Aldgate East/);
-  assert.match(hero, /H&C: /); assert.doesNotMatch(hero, /Circle: |Met: /);
+  app.d.querySelector('#signalNetwork').open=true;
+  const lines=app.text('#signalCurrentLines');
+  assert.match(lines,/H&C: /);assert.doesNotMatch(lines,/Circle: |Met: /);
   app.close();
 });
 

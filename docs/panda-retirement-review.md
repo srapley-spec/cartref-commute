@@ -71,6 +71,12 @@ subprocess test proves the runner still discovers page/core tests and propagates
 3. **Stale expectations corrected.** Tests now verify Signal's location diagnostic and direction separately,
    and open Lines & data to check the full moved status strip. An older browser expectation of an empty Live
    screen was already superseded by the next-stop departure board and is corrected accordingly.
+   The first clean full run executed 913 tests: 908 passed and five remaining Panda text-order/location/line-strip
+   assertions failed. Those assertions now check the same facts in Signal's semantic blocks and accessible
+   disclosures, plus explicit direction/context at the original arrival thresholds. No engine changes were needed.
+   All simulator cases passed in that run; redundant former-design replay copies are removed rather than
+   doubled as light/dark semantic runs. Each route/direction still runs in Signal, with 18 appearance/browser
+   combinations and all four full browser journeys checked separately.
 
 ## Executed verification
 

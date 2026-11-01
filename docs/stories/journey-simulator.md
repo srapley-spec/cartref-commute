@@ -50,7 +50,7 @@ so that I can inspect inference and onward planning without travelling.
   The new in-place button is `journeyResetState`, and the compact Back button is `journeyBack`.
 - Stop and reload retain the existing real-context restoration and persistence safeguards.
 
-Tests: `tests/simulator-context-reset.test.mjs` (both routes/directions in light and dark, recovery,
+Tests: `tests/simulator-context-reset.test.mjs` (both routes/directions in Signal; appearance geometry is covered by the browser suite, recovery,
 actual choices, unavailable/stale/rough GPS, async cancellation, independent sources and real context),
 `tests/simulator-verification.test.mjs` (cold oracles), `tests/simulator-report.test.mjs` (epochs/history/privacy),
 and real mobile Chromium `tests/browser-simulator-context-reset.py`.
