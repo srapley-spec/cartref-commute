@@ -87,6 +87,15 @@ html .hero .big>.arr {grid-column:3;grid-row:2;justify-self:end;text-align:right
 html .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html .hero .opt:first-of-type {padding-top:0}
+/* The product's first answer, even when train/Expected/arrival retain board columns. */
+html .journey-leave-by {display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;padding:6px 9px;border-radius:8px;background:var(--signal-soft);color:var(--ink);font-size:16px;font-weight:650;line-height:1.4}
+html .journey-leave-by>.t {font-size:24px;line-height:1.2;letter-spacing:-.025em}
+html .journey-leave-by>small {flex-basis:100%;font-size:13px;font-weight:500;color:var(--muted)}
+html .journey-leave-by>.leave-by-pace {font-size:13px;font-weight:500}
+html .hero .opt>.journey-leave-by {grid-column:1/-1;min-width:0}
+html :is(.hero .opt,#followPanel)>.journey-leave-by>.t {font-size:36px}
+html .row .journey-leave-by {margin-bottom:4px;font-size:14px}
+html .row .journey-leave-by>.t {font-size:20px}
 html .journey-facts {display:inline-grid;grid-template-columns:minmax(0,1fr);align-items:baseline;gap:2px;width:100%;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline;font-variant-numeric:tabular-nums}
 html .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;overflow-wrap:break-word}
 html .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:center;max-width:100%;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600;text-align:center}
@@ -134,6 +143,9 @@ html .hero .signal-alternative>summary::after {content:'›';position:absolute;r
 html .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
 html .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
 html .hero .signal-alternative>summary>.signal-alt-facts {grid-column:1/-1;grid-row:3;display:grid}
+html .hero .signal-alternative>summary>.journey-leave-by {grid-column:1/-1;grid-row:2;font-size:16px;font-weight:650;color:var(--ink)}
+html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:3}
+html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:4}
 html .hero .signal-alternative>summary .optbig {font-size:24px}
 html .hero .signal-alternative>summary .optbig.word {font-size:16px}
 html .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
@@ -353,6 +365,9 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
   html .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
   html .hero .signal-alternative>summary>.optrow {grid-row:3}
   html .hero .signal-alternative>summary>.signal-alt-facts {grid-row:4}
+  html .hero .signal-alternative>summary>.journey-leave-by {grid-row:3}
+  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:4}
+  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:5}
   html .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html .row>.arrive {grid-row:2}
   html .row.board>.exp {grid-row:2}

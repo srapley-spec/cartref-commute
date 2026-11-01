@@ -1124,9 +1124,15 @@ function effortLine(j, dest, best){
   return `<div class="alt hurry">Arrives first ${j.firstAt==="run"?"if you run":"by car"}: the ${stdExp(j.train)} ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}.</div>`;
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
+// Departure-first geometry must not hide the access deadline while still away from the station.
+function leaveByMarkup(j){
+  if(!j||!plannable(j.train)||!Number.isFinite(j.leave))return '';
+  return `<span class="journey-leave-by" data-fact="leave-by" data-ms="${j.leave}"><span>Leave by</span> <strong class="t">${hhmm(j.leave)}</strong>${j.effort==='run'||j.effort==='car'?'<span class="leave-by-pace">at walking pace</span>':''}<small data-cd="${j.leave}"></small></span>`;
+}
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
+    ${opt.leaveBy?leaveByMarkup(j):''}
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -1460,7 +1466,7 @@ function renderHero(list, now){
     label: `<div class="lbl">${board?`You're at ${esc(board)} · departures`:way?`On your way to ${esc(HOME_NAME)}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>`,
     // Coloured by the top train's minutes to spare, the same number as its "N min to spare" (engine wayLevel).
     way: way?`<div class="slack ${C.wayLevel(wayMin(picks[0]), picks[0].effort)}" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:"",
-    options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?HOME_NAME:null)})).join(""),
+    options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?HOME_NAME:null),leaveBy:!!way})).join(""),
     "right-now": now1, hurry, "tubes-home": tubes,
     lines: statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])]),
   };
@@ -1473,13 +1479,13 @@ function renderList(list, now, opts){
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
-  const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
+  const board = departsFirst(), way=board&&!atStation()&&!!onWay(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
     <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
+        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${way?leaveByMarkup(j):''}${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}

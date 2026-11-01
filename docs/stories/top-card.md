@@ -19,8 +19,12 @@ was a different route.
 - One card is fine when nothing qualifies. The list always has everything.
 - Leave now also says which train you'd catch by setting off this minute, if it's a different one.
 - Cancelled and "Delayed, no estimate" are never on the card.
+- **Core answer (Sam, 1 Nov 2026):** before reaching the station, the primary answer and collapsed Next best
+  expose the canonical Leave / Leave by clock and precise leave countdown. Walking-to-station departure
+  columns, station-arrival estimates and minutes to spare cannot replace it. Complete planning rows retain
+  their own deadline; Journey steps alone do not count. → [protected design requirement](../design-system.md#protected-product-answer-when-must-i-leave-sam-1-november-2026)
 - **Departure wording (Sam, 1 Nov 2026):** before setting off, the precise `leave in …` countdown is the only
-  departure instruction on each option. Never add `leave now` alongside a positive countdown, including below
+  relative departure instruction on each option; the explicit leave clock remains visible. Never add `leave now` alongside a positive countdown, including below
   90 seconds. At expiry retain `leave time passed`; leave times, catchability and required pace are unchanged.
   The same shared rule applies across Signal views. Station/platform instructions and on-the-way progress
   retain their separate meanings; the planning-mode label remains a way to choose the current planning question.
@@ -37,3 +41,6 @@ was a different route.
 - tests/logic.test.mjs: "A train you'd have to hurry for stays on the list and the card, with a departure countdown"
 - tests/effort.test.mjs: "Departure countdown: an obsolete disabled Signal preference retains the precise countdown"
 - tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"
+- tests/leave-by.test.mjs: "Leave by: Auto near Letchworth exposes the deadline on the primary answer, Next best and every planning row"
+- tests/leave-by.test.mjs: "Leave by: pinning Plan and refreshing cannot turn a planning answer into only a departure board"
+- tests/leave-by.test.mjs: "Leave by: home, Arrive by and Leave around retain their visible canonical leave clock"

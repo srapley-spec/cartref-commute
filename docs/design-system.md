@@ -16,6 +16,30 @@ Signal selected by Sam, 29 October 2026; sole production design from 1 November 
 
 The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
+## Protected product answer: when must I leave? (Sam, 1 November 2026)
+
+The product answers **when to leave from the journey's origin or current location**, then which service to
+take and when it arrives. Before reaching the station, Auto and Plan must expose the route's canonical
+**Leave / Leave by HH:MM** and its precise leave countdown without opening Journey steps. This applies to
+Leave now, Arrive by and Leave around, the primary answer, collapsed Next best and the complete planning list.
+An active followed route must also retain its current access deadline before boarding.
+
+In the walking-to-station layout, put **Leave by** above the existing Train / Expected / At destination grid;
+retain the centred Total journey lozenge and train-duration caption. List rows retain their own leave deadline
+alongside their departure information. “At the station about…”, minutes to spare, a train departure clock or
+countdown, and an itinerary step do not substitute for the leave deadline. A passed leave time must remain
+distinct from a train that has not departed. Use the option's engine timing and required pace; do not derive a
+second deadline in CSS or the renderer, or advertise a usable one for cancelled/unknown services.
+
+At the actual station, departure-first information and platform instructions remain appropriate. Explicit
+Live is a timetable view. Once aboard, arrival and the next action lead. These contextual exceptions do not
+allow Auto to hide the deadline merely because a person is somewhere near their local station.
+
+Removing, concealing or substituting this answer is a **material product change**, which must be flagged to
+Sam with its user-visible impact before shipping. A layout or copy request is not approval to make that change.
+Verification must inspect visible values with disclosures closed and compare leave time against departure
+time; a screenshot looking tidy or text merely existing inside Journey steps is insufficient.
+
 ## Current compact production revision — 31 October 2026
 
 ### Stable information placement — 1 November 2026
@@ -297,7 +321,7 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 | JourneyContext | Direction + inference/manual label; pace; visible location diagnostic; keep Settings and Leisure discoverable |
 | ViewControl | Auto by default; explicit Plan/Live overrides; select Auto to clear the override; button always labelled Auto; never mutate selected service |
 | PlanningQuestion | Leave now / Arrive by / Leave around; retain date/time values per mode |
-| PrimaryAnswer | Situation-labelled leave/depart/arrive time; data source; deadline consequence; no ETA for unplannable services |
+| PrimaryAnswer | Before the station, exposed canonical Leave / Leave by time and leave countdown; retain it in departure-first walking layouts; contextual depart/arrive time, data source and deadline consequence; no ETA for unplannable services |
 | JourneyOption | Service identity, scheduled/expected times, station/platform, duration, total time, flags, alternatives and expandable steps |
 | TrainBoard | All engine-returned options in engine order; do not filter by aesthetic preference; cancelled/unknown remain |
 | SharedTimeGrid | Common left Train/Leave, centre Expected when relevant, right destination arrival anchors; Next best heading and actions outside the grid |

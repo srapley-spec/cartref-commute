@@ -272,6 +272,15 @@ html .hero .big>.arr {grid-column:3;grid-row:2;justify-self:end;text-align:right
 html .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html .hero .opt:first-of-type {padding-top:0}
+/* The product's first answer, even when train/Expected/arrival retain board columns. */
+html .journey-leave-by {display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;padding:6px 9px;border-radius:8px;background:var(--signal-soft);color:var(--ink);font-size:16px;font-weight:650;line-height:1.4}
+html .journey-leave-by>.t {font-size:24px;line-height:1.2;letter-spacing:-.025em}
+html .journey-leave-by>small {flex-basis:100%;font-size:13px;font-weight:500;color:var(--muted)}
+html .journey-leave-by>.leave-by-pace {font-size:13px;font-weight:500}
+html .hero .opt>.journey-leave-by {grid-column:1/-1;min-width:0}
+html :is(.hero .opt,#followPanel)>.journey-leave-by>.t {font-size:36px}
+html .row .journey-leave-by {margin-bottom:4px;font-size:14px}
+html .row .journey-leave-by>.t {font-size:20px}
 html .journey-facts {display:inline-grid;grid-template-columns:minmax(0,1fr);align-items:baseline;gap:2px;width:100%;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline;font-variant-numeric:tabular-nums}
 html .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;overflow-wrap:break-word}
 html .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:center;max-width:100%;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600;text-align:center}
@@ -319,6 +328,9 @@ html .hero .signal-alternative>summary::after {content:'›';position:absolute;r
 html .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
 html .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
 html .hero .signal-alternative>summary>.signal-alt-facts {grid-column:1/-1;grid-row:3;display:grid}
+html .hero .signal-alternative>summary>.journey-leave-by {grid-column:1/-1;grid-row:2;font-size:16px;font-weight:650;color:var(--ink)}
+html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:3}
+html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:4}
 html .hero .signal-alternative>summary .optbig {font-size:24px}
 html .hero .signal-alternative>summary .optbig.word {font-size:16px}
 html .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
@@ -538,6 +550,9 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
   html .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
   html .hero .signal-alternative>summary>.optrow {grid-row:3}
   html .hero .signal-alternative>summary>.signal-alt-facts {grid-row:4}
+  html .hero .signal-alternative>summary>.journey-leave-by {grid-row:3}
+  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.optrow {grid-row:4}
+  html .hero .signal-alternative>summary:has(>.journey-leave-by)>.signal-alt-facts {grid-row:5}
   html .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html .row>.arrive {grid-row:2}
   html .row.board>.exp {grid-row:2}
@@ -728,7 +743,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 11:41 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 13:33 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5477,9 +5492,15 @@ function effortLine(j, dest, best){
   return `<div class="alt hurry">Arrives first ${j.firstAt==="run"?"if you run":"by car"}: the ${stdExp(j.train)} ${esc(j.train.operator)} leaves ${esc(from)}, <span data-dep="${j.train.dep}"></span> — ${vsBest(j, best, dest)}.</div>`;
 }
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
+// Departure-first geometry must not hide the access deadline while still away from the station.
+function leaveByMarkup(j){
+  if(!j||!plannable(j.train)||!Number.isFinite(j.leave))return '';
+  return `<span class="journey-leave-by" data-fact="leave-by" data-ms="${j.leave}"><span>Leave by</span> <strong class="t">${hhmm(j.leave)}</strong>${j.effort==='run'||j.effort==='car'?'<span class="leave-by-pace">at walking pace</span>':''}<small data-cd="${j.leave}"></small></span>`;
+}
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
   return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
+    ${opt.leaveBy?leaveByMarkup(j):''}
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -5813,7 +5834,7 @@ function renderHero(list, now){
     label: `<div class="lbl">${board?`You're at ${esc(board)} · departures`:way?`On your way to ${esc(HOME_NAME)}`:"If you leave now"} · ${esc(hhmm(t0))}${state.railSource==="tfl"?" · timetable":""} · best, and the next best</div>`,
     // Coloured by the top train's minutes to spare, the same number as its "N min to spare" (engine wayLevel).
     way: way?`<div class="slack ${C.wayLevel(wayMin(picks[0]), picks[0].effort)}" style="margin:4px 0 2px">At the station about <span class="t">${hhmm(now+way.walk*1000)}</span> · ${dur(way.walk*1000)} walk from here at ${state.saved.pace==="fast"?"fast":"average"} pace</div>`:"",
-    options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?HOME_NAME:null)})).join(""),
+    options: picks.map(j=>optionBlock(j,{timing:spare(j), board:board||(way?HOME_NAME:null),leaveBy:!!way})).join(""),
     "right-now": now1, hurry, "tubes-home": tubes,
     lines: statusStrip([...picks.flatMap(opLines), ...(state.saved.mode!=="leisure"?["circle","metropolitan"]:[])]),
   };
@@ -5826,13 +5847,13 @@ function renderList(list, now, opts){
   if(!list.length){ el.innerHTML=`<div class="row"><div></div><div class="mid meta">${esc((opts&&opts.empty)||"Nothing catchable in the next two hours.")}</div><div></div></div>`; return; }
   const anyPick = list.some(j=>j.recommended);
   const isBest = j => j.recommended || (!anyPick && !(opts&&opts.noBest) && j===list[0]);
-  const board = departsFirst(), fl = j => board ? boardFlags(j.flags) : j.flags;
+  const board = departsFirst(), way=board&&!atStation()&&!!onWay(), fl = j => board ? boardFlags(j.flags) : j.flags;
   el.innerHTML=list.map((j,i)=>`
     <div class="row${board?" board":""}${isBest(j)?" best":""}${j.late?" late":""}${j.uncertain||j.effort==="none"?" gone":""}${j.missed?" missed":""}" data-journey-service="${esc(journeyServiceKey(j.train))}">
       ${board ? `<div class="leave"><small>Train</small><span class="t">${esc(j.train.std)}</span></div><div class="exp"><small>Expected</small>${expectedHtml(j.train,"")}</div>` : `<div class="leave"><small>Leave</small><span class="t">${hhmm(j.leave)}</span></div>`}
       <div class="mid">
         <div class="route">${chips(j)}</div>
-        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
+        <div class="meta journey-meta"><span class="journey-service">${board?"":`${stdExp(j.train)} `}${esc(j.train.operator)}${platMeta(j)}</span><span class="journey-meta-divider"> · </span>${journeyFactsMarkup(j)}<span class="journey-meta-divider"> · </span><span class="journey-countdown">${way?leaveByMarkup(j):''}${j.missed||board?`<span data-dep="${j.train.dep}"></span>`:`<span data-cd="${j.leave}"></span>`}</span></div>
         ${j.alts&&j.alts.length?`<div class="meta">${altText(j)}</div>`:""}
         ${fl(j).length?`<div>${pills(fl(j),true)}</div>`:""}
         ${followButton(j)}
@@ -7866,6 +7887,7 @@ function renderSignalCompact(){
     detail.dataset.journeyService=opt.dataset.journeyService;
     detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
     const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
+    const deadline=opt.querySelector(':scope>.journey-leave-by');if(deadline)summary.append(deadline);
     const times=opt.querySelector('.optrow');
     const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
     if(times)summary.append(times);
@@ -8082,6 +8104,7 @@ function renderFollowPanel(){
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+    ${r.phase==='before-train'&&!unknown&&!atStation(true)&&!observation.activeConnection?leaveByMarkup(comparison):''}
     <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
     <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
     <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>

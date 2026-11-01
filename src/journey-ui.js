@@ -97,6 +97,7 @@ function renderSignalCompact(){
     detail.dataset.journeyService=opt.dataset.journeyService;
     detail.dataset.key='signal-alternative|'+(opt.querySelector('[data-key]')?.dataset.key||'next');
     const summary=document.createElement('summary'),label=document.createElement('span');label.className='signal-alt-label';label.textContent='Next best';summary.append(label);
+    const deadline=opt.querySelector(':scope>.journey-leave-by');if(deadline)summary.append(deadline);
     const times=opt.querySelector('.optrow');
     const route=times?.querySelector('.optroute');if(route)opt.prepend(route);
     if(times)summary.append(times);
@@ -313,6 +314,7 @@ function renderFollowPanel(){
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+    ${r.phase==='before-train'&&!unknown&&!atStation(true)&&!observation.activeConnection?leaveByMarkup(comparison):''}
     <div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>
     <div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>
     <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
