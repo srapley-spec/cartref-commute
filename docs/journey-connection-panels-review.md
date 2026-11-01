@@ -37,6 +37,10 @@ Independent review found a retained-departure edge: an unusable missed option co
 countdown from its old timestamp. The panel now requires a plannable service and a finite departure before
 advertising that countdown; the scheduled service identity and cancellation/no-estimate warning remain visible.
 A known missed train retains its departure countdown, distinct from its passed access deadline.
+The review also caught an unscoped alternative-card grid rule affecting explicit Live. Restricting it to
+alternatives with the new journey heading preserves Live's original block layout; independent coverage checks
+both modes. The first complete CI run rejected one old inline Tube-to-train text assertion; its canonical
+connection and catchability were unchanged. The assertion now reads the new visible connection panel.
 
 All 17 changed golden recordings were audited recursively: only rendered hero/row text changes. Canonical
 options, leave/arrival times, ranking, flags, legs, feed requests, errors and every other field are unchanged.

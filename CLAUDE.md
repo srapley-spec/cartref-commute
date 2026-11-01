@@ -31,6 +31,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
   approval. The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit
   Live's timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
+- **The key connection clock is protected too (Sam, 1 Nov).** Auto/Plan expose the scheduled train departure
+  prominently in the approved journey + train panel. Concealing it or demoting it to small service metadata is
+  a material change to flag before shipping; preserve separately labelled expected times and both recommendations.
 - When unsure, ask and remember; don't silently overrule the person.
 - Generic engine, bespoke data: anything that would apply at any station goes in `src/core`; only data and
   genuinely station-specific rules go in `src/core/profiles/`.

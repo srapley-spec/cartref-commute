@@ -425,7 +425,7 @@ html .journey-row .journey-facts {margin:0}
 html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
 html .journey-row .journey-connection .connection-time {font-size:30px}
 html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
-html .follow-alternative {display:grid;gap:8px}
+html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
 html .trip-row .journey-facts {margin:4px 0}
 html .trip-row .journey-connection {margin:3px 0}
 html .trip-follow-connections {display:grid;gap:8px;min-width:0}

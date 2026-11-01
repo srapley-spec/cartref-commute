@@ -69,6 +69,8 @@ it across modes other than Live. The train departure is a key connection to make
 
 This supersedes the former departure-first walking/station geometry in Auto/Plan and the small inline train
 time in origin planning. It does not change ranking, route timings, view selection, Follow state or live feeds.
+Removing, concealing or reducing the connection clock to small metadata is a material change to flag to Sam
+before shipping, just as with the protected Leave by answer. A cosmetic request does not authorise either loss.
 The [acceptance story](stories/signal-design-system.md#journey--train-panel-sam-1-november-2026) records regression coverage.
 
 ### Stable information placement — 1 November 2026

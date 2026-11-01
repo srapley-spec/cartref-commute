@@ -610,7 +610,7 @@ html .journey-row .journey-facts {margin:0}
 html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
 html .journey-row .journey-connection .connection-time {font-size:30px}
 html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
-html .follow-alternative {display:grid;gap:8px}
+html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
 html .trip-row .journey-facts {margin:4px 0}
 html .trip-row .journey-connection {margin:3px 0}
 html .trip-follow-connections {display:grid;gap:8px;min-width:0}
@@ -770,7 +770,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:29 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
