@@ -6,7 +6,7 @@ import { standingRoomOnly, isStopping, trainStatus } from "./rules";
 
 /** A step shown in "Journey steps", at the start or end of a segment. */
 export interface Step { at: "start" | "end"; d: string; note?: string; tube?: boolean; }
-export type SegmentKind = "walk" | "station" | "margin" | "change" | "wait" | "ride" | "stop" | "planned";
+export type SegmentKind = "walk" | "station" | "margin" | "change" | "wait" | "ride" | "stop" | "planned" | "cycle" | "drive";
 /** Part of getting to or from the train. `secs` is final (pace already applied). */
 export interface Segment { kind: SegmentKind; secs: number; step?: Step | null;
   /** Walks: the same walk at your average and fast pace (s), for effort levels. Default: `secs`. */
@@ -47,19 +47,28 @@ export const timeFromTrain = (r: Route): number => total(r.after);
 /** Shortest time to the platform if nothing has to be waited for (ms): skips "wait" segments. */
 export const minTimeToTrain = (r: Route): number => total(r.before.filter(s => s.kind !== "wait"));
 
-/** Flags that come from the train itself. Flags never hide a train. */
-export function trainFlags(t: Train, profile: Profile): Flag[] {
+/** Flags any service has, wherever it runs: cancelled, no estimate or its status colour, and the reason. Generic:
+ *  used by the commute (inside trainFlags) and by Trip journeys. */
+export function serviceFlags(t: Train, policy?: Profile["disruption"]): Flag[] {
   const f: Flag[] = [];
   if (t.cancelled) f.push({ lvl: "bad", txt: "Cancelled" });
-  if (standingRoomOnly(t, profile.busy)) f.push({ lvl: "bad", txt: "Usually standing room only" });
-  if (isStopping(t, profile)) f.push({ lvl: "warn", txt: "Stopping train" });
   if (t.depUnknown || t.arrUnknown) f.push({ lvl: "bad", txt: "Delayed, no estimate: times unknown" });
-  else if (!t.cancelled) { const s = trainStatus(t, profile.disruption); if (s) f.push({ lvl: s.level, txt: s.text, status: true }); }
+  else if (!t.cancelled) { const s = trainStatus(t, policy); if (s) f.push({ lvl: s.level, txt: s.text, status: true }); }
   if (t.reason) f.push({ lvl: "warn", txt: t.reason, long: true });
   return f;
 }
 
-function walkSteps(segs: Segment[], from: number, legs: Leg[]): number {
+/** Flags that come from the train itself. Flags never hide a train. The commute's own rules (standing room, stopping
+ *  train) sit straight after "Cancelled", as they always have; they are Sam's rules and never apply to Trip. */
+export function trainFlags(t: Train, profile: Profile): Flag[] {
+  const f = serviceFlags(t, profile.disruption), at = t.cancelled ? 1 : 0, own: Flag[] = [];
+  if (standingRoomOnly(t, profile.busy)) own.push({ lvl: "bad", txt: "Usually standing room only" });
+  if (isStopping(t, profile)) own.push({ lvl: "warn", txt: "Stopping train" });
+  f.splice(at, 0, ...own);
+  return f;
+}
+
+export function walkSteps(segs: Segment[], from: number, legs: Leg[]): number {
   let cur = from;
   for (const s of segs) {
     if (s.step && s.step.at === "start") legs.push({ t: cur, d: s.step.d, note: s.step.note, tube: s.step.tube });

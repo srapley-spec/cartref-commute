@@ -4,7 +4,7 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { PARITY_ROOT, loadParityRegistry, previousParityRegistry, parityRegistryProblems, parityCoverageProblems } from './check-ui-parity.mjs';
+import { PARITY_ROOT, loadParityRegistry, previousParityRegistry, parityRegistryProblems, parityCoverageProblems, expectedParityResults } from './check-ui-parity.mjs';
 
 try {
   const registry = loadParityRegistry();
@@ -27,7 +27,8 @@ try {
     missing.forEach(problem => console.error(`✗ ${problem}`));
     if (signal) console.error(`✗ Test process terminated by ${signal}`);
     if (code !== 0 || signal || missing.length) process.exitCode = 1;
-    else console.log(`✓ UI parity: all ${registry.designs.length * registry.surfaces.length} supported design/surface contracts passed`);
+    else { const all = expectedParityResults(registry), negative = all.filter(n => n.startsWith('UI parity exception:')).length;
+      console.log(`✓ UI parity: all ${all.length - negative} supported design/surface contracts passed${negative ? `, and ${negative} recorded exceptions are really absent` : ''}`); }
   });
 } catch (error) {
   console.error(`✗ Required UI parity gate: ${error.message}`);

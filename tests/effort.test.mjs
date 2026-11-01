@@ -167,7 +167,7 @@ test("Effort levels on: a fast-walk pick's total time and steps are at a fast wa
   a.close();
 });
 
-for (const signal of [false, true]) test(`Departure countdown: ${signal ? 'Signal' : 'Panda'} has no redundant leave-now instruction below ninety seconds`, async () => {
+async function assertDepartureCountdown(signal) {
   const a = await app({ signal, followRoute: true });
   const pick = a.c.ranked(now).find(o => o.recommended === 1);
   assert.equal(pick.effort, 'fast', 'the real recommended journey retains its required pace');
@@ -186,7 +186,9 @@ for (const signal of [false, true]) test(`Departure countdown: ${signal ? 'Signa
   }
   assert.deepEqual(a.errors, []);
   a.close();
-});
+}
+test('Departure countdown: Panda has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(false));
+test('Departure countdown: Signal has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(true));
 
 test("Effort levels on: on your way, a train that needs a fast walk says 'walk fast'", async () => {
   // ~1 km from home, 550 m from the station: 474 s of your walk left (fast 385 s), plus 180 s fixed.

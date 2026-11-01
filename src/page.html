@@ -244,6 +244,7 @@ html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
     <div class="seg" role="group" aria-label="Mode">
       <button type="button" data-mode="commute">Commute</button>
       <button type="button" data-mode="leisure">Leisure</button>
+      <button type="button" data-mode="trip" id="tripModeBtn" hidden>Trip</button>
     </div>
     <div class="seg" role="group" aria-label="Direction">
       <button type="button" data-dir="auto">Auto</button>
@@ -300,6 +301,7 @@ html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
   <div id="signalStatus" role="status" hidden></div>
   <section class="hero" id="hero" aria-live="polite"></section>
 
+  <section id="tripRoot" class="trip" aria-label="Trip" hidden></section>
   <h2 id="listTitle">Next trains, in leaving order</h2>
   <div class="list" id="list"></div>
   <details class="diag" id="diag" hidden><summary>Why these trains?</summary><div id="diagBody"></div></details>
@@ -391,9 +393,23 @@ html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
       <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station). <span id="s_tripNeeds">Needs the Signal design.</span></span></label>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
+    </fieldset>
+
+    <fieldset id="tripFields">
+      <legend>Trip</legend>
+      <p class="hint">Addresses and the time to and from the station come from Google; trains from TfL's journey planner, with live
+        National Rail times. Station list: UK railway stations (ODbL 1.0, github.com/davwheat/uk-railway-stations).</p>
+      <label class="f wide"><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
+      <label class="f wide" id="googleKeyRow"><span>Google Maps key (website-restricted)</span><input id="s_googleKey" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="googleKeyNote"></span></label>
+      <label class="f"><span>Park and reach the platform (min)</span><input id="s_tripParkMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Lock the bike and reach the platform (min)</span><input id="s_tripLockMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Station entrance to platform (min)</span><input id="s_tripStationMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Off the train to the street (min)</span><input id="s_tripExitMin" type="number" step="1" min="0" max="60"></label>
+      <label class="f"><span>Off the train back to the car (min)</span><input id="s_tripCarBackMin" type="number" step="1" min="0" max="60"></label>
     </fieldset>
 
     <fieldset>
@@ -1691,7 +1707,7 @@ function linkify(t){
 function trainsNote(){ const r=state.railSource||source(); return r==="tfl"?"Train times are TfL timetable, not live.":r==="demo"?"Train times are examples.":"Trains are live from National Rail."; }
 function renderControls(){
   const leisure=state.saved.mode==="leisure";
-  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.saved.mode)));
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed", String(tripActive() ? b.dataset.mode==="trip" : b.dataset.mode===state.saved.mode)));
   document.querySelectorAll("[data-dir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.dir===state.saved.dirMode)));
   document.querySelectorAll("[data-pace]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.pace===state.saved.pace)));
   $("#paceSeg").hidden=leisure;
@@ -1866,6 +1882,8 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
+  renderTrip();
   const focus=journeyFocus();
   applyJourneyAppearance();
   restoreReleasedFollow();
@@ -1999,6 +2017,7 @@ async function loadTflTimetable(prev){
 // How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
 // a refresh you ask for, or a change of direction or settings, always runs.
 async function refresh(opts){
+ if(tripActive()){ await tripUiFor().refresh(); return; }
  const epoch=sourceEpoch;
   const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
   if(state.loading){ state.again = state.again || (force?"force":"auto"); return; }
@@ -2241,6 +2260,29 @@ $("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey')
 /*__PRESENTATION_BLOCKS__*/
 /*__FOLLOW_TRANSPORT__*/
 /*__JOURNEY_UI__*/
+/*__TRIP_UI__*/
+// ---------- Trip mode (Settings → Experimental → Trip; Signal only) ----------
+// The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
+const tripEnabled = () => !!(S().trip && S().signal);
+const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
+let tripUi=null;
+function tripUiFor(){
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, now:()=>Date.now(),
+    store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
+    net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
+    here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,
+    fetchBoard:(from,to)=>fetchBoard(from,to), leisureKmh:()=>PROFILE.walking.kmh.leisure,
+    loadScript:src=>new Promise((ok,no)=>{ const el=document.createElement("script"); el.src=src; el.async=true; el.onload=ok; el.onerror=()=>no(new Error("network")); document.head.append(el); }),
+    openSettings:()=>$("#settingsBtn").click() });
+  return tripUi;
+}
+function renderTrip(){
+  document.documentElement.dataset.trip = tripActive() ? "on" : "off";
+  $("#tripModeBtn").hidden = !tripEnabled();
+  if(!tripActive()){ if(tripUi) tripUi.hide(); else $("#tripRoot").hidden=true; return false; }
+  const tb=document.querySelector(".signal-toolbar"); if(tb && tb.nextElementSibling!==$("#tripRoot")) tb.after($("#tripRoot"));
+  tripUiFor().show(); return true;
+}
 // ---------- Settings ----------
 const dlg=$("#settings");
 function fillSettings(){
@@ -2251,7 +2293,13 @@ function fillSettings(){
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
+  $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
+  $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
+  const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
+  showTripFields();
 }
+function showTripFields(){ $("#s_tripNeeds").hidden=$("#s_signal").checked; $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"; }
 function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
 function readSettings(){
   const o={};
@@ -2266,12 +2314,17 @@ function readSettings(){
   if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
+  if($("#s_trip").checked) o.trip=true;
+  o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
+  { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
+  ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-$("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;});
+$("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;showTripFields();});
+["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -2335,7 +2388,10 @@ document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",(
   if(state.saved.view==="at") state.saved.atTime=v||state.saved.atTime; else state.saved.byTime=v||state.saved.byTime; if(journeyEnabled())rememberPlanningInput(); save(); planView(); }));
 $("#byForm").addEventListener("submit",e=>{ e.preventDefault(); planView(); });
 { const d=defaultBy(state.saved.view); $("#byDate").value=d.date; $("#byTime").value=d.time; }
-document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{ state.saved.mode=b.dataset.mode; onRouteChange(); }));
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.mode==="trip"){ if(!tripEnabled()) return; state.saved.tripMode={...(state.saved.tripMode||{}),active:true}; save(); invalidateSources(); render(); return; }
+  const wasTrip=tripActive(); if(state.saved.tripMode) state.saved.tripMode={...state.saved.tripMode,active:false};
+  state.saved.mode=b.dataset.mode; if(wasTrip){ save(); invalidateSources(); } onRouteChange(); }));
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{ state.saved.dirMode=b.dataset.dir; onRouteChange(); }));
 $("#destRow").addEventListener("submit",e=>{ e.preventDefault(); state.saved.dest=$("#destInput").value.trim(); save(); state.londonTo=null; state.londonToErr=""; state.byCache={}; state.atCache={}; render(); refresh({force:true}); planView(); });
 $("#originRow").addEventListener("submit",e=>{ e.preventDefault(); state.origin=$("#originInput").value.trim(); state.london=null; render(); refreshLondon().then(render); });

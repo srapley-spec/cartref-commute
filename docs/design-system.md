@@ -300,3 +300,32 @@ Signal is the chosen primary structure. Automatic planning/live switching with m
 | DataState | Loading/empty/timetable/stale/partial failure independent of journey stage; errors must not destroy last good data |
 
 Missing fields are explicit unknowns, never zero, on-time or fake platform values. Interaction state (selection, expanded disclosure, scroll/focus) must survive ordinary refreshes. In production all timing arithmetic remains in route/engine outputs.
+
+## Leisure journeys extensions (proposed, 31 Oct 2026)
+
+For the [Trip / leisure journeys story](stories/leisure-journeys.md) (revision 2: L11–L17 added after the first independent review). Signal is the base; these are the **only** additions.
+Each reuses Signal tokens (no new colours; red / amber / green stay status-only). Listed for a separate designer to
+review and polish, as was done for Signal. Until that review they are functional drafts.
+
+| # | New element | What it is | Built from | Open for the designer |
+| --- | --- | --- | --- | --- |
+| L1 | **Place field** (From / To) | Text field with a leading label, clear button, "Current location" option for From | Signal input, 44 px | Leading glyph; how "Current location" reads |
+| L2 | **Suggestion list** | Drop-down listbox under a Place field: up to 5 rows (name bold, address muted), recent places before typing, "No matches" and "Key needed" states | `--card`, `--line`, 44 px rows, focus ring | Elevation vs inline; recent vs search distinction |
+| L3 | **Swap control** | Reverses From and To | Signal icon button, labelled "Swap" for VoiceOver | Glyph |
+| L4 | **Access mode control** | Walk / Cycle / Drive per end, a segmented control with word labels | existing `.seg` | Glyphs alongside words; one control or two |
+| L5 | **Access leg row** | First / last step in Journey steps and the journey strip: mode + time + allowance ("Drive 18 min · park 10") | step row | Mode glyph in the strip |
+| L6 | **Change marker** | Between rail legs: "Change at Clapham Junction · 7 min"; amber "Tight change" / red "Connection at risk" uses status tokens | step row + status lozenge | Visual weight of a change vs a leg |
+| L7 | **Multi-leg journey summary** | One line on a journey row: "2 changes · 2 h 05" and the operators in order | service metadata line (14 px) | Long operator lists at 320 px |
+| L8 | **Station lozenge (leisure)** | The boarding station on each journey row, as the commute's station lozenge, plus "No station car park" / "N km away" flags | existing lozenge (neutral) | none |
+| L9 | **Other stations** | Disclosure under the journey list: each other station with its consequence ("arrive 12 min later") | native disclosure | Whether it sits in Next best |
+| L10 | **Setup-needed card** | Empty state when the key is missing or the place is outside the region | Signal card, muted text, one action (Open Settings) | Tone |
+
+| L11 | **Google attribution** | "Powered by Google" under the suggestion list (Google's terms when no Google map is shown) | muted 12 px text / Google's supplied mark | Placement |
+| L12 | **Tomorrow / date marker** | On a journey departing on a later day: "Tomorrow · Sat 1 Nov" | neutral lozenge (not a status colour) | none |
+| L13 | **Not live / unknown flags** | "Not live" on a ride or change without live data; "Car park not known" | existing info flag (neutral) | none |
+| L14 | **Transfer row** | Cross-London link between rides: "Waterloo → Bank → Liverpool Street by Tube · 18 min", Tube line colours as identity | step row + line-colour lozenges (existing rule) | Distinguish from L6 |
+| L15 | **Staged loading** | While a plan arrives in stages: "Finding trains…", "Checking live times…"; "Better option found" when the best changes after first draw | label line + info flag | Motion (respect Reduce Motion) |
+| L16 | **Plan from here action** | "Plan from Clapham Junction" on a missed connection | Signal secondary button, 44 px | none |
+| L17 | **Trip mode button** | Third mode beside Commute / Leisure | existing mode `.seg` | none |
+
+Not added: map view, new colours, new type sizes, icons without words.
