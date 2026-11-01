@@ -1,6 +1,6 @@
-"""Native Chromium regression checks for the supported UI parity contract.
+"""Native Chromium regression checks for the journey facts and view contract.
 
-Run after npm run build: python tests/browser-ui-parity.py.
+Run after npm run build: python tests/browser-journey-facts.py.
 The real application uses controlled transport observations; no live keys.
 """
 import hashlib
@@ -13,9 +13,9 @@ from playwright.sync_api import sync_playwright
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
-ART = Path(os.environ.get('UI_PARITY_ARTIFACT_DIR', '/workspace/scratch'))
+ART = Path(os.environ.get('JOURNEY_FACTS_ARTIFACT_DIR', '/workspace/scratch'))
 ART.mkdir(parents=True, exist_ok=True)
-DESIGNS = json.loads((ROOT / 'config/ui-parity.json').read_text())['designs']
+DESIGNS = [{'id':'signal','settings':{}}]
 
 
 def module(name, file):
@@ -142,16 +142,16 @@ def layout(page, label, design, enlarged=False):
 
 def enlarge(page):
     page.evaluate('''()=>{
-      window.parityFonts=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility())
+      window.enlargedFonts=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility())
         .map(e=>({e,size:parseFloat(getComputedStyle(e).fontSize),prior:e.style.fontSize,priority:e.style.getPropertyPriority('font-size')}));
-      for(const {e,size} of parityFonts)e.style.setProperty('font-size',(size*2)+'px','important');
+      for(const {e,size} of enlargedFonts)e.style.setProperty('font-size',(size*2)+'px','important');
     }''')
 
 
 def restore_fonts(page):
-    page.evaluate('''()=>{for(const {e,prior,priority} of parityFonts){
+    page.evaluate('''()=>{for(const {e,prior,priority} of enlargedFonts){
       if(prior)e.style.setProperty('font-size',prior,priority);else e.style.removeProperty('font-size');
-    }delete window.parityFonts;}''')
+    }delete window.enlargedFonts;}''')
 
 
 def scene(page, label, design, mode):
@@ -167,10 +167,10 @@ def scene(page, label, design, mode):
             for summary in summaries.all():
                 assert summary.locator('[data-fact="total-duration"]').is_visible(), (label, 'Collapsed Next best hides duration')
     page.evaluate('scrollTo(0,0)')
-    page.screenshot(path=str(ART / f'ui-parity-{label}.png'), full_page=True)
+    page.screenshot(path=str(ART / f'journey-facts-{label}.png'), full_page=True)
     enlarge(page)
     try:
-        page.screenshot(path=str(ART / f'ui-parity-{label}-200.png'), full_page=True)
+        page.screenshot(path=str(ART / f'journey-facts-{label}-200.png'), full_page=True)
         enlarged = layout(page, label + '-200', design, enlarged=True)
         again = assert_option_facts(page, label + '-200')
         assert [(row['key'], row['facts'], row['first']) for row in again] == [(row['key'], row['facts'], row['first']) for row in facts], (label, 'Text enlargement lost facts')
@@ -237,10 +237,10 @@ def active_rail_scenes(browser):
                         assert value['shown'] and float(value['ms']) == expected[field], (design, width, value, expected)
                 label = f'{design}-dark-{width}-on-train'
                 normal = layout(page, label, design)
-                page.screenshot(path=str(ART / f'ui-parity-{label}.png'), full_page=True)
+                page.screenshot(path=str(ART / f'journey-facts-{label}.png'), full_page=True)
                 enlarge(page)
                 try:
-                    page.screenshot(path=str(ART / f'ui-parity-{label}-200.png'), full_page=True)
+                    page.screenshot(path=str(ART / f'journey-facts-{label}-200.png'), full_page=True)
                     large = layout(page, label + '-200', design, enlarged=True)
                     assert all(value['shown'] for row in displayed_facts(page, '#hero') for value in row['facts'])
                 finally:
@@ -322,10 +322,10 @@ def tube_connection_scenes(browser):
                         assert actual and actual['train'] == [wanted['trainMs']] and actual['total'] == [wanted['totalMs']], (label, actual, wanted)
                         assert bool(actual['first']) == (wanted['departure'] == expected['winner']), (label, 'A slower chosen connection stole the arrival winner', actual, expected)
                     normal = layout(page, label, design)
-                    page.screenshot(path=str(ART / f'ui-parity-{label}.png'), full_page=True)
+                    page.screenshot(path=str(ART / f'journey-facts-{label}.png'), full_page=True)
                     enlarge(page)
                     try:
-                        page.screenshot(path=str(ART / f'ui-parity-{label}-200.png'), full_page=True)
+                        page.screenshot(path=str(ART / f'journey-facts-{label}-200.png'), full_page=True)
                         large = layout(page, label + '-200', design, enlarged=True)
                     finally:
                         restore_fonts(page)
@@ -394,7 +394,7 @@ def run(browser):
     final_hash = hashlib.sha256((ROOT / 'index.html').read_bytes()).hexdigest()
     assert final_hash == build_hash, 'The built page changed during the browser run; rerun a frozen candidate.'
     report = {'buildSha256': build_hash, 'cases': results, 'activeRailScenes': active, 'tubeConnectionScenes': tube}
-    (ART / 'ui-parity-browser-results.json').write_text(json.dumps(report, indent=2))
+    (ART / 'journey-facts-browser-results.json').write_text(json.dumps(report, indent=2))
     return report
 
 

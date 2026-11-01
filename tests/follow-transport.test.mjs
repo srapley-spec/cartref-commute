@@ -6,7 +6,7 @@ after(closeAll);
 const NOW=Date.parse('2026-10-30T22:43:00Z'),MIN=60000;
 const recorded=JSON.parse(readFileSync(new URL('./fixtures/tfl-2026-10-30T2243Z/KSX.json',import.meta.url),'utf8'));
 const plain=x=>JSON.parse(JSON.stringify(x));
-async function app(route){return createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',followRoute:true,signal:true},saved:{dirMode:'home'},route});}
+async function app(route){return createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',followRoute:true},saved:{dirMode:'home'},route});}
 function chosenRide(a){
  const entry=[...a.c.followChoices].find(([,o])=>o.hub==='KGX'&&o.effort==='walk'&&o.train.dep>NOW+20*MIN);
  assert.ok(entry,'a complete homeward option exists');
@@ -96,7 +96,7 @@ test('independent review: real Tube adapter retains explicit station and provide
  for(const invalid of [{naptanId:'940GZZLUMGT'},{timestamp:new Date(NOW-3*MIN).toISOString()}]){
   const prediction={vehicleId:'review-tube',lineId:'metropolitan',platformName:'Westbound - Platform 1',naptanId:'940GZZLUKSX',
    timestamp:new Date(NOW).toISOString(),expectedArrival:new Date(NOW+5*MIN).toISOString(),destinationName:'Uxbridge Underground Station'};
-  const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',signal:true,followRoute:true},saved:{dirMode:'home'},
+  const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',followRoute:true},saved:{dirMode:'home'},
    route:u=>/940GZZLUKSX\/Arrivals/.test(u)?json([prediction]):undefined});
   const entry=[...a.c.followChoices].find(([,o])=>o.hub==='KGX'&&o.effort==='walk'&&o.train.dep>NOW+20*MIN);assert.ok(entry);
   const button=[...a.d.querySelectorAll('[data-follow]:not([disabled])')].find(b=>b.dataset.follow===entry[0]);assert.ok(button);button.click();

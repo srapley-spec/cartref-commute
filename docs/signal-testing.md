@@ -1,7 +1,10 @@
 # Signal and Follow a route: verification and morning checks
 
-Status: behind Experimental switches; independent review approved. The exact committed-code release checks are
-required before publication and are visible on [PR #36](https://github.com/srapley-spec/cartref-commute/pull/36).
+Status: Signal is the sole design as of 1 Nov 2026; Follow remains separately configurable. Current retirement
+checks and recovery instructions are in [Panda retirement review](panda-retirement-review.md).
+
+The sections below record the 30–31 Oct implementation and review history. Their two-design/off-switch
+requirements are superseded by the 1 Nov retirement; all journey preservation and release checks still apply.
 
 ## Starting point
 

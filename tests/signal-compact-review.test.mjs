@@ -1,10 +1,10 @@
-// Independent compact Signal review: preserve real controls, warnings and baseline skin.
+// Independent compact Signal review: preserve real controls, warnings and saved values.
 import test, {after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp, closeAll} from './harness.mjs';
 after(closeAll);
 const NOW=Date.parse('2026-11-03T07:00:00Z');
-const app=(signal=true)=>createApp({now:NOW,settings:{provider:'demo',signal,followRoute:true},saved:{dirMode:'office'}});
+const app=()=>createApp({now:NOW,settings:{provider:'demo',followRoute:true},saved:{dirMode:'office'}});
 const closed=(id,name)=>({id,name,statuses:[{sev:20,desc:'Service Closed',reason:'Overnight closure. Service will resume later.'}]});
 function allClosed(a){
  const s=a.c.state;
@@ -27,19 +27,16 @@ test('compact review: repeated refresh keeps planning focus and defers navigatio
  input.blur();a.c.render();assert.equal(a.c.state.presentation.view,'on-train');assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('compact review: skin roundtrips restore every original Panda node in order with working controls and input values',async()=>{
- const a=await app(false),root=a.d.querySelector('#hero').closest('.wrap'),before=[...root.children];
+test('compact review: appearance changes retain the original controls handlers and input values',async()=>{
+ const a=await app();
  const inputs=['#byTime','#byDate','#originInput','#destInput'].map(s=>a.d.querySelector(s));
- const pace=a.d.querySelector('[data-pace="fast"]'),footer=a.d.querySelector('footer'),footerChildren=[...footer.children];
+ const pace=a.d.querySelector('[data-pace="fast"]');
  inputs[0].value='12:34';inputs[1].value='2026-11-04';inputs[2].value='AB1 2CD';inputs[3].value='Museum';
  const values=inputs.map(i=>i.value),follow=JSON.stringify(a.c.state.saved.followRoute||null);
- for(let i=0;i<3;i++){
-  a.c.state.saved.settings.signal=true;a.c.render();assert.equal(a.d.documentElement.dataset.design,'signal');
-  assert.equal(a.d.querySelector('[data-pace="fast"]'),pace,'the shell moves actual controls with their existing handlers');
-  a.c.state.saved.settings.signal=false;a.c.render();assert.equal(a.d.documentElement.dataset.design,'panda');
-  assert.deepEqual([...root.children].filter(n=>before.includes(n)),before,'original Panda children keep exact parent and order');
-  assert.ok(before.every(n=>n.parentElement===root));
-  assert.deepEqual([...footer.children].filter(n=>footerChildren.includes(n)),footerChildren,'original source/build text returns to its footer');
+ for(const appearance of ['dark','light','system']){
+  a.c.state.saved.settings.appearance=appearance;a.c.render();
+  assert.equal(a.d.documentElement.dataset.design,'signal');
+  assert.equal(a.d.querySelector('[data-pace="fast"]'),pace);
   assert.deepEqual(inputs.map(n=>n.value),values);assert.equal(JSON.stringify(a.c.state.saved.followRoute||null),follow);
  }
  pace.click();assert.equal(a.c.state.saved.pace,'fast');assert.equal(pace.getAttribute('aria-pressed'),'true');

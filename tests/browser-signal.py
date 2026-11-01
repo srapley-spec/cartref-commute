@@ -104,8 +104,8 @@ try:
         page.route("**/*", network)
         page.goto(f"http://127.0.0.1:{server.server_port}/index.html")
         page.wait_for_function("!!window.__commute")
-        assert page.evaluate("document.documentElement.dataset.design !== 'signal'")
-        assert not page.locator("#journeyViewControl").is_visible()
+        assert page.evaluate("document.documentElement.dataset.design === 'signal'")
+        assert page.locator("#journeyViewControl").is_visible()
         page.wait_for_function("__commute.state.here && __commute.state.locAcc <= 100")
         def example_at_home(page):
             page.select_option("#s_provider", "demo")
@@ -115,8 +115,8 @@ try:
         baseline = ranked(page)
 
         def enable(page):
-            page.locator("#s_signal").check()
-            assert page.locator("#s_followRoute").is_checked(), "Signal offers route following automatically"
+            assert page.locator("#s_signal").count() == 0
+            page.locator("#s_followRoute").check()
 
         settings(page, enable)
         page.wait_for_function("document.documentElement.dataset.design === 'signal'")
@@ -125,8 +125,8 @@ try:
         saved = page.evaluate("localStorage.getItem('cartrefCommute.v1')")
         page.reload()
         page.wait_for_function("!!window.__commute && document.documentElement.dataset.design === 'signal'")
-        assert page.evaluate("__commute.S().signal && __commute.S().followRoute")
-        assert json.loads(saved)["settings"]["signal"]
+        assert page.evaluate("__commute.S().followRoute")
+        assert "signal" not in json.loads(saved)["settings"]
         page.wait_for_function("__commute.state.boards && __commute.ranked(Date.now()).length > 0")
 
         page.locator("#settingsBtn").focus()
@@ -145,7 +145,7 @@ try:
             assert page.locator(selector).get_attribute("aria-pressed") == "true", mode
             assert page.evaluate("__commute.direction()") == direction
             if mode == "live":
-                assert "No active journey" in page.locator("#hero").inner_text(), page.locator("#hero").inner_text()
+                assert "departures from Letchworth" in page.locator("#hero").inner_text(), page.locator("#hero").inner_text()
 
         page.locator("[data-follow]:not([disabled])").first.click()
         assert page.locator("#followPanel").is_visible()
@@ -193,14 +193,14 @@ try:
         page.locator("#simExit").click()
         assert not page.locator("#simBar").is_visible()
 
-        # Off restores Panda; the route-following option can remain independently enabled.
-        settings(page, lambda page: page.locator("#s_signal").uncheck())
-        assert page.evaluate("document.documentElement.dataset.design !== 'signal'")
+        # Appearance changes and reload retain the independently enabled route following.
+        settings(page, lambda page: page.select_option("#s_appearance", "light"))
+        assert page.evaluate("document.documentElement.dataset.design === 'signal'")
         assert page.evaluate("__commute.S().followRoute")
         assert page.evaluate("__commute.state.saved.followRoute.id") == chosen
         page.reload()
         page.wait_for_function("!!window.__commute")
-        assert page.evaluate("!__commute.S().signal && __commute.S().followRoute")
+        assert page.evaluate("__commute.S().followRoute")
         assert page.locator("#followPanel").is_visible()
         assert page.evaluate("__commute.state.saved.followRoute.id") == chosen
         page.locator('[data-follow-action="stop"]').click()

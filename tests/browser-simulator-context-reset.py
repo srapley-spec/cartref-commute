@@ -15,12 +15,12 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 results = []
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
-    for signal in [False, True]:
+    for theme in ['light', 'dark']:
         for direction in ['outbound', 'return']:
             for route in ['kgx', 'far']:
                 context = browser.new_context(viewport={'width': 393, 'height': 852}, geolocation={'latitude': 51.975, 'longitude': -.23, 'accuracy': 12}, permissions=['geolocation'])
                 page = context.new_page()
-                page.add_init_script('localStorage.setItem("cartrefCommute.v1",JSON.stringify('+json.dumps({'home':[51.975,-.23], 'settings':{'signal':signal, 'provider':'tfl'}})+'));')
+                page.add_init_script('localStorage.setItem("cartrefCommute.v1",JSON.stringify('+json.dumps({'home':[51.975,-.23], 'settings':{'appearance':theme, 'provider':'tfl'}})+'));')
                 errors, traffic = [], []
                 page.on('pageerror', lambda e: errors.append(str(e)))
                 def network(request):
@@ -86,7 +86,7 @@ with sync_playwright() as p:
                 page.locator('#simExit').click()
                 assert page.evaluate('!__commute.simClock.active&&!__commute.S().simulatorEnabled&&!__commute.S().simulatedFeeds')
                 assert not errors, errors
-                results.append({'design':'signal' if signal else 'panda','direction':direction,'route':route,'back':True,'resetInPlace':True,'mobileLayouts':6,'pageErrors':0,'liveCallsDuringSimulation':0})
+                results.append({'design':'signal','appearance':theme,'direction':direction,'route':route,'back':True,'resetInPlace':True,'mobileLayouts':6,'pageErrors':0,'liveCallsDuringSimulation':0})
                 context.close()
     browser.close()
 server.shutdown()

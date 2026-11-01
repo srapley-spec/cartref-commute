@@ -1,5 +1,5 @@
 # Presentation model: the engine decides what comes first
-Status: Done for Panda; Signal compact v2 behind toggle (independent review approved; release gates recorded) · Since: 29 Oct 2026
+Status: Implemented in Signal, the sole design since 1 Nov · Since: 29 Oct 2026
 
 ## Story
 As a commuter glancing at the phone, I want the thing that matters most to be first on every screen, however the
@@ -16,7 +16,7 @@ a banner stack). Sam: the order of what's shown is an engine decision, not a pre
 Reviewed after merging (29 Oct evening): 47 deliberate one-line breakages of `present.ts` and its page wiring; 18
 went unnoticed at first. The original remaining gap was the undrawn live-view order. Signal now annotates
 semantic block boundaries and draws the actual live cards in the engine's order; the new page probes exercise
-that integration, including a deliberate change to the model order. Panda's existing content/order is retained.
+that integration, including a deliberate change to the model order. Panda was subsequently retired on 1 Nov; its source remains on the archive branch.
 
 ## Acceptance criteria
 - `src/core/present.ts` is pure (no DOM, no sizes) and exports: `chooseView(situation)`, `headlineKind(view, ctx)`,
@@ -35,7 +35,7 @@ that integration, including a deliberate change to the model order. Panda's exis
   timetable-only / example data > good service. Lower tiers are counted in the detail, so a cancellation can never
   hide behind "minor delays". When the plan on screen is for later, train warnings say they're about trains now.
 - `src/page.html` dispatches on the pure presentation result and uses `headlineKind` for the departure board
-  (Train · Expected) or Leave. Panda retains its existing Leave now block assembly. Signal uses semantic
+  (Train · Expected) or Leave. Signal uses semantic
   `data-block` boundaries and `src/presentation-blocks.js` to render actual live-card nodes in the supplied
   `BLOCKS` order. The shell has no second priority table. Untagged context and unknown blocks are retained;
   rearrangement preserves listeners, disclosures, focused controls and text selection.
@@ -55,10 +55,8 @@ that integration, including a deliberate change to the model order. Panda's exis
   keeps its primary answer exposed while following/alerts continue. Tube choices/corrections are extracted
   outside folded recommendations with their existing handlers and selection intact. The approved compact layout is specified by the
   [Signal story](signal-design-system.md#compact-v2-direction-sam-31-oct-2026).
-- Panda and Signal share journey identity, times, duration, arrival-first meaning, flags and source requests when
-  following is off. Sam's 31 Oct evening parity decision adds the same Auto / Plan / Live controls and override
-  policy to Panda, superseding the earlier feature-off “new controls hidden” contract. Follow remains independent;
-  toggling a visual design changes geometry rather than planning calculations or access to a view.
+- Journey identity, times, duration, arrival-first meaning, flags and source requests stay correct when
+  Follow is off. Auto / Plan / Live and their override lifetime are always available. Follow remains independent.
 
 ## Tests
 - tests/core/present.test.mjs: "chooseView: live situations win over Leave now, in the order the situations are checked"
@@ -82,7 +80,6 @@ that integration, including a deliberate change to the model order. Panda's exis
 - tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: reading expanded significant details defers Auto and preserves disclosure focus across refresh"
-- tests/signal.test.mjs: "Signal preserves every journey field and request while compacting Panda content"
 - tests/follow-journey-review.test.mjs: "journey review: absent live line-status evidence never becomes a good-service claim"
 
 - tests/core/present.test.mjs: "statusLine: a closed fallback asks to check onward travel without claiming a future closure"
@@ -94,23 +91,6 @@ that integration, including a deliberate change to the model order. Panda's exis
 - tests/presentation-ui.test.mjs: "Signal planning keeps the primary answer ahead of the accessible line-status strip"
 
 ## Current implementation and limits
-- [UI parity](ui-parity.md) now requires every supported design and applicable surface to receive a feature or
-  correction together. The mandatory matrix covers all `BLOCKS` views and explicit Live departures; a design is
-  removed only by Sam's explicit retirement. This supersedes preservation-only wording below wherever it would
-  freeze Panda's functionality while Signal advances.
-- Signal closes the old status-summary and live-block ordering gaps. Panda retains its existing banner stack
-  and live-template arrangement when the design switch is off. The earlier “only Leave now draws BLOCKS” limitation
-  describes Panda, not Signal.
-- Manual Planner/Live override policy now lives in `src/core/viewControl.ts`, consuming the existing automatic
-  choice. Sam selected the newer Follow a route policy: Return to Auto, exactly 20 minutes, or a reliable
-  underlying situation change clears the override. A refresh or GPS blip alone does not. Interaction deferral
-  preserves editing, service selection and expanded reading; tracking and journey-impact alerts continue.
-- The shared followed-route panel is independent of the displayed view. Its rail identity and live arrival,
-  onward Tube/walk estimates and reasons come from engine outputs and existing situation evidence.
-- Compact v2 moves the actual mode/direction/pace controls into Journey options with effective values in its
-  summary. Auto / Plan / Live and the planning question remain exposed. This is an approved geometry change,
-  not permission for a second presentation policy or a separate set of journey state. Panda restores the same
-  original nodes and positions when Signal is disabled.
-- The prototype remains a visual reference. Real iPhone Safari, VoiceOver and live-feed checks remain hardware
-  acceptance limits; see [Signal verification](../signal-testing.md).
-- `docs/design/README.md` tells every design proposal to use the model's order and status line.
+Signal is the only design. [Journey facts](journey-facts.md) records functional requirements and ordinary
+regressions across views. The former Panda concurrency and parity gate requirements were removed on 1 Nov;
+see [retirement evidence](../panda-retirement-review.md). Native surfaces remain future work.

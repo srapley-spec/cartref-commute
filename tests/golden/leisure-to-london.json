@@ -1,10 +1,14 @@
 {
  "load": {
-  "dirNote": "Heading to London · you're near Letchworth (±12 m)",
+  "dirNote": "Location: you're near Letchworth (±12 m)",
+  "context": "Leisure · Journey options",
+  "lineStatus": "Your lines: all good service Great Northern: Good Service",
+  "statusSummary": "Timetable times, not live",
+  "significantDisruptions": "",
   "banners": [
    "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
   ],
-  "hero": "If you leave now · 10:00 · timetable · best, and the next best Leave10:09 → Arrive King's Cross11:07 to King's Cross 10:38 Great Northern · 29 min train · total 58 min · leave in 8m 59s Arrives first · walking Journey steps10:09Leave Cartref · walk 26 min10:3810:38 Great Northern from LetchworthCalls at · Letchworth 10:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 11:0711:07Arrive King's Cross · 29 min on the train Leaving right now? The 10:30 Great Northern — stopping train, 52 min; St Pancras 11:22, 15 min later than the 10:38 (St Pancras 11:07). Arrives first by car: the 10:20 Thameslink leaves Letchworth, train departs in 19m 55s — 39 min train; St Pancras 10:59, 8 min sooner than the 10:38. Your lines: all good service Great Northern: Good Service",
+  "hero": "If you leave now · 10:00 · timetable · best, and the next best Leave10:09 → Arrive King's Cross11:07 to King's Cross 10:38 Great Northern · 29 min train · total 58 min · leave in 8m 59s Arrives first · walking Journey steps10:09Leave Cartref · walk 26 min10:3810:38 Great Northern from LetchworthCalls at · Letchworth 10:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 11:0711:07Arrive King's Cross · 29 min on the train Leaving right now? The 10:30 Great Northern — stopping train, 52 min; St Pancras 11:22, 15 min later than the 10:38 (St Pancras 11:07). Arrives first by car: the 10:20 Thameslink leaves Letchworth, train departs in 19m 55s — 39 min train; St Pancras 10:59, 8 min sooner than the 10:38.",
   "rows": [
    "Leave09:51 to St Pancras 10:20 Thameslink · 39 min train · total 1h 08m · train departs in 19m 55s Arrives first · by car Arrive10:59",
    "Leave10:01 to King's Cross 10:30 Great Northern · 52 min train · total 1h 21m · leave in 0m 59s Stopping train Arrive11:22",

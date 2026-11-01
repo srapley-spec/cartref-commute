@@ -58,16 +58,14 @@ from that description.
   order of the blocks are decided once, in the engine (`src/core/present.ts`), from engine outputs. The web page, a
   widget, a Live Activity or a Watch face draws that order in its own shape; none re-decides it. A design proposal
   proposes how to draw the blocks, never which comes first. → [presentation-model](stories/presentation-model.md)
-- **Supported UIs advance together** (Sam, 31 Oct, evening). A feature or correction ships across every supported
-  design and applicable view in the same change. Layout may differ; journey facts, meaning, actions and uncertainty
-  may not drift. Being behind a design switch does not permit leaving another supported UI behind. Only Sam's
-  explicit retirement of a UI ends that obligation. The mandatory design × surface contract gate enforces this on
-  every test/release run. → [UI parity](stories/ui-parity.md)
+- **Signal is the sole supported design** (Sam, 1 Nov). Panda, the Signal feature switch and the
+  cross-design parity release rule are retired. Journey information, actions and uncertainty still have
+  ordinary regression coverage across planning and live views. [Decision and recovery](panda-retirement-review.md).
 
 
 ## Signal presentation architecture (29 Oct 2026)
 
-Status: behind Settings → Experimental; compact v2 with independent and visual review approved; CI/deployment gates in docs/signal-testing.md. See [design system](design-system.md) and
+Status: Signal is the default and only design as of 1 Nov 2026; Follow remains an independent Experimental option. Retirement verification is in docs/panda-retirement-review.md. See [design system](design-system.md) and
 [acceptance story](stories/signal-design-system.md). The prototype is illustrative, not production logic.
 
 ### Agreed by Sam
@@ -129,8 +127,8 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   fold while following and alerts continue. Tube selection/correction controls are extracted outside the fold
   with their original handlers and chosen vehicle intact. Notice/detail reading, focus and planning values
   survive redraw; long text and enlarged type wrap rather than clip.
-- Reparented elements have recorded DOM homes. Turning Signal off restores Panda's original live nodes, control
-  locations and behavior; requests, ranking and selected journey do not change. Panda remains the default.
+- Existing controls are arranged once, retaining handlers and entered values. Theme changes preserve requests,
+  ranking and the selected journey; there is no alternate-design restoration path.
 - Latest `main` regression contract (`8789a50`) adds six Tube-change checks in both Panda and Signal, with no
   application-source change. Integration must retain these new tests alongside the existing production source
   and compact-layout probes; the redesign does not replace the latest source with older branch behavior.
@@ -173,13 +171,14 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   homeward rail data remains important while its connection is still ahead. Unknown or missing source evidence
   is not rewritten as good service merely because an irrelevant earlier problem is folded.
 - Behaviour and geometry are tested together, including significant-versus-background alerts, manual-location
-  diagnostics, common time anchors, inferred/followed rail and Tube, source freshness and Panda feature-off
-  restoration. See [journey progress](stories/journey-progress.md) and the [Signal story](stories/signal-design-system.md).
+  diagnostics, common time anchors, inferred/followed rail and Tube, source freshness and saved-preference
+  upgrades. See [journey progress](stories/journey-progress.md) and the [Signal story](stories/signal-design-system.md).
 
 ### Followed journey and design boundaries
-- Signal design and Follow a route are separate Experimental settings, both off by default. Selecting Signal
-  checks Follow a route as a convenience; it remains independently configurable. Disabling Signal restores
-  Panda without deleting the followed journey. Neither design owns a separate routing engine.
+- Signal is always active, including for existing phones whose obsolete `settings.signal` value was false
+  or absent. The old key is ignored on load and omitted from subsequent normal saves. Follow remains
+  independently configurable, off by default; no automatic Follow opt-in is introduced. Existing routes,
+  home, timings, providers, pins and planning values are retained.
 - `src/core/follow.ts` owns the chosen journey snapshot, service identity, stable arrival, progress, reasons
   and alternative eligibility. It receives explicit time, unfiltered current options and existing situation
   evidence; it reads no clock, DOM, browser storage or network. The shell fetches, persists and draws.
@@ -189,13 +188,12 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   at walking or fast-walking pace. Missing or stale feed data is not cancellation.
 - View override, direction override, selected train/Tube and followed route remain separate state. Planning
   does not stop tracking or hide an important alert about the followed journey.
-- New saved fields must be validated on restore, preserved when switching designs, and included in simulator
+- New saved fields must be validated on restore, preserved when changing appearance, and included in simulator
   reset/isolation: simulated following must not write to the real phone journey, and Stop restores its snapshot.
 - Signal live templates emit semantic block boundaries; `src/presentation-blocks.js` renders their existing
   nodes in the engine-supplied canonical order without a second priority table or dropping unknown content.
-  Panda retains its own geometry. The later parity decision shares Auto / Plan / Live access and journey facts
-  even when Follow and Signal are off; the earlier feature-off control-hidden rule no longer applies. Signal
-  draws the tested status summary and qualifies missing live line-status evidence.
+  Auto / Plan / Live and journey facts remain available when Follow is off. Signal draws the tested
+  status summary and qualifies missing live line-status evidence.
 - Following a caught Tube uses current connection readiness for rail catchability. After rail, fresh onward
   Tube/walk evidence can revise the arrival with a visible reason without changing completed rail-step times.
   Fresh Service Details arrival evidence remains authoritative even if departure boards are stale.
@@ -262,12 +260,11 @@ draws.
   (29 Oct evening, incl. 3 for the docs check); 303 with effort levels (30 Oct).
 - Test cases kept as data files are the contract any future native (Swift) engine must also pass.
 - Stories link the tests that prove them; CI checks the links exist.
-- `config/ui-parity.json` lists supported designs and every presentation surface. The mandatory parity runner
-  checks real-page semantic contracts for every design × surface tuple, rejecting failures, missing cases,
-  duplicates, skips and TODOs. `npm test`, local committed-head CI and GitHub all enforce it; `Docs: none` does
-  not bypass it. A shared renderer can satisfy both designs without artificial edits to separate files. A
-  retirement requires Sam's explicit decision and its retained machine-checked record. This verifies the
-  maintained contract matrix, not every possible combination of future features. → [UI parity](stories/ui-parity.md)
+- `tests/journey-views.test.mjs` exercises actual production journey views and visible canonical facts;
+  `tests/journey-facts-review.test.mjs` probes duration, reachability and earliest-arrival ownership.
+  These ordinary regressions remain in the full test suite after the two-design registry, matrix validator,
+  enforcement tests and parity CI requirement were removed on 1 Nov. Browser checks cover both appearances,
+  phone widths and enlarged text. See [journey facts](stories/journey-facts.md).
 
 ## Release
 GitHub Pages, same URL, single page. A build step compiles the engine and inlines it into the page; CI
@@ -305,13 +302,19 @@ Native backlog: #2–#7, #10–#12.
 2c. Discovered alternatives (changes, taxi from Hitchin/Stevenage, #13). → [discovered-alternatives](stories/discovered-alternatives.md)
 3. People, trips, stops, deadlines; Laura's profile. → [people-and-trips](stories/people-and-trips.md), [laura-commute](stories/laura-commute.md)
 4. Family day out. → [family-day-out](stories/family-day-out.md)
-Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
+Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
 - **31 Oct, Along access correction** Sam: location chooses the initial position on Along the line, never
   whether it is available. Keep navigation visible whenever enabled and every route point browsable regardless
   of interests. Retain the established corridor and open article through GPS/identity loss; reset on source,
   direction, mode or actual corridor/endpoints changes. → [Along the line](stories/along-the-line.md).
+- **1 Nov** Sam asks to deprecate Panda, preserve it on a branch, independently review Signal for lost
+  functionality, and remove the Signal feature toggle and parity rule. Panda is retained at
+  `archive/panda-2026-11-01` (`0d6bf6e103246fefa68412d90f58d314af1cad9d`). Signal becomes the only
+  design; the former supported-UI concurrency/registry gate and feature-off restoration requirements below
+  are superseded. Journey functionality and independent release review remain required.
+  → [retirement review and recovery](panda-retirement-review.md), [journey facts](stories/journey-facts.md).
 - **31 Oct** Sam authorises Along the line as a Signal-based journey companion, with a separate Experimental
   toggle off by default. Interests and reading depth are independent. Start with bundled curated
   Letchworth–London stories and approximate phone-led cues, never exact position from timetable interpolation.
@@ -327,7 +330,7 @@ Newest first. One line each; the story or issue holds the detail.
   selected `best`; actual connection totals use projected leave-by to timed final arrival.
   Add an unconditional design × surface contract gate and concise glanceable commuter copy. This supersedes any
   earlier preservation-only interpretation that allowed a new feature to remain exclusive to one supported UI.
-  → [UI parity](stories/ui-parity.md), [Live board](stories/live-station-board.md)
+  → [UI parity](stories/journey-facts.md), [Live board](stories/live-station-board.md)
 - **31 Oct, evening** Start from the nearest station removed after the demo (Sam). Kept: the page and routes take
   the local station from the profile (`PROFILE.home`), never the literal `LET`, as groundwork for any start and end
   point. Next for that: National Rail's journey planner (Sam has access; key and docs pending) for multi-train

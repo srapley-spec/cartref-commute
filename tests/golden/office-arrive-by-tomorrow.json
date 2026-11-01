@@ -1,10 +1,14 @@
 {
  "load": {
-  "dirNote": "",
+  "dirNote": "Location: you're near Letchworth (±12 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "statusSummary": "Timetable times, not live",
+  "significantDisruptions": "",
   "banners": [
    "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
   ],
-  "hero": "If you leave now · 20:00 · timetable · best, and the next best Leave20:12 → Arrive office21:35 via King's CrossCircleMet 20:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Arrives first · walking Journey steps20:12Leave Cartref · walk 22 min20:3820:38 Great Northern from LetchworthCalls at · Letchworth 20:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:0721:07Arrive King's Cross · 29 min on the train, change 7 min21:16Circle or Met to Aldgate · ~10 min, allows 3 min wait21:35Arrive office · walk 7 min Leaving right now? The 20:30 Great Northern — stopping train, 52 min; office 21:50, 15 min later than the 20:38 (office 21:35). Arrives first by car: the 20:20 Thameslink leaves Letchworth, train departs in 19m 55s — 44 min train; office 21:26, 9 min sooner than the 20:38. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "If you leave now · 20:00 · timetable · best, and the next best Leave20:12 → Arrive office21:35 via King's CrossCircleMet 20:38 Great Northern · 29 min train · total 1h 22m · leave in 12m 38s Arrives first · walking Journey steps20:12Leave Cartref · walk 22 min20:3820:38 Great Northern from LetchworthCalls at · Letchworth 20:38 · Hitchin · Stevenage · Finsbury Park · King's Cross 21:0721:07Arrive King's Cross · 29 min on the train, change 7 min21:16Circle or Met to Aldgate · ~10 min, allows 3 min wait21:35Arrive office · walk 7 min Leaving right now? The 20:30 Great Northern — stopping train, 52 min; office 21:50, 15 min later than the 20:38 (office 21:35). Arrives first by car: the 20:20 Thameslink leaves Letchworth, train departs in 19m 55s — 44 min train; office 21:26, 9 min sooner than the 20:38.",
   "rows": [
    "Leave19:54 via Farringdon or St PancrasCircleMet 20:20 Thameslink · 44 min train · total 1h 32m · train departs in 19m 55s Get off at St Pancras 20:59 or Farringdon 21:04 Arrives first · by car Arrive21:26",
    "Leave20:04 via King's CrossCircleMet 20:30 Great Northern · 52 min train · total 1h 45m · leave in 4m 38s Stopping train Arrive21:50",
@@ -314,11 +318,15 @@
   }
  ],
  "arriveBy": {
-  "dirNote": "",
+  "dirNote": "Location: you're near Letchworth (±12 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "statusSummary": "Timetable times, not live",
+  "significantDisruptions": "",
   "banners": [
    "Timetable times, not liveDelays and cancellations may not show. Check a live board when things look disrupted."
   ],
-  "hero": "To arrive by 08:30 tomorrow · timetable · best, and the next best Leave06:54 → Arrive office08:26 via Farringdon or St PancrasCircleMet 07:20 Thameslink · 44 min train · total 1h 32m · 4 min early · leave in 10h 54m Get off at St Pancras 07:59 or Farringdon 08:04 Latest for 08:30 Cutting it fine Journey steps06:54Leave Cartref · walk 22 min07:2007:20 Thameslink from LetchworthCalls at · Letchworth 07:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 08:0408:04Arrive Farringdon · 44 min on the train, change 4 min08:11Circle or Met to Aldgate · ~7 min, allows 3 min wait08:26Arrive office · walk 7 min Leave06:42 → Arrive office08:05 via King's CrossCircleMet 07:08 Great Northern · 29 min train · total 1h 22m · 25 min early · leave in 10h 42m Journey steps06:42Leave Cartref · walk 22 min07:0807:08 Great Northern from LetchworthCalls at · Letchworth 07:08 · Hitchin · Stevenage · Finsbury Park · King's Cross 07:3707:37Arrive King's Cross · 29 min on the train, change 7 min07:46Circle or Met to Aldgate · ~10 min, allows 3 min wait08:05Arrive office · walk 7 min Your lines: all good service Thameslink: Good Service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "To arrive by 08:30 tomorrow · timetable · best, and the next best Leave06:54 → Arrive office08:26 via Farringdon or St PancrasCircleMet 07:20 Thameslink · 44 min train · total 1h 32m · 4 min early · leave in 10h 54m Get off at St Pancras 07:59 or Farringdon 08:04 Latest for 08:30 Cutting it fine Journey steps06:54Leave Cartref · walk 22 min07:2007:20 Thameslink from LetchworthCalls at · Letchworth 07:20 · Hitchin · Stevenage · Finsbury Park · St Pancras · Farringdon 08:0408:04Arrive Farringdon · 44 min on the train, change 4 min08:11Circle or Met to Aldgate · ~7 min, allows 3 min wait08:26Arrive office · walk 7 min Next best Leave06:42 → Arrive office08:05 07:08 Great Northern29 min train · total 1h 22mvia King's CrossCircleMet 07:08 Great Northern · 29 min train · total 1h 22m · 25 min early · leave in 10h 42m Journey steps06:42Leave Cartref · walk 22 min07:0807:08 Great Northern from LetchworthCalls at · Letchworth 07:08 · Hitchin · Stevenage · Finsbury Park · King's Cross 07:3707:37Arrive King's Cross · 29 min on the train, change 7 min07:46Circle or Met to Aldgate · ~10 min, allows 3 min wait08:05Arrive office · walk 7 min",
   "rows": [
    "Leave05:54 via Farringdon or St PancrasCircleMet 06:20 Thameslink · 44 min train · total 1h 32m · leave in 9h 54m Get off at St Pancras 06:59 or Farringdon 07:04 Arrives first Arrive07:26",
    "Leave06:04 via King's CrossCircleMet 06:30 Great Northern · 52 min train · total 1h 45m · leave in 10h 4m Stopping train Arrive07:50",

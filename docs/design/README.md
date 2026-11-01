@@ -1,6 +1,6 @@
 # Design system proposals
 
-Status: **Signal selected** (29 Oct 2026); implementation pending · Opened: 29 Oct 2026 · Owner: Sam
+Status: **Signal selected** (29 Oct 2026); the sole production design since 1 Nov 2026 · Opened: 29 Oct 2026 · Owner: Sam
 
 The app works but looks utilitarian. Before features grow further it needs a design system, or every new screen bakes
 in more debt. Several people are producing proposals; this folder holds all of them in one shape so they can be
@@ -70,7 +70,7 @@ Score each proposal 1–5 on every row. The first row is pass/fail and comes fir
 
 | Name | By | Shape | Status |
 |---|---|---|---|
-| [Panda](panda.md) | the live build | What `main` draws today (named 30 Oct): tokens, components, the status-colour rule as built. | **Live** until Signal is implemented. |
+| [Panda](panda.md) | retired build | Historical design (named 30 Oct); archived source and recovery link. | **Retired 1 Nov.** Source preserved on `archive/panda-2026-11-01`. |
 | [original](proposals/original/) | Claude, 29 Oct | A restyle of the current layout (controls → status line → hero card → list) in two skins: dark "Signal" and light "Board". | Superseded: reviewed as too close to today's app; kept for its system board (tokens, components, drop/hide table) and its review. |
 | [womble](proposals/womble/) | Claude, 29 Oct | Two structures. **A**, Flighty-shaped: a line/time diagram on top, a sheet that leads with a status word, a record of changes. **B**, Commutative-shaped: saved journeys instead of mode/direction toggles, train cards with departure progress, platform tile, coaches, "Track this train" pinned to the bottom. | Draft for feedback. Arrive by / Leave around and the other live states not yet drawn (see its README). |
 | [Signal](#signal-selected) | 29 Oct | iPhone-first; automatic Planner/Live switching with a manual override; dynamic light/dark. Specification in [`../design-system.md`](../design-system.md), tokens in [`signal-tokens.json`](signal-tokens.json), interactive preview [`signal-preview.html`](signal-preview.html), review in [`review.md`](review.md). | **Selected by Sam, 29 Oct.** |

@@ -1,5 +1,5 @@
 # Signal design system and automatic journey presentation
-Status: Behind toggle (Signal; current validation and release evidence in Signal testing) · Since: 29 Oct 2026
+Status: Default and sole design; Panda retired 1 Nov 2026 · Since: 29 Oct 2026
 
 ## Story
 As a commuter, I want the appropriate planning or live journey view to appear automatically, with a manual override, so I can act quickly without losing control or information.
@@ -44,7 +44,7 @@ planning times need shared column anchors, and rail/Tube views need overall and 
   text without overlaps; consistency must not be achieved by clipping words or shrinking touch targets.
 
 These refinements supersede the first compact release's blanket folding of full disruption banners and its
-content-sized time columns. Existing layout/data preservation constraints and the feature switch remain.
+content-sized time columns. Existing layout and data preservation constraints remain; the feature switch was removed on 1 Nov.
 
 ### Compact v2 acceptance criteria
 - Show a short masthead, always-available Auto / Plan / Live and planning-mode controls, effective journey context,
@@ -75,13 +75,13 @@ content-sized time columns. Existing layout/data preservation constraints and th
   warning precedence is retained for more important feed or train problems, with the onward-travel qualification
   still visible. Future Arrive by/Leave around missing-route status comes from the displayed plan, even while
   its full alerts are folded.
-- Signal stays off by default. With Signal off, Panda's own DOM placement and geometry, source requests, ranking
-  and selected journey are restored. Shared capabilities added under the later parity rule, including Auto /
-  Plan / Live and duration facts, remain available. Switching on/off moves the same live elements back to their
-  recorded homes, retaining their handlers and values; it does not replace the production application.
+- Signal is the sole design for new and existing phones. An absent, false or true legacy `settings.signal`
+  cannot change the renderer. Remove the design checkbox, default, branching and Panda restoration machinery.
+  Preserve saved journeys, provider settings, home, timings, planning inputs and the separate Follow preference.
+  The two-design parity release rule is removed; useful visible-view regressions remain.
 
 ## Acceptance criteria — agreed direction and existing constraints
-- Automatic is the default view selection; manual Plan/Live and Auto are available in both Panda and Signal. The button always reads **Auto**, including while Plan or Live is pinned (Sam, 31 Oct 2026); selecting it clears the manual override.
+- Automatic is the default view selection; manual Plan/Live and Auto are available throughout Signal. The button always reads **Auto**, including while Plan or Live is pinned (Sam, 31 Oct 2026); selecting it clears the manual override.
 - Live with no journey under way shows the next stop's departure board, not an empty state (Sam, 31 Oct). → [Live before a journey](live-station-board.md)
 - Situation, service identity, confidence, ranking and times come from the engine; view selection does not change trip direction or train identity.
 - Uncertain identity asks for confirmation. Live without an active journey is explicit, not invented.
@@ -98,7 +98,7 @@ content-sized time columns. Existing layout/data preservation constraints and th
   no estimate, 15+ min; amber: 5–14 min; green: under 5 min; Sam 30 Oct). A departure shows Train · Expected ·
   At destination at the same size ([rule](../design-system.md#timetabled-and-expected-departure-sam-30-oct-2026-panda-and-signal);
   the preview predates it). On the live card the status chip sits inside the
-  train's blue identity lozenge (Sam, 30 Oct). The preview shows this; production shares the engine rule with Panda
+  train's blue identity lozenge (Sam, 30 Oct). The preview shows this; production uses the shared engine rule
   ([train-status](train-status.md)). → [specification](../design-system.md#status-colour-is-reserved-sam-30-oct-2026-binding-on-every-build-and-every-proposal)
 
 ## Additional policies agreed by Sam (29 Oct; lifetime updated 30 Oct 2026)
@@ -108,18 +108,13 @@ content-sized time columns. Existing layout/data preservation constraints and th
 - Automatic transitions defer during editing, selection or expanded-notice reading.
 - Tracking and important journey alerts continue while Planner is manually pinned.
 
-## Feature switch and preservation
-- Settings → Experimental → Signal design starts off. Panda remains available by disabling it.
-- Sam's 31 Oct evening [parity decision](ui-parity.md) requires shared information/actions across both supported
-  designs and every applicable view. Panda receives the same Auto / Plan / Live controls even with Follow off;
-  selecting Signal changes geometry. Train/total duration and the existing arrival-first indication remain
-  visible in planning, station lists, Live and Follow. This supersedes the earlier control-hidden preservation
-  contract; it does not introduce another timing/ranking policy or couple the Follow switch to a design.
-- Follow a route is a separate Experimental setting. Selecting Signal checks it as a convenience; it can be
-  configured independently, and both designs share the chosen route and normal engine.
-- Switching design retains direction, deadline, selected train/Tube, followed route and ordinary saved settings.
-- Implement from latest `main`, not the prototype source revision: current departure columns, effort levels,
-  train status, correction controls, Aldgate platform planning, interchange timings and simulator survive.
+## Preservation after Panda retirement
+- Signal is always active; no design switch remains. Auto / Plan / Live, train/total duration and arrival-first
+  facts remain available across planning, station lists, Live and Follow without another timing/ranking policy.
+- Follow a route remains a separate Experimental setting, off by default. Opening Signal does not enable it.
+- Theme changes and upgrades retain direction, deadlines, selected train/Tube, followed route and saved settings.
+- Preserve current departure columns, effort levels, train status, corrections, Aldgate platform planning,
+  interchange timings and simulator behavior. The complete prior Panda implementation is on the archive branch.
 
 ## Tests
 Production-browser geometry/source checks: [browser-signal-journey-clarity.py](../../tests/browser-signal-journey-clarity.py).
@@ -144,7 +139,7 @@ visible location and rail/Tube progress. The final release record must report ex
 - tests/journey-progress.test.mjs: "Signal progress: a location projection without a live arrival stays modelled"
 - tests/journey-progress.test.mjs: "Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents"
 - tests/journey-progress.test.mjs: "Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports"
-The shared Signal/Follow a route implementation is behind the switch; compact v2 review is approved and release verification is recorded separately. [Signal testing](../signal-testing.md) records the required evidence
+Signal is always active; Follow remains behind its own switch; compact v2 review is approved and release verification is recorded separately. [Signal testing](../signal-testing.md) records the required evidence
 and hands-on morning checks; do not treat the standalone mockup as regression evidence.
 
 Before release acceptance: run existing engine/app/golden suites, typecheck, build and check-docs on the committed
@@ -160,25 +155,24 @@ iPhone Safari and VoiceOver remain hardware acceptance. See [verification](../si
 - tests/core/viewControl.test.mjs: "view control: automatic transitions wait during editing, selection or notice reading and then catch up"
 - tests/core/viewControl.test.mjs: "view control: malformed or future saved overrides cannot trap the app in a pinned view"
 
-- tests/signal.test.mjs: "Signal off preserves Panda and exposes the shared Auto Plan Live controls"
-- tests/signal.test.mjs: "Signal preserves every journey field and request while compacting Panda content"
+- tests/signal.test.mjs: "Signal is the default with Auto Plan Live and independently disabled Follow"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
 - tests/signal.test.mjs: "manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation"
 - tests/signal.test.mjs: "planning override expires exactly at twenty minutes and on a reliable situation change"
 - tests/signal.test.mjs: "GPS loss does not expire a planning pin or clear a confirmed train"
 - tests/signal.test.mjs: "expanded journey steps defer navigation and keep disclosure and focus through refresh"
-- tests/signal.test.mjs: "appearance and design settings persist independently of journey state"
+- tests/signal.test.mjs: "appearance settings persist independently of journey state"
 - tests/presentation-ui.test.mjs: "Signal dispatch enforces the canonical order on the actual live hero"
 
 Compact v2 adds independent real-page integration coverage in `tests/signal-compact-review.test.mjs` and production-browser checks
 in [browser-signal-compact.py](../../tests/browser-signal-compact.py). The browser checks must inspect ordinary,
 closure, followed and expanded-detail layouts in light/dark appearances at phone widths, enlarged text,
-44 px actions, no overflow, original-Panda restoration and disclosure reachability. Test creation or reference
+44 px actions, no overflow, saved-preference upgrades and disclosure reachability. Test creation or reference
 measurements alone do not establish a passing final candidate; independent review and the committed-code
 release checks remain required.
 
 - tests/signal-compact-review.test.mjs: "compact review: repeated refresh keeps planning focus and defers navigation until editing ends"
-- tests/signal-compact-review.test.mjs: "compact review: skin roundtrips restore every original Panda node in order with working controls and input values"
+- tests/signal-compact-review.test.mjs: "compact review: appearance changes retain the original controls handlers and input values"
 - tests/signal-compact-review.test.mjs: "compact review: expanded visible alerts defer Auto and collapsing their parent releases hidden inner alerts"
 - tests/signal-compact-review.test.mjs: "compact review: an open nested alert under a hidden or collapsed ancestor never pins Auto"
 - tests/signal-compact-review.test.mjs: "compact review: future Arrive by and Leave around missing routes stay visible above folded alerts"
@@ -190,3 +184,11 @@ release checks remain required.
 - tests/signal-compact-plan.test.mjs: "compact Plan: explicitly choosing Plan keeps its primary answer visible while following continues"
 - tests/signal-compact-plan.test.mjs: "compact Plan: live Tube choices remain outside folded recommendations and keep working while following"
 - tests/presentation-ui.test.mjs: "Signal planning keeps the primary answer ahead of the accessible line-status strip"
+
+## Panda retirement (Sam, 1 Nov 2026)
+Panda and the two-design parity rule are retired. The Signal switch no longer exists. Archived source, the
+functional audit, executed checks and remaining limitations are in [the retirement review](../panda-retirement-review.md).
+
+- tests/signal.test.mjs: "Signal is the default with Auto Plan Live and independently disabled Follow"
+- tests/panda-retirement.test.mjs: "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+- tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"

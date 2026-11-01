@@ -1,8 +1,12 @@
 {
  "load": {
-  "dirNote": "",
+  "dirNote": "Location: Walking to the office · phone: in London (±20 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "Your lines: all good service Circle: Good Service Met: Good Service",
+  "statusSummary": "Good service on your lines",
+  "significantDisruptions": "",
   "banners": [],
-  "hero": "In London · 09:00 · from your location09:25at the office · TfL journey planner Walk 5m → Central 15mYour lines: all good service Circle: Good Service Met: Good Service",
+  "hero": "In London · 09:00 · from your location09:25at the office · TfL journey planner Walk 5m → Central 15m",
   "rows": [],
   "diag": "Letchworth → King's Cross, live board: 8 trains: 09:08, 09:30, 09:38, 10:00, 10:08, 10:30, 10:38, 11:00.Letchworth → Farringdon, live board: 4 trains: 09:20, 09:50, 10:20, 10:50.Letchworth → St Pancras, live board: 4 trains: 09:20, 09:50, 10:20, 10:50."
  },

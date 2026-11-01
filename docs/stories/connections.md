@@ -143,16 +143,16 @@ still be guessed (fixed: no slack then); a test assertion that couldn't fail; 12
 - Worked-out tubes use the same start: the earliest tube you could be on is the stop + the walk (less a minute).
 
 ## Both designs (Sam, 31 Oct)
-Everything above works the same in Panda and in Signal (Settings → Signal): Signal draws the same card and reorders
+Signal is the sole design since 1 Nov; it draws the same engine card and reorders
 its blocks; it hides nothing. Checked 31 Oct: line colours measured in Chromium in both designs, light and dark
 (Circle #FFD329, Met #9B0058, H&C #F4A9BE with dark ink, on lozenges and on the chips in pick buttons); the tests
 below run each feature in both.
 
 ## Tests
-- tests/rules.test.mjs: "Both designs (panda): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
-- tests/rules.test.mjs: "Both designs (signal): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
-- tests/rules.test.mjs: "Both designs (panda): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
-- tests/rules.test.mjs: "Both designs (signal): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
+- tests/rules.test.mjs: "Signal (light): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
+- tests/rules.test.mjs: "Signal (dark): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
+- tests/rules.test.mjs: "Signal (light): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
+- tests/rules.test.mjs: "Signal (dark): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left"
 - tests/core/engine.test.mjs: "planConnection: walk counted from arrival; near-platform departures; fastest arrival wins; your pick; spare time"
 - tests/core/engine.test.mjs: "Rides: last until your stop or the ride time is over; asked only on a good, fresh fix back where you started"
 - tests/core/engine.test.mjs: "bestConnections: per station, the earliest arrival you can still make; ties go to the earlier stop; cancelled never"
@@ -216,3 +216,10 @@ below run each feature in both.
 - Ending a ride from GPS requires a fix taken no earlier than departure minus the existing 30-second leaving allowance, no more than one minute old (the existing ride-confirmation freshness rule), and no future timestamp. Its entire uncertainty circle must lie within the existing 300 m destination radius. Unknown or poor accuracy does not end a ride; precise recovery can. The existing ride duration plus 10-minute expiry still applies without GPS.
 - `rideEnded` distinguishes positive completion from a ride which has not started yet, allowing the shell to persist completion without resurrecting an old selected departure.
 - tests/core/connections.test.mjs: "Ride completion requires fresh destination GPS with its uncertainty inside the stop radius"
+
+## Panda retirement audit (1 Nov)
+The audit found that Signal's Next best summary exposed one unqualified platform for a multi-station service.
+The summary now keeps each boarding station, time and platform visible; no single-station platform is advertised
+as if it applied to both stops. The existing platform regression now checks the actual collapsed summary.
+
+- tests/logic.test.mjs: "Platform is on the card and the list without expanding; with two boarding stations, each has its own"

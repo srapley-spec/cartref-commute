@@ -39,7 +39,7 @@ def inject(page,noisy=False):
  const line=(id,name,closed=false)=>({id,name,statuses:[{sev:closed?20:10,desc:closed?'Service Closed':'Good Service',reason:closed?name+' service will resume later this morning. Full overnight service details remain available.':''}]});
  s.status=[line('circle','Circle',noisy),line('metropolitan','Metropolitan',noisy),line('hammersmith-city','Hammersmith & City',noisy)];
  s.nrStatus=[line('great-northern','Great Northern'),line('thameslink','Thameslink')];
- s.saved.settings={...s.saved.settings,provider:'rdm',rdmKey:'fixture-only',signal:true,followRoute:true};
+ s.saved.settings={...s.saved.settings,provider:'rdm',rdmKey:'fixture-only',followRoute:true};
  s.saved.mode='commute';s.saved.dirMode='office';s.saved.pace='fast';s.saved.view='now';s.saved.home=[51.975,-.23];
  s.saved.followRoute=null;s.saved.viewOverride=null;s.presentation=null;s.journeySituationKey=null;
  Object.assign(s,{autoDir:'office',here:[51.975,-.23],locAcc:12,locStatus:'ok',lastFixAt:now,lastFixRecvAt:now,
@@ -71,7 +71,7 @@ def boot(browser,root,theme='dark',width=393):
  server=server_for(root)
  context=browser.new_context(viewport={'width':width,'height':852 if width==393 else 700},color_scheme=theme,geolocation={'latitude':51.975,'longitude':-.23,'accuracy':12},permissions=['geolocation'])
  context.add_init_script('''(()=>{const D=Date,t=D.parse('2026-11-03T03:22:00Z');window.Date=class extends D{constructor(...x){super(...(x.length?x:[t]));}static now(){return t;}};
- if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',signal:true,followRoute:true}}));})();''')
+ if(!localStorage.getItem('cartrefCommute.v1'))localStorage.setItem('cartrefCommute.v1',JSON.stringify({mode:'commute',dirMode:'office',pace:'fast',home:[51.975,-.23],settings:{provider:'demo',followRoute:true}}));})();''')
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def network(r):
   if r.request.url.startswith('http://127.0.0.1:'):r.continue_()
@@ -205,7 +205,7 @@ def run_current(browser):
     assert page.evaluate('__commute.state.saved.followRoute.id')==chosen
     page.reload();page.wait_for_function('!!window.__commute && !!__commute.state.saved.followRoute')
     assert page.evaluate('__commute.state.saved.followRoute.id')==chosen
-    assert page.evaluate('__commute.S().signal')
+    assert page.evaluate("document.documentElement.dataset.design==='signal'")
     page.locator('[data-follow-action="stop"]').click();assert not page.locator('#followPanel').is_visible()
     inject(page,True)
     # Twofold text stress is allowed to grow vertically, but no information may clip horizontally.

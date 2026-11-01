@@ -1,36 +1,9 @@
 <title>Cartref Commute</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: one narrow column, a departure-board hero for "leave now", then a ranked list. */
+/* Shared components; Signal supplies the app's palette, type and journey layout. */
 :root{
-  --paper:#EDF0EC; --card:#F8F9F6; --ink:#17201B; --muted:#5B6760; --line:#D2D9D3;
-  --accent:#174EAC; --accent-ink:#FFFFFF;
-  --hero-accent:#9ABFFF; --hero-accent-ink:#0B1017; --hero-ok:#6CC08C; --hero-warn:#E3B04D; --hero-bad:#F2877A;
-  --ok:#2E7A4C; --warn:#9A6200; --bad:#B42318; --note:#B39B00;
-  --ok-bg:#E1EFE5; --warn-bg:#F6ECD6; --bad-bg:#F8E1DE; --note-bg:#FBF7DC;
   --circle:#FFD329; --circle-ink:#1A1A1A; --met:#9B0058; --met-ink:#FFFFFF; --hc:#F4A9BE; --hc-ink:#1A1A1A;
-  --font-display:"Overpass", "Helvetica Neue", Arial, sans-serif;
-  --font-body:"Overpass", "Helvetica Neue", Arial, sans-serif;
-  --font-mono:"Overpass Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
-  --accent:#9ABFFF; --accent-ink:#0B1017;
-  --hero-accent:#174EAC; --hero-accent-ink:#FFFFFF; --hero-ok:#24603C; --hero-warn:#7A4D00; --hero-bad:#A11F15;
-  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
-  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --paper:#111714; --card:#18201C; --ink:#E5EBE6; --muted:#93A198; --line:#2A342F;
-  --accent:#9ABFFF; --accent-ink:#0B1017;
-  --hero-accent:#174EAC; --hero-accent-ink:#FFFFFF; --hero-ok:#24603C; --hero-warn:#7A4D00; --hero-bad:#A11F15;
-  --ok:#6CC08C; --warn:#E3B04D; --bad:#F2877A; --note:#E8D45C;
-  --ok-bg:#16291E; --warn-bg:#2B2310; --bad-bg:#321917; --note-bg:#29270F;
-  color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;
@@ -79,7 +52,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .hero .arr{font-family:var(--font-mono);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.02em}
 .hero .arrlbl{font-size:15px;opacity:.85}
 .hero .slack{display:inline-block;background:var(--hero-accent);color:var(--hero-accent-ink);font-weight:800;border-radius:6px;padding:3px 8px;font-size:13px}
-/* Panda: red, amber and green mean status only. A train you're on is one blue lozenge with its status inside, in its band. */
+/* Red, amber and green mean status only. A train you're on is one blue lozenge with its status inside, in its band. */
 .hero .slack .slackst{display:inline-block;white-space:nowrap;margin:1px -4px 1px 6px;padding:0 6px;border-radius:4px}
 .hero .slackst.ok{background:var(--hero-ok)} .hero .slackst.warn{background:var(--hero-warn)} .hero .slackst.bad{background:var(--hero-bad)}
 .hero .stat.ok{color:var(--hero-ok)} .hero .stat.warn{color:var(--hero-warn)} .hero .stat.bad{color:var(--hero-bad)}
@@ -197,30 +170,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .primary{background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:8px 16px;font-weight:800}
 .ghost{background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600}
-/* Panda keeps the same readable time order when enlarged text needs more room.
-   One shared container reflows the main card and every departure/list row together. */
-html[data-design="panda"] .wrap{min-width:0;container-type:inline-size}
-html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
-@container (max-width:18em){
-  html[data-design="panda"] :is(.hero .optrow,.hero .optrow.board,.row){display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
-  html[data-design="panda"] .hero .optrow>div:not(.optarrow){grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
-  html[data-design="panda"] .hero .optrow .optarrow{display:none}
-  html[data-design="panda"] .hero .optrow .optroute{margin-left:0;padding-bottom:0}
-  html[data-design="panda"] .row>:is(.leave,.exp,.arrive){grid-column:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;min-width:0;text-align:left}
-  html[data-design="panda"] .row>.leave{grid-row:1}
-  html[data-design="panda"] .row>.arrive{grid-row:2}
-  html[data-design="panda"] .row.board>.exp{grid-row:2}
-  html[data-design="panda"] .row.board>.arrive{grid-row:3}
-  html[data-design="panda"] .row>.mid{grid-column:1;grid-row:3}
-  html[data-design="panda"] .row.board>.mid{grid-row:4}
-  html[data-design="panda"] .row:has(>.mid.meta){display:block}
-  html[data-design="panda"] .seg{max-width:100%;flex-wrap:wrap}
-  html[data-design="panda"] :is(.pill,.chip){max-width:100%;white-space:normal;overflow-wrap:break-word}
-  html[data-design="panda"] :is(.hero,.list,#followPanel){overflow-wrap:break-word}
-}
-@media (prefers-reduced-motion:no-preference){ .hero{transition:background .2s} }
 /*__SIGNAL_STYLES__*/
-/* Follow controls also work in Panda; status colours retain their usual meaning. */
+/* Follow controls; status colours retain their usual meaning. */
 #followPanel{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--card);display:grid;gap:12px}
 .follow-btn,.follow-action{min-height:44px;font:inherit;border:1px solid var(--accent);border-radius:10px;padding:8px 12px;background:var(--card);color:var(--accent)}
 #followPanel .big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -386,7 +337,6 @@ html[data-design="panda"] .hero .arr{font-size:min(52px,15cqi)}
 
     <fieldset>
       <legend>Experimental</legend>
-      <label class="f wide"><span><input type="checkbox" id="s_signal"> Signal design — the new light/dark journey screen. Off by default.</span></label>
       <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
       <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Works in either design.</span></label>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
@@ -485,7 +435,7 @@ function whichTrain(now,remember=true){
 const hubHere = () => C.hubHere(fix(), PROFILE);
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,signal:false,followRoute:false,appearance:"system",
+  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,followRoute:false,appearance:"system",
   provider:"rdm",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
@@ -504,7 +454,15 @@ const FACTOR_KEYS = ["fastFactor","leisureFactor","runFactor","runM"];
 const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
 const LS = "cartrefCommute.v1";
 
-function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"{}"); }catch(e){ return {}; } }
+function load(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(LS)||"{}");
+    // Retired appearance preference: ignore old true/false values without changing
+    // any journey, source, home, timing or independently saved Follow preference.
+    if(saved?.settings)delete saved.settings.signal;
+    return saved;
+  }catch(e){return {};}
+}
 let simulationSnapshot=null,simulationInputSnapshot=null;
 function save(){if(simulationSnapshot || (typeof sim!=="undefined" && sim.active))return;try{const saved={...state.saved,settings:{...state.saved.settings}};delete saved.settings.simulatorEnabled;delete saved.settings.simulatedFeeds;localStorage.setItem(LS,JSON.stringify(saved));}catch(e){}}
 const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
@@ -1151,7 +1109,7 @@ function effortLine(j, dest, best){
 // One option on the top card: leave and arrive, train, total time, buffer, warnings; steps fold away.
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");
-  return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform?' · platform '+j.train.platform:''))}">
+  return `<section class="opt" data-journey-service="${esc(journeyServiceKey(j.train))}" data-service-label="${esc(j.train.std+' '+j.train.operator+(j.train.platform&&!(j.alts?.length&&direction()!=='office')?' · platform '+j.train.platform:''))}">
     ${opt.board ? `<div class="optrow board">
       <div><small>Train${depStation(j)!==opt.board?` from ${esc(depStation(j))}`:""}</small><span class="t optbig">${esc(j.train.std)}</span></div>
       <div><small>Expected</small>${expectedHtml(j.train,"optbig")}</div>
@@ -1651,7 +1609,7 @@ function renderBanners(){
   [...new Set(state.errors)].filter(e=>!missing.some(k=>failedNow[k]===e)).forEach(e=>out.push(`<div class="banner bad"><b>Problem</b><span>${esc(e)}</span></div>`));
   if(state.boards && state.boardsAt && Date.now()-state.boardsAt>3*60e3 && state.railSource!=="demo")
     out.push(`<div class="banner bad"><b>Train times may be out of date</b><span>Last updated ${hhmm(state.boardsAt)}. The app couldn't refresh since; check a live board before relying on these.</span></div>`);
-  if(aldgateUnusable()) out.push(S().signal&&C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption)
+  if(aldgateUnusable()) out.push(C.tubeFallbackNeeded(state.status||null,['hammersmith-city'],PROFILE.disruption)
     ? `<div class="banner bad"><b>Tube lines closed now</b><span>Circle, Metropolitan and Hammersmith &amp; City are closed now. Check onward travel before relying on the Tube estimate.</span></div>`
     : `<div class="banner bad"><b>Circle and Met closed</b><span>Journeys use the H&amp;C to Aldgate East as a fallback.</span></div>`);
   const w=l=>worst(l);
@@ -1701,13 +1659,11 @@ function renderControls(){
   $("#routeLabel").textContent = leisure
     ? (dir==="office" ? (out ? `Cartref → ${out.name}` : "Cartref → King's Cross or St Pancras") : "Wherever you are → Cartref")
     : (dir==="office" ? "Cartref → 20 Mansfield Street" : "20 Mansfield Street → Cartref");
-  const where = leisure ? (dir==="office"?"London":"home") : (dir==="office"?"the office":"home");
-  const automaticNote=state.saved.dirMode!=="auto" ? "" : awaitingLocation() ? `Auto · ${state.locStatus==="pending"||!state.locStatus?"finding your location…":state.autoSrc}` : `${where==="home"?"Heading home":`Heading to ${where}`} · ${state.autoSrc}`;
   // This is the existing inference diagnostic, independent of the chosen direction.
   // It must remain visible while investigating location, even with a manual override.
   const locationNote=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
   const staleFix=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
-  $("#dirNote").textContent=S().signal?`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`:automaticNote;
+  $("#dirNote").textContent=`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`;
   const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
   if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
@@ -1872,7 +1828,7 @@ function render(){
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
   renderInner(); restoreOpen();
-  if(S().signal&&state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
+  if(state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
   const fp=$("#followPanel");state.rendered.follow=fp&&!fp.hidden&&state.followUpdate?.route?.id===state.saved.followRoute?.id?state.followUpdate:null;
   simulator.notify("application-render");
@@ -2246,7 +2202,7 @@ const dlg=$("#settings");
 function fillSettings(){
   const s=S();
   $("#s_alongLine").checked=s.alongLine===true;
-  $("#s_signal").checked=!!s.signal; $("#s_followRoute").checked=!!s.followRoute;
+  $("#s_followRoute").checked=!!s.followRoute;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
@@ -2261,7 +2217,6 @@ function readSettings(){
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
-  if($("#s_signal").checked) o.signal=true;
   if($("#s_alongLine").checked) o.alongLine=true;
   if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
@@ -2271,7 +2226,6 @@ function readSettings(){
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-$("#s_signal").addEventListener("change",()=>{if($("#s_signal").checked)$("#s_followRoute").checked=true;});
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -2305,7 +2259,7 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["signal","followRoute","appearance","follow","alongLine"]);
+ const presentationKeys=new Set(["followRoute","appearance","follow","alongLine"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

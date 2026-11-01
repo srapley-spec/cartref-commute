@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {createApp,closeAll} from './harness.mjs';
 after(closeAll);
 const NOW=Date.parse('2026-11-03T09:20:00Z');
-async function onRail(signal=true){
- const a=await createApp({now:NOW,settings:{provider:'demo',signal,alongLine:true},saved:{dirMode:'office'}});
+async function onRail(appearance='light'){
+ const a=await createApp({now:NOW,settings:{provider:'demo',appearance,alongLine:true},saved:{dirMode:'office'}});
  const t={from:'LET',to:'KGX',std:'09:05',dep:NOW-15*60000,arr:NOW+20*60000,operator:'Great Northern',serviceId:'review-service',depLate:0,arrLate:20,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'Review significant delay',calls:[{code:'LET',name:'Letchworth',t:NOW-15*60000},{code:'KGX',name:'King’s Cross',t:NOW+20*60000}]};
  Object.assign(a.c.state,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:NOW,railSource:'darwin',boardsDir:'office',here:[51.8158,-.1972],locAcc:10,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:true,atHub:null,inLondon:false,trainLock:{from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true}});
  a.c.render();return a;
 }
-test('independent: Panda active train severe delay remains visible in commentary',async()=>{
- const a=await onRail(false);assert.ok(a.d.querySelector('#hero .slackst.bad'));a.d.querySelector('#alongEntry').click();
+test('independent: Signal active train severe delay remains visible in commentary',async()=>{
+ const a=await onRail('dark');assert.ok(a.d.querySelector('#hero .slackst.bad'));a.d.querySelector('#alongEntry').click();
 
  assert.equal(a.d.querySelector('#alongImpact').hidden,false);assert.match(a.text('#alongImpact'),/late|delay/i);a.close();
 });
@@ -26,7 +26,7 @@ test('independent: Back to now updates the frozen position when a story is open'
  assert.notEqual(marker.nextElementSibling?.dataset.point,initialNext);a.close();
 });
 test('independent: route reference stations never invent midnight calling times',async()=>{
- const a=await onRail(false);a.d.querySelector('#alongEntry').click();
+ const a=await onRail('dark');a.d.querySelector('#alongEntry').click();
  const reference=a.text('[data-point="station-HAT"] .al-location');
  assert.equal(reference,'Station · route reference');a.close();
 });
@@ -50,8 +50,8 @@ test('independent: a northbound journey reverses the strip and a corridor change
  assert.ok(a.d.querySelector('[data-point="canal-tunnels"]'));assert.equal(a.d.querySelector('[data-point="gasworks"]'),null);
  assert.deepEqual(a.errors,[]);a.close();
 });
-test('independent: Panda commentary promotes a fresh delayed Service Details report over its older on-time board',async()=>{
- const a=await onRail(false),s=a.c.state,t=s.boards['LET-KGX'].services[0];t.arrLate=0;
+test('independent: Signal commentary promotes a fresh delayed Service Details report over its older on-time board',async()=>{
+ const a=await onRail('dark'),s=a.c.state,t=s.boards['LET-KGX'].services[0];t.arrLate=0;
  const details={locationName:'Letchworth',crs:'LET',std:'09:05',atd:'09:05',subsequentCallingPoints:[{callingPoint:[{locationName:'London Kings Cross',crs:'KGX',st:'09:40',et:'10:00'}]}]};
  s.progressById={[t.serviceId]:{id:t.serviceId,at:NOW,data:a.w.CommuteCore.parseServiceDetails(details,NOW)}};
  a.c.render();assert.match(a.text('#hero .slackst.bad'),/20 min late/);a.d.querySelector('#alongEntry').click();
@@ -61,14 +61,15 @@ test('independent: Panda commentary promotes a fresh delayed Service Details rep
  assert.match(a.text('#alongJourney'),/expected arrival 10:00/,'a fresh validated report remains current even if its board is old');
  assert.doesNotMatch(a.text('#alongJourney'),/last known/);a.close();
 });
-test('independent: Panda commentary rejects stale and mismatched reports and preserves explicit current incidents',async()=>{
+test('independent: Signal commentary rejects stale and mismatched reports and preserves explicit current incidents',async()=>{
  for(const kind of ['stale','mismatched','no-estimate','cancelled']){
-  const a=await onRail(false),s=a.c.state,t=s.boards['LET-KGX'].services[0];t.arrLate=0;
+  const a=await onRail('dark'),s=a.c.state,t=s.boards['LET-KGX'].services[0];t.arrLate=0;
   const details={locationName:'Letchworth',crs:'LET',std:'09:05',atd:'09:05',subsequentCallingPoints:[{callingPoint:[{locationName:'London Kings Cross',crs:'KGX',st:'09:40',et:'10:00'}]}]};
   s.progressById={[t.serviceId]:{id:kind==='mismatched'?'wrong-service':t.serviceId,at:kind==='stale'?NOW-180001:NOW,data:a.w.CommuteCore.parseServiceDetails(details,NOW)}};
   if(kind==='no-estimate')t.arrUnknown=true;
   if(kind==='cancelled')t.cancelled=true;
-  a.c.render();assert.equal(a.d.querySelector('.journey-progress'),null,'Panda must not draw a Signal diagram');
+  a.c.render();
+  if(kind==='stale'||kind==='mismatched')assert.ok(a.d.querySelector('.journey-progress'),'a qualified current journey remains available');
   // No-estimate/cancellation may stop normal inference, so browse through the retained Settings action.
   a.d.querySelector('#settingsBtn').click();a.d.querySelector('#alongBrowse').click();
   const impact=a.text('#alongImpact');

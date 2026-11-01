@@ -39,7 +39,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Late trains say so](late-trains.md) · Done
 - [Standing room only](standing-room.md) · Done
 - [Warnings graded by impact](warnings.md) · Done
-- [Presentation model: the engine decides what comes first](presentation-model.md) · Done for Panda; Signal compact v2 behind toggle (review approved; release gates recorded)
+- [Presentation model: the engine decides what comes first](presentation-model.md) · Implemented in Signal
 - [Live and timetable data](live-and-timetable.md) · Done
 - [Reliability when feeds fail](reliability.md) · Done
 
@@ -50,7 +50,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [On your way to the station](on-the-way-to-the-station.md) · Done
 - [At the station: departure board](at-the-station.md) · Done
 - [Which train you're on](which-train.md) · Done
-- [Visual progress for the journey and current leg](journey-progress.md) · Behind Signal toggle; validation/release evidence recorded separately
+- [Visual progress for the journey and current leg](journey-progress.md) · Implemented in Signal; retirement evidence recorded separately
 - [Connections at any station](connections.md) · Done
 - [Tube home decides the train](tube-home.md) · Done (generic connection model)
 - [Elsewhere in London](elsewhere-in-london.md) · Done
@@ -59,7 +59,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
 - [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
-- [Live before a journey: the next stop's departure board](live-station-board.md) · Shared by Panda and Signal; Leisure going out: all departures not yet
+- [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
 
 ### Beyond the commute
 - [Along the line: discover the journey outside your window](along-the-line.md) · Behind toggle (#24, #16)
@@ -78,6 +78,6 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 - [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
 
 ### Design and presentation
-- [Supported UIs advance together](ui-parity.md) · Implemented; mandatory design/view parity gate; release evidence in PR #43
+- [Journey facts across planning and live views](journey-facts.md) · Implemented; two-design parity rule retired 1 Nov
 - [Every live train says how late it is, in colour](train-status.md) · Done
-- [Signal design system and automatic journey presentation](signal-design-system.md) · Behind toggle; compact v2 review approved, release gates recorded
+- [Signal design system and automatic journey presentation](signal-design-system.md) · Default and sole design; Panda archived 1 Nov

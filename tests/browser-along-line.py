@@ -11,7 +11,7 @@ with sync_playwright() as p:
  errors=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
  page.route('**/*',lambda r:r.abort())
- page.add_init_script("localStorage.setItem('cartrefCommute.v1', JSON.stringify({settings:{provider:'demo',signal:true,alongLine:true},dirMode:'office'}))")
+ page.add_init_script("localStorage.setItem('cartrefCommute.v1', JSON.stringify({settings:{provider:'demo',alongLine:true},dirMode:'office'}))")
  page.route('https://cartref.test/**',lambda r:r.fulfill(status=200,content_type='text/html',body=(root/'index.html').read_text()))
  page.goto('https://cartref.test/index.html')
  page.wait_for_function('window.__commute && !__commute.state.loading')

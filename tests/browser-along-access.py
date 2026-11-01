@@ -14,11 +14,11 @@ journey=importlib.util.module_from_spec(spec);spec.loader.exec_module(journey)
 results=[]
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
- for signal in [False,True]:
+ for theme in ['light','dark']:
   server,context,page,errors=journey.compact.boot(browser,ROOT,'light',390)
   try:
    page.locator('#settingsBtn').click()
-   page.locator('#s_signal').set_checked(signal)
+   page.select_option('#s_appearance', theme)
    page.locator('#s_followRoute').uncheck()
    page.locator('#s_alongLine').check();page.locator('#saveBtn').click()
    journey.start_journey(page)
@@ -26,22 +26,22 @@ with sync_playwright() as p:
     for width in [320,390]:
      page.set_viewport_size({'width':width,'height':844})
      nav=page.locator('#alongNavigation');entry=page.locator('#alongEntry')
-     assert nav.is_visible() and entry.is_visible(),(signal,index,'missing enabled navigation')
+     assert nav.is_visible() and entry.is_visible(),(theme,index,'missing enabled navigation')
      box=entry.bounding_box()
-     assert box['y']>=0 and box['y']+box['height']<=844,(signal,index,width,'navigation is outside the viewport',box)
+     assert box['y']>=0 and box['y']+box['height']<=844,(theme,index,width,'navigation is outside the viewport',box)
      assert box['height']>=44 and box['width']>=44
      assert nav.evaluate('e=>e.scrollWidth<=e.clientWidth+1')
      entry.click();assert page.locator('#alongLine').evaluate('e=>e.open')
      heading=page.locator('#alongJourney').inner_text()
-     assert ('Browse' in heading)==(index<4),(signal,index,heading)
+     assert ('Browse' in heading)==(index<4),(theme,index,heading)
      assert page.locator('[data-point="digswell"]').count()==1
      assert page.locator('[data-point="hitchin"]').is_visible(),'all route points stay browsable outside the chosen interests'
      if index==0:assert page.locator('#alongEvidence').inner_text().startswith('Browse this route')
      if index==4:
-      page.screenshot(path=str(ART/f'along-access-{"signal" if signal else "panda"}-{width}.png'))
+      page.screenshot(path=str(ART/f'along-access-{theme}-{width}.png'))
      page.locator('#alongClose').click()
      assert entry.evaluate('e=>e===document.activeElement')
-     results.append({'signal':signal,'checkpoint':index,'width':width,'button':box,'heading':heading})
+     results.append({'appearance':theme,'checkpoint':index,'width':width,'button':box,'heading':heading})
     if index<4:journey.next_checkpoint(page)
    # Scroll back from the current train position to a passed point, then let GPS progress.
    page.locator('#alongEntry').click()
@@ -70,13 +70,13 @@ with sync_playwright() as p:
      return !marker.hidden&&m.bottom>Math.max(0,r.top,d.top)&&m.top<Math.min(innerHeight,r.bottom,d.bottom);
     }""")
    page.locator('#alongEntry').click()
-   assert position_is_visible(),(signal,'empty interests must not leave the reliable marker below the initial viewport')
+   assert position_is_visible(),(theme,'empty interests must not leave the reliable marker below the initial viewport')
    page.locator('[data-point="digswell"] details').evaluate('e=>e.open=true')
    page.locator('#alongClose').click()
    page.evaluate("""()=>{const c=__commute,s=c.state;s.here=[51.7638,-.2156];s.lastFixAt=c.simClock.active?c.simClock.now():Date.now();c.render();}""")
    page.locator('#alongEntry').click()
-   assert position_is_visible(),(signal,'reopening must focus the new location even with an old article open')
-   assert page.locator('#alongPosition').evaluate("e=>['hatfield','station-HAT'].includes(e.nextElementSibling?.dataset.point)"),(signal,'reopening must not reuse the previous marker')
+   assert position_is_visible(),(theme,'reopening must focus the new location even with an old article open')
+   assert page.locator('#alongPosition').evaluate("e=>['hatfield','station-HAT'].includes(e.nextElementSibling?.dataset.point)"),(theme,'reopening must not reuse the previous marker')
    page.locator('#alongClose').click()
    assert page.evaluate('__commute.S().followRoute') is False
    assert not errors,errors
@@ -84,4 +84,4 @@ with sync_playwright() as p:
    context.close();server.shutdown()
  browser.close()
 (ART/'along-access-results.json').write_text(json.dumps(results,indent=2))
-print('PASS: real opt-in and simulator checkpoints 0-4; both designs; 320/390px; visible access, browse/onboard transition, passed-point reading across GPS progress, empty-interest/reopen initial position, focus and 44px targets')
+print('PASS: real opt-in and simulator checkpoints 0-4; both appearances; 320/390px; visible access, browse/onboard transition, passed-point reading across GPS progress, empty-interest/reopen initial position, focus and 44px targets')

@@ -9,7 +9,7 @@ const raw=(end='09:41')=>({locationName:'Letchworth Garden City',crs:'LET',std:'
  {locationName:'Finsbury Park',crs:'FPK',st:'09:34',et:'09:34'},
  {locationName:'London Kings Cross',crs:'KGX',st:'09:41',et:end}]}]});
 async function rail(end='09:41'){
- const a=await createApp({now:NOW,settings:{provider:'demo',signal:true,followRoute:false},saved:{dirMode:'office'}});
+ const a=await createApp({now:NOW,settings:{provider:'demo',followRoute:false},saved:{dirMode:'office'}});
  const t={from:'LET',to:'KGX',std:'09:05',dep:T('09:05'),arr:T('09:41'),operator:'Great Northern',serviceId:'progress-train',
   depLate:0,arrLate:0,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'',
   calls:[{name:'Letchworth Garden City',code:'LET',t:T('09:05')},{name:'Stevenage',code:'SVG',t:T('09:16')},
@@ -54,7 +54,7 @@ test('Signal progress: stale reports freeze the confirmed bar and keep report de
 });
 
 test('Signal progress: an inferred Tube without Follow shows route stops and honest modelled progress',async()=>{
- const a=await createApp({now:NOW,settings:{provider:'demo',signal:true,followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
+ const a=await createApp({now:NOW,settings:{provider:'demo',followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
  Object.assign(s,{here:[51.5201,-.0973],locAcc:30,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false,ald:null});
  s.saved.tubeRide={hub:'KGX',from:'KGX',t:NOW-3*60000,line:'Met',vehicle:'tube-progress',rideMs:10*60000,
   stop:'Aldgate',stopGeo:[51.5142,-.0755],picked:true};
@@ -93,7 +93,7 @@ test('Signal progress: fresh endpoint unknown delay is explicit and residual pre
 });
 
 test('Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports',async()=>{
- const a=await createApp({now:NOW,settings:{provider:'demo',signal:true,followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
+ const a=await createApp({now:NOW,settings:{provider:'demo',followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
  Object.assign(s,{here:[51.5201,-.0973],locAcc:30,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false});
  s.saved.tubeRide={hub:'KGX',from:'KGX',t:NOW-3*60000,line:'Met',vehicle:'tube-progress',rideMs:10*60000,
   stop:'Aldgate',stopGeo:[51.5142,-.0755],picked:true};

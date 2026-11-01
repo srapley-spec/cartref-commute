@@ -4,15 +4,15 @@ import {createApp,closeAll} from './harness.mjs';
 after(closeAll);
 const NOW=Date.parse('2026-11-03T09:20:00Z');
 async function rail(settings={}){
- const a=await createApp({now:NOW,settings:{provider:'demo',signal:true,alongLine:true,...settings},saved:{dirMode:'office'}});
+ const a=await createApp({now:NOW,settings:{provider:'demo',alongLine:true,...settings},saved:{dirMode:'office'}});
  const t={from:'LET',to:'KGX',std:'09:05',dep:NOW-15*60000,arr:NOW+20*60000,operator:'Great Northern',serviceId:'along-train',depLate:0,arrLate:0,depUnknown:false,arrUnknown:false,cancelled:false,platform:'2',reason:'',calls:[{code:'LET',name:'Letchworth',t:NOW-15*60000},{code:'KGX',name:'King’s Cross',t:NOW+20*60000}]};
  Object.assign(a.c.state,{boards:{'LET-KGX':{services:[t],msgs:[]}},boardsAt:NOW,railSource:'darwin',boardsDir:'office',here:[51.8158,-.1972],locAcc:10,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:true,atHub:null,inLondon:false,trainLock:{from:'LET',std:t.std,operator:t.operator,serviceId:t.serviceId,picked:true}});
  a.c.render();return a;
 }
-test('Along UI: default off and enabled on-train entry work independently of Signal and Follow',async()=>{
+test('Along UI: default off and enabled on-train entry work independently of Follow',async()=>{
  const off=await rail({alongLine:false});assert.equal(off.d.querySelector('#alongEntry').hidden,true);assert.ok(!off.d.querySelector('#alongLine').open);off.close();
- for(const signal of [false,true]){
-  const a=await rail({signal,followRoute:false});assert.equal(a.d.querySelector('#alongEntry').hidden,false);
+ for(const appearance of ['light','dark']){
+  const a=await rail({appearance,followRoute:false});assert.equal(a.d.querySelector('#alongEntry').hidden,false);
   a.d.querySelector('#alongEntry').click();assert.equal(a.d.querySelector('#alongLine').open,true);
   assert.match(a.text('#alongJourney'),/Great Northern/);assert.match(a.text('#alongEvidence'),/Approximate position/);
   assert.equal(a.d.querySelector('[data-point="digswell"]').dataset.featured,'true');
@@ -60,7 +60,7 @@ test('Along UI: toggle persists without feed requests and removes the entry imme
  assert.deepEqual(a.errors,[]);a.close();
 });
 test('Along UI: browse remains available from Settings without claiming a live position',async()=>{
- const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,signal:true}});
+ const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true}});
  a.d.querySelector('#settingsBtn').click();assert.equal(a.d.querySelector('#alongEntry').hidden,false);
  a.d.querySelector('#alongBrowse').click();assert.equal(a.d.querySelector('#alongLine').open,true);
  assert.match(a.text('#alongJourney'),/Browse/);assert.match(a.text('#alongEvidence'),/current position unavailable/);
@@ -86,9 +86,9 @@ test('Along UI: travel disruption remains visible, stale arrival is qualified an
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('Along UI: enabled navigation stays below the heading before boarding in either design',async()=>{
- for(const signal of [false,true]){
-  const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,signal,followRoute:false},saved:{dirMode:'office'}});
+test('Along UI: enabled navigation stays below the heading before boarding in either appearance',async()=>{
+ for(const appearance of ['light','dark']){
+  const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,appearance,followRoute:false},saved:{dirMode:'office'}});
   const entry=a.d.querySelector('#alongEntry'),nav=a.d.querySelector('#alongNavigation');
   assert.equal(entry.hidden,false);assert.equal(nav.hidden,false);
   assert.equal(nav.previousElementSibling.tagName,'HEADER');
@@ -96,8 +96,8 @@ test('Along UI: enabled navigation stays below the heading before boarding in ei
   assert.equal(a.d.querySelector('#alongLine').open,true);assert.match(a.text('#alongJourney'),/Browse/);
   assert.match(a.text('#alongEvidence'),/unavailable or uncertain/);assert.equal(a.d.querySelector('[data-featured="true"]'),null);
   a.d.querySelector('#alongClose').click();
-  a.c.state.saved.settings.signal=!signal;a.c.render();
-  assert.equal(nav.previousElementSibling.tagName,'HEADER','switching designs preserves the navigation position');
+  a.c.state.saved.settings.appearance=appearance==='light'?'dark':'light';a.c.render();
+  assert.equal(nav.previousElementSibling.tagName,'HEADER','changing appearance preserves the navigation position');
   assert.equal(entry.hidden,false);assert.equal(a.c.state.saved.settings.followRoute,false);assert.deepEqual(a.calls,before);
   a.c.state.saved.settings.alongLine=false;a.c.render();assert.equal(nav.hidden,true);assert.equal(entry.hidden,true);
   assert.deepEqual(a.errors,[]);a.close();

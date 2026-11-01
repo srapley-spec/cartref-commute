@@ -24,7 +24,7 @@ at Letchworth right now; in Auto, the options for leaving, as now". He then agre
 Later the same evening, Sam's live screenshot exposed missing durations and the arrival-first indication, despite
 their presence in planning. He required the same information in every view and an always-enforced SDLC rule that
 all supported designs advance together. That decision supersedes this story's original Signal-only delivery:
-Panda and Signal share Auto / Plan / Live, with the Follow setting still independent. The long explanation of
+Signal now retains Auto / Plan / Live with the Follow setting still independent; Panda was retired on 1 Nov. The long explanation of
 “No journey under way” is replaced by the short hint “Auto shows when to leave.”
 
 ## Acceptance criteria
@@ -85,8 +85,7 @@ Panda and Signal share Auto / Plan / Live, with the Follow setting still indepen
 - **Heading:** "Live · departures from <stations> · HH:MM" (· timetable when not live), with the short hint
   "Auto shows when to leave." Do not repeat a paragraph explaining what the departures board is.
 - **Location unknown:** unchanged: "Finding your location" / "Location needed"; no board, never assumes home.
-- No new requests, saved data or settings. Auto / Plan / Live and the board behavior are shared by Panda and
-  Signal; Follow remains independently configurable. No new toggle (Sam, 31 Oct).
+- No new requests, saved data or settings. Auto / Plan / Live and the board behavior are always available in Signal; Follow remains independently configurable. No new toggle (Sam, 31 Oct).
 
 ## Tests
 - tests/core/stationBoard.test.mjs: "nextStops: each route's first boarding point, once each, in route order"
@@ -114,8 +113,8 @@ Panda and Signal share Auto / Plan / Live, with the Follow setting still indepen
 - tests/signal.test.mjs: "manual Live with no active journey is explicit and does not invent a train"
 
 The duration/ranking/copy refinement is also covered by the mandatory real-page
-[design × surface contract](../../tests/ui-parity.test.mjs), its
-[independent regressions](../../tests/ui-parity-review.test.mjs) and the shared
+[design × surface contract](../../tests/journey-views.test.mjs), its
+[independent regressions](../../tests/journey-facts-review.test.mjs) and the shared
 [journey-facts unit tests](../../tests/core/journeyFacts.test.mjs). Executed release evidence is recorded separately;
 the new contract's presence alone is not a passing result.
 

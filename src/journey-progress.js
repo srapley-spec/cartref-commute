@@ -39,8 +39,6 @@ function progressHtml(model){
 function renderJourneyProgress(){
   document.querySelectorAll('.journey-progress').forEach(node=>node.remove());
   if(state.rendered){state.rendered.progressModel=null;state.rendered.activeRailDisruption=null;}
-  const drawProgress=!!S().signal;
-  if(!drawProgress&&S().alongLine!==true)return;
   const now=Date.now(),dir=direction(),mode=currentMode();
   if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
   const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
@@ -139,7 +137,6 @@ function renderJourneyProgress(){
   if(context.kind==='tube'&&model.status.deltaMin!==null)model.status.text=model.status.text.replace('ahead','ahead of plan').replace('behind','behind plan');
   state.rendered.progressModel=model;
   // Along the line shares validated reports in Panda without drawing the Signal diagram.
-  if(!drawProgress)return;
   const section=document.createElement('section');section.className='journey-progress';section.dataset.block='progress';section.dataset.source=model.source;section.setAttribute('aria-label','Journey progress');section.innerHTML=progressHtml(model);
   // Keep full legacy report/expected/timetable/error diagnostics accessible once,
   // without repeating their prose above the visual progress view.

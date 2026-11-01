@@ -36,8 +36,7 @@ viaduct is beneath the passenger, rather than a promise of seeing its arches. Hi
 conflict explains the flyover without claiming that a London-bound service traverses it.
 
 ## Acceptance criteria
-- **Settings → Experimental → Along the line** is an independent boolean, off by default. It works with Signal
-  or Panda and does not silently enable Signal or Follow. Disabling it immediately removes its entry and closes
+- **Settings → Experimental → Along the line** is an independent boolean, off by default. It works independently of Follow in the sole Signal design. Disabling it immediately removes its entry and closes
   the view. Existing settings, train identity, followed journey, direction, pace and location watches are retained.
 - With the flag enabled, show one clearly labelled **Along the line ›** navigation action directly below the
   app heading, in both designs. Keep it accessible while scrolling and across simulator checkpoints, including
@@ -80,7 +79,7 @@ conflict explains the flyover without claiming that a London-bound service trave
   or no matching highlights ahead. A hidden followed journey from another direction/mode, an arrived journey,
   or a stopped/replaced selection cannot seed a new route scope.
 - Keep train identity, expected endpoint arrival and the current canonical train/total durations in the view; use the shared disruption model to retain
-  significant journey disruption text in both Signal and Panda, and
+  significant journey disruption text, and
   access to the main journey. No commentary notifications, sound or live regions repeatedly announce landmarks.
 - No new requests, dependencies, API keys, GPS watches or background polling. Once the app has loaded, stories
   are bundled and work without connectivity. This does not add installation/offline app-shell caching.
@@ -88,19 +87,17 @@ conflict explains the flyover without claiming that a London-bound service trave
 ## Implementation and validation
 `src/core/alongLine.ts` is pure: explicit time, evidence, geometry, preferences and content are injected.
 `src/core/profiles/samAlongLine.ts` supplies bespoke content/route anchors; `src/along-line.js` only adapts the
-existing journey/phone state and renders the model. `src/along-line.css` is an isolated Signal surface, including
-when Panda surrounds it. `settings.alongLine` is additive; validated interests/depth live in the separate
-`alongLinePreferences` saved field. With Along the line enabled, Panda also computes the existing qualified
-journey-progress model for station times and current-service disruption evidence, but draws no Signal diagram.
-Signal and Along the line both off preserve the original Panda model path. Existing save/simulation snapshot rules apply; old data is not migrated or
-removed. Native dialog state and manual following are session-only.
+existing journey/phone state and renders the model. `src/along-line.css` supplies its companion geometry.
+`settings.alongLine` is additive; validated interests/depth live in the separate `alongLinePreferences` saved
+field. It consumes the same qualified journey-progress model as the main Signal view. Existing save/simulation
+snapshot rules apply; no new requests or Follow opt-in. Native dialog state and manual following are session-only.
 
 ## Tests
 - tests/core/alongLine.test.mjs: "Along: Welwyn is shared, interests and depth are independent, and malformed preferences are safe"
 - tests/core/alongLine.test.mjs: "Along: route and direction scope points without claiming the wrong tunnel or flyover"
 - tests/core/alongLine.test.mjs: "Along: weak stale future off-route or uncertain evidence cannot produce live landmark prompts"
 - tests/core/alongLine.test.mjs: "Along: the model does not mutate frozen observations or invent times and window sides"
-- tests/along-line.test.mjs: "Along UI: default off and enabled on-train entry work independently of Signal and Follow"
+- tests/along-line.test.mjs: "Along UI: default off and enabled on-train entry work independently of Follow"
 - tests/along-line.test.mjs: "Along UI: reading depth interests and expanded articles survive updates without losing journey state"
 - tests/along-line.test.mjs: "Along UI: manual scrolling pauses follow and back to now resumes it; all stories stay available"
 - tests/along-line.test.mjs: "Along UI: toggle persists without feed requests and removes the entry immediately when disabled"
@@ -108,17 +105,17 @@ removed. Native dialog state and manual following are session-only.
 
 - tests/along-line.test.mjs: "Along UI: travel disruption remains visible, stale arrival is qualified and changed journeys reset the strip"
 
-- tests/along-line-review.test.mjs: "independent: Panda active train severe delay remains visible in commentary"
+- tests/along-line-review.test.mjs: "independent: Signal active train severe delay remains visible in commentary"
 - tests/along-line-review.test.mjs: "independent: Back to now updates the frozen position when a story is open"
 - tests/along-line-review.test.mjs: "independent: route reference stations never invent midnight calling times"
 - tests/along-line-review.test.mjs: "independent: one glance article can reveal the full story without changing global depth"
 - tests/core/alongLine-review.test.mjs: "independent: approximate landmark areas include nearby positions rather than just exact anchors"
 - tests/core/alongLine-review.test.mjs: "independent: the GPS uncertainty buffer changes only the nearby boundary within the accepted fix limit"
 
-- tests/along-line-review.test.mjs: "independent: Panda commentary promotes a fresh delayed Service Details report over its older on-time board"
+- tests/along-line-review.test.mjs: "independent: Signal commentary promotes a fresh delayed Service Details report over its older on-time board"
 
 - tests/along-line-review.test.mjs: "independent: a northbound journey reverses the strip and a corridor change resets tunnel content"
-- tests/along-line-review.test.mjs: "independent: Panda commentary rejects stale and mismatched reports and preserves explicit current incidents"
+- tests/along-line-review.test.mjs: "independent: Signal commentary rejects stale and mismatched reports and preserves explicit current incidents"
 
 Chromium geometry checks: [browser-along-line.py](../../tests/browser-along-line.py), run after building.
 These exercise 320/390px, explicit and device light/dark (with actual palette assertions), 15/30px body text,
@@ -145,7 +142,7 @@ harness; production ranking and timing rules are unchanged.
 PR #43 landed during validation. Its shared Auto/Plan/Live controls and journey facts are retained.
 The commentary header consumes the same canonical option, expected rail endpoint and already-computed
 whole-journey arrival through `journeyFactsMarkup`; no second timing calculation is introduced.
-The mandatory registry includes `along-the-line`, exercised for both Panda and Signal with default-off,
+The original two-design release exercised `along-the-line` for both Panda and Signal with default-off,
 visible duration/disruption/story facts, stale location and unknown timing. The earlier independent source
 approval remains recorded above. The follow-up independently approved reconciled source `76db650`; its
 12 facts/composition checks, both new parity tuples and Chromium checks are recorded in the same
@@ -168,7 +165,7 @@ A real guided-journey reproduction confirmed the entry was hidden until the on-t
 root-child reordering placed the button above its header when it finally appeared. The enabled feature now
 has persistent explicit navigation below the header; GPS/identity still gate live commentary, not access.
 
-- tests/along-line.test.mjs: "Along UI: enabled navigation stays below the heading before boarding in either design"
+- tests/along-line.test.mjs: "Along UI: enabled navigation stays below the heading before boarding in either appearance"
 
 Sam clarified the complete journey line must stay browsable: while crossing Welwyn, he should be able to scroll
 back to Hitchin and read about the junction. All route points now remain in the strip regardless of selected
@@ -182,3 +179,6 @@ source, direction or real corridor/endpoints changes start a new view. Live cues
 The real opt-in and guided simulator regression is [browser-along-access.py](../../tests/browser-along-access.py).
 It checks Home through Stevenage in both designs at 320/390px, visible navigation, browse/onboard transitions,
 passed Hitchin reading across a further GPS checkpoint, focus return and 44px targets.
+
+Panda and its design-parity registry were retired on 1 Nov. The Along the line functional regressions remain
+in the ordinary suite, including the renamed `tests/journey-views.test.mjs`.

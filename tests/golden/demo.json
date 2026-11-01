@@ -1,11 +1,15 @@
 {
  "load": {
-  "dirNote": "Heading to the office · you're near Letchworth (±12 m)",
+  "dirNote": "Location: you're near Letchworth (±12 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "statusSummary": "1 train cancelled on your route · Example trains",
+  "significantDisruptions": "1 train cancelled on your routeCancelled: 07:51 Thameslink: This train has been cancelled because of a shortage of…Full detailsCancelled: 07:51 Thameslink: This train has been cancelled because of a shortage of train crew (example)",
   "banners": [
    "Example trainsTimes below are made up to show the layout. Choose a live source in Settings.",
    "1 of your trains cancelled07:51 Letchworth → Farringdon: This train has been cancelled because of a shortage of train crew (example)"
   ],
-  "hero": "If you leave now · 07:00 · best, and the next best Leave07:11 → Arrive office08:40 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Arrives first · walking On time Journey steps07:11Leave Cartref · walk 22 min07:3707:37 Great Northern from Letchworth · platform 108:12Arrive King's Cross · 35 min on the train, change 7 min08:21Circle or Met to Aldgate · ~10 min, allows 3 min wait08:40Arrive office · walk 7 min Arrives first if you run: the 07:21 Thameslink leaves Letchworth, train departs in 20m 55s — 47 min train; office 08:30, 10 min sooner than the 07:37. Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "If you leave now · 07:00 · best, and the next best Leave07:11 → Arrive office08:40 via King's CrossCircleMet 07:37 Great Northern · platform 1 · 35 min train · total 1h 28m · leave in 11m 38s Arrives first · walking On time Journey steps07:11Leave Cartref · walk 22 min07:3707:37 Great Northern from Letchworth · platform 108:12Arrive King's Cross · 35 min on the train, change 7 min08:21Circle or Met to Aldgate · ~10 min, allows 3 min wait08:40Arrive office · walk 7 min Arrives first if you run: the 07:21 Thameslink leaves Letchworth, train departs in 20m 55s — 47 min train; office 08:30, 10 min sooner than the 07:37.",
   "rows": [
    "Leave06:41 via King's CrossCircleMet 07:07 Great Northern · platform 1 · 35 min train · total 1h 28m · train departs in 6m 55s Can't make it On time Arrive08:10",
    "Leave06:55 via Farringdon or St PancrasCircleMet 07:21 Thameslink · platform 1 · 47 min train · total 1h 35m · train departs in 20m 55s Get off at St Pancras 08:04 or Farringdon 08:08 Arrives first · if you run On time Arrive08:30",

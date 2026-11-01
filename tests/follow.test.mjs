@@ -6,7 +6,7 @@ import {services,tflResponder,darwinResponder} from './golden/feeds.mjs';
 after(closeAll);
 const MIN=60e3,DAY='2026-11-03',NOW=at(DAY,'07:00');
 const plain=x=>JSON.parse(JSON.stringify(x));
-const demo=async(extra={})=>createApp({now:NOW,settings:{provider:'demo',followRoute:true,signal:true},saved:{dirMode:'office'},...extra});
+const demo=async(extra={})=>createApp({now:NOW,settings:{provider:'demo',followRoute:true},saved:{dirMode:'office'},...extra});
 function pick(a,match=o=>o.recommended===1){
  const entry=[...a.c.followChoices].find(([,o])=>match(o));assert.ok(entry,'real app offers requested journey');
  const button=[...a.d.querySelectorAll('[data-follow]:not([disabled])')].find(b=>b.dataset.follow===entry[0]);assert.ok(button,'journey has enabled Follow action');button.click();
@@ -74,17 +74,17 @@ test('follow page: malformed saved journey is ignored without breaking the rest 
  }
 });
 
-test('follow page: Signal to Panda and reload retain route, full steps and planning question',async()=>{
- const a=await demo(),r=pick(a);settings(a,{signal:false,followRoute:true});await sleep(60);
- assert.equal(a.d.documentElement.dataset.design,'panda');assert.equal(a.c.state.saved.followRoute.id,r.id);assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),r.option.legs);
- const saved=JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1'));a.close();const b=await demo({saved});assert.equal(b.d.documentElement.dataset.design,'panda');assert.equal(b.c.state.saved.followRoute.id,r.id);assert.equal(b.d.querySelector('#followPanel').hidden,false);assert.deepEqual(b.errors,[]);b.close();
+test('follow page: appearance changes and reload retain route, full steps and planning question',async()=>{
+ const a=await demo(),r=pick(a);settings(a,{appearance:'light',followRoute:true});await sleep(60);
+ assert.equal(a.d.documentElement.dataset.design,'signal');assert.equal(a.c.state.saved.followRoute.id,r.id);assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),r.option.legs);
+ const saved=JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1'));a.close();const b=await demo({saved});assert.equal(b.d.documentElement.dataset.design,'signal');assert.equal(b.c.state.saved.followRoute.id,r.id);assert.equal(b.d.querySelector('#followPanel').hidden,false);assert.deepEqual(b.errors,[]);b.close();
 });
 
 test('follow page: changing presentation and rendering adds no transport calls or clears no cached boards',async()=>{
  const a=await createApp({now:NOW,settings:{provider:'tfl',tflKey:'test',followRoute:true},saved:{dirMode:'office'},settle:600});
  const r=pick(a),count=a.calls.length,boards=a.c.state.boards;
  a.c.render();a.c.render();assert.equal(a.calls.length,count);
- settings(a,{signal:true,followRoute:true,appearance:'dark'});await sleep(60);
+ settings(a,{followRoute:true,appearance:'dark'});await sleep(60);
  assert.equal(a.calls.length,count,'design-only preference never fetches transport again');assert.equal(a.c.state.boards,boards,'same feed cache survives appearance change');assert.equal(a.c.state.saved.followRoute.id,r.id);assert.equal(a.d.documentElement.dataset.theme,'dark');assert.deepEqual(a.errors,[]);a.close();
 });
 

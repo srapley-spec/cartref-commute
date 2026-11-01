@@ -14,8 +14,7 @@ const pad = (n) => String(n).padStart(2, "0");
 const hm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const OFFICE = { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } };
-// CARTREF_DESIGN=signal re-runs these rules in the Signal design (tests/both-designs.test.mjs).
-const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k", ...(process.env.CARTREF_DESIGN === "signal" ? { signal: true } : {}) };
+const RDM = { provider: "rdm", rdmKey: "k", rdmBase: "https://darwin.test/LDBWS/api/20220120", tflKey: "k" };
 const st = (id, name, sev = 10, desc = "Good Service") => ({ id, name, lineStatuses: [{ statusSeverity: sev, statusSeverityDescription: desc }] });
 
 /** A fresh app on the deterministic railway. `tube`: [circleSev, metSev]. `fail(u)` returns a status code to fail a request. */
@@ -545,10 +544,10 @@ test("Going home, 30 Oct 18:24: at Aldgate the card plans from the platform, not
   const first = c.ranked(Date.now()).find(o => o.recommended === 1), atDesk = leaveFor(first);
   assert.match(app.text("#hero"), /Leave office/);
   await app.moveTo(51.5142, -0.0755, 7);                                  // on the platform at Aldgate, ±7 m
-  if (process.env.CARTREF_DESIGN === "signal") {
+  {
     assert.match(app.text("#dirNote"), /^Location: .*at Aldgate \(±7 m\)/i);
     assert.match(c.state.autoSrc, /^you're at Aldgate \(±7 m\)/, "Signal retains the phone's actual location interpretation");
-  } else assert.match(app.text("#dirNote"), /^Heading home · you're at Aldgate \(±7 m\)/);
+  }
   assert.equal(leaveFor(first), atDesk + 420e3, "the 7-minute walk from the office is gone; the platform walk stays");
   const steps = c.routesFor("home", "commute", { here: true });
   assert.ok(steps.every(r => /^You're at Aldgate: go to the platform/.test(r.before[0].step.d)), steps.map(r => r.before[0].step && r.before[0].step.d).join());
@@ -1158,7 +1157,7 @@ test("Whole evening, 30 Oct: desk, Aldgate, underground, Moorgate, Farringdon �
   const MOORGATE = [51.5186, -0.0886], FARRINGDON = [51.5203, -0.1053];
   const { app, c } = await homeApp(T("16:30"));
   const fromOffice = () => /Leave office|leave the office/.test(app.text("#hero"));
-  assert.equal(app.d.documentElement.dataset.design, process.env.CARTREF_DESIGN === "signal" ? "signal" : "panda", "the design under test");
+  assert.equal(app.d.documentElement.dataset.design, "signal", "the design under test");
   await app.fix(...OFFICE_PT, 15, T("16:30"));
   assert.ok(fromOffice(), "at the desk: timed from the office");
   await app.fix(...ALD, 7, T("16:44"));                                // on the platform at Aldgate
@@ -1638,14 +1637,14 @@ test("Train stop review 2: timed by when the phone took the fix, so a fix that a
   app3.close();
 });
 
-// ---------- Both designs (Sam, 31 Oct: everything from 30 Oct must work in Panda and in Signal) ----------
-const designSettings = (design) => design === "signal" ? { ...RDM, signal: true } : RDM;
+// ---------- Signal: Tube regression scenarios in both appearances ----------
+const designSettings = (appearance) => ({...RDM,appearance});
 const btnText = (app) => [...app.d.querySelectorAll("#hero [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
 
 async function kingsCrossCardScenario(design) {
     const DS = designSettings(design);
     const app = await open({ now: T("08:38") + 50e3, geo: null, settings: DS, saved: { dirMode: "office", pace: "fast" } }), c = app.c;
-    assert.equal(app.d.documentElement.dataset.design, design);
+    assert.equal(app.d.documentElement.dataset.design, "signal");
     await app.fix(51.5420, -0.1180, 30, T("08:38") + 50e3, 15);
     await app.fix(...KX, 20, T("08:40"), 6);
     await app.fix(...KX, 20, T("08:40") + 30e3, 0);
@@ -1700,9 +1699,9 @@ async function aldgateHomeScenario(design) {
     assert.match(app.text("#hero"), /On a different tube\?\s*Met Amersham · left 7 min ago/);
     app.close();
   }
-test("Both designs (panda): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("panda"));
-test("Both designs (signal): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("signal"));
-test("Both designs (panda): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("panda"));
-test("Both designs (signal): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("signal"));
-test("Both designs (panda): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("panda"));
-test("Both designs (signal): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("signal"));
+test("Signal (light): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("light"));
+test("Signal (dark): King's Cross card — walk from the train stopping, the line's colour, board-style buttons", () => kingsCrossCardScenario("dark"));
+test("Signal (light): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("light"));
+test("Signal (dark): GPS quiet underground — the H&C you caught, in its colour; others by how long ago they left", () => quietUndergroundScenario("dark"));
+test("Signal (light): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("light"));
+test("Signal (dark): going home at Aldgate — the combined list with platforms; on the tube, its colour and 'left N min ago'", () => aldgateHomeScenario("dark"));

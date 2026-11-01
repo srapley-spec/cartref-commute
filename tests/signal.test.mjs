@@ -6,41 +6,18 @@ const NOW=Date.parse('2026-11-03T10:00:00Z');
 const app=(settings={},saved={})=>createApp({now:NOW,settings:{provider:'demo',...settings},saved});
 const click=(a,mode)=>a.d.querySelector(`[data-journey-view="${mode}"]`).click();
 
-test('Signal off preserves Panda and exposes the shared Auto Plan Live controls',async()=>{
+test('Signal is the default with Auto Plan Live and independently disabled Follow',async()=>{
   const a=await app();
-  assert.equal(a.d.documentElement.dataset.design,'panda');
+  assert.equal(a.d.documentElement.dataset.design,'signal');
+  assert.equal(a.d.querySelector('#s_signal'),null);
   assert.equal(a.d.querySelector('#journeyViewControl').hidden,false);
   for(const mode of ['auto','plan','live'])assert.ok(a.d.querySelector(`[data-journey-view="${mode}"]`));
-  assert.equal(a.d.querySelector('#signalStatus').hidden,true);
+  assert.equal(a.d.querySelector('#signalStatus').hidden,false);
+  assert.ok(a.d.querySelector('#dirNote'));
+  assert.equal(a.d.querySelector('#dirNote').closest('details'),null,'location remains outside the collapsed options');
+  assert.match(a.text('#dirNote'),/^Location:/);
   assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
   assert.deepEqual(a.errors,[]);a.close();
-});
-test('Signal preserves every journey field and request while compacting Panda content',async()=>{
-  const a=await app(),b=await app({signal:true});
-  for(const id of ['#list','#banners','#diagBody'])assert.equal(a.text(id),b.text(id),id);
-  // Signal deliberately keeps a visible location diagnostic independent of the
-  // direction control; Panda keeps its existing automatic-direction sentence.
-  assert.equal(a.text('#dirNote'),`Heading to the office · ${a.c.state.autoSrc}`);
-  assert.equal(b.text('#dirNote'),`Location: ${b.c.state.autoSrc}`);
-  assert.equal(a.c.state.autoSrc,b.c.state.autoSrc,'both designs retain the same phone-location interpretation');
-  assert.deepEqual([...a.c.state.here],[...b.c.state.here]);
-  assert.equal(a.c.state.locAcc,b.c.state.locAcc);
-  assert.equal(b.d.querySelector('#dirNote').closest('details'),null,'the Signal diagnostic is visible without expanding controls');
-  // Geometry changes, but every original text node survives: fallback timing moves
-  // into its summary and the line strip moves into the full network disclosure.
-  const fields=(page,selectors)=>selectors.flatMap(selector=>{
-    const node=page.d.querySelector(selector);if(!node)return [];
-    const walker=page.d.createTreeWalker(node,4),out=[];
-    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service,.signal-alt-facts,.signal-alt-comparison')){
-      const text=walker.currentNode.textContent.replace(/\s+/g,' ').trim();if(text)out.push(text);
-    }
-    return out;
-  }).sort();
-  assert.deepEqual(fields(a,['#hero']),fields(b,['#hero','#signalCurrentLines']));
-  assert.deepEqual(a.calls,b.calls);
-  assert.equal(b.d.documentElement.dataset.design,'signal');
-  assert.equal(b.d.querySelector('#journeyViewControl').hidden,false);
-  assert.deepEqual(b.errors,[]);a.close();b.close();
 });
 test('Signal status summary follows actual engine warning precedence and handles loading',async()=>{
   const a=await app({signal:true});
@@ -62,7 +39,7 @@ test('Signal keeps example and timetable provenance visible when train warnings 
   assert.deepEqual(a.errors,[]);a.close();
 });
 test('manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation',async()=>{
-  const a=await app({signal:true,followRoute:true});
+  const a=await app({followRoute:true});
   a.c.state.onLine=true;a.c.render();
   assert.equal(a.c.state.presentation.view,'on-train');
   const selected={hub:'KGX',t:NOW+300000,line:'Circle',vehicle:'v1'};
@@ -125,14 +102,14 @@ test('expanded journey steps defer navigation and keep disclosure and focus thro
   a.d.querySelector('#hero details.steps').open=false;a.d.activeElement.blur();a.c.render();
   assert.equal(a.c.state.presentation.view,'on-train');a.close();
 });
-test('appearance and design settings persist independently of journey state',async()=>{
-  const a=await app({signal:true,appearance:'dark'});
+test('appearance settings persist independently of journey state',async()=>{
+  const a=await app({appearance:'dark'});
   assert.equal(a.d.documentElement.dataset.theme,'dark');
   click(a,'plan');const pin=JSON.stringify(a.c.state.saved.viewOverride);
   a.c.state.saved.settings.appearance='light';a.c.render();
   assert.equal(a.d.documentElement.dataset.theme,'light');assert.equal(JSON.stringify(a.c.state.saved.viewOverride),pin);
-  a.c.state.saved.settings.signal=false;a.c.state.saved.settings.followRoute=true;a.c.render();
-  assert.equal(a.d.documentElement.dataset.design,'panda');assert.equal(JSON.stringify(a.c.state.saved.viewOverride),pin);
+  a.c.state.saved.settings.followRoute=true;a.c.render();
+  assert.equal(a.d.documentElement.dataset.design,'signal');assert.equal(JSON.stringify(a.c.state.saved.viewOverride),pin);
   a.c.state.saved.settings.appearance='system';a.c.render();assert.equal(a.d.documentElement.hasAttribute('data-theme'),false);
   assert.deepEqual(a.errors,[]);a.close();
 });
@@ -143,7 +120,7 @@ test('corrupt view persistence is ignored without changing existing saved prefer
 });
 
 test('unchanged followed-route refresh preserves the existing disclosure and action nodes',async()=>{
-  const a=await app({signal:true,followRoute:true});
+  const a=await app({followRoute:true});
   a.d.querySelector('[data-follow]:not([disabled])').click();
   const action=a.d.querySelector('[data-follow-action="stop"]'),detail=a.d.querySelector('#followPanel details');
   detail.open=true;a.c.render();

@@ -1,5 +1,9 @@
 # Cartref — Signal design system
 
+Current implementation (1 Nov 2026): Signal is the only design. Panda is archived, and the Signal switch and
+cross-design parity rule are removed. Follow is still an independent preference. [Retirement and audit](panda-retirement-review.md)
+supersedes older references below to Panda as live, implementation pending, or design on/off restoration.
+
 Signal selected by Sam, 29 October 2026; production implementation behind Settings → Experimental (independent review approved; release gates recorded in docs/signal-testing.md). iPhone-first, with automatic light/dark appearance and manual appearance overrides. Planning and live views switch automatically, with a manual override. Sam selected the newer Follow a route behavior on 30 October; its 20-minute/situation-change override replaces the earlier journey-scoped lifetime.
 
 ## Start here
@@ -19,7 +23,7 @@ The HTML is a review simulation. Consume the tokens and component contracts; do 
 Every supported design and applicable UI view receives a feature or correction in the same change. Designs may
 use different geometry, but must expose the same journey identity, timing, duration, ranking meaning, warnings,
 uncertainty and actions. A design switch is not a waiver. A UI remains supported until Sam explicitly retires it;
-the [mandatory parity gate](stories/ui-parity.md) covers the registered designs and surfaces on every release.
+the [mandatory parity gate](stories/journey-facts.md) covers the registered designs and surfaces on every release.
 
 Show train duration and total journey duration from the same existing itinerary wherever that journey is shown:
 planning, Live departures, station cards/lists and Follow. “Arrives first” retains the engine's existing earliest

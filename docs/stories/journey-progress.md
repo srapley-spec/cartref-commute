@@ -46,8 +46,7 @@ status-colour rule; Signal uses its own tokens and blue identity/accent.
 - Keep the compact Signal hierarchy. Diagrams and call labels wrap without clipping at phone widths and
   enlarged text. Progress/accent identity is blue or the named Tube line's identity colour; green/amber/red
   communicate service status under the shared rules.
-- Signal off preserves Panda's layout, route choices, requests, controls and saved preferences. Shared agreed
-  disruption-policy corrections still apply to both designs.
+- Signal progress is always available in applicable live views; Follow and Along the line remain independent.
   Independent engine/integration review is required because the progress model is more than a CSS change.
 
 ## Tests
@@ -107,10 +106,10 @@ claim for every configured intermediate station.
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: an otherwise fresh arrival report preserves a current cancellation until the board explicitly recovers"
 
 ## Shared model for Along the line
-When Along the line is enabled, Panda computes this same qualified model for commentary station times and
-significant current-service disruption. It returns before creating diagram DOM. This prevents a newer delayed
-Service Details report being hidden behind an older on-time board, while retaining the existing identity,
-freshness, cancellation and no-estimate guards. With both features off, Panda remains on its original path.
+Along the line consumes the same qualified progress model for commentary station times and significant
+current-service disruption. This prevents a newer delayed Service Details report being hidden behind an older
+on-time board, while retaining identity, freshness, cancellation and no-estimate guards. Signal draws the diagram
+independently of whether Along the line or Follow is enabled.
 
 ## Limits
 - Calling-point reports are not continuous location reports. Passing points still require the separate data

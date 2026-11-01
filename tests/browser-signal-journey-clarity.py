@@ -478,12 +478,12 @@ def persistence_case(page, prefix):
     page.reload()
     page.wait_for_function('!!window.__commute && !!__commute.state.saved.followRoute')
     assert page.evaluate('__commute.state.saved.followRoute.id') == selected, (prefix, 'Reload lost the followed route')
-    for on in [False, True]:
+    for theme in ['light', 'dark']:
         page.locator('#settingsBtn').click()
-        page.locator('#s_signal').set_checked(on)
+        page.select_option('#s_appearance', theme)
         page.locator('#saveBtn').click()
         page.wait_for_function("!document.querySelector('#settings').open && !__commute.state.loading && !__commute.state.again")
-        assert page.evaluate('document.documentElement.dataset.design') == ('signal' if on else 'panda')
+        assert page.evaluate('document.documentElement.dataset.design') == 'signal'
         assert page.evaluate('__commute.state.saved.followRoute.id') == selected
     page.locator('[data-follow-action="stop"]').click()
     assert not page.locator('#followPanel').is_visible()

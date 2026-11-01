@@ -379,6 +379,10 @@ test("Platform is on the card and the list without expanding; with two boarding 
     assert.match(s, /Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
     assert.doesNotMatch(s, /Thameslink · platform/);
   }
+  const next=app.d.querySelector('.signal-alternative>summary');
+  assert.ok(next,'the second train uses the actual compact summary');
+  assert.match(next.textContent,/Board at Farringdon \d\d:\d\d platform 4 or St Pancras \d\d:\d\d platform B/);
+  assert.doesNotMatch(next.textContent,/Thameslink · platform/);
 });
 
 test("Disruption banners say they're about trains now when the plan on screen is later", () => {

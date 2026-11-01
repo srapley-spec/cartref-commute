@@ -9,7 +9,7 @@ const evening=Date.parse('2026-11-03T18:00:00Z');
 const morning=Date.parse('2026-11-03T07:00:00Z');
 const plain=x=>JSON.parse(JSON.stringify(x));
 async function demo({now=morning,saved={dirMode:'office'},geo,...extra}={}){
- return createApp({now,saved,geo,settings:{provider:'demo',signal:true,followRoute:true},...extra});
+ return createApp({now,saved,geo,settings:{provider:'demo',followRoute:true},...extra});
 }
 function follow(a,predicate=o=>o.recommended===1){
  const entry=[...a.c.followChoices].find(([,o])=>predicate(o));assert.ok(entry,'requested real journey is available');

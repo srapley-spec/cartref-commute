@@ -16,7 +16,7 @@ test("Near Letchworth: waits for location, then plans to the office", async () =
   assert.equal(pairsFetched(app.calls).length, 0, "no trains loaded before the direction is known");
   app.giveLocation();
   await sleep(500);
-  assert.match(app.text("#dirNote"), /Heading to the office · you're near Letchworth \(±12 m\)/);
+  assert.match(app.text("#dirNote"), /Location: you're near Letchworth \(±12 m\)/);
   assert.deepEqual(pairsFetched(app.calls), ["LET-KGX", "LET-ZFD"]);
   assert.equal(app.rows().length, 6);
   assert.deepEqual(app.errors, []);
@@ -25,7 +25,7 @@ test("Near Letchworth: waits for location, then plans to the office", async () =
 
 test("In London: plans home", async () => {
   const app = await createApp({ geo: IN_LONDON });
-  assert.match(app.text("#dirNote"), /Heading home · you're in London/);
+  assert.match(app.text("#dirNote"), /Location: you're in London/);
   assert.deepEqual(pairsFetched(app.calls), ["KGX-LET", "ZFD-LET"]);
   assert.equal(app.rows().length, 6);
   app.close();
@@ -55,7 +55,7 @@ test("Reaching the office switches direction to home and reloads trains", async 
   app.d.dispatchEvent(new app.w.Event("visibilitychange"));
   await sleep(500);
   app.w.navigator.geolocation.watchPosition = watch;
-  assert.match(app.text("#dirNote"), /Heading home/);
+  assert.match(app.text("#dirNote"), /Location: .*at the office/);
   assert.ok(pairsFetched(app.calls).includes("KGX-LET"));
   assert.match(app.rows()[0] || "", /Leave/);
   app.close();
@@ -349,9 +349,10 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   const feedAt = Date.now();
   const app = await createApp({ geo: NEAR_LETCHWORTH,
     route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(tubeArrivals(feedAt)) : undefined) });
-  assert.match(app.text("#dirNote"), /Heading to the office/);
+  assert.match(app.text("#dirNote"), /Location: .*near Letchworth/);
   await moveTo(app, AT_KINGS_CROSS);
-  assert.match(app.text("#dirNote"), /Heading to the office · you're at King's Cross/, "still heading to work, not flipped to home");
+  assert.equal(app.c.direction(),"office","still heading to work, not flipped to home");
+  assert.match(app.text("#dirNote"), /Location: .*at King's Cross/i);
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · \d\d:\d\d · live tube times/);
   // Default 6 min to the platform: the Circle in 2 min is too soon, so the Met in 8 min is the one.
@@ -434,7 +435,7 @@ test("At King's Cross without live tube times: says so and estimates", async () 
 test("Evening at King's Cross: trains home planned from the station, no walk from the office", async () => {
   const app = await createApp({ geo: IN_LONDON });
   await moveTo(app, AT_KINGS_CROSS);
-  assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
+  assert.match(app.text("#dirNote"), /Location: .*at King's Cross/i);
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · departures · \d\d:\d\d/);
   assert.match(hero, /^You're at King's Cross · departures · .*?Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/, "a departure board: the train, Expected (TfL timetable: not live), arrival");
@@ -462,12 +463,14 @@ test("Live cards say the status of every line on the journey, including good ser
       st("hammersmith-city", "Hammersmith & City", 10, "Good Service")]);
     if (/national-rail\/Status/.test(u)) return json([st("great-northern", "Great Northern", 10, "Good Service"), st("thameslink", "Thameslink", 10, "Good Service")]);
     return undefined; } });
-  assert.match(app.text("#hero"), /Your lines: all good service.*(Great Northern|Thameslink): Good Service.*Circle: Good Service.*Met: Good Service/);
+  app.d.querySelector("#signalNetwork").open=true;
+  assert.match(app.text("#signalCurrentLines"), /Your lines: all good service.*(Great Northern|Thameslink): Good Service.*Circle: Good Service.*Met: Good Service/);
   await moveTo(app, AT_KINGS_CROSS);
-  assert.match(app.text("#hero"), /Your lines: all good service.*Circle: Good Service.*Met: Good Service/);
+  app.d.querySelector("#signalNetwork").open=true;
+  assert.match(app.text("#signalCurrentLines"), /Your lines: all good service.*Circle: Good Service.*Met: Good Service/);
   metSev = 9;
   await app.c.refresh({ force: true, manual: true });
-  const hero = app.text("#hero");
+  const hero = app.text("#signalCurrentLines");
   assert.match(hero, /Your lines Circle: Good Service Met: Minor Delays/);
   assert.match(hero, /Met: Minor delays due to an earlier faulty train/);
   app.close();
@@ -549,11 +552,11 @@ test("After the office, King's Cross means heading home (not back to the office)
   const app = await createApp({ geo: NEAR_LETCHWORTH });
   app.c.state.saved.officeSince = Date.now() - 6 * 60e3;          // at the office for 5+ min
   await moveTo(app, AT_OFFICE);
-  assert.match(app.text("#dirNote"), /Heading home · you're at the office/);
+  assert.match(app.text("#dirNote"), /Location: .*at the office/);
   // Hours later the morning trip has expired; the office visit still counts for today.
   app.c.state.saved.trip = { dir: "office", at: Date.now() - 5 * 3600e3 };
   await moveTo(app, AT_KINGS_CROSS);
-  assert.match(app.text("#dirNote"), /Heading home · you're at King's Cross/);
+  assert.match(app.text("#dirNote"), /Location: .*at King's Cross/i);
   assert.match(app.text("#hero"), /You're at King's Cross/);
   assert.doesNotMatch(app.text("#hero"), /Get on the .* to Aldgate/);
   app.close();

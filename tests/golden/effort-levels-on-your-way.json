@@ -1,8 +1,12 @@
 {
  "load": {
-  "dirNote": "",
+  "dirNote": "Location: you're near Letchworth (±10 m)",
+  "context": "To office · Average pace",
+  "lineStatus": "Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "statusSummary": "Good service on your lines",
+  "significantDisruptions": "",
   "banners": [],
-  "hero": "On your way to Letchworth · 07:14 · best, and the next best At the station about 07:21 · 8 min walk from here at average pace Train07:38 ExpectedOn time At office08:35 via King's CrossCircleMet Great Northern · platform 2 · 29 min train · total 1h 08m · on track · 13 min to spare · train departs in 23m 55s Arrives first Usually standing room only Journey steps07:27Set off from where you are · about 8 min walk to Letchworth station07:3807:38 Great Northern from Letchworth · platform 2Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 7 min08:16Circle or Met to Aldgate · ~10 min, allows 3 min wait08:35Arrive office · walk 7 min Next one you can make: the 07:30 Great Northern — stopping train, 52 min; office 08:50, 15 min later than the 07:38 (office 08:35). Your lines: all good service Great Northern: Good Service Circle: Good Service Met: Good Service",
+  "hero": "On your way to Letchworth · 07:14 · best, and the next best At the station about 07:21 · 8 min walk from here at average pace Train07:38 ExpectedOn time At office08:35 via King's CrossCircleMet Great Northern · platform 2 · 29 min train · total 1h 08m · on track · 13 min to spare · train departs in 23m 55s Arrives first Usually standing room only Journey steps07:27Set off from where you are · about 8 min walk to Letchworth station07:3807:38 Great Northern from Letchworth · platform 2Calls at · Letchworth 07:38 · Hitchin 07:42 · Stevenage 07:47 · Finsbury Park 08:01 · King's Cross 08:0708:07Arrive King's Cross · 29 min on the train, change 7 min08:16Circle or Met to Aldgate · ~10 min, allows 3 min wait08:35Arrive office · walk 7 min Next one you can make: the 07:30 Great Northern — stopping train, 52 min; office 08:50, 15 min later than the 07:38 (office 08:35).",
   "rows": [
    "Train07:20ExpectedOn time via Farringdon or St PancrasCircleMet Thameslink · platform 2 · 44 min train · total 1h 17m · train departs in 5m 55s Get off at St Pancras 07:59 or Farringdon 08:04 Can't make it Arrive08:26",
    "Train07:30ExpectedOn time via King's CrossCircleMet Great Northern · platform 2 · 52 min train · total 1h 31m · train departs in 15m 55s Stopping train Arrive08:50",

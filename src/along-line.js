@@ -107,7 +107,7 @@ function renderAlongLine(resumePosition=false){
     facts.innerHTML=journeyFactsMarkup(context.option||null,{train:{...context.train,arr:context.arrival??null},arrival:context.finalArrival??null});
     $('#alongJourney').append(facts);
   }
-  const impacts=S().signal?(state.signalDisruptionItems||[]):journeyDisruptions().items;
+  const impacts=state.signalDisruptionItems||[];
   $('#alongImpact').hidden=!impacts.length;
   $('#alongImpact').textContent=impacts.map(item=>[item.title,item.qualifier,...item.detail].filter(Boolean).join(' · ')).join(' · ');
   $('#alongEvidence').textContent=model.evidence;
