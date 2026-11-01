@@ -47,3 +47,34 @@ Executed focused validation:
 
 Evidence: /workspace/scratch/along-reconciliation-facts-tests.log; /workspace/scratch/along-reconciliation-matrix-tests.log; /workspace/scratch/along-reconciliation-browser/along-browser.json; isolated tests/review-along-composition.test.mjs.
 Real iPhone/VoiceOver and physical window-visibility acceptance remain the documented limits. No push, merge or deployment was performed by this reviewer.
+
+
+## Independent access and route-memory correction review
+
+Reviewed initial access candidate `d41e8e0` and source fixes `2857359`. Approve the corrected source, subject to
+final committed-head CI. This review covers the clarified requirement: explicit navigation remains available
+before boarding; all route points remain browsable; GPS sets initial focus rather than access.
+
+Two further P2 edge cases were reproduced and fixed:
+
+- With empty interests, a reliable position marker could remain below the initial strip viewport because no
+  featured point triggered scrolling. Opening/reopening now explicitly focuses the current position, including
+  when a previously opened article is retained. Real Chromium geometry assertions cover both cases.
+- Resetting route memory on direction/mode change was insufficient while an old `followUpdate` remained
+  cached. A hidden office Farringdon route could repopulate a home/leisure scope. The candidate now has to match
+  the restored saved route, current direction/mode and active phase before it can seed route memory.
+
+Independent validation on the corrected built source:
+
+- Four focused real-page tests passed: opposite-direction Follow, another mode, stopped/arrived cached results,
+  and source changes. The source test verifies old corridor/article identity are discarded. No matching HTML is injected.
+- The expanded real opt-in/guided-simulator Chromium flow passed both designs at 320/390px, checkpoints0–4 and
+  further GPS progress, passed Hitchin reading, navigation/focus/44px targets, and empty-interest/reopen geometry.
+- Four deliberate single-change faults were all caught: dropping source epoch from the route scope, dropping
+  Follow direction validation, dropping Follow mode validation, and trusting stopped cached Follow state.
+  These were focused access-suite mutations, not an exhaustive repository mutation run.
+
+Regressions are retained in [review-along-access.test.mjs](../tests/review-along-access.test.mjs) and
+[browser-along-access.py](../tests/browser-along-access.py). Existing independent source/PR43 approvals remain
+applicable outside this correction. Native iPhone/VoiceOver and physical visibility checks remain documented
+limits; this reviewer did not push, merge or deploy.
