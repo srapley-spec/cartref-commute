@@ -107,9 +107,10 @@ def check_density(page,label,width,noisy):
   const status=document.querySelector('#signalStatus');
   const rowDurations=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-facts')));
   const rowConnections=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-connection')));
+  const rowHeadlines=[...document.querySelectorAll('#list>.row')].map(e=>height(e.querySelector('.journey-heading')));
   if([...disruption.children].some(e=>!e.checkVisibility()))throw Error('Significant disruption is concealed');
   return {alerts:[disruption,location,status].reduce((total,e)=>total+height(e)+(height(e)?8:0),0),
-   rowDurations,rowConnections};
+   rowDurations,rowConnections,rowHeadlines};
  }''')
  assert m['scrollWidth']<=width+1,(label,'horizontal overflow',m)
  assert m['answer']['top']-allowances['alerts']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
@@ -118,8 +119,9 @@ def check_density(page,label,width,noisy):
  assert all(r is not None and r['height']>0 for r in m['rows']),(label,'a loaded train was visually hidden',m)
  if width==393:
   assert all(0<h<=48 for h in allowances['rowDurations']),(label,'centred duration facts are hidden or oversized',allowances)
-  # The approved connection panel is required content, like the duration row; measure the remaining overhead.
-  assert max(r['height']-h-c for r,h,c in zip(m['rows'],allowances['rowDurations'],allowances['rowConnections']))<220,(label,'row overhead remains excessively tall',m)
+  # The approved connection panel and journey bookends/countdown are required content, like the duration row.
+  # Keep a bound on the remaining route/flags/actions overhead instead of rewarding hidden journey facts.
+  assert max(r['height']-h-c-t for r,h,c,t in zip(m['rows'],allowances['rowDurations'],allowances['rowConnections'],allowances['rowHeadlines']))<220,(label,'row overhead remains excessively tall',m)
  assert all(c['height']>=43.9 and c['width']>=43.9 for c in m['controlHeights']),(label,'touch targets below44',m['controlHeights'])
  assert all(c['ratio']>=4.5 for c in m['contrast']),(label,'actual text contrast below4.5',m['contrast'])
  return m

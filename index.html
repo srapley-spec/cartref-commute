@@ -770,7 +770,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:13 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 19:22 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5554,7 +5554,7 @@ function journeyOverviewMarkup(j,opt={}){
   return `${journeyHeadlineMarkup(j,dest,opt.timing?`<span class="${opt.late?'latetxt':''}">${esc(opt.timing)}</span>`:'')}
     ${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
     <div class="optroute route">${chips(j)}</div>
-    ${j.missed||opt.board?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
+    ${plannable(j.train)&&Number.isFinite(j.train.dep)&&(j.missed||opt.board)?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
 }
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");

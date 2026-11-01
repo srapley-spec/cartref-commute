@@ -1159,7 +1159,7 @@ function journeyOverviewMarkup(j,opt={}){
   return `${journeyHeadlineMarkup(j,dest,opt.timing?`<span class="${opt.late?'latetxt':''}">${esc(opt.timing)}</span>`:'')}
     ${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
     <div class="optroute route">${chips(j)}</div>
-    ${j.missed||opt.board?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
+    ${plannable(j.train)&&Number.isFinite(j.train.dep)&&(j.missed||opt.board)?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
 }
 function optionBlock(j, opt){
   const dest=j.dest||(direction()==="office"?"office":"home");

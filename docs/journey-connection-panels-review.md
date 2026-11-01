@@ -33,6 +33,11 @@ hero and board DOM match the preceding production build. The first doubled-text 
 implicit-column width problem; making those rows a single full-width column fixed it. An immediate countdown
 update was scoped to non-Live views to preserve Live's existing rendering behavior.
 
+Independent review found a retained-departure edge: an unusable missed option could still render a departure
+countdown from its old timestamp. The panel now requires a plannable service and a finite departure before
+advertising that countdown; the scheduled service identity and cancellation/no-estimate warning remain visible.
+A known missed train retains its departure countdown, distinct from its passed access deadline.
+
 All 17 changed golden recordings were audited recursively: only rendered hero/row text changes. Canonical
 options, leave/arrival times, ranking, flags, legs, feed requests, errors and every other field are unchanged.
 The new hierarchy moves the small inline train identity into a visible panel, changes its platform label and

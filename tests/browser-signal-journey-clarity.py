@@ -448,7 +448,7 @@ def column_edge_cases(page, prefix):
       for(const label of document.querySelectorAll('#hero .optrow>div:last-child small,#hero .optrow>div:nth-child(3) small'))label.textContent='At a long destination name';
     }''')
     measured = assert_column_alignment(page, prefix + '-long-label-and-no-estimate')
-    assert page.locator('#list .exp').filter(has_text='No estimate').count() >= 1, (prefix, 'No-estimate train disappeared from the board')
+    assert page.locator('#list .exp,#list .journey-connection .connection-status').filter(has_text='No estimate').count() >= 1, (prefix, 'No-estimate train disappeared from the board')
     assert_accessible(page, prefix + '-column-edge')
     page.screenshot(path=str(ART / (prefix + '-column-edge.png')), full_page=True)
     return measured
