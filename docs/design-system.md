@@ -35,6 +35,8 @@ Trip's place names replace commute context only while Trip is active; leaving Tr
 Trip's original address/access controls occupy the existing Journey options disclosure through an injected host.
 The question and answers stay exposed; leaving Trip removes its controls from that host. This reuses the existing
 Signal component without changing its appearance or behaviour in non-Trip modes.
+The collapsed Trip summary retains the selected access modes (for example, **Trip · Walk to · Drive from**),
+just as the commute summary retains pace. Closing the controls must not conceal those effective choices.
 
 ## Protected product answer: when must I leave? (Sam, 1 November 2026)
 

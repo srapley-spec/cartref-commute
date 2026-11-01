@@ -764,7 +764,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 21:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 22:00 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -9001,7 +9001,7 @@ function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     controlsRoot:$("#signalAdjustments .signal-adjustment-body"),dayLabel,
-    renderContext:s=>{if(tripActive()){$("#routeLabel").textContent=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$("#signalContextSummary").textContent='Trip · Journey options';}},
+    renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'};$("#routeLabel").textContent=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$("#signalContextSummary").textContent=`Trip · ${modes[s.modes.from]} to · ${modes[s.modes.to]} from`;}},
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },
     here:()=>state.here&&Number.isFinite(state.lastFixAt)?{ geo:state.here, at:state.lastFixAt, acc:Number.isFinite(state.locAcc)?state.locAcc:9999 }:null,

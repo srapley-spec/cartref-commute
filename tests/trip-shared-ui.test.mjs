@@ -83,7 +83,7 @@ test('Trip context: the selected places replace commute copy only while Trip is 
  const route=a.text('#routeLabel'),context=a.text('#signalContextSummary');
  await planBrightonCanterbury(a);
  assert.equal(a.text('#routeLabel'),'Brighton Station → Canterbury Cathedral');
- assert.equal(a.text('#signalContextSummary'),'Trip · Journey options');
+ assert.equal(a.text('#signalContextSummary'),'Trip · Walk to · Walk from');
  assert.ok(a.d.querySelector('#signalAdjustments #tripForm'),'Trip uses the existing Journey options component');
  assert.equal(a.d.querySelectorAll('#tripInput-from').length,1,'the original controls are moved, not cloned');
  assert.ok(!a.d.querySelector('[aria-label="Trip question"]').closest('details'),'the planning question stays exposed');
