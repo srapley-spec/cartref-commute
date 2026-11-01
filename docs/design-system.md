@@ -66,7 +66,8 @@ it across modes other than Live. The train departure is a key connection to make
   a separate repeated headline or total/operator summary. Multi-train duration sums time aboard rail services,
   excluding changes, Tube, bus and access; the total remains door to door. Unknowns remain explicit. Trip's
   address and access controls are the only form differences; before boarding Follow uses the same card primitives,
-  while arrival/next action still lead once aboard. Journey steps retain their disclosure state on refresh.
+  while arrival/next action still lead once aboard. Both duration facts stay visible through access, ride, change
+  and final-leg Follow phases. Journey steps retain their disclosure state on refresh.
 - Explicit **Live** retains its timetable columns and current journey presentation. Once aboard in Auto or
   Follow, current arrival and next action still lead; completed departures must not replace that answer.
   Auto's homeward Tube view uses panels for the existing next rail connections while retaining its arrival headline.

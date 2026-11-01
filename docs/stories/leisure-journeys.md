@@ -103,6 +103,8 @@ Minutes are whole minutes, rounded down.
   and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations
   are complete and equally sized; list rows use the shared compact sizes. Address/access inputs remain specific
   to Trip. Before boarding Follow uses the same headline, facts and card; once aboard the next action leads.
+  Both duration facts remain exposed through access, ride, change and final-leg phases, as in Commute Follow;
+  the total uses the canonical journey start and current expected arrival, never time remaining.
   Each connection and its warnings stays attached to the right service. The train caption sums only canonical
   rail ride durations (including across midnight), excluding access, transfers and non-rail rides; Total journey
   uses canonical leave → final arrival. Missing/cancelled rail times withdraw the rail sum and total; unknown

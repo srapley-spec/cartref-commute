@@ -300,10 +300,11 @@ function createTripUi(deps) {
     if (error) { out.innerHTML = `<div class="trip-card empty" role="alert">${esc(error)}</div>`; return; }
     if (!result) { out.innerHTML = s.to || !hasGoogle() ? "" : `<p class="note">Choose where you're going.</p>`; return; }
     const r = result, best = r.picks[0], pres = blocks(), fu = r.followUpdate, following = fu && pres.view.startsWith("trip-");
+    const followFacts = following ? journeyFactsMarkup(C.tripJourneyFacts({...fu.route.journey,arrive:fu.route.expectedArrival})) : '';
     const label = `${esc(s.from ? s.from.name : "")} → ${esc(s.to.name)} · ${s.question.kind === "now" ? "Leave now" : s.question.kind === "by" ? `Arrive by ${hhmm(s.question.t)}` : `Leave around ${hhmm(s.question.t)}`}`;
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
     const html = { label: () => close + (following||!best?`<div class="lbl trip-label">${label}</div>`:''),
-      headline: () => following ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival)+journeyFactsMarkup(C.tripJourneyFacts({...fu.route.journey,arrive:fu.route.expectedArrival})):''}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}
+      headline: () => following ? `<div class="trip-headline ${fu.level}">${fu.phase==='before'?journeyHeading(fu.route.journey,fu.route.expectedArrival)+followFacts:''}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice ? `<p>${esc(fu.notice.text)}</p>` : ""}${fu.nextStep ? `<p>Next: ${fu.nextStep.t != null ? hhmm(fu.nextStep.t) + " " : ""}${esc(fu.nextStep.d)}</p>` : ""}${fu.phase==='before'?'':followFacts}
           ${fu.alternative ? `<p>Something better: ${esc(summary(fu.alternative))}, arrive ${hhmm(fu.alternative.arrive)} <button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button></p>` : ""}
           <button type="button" class="ghost" data-trip-stop>Stop following</button></div>`
         : best ? ""
