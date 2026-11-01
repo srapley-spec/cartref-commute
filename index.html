@@ -321,10 +321,10 @@ html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-sel
 html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
-html[data-design="signal"] .journey-facts {display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:baseline;gap:4px 10px;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline;font-variant-numeric:tabular-nums}
+html[data-design="signal"] .journey-facts {display:inline-grid;grid-template-columns:minmax(0,1fr);align-items:baseline;gap:2px;width:100%;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline;font-variant-numeric:tabular-nums}
 html[data-design="signal"] .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;overflow-wrap:break-word}
-html[data-design="signal"] .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:start;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600}
-html[data-design="signal"] .journey-facts .journey-train-time {grid-column:2;grid-row:1;justify-self:end;text-align:right}
+html[data-design="signal"] .journey-facts .journey-total-time {grid-column:1;grid-row:1;justify-self:center;max-width:100%;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600;text-align:center}
+html[data-design="signal"] .journey-facts .journey-train-time {grid-column:1;grid-row:2;justify-self:center;text-align:center}
 html[data-design="signal"] :is(.journey-facts-divider,.journey-meta-divider) {display:none}
 html[data-design="signal"] .signal-alternative>.opt>.journey-facts,
 html[data-design="signal"] .signal-alternative[open] .signal-alt-comparison {display:none}
@@ -579,8 +579,6 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
 /* Keep the same semantic order at enlarged type. A shared query container means the
    hero, fallback and board all reflow together instead of clipping large times. */
 @container (max-width:18em) {
-  html[data-design="signal"] .journey-facts {grid-template-columns:minmax(0,1fr)}
-  html[data-design="signal"] .journey-facts .journey-train-time {grid-column:1;grid-row:2;justify-self:start;text-align:left}
   html[data-design="signal"] :is(.hero .optrow,.hero .optrow.board,.row) {grid-template-columns:minmax(0,1fr);grid-template-rows:none;row-gap:4px}
   html[data-design="signal"] .hero .optrow>div:not(.optroute):not(.optarrow) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html[data-design="signal"] .hero .optrow .optroute {grid-row:auto}
@@ -776,7 +774,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 10:56 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 11:12 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5479,7 +5477,8 @@ const journeyServiceKey = train => [train.from,train.to,train.std,train.operator
 function journeyFactsMarkup(option,context={}){
   const facts=context.connection?C.connectionJourneyFacts(option||null,context.connection):C.journeyFacts(option||null,context);
   const fact=(name,value,unknown)=>value==null?`<span data-fact="${name}">${unknown}</span>`:`<b data-fact="${name}" data-ms="${value}">${dur(value)}</b>`;
-  return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,'Total time unavailable'):'total '+fact('total-duration',facts.totalDurationMs)}</span></span>`;
+  const totalLabel=S().signal?'Total journey ':'total ',totalUnknown=S().signal?'Total journey time unavailable':'Total time unavailable';
+  return `<span class="journey-facts"><span class="journey-train-time">${facts.trainDurationMs==null?fact('train-duration',null,'Train time unavailable'):fact('train-duration',facts.trainDurationMs)+' train'}</span><span class="journey-facts-divider"> · </span><span class="journey-total-time">${facts.totalDurationMs==null?fact('total-duration',null,totalUnknown):totalLabel+fact('total-duration',facts.totalDurationMs)}</span></span>`;
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure

@@ -18,7 +18,7 @@ for(const signal of [false,true])test(`reconciliation: ${signal?'Signal':'Panda'
  for(const mode of ['auto','plan','live'])assert.ok(a.d.querySelector(`[data-journey-view="${mode}"]`));
  s.rendered.progress.finalArrival=null;a.d.querySelector('#alongScroll').dispatchEvent(new a.w.Event('wheel'));a.d.querySelector('#alongNow').click();
  assert.equal(a.d.querySelector('#alongJourney [data-fact="total-duration"]').hasAttribute('data-ms'),false);
- assert.match(a.text('#alongJourney'),/Total time unavailable/);
+ assert.match(a.text('#alongJourney'),signal?/Total journey time unavailable/:/Total time unavailable/);
  assert.equal(Number(a.d.querySelector('#alongJourney [data-fact="train-duration"]').dataset.ms),55*MIN);
  s.rendered.progress.expectedArrival=null;a.d.querySelector('#alongScroll').dispatchEvent(new a.w.Event('wheel'));a.d.querySelector('#alongNow').click();
  assert.equal(a.d.querySelector('#alongJourney [data-fact][data-ms]'),null,'unknown rail end cannot retain train or total duration');

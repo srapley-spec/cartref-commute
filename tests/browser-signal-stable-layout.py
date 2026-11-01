@@ -37,22 +37,29 @@ def anchors(page):
         if(!total?.checkVisibility()||!train?.checkVisibility())throw Error('Duration not visible: '+owner.textContent);
         const timeBottom=Math.max(...times.map(e=>box(e).bottom)),badge=box(total);
         return {kind,key:owner.dataset.journeyService||owner.closest('[data-journey-service]')?.dataset.journeyService,
-          x:badge.x,gap:badge.y-timeBottom,badge,train:box(train),text:total.innerText,
+          x:badge.x,center:(badge.x+badge.right)/2,gap:badge.y-timeBottom,badge,train:box(train),text:total.innerText,
           trainMs:train.querySelector('[data-fact]')?.dataset.ms??null,totalMs:total.querySelector('[data-fact]')?.dataset.ms??null};
       });
     }''')
 
 
-def check(page, label, aligned=True):
+def check(page, label, aligned=True, planning=True):
     rows = anchors(page)
-    assert any(r['kind'] == 'primary' for r in rows), (label, 'Missing primary answer')
-    assert any(r['kind'] == 'next-best' for r in rows), (label, 'Missing Next best')
+    if planning:
+        assert any(r['kind'] == 'primary' for r in rows), (label, 'Missing primary answer')
+        assert any(r['kind'] == 'next-best' for r in rows), (label, 'Missing Next best')
     assert len([r for r in rows if r['kind'] == 'row']) >= 5, (label, 'A loaded train disappeared')
     assert all(r['gap'] >= 3 for r in rows), (label, 'Duration is not below the time values', rows)
-    assert max(r['x'] for r in rows) - min(r['x'] for r in rows) <= 1.5, (label, 'Total has different left anchors', rows)
+    center = page.viewport_size['width'] / 2
+    assert all(abs(r['center']-center)<=1.5 for r in rows), (label, 'Total journey is not centred below the times', rows)
+    assert all(r['text'].startswith('Total journey') for r in rows), (label, 'Total could be mistaken for time remaining', rows)
+    assert all(abs((r['train']['x']+r['train']['right'])/2-center)<=1.5 and r['train']['y']>=r['badge']['bottom'] for r in rows), (label, 'Train duration competes with the total row', rows)
     if aligned:
         assert max(r['gap'] for r in rows) - min(r['gap'] for r in rows) <= 2.1, (label, 'Routes/actions displace duration', rows)
-        assert max(r['train']['right'] for r in rows) - min(r['train']['right'] for r in rows) <= 1.5, (label, 'Total label width displaces train duration', rows)
+    expected_centers = page.evaluate('''()=>[...document.querySelectorAll('#hero .optrow.board>div:nth-child(2),#list .row>.exp')]
+      .filter(e=>e.checkVisibility()).map(e=>{const r=document.createRange();r.selectNodeContents(e.querySelector('small'));const b=r.getBoundingClientRect();return (b.left+b.right)/2;})''')
+    if aligned:
+        assert all(abs(x-center)<=1.5 for x in expected_centers), (label, 'Expected departure moved from its centre column', expected_centers)
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'), (label, 'Page overflows')
     compact.assert_time_legibility(page, label)
     assert page.evaluate('''()=>[...document.querySelectorAll('[data-follow]')].filter(e=>e.checkVisibility()).every(e=>{
@@ -62,6 +69,22 @@ def check(page, label, aligned=True):
         if 'unavailable' in r['text'].lower():
             assert r['totalMs'] is None, (label, 'Unknown duration has an invented numeric value', r)
     return rows
+
+
+def stress(page, label, planning=True):
+    page.evaluate('''()=>{
+      window.durationFonts=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility())
+        .map(e=>({e,size:parseFloat(getComputedStyle(e).fontSize),prior:e.style.fontSize,priority:e.style.getPropertyPriority('font-size')}));
+      for(const {e,size} of durationFonts)e.style.setProperty('font-size',size*2+'px','important');
+    }''')
+    try:
+        result = check(page, label + '-200', aligned=False, planning=planning)
+        page.screenshot(path=str(ART / f'signal-stable-{label}-200.png'), full_page=True)
+        return result
+    finally:
+        page.evaluate('''()=>{for(const {e,prior,priority} of durationFonts){
+          if(prior)e.style.setProperty('font-size',prior,priority);else e.style.removeProperty('font-size');
+        }delete window.durationFonts;}''')
 
 
 def run(browser):
@@ -82,13 +105,13 @@ def run(browser):
                   __commute.render();
                 }''')
                 changed = check(page, label + '-platforms')
-                assert [(r['kind'],r['key'],r['x'],r['gap'],r['totalMs'],r['trainMs']) for r in before] == [
-                    (r['kind'],r['key'],r['x'],r['gap'],r['totalMs'],r['trainMs']) for r in changed
+                assert [(r['kind'],r['key'],r['center'],r['gap'],r['totalMs'],r['trainMs']) for r in before] == [
+                    (r['kind'],r['key'],r['center'],r['gap'],r['totalMs'],r['trainMs']) for r in changed
                 ], (label, 'Platform text changed the duration anchor or value')
                 summary = page.locator('#hero .signal-alternative>summary')
                 summary.click()
                 expanded = check(page, label + '-expanded')
-                assert before[1]['x'] == expanded[1]['x'] and before[1]['gap'] == expanded[1]['gap'], (label, 'Expanding Next best moves duration')
+                assert before[1]['center'] == expanded[1]['center'] and before[1]['gap'] == expanded[1]['gap'], (label, 'Expanding Next best moves duration')
                 assert page.locator('#hero .signal-alternative .opt [data-follow]').is_visible()
                 page.locator('#hero .signal-alternative .steps>summary').click()
                 assert page.locator('#hero .signal-alternative .legs').is_visible()
@@ -97,15 +120,29 @@ def run(browser):
                 assert page.locator('#hero .signal-alternative .steps').get_attribute('open') is not None
                 check(page, label + '-refreshed')
                 summary.click()
-                # Stress the actual computed sizes, including the duration labels.
+                enlarged = stress(page, label)
+                page.locator('[data-journey-view="live"]').click()
+                live = check(page, label + '-live', planning=False)
+                page.screenshot(path=str(ART / f'signal-stable-{label}-live.png'), full_page=True)
+                live_enlarged = stress(page, label + '-live', planning=False)
+                # Normal location evidence enters the real station-board layout.
+                page.locator('[data-journey-view="auto"]').click()
                 page.evaluate('''()=>{
-                  const sizes=[...document.querySelectorAll('body,body *')].filter(e=>e.checkVisibility()).map(e=>[e,parseFloat(getComputedStyle(e).fontSize)]);
-                  for(const [e,size] of sizes)e.style.setProperty('font-size',size*2+'px','important');
+                  const s=__commute.state,now=Date.now();
+                  Object.assign(s,{here:[51.9799,-.2290],locAcc:12,locStatus:'ok',lastFixAt:now,lastFixRecvAt:now,onLine:false,atHub:null});
+                  __commute.render();
                 }''')
-                enlarged = check(page, label + '-200', aligned=False)
-                page.screenshot(path=str(ART / f'signal-stable-{label}-200.png'), full_page=True)
+                station = check(page, label + '-station')
+                assert page.locator('#hero .optrow.board').count(), (label, 'Station times were not reached')
+                station_enlarged = stress(page, label + '-station')
+                page.locator('#list [data-follow]:not([disabled])').first.click()
+                follow = page.locator('#followPanel .journey-total-time').first
+                assert follow.is_visible() and follow.inner_text().startswith('Total journey')
+                bounds=follow.bounding_box()
+                assert abs(bounds['x']+bounds['width']/2-width/2)<=1.5, (label, 'Follow total lost its centre anchor')
                 assert not errors, (label, errors)
-                results.append({'label':label,'normal':before,'platforms':changed,'enlarged':enlarged})
+                results.append({'label':label,'normal':before,'platforms':changed,'enlarged':enlarged,
+                    'live':live,'liveEnlarged':live_enlarged,'station':station,'stationEnlarged':station_enlarged})
             finally:
                 context.close()
                 server.shutdown()
@@ -121,6 +158,6 @@ if __name__ == '__main__':
         try:
             report = run(browser)
             print(json.dumps({'buildSha256':report['buildSha256'],'cases':len(report['cases']),
-                'checks':'duration anchors, long/absent platforms, long routes, disabled Follow, unknown durations, expansion, refresh, 200% text, touch targets'}, indent=2))
+                'checks':'centred Total journey, separate train duration, unchanged Expected column, Plan/Live/station/Follow, long/absent platforms, unknown durations, expansion, refresh, 200% text, touch targets'}, indent=2))
         finally:
             browser.close()

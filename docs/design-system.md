@@ -16,9 +16,13 @@ The HTML is a review simulation. Consume the tokens and component contracts; do 
 
 ### Stable information placement — 1 November 2026
 
-Total journey time occupies a neutral lozenge in a dedicated duration row directly under the headline times,
-with train time anchored at the right. Use the same left anchor in the primary answer, Next best and departure rows;
-opening Next best retains that row in place. Longer route labels get the full available width. Put board Follow
+Total journey time occupies a centred neutral lozenge in a dedicated row directly under the headline times,
+labelled **Total journey**, with a separate centred train-duration caption beneath it. Sam approved this
+placement in both Plan and Live on 1 November; it supersedes the first left/right duration anchors. Keep Live's
+Expected departure in its original time column, and do not relabel total duration as time remaining. Use the
+same centre in the primary answer, Next best, departure rows and followed/inferred journey facts; opening Next
+best retains that row in place. Unknown totals explicitly say **Total journey time unavailable**. Longer route
+labels get the full available width. Put board Follow
 actions in a consistent right-aligned slot beside the countdown, away from route labels. Preserve natural
 vertical growth for long details and enlarged text. See the [acceptance criteria](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
 

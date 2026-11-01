@@ -323,6 +323,11 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); behind an Experimental switch (compact v2 independently reviewed; CI/deployment gates recorded). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+- **1 Nov, centred journey duration** Sam approved centring the neutral **Total journey** lozenge immediately
+  beneath the headline times in both Plan and Live, with train duration as a separate caption. This replaces the
+  initial left/right duration arrangement while retaining Live's Expected column and all clock-time anchors.
+  The label means the complete journey, not remaining time; shared canonical facts and Panda's geometry remain.
+  → [Signal acceptance](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).
 - **1 Nov, early hours** Trip mode stays Signal-only as an explicit exception to "every supported UI advances together"
   (Sam, asked when merging `main`'s new parity gate into the Trip branch: build Trip in Panda, a Signal-only exception,
   or hold it; chose the exception). The parity gate gains a recorded-exception mechanism (`designs` + `exception`

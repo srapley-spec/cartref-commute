@@ -18,12 +18,17 @@ test('Signal off preserves Panda and exposes the shared Auto Plan Live controls'
 test('Signal preserves every journey field and request while compacting Panda content',async()=>{
   const a=await app(),b=await app({signal:true});
   for(const id of ['#banners','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  const facts=root=>[...root.querySelectorAll('.journey-facts [data-fact]')]
+    .filter(node=>!node.closest('.signal-alt-facts'))
+    .map(node=>[node.dataset.fact,node.getAttribute('data-ms'),
+      !node.hasAttribute('data-ms')&&/unavailable/i.test(node.textContent)?'unavailable':node.textContent.trim()]).sort();
   // Signal gives duration its own row; compare the same service's fields rather
   // than requiring Panda's old inline sentence order.
   const rows=page=>[...page.d.querySelectorAll('#list .row')].map(row=>({
     service:row.dataset.journeyService,
-    fields:[...row.querySelectorAll('.leave,.exp,.arrive,.route,.journey-service,.journey-countdown,.journey-facts,.pill')]
+    fields:[...row.querySelectorAll('.leave,.exp,.arrive,.route,.journey-service,.journey-countdown,.pill')]
       .map(node=>node.textContent.replace(/\s+/g,' ').trim()).sort(),
+    facts:facts(row),
     alternatives:[...row.querySelectorAll('.meta:not(.journey-meta)')].map(node=>node.textContent.replace(/\s+/g,' ').trim()),
     actions:[...row.querySelectorAll('[data-follow]')].map(node=>[node.getAttribute('aria-label'),node.disabled])
   }));
@@ -36,17 +41,18 @@ test('Signal preserves every journey field and request while compacting Panda co
   assert.deepEqual([...a.c.state.here],[...b.c.state.here]);
   assert.equal(a.c.state.locAcc,b.c.state.locAcc);
   assert.equal(b.d.querySelector('#dirNote').closest('details'),null,'the Signal diagnostic is visible without expanding controls');
-  // Geometry changes, but every original text node survives: fallback timing moves
-  // into its summary and the line strip moves into the full network disclosure.
+  // Geometry and the explicit "Total journey" label may differ; the same timing
+  // facts survive. Fallback timing moves to its summary and the line strip moves.
   const fields=(page,selectors)=>selectors.flatMap(selector=>{
     const node=page.d.querySelector(selector);if(!node)return [];
     const walker=page.d.createTreeWalker(node,4),out=[];
-    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service,.signal-alt-facts,.signal-alt-comparison')){
+    while(walker.nextNode())if(!walker.currentNode.parentElement.closest('.signal-alt-label,.signal-alt-service,.signal-alt-facts,.signal-alt-comparison,.journey-facts')){
       const text=walker.currentNode.textContent.replace(/\s+/g,' ').trim();if(text)out.push(text);
     }
     return out;
   }).sort();
   assert.deepEqual(fields(a,['#hero']),fields(b,['#hero','#signalCurrentLines']));
+  assert.deepEqual(facts(a.d.querySelector('#hero')),facts(b.d.querySelector('#hero')),'the explicit label preserves every readable duration and unavailable state');
   assert.deepEqual(a.calls,b.calls);
   assert.equal(b.d.documentElement.dataset.design,'signal');
   assert.equal(b.d.querySelector('#journeyViewControl').hidden,false);
