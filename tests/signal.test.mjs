@@ -17,7 +17,17 @@ test('Signal off preserves Panda and exposes the shared Auto Plan Live controls'
 });
 test('Signal preserves every journey field and request while compacting Panda content',async()=>{
   const a=await app(),b=await app({signal:true});
-  for(const id of ['#list','#banners','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  for(const id of ['#banners','#diagBody'])assert.equal(a.text(id),b.text(id),id);
+  // Signal gives duration its own row; compare the same service's fields rather
+  // than requiring Panda's old inline sentence order.
+  const rows=page=>[...page.d.querySelectorAll('#list .row')].map(row=>({
+    service:row.dataset.journeyService,
+    fields:[...row.querySelectorAll('.leave,.exp,.arrive,.route,.journey-service,.journey-countdown,.journey-facts,.pill')]
+      .map(node=>node.textContent.replace(/\s+/g,' ').trim()).sort(),
+    alternatives:[...row.querySelectorAll('.meta:not(.journey-meta)')].map(node=>node.textContent.replace(/\s+/g,' ').trim()),
+    actions:[...row.querySelectorAll('[data-follow]')].map(node=>[node.getAttribute('aria-label'),node.disabled])
+  }));
+  assert.deepEqual(rows(a),rows(b),'every train keeps its facts, flags and actions');
   // Signal deliberately keeps a visible location diagnostic independent of the
   // direction control; Panda keeps its existing automatic-direction sentence.
   assert.equal(a.text('#dirNote'),`Heading to the office · ${a.c.state.autoSrc}`);

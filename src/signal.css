@@ -87,10 +87,16 @@ html[data-design="signal"] .hero .big>.arr {grid-column:3;grid-row:2;justify-sel
 html[data-design="signal"] .hero .big>.arrlbl {grid-column:1/-1;grid-row:1;text-align:right;overflow-wrap:break-word}
 html[data-design="signal"] .hero .opt {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding-top:11px;border-color:var(--line);min-width:0}
 html[data-design="signal"] .hero .opt:first-of-type {padding-top:0}
-html[data-design="signal"] .signal-alt-facts {display:block;font-size:12px;color:var(--muted)}
-html[data-design="signal"] .signal-alternative[open] .signal-alt-facts,
+html[data-design="signal"] .journey-facts {display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;max-width:100%;font-size:13px;line-height:1.5;color:var(--muted);vertical-align:baseline}
+html[data-design="signal"] .journey-facts :is(.journey-train-time,.journey-total-time) {min-width:0;overflow-wrap:break-word}
+html[data-design="signal"] .journey-facts .journey-total-time {order:-1;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-weight:600}
+html[data-design="signal"] :is(.journey-facts-divider,.journey-meta-divider) {display:none}
+html[data-design="signal"] .signal-alternative>.opt>.journey-facts,
 html[data-design="signal"] .signal-alternative[open] .signal-alt-comparison {display:none}
-html[data-design="signal"] .hero .opt>:is(.optrow,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
+html[data-design="signal"] .hero .opt>:is(.optrow,.journey-facts,.optroute,.optmeta,.altstop,.flags) {grid-column:1/-1;min-width:0}
+html[data-design="signal"] .hero .opt>.optroute {justify-content:flex-start;margin:0;padding:0}
+html[data-design="signal"] .hero .journey-meta {display:grid;gap:2px}
+html[data-design="signal"] .hero .journey-countdown {color:var(--muted)}
 /* Every answer uses the same anchors: departure left, expected centre, destination right.
    Planning reserves the middle slot; actions and route metadata never take a time column. */
 html[data-design="signal"] .hero .optrow {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;align-items:start;gap:0 var(--signal-time-gap);min-width:0}
@@ -126,6 +132,7 @@ html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service
 html[data-design="signal"] .hero .signal-alternative>summary::after {content:'›';position:absolute;right:0;top:5px;font-size:22px;color:var(--accent);line-height:1}
 html[data-design="signal"] .hero .signal-alternative[open]>summary::after {transform:rotate(90deg)}
 html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-column:1/-1;grid-row:2;display:grid;width:100%}
+html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-facts {grid-column:1/-1;grid-row:3;display:flex}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig {font-size:24px}
 html[data-design="signal"] .hero .signal-alternative>summary .optbig.word {font-size:16px}
 html[data-design="signal"] .hero .signal-alternative>summary .optarrow {font-size:16px;padding-bottom:2px}
@@ -182,17 +189,24 @@ html[data-design="signal"] .row>.leave {grid-column:1;text-align:left}
 html[data-design="signal"] .row>.exp {grid-column:2;text-align:center}
 html[data-design="signal"] .row>.arrive {grid-column:3;text-align:right}
 html[data-design="signal"] .row .mid>:is(.route,.meta,div) {grid-column:1/-1;min-width:0;margin-top:4px}
-html[data-design="signal"] .row .mid>.route {grid-column:1/3;grid-row:3;align-self:center}
-html[data-design="signal"] .row:not(:has(.follow-btn,.followtag)) .mid>.route {grid-column:1/-1}
+html[data-design="signal"] .row .mid>.journey-facts {grid-column:1/-1;grid-row:3;margin-top:5px}
+html[data-design="signal"] .row .mid>.route {grid-column:1/-1;grid-row:4;align-self:center}
+html[data-design="signal"] .row .mid>.journey-meta {display:contents}
+html[data-design="signal"] .row .journey-service {grid-column:1/-1;grid-row:5;margin-top:4px;font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .row .journey-service .plat {color:var(--ink)}
+html[data-design="signal"] .row .journey-countdown {grid-column:1/-1;grid-row:6;align-self:center;margin-top:4px;font-size:13px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
+html[data-design="signal"] .row:has(.follow-btn,.followtag) .journey-countdown {padding-right:104px}
+html[data-design="signal"] .row .mid>.journey-meta~.meta {grid-row:7}
+html[data-design="signal"] .row .journey-provenance {grid-column:1/-1;grid-row:7;font-size:13px;line-height:1.4;color:var(--muted)}
 html[data-design="signal"] .row .route {gap:4px;align-items:center;font-size:13px;line-height:1.4}
 html[data-design="signal"] .row .meta {font-size:14px;line-height:1.4;color:var(--muted);overflow-wrap:break-word}
 html[data-design="signal"] .row .meta b {font-weight:650;color:var(--ink)}
 html[data-design="signal"] .row .meta :is([data-cd],[data-dep]) {white-space:normal}
 html[data-design="signal"] .row :is(.leave small,.exp small,.arrive small) {display:block;font-size:12px;color:var(--muted);line-height:1.35;letter-spacing:0;text-transform:none}
 html[data-design="signal"] .row :is(.leave .t,.exp .t,.arrive .t) {font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.025em}
-html[data-design="signal"] .row .mid>.follow-btn {grid-column:3;grid-row:3;justify-self:end;align-self:center;min-width:44px;max-width:100%;padding:7px 8px;margin:4px 0 0;font-size:13px}
-html[data-design="signal"] .row .mid>.followtag {grid-column:3;grid-row:3;justify-self:end;align-self:center;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:100%;padding:4px 6px;margin:4px 0 0}
-html[data-design="signal"] .row .mid>div:has(>.pill) {display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
+html[data-design="signal"] .row .mid>.follow-btn {grid-column:1/-1;grid-row:6;justify-self:end;align-self:center;width:96px;min-width:max-content;max-width:100%;padding:7px 8px;margin:4px 0 0;font-size:13px}
+html[data-design="signal"] .row .mid>.followtag {grid-column:1/-1;grid-row:6;justify-self:end;align-self:center;width:96px;font-size:12px;line-height:1.4;background:var(--signal-soft);color:var(--accent);max-width:100%;padding:4px 6px;margin:4px 0 0}
+html[data-design="signal"] .row .mid>div:has(>.pill) {grid-row:8;display:flex;flex-wrap:wrap;gap:3px;align-items:center;line-height:1.45}
 html[data-design="signal"] .row .pill {white-space:normal}
 html[data-design="signal"] .row.best {background:color-mix(in srgb,var(--signal-soft) 45%,var(--card))}
 html[data-design="signal"] .row.gone {opacity:1}
@@ -333,11 +347,13 @@ html[data-design="signal"] body.simControlsVisible {padding-bottom:calc(var(--si
   html[data-design="signal"] .hero .signal-alternative>summary {grid-template-columns:minmax(0,1fr)}
   html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-service {grid-column:1;grid-row:2;padding-right:0;text-align:left}
   html[data-design="signal"] .hero .signal-alternative>summary>.optrow {grid-row:3}
+  html[data-design="signal"] .hero .signal-alternative>summary>.signal-alt-facts {grid-row:4}
   html[data-design="signal"] .row>:is(.leave,.exp,.arrive) {grid-column:1;grid-row:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px;text-align:left}
   html[data-design="signal"] .row>.arrive {grid-row:2}
   html[data-design="signal"] .row.board>.exp {grid-row:2}
   html[data-design="signal"] .row.board>.arrive {grid-row:3}
-  html[data-design="signal"] .row .mid>.route,html[data-design="signal"] .row .mid>.follow-btn,html[data-design="signal"] .row .mid>.followtag {grid-column:1;grid-row:auto}
+  html[data-design="signal"] .row .mid>:is(.journey-facts,.route,.meta,.follow-btn,.followtag),html[data-design="signal"] .row :is(.journey-service,.journey-countdown,.journey-provenance),html[data-design="signal"] .row .mid>div:has(>.pill) {grid-column:1;grid-row:auto}
+  html[data-design="signal"] .row:has(.follow-btn,.followtag) .journey-countdown {padding-right:0}
 }
 @media(prefers-reduced-motion:reduce) {
   html[data-design="signal"] *,html[data-design="signal"] *::before,html[data-design="signal"] *::after {scroll-behavior:auto!important;transition:none!important;animation:none!important}
