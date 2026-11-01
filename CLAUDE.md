@@ -33,6 +33,8 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   ships in every supported design and applicable view in the same change. Geometry may differ; availability,
   meaning, values, status and actions must remain equivalent. Do not defer another design as follow-up work.
   Reuse shared renderers and engine facts rather than duplicating calculations or making artificial file edits.
+  The only exception is one Sam explicitly approves for named surfaces, recorded as below (Trip mode is Signal-only:
+  `docs/decisions/trip-signal-only.md`, 1 Nov). Never assume one.
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.
@@ -54,6 +56,12 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   Production `data-design` selectors and assignments under `src/` must match the registry. Select design IDs
   through explicit literals/conditional branches; opaque computed assignments fail the gate rather than evade
   inventory. Historical design proposals under `docs/` are outside the production inventory.
+- A surface may be limited to some designs **only with Sam's explicit exception**: its registry entry lists `designs` and
+  an `exception` decision under `docs/` containing `Approved by: Sam` and, per surface,
+  `Design exception: surface:<id> designs:<ids>` (IDs sorted, comma-separated, e.g. `designs:signal`). Only a new surface
+  can start as an exception (one every design already had cannot lose a design that way). The gate then requires the
+  listed designs' cases and, for each left-out design, a negative case proving the surface really is absent there.
+  Do not invent approval; an exception is not retirement and covers only the surfaces it names.
 - A UI leaves the matrix **only after Sam explicitly retires it and the implementation is removed**. In the same
   change, retain a `retired` record (`kind`, `id`, `decision`) and a decision under `docs/` containing the exact lines
   `Approved by: Sam` and `Retired UI: design:<id>` (or `surface:<id>`). Record the real decision and its context;

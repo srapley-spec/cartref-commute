@@ -1,0 +1,1137 @@
+{
+ "recorded": "2026-10-31T20:45:20.161Z",
+ "request": "Journey/JourneyResults/910GBRGHTN/to/910GCNTBW?date=20261103&time=1400&timeIs=Arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": 200,
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T10:06:00",
+    "duration": 155,
+    "arrivalDateTime": "2026-11-03T12:41:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 17,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Lewes",
+       "detailed": "Southern towards Seaford",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "WALKWAY",
+        "incline": "LEVEL",
+        "stopId": 1001661,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T10:06:00",
+      "arrivalTime": "2026-11-03T10:23:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLEWES",
+       "platformName": "",
+       "icsCode": "1001661",
+       "individualStopId": "9100LEWES2",
+       "commonName": "Lewes Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.870478674766,
+       "lon": 0.011778805659
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Seaford Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 33,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:06:00",
+      "scheduledArrivalTime": "2026-11-03T10:23:00",
+      "interChangeDuration": "0",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 20,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Hampden Park (Sussex)",
+       "detailed": "Southern towards Eastbourne",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T10:27:00",
+      "arrivalTime": "2026-11-03T10:47:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLEWES",
+       "platformName": "",
+       "icsCode": "1001661",
+       "individualStopId": "9100LEWES1",
+       "commonName": "Lewes Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.871027854424,
+       "lon": 0.011745598889999999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHMPDNPK",
+       "platformName": "",
+       "icsCode": "1001629",
+       "commonName": "Hampden Park (Sussex) Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.796404229111,
+       "lon": 0.279355786902
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Eastbourne Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 77,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:27:00",
+      "scheduledArrivalTime": "2026-11-03T10:47:00",
+      "interChangeDuration": "3",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 76,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Ashford International",
+       "detailed": "Southern towards Ashford International",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T10:54:00",
+      "arrivalTime": "2026-11-03T12:10:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHMPDNPK",
+       "platformName": "",
+       "icsCode": "1001629",
+       "commonName": "Hampden Park (Sussex) Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.796404229111,
+       "lon": 0.279355786902
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Ashford International Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 31,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:54:00",
+      "scheduledArrivalTime": "2026-11-03T12:10:00",
+      "interChangeDuration": "3",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 14,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southeastern to Canterbury West",
+       "detailed": "Southeastern towards Margate",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:20:00",
+      "arrivalTime": "2026-11-03T12:34:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southeastern",
+        "directions": [
+         "Margate Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southeastern",
+         "name": "Southeastern",
+         "uri": "/Line/southeastern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 10,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:20:00",
+      "scheduledArrivalTime": "2026-11-03T12:34:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 7,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Canterbury, Canterbury West Rail Station",
+       "detailed": "Walk to Canterbury, Canterbury West Rail Station",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:34:00",
+      "arrivalTime": "2026-11-03T12:41:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001160",
+       "commonName": "Canterbury, Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284096935122,
+       "lon": 1.0756359650890002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 29,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:34:00",
+      "scheduledArrivalTime": "2026-11-03T12:41:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T10:28:00",
+    "duration": 178,
+    "arrivalDateTime": "2026-11-03T13:26:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 82,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Thameslink to London St Pancras International",
+       "detailed": "Thameslink towards Bedford",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "UP",
+        "stopId": 1001276,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "ESCALATOR",
+        "incline": "UP",
+        "stopId": 1001276,
+        "position": "AFTER"
+       },
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "LIFT",
+        "incline": "UP",
+        "stopId": 1001276,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T10:28:00",
+      "arrivalTime": "2026-11-03T11:50:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001276",
+       "individualStopId": "9100STPXBOX",
+       "commonName": "London St Pancras International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.532433271107,
+       "lon": -0.127735491394
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Thameslink",
+        "directions": [
+         "Bedford Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "thameslink",
+         "name": "Thameslink",
+         "uri": "/Line/thameslink",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 126,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T10:28:00",
+      "scheduledArrivalTime": "2026-11-03T11:50:00",
+      "interChangeDuration": "11",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 38,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southeastern to Ashford International",
+       "detailed": "Southeastern towards Ramsgate",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:04:00",
+      "arrivalTime": "2026-11-03T12:42:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GSTPADOM",
+       "platformName": "",
+       "icsCode": "1001276",
+       "individualStopId": "9100STPADOM",
+       "commonName": "London St Pancras International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.532313023649,
+       "lon": -0.126399543175
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southeastern",
+        "directions": [
+         "Ramsgate Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southeastern",
+         "name": "Southeastern",
+         "uri": "/Line/southeastern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 32,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:04:00",
+      "scheduledArrivalTime": "2026-11-03T12:42:00",
+      "interChangeDuration": "3",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 22,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southeastern to Canterbury West",
+       "detailed": "Southeastern towards Ramsgate",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T12:57:00",
+      "arrivalTime": "2026-11-03T13:19:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southeastern",
+        "directions": [
+         "Ramsgate Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southeastern",
+         "name": "Southeastern",
+         "uri": "/Line/southeastern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 10,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T12:57:00",
+      "scheduledArrivalTime": "2026-11-03T13:19:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 7,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Canterbury, Canterbury West Rail Station",
+       "detailed": "Walk to Canterbury, Canterbury West Rail Station",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T13:19:00",
+      "arrivalTime": "2026-11-03T13:26:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001160",
+       "commonName": "Canterbury, Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284096935122,
+       "lon": 1.0756359650890002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 29,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T13:19:00",
+      "scheduledArrivalTime": "2026-11-03T13:26:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-03T11:06:00",
+    "duration": 155,
+    "arrivalDateTime": "2026-11-03T13:41:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 17,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Lewes",
+       "detailed": "Southern towards Seaford",
+       "steps": []
+      },
+      "obstacles": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Obstacle, Tfl.Api.Presentation.Entities",
+        "type": "WALKWAY",
+        "incline": "LEVEL",
+        "stopId": 1001661,
+        "position": "AFTER"
+       }
+      ],
+      "departureTime": "2026-11-03T11:06:00",
+      "arrivalTime": "2026-11-03T11:23:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLEWES",
+       "platformName": "",
+       "icsCode": "1001661",
+       "individualStopId": "9100LEWES2",
+       "commonName": "Lewes Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.870478674766,
+       "lon": 0.011778805659
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Seaford Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 33,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:06:00",
+      "scheduledArrivalTime": "2026-11-03T11:23:00",
+      "interChangeDuration": "0",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 20,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Hampden Park (Sussex)",
+       "detailed": "Southern towards Eastbourne",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T11:27:00",
+      "arrivalTime": "2026-11-03T11:47:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLEWES",
+       "platformName": "",
+       "icsCode": "1001661",
+       "individualStopId": "9100LEWES1",
+       "commonName": "Lewes Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.871027854424,
+       "lon": 0.011745598889999999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHMPDNPK",
+       "platformName": "",
+       "icsCode": "1001629",
+       "commonName": "Hampden Park (Sussex) Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.796404229111,
+       "lon": 0.279355786902
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Eastbourne Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 77,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:27:00",
+      "scheduledArrivalTime": "2026-11-03T11:47:00",
+      "interChangeDuration": "3",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 76,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to Ashford International",
+       "detailed": "Southern towards Ashford International",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T11:54:00",
+      "arrivalTime": "2026-11-03T13:10:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHMPDNPK",
+       "platformName": "",
+       "icsCode": "1001629",
+       "commonName": "Hampden Park (Sussex) Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.796404229111,
+       "lon": 0.279355786902
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "Ashford International Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 31,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T11:54:00",
+      "scheduledArrivalTime": "2026-11-03T13:10:00",
+      "interChangeDuration": "3",
+      "interChangePosition": "AFTER"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 14,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southeastern to Canterbury West",
+       "detailed": "Southeastern towards Margate",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T13:20:00",
+      "arrivalTime": "2026-11-03T13:34:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GASHFKY",
+       "platformName": "",
+       "icsCode": "1000994",
+       "commonName": "Ashford International Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.143704118079995,
+       "lon": 0.876197260626
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southeastern",
+        "directions": [
+         "Margate Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southeastern",
+         "name": "Southeastern",
+         "uri": "/Line/southeastern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 10,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T13:20:00",
+      "scheduledArrivalTime": "2026-11-03T13:34:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 7,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Canterbury, Canterbury West Rail Station",
+       "detailed": "Walk to Canterbury, Canterbury West Rail Station",
+       "steps": []
+      },
+      "obstacles": [],
+      "departureTime": "2026-11-03T13:34:00",
+      "arrivalTime": "2026-11-03T13:41:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001141",
+       "commonName": "Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284267587224,
+       "lon": 1.075303139597
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001160",
+       "commonName": "Canterbury, Canterbury West Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.284096935122,
+       "lon": 1.0756359650890002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "plannedWorks": [],
+      "distance": 29,
+      "isDisrupted": false,
+      "hasFixedLocations": true,
+      "scheduledDepartureTime": "2026-11-03T13:34:00",
+      "scheduledArrivalTime": "2026-11-03T13:41:00"
+     }
+    ]
+   }
+  ],
+  "lines": [],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-03T14:00:00",
+   "dateTimeType": "Arriving",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "0300",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/910gbrghtn/to/910gcntbw?date=20261103&time=0300&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "1240",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/910gbrghtn/to/910gcntbw?date=20261103&time=1240&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261103",
+     "time": "1415",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/910gbrghtn/to/910gcntbw?date=20261103&time=1415&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/910gbrghtn/to/910gcntbw?date=20261104&time=0300&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "90000899",
+   "to": "1001160",
+   "via": "",
+   "uri": "/journey/journeyresults/910gbrghtn/to/910gcntbw?date=20261103&time=1400&timeis=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL; app_key removed; leg path geometry removed (unused)"
+}

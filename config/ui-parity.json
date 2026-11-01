@@ -1,23 +1,136 @@
 {
   "version": 1,
   "designs": [
-    { "id": "panda", "settings": { "signal": false } },
-    { "id": "signal", "settings": { "signal": true } }
+    {
+      "id": "panda",
+      "settings": {
+        "signal": false
+      }
+    },
+    {
+      "id": "signal",
+      "settings": {
+        "signal": true
+      }
+    }
   ],
   "surfaces": [
-    { "id": "awaiting-location", "view": "awaiting-location" },
-    { "id": "plan-now", "view": "plan-now" },
-    { "id": "plan-by", "view": "plan-by" },
-    { "id": "plan-at", "view": "plan-at" },
-    { "id": "following", "view": "following" },
-    { "id": "on-train", "view": "on-train" },
-    { "id": "at-hub", "view": "at-hub" },
-    { "id": "on-tube", "view": "on-tube" },
-    { "id": "in-london", "view": "in-london" },
-    { "id": "on-tube-home", "view": "on-tube-home" },
-    { "id": "nearly-home", "view": "nearly-home" },
-    { "id": "live-departures", "view": "plan-now" },
-    { "id": "along-the-line", "view": "on-train" }
+    {
+      "id": "awaiting-location",
+      "view": "awaiting-location"
+    },
+    {
+      "id": "plan-now",
+      "view": "plan-now"
+    },
+    {
+      "id": "plan-by",
+      "view": "plan-by"
+    },
+    {
+      "id": "plan-at",
+      "view": "plan-at"
+    },
+    {
+      "id": "following",
+      "view": "following"
+    },
+    {
+      "id": "on-train",
+      "view": "on-train"
+    },
+    {
+      "id": "at-hub",
+      "view": "at-hub"
+    },
+    {
+      "id": "on-tube",
+      "view": "on-tube"
+    },
+    {
+      "id": "in-london",
+      "view": "in-london"
+    },
+    {
+      "id": "on-tube-home",
+      "view": "on-tube-home"
+    },
+    {
+      "id": "nearly-home",
+      "view": "nearly-home"
+    },
+    {
+      "id": "live-departures",
+      "view": "plan-now"
+    },
+    {
+      "id": "along-the-line",
+      "view": "on-train"
+    },
+    {
+      "id": "plan-trip-now",
+      "view": "plan-trip-now",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "plan-trip-by",
+      "view": "plan-trip-by",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "plan-trip-at",
+      "view": "plan-trip-at",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "trip-follow",
+      "view": "trip-follow",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "trip-access",
+      "view": "trip-access",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "trip-ride",
+      "view": "trip-ride",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "trip-change",
+      "view": "trip-change",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    },
+    {
+      "id": "trip-final",
+      "view": "trip-final",
+      "designs": [
+        "signal"
+      ],
+      "exception": "docs/decisions/trip-signal-only.md"
+    }
   ],
   "retired": []
 }

@@ -11,7 +11,19 @@ export const PARITY_REGISTRY = 'config/ui-parity.json';
 const idPattern = /^[a-z][a-z0-9-]*$/;
 const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
 export const parityTestName = (design, surface) => `UI parity: ${design} / ${surface}`;
+/** A design excepted from a surface must really lack it: a required negative case, so a stale exception fails. */
+export const parityExceptionName = (design, surface) => `UI parity exception: ${design} / ${surface}`;
 export const loadParityRegistry = (root = PARITY_ROOT) => JSON.parse(readFileSync(join(root, PARITY_REGISTRY), 'utf8'));
+/** The designs a surface must pass in: every supported design, unless Sam approved a recorded exception
+ *  (`designs` + `exception`, checked by parityRegistryProblems). */
+export const surfaceDesigns = (registry, surface) =>
+  registry.designs.filter(design => !Array.isArray(surface.designs) || surface.designs.includes(design.id));
+export const exceptedDesigns = (registry, surface) =>
+  Array.isArray(surface.designs) ? registry.designs.filter(design => !surface.designs.includes(design.id)) : [];
+/** Every result the gate requires: each supported pair, and each excepted pair's negative case. */
+export const expectedParityResults = registry => registry.surfaces.flatMap(surface => [
+  ...surfaceDesigns(registry, surface).map(design => parityTestName(design.id, surface.id)),
+  ...exceptedDesigns(registry, surface).map(design => parityExceptionName(design.id, surface.id))]);
 
 /** Production design IDs are explicit literals. A new CSS/HTML selector or an
  * assignment branch cannot add a supported design outside the release registry.
@@ -104,6 +116,28 @@ export function parityRegistryProblems(registry, {viewIds = [], previous = null,
       seen.add(entry.id);
       if (kind === 'designs' && !object(entry.settings)) problems.push(`Design ${entry.id} needs explicit settings`);
       if (kind === 'surfaces' && !viewIds.includes(entry.view)) problems.push(`Surface ${entry.id} names an unknown engine view: ${entry.view}`);
+      // A surface limited to some designs is an exception to "every supported UI advances together": allowed only
+      // with Sam's recorded decision naming exactly this surface and these designs.
+      if (kind === 'surfaces' && (entry.designs !== undefined || entry.exception !== undefined)) {
+        const ids = (Array.isArray(registry.designs) ? registry.designs : []).map(d => d?.id);
+        const list = entry.designs;
+        if (!Array.isArray(list) || !list.length || list.some(d => !ids.includes(d)) || new Set(list).size !== list.length)
+          problems.push(`Surface ${entry.id}: an exception must list registered designs`);
+        else if (list.length >= ids.length) problems.push(`Surface ${entry.id}: an exception must leave out at least one design (if every design has it now, remove the exception)`);
+        else {
+          const path = typeof entry.exception === 'string' ? resolve(root, entry.exception) : '';
+          const insideDocs = path.startsWith(resolve(root, 'docs') + sep) && path.endsWith('.md');
+          const lines = insideDocs && existsSync(path) ? readFileSync(path, 'utf8').split('\n').map(l => l.trim()) : null;
+          // Only a new surface can start as an exception: an existing one that every design had cannot lose a design
+          // by a registry edit and an appended line (that is retirement, or a new decision with Sam).
+          const before = (previous?.surfaces || []).find(old => old?.id === entry.id);
+          if (before && (!Array.isArray(before.designs) || list.some(d => !before.designs.includes(d)) || before.designs.length > list.length))
+            problems.push(`Surface ${entry.id}: an existing surface cannot become (or widen) a design exception`);
+          if (!lines) problems.push(`Surface ${entry.id}: a design exception needs an existing decision under docs/`);
+          else if (!lines.includes('Approved by: Sam') || !lines.includes(`Design exception: surface:${entry.id} designs:${[...list].sort().join(',')}`))
+            problems.push(`Surface ${entry.id}: the exception decision must record Sam's approval and exactly this surface and its designs`);
+        }
+      }
     }
   }
   const surfaces = Array.isArray(registry.surfaces) ? registry.surfaces : [];
@@ -147,10 +181,10 @@ export function parityRegistryProblems(registry, {viewIds = [], previous = null,
 /** A successful test process is insufficient: skipped, omitted or renamed matrix
  * cases must not silently reduce release coverage. Other test suites may use skips. */
 export function parityCoverageProblems(registry, tap) {
-  const expected = new Set(registry.designs.flatMap(design => registry.surfaces.map(surface => parityTestName(design.id, surface.id))));
+  const expected = new Set(expectedParityResults(registry));
   const seen = new Set(), problems = [];
   for (const line of tap.split('\n')) {
-    const result = /^(not ok|ok) \d+ - (UI parity: .+?)(?:\s+#\s*(SKIP|TODO)\b.*)?\s*$/.exec(line);
+    const result = /^(not ok|ok) \d+ - (UI parity(?: exception)?: .+?)(?:\s+#\s*(SKIP|TODO)\b.*)?\s*$/.exec(line);
     if (!result) continue;
     const [, status, name, skipped] = result;
     if (!expected.has(name)) problems.push(`Unexpected UI parity case: ${name}`);

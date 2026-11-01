@@ -23,6 +23,9 @@ export interface ViewControlInput {
   situationKey: string;
   previous?: Presentation | null;
   interacting?: boolean;
+  /** The views this mode plans and follows in (Trip: plan-trip-*, trip-follow). Default: the commute's. Planning
+   *  views must start "plan-" so they are never mistaken for an active journey. */
+  views?: { plan?: Record<"now" | "by" | "at", View>; following?: View };
 }
 export interface ViewControlResult extends Presentation {
   mode: "auto" | "plan" | "live";
@@ -64,7 +67,8 @@ export function resolveViewControl(i: ViewControlInput): ViewControlResult {
   let noActiveJourney = false;
   const available = i.hasActiveJourney ?? isLive(i.live);
   const currentLive = available && i.live && i.live.view !== "awaiting-location" ? i.live : null;
-  const following: Presentation = { view: "following", underWay: false, blocks: BLOCKS.following };
+  const plans = i.views?.plan ?? planViews, followView = i.views?.following ?? "following";
+  const following: Presentation = { view: followView, underWay: false, blocks: BLOCKS[followView] };
   // Once a manual planning pin expires, an old planning question must not keep hiding the actual
   // live situation. Retain a current arrival-deadline verdict when the existing model supplies one.
   if (mode === "auto" && currentLive && !i.auto.underWay) desired = currentLive;
@@ -75,14 +79,14 @@ export function resolveViewControl(i: ViewControlInput): ViewControlResult {
   }
   if (mode === "plan") {
     // Manual planning cannot invent a direction when location has not established one.
-    const view = i.auto.view === "awaiting-location" ? "awaiting-location" : planViews[i.plan];
+    const view = i.auto.view === "awaiting-location" ? "awaiting-location" : plans[i.plan];
     desired = { view, underWay: false, blocks: BLOCKS[view] };
   } else if (mode === "live") {
     if (currentLive) desired = currentLive;
     else if (i.hasFollowedJourney) desired = following;
     else {
       noActiveJourney = true;
-      const view = i.auto.view === "awaiting-location" ? "awaiting-location" : "plan-now";
+      const view = i.auto.view === "awaiting-location" ? "awaiting-location" : plans.now;
       // The shell draws an explicit no-active-journey state; never display a planning option as a live train.
       desired = { view, underWay: false, blocks: BLOCKS[view] };
     }

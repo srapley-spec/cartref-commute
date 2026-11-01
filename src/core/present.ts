@@ -19,7 +19,14 @@ export type View =
   | "on-tube"             // on the tube to work
   | "in-london"           // elsewhere in London going to work (walking, TfL-planned, or arrived)
   | "on-tube-home"        // on a tube from the office: where to get off
-  | "nearly-home";        // the last stretch home
+  | "nearly-home"         // the last stretch home
+  // Trip mode (docs/leisure-architecture.md §7): any two places. Planning views start "plan-" like the commute's.
+  | "plan-trip-now" | "plan-trip-by" | "plan-trip-at"
+  | "trip-follow"         // a followed trip before anything is under way
+  | "trip-access"         // on the way to the first station
+  | "trip-ride"           // on a ride: headline = arrival
+  | "trip-change"         // at a change: headline = next departure and the spare minutes
+  | "trip-final";         // off the last train, on the way to the destination
 
 /** What the shell knows about the situation (every field comes from the engine or saved state). */
 export interface Situation {
@@ -54,7 +61,8 @@ export type Block =
   | "lines"        // every line on the journey with its status, good service included
   | "source"       // one line on where the numbers come from
   | "board"        // every train, in leaving order (never hide a train)
-  | "why";         // why these trains: what each source returned and dropped
+  | "why"          // why these trains: what each source returned and dropped
+  | "others";      // Trip: the best journey from / to each other station, with what it costs
 
 export interface Presentation {
   view: View;
@@ -93,7 +101,32 @@ export const BLOCKS: Record<View, Block[]> = {
   "in-london": ["label", "headline", "then", "lines"],
   "on-tube-home": ["label", "headline", "which", "then", "lines", "board"],
   "nearly-home": ["label", "headline", "then"],
+  "plan-trip-now": ["label", "headline", "options", "others", "board", "why", "source"],
+  "plan-trip-by": ["label", "headline", "options", "others", "board", "why", "source"],
+  "plan-trip-at": ["label", "headline", "options", "others", "board", "why", "source"],
+  "trip-follow": ["label", "headline", "which", "then", "source"],
+  "trip-access": ["label", "way", "headline", "then", "source"],
+  "trip-ride": ["label", "headline", "which", "progress", "then", "source"],
+  "trip-change": ["label", "headline", "which", "then", "source"],
+  "trip-final": ["label", "headline", "then"],
 };
+
+/** Trip mode's situation: every field from the trip engine (followTrip) or saved state. */
+export interface TripSituation {
+  plan: "now" | "by" | "at";
+  /** No trip followed: planning only. */
+  following: boolean;
+  /** The followed trip's phase (followTrip.ts). */
+  phase?: "before" | "access" | "ride" | "change" | "final" | "arrived";
+}
+export const TRIP_VIEWS = { plan: { now: "plan-trip-now", by: "plan-trip-by", at: "plan-trip-at" } as Record<"now" | "by" | "at", View>, following: "trip-follow" as View };
+/** Which Trip view: the followed trip's phase wins over planning; otherwise the planning question's view. */
+export function chooseTripView(s: TripSituation): Presentation {
+  const phaseView: Record<string, View> = { access: "trip-access", ride: "trip-ride", change: "trip-change", final: "trip-final" };
+  const v: View = s.following && s.phase && phaseView[s.phase] ? phaseView[s.phase]
+    : s.following && s.phase === "before" ? "trip-follow" : TRIP_VIEWS.plan[s.plan];
+  return { view: v, underWay: false, blocks: BLOCKS[v] };
+}
 
 /** What the big number means on a planning view: departs when you're at or walking to the station, else leave. */
 export function headlineKind(view: View, ctx: { atStation: boolean; onWay: boolean }): HeadlineKind {
