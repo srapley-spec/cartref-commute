@@ -1,0 +1,197 @@
+{
+  "candidateCommit": "6798b5e03216c537631444ce106ed2ef2aadb2d4",
+  "candidateBuildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+  "archiveBranch": "archive/panda-2026-11-01",
+  "archiveCommit": "0d6bf6e103246fefa68412d90f58d314af1cad9d",
+  "archiveTests": {
+    "pass": 941,
+    "fail": 0,
+    "skip": 0
+  },
+  "goldenScenarios": 22,
+  "engineOrRequestChanges": 0,
+  "mutations": [
+    {
+      "id": "M1",
+      "description": "retired design is selected",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=undefined opens Signal without enabling Follow",
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow",
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M2",
+      "description": "legacy appearance flag stays effective",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow"
+      ]
+    },
+    {
+      "id": "M3",
+      "description": "Follow is silently enabled",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M4",
+      "description": "saved trip is lost on upgrade",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M5",
+      "description": "ambiguous single platform returns",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Platform is on the card and the list without expanding; with two boarding stations, each has its own"
+      ]
+    },
+    {
+      "id": "M6",
+      "description": "collapsed boarding alternatives disappear",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Platform is on the card and the list without expanding; with two boarding stations, each has its own"
+      ]
+    },
+    {
+      "id": "M7",
+      "description": "location stays inside collapsed options",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M8",
+      "description": "live blocks ignore engine priority",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal dispatch enforces the canonical order on the actual live hero"
+      ]
+    },
+    {
+      "id": "M9",
+      "description": "journey progress disappears",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal progress: an inferred train without Follow shows complete stages, factual calling points and no additional requests",
+        "Signal progress: live expected arrival changes show behind and ahead against the original timetable",
+        "Signal progress: stale reports freeze the confirmed bar and keep report details accessible",
+        "Signal progress: an inferred Tube without Follow shows route stops and honest modelled progress",
+        "Signal progress: a location projection without a live arrival stays modelled",
+        "Signal progress: fresh endpoint unknown delay is explicit and residual predictions cannot clear board incidents",
+        "Signal progress: an exact fresh Tube destination prediction estimates position without manufacturing stop reports"
+      ]
+    },
+    {
+      "id": "M10",
+      "description": "status is hidden",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Signal is the default with Auto Plan Live and independently disabled Follow"
+      ]
+    },
+    {
+      "id": "M11",
+      "description": "settings reopen feed caches",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "Panda retirement: saved signal=undefined opens Signal without enabling Follow",
+        "Panda retirement: saved signal=false opens Signal without enabling Follow",
+        "Panda retirement: saved signal=true opens Signal without enabling Follow",
+        "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
+      ]
+    },
+    {
+      "id": "M12",
+      "description": "test runner suppresses failures",
+      "caught": true,
+      "exit": 1,
+      "failedTests": [
+        "test runner discovers page and core suites and propagates either failure"
+      ]
+    }
+  ],
+  "compactGeometryComparison": [
+    {
+      "root": "/workspace/scratch/panda-browser-baseline",
+      "answerTop": 330.8125,
+      "boardTop": 717.953125,
+      "maxRow": 202.53125,
+      "errors": []
+    },
+    {
+      "root": "/workspace/cartref-signal",
+      "answerTop": 330.8125,
+      "boardTop": 738.75,
+      "maxRow": 202.53125,
+      "errors": []
+    }
+  ],
+  "browserResults": {
+    "compact": {
+      "layouts": 20,
+      "passed": true
+    },
+    "journeyFacts": {
+      "browser": "Chromium",
+      "buildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+      "designAppearanceWidthCases": 4,
+      "viewScenes": 24,
+      "textEnlargementScenes": 24,
+      "followScenes": 4,
+      "activeRailScenes": 2,
+      "enlargedActiveRailScenes": 2,
+      "tubeConnectionFixtures": 1,
+      "followDisabledViewControls": true,
+      "pageErrors": []
+    },
+    "journeyClarity": {
+      "browser": "Chromium",
+      "baseline": false,
+      "deviceAppearanceCases": 4,
+      "journeyStateCaptures": 20,
+      "buildSha256": "91bcfda2bc962d9375ea232f2f873a8b4b924609ebeea6ebda96cbee7eaa2c03",
+      "disruptionCases": 60,
+      "locationCases": 36,
+      "appearanceOverrides": 12,
+      "progressEvidence": [
+        "rail ahead",
+        "rail behind",
+        "rail stale",
+        "rail timetable only",
+        "Tube matching vehicle",
+        "Tube wrong vehicle",
+        "Tube stale"
+      ]
+    },
+    "controlsAndPersistence": {
+      "passed": true
+    },
+    "alongLineAccess": {
+      "passed": true
+    }
+  },
+  "separateIndependentReview": "pending"
+}

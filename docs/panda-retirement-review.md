@@ -90,9 +90,20 @@ subprocess test proves the runner still discovers page/core tests and propagates
   doubled text, time anchors, touch/contrast checks, rail ahead/behind/stale/timetable and guarded Tube evidence.
 - `browser-along-access.py` passed: actual opt-in, checkpoints 0–4, light/dark at 320/390 px,
   browse/onboard transition, passed-point reading, empty-interest/reopen position, focus and 44 px targets.
-- Deliberate breakages of defaults, migration, trip persistence, platform alternatives, location, canonical
-  order, progress, status, settings/feed isolation and runner failure propagation are tested separately.
-  These mutation results are implementation-author evidence, not separate independent sign-off.
+- `browser-journey-facts.py` passed on the same build hash: 24 view scenes and 24 doubled-text scenes,
+  four Follow scenes, two active-rail scenes (also enlarged), Tube connection counterexamples and Follow-disabled
+  controls. Zero page errors.
+- `browser-signal-compact.py` passed all 20 layout cases: density, full board/cancellations, notices, adjustments,
+  Plan, Follow and doubled text. Its old density thresholds failed unchanged archived Signal too: answer top
+  330.8125 px and maximum row 202.53125 px in both builds. The candidate board starts 20.796875 px lower because
+  the collapsed alternative now retains boarding station/time/platform facts. The check now measures compact
+  layout overhead separately from required visible location/status/disruption evidence and the additional
+  boarding facts; all significant alerts must remain visible. The row cap accommodates the current duration
+  facts. No application styling was altered to satisfy this stale pre-clarity test.
+- All 12 deliberate breakages were caught: defaults, migration, trip persistence, platform alternatives,
+  location, canonical order, progress, status, settings/feed isolation and runner failure propagation.
+  [Recorded results](panda-retirement-review-results.json) include exact failing regression names, the archive
+  geometry comparison and the candidate build hash. These are author evidence, not independent sign-off.
 
 ## Remaining review and limits
 

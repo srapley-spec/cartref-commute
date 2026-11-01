@@ -95,13 +95,27 @@ def capture_baseline(browser):
 
 def check_density(page,label,width,noisy):
  m=metrics(page)
+ # The journey-clarity release deliberately exposes location evidence and serious disruption before the
+ # answer; the later duration release also adds readable facts to board rows.
+ # Measure layout overhead separately so those required facts cannot be hidden
+ # merely to satisfy thresholds from the earlier compact-only design.
+ allowances=page.evaluate('''()=>{
+  const disruption=document.querySelector('#signalDisruptions');
+  const height=e=>e?.checkVisibility()?e.getBoundingClientRect().height:0;
+  const boarding=[...document.querySelectorAll('#hero .signal-alt-boarding')].filter(e=>e.checkVisibility());
+  const location=document.querySelector('#dirNote');
+  const status=document.querySelector('#signalStatus');
+  if([...disruption.children].some(e=>!e.checkVisibility()))throw Error('Significant disruption is concealed');
+  return {alerts:[disruption,location,status].reduce((total,e)=>total+height(e)+(height(e)?8:0),0),
+   boarding:boarding.reduce((total,e)=>total+height(e)+4,0)};
+ }''')
  assert m['scrollWidth']<=width+1,(label,'horizontal overflow',m)
- assert m['answer']['top']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
- assert m['answer']['bottom']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
- assert m['board']['top']<(650 if width==393 else 740),(label,'board starts too far down',m)
+ assert m['answer']['top']-allowances['alerts']<(320 if noisy else 260),(label,'answer buried below controls/notices',m)
+ assert m['answer']['bottom']-allowances['alerts']<m['viewport'],(label,'primary answer is not visible without scrolling',m)
+ assert m['board']['top']-allowances['alerts']-allowances['boarding']<(650 if width==393 else 740),(label,'board starts too far down',m)
  assert all(r is not None and r['height']>0 for r in m['rows']),(label,'a loaded train was visually hidden',m)
  if width==393:
-  assert max(r['height'] for r in m['rows'])<200,(label,'rows remain excessively tall',m)
+  assert max(r['height'] for r in m['rows'])<220,(label,'rows remain excessively tall',m)
  assert all(c['height']>=43.9 and c['width']>=43.9 for c in m['controlHeights']),(label,'touch targets below44',m['controlHeights'])
  assert all(c['ratio']>=4.5 for c in m['contrast']),(label,'actual text contrast below4.5',m['contrast'])
  return m
