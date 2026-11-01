@@ -1,0 +1,15 @@
+{
+ "recorded": "2026-10-31T20:45:18.836Z",
+ "request": "Journey/JourneyResults/910GBRGHTN/to/910GLETCHWT?date=20261103&time=1000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": 404,
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.ApiError, Tfl.Api.Presentation.Entities",
+  "timestampUtc": "2026-10-31T20:44:38.0854445Z",
+  "exceptionType": "EntityNotFoundException",
+  "httpStatusCode": 404,
+  "httpStatus": "NotFound",
+  "relativeUri": "/Journey/JourneyResults/910GBRGHTN/to/910GLETCHWT?date=20261103&time=1000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime&app_key=REMOVED",
+  "message": "No journey found for your inputs."
+ },
+ "note": "Recorded from TfL; app_key removed; leg path geometry removed (unused)"
+}

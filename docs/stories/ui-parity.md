@@ -47,6 +47,19 @@ enforced, that all supported design systems and UIs advance concurrently until a
   names the screen. Replace the explanatory “No journey under way…” paragraph with “Auto shows when to leave.”; never
   pretend the passenger is already on a service.
 
+## Design exceptions (Sam, 1 Nov 2026)
+- A surface may exist in fewer than all supported designs only with Sam's explicit, recorded exception: the registry
+  entry lists `designs` and `exception` (a decision under `docs/` with `Approved by: Sam` and
+  `Design exception: surface:<id> designs:<ids>`, IDs sorted and comma-separated). The gate checks the record (under
+  `docs/`, Markdown), requires the listed designs' cases plus a negative case per left-out design ("UI parity
+  exception: panda / plan-trip-now": no Trip button, screen or request in Panda, even with saved Trip state), rejects
+  an unexpected positive result for an excepted design, and refuses an exception that names a different surface, lists
+  unregistered designs, covers every design, or is applied to a surface that already existed for every design.
+- First and only use: Trip mode's eight views are Signal-only ([decision](../decisions/trip-signal-only.md),
+  [Trip story](leisure-journeys.md)). Their Signal cases drive the real Trip screen into each view.
+- Tests: tests/ui-parity-enforcement.test.mjs "UI parity gate accepts a design exception only with Sam's recorded
+  decision naming the surface and its designs"; the `UI parity: signal / plan-trip-*` and `signal / trip-*` cases.
+
 ## Mandatory SDLC gate
 - `config/ui-parity.json` is the supported-design/surface registry. Its surfaces cover every key in the pure
   presentation model's `BLOCKS`, plus the explicit Live departures and Along the line surfaces. The Along the line companion

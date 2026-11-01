@@ -17,11 +17,13 @@ const core = iife.outputFiles[0].text;
 
 const stamp = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false }).replace(",", "") + " UTC";
 let page = readFileSync(path.join(ROOT, "src/page.html"), "utf8").replace("__BUILD__", stamp);
-if (!page.includes('/*__SIGNAL_STYLES__*/') || !page.includes('/*__PRESENTATION_BLOCKS__*/') || !page.includes('/*__FOLLOW_TRANSPORT__*/') || !page.includes('/*__JOURNEY_UI__*/')) throw new Error('Missing journey presentation build insertion point');
+if (!page.includes('/*__SIGNAL_STYLES__*/') || !page.includes('/*__PRESENTATION_BLOCKS__*/') || !page.includes('/*__FOLLOW_TRANSPORT__*/') || !page.includes('/*__JOURNEY_UI__*/') || !page.includes('/*__TRIP_UI__*/')) throw new Error('Missing journey presentation build insertion point');
 page = page.replace('/*__SIGNAL_STYLES__*/', ['signal.css', 'along-line.css'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8')).join('\n'))
   .replace('/*__PRESENTATION_BLOCKS__*/', readFileSync(path.join(ROOT, 'src/presentation-blocks.js'), 'utf8'))
   .replace('/*__FOLLOW_TRANSPORT__*/', readFileSync(path.join(ROOT, 'src/follow-transport.js'), 'utf8'))
-  .replace('/*__JOURNEY_UI__*/', ['journey-progress.js', 'journey-ui.js', 'along-line.js'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8')).join('\n'));
+  .replace('/*__JOURNEY_UI__*/', ['journey-progress.js', 'journey-ui.js', 'along-line.js'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8')).join('\n'))
+  // Trip mode: adapters and screen (module.exports lines are for tests and are stripped here).
+  .replace('/*__TRIP_UI__*/', ['trip-adapters.js', 'trip-ui.js'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8').replace(/^if \(typeof module !== "undefined"\).*$/m, '')).join('\n'));
 // Embed the development simulator from its own source module and panel asset.
 // The web app is a static single-file GitHub Pages deployment.
 const simController = ["scenarios.js", "gps.js", "catalog.js", "verification.js", "report.js", "controller.js", "session.js", "journey-ui.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");
