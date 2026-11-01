@@ -27,12 +27,12 @@ function progressHtml(model){
   const current=model.current;
   const unknownPast=current.id==='tube-current';
   return `<div class="jp-heading"><b>Journey stages</b><span class="jp-status ${model.status.level}">${esc(model.status.text)}</span></div>
-    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-name">${esc(leg.label)}</span></li>`).join('')}</ol>
+    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
       <div class="jp-current-track" role="progressbar" aria-label="${esc(model.progressLabel)}" aria-valuemin="0" aria-valuemax="100"${model.fraction===null?'':` aria-valuenow="${Math.round(model.fraction*100)}"`} aria-valuetext="${esc(model.progressLabel)}"><i style="--complete:${percentage(model.fraction??0)}"></i></div>
-      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
+      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-code="${esc(call.code||'')}" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
       <p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>
     </div>`;
 }
@@ -43,7 +43,7 @@ function renderJourneyProgress(){
   if(!drawProgress&&S().alongLine!==true)return;
   const now=Date.now(),dir=direction(),mode=currentMode();
   if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
-  const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
+  let followed=!$('#followPanel').hidden&&state.followUpdate?.route;
   let context=state.rendered?.progress;
   let target=$('#hero');
   if(!context&&followed?.phase==='on-train'){
@@ -56,13 +56,23 @@ function renderJourneyProgress(){
     context={kind:'tube',ride,departure:ride.t,arrival:null,finalArrival:null,homeward:dir==='home',from:ride.from||ride.hub,to:ride.stop||'Stop not established'};
   }
   if(!context)return;
+  // Saved history belongs only to the service displayed on this card. Keep a
+  // different passenger Follow choice separate from the inferred train's reports.
+  if(context.kind==='rail'&&followed){
+    const savedId=followed.lastTrain.serviceId,currentId=context.train.serviceId;
+    if((savedId&&currentId&&savedId!==currentId)||!C.followMatchesObservedTrain(followed,{
+      train:context.train,hub:context.option?.hub||(dir==='office'?context.train.to:context.train.from)
+    }))followed=null;
+  }
   let legs,active,evidence,calls,railFacts,uncertain=false,cancelled=false,noEstimate=false;
   const option=followed?.option||context.option;
   if(context.kind==='rail'){
     const train=followed?.lastTrain||context.train;if(!train)return;
     const details=context.details;
     const ordered=progressRailCalls(train,details?.data),endpoint=ordered.find(call=>call.code===train.to);
-    const knownIdentity=!!train.serviceId&&(!details?.id||details.id===train.serviceId);
+    // A matched timetable Follow can retain history without ever having a provider
+    // ID. The actual displayed train owns the identity of its fresh reports.
+    const knownIdentity=!!context.train.serviceId&&(!details?.id||details.id===context.train.serviceId);
     const observedAt=details?.at??state.boardsAt;
     const factualEnd=endpoint?.actualAt!=null&&endpoint.actualAt<=observedAt?endpoint.actualAt:endpoint?.expectedAt;
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);

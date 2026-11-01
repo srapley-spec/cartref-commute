@@ -527,8 +527,12 @@ html[data-design="signal"] .journey-progress .jp-overall {display:flex;gap:5px;l
 html[data-design="signal"] .journey-progress .jp-leg {display:flex;flex-direction:column;flex:1 1 0;min-width:0;color:var(--muted)}
 html[data-design="signal"] .journey-progress .jp-leg-bar {display:block;flex:0 0 6px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 html[data-design="signal"] .journey-progress :is(.jp-leg-bar,.jp-current-track)>i {display:block;width:var(--complete,0%);height:100%;border-radius:inherit;background:var(--accent)}
-html[data-design="signal"] .journey-progress .jp-leg-name {display:block;margin-top:4px;font-size:12px;line-height:1.35;overflow-wrap:break-word}
-html[data-design="signal"] .journey-progress .jp-leg[data-state="current"] .jp-leg-name {color:var(--accent);font-weight:700}
+html[data-design="signal"] .journey-progress .jp-leg-caption {display:flex;flex-wrap:wrap;align-items:baseline;gap:0 5px;margin-top:4px;line-height:1.35}
+html[data-design="signal"] .journey-progress .jp-leg-name {display:block;font-size:12px;overflow-wrap:break-word}
+html[data-design="signal"] .journey-progress .jp-leg-state {font-size:11px;color:var(--muted)}
+html[data-design="signal"] .journey-progress .jp-leg[data-state="complete"] .jp-leg-bar>i {background:var(--muted)}
+html[data-design="signal"] .journey-progress .jp-leg[data-state="current"] .jp-leg-bar {outline:1px solid var(--accent);outline-offset:1px}
+html[data-design="signal"] .journey-progress .jp-leg[data-state="current"] :is(.jp-leg-name,.jp-leg-state) {color:var(--accent);font-weight:700}
 html[data-design="signal"] .journey-progress .jp-current {display:grid;gap:6px;min-width:0}
 html[data-design="signal"] .journey-progress .jp-current-title {display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13px;font-weight:650;overflow-wrap:break-word}
 html[data-design="signal"] .journey-progress .jp-current-title>span {font-size:12px;font-weight:500;color:var(--muted)}
@@ -772,7 +776,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 10:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 01 Nov 10:56 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6814,6 +6818,23 @@ function evaluateSimulationCheckpoint(context={}) {
  if(config.scenario==='outage'&&elapsed!=null&&elapsed>=40){
   add('provider-recovery','Resume parsed transport data after the provider recovers',`${boards.length} service(s), source ${app.railSource||'unknown'}`,boards.length>0&&app.railSource==='darwin',{serviceCount:boards.length,railSource:app.railSource||null});
  }
+ if(app.view==='on-train'&&app.railProgress?.enabled&&c.mode==='rail'&&['north','approach','stp'].includes(point)){
+  const p=app.railProgress,report=p.report;
+  add('rail-current-leg','Mark Train as the current journey leg',p.kind||'No current leg',p.kind==='rail');
+  if(p.diagram){
+   const stages=Array.isArray(p.stages)?p.stages:[],current=stages.findIndex(leg=>leg.state==='current');
+   const correct=current>=0&&stages[current].kind==='rail'&&stages.every((leg,index)=>leg.state===(index<current?'complete':index===current?'current':'upcoming')&&leg.label===(index<current?'Done':index===current?'Now':'Next'));
+   add('rail-stage-display','Show completed stages as Done and the current Train stage as Now',correct?'Stage labels match current rail travel':'Stage labels are missing or inconsistent',correct);
+  }
+  const fresh=report&&Number.isFinite(report.observedAt)&&report.observedAt<=c.now&&c.now-report.observedAt<180000;
+  if(!fresh)unknown('rail-calling-reports','Retain the current train’s actual calling-point reports','No fresh Service Details observation is available');
+  else{
+   const actual=(report.calls||[]).filter(call=>Number.isFinite(call.at)&&call.at<=report.observedAt).map(call=>call.code);
+   const matched=report.serviceId===app.train?.serviceId;
+   const retained=actual.every(code=>p.reported?.includes(code)&&(!p.diagram||p.displayedReports?.includes(code)));
+   add('rail-calling-reports','Retain the current train’s actual calling-point reports',`${actual.length} actual report(s); ${matched?'matching':'different'} service`,actual.length?matched&&retained:null,{reportedCount:actual.length});
+  }
+ }
  if(app.following&&['north','approach','stp'].includes(point)&&app.follow?.serviceId===expectedId&&config.scenario!=='uncertain'&&accurate&&app.locAcc<=500){
   add('follow-phase','Recognise the followed service in its actual on-train phase',app.follow?.phase||'Not observed',app.follow?.phase==='on-train',{serviceId:app.follow?.serviceId||null});
  }
@@ -7482,11 +7503,18 @@ simulator.diagnostics=()=>({sourceEpoch,view:state.rendered?.view||null,directio
 // Simulator integration observes normal rendering; no extra inference calls are made for verification.
 function readSimulationActual(){
  const model=state.rendered||{},m=model.train,r=model.ride;
+ const progress=model.progressModel,report=model.progress?.kind==='rail'?model.progress.details:null;
+ const progressSection=document.querySelector('#hero .journey-progress,#followPanel .journey-progress');
+ const railProgress={enabled:!!(S().signal||S().alongLine),diagram:!!S().signal,kind:progress?.current.kind||null,
+  reported:(progress?.calls||[]).filter(call=>call.state==='reported').map(call=>call.code),
+  stages:progressSection?[...progressSection.querySelectorAll('.jp-leg')].map(leg=>({kind:leg.dataset.kind,state:leg.dataset.state,label:leg.querySelector('.jp-leg-state')?.textContent||''})):[],
+  displayedReports:progressSection?[...progressSection.querySelectorAll('.jp-stop[data-state="reported"]')].map(call=>call.dataset.code):[],
+  report:report?.data?{serviceId:report.id,observedAt:report.at,calls:progressRailCalls(model.progress.train,report.data).filter(call=>!call.cancelled&&Number.isFinite(call.actualAt)).map(call=>({code:call.code,at:call.actualAt}))}:null};
  const journeyMemory={origin:!!state.origin,directionPin:state.saved.dirMode!=='auto',planningView:(state.saved.view||'now')!=='now',trainLock:!!state.trainLock,aldgateVisit:!!state.saved.aldHome,followChoices:followChoices.size>0,pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!(state.saved.viewOverride||state.saved.viewAt||state.saved.viewKey||state.saved.planInputs)};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
  return {follow:model.follow?{state:model.follow.status,phase:model.follow.route?.phase,serviceId:model.follow.route?.lastTrain?.serviceId||null}:null,following:!$("#followPanel").hidden,presentationMode:state.presentation?.mode||'auto',presentationPending:!!state.pendingView,presentationInteracting:journeyInteracting(),stationStop:state.hubSince?{hub:state.hubSince.hub,at:state.hubSince.at,stopped:state.hubSince.stopped??null}:null,railSource:state.railSource,loading:!!state.loading||!!state.again,direction:direction(),autoDir:state.autoDir,directionExplicit:['home','office'].includes(state.saved.dirMode),locStatus:state.locStatus,locAcc:state.locAcc,fixAgeMs:Number.isFinite(state.lastFixAt)?Math.max(0,Date.now()-state.lastFixAt):null,onLine:!!state.onLine,atHub:state.atHub||null,onWay:!!onWay(),atHome:atHome(),atStation:!!atStation(),nearOffice:nearOffice(),hasConfiguredHome:Array.isArray(state.saved.home),inLondonToOffice:!!state.inLondon,train,
   ride:r?{vehicle:r.vehicle||null,from:r.from||r.hub||null,stop:r.stop||null,line:r.line||null,t:r.t}:null,
-  homeStation:HOME,travelMode:state.saved.mode,journeyMemory,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
+  homeStation:HOME,travelMode:state.saved.mode,journeyMemory,railProgress,boards:Object.values(state.boards||{}).flatMap(board=>(board?.services||[]).map(t=>({id:t.serviceId,serviceId:t.serviceId,from:t.from,to:t.to,cancelled:!!t.cancelled,platform:t.platform,depLate:t.depLate,arrLate:t.arrLate,dep:t.dep,arr:t.arr,operator:t.operator}))),
   errors:(state.errors||[]).slice(),lineStatuses:(state.status||[]).map(line=>({id:line.id,statuses:(line.statuses||[]).map(status=>({sev:status.sev,desc:status.desc}))})),view:model.view||null,planMode:state.saved.view||'now',
   followText:!$("#followPanel").hidden?$("#followPanel").textContent.replace(/\s+/g,' ').trim():'',heroText:$("#hero").textContent.replace(/\s+/g,' ').trim(),listText:$("#list").textContent.replace(/\s+/g,' ').trim(),bannersText:$("#banners").textContent.replace(/\s+/g,' ').trim(),options:model.options||{count:0,usableCount:0},tubeChoices:document.querySelectorAll('[data-tubepick]').length};
 }
@@ -7645,12 +7673,12 @@ function progressHtml(model){
   const current=model.current;
   const unknownPast=current.id==='tube-current';
   return `<div class="jp-heading"><b>Journey stages</b><span class="jp-status ${model.status.level}">${esc(model.status.text)}</span></div>
-    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-name">${esc(leg.label)}</span></li>`).join('')}</ol>
+    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
       <div class="jp-current-track" role="progressbar" aria-label="${esc(model.progressLabel)}" aria-valuemin="0" aria-valuemax="100"${model.fraction===null?'':` aria-valuenow="${Math.round(model.fraction*100)}"`} aria-valuetext="${esc(model.progressLabel)}"><i style="--complete:${percentage(model.fraction??0)}"></i></div>
-      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
+      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-code="${esc(call.code||'')}" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
       <p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>
     </div>`;
 }
@@ -7661,7 +7689,7 @@ function renderJourneyProgress(){
   if(!drawProgress&&S().alongLine!==true)return;
   const now=Date.now(),dir=direction(),mode=currentMode();
   if(signalProgressMemory&&(signalProgressMemory.epoch!==sourceEpoch||signalProgressMemory.dir!==dir||signalProgressMemory.mode!==mode))signalProgressMemory=null;
-  const followed=!$('#followPanel').hidden&&state.followUpdate?.route;
+  let followed=!$('#followPanel').hidden&&state.followUpdate?.route;
   let context=state.rendered?.progress;
   let target=$('#hero');
   if(!context&&followed?.phase==='on-train'){
@@ -7674,13 +7702,23 @@ function renderJourneyProgress(){
     context={kind:'tube',ride,departure:ride.t,arrival:null,finalArrival:null,homeward:dir==='home',from:ride.from||ride.hub,to:ride.stop||'Stop not established'};
   }
   if(!context)return;
+  // Saved history belongs only to the service displayed on this card. Keep a
+  // different passenger Follow choice separate from the inferred train's reports.
+  if(context.kind==='rail'&&followed){
+    const savedId=followed.lastTrain.serviceId,currentId=context.train.serviceId;
+    if((savedId&&currentId&&savedId!==currentId)||!C.followMatchesObservedTrain(followed,{
+      train:context.train,hub:context.option?.hub||(dir==='office'?context.train.to:context.train.from)
+    }))followed=null;
+  }
   let legs,active,evidence,calls,railFacts,uncertain=false,cancelled=false,noEstimate=false;
   const option=followed?.option||context.option;
   if(context.kind==='rail'){
     const train=followed?.lastTrain||context.train;if(!train)return;
     const details=context.details;
     const ordered=progressRailCalls(train,details?.data),endpoint=ordered.find(call=>call.code===train.to);
-    const knownIdentity=!!train.serviceId&&(!details?.id||details.id===train.serviceId);
+    // A matched timetable Follow can retain history without ever having a provider
+    // ID. The actual displayed train owns the identity of its fresh reports.
+    const knownIdentity=!!context.train.serviceId&&(!details?.id||details.id===context.train.serviceId);
     const observedAt=details?.at??state.boardsAt;
     const factualEnd=endpoint?.actualAt!=null&&endpoint.actualAt<=observedAt?endpoint.actualAt:endpoint?.expectedAt;
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);

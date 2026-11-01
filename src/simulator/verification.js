@@ -91,6 +91,23 @@ function evaluateSimulationCheckpoint(context={}) {
  if(config.scenario==='outage'&&elapsed!=null&&elapsed>=40){
   add('provider-recovery','Resume parsed transport data after the provider recovers',`${boards.length} service(s), source ${app.railSource||'unknown'}`,boards.length>0&&app.railSource==='darwin',{serviceCount:boards.length,railSource:app.railSource||null});
  }
+ if(app.view==='on-train'&&app.railProgress?.enabled&&c.mode==='rail'&&['north','approach','stp'].includes(point)){
+  const p=app.railProgress,report=p.report;
+  add('rail-current-leg','Mark Train as the current journey leg',p.kind||'No current leg',p.kind==='rail');
+  if(p.diagram){
+   const stages=Array.isArray(p.stages)?p.stages:[],current=stages.findIndex(leg=>leg.state==='current');
+   const correct=current>=0&&stages[current].kind==='rail'&&stages.every((leg,index)=>leg.state===(index<current?'complete':index===current?'current':'upcoming')&&leg.label===(index<current?'Done':index===current?'Now':'Next'));
+   add('rail-stage-display','Show completed stages as Done and the current Train stage as Now',correct?'Stage labels match current rail travel':'Stage labels are missing or inconsistent',correct);
+  }
+  const fresh=report&&Number.isFinite(report.observedAt)&&report.observedAt<=c.now&&c.now-report.observedAt<180000;
+  if(!fresh)unknown('rail-calling-reports','Retain the current train’s actual calling-point reports','No fresh Service Details observation is available');
+  else{
+   const actual=(report.calls||[]).filter(call=>Number.isFinite(call.at)&&call.at<=report.observedAt).map(call=>call.code);
+   const matched=report.serviceId===app.train?.serviceId;
+   const retained=actual.every(code=>p.reported?.includes(code)&&(!p.diagram||p.displayedReports?.includes(code)));
+   add('rail-calling-reports','Retain the current train’s actual calling-point reports',`${actual.length} actual report(s); ${matched?'matching':'different'} service`,actual.length?matched&&retained:null,{reportedCount:actual.length});
+  }
+ }
  if(app.following&&['north','approach','stp'].includes(point)&&app.follow?.serviceId===expectedId&&config.scenario!=='uncertain'&&accurate&&app.locAcc<=500){
   add('follow-phase','Recognise the followed service in its actual on-train phase',app.follow?.phase||'Not observed',app.follow?.phase==='on-train',{serviceId:app.follow?.serviceId||null});
  }

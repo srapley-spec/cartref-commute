@@ -43,6 +43,25 @@ test('checkpoint verification reads actual rail inference and detects real outpu
  const movement=base();movement.app.onLine=false;movement.app.heroText='If you leave now';const m=evaluate(movement);assert.equal(row(m,'rail-movement').status,'FAIL');assert.equal(row(m,'rail-presentation').status,'FAIL');
 });
 
+test('rail verification rejects discarded reports and wrong stages even when train inference is correct',()=>{
+ const c=base();
+ c.app.railProgress={enabled:true,diagram:true,kind:'rail',reported:['LET','HIT','SVG'],displayedReports:['LET','HIT','SVG'],
+  stages:[{kind:'walk',state:'complete',label:'Done'},{kind:'rail',state:'current',label:'Now'},{kind:'tube',state:'upcoming',label:'Next'}],
+  report:{serviceId:'SIM-GN-0905',observedAt:c.now,calls:[{code:'LET',at:c.now-11*60000},{code:'HIT',at:c.now-6*60000},{code:'SVG',at:c.now}]}};
+ assert.equal(evaluate(c).status,'PASS');
+ for(const patch of [{reported:[]},{displayedReports:['LET','SVG']},{report:{...c.app.railProgress.report,serviceId:'SIM-GN-LATER-0917'}}]){
+  const wrong=structuredClone(c);Object.assign(wrong.app.railProgress,patch);
+  assert.equal(row(evaluate(wrong),'rail-calling-reports').status,'FAIL','correct train detection cannot conceal missing or mismatched reports');
+ }
+ c.app.railProgress.kind='walk';assert.equal(row(evaluate(c),'rail-current-leg').status,'FAIL');c.app.railProgress.kind='rail';
+ c.app.railProgress.stages[0].label='Now';assert.equal(row(evaluate(c),'rail-stage-display').status,'FAIL');
+ c.app.railProgress.stages[0].label='Done';c.app.railProgress.stages=[];assert.equal(row(evaluate(c),'rail-stage-display').status,'FAIL');
+ c.app.railProgress.diagram=false;assert.equal(evaluate(c).status,'PASS','Panda checks the shared report model without requiring a Signal diagram');
+ c.app.railProgress.report.observedAt=c.now-180000;assert.equal(row(evaluate(c),'rail-calling-reports').status,'INCONCLUSIVE');
+ c.app.railProgress.report.observedAt=c.now+1;assert.equal(row(evaluate(c),'rail-calling-reports').status,'INCONCLUSIVE');
+ c.app.railProgress.report=null;assert.equal(row(evaluate(c),'rail-calling-reports').status,'INCONCLUSIVE');
+});
+
 for(const [route,direction,id] of [['kgx','outbound','SIM-GN-0905'],['far','outbound','SIM-TL-0912'],['kgx','return','SIM-GN-HOME-1617'],['far','return','SIM-TL-HOME-1620']]){
  test(`checkpoint verification fixture identity is an oracle only for ${route} ${direction}`,()=>{
   const c=base();c.config.route=route;c.config.direction=direction;c.app.direction=direction==='return'?'home':'office';c.app.train.serviceId=id;
