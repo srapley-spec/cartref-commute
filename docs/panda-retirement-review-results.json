@@ -296,6 +296,7 @@
     "centredPlanLiveStationFollowAndDoubledText": true,
     "journeyFactBrowserScenes": 24,
     "journeyFactEnlargedScenes": 24,
-    "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46"
+    "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46",
+    "compactLayouts": 20
   }
 }
