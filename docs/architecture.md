@@ -344,9 +344,9 @@ Newest first. Each entry records the decision and its consequences; linked stori
 - **1 Nov, retirement audit and release** The author audit found an ambiguous platform in collapsed Next best
   for services boardable at Farringdon and St Pancras; each station's boarding time and platform is now visible.
   All 22 recorded scenarios preserve their engine options, request lists and errors. The separate reviewer is
-  satisfied after nine new regression probes, thirteen effective mutations caught and eight native browser layouts;
-  it also independently checked archive/candidate source and the goldens. Retain main's Trip mode, stable duration
-  anchors, precise countdown and latest displayed-train progress fix. The archive includes this final pre-retirement
+  satisfied after nine new regression probes, seventeen effective mutations caught and eight native browser layouts;
+  it also independently checked archive/candidate source and the goldens. Retain main's Trip mode, centred Total journey
+  layout, precise countdown and latest displayed-train progress fix. The archive includes this final pre-retirement
   main. Five old sentence-order assertions were corrected to check the same facts in the new duration row and
   independently replayed. Initial implementation `8267055` passed local/GitHub CI (905 tests); the combined release
   additionally requires exact committed-HEAD local CI and GitHub branch green because saved settings and test/build

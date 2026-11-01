@@ -117,7 +117,7 @@ review below cover subsequent Trip, duration/countdown and progress changes.
 ## Independent review, release checks and limits
 
 A separate agent who did not implement the retirement completed the [functionality and test review](panda-independent-review.md):
-nine new upgrade/control/Trip/simulator regressions, thirteen effective deliberate breakages caught, and eight native
+nine new upgrade/control/Trip/simulator regressions, seventeen effective deliberate breakages caught, and eight native
 Chromium layouts. The reviewer independently compared archived/candidate source and all 22 option/request/error
 recordings. Its [regressions](../tests/panda-independent-review.test.mjs),
 [browser check](../tests/browser-panda-independent-review.py) and
@@ -160,3 +160,8 @@ apart from visible duration blocks, bound normal 393 px duration blocks to 48 px
 limit. Canonical facts, visibility, overflow, overlap, touch, contrast and full notices remain checked. The new native
 centre-anchor checks and ordinary journey-facts browser scenes pass on final-source build SHA-256
 `1f995b39e663a5fa80b9c80625c9b2d6df49359eb9b0e7d50b56d3e59a4157a4`.
+
+The independent review extension is satisfied on the centred integration: 42 regressions passed, including all
+nine preservation probes; eight independent native layouts and six stable-layout cases passed. Four additional
+label/unknown/geometry mutations were caught, alongside the earlier thirteen recorded mutations. The reviewer
+also independently confirmed the archived density comparison and the maintenance of its bounds.

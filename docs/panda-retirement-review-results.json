@@ -199,8 +199,10 @@
     "report": "docs/panda-independent-review.md",
     "mutationResults": "docs/panda-independent-mutation-results.json",
     "regressions": 9,
-    "effectiveMutationsCaught": 13,
-    "nativeLayouts": 8
+    "effectiveMutationsCaught": 17,
+    "nativeLayouts": 8,
+    "initialMutations": 13,
+    "centredIntegrationMutations": 4
   },
   "initialArchiveCommit": "0d6bf6e103246fefa68412d90f58d314af1cad9d",
   "integrationBaselineCommit": "dc1918905ec6e4d12da0b95a1290c5e429a98dcf",
@@ -297,6 +299,8 @@
     "journeyFactBrowserScenes": 24,
     "journeyFactEnlargedScenes": 24,
     "finalExactHeadChecks": "https://github.com/srapley-spec/cartref-commute/pull/46",
-    "compactLayouts": 20
+    "compactLayouts": 20,
+    "independentRegressions": 42,
+    "independentNativeLayouts": 8
   }
 }
