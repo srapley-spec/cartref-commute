@@ -130,10 +130,10 @@ html .hero .opt>.follow-btn {grid-column:2;align-self:center;width:auto;margin:0
 html .hero .opt:has(>.steps[open])>.steps {grid-column:1/-1}
 html .hero .opt:has(>.steps[open])>.follow-btn {justify-self:end}
 html .hero .opt>.signal-alt-label {grid-column:1/-1;margin:0;padding:0;font-size:14px;line-height:1.4;font-weight:650;color:var(--muted)}
-html :is(.hero,#followPanel,.journey-row) .steps summary {display:flex;align-items:center;min-height:44px;min-width:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer;list-style:none}
-html :is(.hero,#followPanel,.journey-row) .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
-html :is(.hero,#followPanel,.journey-row) .steps[open]>summary::before {transform:rotate(90deg)}
-html :is(.hero,#followPanel,.journey-row) .steps summary::-webkit-details-marker {display:none}
+html .hero .steps summary,html #followPanel .steps summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);opacity:1;cursor:pointer}
+html .hero .steps summary::before,html #followPanel .steps summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
+html .hero .steps[open]>summary::before,html #followPanel .steps[open]>summary::before {transform:rotate(90deg)}
+html .hero .steps summary::-webkit-details-marker,html #followPanel .steps summary::-webkit-details-marker {display:none}
 html .hero .steps .legs {margin-top:3px}
 html .hero :is(.empty,.alt,.legs) {font-size:14px;opacity:1}
 html .hero .alt {padding-top:8px;border-color:var(--line)}
@@ -377,7 +377,7 @@ html .trip-headline>b.bad {color:var(--bad)} html .trip-headline>b.warn {color:v
 html .trip-h {font-size:14px;margin:6px 0 0;color:var(--muted)}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
 /* Journey + connection panels (Sam, 1 Nov). Explicit Live retains its board geometry. */
-html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown,.connection-transfer) {grid-column:1/-1;min-width:0}
+html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown) {grid-column:1/-1;min-width:0}
 html .journey-heading {min-width:0}
 html .journey-heading .journey-times {display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);grid-template-rows:auto auto;align-items:end;gap:0 8px;min-width:0}
 html .journey-heading .journey-times>div:not(.optarrow) {display:grid;grid-template-rows:subgrid;grid-row:1/span 2;min-width:0}
@@ -412,8 +412,6 @@ html .journey-next-connection {display:grid;gap:6px;min-width:0;font-size:14px}
 html .row.journey-row {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:8px;padding:10px var(--signal-content-inset)}
 html .row.journey-row>* {grid-column:1/-1;min-width:0}
 html .row.journey-row>:is(.follow-btn,.followtag) {grid-column:1/-1;justify-self:end;margin:0}
-html .row.journey-row .journey-countdown {padding-right:0}
-html .journey-row>.flags {display:flex;flex-wrap:wrap;gap:4px}
 html .journey-row .optroute {display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 html .journey-row .journey-facts {margin:0}
 html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nth-child(3) .optbig {font-size:28px}
@@ -421,6 +419,12 @@ html .journey-row .journey-connection .connection-time {font-size:30px}
 html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
 html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
 html .trip-follow-connections {display:grid;gap:8px;min-width:0}
+html .trip-row>.connection-transfer {grid-column:1/-1;min-width:0}
+html .trip-row>.flags {display:flex;flex-wrap:wrap;gap:4px}
+html .trip-steps>summary {display:flex;align-items:center;min-height:44px;min-width:44px;color:var(--accent);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
+html .trip-steps>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
+html .trip-steps[open]>summary::before {transform:rotate(90deg)}
+html .trip-steps>summary::-webkit-details-marker {display:none}
 html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:var(--muted);overflow-wrap:break-word}
 @container (max-width:18em) {
   html .journey-heading .journey-times {grid-template-columns:minmax(0,1fr);grid-template-rows:none;gap:4px}

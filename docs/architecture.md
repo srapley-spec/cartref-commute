@@ -110,6 +110,11 @@ Implementation and release evidence are recorded in [Signal testing](signal-test
 is not evidence of production tracking, alert delivery or interaction deferral.
 
 ### Compact Signal v2 (Sam, 31 Oct 2026)
+- **Trip-only boundary (Sam, 1 Nov, latest clarification):** Signal's UI and all non-Trip functionality stay fixed
+  for real-world testing unless Sam expressly directs otherwise. Trip must reuse that existing UI; neither older
+  Signal prototypes nor new commute mockups authorise a redesign. Sam rejected the proposed different-looking Trip
+  cards and the broader commute redesign. Limit current implementation to Trip and preserve non-Trip output and
+  behaviour when sharing components. [Binding design scope](design-system.md#signal-is-fixed-this-work-changes-trip-only-sam-1-november-2026).
 - Sam approved the rendered **journey + train panel** on 1 Nov: in Auto/Plan retain the journey's Leave by and
   arrival headline and precise countdown, then centred duration facts and a distinct prominent connection panel.
   Both complete recommendations and every planning row use it across questions/directions; Trip repeats the same

@@ -1150,7 +1150,7 @@ function journeyHeadlineMarkup(j,dest,timing=''){
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
-function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing=''}){
+function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing='',countdown=''}){
   const known=available&&Number.isFinite(leave),arrival=known&&Number.isFinite(arrive);
   return `<div class="journey-heading"${known?` data-fact="leave-by" data-ms="${leave}"`:''}>
     <div class="optrow journey-times">
@@ -1158,7 +1158,7 @@ function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing=''}
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(arrive):'Unavailable'}</span></div>
     </div>
-    <div class="journey-countdown">${known?`<span data-cd="${leave}">${leave>Date.now()?'leave in '+C.countdown(leave-Date.now()):'leave time passed'}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+    <div class="journey-countdown">${known?`<span data-cd="${leave}">${esc(countdown)}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
   </div>`;
 }
 function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass=''}={}){

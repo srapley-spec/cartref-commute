@@ -271,7 +271,8 @@ function createTripUi(deps) {
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
-    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:!j.uncertain});
+    const countdown=j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed';
+    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:!j.uncertain,countdown});
   }
   function journeyRow(j, opts = {}) {
     const followed = st().follow && st().follow.id === j.id, changes = Math.max(0,mains(j).length-1);

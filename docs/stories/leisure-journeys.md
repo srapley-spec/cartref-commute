@@ -98,6 +98,11 @@ Minutes are whole minutes, rounded down.
   consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
 
 ### The trains
+- **Trip only (Sam, 1 Nov, latest clarification):** preserve Signal's current UI and every non-Trip behaviour for
+  real-world testing; changes outside Trip require express direction. Trip uses the actual Signal layout, colours,
+  hierarchy and components. Similar CSS values or shared tokens do not establish visual fidelity. The proposed
+  commute redesign and separate Trip card direction are rejected. Review Trip against unchanged Signal, using
+  matched journey data where possible; sharing renderers must not change non-Trip output or behaviour.
 - **Exactly the same journey UI (Sam, 1 Nov):** Trip recommendations, Next best and the full list use the shared
   Auto/Plan card structure, type sizes, headline/countdown, duration rows, connection panels, route/status chips
   and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations

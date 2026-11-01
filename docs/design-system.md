@@ -16,6 +16,18 @@ Signal selected by Sam, 29 October 2026; sole production design from 1 November 
 
 The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
+## Signal is fixed; this work changes Trip only (Sam, 1 November 2026)
+
+Sam wants to test Signal in real conditions. **Keep Signal's existing UI and every non-Trip behaviour unchanged
+unless he expressly directs a change.** This includes palette, card layout, typography, controls, timings, ranking,
+Follow and data handling. No adjacent refinements or restoration of an older prototype are authorised.
+
+Trip must reuse the existing Signal components, hierarchy and colour treatment. A different card arrangement
+with shared tokens or matching individual CSS values is not a shared UI. Sam rejected both the proposed commute
+redesign and the separate-looking Trip proposals. Use actual Signal as the fixed comparison, with matched data
+where possible, and show only proposed Trip changes for review. The previous blue-card redesign previews are
+withdrawn. Sharing renderer code must preserve non-Trip output and behaviour.
+
 ## Protected product answer: when must I leave? (Sam, 1 November 2026)
 
 The product answers **when to leave from the journey's origin or current location**, then which service to
