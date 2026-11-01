@@ -227,6 +227,9 @@ Independent mutation review before merging (CLAUDE.md).
   session per field). Equivalent: E90 (commute default view name), W2, N6 (the outline lies inside the box), A6 (the
   "from" matrix has one destination, so both readings agree). A13/A15/A16 were caught by tests/trip-google.test.mjs
   (the reviewer's run didn't include that file).
+- Independent test review 3 (of 1e7ccfa): 25 more caught; A13/A15/A16 confirmed caught. Remaining: the two request-cadence
+  fixes weren't proved (D3 old drive-cache key, D2 30-s board window) plus E19, U4 (proxy session), N24 (walk + drive).
+  Tests added for all five; each mutation applied by hand fails them. N24 was a test gap, not a bug (3 requests).
 
 ## 15. Review history
 - Review 1 (rework): straight-line candidates missed Ashford; TfL reply shape; no CRS for changes; unbounded live

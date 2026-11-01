@@ -31,7 +31,8 @@ function googleStub(w, opts = {}) {
         return { suggestions: rows.map(p => ({ placePrediction: { placeId: p.id, mainText: { text: p.primary }, secondaryText: { text: p.secondary }, text: { text: p.primary } } })) }; } },
       Place: class { constructor({ id }) { this.id = id; } async fetchFields() { const p = Object.values(PLACES).find(x => x.id === this.id); seen.resolve.push(this.id);
         this.displayName = p.primary; this.formattedAddress = p.secondary; this.location = { lat: () => p.geo[0], lng: () => p.geo[1] }; } } };
-    if (name === "routes") return { RouteMatrix: { computeRouteMatrix: async ({ origins, destinations, travelMode }) => { seen.matrix++;
+    if (name === "routes") return { RouteMatrix: { computeRouteMatrix: async ({ origins, destinations, travelMode, departureTime }) => { seen.matrix++;
+      if (travelMode === "DRIVING") (seen.drive = seen.drive || []).push(departureTime ? departureTime.getTime() : null);
       const d = (a, b) => Math.hypot((a.lat - b.lat) * 111, (a.lng - b.lng) * 70) * 1300;
       const extra = travelMode === "DRIVING" && opts.driveExtraMin ? opts.driveExtraMin() * 60e3 : 0;
       const item = (a, b) => ({ distanceMeters: Math.round(d(a, b)), durationMillis: Math.round(d(a, b) / (travelMode === "DRIVING" ? 9 : 1.3)) * 1000 + extra, condition: "ROUTE_EXISTS" });
@@ -344,4 +345,57 @@ test("Trip search: the same field starts a new session after a choice", async ()
   await choose(app, "to", "kent");
   await type(app, "to", "westgate"); await sleep(320);
   assert.equal(tokens, 2);
+});
+
+// ---------- Round 3: the request-cadence fixes, proved ----------
+test("Trip drive: the 5-min re-check asks Google again for the same set-off (traffic now, not the cached answer)", async () => {
+  const T = Date.parse("2026-11-03T09:00:00");
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route, now: T });
+  const g = googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  app.d.querySelector('[data-trip-mode="from:drive"]').click(); await sleep(30);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length); await sleep(300);
+  const slot = t => Math.floor(t / 300e3), before = g.drive.map(slot);
+  app.setNow(T + 5.1 * 60e3); app.d.querySelector("#refreshBtn").click(); await sleep(900);
+  const after = g.drive.slice(before.length).map(slot);
+  assert.ok(after.some(x => before.includes(x) && x !== slot(T)), `re-timed set-off asked again: before ${before} after ${after}`);
+});
+
+test("Trip live: a redraw within 30 s reuses the boards; after 30 s they are asked for again", async () => {
+  const T = Date.parse("2026-11-03T09:50:00");
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route, now: T });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelector("#tripResults [data-trip-follow]")); await sleep(300);
+  const pairs = () => boardCalls(app.calls).map(u => /departures\/([A-Z]{3})\/to\/([A-Z]{3})/.exec(u).slice(1).join("-"));
+  const first = pairs();
+  assert.ok(first.length >= 1);
+  app.setNow(T + 10e3); app.d.querySelector("#tripResults [data-trip-follow]").click(); await sleep(300);
+  const again10 = pairs().slice(first.length);
+  assert.ok(!again10.some(p => first.includes(p)), `10 s later a pair was asked again: ${again10}`);
+  app.d.querySelector("[data-trip-stop]").click(); await sleep(50);
+  const n = pairs().length;
+  app.setNow(T + 31e3); app.d.querySelector("#tripResults [data-trip-follow]").click(); await sleep(300);
+  const again31 = pairs().slice(n);
+  assert.ok(again31.some(p => first.includes(p)), `31 s later the boards are asked for again: ${again31}`);
+});
+
+test("Trip search through the proxy: the same field sends a new session after a choice", async () => {
+  const tokens = [];
+  const proxyRoute = async (u, o) => {
+    if (/proxy\.example\/google\/places\/v1\/places:autocomplete/.test(u)) { const b = JSON.parse(o.body); tokens.push(b.sessionToken);
+      return json({ suggestions: Object.values(PLACES).filter(p => (p.primary + " " + p.secondary).toLowerCase().includes(b.input.toLowerCase()))
+        .map(p => ({ placePrediction: { placeId: p.id, text: { text: p.primary }, structuredFormat: { mainText: { text: p.primary }, secondaryText: { text: p.secondary } } } })) }); }
+    if (/proxy\.example\/google\/places\/v1\/places\//.test(u)) { const id = decodeURIComponent(u.split("/places/v1/places/")[1].split("?")[0]); const p = Object.values(PLACES).find(x => x.id === id);
+      return json({ id, displayName: { text: p.primary }, formattedAddress: p.secondary, location: { latitude: p.geo[0], longitude: p.geo[1] } }); }
+    if (/proxy\.example\/google\/routes/.test(u)) return json([]);
+    return route(u, o);
+  };
+  const app = await createApp({ settings: { ...ON, googleVia: "proxy", proxyBase: "https://proxy.example" }, route: proxyRoute });
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "to", "kent");
+  await type(app, "to", "westgate"); await sleep(320);
+  assert.equal(tokens.length, 2); assert.notEqual(tokens[0], tokens[1]);
 });

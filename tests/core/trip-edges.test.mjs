@@ -296,7 +296,8 @@ test("planTrip: asking about a later day flags nothing as Tomorrow on that day",
 });
 test("Station reach: a station just inside the reach is a candidate, just outside is not", () => {
   const edge = core.stationIndex([S("IN", 51.23 + 2.99 / 111.2, 0.97), S("OUT", 51.23 - 3.01 / 111.2, 0.97), S("FAR", 51.40, 0.97)]);
-  assert.deepEqual(core.candidates(village, "walk", edge, cfg).list.map(c => c.station.crs), ["IN"]);
+  const c = core.candidates(village, "walk", edge, cfg);
+  assert.deepEqual(c.list.map(x => `${x.station.crs}:${x.why}`), ["IN:nearest"]); assert.equal(c.farKm, undefined);
 });
 test("Rounds at once: a refusal in round 1 stops round 2 for every item, with the reason", async () => {
   const sent = [];
@@ -331,4 +332,11 @@ test("Days count by the local calendar in summer time too (23:30 to 00:30 in Jul
   const ride = rideOf("AAA", "BBB", at("2026-07-02", "00:30"), 30);
   const j = core.buildJourney({ rides: [ride], source: "t", notes: [] }, null, null, { from: "walk", to: "walk" }, [], [], cfg, at("2026-07-01", "23:30"));
   assert.equal(j.tomorrow, true); assert.ok(j.flags.some(f => /^Tomorrow · Thu 2 Jul/.test(f.txt)), JSON.stringify(j.flags));
+});
+
+test("planTrip: walking to the station and driving from it re-times only the drive (3 requests, not 4)", async () => {
+  const a = access();
+  const r = await core.planTrip(req({ modes: { from: "walk", to: "drive" }, question: { kind: "at", t: now + 3600e3 }, cfg: core.tripConfig({ nearest: 1, wellServed: 0 }) }), { stations: idx, access: a, planner: planner() });
+  assert.ok(r.picks.length, "a journey is chosen, so its drive is re-timed");
+  assert.deepEqual(a.calls.map(c => `${c.mode}:${c.dir}`), ["walk:to", "drive:from", "drive:from"]);
 });
