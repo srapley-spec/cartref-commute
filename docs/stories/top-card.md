@@ -35,5 +35,5 @@ was a different route.
 - tests/core/plan.test.mjs: "rankNow: leaving order; first catchable; fastest; card picks within the window"
 - tests/logic.test.mjs: "Leave now card: best train, then the next best (same route allowed), total time, and the train you'd catch right now"
 - tests/logic.test.mjs: "A train you'd have to hurry for stays on the list and the card, with a departure countdown"
-- tests/effort.test.mjs: "Departure countdown: Panda has no redundant leave-now instruction below ninety seconds"
+- tests/effort.test.mjs: "Departure countdown: an obsolete disabled Signal preference retains the precise countdown"
 - tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"

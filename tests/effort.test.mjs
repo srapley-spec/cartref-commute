@@ -187,7 +187,7 @@ async function assertDepartureCountdown(signal) {
   assert.deepEqual(a.errors, []);
   a.close();
 }
-test('Departure countdown: Panda has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(false));
+test('Departure countdown: an obsolete disabled Signal preference retains the precise countdown', () => assertDepartureCountdown(false));
 test('Departure countdown: Signal has no redundant leave-now instruction below ninety seconds', () => assertDepartureCountdown(true));
 
 test("Effort levels on: on your way, a train that needs a fast walk says 'walk fast'", async () => {

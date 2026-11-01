@@ -36,7 +36,7 @@ test('Panda retirement: an existing followed trip and planning pin survive upgra
  const saved=JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1'));
  saved.settings.signal=false;saved.settings.appearance='light';saved.settings.walkHomeStationAvg=777;
  saved.planInputs={by:{date:'2026-11-04',time:'08:30'},at:{date:'2026-11-04',time:'07:40'}};
- saved.alongPreferences={depth:'explore',interests:['engineering']};
+ saved.alongLinePreferences={depth:'explore',interests:['engineering']};
  const selected=plain(saved.followRoute),pin=plain(saved.viewOverride);a.close();
  const b=await createApp({now:NOW,saved});
  assert.equal(b.d.documentElement.dataset.design,'signal');
@@ -45,7 +45,7 @@ test('Panda retirement: an existing followed trip and planning pin survive upgra
  assert.equal(b.c.state.saved.followRoute.plannedArrival,selected.plannedArrival);
  assert.deepEqual(plain(b.c.state.saved.viewOverride),pin);
  assert.deepEqual(plain(b.c.state.saved.planInputs),saved.planInputs);
- assert.deepEqual(plain(b.c.state.saved.alongPreferences),saved.alongPreferences);
+ assert.deepEqual(plain(b.c.state.saved.alongLinePreferences),saved.alongLinePreferences);
  assert.equal(b.d.querySelector('#followPanel').hidden,false);
  const requests=b.calls.slice(),boards=b.c.state.boards;
  b.d.querySelector('#settingsBtn').click();b.d.querySelector('#s_appearance').value='dark';

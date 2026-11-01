@@ -103,7 +103,7 @@ give repeated information stable homes:
 
 Regression checks: [browser-signal-stable-layout.py](../../tests/browser-signal-stable-layout.py) measures the
 actual badge offsets across cards/rows, changes platform evidence, opens/refreshed disclosures and stresses
-200% text. [browser-ui-parity.py](../../tests/browser-journey-facts.py) covers the remaining planning/Live/Follow,
+200% text. [browser-journey-facts.py](../../tests/browser-journey-facts.py) covers the remaining planning/Live/Follow,
 inferred rail and Tube surfaces in both supported designs. The existing Signal field-preservation test compares
 each service's facts, alternatives, flags and actions independently of the intentionally changed sentence order.
 
