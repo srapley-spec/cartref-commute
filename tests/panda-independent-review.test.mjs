@@ -2,7 +2,7 @@
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createApp,closeAll,sleep} from './harness.mjs';
-import {TRIP_SETTINGS,tripRoute,planBrightonCanterbury} from './trip-fixtures.mjs';
+import {TRIP_SETTINGS,tripRoute,planBrightonCanterbury,until} from './trip-fixtures.mjs';
 after(closeAll);
 
 const NOW=Date.parse('2026-11-03T10:00:00Z'),MIN=60000;
@@ -150,8 +150,11 @@ test('independent Panda retirement: Trip opt-in and its followed address journey
  await planBrightonCanterbury(seed);
  assert.ok(seed.d.querySelectorAll('#tripResults .trip-row').length>=3);
  seed.d.querySelector('[data-trip-follow]').click();
- const saved=JSON.parse(seed.w.localStorage.getItem('cartrefCommute.v1')),trip=plain(seed.c.state.saved.tripMode);seed.close();
+ const saved=JSON.parse(seed.w.localStorage.getItem('cartrefCommute.v1')),trip=plain(seed.c.state.saved.tripMode);
  assert.ok(trip.follow?.id,'the fixture follows an actual multi-ride itinerary');
+ // Snapshot persistence immediately above; close only after Follow's async refresh has drawn its card.
+ assert.ok(await until(()=>seed.d.querySelector('[data-trip-stop]')),'the seed Follow refresh finishes before teardown');
+ seed.close();
  for(const signal of [undefined,false,true]){
   const prefs={...saved,settings:{...saved.settings,googleKey:'',...(signal===undefined?{}:{signal})}};
   const a=await createApp({now:NOW,saved:prefs,route:tripRoute});

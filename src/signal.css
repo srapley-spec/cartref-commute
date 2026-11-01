@@ -72,8 +72,8 @@ html #signalAdjustments[open]>summary {justify-content:space-between}
 html #signalAdjustments[open]>summary::after {content:'⌃'}
 html #signalAdjustments .controls {display:flex;flex-wrap:wrap;gap:6px}
 html #signalAdjustments .dirnote {font-size:12px;line-height:1.4;margin-top:2px;color:var(--muted)}
-html #signalPlanningControls .seg {display:flex;width:100%}
-html #signalPlanningControls .seg button {flex:1;min-width:0;padding-inline:7px}
+html :is(#signalPlanningControls,.trip-planning-controls) .seg {display:flex;width:100%}
+html :is(#signalPlanningControls,.trip-planning-controls) .seg button {flex:1;min-width:0;padding-inline:7px}
 html :is(.origin,.byf) {font-size:13px}
 html :is(.originbar input,.byf input,.f input,.f select) {min-height:44px;font-size:16px;border-radius:8px;border-color:var(--signal-control-line)}
 html .byform {gap:8px}
@@ -355,7 +355,9 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
 html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):not(footer) {display:none!important}
 html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
 html .trip {display:grid;gap:10px;min-width:0}
-html .trip-form {display:grid;grid-template-columns:1fr;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+html .trip-planning-controls {display:grid;gap:8px;min-width:0}
+html .trip-results {display:grid;gap:10px;min-width:0}
+html .trip-form {display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0;padding:6px 0 0}
 html .trip-field label {display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
 html .trip-combo {position:relative}
 html .trip-combo input {width:100%;box-sizing:border-box;min-height:44px;font-size:16px;padding:8px 10px;border:1px solid var(--signal-control-line);border-radius:10px;background:var(--card);color:var(--ink)}
@@ -366,23 +368,16 @@ html .trip-suggest [aria-selected=true] {background:var(--signal-soft)}
 html :is(.trip-suggest-note,.trip-attrib) {padding:6px 10px;font-size:12px;color:var(--muted)}
 html .trip-swap {justify-self:end}
 html .trip-modes {display:grid;gap:6px}
-html .trip-when {display:flex;gap:8px;align-items:center;font-size:14px}
-html .trip-when input {min-height:44px}
+html .trip-mode-label {font-size:12px;color:var(--muted)}
+html .trip-when {display:grid;min-width:0;gap:4px;font-size:14px}
+html .trip-when input {min-height:44px;min-width:0;width:100%;max-width:100%}
 html .trip-stage {margin:0;font-size:13px;color:var(--muted);min-height:1em}
+html .trip-stage:empty {display:none}
 html :is(.trip-setup,.trip-card) {background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
-html .trip-headline {display:grid;gap:2px;background:var(--hero-accent);border-radius:16px;padding:12px}
-html .trip-headline .big {font-size:36px;line-height:1.05;font-variant-numeric:tabular-nums}
-html .trip-headline.bad {background:var(--bad-bg)} html .trip-headline.warn {background:var(--warn-bg)}
+html .trip-headline {display:grid;gap:8px;min-width:0}
+html .trip-headline p {margin:0;font-size:14px;line-height:1.4}
+html .trip-headline>b.bad {color:var(--bad)} html .trip-headline>b.warn {color:var(--warn)}
 html .trip-h {font-size:14px;margin:6px 0 0;color:var(--muted)}
-html .trip-row {display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
-html .trip-row.best {border-color:var(--accent)}
-html .trip-times {display:grid;grid-template-columns:repeat(3,1fr);gap:var(--signal-time-gap)}
-html .trip-times b {display:block;font-size:24px;font-variant-numeric:tabular-nums}
-html .trip-times div:last-child {text-align:right}
-html .trip-times .exp {display:block;font-size:12px;color:var(--warn)}
-html .trip-meta {font-size:14px;color:var(--muted);overflow-wrap:anywhere}
-html .trip-steps ol {margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:4px;font-size:14px}
-html .trip-steps time {display:inline-block;min-width:3.2em;font-variant-numeric:tabular-nums}
 html .trip-others ul,.trip .diag ul {margin:6px 0 0;padding-left:18px;font-size:14px}
 /* Journey + connection panels (Sam, 1 Nov). Explicit Live retains its board geometry. */
 html .hero .journey-option>:is(.journey-heading,.journey-connection,.connection-countdown) {grid-column:1/-1;min-width:0}
@@ -426,9 +421,9 @@ html .journey-row .journey-times .optbig,html .journey-row .journey-times>div:nt
 html .journey-row .journey-connection .connection-time {font-size:30px}
 html .journey-row .altstop {font-size:14px;border-left:3px solid var(--signal-control-line);padding:3px 7px;line-height:1.4}
 html .follow-alternative:has(>.journey-heading) {display:grid;gap:8px}
-html .trip-row .journey-facts {margin:4px 0}
-html .trip-row .journey-connection {margin:3px 0}
 html .trip-follow-connections {display:grid;gap:8px;min-width:0}
+html .trip-row>.connection-transfer {grid-column:1/-1;min-width:0}
+html .trip-row>.flags {display:flex;flex-wrap:wrap;gap:4px}
 html .trip-steps>summary {display:flex;align-items:center;min-height:44px;min-width:44px;color:var(--accent);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
 html .trip-steps>summary::before {content:'›';margin-right:6px;font-size:20px;line-height:1}
 html .trip-steps[open]>summary::before {transform:rotate(90deg)}

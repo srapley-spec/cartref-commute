@@ -17,6 +17,14 @@ export function tripRoute(u) {
   if (/JourneyResults\/\d+\/to\/\d+/.test(u)) return json({ message: "No journey found" }, 404);
   return undefined;
 }
+// Synthetic alternative eight minutes after the recorded first itinerary. Its
+// complete timings stay consistent, so the real ranking engine picks Next best.
+export const TRIP_REPLY_WITH_NEXT_BEST = {...BTN_CBW,journeys:[...BTN_CBW.journeys,
+  JSON.parse(JSON.stringify(BTN_CBW.journeys[0]),(_key,value)=>typeof value==='string'&&/^2026-11-03T\d\d:\d\d:\d\d$/.test(value)
+    ?new Date(Date.parse(value)+8*60000).toISOString().slice(0,19):value)]};
+export function tripRouteWithNextBest(u) {
+  return /JourneyResults\/90000899\/to\/1001160/.test(u)?json(TRIP_REPLY_WITH_NEXT_BEST):tripRoute(u);
+}
 export function stubGoogle(w) {
   class AutocompleteSessionToken {}
   w.google = { maps: { importLibrary: async (name) => {

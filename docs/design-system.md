@@ -16,6 +16,28 @@ Signal selected by Sam, 29 October 2026; sole production design from 1 November 
 
 The HTML is a review simulation. Consume the tokens and component contracts; do not copy its sample timing, inference or routing logic into production. The prototype itself contains no production planning logic; production integration is documented below.
 
+## Signal is fixed; this work changes Trip only (Sam, 1 November 2026)
+
+Sam wants to test Signal in real conditions. **Keep Signal's existing UI and every non-Trip behaviour unchanged
+unless he expressly directs a change.** This includes palette, card layout, typography, controls, timings, ranking,
+Follow and data handling. No adjacent refinements or restoration of an older prototype are authorised.
+
+Trip must reuse the existing Signal components, hierarchy and colour treatment. A different card arrangement
+with shared tokens or matching individual CSS values is not a shared UI. Sam rejected both the proposed commute
+redesign and the separate-looking Trip proposals. Use actual Signal as the fixed comparison, with matched data
+where possible, and show only proposed Trip changes for review. The previous blue-card redesign previews are
+withdrawn. Sharing renderer code must preserve non-Trip output and behaviour.
+
+Sam identified the **current commute screen** as the fixed reference (not the earlier Signal preview).
+Trip recommendations therefore call the existing Signal recommendation-frame renderer and use its current
+headline, duration, connection, flags, steps and Follow components without a new palette or card design.
+Trip's place names replace commute context only while Trip is active; leaving Trip restores the existing context.
+Trip's original address/access controls occupy the existing Journey options disclosure through an injected host.
+The question and answers stay exposed; leaving Trip removes its controls from that host. This reuses the existing
+Signal component without changing its appearance or behaviour in non-Trip modes.
+The collapsed Trip summary retains the selected access modes (for example, **Trip · Walk to · Drive from**),
+just as the commute summary retains pace. Closing the controls must not conceal those effective choices.
+
 ## Protected product answer: when must I leave? (Sam, 1 November 2026)
 
 The product answers **when to leave from the journey's origin or current location**, then which service to
@@ -60,6 +82,14 @@ it across modes other than Live. The train departure is a key connection to make
 - A multi-ride Trip repeats this panel for its existing train, Tube and bus rides in itinerary order, keeping
   each ride's boarding station, time, destination, platform and source qualification attached to that ride.
   Existing change allowances and warnings stay visible; the renderer never calculates new connections.
+- **Trip uses the complete same UI (Sam, 1 Nov):** use the shared recommendation card, Leave by → At destination
+  headline/countdown, centred duration rows, connection panels, route/status chips and Journey steps / Follow action
+  placement. Next best has equal content and sizing; the full list uses the same compact planning rows. Do not add
+  a separate repeated headline or total/operator summary. Multi-train duration sums time aboard rail services,
+  excluding changes, Tube, bus and access; the total remains door to door. Unknowns remain explicit. Trip's
+  address and access controls are the only form differences; before boarding Follow uses the same card primitives,
+  while arrival/next action still lead once aboard. Both duration facts stay visible through access, ride, change
+  and final-leg Follow phases. Journey steps retain their disclosure state on refresh.
 - Explicit **Live** retains its timetable columns and current journey presentation. Once aboard in Auto or
   Follow, current arrival and next action still lead; completed departures must not replace that answer.
   Auto's homeward Tube view uses panels for the existing next rail connections while retaining its arrival headline.
@@ -392,7 +422,7 @@ review and polish, as was done for Signal. Until that review they are functional
 | L4 | **Access mode control** | Walk / Cycle / Drive per end, a segmented control with word labels | existing `.seg` | Glyphs alongside words; one control or two |
 | L5 | **Access leg row** | First / last step in Journey steps and the journey strip: mode + time + allowance ("Drive 18 min · park 10") | step row | Mode glyph in the strip |
 | L6 | **Change marker** | Between rail legs: "Change at Clapham Junction · 7 min"; amber "Tight change" / red "Connection at risk" uses status tokens | step row + status lozenge | Visual weight of a change vs a leg |
-| L7 | **Multi-leg journey summary** | One line on a journey row: "2 changes · 2 h 05" and the operators in order | service metadata line (14 px) | Long operator lists at 320 px |
+| L7 | **Multi-leg journey summary** | Change-count chip; shared centred Total journey / train-duration rows; operators on their own connection panels | approved journey + train card | Shared UI from 1 Nov supersedes the separate repeated summary |
 | L8 | **Station lozenge (leisure)** | The boarding station on each journey row, as the commute's station lozenge, plus "No station car park" / "N km away" flags | existing lozenge (neutral) | none |
 | L9 | **Other stations** | Disclosure under the journey list: each other station with its consequence ("arrive 12 min later") | native disclosure | Whether it sits in Next best |
 | L10 | **Setup-needed card** | Empty state when the key is missing or the place is outside the region | Signal card, muted text, one action (Open Settings) | Tone |

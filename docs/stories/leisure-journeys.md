@@ -98,6 +98,35 @@ Minutes are whole minutes, rounded down.
   consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
 
 ### The trains
+- **Trip only (Sam, 1 Nov, latest clarification):** preserve Signal's current UI and every non-Trip behaviour for
+  real-world testing; changes outside Trip require express direction. Trip uses the actual Signal layout, colours,
+  hierarchy and components. Similar CSS values or shared tokens do not establish visual fidelity. The proposed
+  commute redesign and separate Trip card direction are rejected. Review Trip against unchanged Signal, using
+  matched journey data where possible; sharing renderers must not change non-Trip output or behaviour.
+  Sam selected the current commute screen as that reference. Trip recommendations call the same Signal card-frame
+  renderer; use the existing hierarchy, surfaces, time sizes, route/status badges and action row. A multi-connection
+  Trip repeats the existing connection component. Trip context displays its chosen places and never leaves Trip
+  labels on the commute screen after changing mode.
+  The existing Journey options disclosure hosts Trip's original From/To and per-end access controls; they are
+  moved without cloning or replacing handlers, and returned to the hidden Trip root on leaving Trip. The question,
+  chosen time and journey answers remain exposed. Access controls explicitly label To/From the station.
+  The collapsed summary keeps the selected per-end modes visible, mirroring the commute's exposed pace.
+  The exposed question selector uses the existing Signal planning-control rules, including equal-width buttons.
+  In Arrive by and Leave around, the exposed native date/time field stays within the Trip column at 320/393 px
+  and 200% text; its label reflows above it, keyboard/picker editing remains available, and the selected target
+  is readable in the question headline. No Signal or global input sizing rule changes for this adaptation.
+- **Exactly the same journey UI (Sam, 1 Nov):** Trip recommendations, Next best and the full list use the shared
+  Auto/Plan card structure, type sizes, headline/countdown, duration rows, connection panels, route/status chips
+  and steps/Follow placement. No repeated standalone headline, duration or operator summary. Both recommendations
+  are complete and equally sized; list rows use the shared compact sizes. Address/access inputs remain specific
+  to Trip. Before boarding Follow uses the same headline, facts and card; once aboard the next action leads.
+  Both duration facts remain exposed through access, ride, change and final-leg phases, as in Commute Follow;
+  the total uses the canonical journey start and current expected arrival, never time remaining.
+  Each connection and its warnings stays attached to the right service. The train caption sums only canonical
+  rail ride durations (including across midnight), excluding access, transfers and non-rail rides; Total journey
+  uses canonical leave → final arrival. Missing/cancelled rail times withdraw the rail sum and total; unknown
+  access withdraws only the total. A journey without rail must never claim zero minutes on trains. Journey steps
+  retain their own open/closed state through refresh, without opening another card or changing Follow identity.
 - **Connection panels (Sam, 1 Nov):** Trip options use the approved journey + train panel hierarchy: exposed
   Leave by / arrival and leave countdown, total journey duration, then a panel for each existing train/Tube/bus
   ride in itinerary order. Each panel retains its own scheduled/expected departure, boarding station,
@@ -174,6 +203,20 @@ Minutes are whole minutes, rounded down.
 
 ## Tests
 Built so far (the build log in the architecture says what is and isn't on screen):
+- tests/core/trip-journey-facts.test.mjs: "Trip facts: sum time aboard trains across midnight and keep access, changes and other modes in the total"
+- tests/core/trip-journey-facts.test.mjs: "Trip facts: unknown access keeps known rail duration without inventing a door-to-door total"
+- tests/core/trip-journey-facts.test.mjs: "Trip facts: cancellation or an unknown rail time withdraws the rail sum and the total"
+- tests/core/trip-journey-facts.test.mjs: "Trip facts: a missing transfer time cannot become a claimed total; no rail cannot become zero minutes on trains"
+- tests/trip-shared-ui.test.mjs: "Trip cards: one complete recommendation and compact rows retain every connection, canonical facts and shared actions"
+- tests/trip-shared-ui.test.mjs: "Trip cards: Journey steps keep their own disclosure state through refresh and Follow uses the selected itinerary"
+- tests/trip-shared-ui.test.mjs: "Trip cards: Next best has the same complete headline, facts, connections and actions in all planning questions"
+- tests/trip-shared-ui.test.mjs: "Trip context: the selected places replace commute copy only while Trip is active"
+- tests/trip-controls-review.test.mjs: "Trip controls review: theme redraw preserves the original field, typed query, caret and keyboard suggestions"
+- tests/trip-controls-review.test.mjs: "Trip controls review: a late place reply cannot replace commute context after leaving Trip"
+- tests/trip-controls-review.test.mjs: "Trip controls review: a saved active Trip mounts in the shared host before its first refresh"
+- tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
+- tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains canonical duration facts through access, rides, changes and the final leg"
+- tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"

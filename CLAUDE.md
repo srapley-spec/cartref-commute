@@ -42,6 +42,11 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   `archive/panda-2026-11-01`; its switch and the design-parity release rule are retired.
   Keep journey facts, actions, status and unknowns correct across planning and live views using normal
   regression coverage. See `docs/panda-retirement-review.md`; do not reintroduce a design toggle or parity registry.
+- **Signal and all non-Trip functionality are frozen for real-world testing (Sam, 1 Nov).** Do not tweak their UI,
+  palette, layout, controls or behaviour without Sam's express direction. The current task authorises **Trip only**:
+  make Trip reuse the existing Signal UI. Shared tokens or similar CSS values alone are not sufficient. The proposed
+  commute redesign and separate Trip visual direction were rejected; historical prototypes are not permission to
+  change Signal. Preserve existing non-Trip rendering and behaviour when sharing components.
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.

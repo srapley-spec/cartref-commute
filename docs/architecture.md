@@ -110,6 +110,11 @@ Implementation and release evidence are recorded in [Signal testing](signal-test
 is not evidence of production tracking, alert delivery or interaction deferral.
 
 ### Compact Signal v2 (Sam, 31 Oct 2026)
+- **Trip-only boundary (Sam, 1 Nov, latest clarification):** Signal's UI and all non-Trip functionality stay fixed
+  for real-world testing unless Sam expressly directs otherwise. Trip must reuse that existing UI; neither older
+  Signal prototypes nor new commute mockups authorise a redesign. Sam rejected the proposed different-looking Trip
+  cards and the broader commute redesign. Limit current implementation to Trip and preserve non-Trip output and
+  behaviour when sharing components. [Binding design scope](design-system.md#signal-is-fixed-this-work-changes-trip-only-sam-1-november-2026).
 - Sam approved the rendered **journey + train panel** on 1 Nov: in Auto/Plan retain the journey's Leave by and
   arrival headline and precise countdown, then centred duration facts and a distinct prominent connection panel.
   Both complete recommendations and every planning row use it across questions/directions; Trip repeats the same
@@ -117,6 +122,13 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   and next action lead. Explicit Live retains timetable geometry. This supersedes the older Auto/Plan station
   and walking departure columns without changing engine timings, ranking, tracking or feed requests.
   See [the component contract](design-system.md#journey--train-panel-sam-1-november-2026).
+- Sam clarified on 1 Nov that Trip must use the **entire same UI**, beyond sharing the inner connection panel.
+  Trip consumes the shared headline, duration, steps and flag renderers through injected ports and the same
+  recommendation/list CSS classes. Both picks have equal content and actions; duplicate Trip headlines and duration
+  summaries are removed. Pure `tripJourneyFacts` derives the rail sum and door-to-door total from existing rides,
+  with no new planner, ranking, feed or persisted-state rules. Each existing ride/change remains in sequence.
+  Before boarding Trip Follow uses those same primitives; later phases retain their engine-chosen next action.
+  See [Trip acceptance](stories/leisure-journeys.md#the-trains).
 - Sam requested substantially less bulk, informed by Flighty's current-journey hierarchy and Railboard's readable
   timetable rows. This intentionally changes the older Signal geometry; the latest engine, status thresholds,
   route-following, simulator and source behavior remain shared. See the
