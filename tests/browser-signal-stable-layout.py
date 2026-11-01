@@ -52,6 +52,7 @@ def check(page, label, aligned=True):
     assert max(r['x'] for r in rows) - min(r['x'] for r in rows) <= 1.5, (label, 'Total has different left anchors', rows)
     if aligned:
         assert max(r['gap'] for r in rows) - min(r['gap'] for r in rows) <= 2.1, (label, 'Routes/actions displace duration', rows)
+        assert max(r['train']['right'] for r in rows) - min(r['train']['right'] for r in rows) <= 1.5, (label, 'Total label width displaces train duration', rows)
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'), (label, 'Page overflows')
     compact.assert_time_legibility(page, label)
     assert page.evaluate('''()=>[...document.querySelectorAll('[data-follow]')].filter(e=>e.checkVisibility()).every(e=>{

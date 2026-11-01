@@ -17,7 +17,7 @@ The HTML is a review simulation. Consume the tokens and component contracts; do 
 ### Stable information placement — 1 November 2026
 
 Total journey time occupies a neutral lozenge in a dedicated duration row directly under the headline times,
-with train time alongside. Use the same left anchor in the primary answer, Next best and departure rows;
+with train time anchored at the right. Use the same left anchor in the primary answer, Next best and departure rows;
 opening Next best retains that row in place. Longer route labels get the full available width. Put board Follow
 actions in a consistent right-aligned slot beside the countdown, away from route labels. Preserve natural
 vertical growth for long details and enlarged text. See the [acceptance criteria](stories/signal-design-system.md#stable-glance-layout-sam-1-nov-2026).

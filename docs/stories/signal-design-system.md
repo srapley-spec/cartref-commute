@@ -87,7 +87,7 @@ give repeated information stable homes:
 
 - In Signal's primary recommendation, Next best and planning/station/Live departure rows, duration occupies its
   own full-width row immediately below the headline times, before route or service text. Total is a neutral
-  lozenge at the common left inset, with train duration alongside. Route names, platform length, flags and the
+  lozenge at the common left inset, with train duration at the common right inset. Route names, platform length, flags and the
   Follow/Unavailable label cannot change that duration anchor.
 - Next best keeps the same duration row visible in its summary when opened, closed and refreshed; expansion
   does not move the total below the route or duplicate it visually.

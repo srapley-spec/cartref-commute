@@ -7,11 +7,11 @@ fast path after clean committed-HEAD CI; exact post-push GitHub Tests and Pages 
 ## Candidate browser evidence
 
 Production `index.html` SHA-256:
-`aa19bf204f3d1c3f52ea7e2fec47f6eb73fa11113c5e47a285018fa18e5b957a`.
+`4777d7341150e45fa207098ff53bbd281cced5534332c8d88a7abecdf8b9b954`.
 
 - `python tests/browser-signal-stable-layout.py` passed six light/dark × 320/393/430 px cases, each repeated
   with long/absent platform evidence, expanded Next best, refreshed disclosures and 200% computed text.
-  It measures the actual total badge's left inset and offset below headline times in the primary answer,
+  It measures the actual total badge's left inset, train duration's right inset and offset below headline times in the primary answer,
   Next best and every planning row. Platform changes preserve the exact anchors and canonical duration values.
   Cancelled/unknown durations remain explicitly unavailable, disabled Follow is retained, and affected actions
   meet the 44 × 44 px minimum. Results and screenshots are `signal-stable-*` in the session artifact directory.
