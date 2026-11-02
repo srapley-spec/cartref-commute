@@ -2,7 +2,7 @@
 // rather than accepting a fact retained in a closed disclosure or hidden design.
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
-import {createApp,closeAll,json} from './harness.mjs';
+import {createApp,closeAll,json,sleep} from './harness.mjs';
 after(closeAll);
 
 const MIN=60000,NOW=Date.parse('2026-11-03T07:00:00Z');
@@ -35,9 +35,12 @@ const duration=ms=>{const m=Math.round(ms/MIN);return m>=60?`${Math.floor(m/60)}
 const escape=text=>text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const row=(a,std)=>[...a.d.querySelectorAll('#list .row')].find(node=>node.dataset.journeyService?.split('|')[2]===std||node.querySelector('[data-follow]')?.getAttribute('aria-label')?.includes('the '+std+' '));
 const pin=(a,mode)=>a.d.querySelector(`[data-journey-view="${mode}"]`).click();
-function facts(a,node,option){
+function facts(a,node,option,{remaining=false,now=NOW}={}){
  const text=visibleText(a,node);
- assert.match(text,new RegExp(escape(duration(option.arrive-option.leave))),`${option.train.std}: total journey duration stays visible`);
+ const expected=option.arrive-(remaining?now:option.leave),kind=remaining?'remaining':'total';
+ const numeric=[...node.querySelectorAll(`[data-fact="${kind}-duration"]`)].filter(n=>visible(a,n));
+ assert.ok(numeric.some(n=>Number(n.dataset.ms)===expected),`${option.train.std}: ${kind} uses its canonical endpoint and ${remaining?'current clock':'leave time'}`);
+ assert.match(text,new RegExp(escape(duration(expected))),`${option.train.std}: ${kind} journey duration stays visible`);
  assert.match(text,new RegExp(escape(duration(option.train.arr-option.train.dep))+' (?:train|on (?:the )?train)'),`${option.train.std}: distinguish train time from total`);
  return text;
 }
@@ -64,9 +67,17 @@ for(const appearance of ['light','dark'])for(const atStation of [false,true]){
   const requests=a.calls.slice();
   for(const mode of ['auto','plan','live']){
    pin(a,mode);
-   const fastest=facts(a,row(a,'07:35'),first);
+   const remaining=mode==='live'||mode==='auto'&&atStation;
+   const fastest=facts(a,row(a,'07:35'),first,{remaining});
    assert.match(fastest,/Arrives first(?: · walking)?/,'earliest reachable arrival is visible in every mode');
-   assert.doesNotMatch(facts(a,row(a,'07:59'),short),/Arrives first|Fastest/,'a shorter but later trip cannot steal the existing earliest-arrival marker');
+   assert.doesNotMatch(facts(a,row(a,'07:59'),short,{remaining}),/Arrives first|Fastest/,'a shorter but later trip cannot steal the existing earliest-arrival marker');
+   const panel=row(a,'07:35').querySelector('.journey-connection');
+   assert.ok(panel,'all reached recommendation/list/board surfaces use the train panel');
+   assert.equal(panel.querySelector('[data-connection-time="scheduled"]').textContent,'07:35');
+   assert.ok(panel.querySelector('[data-connection-time="expected"]'),'Expected keeps its fixed column even when on time');
+   assert.equal(panel.querySelector('[data-connection-time="arrival"]').textContent,'08:25','third clock is arrival at King’s Cross, not the office');
+   for(const time of panel.querySelectorAll('[data-connection-time]'))assert.equal(visible(a,time),true,'all three semantic train timing slots remain exposed');
+   assert.match(panel.querySelector('.connection-arrival').textContent,/King.s Cross/);
    assert.doesNotMatch(visibleText(a,row(a,'07:04')),/Arrives first|Fastest/,'cancelled services cannot win');
    assert.doesNotMatch(visibleText(a,row(a,'07:50')),/Arrives first|Fastest/,'no-estimate services cannot win');
    assert.doesNotMatch(visibleText(a,row(a,'07:00')),/Arrives first|Fastest/,'uncatchable earliest arrival cannot win');
@@ -83,18 +94,19 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  for(const mode of ['auto','plan','live']){
   pin(a,mode);
   const panel=a.d.querySelector('#followPanel');assert.equal(visible(a,panel),true);
-  assert.match(facts(a,panel,first),/Arrives first/,'Follow retains the same comparison semantics');
+  assert.match(facts(a,panel,first,{remaining:true}),/Arrives first/,'Follow retains the same comparison semantics');
+  assert.equal(panel.querySelector('.journey-heading>.journey-total-time')?.dataset.durationKind,'remaining','active pill moves directly under the journey clocks');
  }
  a.c.state.saved.settings.appearance=appearance==='light'?'dark':'light';a.c.render();
  assert.equal(a.c.state.saved.followRoute.id,selected,'appearance never changes the selected route');
- facts(a,a.d.querySelector('#followPanel'),first);
+ facts(a,a.d.querySelector('#followPanel'),first,{remaining:true});
  const onTrain=first.train.dep+MIN,s=a.c.state;
  a.setNow(onTrain);Object.assign(s,{onLine:true,here:[51.9533,-.2635],locAcc:12,
   locStatus:'ok',lastFixAt:onTrain,boardsAt:onTrain,
   trainLock:{operator:first.train.operator,std:first.train.std,from:first.train.from,serviceId:first.train.serviceId,picked:true}});
  a.c.render();
  assert.equal(s.followUpdate.route.phase,'on-train','the duration is also checked after actual boarding');
- facts(a,a.d.querySelector('#followPanel'),first);
+ facts(a,a.d.querySelector('#followPanel'),first,{remaining:true,now:onTrain});
  assert.deepEqual(a.calls,requests);assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -104,8 +116,7 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  assert.equal(visible(a,a.d.querySelector('#journeyViewControl')),true,'view selection is independent of the Follow feature');
  for(const mode of ['auto','plan','live']){
   pin(a,mode);
-  const match=[...a.d.querySelectorAll('#list .row')].find(node=>mode==='live'?node.querySelector('.leave .t')?.textContent==='07:35':/07:35 Great Northern/.test(node.textContent));
-  assert.match(facts(a,match,first),/Arrives first/);
+  assert.match(facts(a,row(a,'07:35'),first,{remaining:mode==='live'}),/Arrives first/);
  }
  assert.deepEqual(a.errors,[]);a.close();
 });
@@ -117,13 +128,13 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  a.c.render();assert.equal(a.c.state.followUpdate.status,'unknown');
  const panel=a.d.querySelector('#followPanel'),text=visibleText(a,panel);
  assert.match(text,/no estimate|uncertain|unavailable/i);
- const selectedNode=panel.querySelector('.meta'),selected=visibleText(a,selectedNode);
+ const selectedNode=panel.querySelector('.meta'),selected=visibleText(a,selectedNode)+' '+visibleText(a,panel.querySelector('.journey-heading'));
  assert.doesNotMatch(selected,new RegExp(escape(duration(first.arrive-first.leave))),'the retained plan cannot become a current duration');
  assert.doesNotMatch(selected,/Arrives first|Fastest/,'unknown current arrival cannot retain an old comparative flag; a separate valid alternative may win');
- for(const node of selectedNode.querySelectorAll('[data-fact$="-duration"]'))
+ for(const node of [...selectedNode.querySelectorAll('[data-fact$="-duration"]'),...panel.querySelectorAll(':scope>.journey-heading [data-fact$="-duration"]')])
   assert.ok(!node.hasAttribute('data-ms')||node.dataset.ms==='','no fabricated numeric duration attribute');
  const alternative=a.c.state.followUpdate.alternative;assert.ok(alternative,'the reached recovery state offers a different usable journey');
- facts(a,panel.querySelector('.follow-alternative'),alternative);
+ facts(a,panel.querySelector('.follow-alternative'),alternative,{remaining:true});
  assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -169,10 +180,10 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
    const container=mode==='live'?[...a.d.querySelectorAll('#list .row.board')].find(node=>node.querySelector('.leave .t')?.textContent===hhmm):
     [...a.d.querySelectorAll('.tuberow')].find(node=>new RegExp('Circle\\s*'+hhmm).test(node.textContent));
    assert.ok(container,mode+' reaches the actual '+hhmm+' Tube connection');
-   const text=visibleText(a,container),total=timed.arrive-(timed.t-walkMs);
-   assert.match(text,new RegExp(escape(duration(total))),hhmm+' total includes the selected Tube and its actual wait for the train');
+   const text=visibleText(a,container),remaining=mode==='live',total=timed.arrive-(remaining?now:timed.t-walkMs);
+   assert.match(text,new RegExp(escape(duration(total))),hhmm+' duration includes the selected Tube and its actual wait for the train');
    assert.match(text,new RegExp(escape(duration(timed.leg.o.train.arr-timed.leg.o.train.dep))+' train'));
-   const numeric=[...container.querySelectorAll('[data-fact="total-duration"]')].filter(node=>visible(a,node));
+   const numeric=[...container.querySelectorAll(`[data-fact="${remaining?'remaining':'total'}-duration"]`)].filter(node=>visible(a,node));
    assert.ok(numeric.some(node=>Number(node.dataset.ms)===total),'the exposed total is the same canonical selected connection');
    if(timed.t===plan.best.t)assert.match(text,/Arrives first/);
    else assert.doesNotMatch(text,/Arrives first|Fastest/);
@@ -208,12 +219,12 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  assert.notEqual(main.leave,alternative.leave,'the two boarding points have different access budgets');
  assert.equal(main.firstAt,'walk');assert.equal(alternative.firstAt,undefined);
  pin(a,'live');
- assert.match(facts(a,row(a,main.train.std),main),/Arrives first/);
- assert.doesNotMatch(facts(a,row(a,alternative.train.std),alternative),/Arrives first|Fastest/);
+ assert.match(facts(a,row(a,main.train.std),main,{remaining:true,now}),/Arrives first/);
+ assert.doesNotMatch(facts(a,row(a,alternative.train.std),alternative,{remaining:true,now}),/Arrives first|Fastest/);
  row(a,alternative.train.std).querySelector('[data-follow]').click();
  assert.equal(a.c.state.saved.followRoute.option.train.from,alternative.train.from,'Follow chooses the actual alternate boarding point');
- const selected=a.d.querySelector('#followPanel .meta');
- assert.doesNotMatch(facts(a,selected,alternative),/Arrives first|Fastest/,'following one boarding point cannot borrow another point\'s rank');
+ const selected=a.d.querySelector('#followPanel');
+ assert.doesNotMatch(facts(a,selected,alternative,{remaining:true,now}),/Arrives first|Fastest/,'following one boarding point cannot borrow another point\'s rank');
  assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -235,4 +246,71 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
   }
  }
  assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('journey facts review: Live remaining updates on a clock-only tick without a new feed request',async()=>{
+ const a=await fixture('light'),first=a.c.ranked(NOW).find(o=>o.train.serviceId==='arrives-first');
+ pin(a,'live');const requests=a.calls.slice();
+ facts(a,row(a,'07:35'),first,{remaining:true});
+ const later=NOW+73000;a.setNow(later);await sleep(1150);
+ facts(a,row(a,'07:35'),first,{remaining:true,now:later});
+ assert.deepEqual(a.calls,requests,'the clock tick does not fetch a replacement ETA');
+ pin(a,'plan');
+ assert.equal(Number(row(a,'07:35').querySelector('[data-fact="total-duration"]').dataset.ms),first.arrive-first.leave,'planning still uses the complete canonical journey');
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('journey facts review: a no-estimate departure retains its independently known station arrival and source',async()=>{
+ const a=await fixture('dark'),t=a.c.state.boards['LET-KGX'].services.find(t=>t.serviceId==='arrives-first');
+ t.depUnknown=true;a.c.render();pin(a,'live');
+ const container=row(a,'07:35'),panel=container.querySelector('.journey-connection');assert.ok(panel);
+ assert.match(panel.querySelector('[data-connection-time="expected"]').textContent,/No estimate/);
+ assert.equal(panel.querySelector('[data-connection-time="arrival"]').textContent,'08:25','known arrival is not replaced by the unknown departure');
+ assert.match(panel.querySelector('.connection-arrival').textContent,/Live/);
+ assert.doesNotMatch(visibleText(a,container),/Arrives first|Fast walk|Car needed/);
+ assert.equal(container.querySelector('[data-fact="remaining-duration"]')?.hasAttribute('data-ms'),false,'the final projection remains unavailable when its departure is unknown');
+ const follow=container.querySelector('[data-follow]');assert.ok(!follow||follow.disabled,'there is no usable Follow action without a departure estimate');
+ a.c.state.boardsAt=NOW-4*MIN;a.c.render();
+ assert.match(row(a,'07:35').querySelector('.connection-arrival').textContent,/Last known/,'retained endpoint evidence is labelled after the board becomes stale');
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('journey facts review: a shared train on two destination boards uses the matched journey’s actual alighting station',async()=>{
+ const a=await fixture('light'),same=(to,arrival)=>({...train('07:35',35,arrival,'same-tl'),to,operator:'Thameslink'});
+ a.c.state.boards={'LET-KGX':{services:[],msgs:[]},'LET-STP':{services:[same('STP',75)],msgs:[]},'LET-ZFD':{services:[same('ZFD',80)],msgs:[]}};
+ a.c.render();const ranked=a.c.ranked(NOW);assert.equal(ranked.length,1,'one physical train stays one recommendation');
+ const choice=ranked[0];assert.equal(choice.train.to,'ZFD','the final-destination route selects Farringdon despite its later station arrival');
+ const requests=a.calls.slice();pin(a,'live');const board=row(a,'07:35'),panel=board.querySelector('.journey-connection');
+ assert.match(panel.querySelector('.connection-heading').textContent,/Farringdon/,'the alighting endpoint belongs to the matched journey, not the first board encountered');
+ assert.equal(panel.querySelector('[data-connection-time="arrival"]').textContent,'08:20');
+ facts(a,board,choice,{remaining:true});
+ board.querySelector('[data-follow]').click();
+ assert.equal(a.c.state.saved.followRoute.option.train.to,'ZFD','projection, panel and Follow use the same destination station');
+ assert.deepEqual(a.calls,requests);assert.deepEqual(a.errors,[]);a.close();
+});
+
+test('journey facts review: onward Tube waiting and final walking retain final-destination remaining under the shared arrow',async()=>{
+ const now=Date.parse('2026-11-03T10:00:00Z');
+ for(const stage of ['at-hub','in-london']){
+  const a=await createApp({now,settings:{provider:'demo',followRoute:true},saved:{dirMode:'office',pace:'avg'}}),s=a.c.state;
+  const here=stage==='at-hub'?[51.5308,-.1238]:[51.5142,-.0755];
+  Object.assign(s,{here,locStatus:'ok',locAcc:12,lastFixAt:now,lastFixRecvAt:now,onLine:false,atHub:stage==='at-hub'?'KGX':null,inLondon:false,presentation:null});
+  s.saved.view='now';s.saved.viewOverride=null;s.saved.tubeRide=null;s.saved.tubePick=null;
+  if(stage==='at-hub'){
+   s.hubSince={hub:'KGX',at:now-8*MIN};
+   s.tube={hub:'KGX',at:now,arrivals:[{t:now+2*MIN,line:'Circle',lineId:'circle',platform:'Eastbound - Platform 2',dest:'Aldgate',vehicle:'review-circle'}]};
+  }
+  a.c.render();assert.equal(s.presentation.view,stage);
+  const heading=a.d.querySelector('#hero .journey-heading');assert.equal(visible(a,heading),true);
+  const pill=heading.querySelector(':scope>.journey-total-time');assert.equal(visible(a,pill),true);
+  assert.ok(pill.previousElementSibling.matches('.journey-times'),'the same arrow and centred duration survive every onward stage');
+  const settings=a.c.S(),profile=a.w.CommuteCore.profiles.samCommute;
+  const expected=stage==='at-hub'?2*MIN+(settings.rideKxAld+settings.aldPlatform+settings.aldWalk)*1000:
+   a.w.CommuteCore.walkSecs(here,profile.places.office,'avg',profile)*1000;
+  assert.ok(Math.abs(Number(pill.querySelector('[data-fact="remaining-duration"]').dataset.ms)-expected)<.001,'remaining includes the Tube wait/ride/final access or the actual final walk (within floating-point timestamp precision)');
+  assert.equal(heading.hasAttribute('data-fact'),false,'an onward leg never reintroduces the origin deadline');
+  if(stage==='at-hub')assert.ok(a.d.querySelector('#hero [data-tubepick]'),'boarding choice remains available');
+  else assert.equal(s.trainLock||null,null,'the final walk does not invent a train');
+  assert.deepEqual(a.errors,[]);a.close();
+ }
 });

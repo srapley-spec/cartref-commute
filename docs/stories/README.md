@@ -29,6 +29,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 
 ## Index
 ### Planning
+- [Approved journey and leg UI across planning, Live and Trips](journey-leg-ui.md) · Implemented 2 Nov; independently reviewed before release
 - [Never hide a train](never-hide-a-train.md) · Done
 - [Top card: best and next best](top-card.md) · Done
 - [Leave around](leave-around.md) · Done

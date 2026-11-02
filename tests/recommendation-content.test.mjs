@@ -35,11 +35,12 @@ function fullOption(a,node,option){
  assert.equal(Number(node.querySelector('[data-fact="total-duration"]').dataset.ms),option.arrive-option.leave);
  assert.equal(Number(node.querySelector('[data-fact="train-duration"]').dataset.ms),option.train.arr-option.train.dep);
  assert.equal(Number(node.querySelector('[data-cd]').dataset.cd),option.leave);
- assert.match(node.querySelector('.journey-service').textContent,new RegExp(option.train.std+' '+option.train.operator));
+ assert.equal(node.querySelector('[data-connection-time="scheduled"]').textContent,option.train.std);
+ assert.equal(node.querySelector('.connection-operator').textContent,option.train.operator);
  assert.equal(node.querySelectorAll('.journey-facts').length,1,'facts are not copied into a separate summary');
  for(const flag of option.flags){
   if(flag.network)continue;
-  const pill=[...node.querySelectorAll('.pill')].find(p=>p.textContent===flag.txt);
+  const pill=[...node.querySelectorAll('.pill,[data-connection-time="expected"]')].find(p=>p.textContent===flag.txt);
   assert.ok(visible(a,pill),`${option.train.std}: its own ${flag.txt} remains exposed`);
  }
 }

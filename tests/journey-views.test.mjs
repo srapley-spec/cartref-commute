@@ -43,7 +43,10 @@ function assertHealthy(a,surface){
 }
 function assertDuration(a,container,option,context={}){
  const expected=a.w.CommuteCore.journeyFacts(option,context);
- for(const [fact,ms] of [['train-duration',expected.trainDurationMs],['total-duration',expected.totalDurationMs]]){
+ const remaining=!!container.querySelector('[data-fact="remaining-duration"]');
+ const arrival=Object.hasOwn(context,'arrival')?context.arrival:option?.arrive;
+ const total=remaining?a.w.CommuteCore.journeyRemainingMs(arrival,a.w.Date.now(),expected.totalDurationMs!=null&&option?.effort!=='none'&&!option?.uncertain):expected.totalDurationMs;
+ for(const [fact,ms] of [['train-duration',expected.trainDurationMs],[remaining?'remaining-duration':'total-duration',total]]){
   const nodes=[...container.querySelectorAll(`[data-fact="${fact}"]`)].filter(node=>visible(a,node));
   if(ms==null){
    for(const node of nodes)assert.equal(node.hasAttribute('data-ms'),false,`${fact}: unavailable time is not made up`);
@@ -84,7 +87,7 @@ function assertTripHealthy(a,surface){
 async function followFirst(a){
  const b=[...a.d.querySelectorAll('#tripResults .trip-row')].find(r=>/10:06/.test(r.textContent))?.querySelector('[data-trip-follow]');
  assert.ok(b,'the 10:06 can be followed');b.click();
- await until(()=>a.d.querySelector('[data-trip-stop]'));
+ await until(()=>a.d.querySelector('[data-trip-stop]'));a.d.activeElement?.blur();
 }
 async function tripAt(a,iso){a.setNow(Date.parse(iso));a.d.querySelector('#refreshBtn').click();await new Promise(r=>setTimeout(r,700));}
 const tripPlanChecks=a=>{
@@ -196,7 +199,7 @@ const factories={
   s.saved.settings.alongLine=true;a.c.render();
   const nav=a.d.querySelector('#alongNavigation');
   assert.ok(visible(a,a.d.querySelector('#alongEntry')),'enabled access is visible before boarding');
-  assert.equal(nav.previousElementSibling.tagName,'HEADER');
+  assert.equal(nav.previousElementSibling.id,'signalModebar');
   a.d.querySelector('#alongEntry').click();
   assert.match(a.text('#alongJourney'),/Browse/,'pre-boarding access does not invent an onboard journey');
   assert.equal(a.d.querySelector('#alongStrip [data-featured="true"]'),null);

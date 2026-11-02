@@ -114,7 +114,8 @@ test('Leave by: reaching the station retains the train panel and choosing Live r
  assert.match(a.text('#hero>.opt .journey-connection'),/Train from Letchworth.*13:27.*On time/);
  deadline(a,a.d.querySelector('#hero>.opt'),a.c.ranked(NOW).find(o=>o.recommended===1));
  assert.ok(a.d.querySelector('#hero [data-dep]'));
- pin(a,'live');assert.equal(a.d.querySelector('[data-fact="leave-by"]'),null);
+ pin(a,'live');deadline(a,a.d.querySelector('#hero>.opt'),a.c.ranked(NOW).find(o=>o.recommended===1));
+ assert.ok(a.d.querySelector('#list [data-connection-time="arrival"]'));
  assert.equal(a.c.state.presentation.mode,'live');assert.match(a.text('#hero'),/departures/);
  assert.deepEqual(a.errors,[]);a.close();
 });

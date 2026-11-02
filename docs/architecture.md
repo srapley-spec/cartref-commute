@@ -16,6 +16,17 @@ The code review on 28 Oct found one 1,700-line file mixing data, planning and sc
 door-to-door timing model written out in ~7 places; same-train merging done as a patch after the fact; planning
 code reading live screen state. Duplication had started (a St Pancras fix was needed in three places).
 
+## Approved journey UI — 2 November 2026
+
+Sam approved implementation/release of the reviewed whole-journey and individual-leg design across
+Commute, Leisure and Trip. This supersedes the historical 1 November Trip-only freeze and the original-start
+Live duration requirement below. [Current design contract](design-system.md#approved-journey-and-leg-ui--2-november-2026):
+planning Total journey directly under its arrow; active/Live Journey remaining from now to final ETA; three
+fixed train clocks including alighting-station arrival; compact mode/view/context controls; preserved effort
+and ranking, optional Follow, inference/correction and independent planning. UI reuse never replaces actual
+journey identity/state with the illustrative prototype. Independent implementation/mutation review precedes
+GitHub-first release because live clocks and view-transition coverage change.
+
 ## Layers
 1. **Engine** (`src/core`, TypeScript, pure functions): no screen, no network, no hard-coded places.
    Input: profile + trains (each with its stops) + a question (leave now / arrive by / leave around; from, to,

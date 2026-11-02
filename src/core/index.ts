@@ -65,17 +65,17 @@ export { stationIndex, candidates, promote, roundOnePairs } from "./trip/station
 export type { Candidate, Candidates, CandidateWhy } from "./trip/stations";
 export { travelSecs, beforeSegments, afterSegments } from "./trip/access";
 export { TFL_TRIP_MODES, tflStation, tflRailJourneys, cleanName } from "./trip/tflJourney";
-export { rankTrips, otherStations, betterOption } from "./trip/tripRank";
+export { rankTrips, otherStations, betterOption, tripDepartureBoard, tripCanFollow } from "./trip/tripRank";
 export type { TripQuestion, OtherStation } from "./trip/tripRank";
 export { planTrip, TripError } from "./trip/tripPlan";
 export type { TripRequest, TripResult, TripStageName } from "./trip/tripPlan";
 export { liveBudget, matchRide, applyLive } from "./trip/tripLive";
 export type { BoardRequest } from "./trip/tripLive";
-export { startFollowTrip, restoreFollowTrip, tripPhase, updateFollowTrip, confirmTripRide, dismissTripAlternative } from "./trip/followTrip";
+export { startFollowTrip, restoreFollowTrip, tripPhase, followedTripPhase, updateFollowTrip, confirmTripRide, alightTripRide, completeFollowTrip, tripRecoveryStart, recoverFollowTrip, dismissTripAlternative } from "./trip/followTrip";
 export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpdate } from "./trip/followTrip";
 
 export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
 export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';
 export { samAlongLine, samAlongStations } from './profiles/samAlongLine';
-export { journeyFacts, connectionJourneyFacts, tripJourneyFacts } from './journeyFacts';
+export { journeyFacts, connectionJourneyFacts, tripJourneyFacts, journeyRemainingMs, tripRideTimingUsable } from './journeyFacts';
 export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

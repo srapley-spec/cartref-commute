@@ -1,4 +1,4 @@
-/* Signal: a compact journey instrument. Scope every rule so Panda remains the baseline. */
+/* Signal: approved journey / individual-leg UI, 2 November 2026. */
 html {
   color-scheme: light;
   --paper:#f2f5f8; --card:#ffffff; --ink:#142436; --muted:#506174; --line:#d4dde7;
@@ -352,7 +352,7 @@ html body.simControlsVisible {padding-bottom:calc(var(--sim-dock-height,155px) +
 
 /* ---------- Trip mode (leisure journeys): design-system additions L1–L17 (docs/design-system.md). Signal tokens only;
    red / amber / green stay status-only. Functional drafts for the designer's review. ---------- */
-html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#tripRoot):not(footer) {display:none!important}
+html[data-trip="on"] .wrap > :not(header):not(.signal-toolbar):not(#signalModebar):not(#tripRoot):not(footer) {display:none!important}
 html[data-trip="on"] :is(#journeyViewControl,[aria-label="Direction"],#paceSeg,#dirNote) {display:none!important}
 html .trip {display:grid;gap:10px;min-width:0}
 html .trip-planning-controls {display:grid;gap:8px;min-width:0}
@@ -437,4 +437,63 @@ html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:va
   html .connection-expected {text-align:left}
   html .connection-main.has-expected .connection-status {margin-left:0}
   html .row.journey-row>* {grid-row:auto}
+}
+
+/* Approved journey hierarchy — 2 Nov. Reuse controls; preserve their handlers/state. */
+html .signal-modebar {display:flex;align-items:center;gap:6px;min-width:0}
+html .signal-modebar>.seg {display:flex;flex:1;min-width:0}
+html .signal-modebar>.seg button {flex:1 1 auto;min-width:0;padding-inline:5px;overflow-wrap:anywhere}
+html .signal-utility {display:flex;flex-shrink:0}
+html .signal-utility>.iconbtn {display:grid;place-items:center;min-width:44px;min-height:44px;width:44px;height:44px;padding:8px;border:0;background:transparent;font-size:21px;color:var(--accent)}
+html .signal-toolbar {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:8px;align-items:center}
+html #journeyViewNote {flex-basis:100%;max-width:100%;overflow-wrap:anywhere}
+html .signal-utility>.iconbtn {flex:0 0 auto;width:auto;height:auto;min-width:44px;min-height:44px;overflow:visible;line-height:1;font-size:21px}
+html #signalAdjustments {min-width:0}
+html #signalAdjustments>summary {justify-content:flex-end;text-align:right}
+html #signalAdjustments[open] {grid-column:1/-1}
+html .signal-context-copy {display:grid;gap:1px;min-width:0;font-size:13px;font-weight:650;color:var(--ink);overflow-wrap:break-word}
+html .signal-context-copy>small {font-size:11px;font-weight:500;color:var(--muted)}
+html #journeySimulatorBtn {margin-top:6px}
+html .journey-heading {display:grid;gap:5px;min-width:0}
+html .journey-heading>.journey-total-time {grid-column:1;justify-self:center;max-width:100%;padding:2px 8px;border-radius:999px;background:var(--signal-inset);color:var(--ink);font-size:13px;line-height:1.5;font-weight:600;text-align:center;overflow-wrap:anywhere}
+html .journey-heading .journey-countdown {margin-top:2px}
+html .journey-heading .journey-times>div:nth-child(n) .optbig.word {font-size:16px;line-height:1.5;letter-spacing:normal;overflow-wrap:anywhere}
+html .journey-next-service {font-size:14px;line-height:1.45;min-width:0;overflow-wrap:break-word}
+html .journey-reach {display:flex;flex-wrap:wrap;align-items:center;gap:4px 7px;min-width:0;font-size:13px;color:var(--muted)}
+html :is(.hero .opt,.row.journey-row)>:is(.journey-reach,.journey-next-service) {grid-column:1/-1;min-width:0}
+html .journey-connection .connection-main.has-arrival {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 7px;align-items:stretch}
+html .connection-main.has-arrival>.connection-clock {display:grid;grid-template-rows:subgrid;grid-row:1/span 3;gap:2px;min-width:0}
+html .connection-main.has-arrival>.connection-clock:first-child {text-align:left}
+html .connection-main.has-arrival>.connection-expected {text-align:center}
+html .connection-main.has-arrival>.connection-arrival {text-align:right}
+html .connection-main.has-arrival .connection-clock>small {font-size:11px;line-height:1.35;overflow-wrap:break-word}
+html .connection-main.has-arrival .connection-time {font-size:28px;align-self:end}
+html .connection-main.has-arrival .connection-time.word {font-size:17px;line-height:1.4;white-space:normal;overflow-wrap:anywhere;letter-spacing:-.02em}
+html .connection-arrival-label {display:block;font-weight:500}
+html .connection-source {font-size:10px;line-height:1.35;color:var(--muted);min-height:1.35em}
+html .connection-main.has-arrival>.connection-details {grid-column:1/-1;grid-row:4;display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+html .connection-main.has-arrival .connection-status {margin-left:0}
+html .journey-projection {grid-column:1/-1;min-width:0;font-size:13px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);padding-top:5px}
+html .journey-projection b {color:var(--ink)}
+html .row.live-row {display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+html .row.live-row>.mid {grid-column:1;grid-row:auto}
+html .row.live-row>.journey-connection {grid-column:1}
+html .trip-tracking {display:grid;gap:8px;margin-bottom:10px;padding:10px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;background:var(--signal-inset);font-size:13px}
+html .trip-tracking p {margin:0}
+html .trip-confirmation {display:grid;gap:6px}
+html .trip-confirmation .controls {display:flex;flex-wrap:wrap;gap:6px}
+html[data-trip="on"] .wrap>.signal-modebar {display:flex!important}
+html[data-trip="on"] #journeyViewControl {display:flex!important}
+@container(max-width:20em){
+ html .connection-main.has-arrival .connection-time {font-size:24px}
+ html .connection-main.has-arrival .connection-time.word {font-size:15px}
+}
+@container(max-width:18em){
+ html .signal-modebar {flex-wrap:wrap}
+ html .signal-utility {margin-left:auto}
+ html .signal-toolbar {grid-template-columns:minmax(0,1fr)}
+ html .signal-toolbar>#signalAdjustments {grid-column:1}
+ html .connection-main.has-arrival {grid-template-columns:minmax(0,1fr)}
+ html .connection-main.has-arrival>.connection-clock {grid-column:1;grid-row:auto;grid-template-rows:none;text-align:left}
+ html .connection-main.has-arrival>.connection-details {grid-row:auto}
 }

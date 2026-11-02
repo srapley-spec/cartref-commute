@@ -229,7 +229,8 @@ test("Leave now card: best train, then the next best (same route allowed), total
   assert.equal(opts.length, 2);
   const nodes=[...app.d.querySelectorAll("#hero .opt")];
   for(const [index,departure] of [[0,39],[1,55]]){
-    assert.match(nodes[index].querySelector(".journey-service").textContent,new RegExp(`${hm(now+departure*m)} Great Northern`));
+    assert.equal(nodes[index].querySelector('[data-connection-time="scheduled"]').textContent,hm(now+departure*m));
+    assert.equal(nodes[index].querySelector(".connection-operator").textContent,"Great Northern");
     assert.equal(Number(nodes[index].querySelector('[data-fact="train-duration"]').dataset.ms),29*m);
   }
   assert.match(nodes[0].querySelector(".journey-total-time").textContent,/Total journey \d+h \d\dm/);
@@ -294,7 +295,7 @@ test("On the train: works out which train from your position and projects arriva
     c.render();
     const hero = app.text("#hero");
     assert.match(hero, new RegExp(`On the train · .*You're on the ${hm(fast.dep)} Great Northern`));
-    assert.match(hero, /projected at office/);
+    assert.match(hero, /At office\d\d:\d\d/);
     assert.match(hero, /King's Cross \d\d:\d\d expected \(live\) · timetable \d\d:\d\d/);
     // Status lives in the train's lozenge, coloured by band (red, amber and green mean status only).
     assert.match(hero, new RegExp(`You're on the ${hm(fast.dep)} Great Northern On time`));
@@ -448,7 +449,7 @@ test("At King's Cross: a train from King's Cross stays on the card until a minut
     assert.equal(stp.missed, true, "St Pancras in 3 min: the walk there is real");
     c.render();
     assert.match(app.text('#hero .journey-countdown'),/go to the platform now/);
-    assert.match(app.text('#hero .journey-connection'),new RegExp(`Train from King's Cross\\s*${hm(now+2*m)}.*On time`));
+    assert.match(app.text('#hero .journey-connection'),new RegExp(`Train from King's Cross.*Timetable departure${hm(now+2*m)}.*On time`));
     c.state.boards["KGX-LET"].services = [gn(0.5, 28), gn(8, 35)];
     const soon = c.ranked(now).find((j) => j.train.dep === now + 0.5 * m);
     assert.equal(soon.missed, true); assert.equal(soon.effort, "none"); assert.equal(soon.flags[0].txt, "Can't make it");
@@ -464,8 +465,8 @@ test("At King's Cross, a St Pancras train on the card says 'Train from St Pancra
   try {
     c.render();
     const hero = app.text("#hero");
-    assert.match(hero, new RegExp(`Train from St Pancras\\s*${hm(now + 12 * m)}.*On time`), hero.slice(0, 200));
-    assert.match(hero, new RegExp(`Train from King's Cross\\s*${hm(now + 20 * m)}`), "each connection explicitly names its boarding station");
+    assert.match(hero, new RegExp(`Train from St Pancras.*Timetable departure${hm(now + 12 * m)}.*On time`), hero.slice(0, 200));
+    assert.match(hero, new RegExp(`Train from King's Cross.*Timetable departure${hm(now + 20 * m)}`), "each connection explicitly names its boarding station");
   } finally { c.state.atHub = null; c.state.here = null; }
 });
 

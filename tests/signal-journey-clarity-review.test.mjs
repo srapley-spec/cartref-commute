@@ -161,7 +161,7 @@ test('independent Signal clarity: Tube headline and progress share vehicle, targ
  s.ald={at:NOW,arrivals:[matching]};a.c.render();
  assert.equal(s.rendered.progress.liveArrival.t,matching.t);
  assert.equal(s.rendered.progressModel.source,'prediction');
- assert.doesNotMatch(a.d.querySelector('#hero .arrlbl').textContent,/estimate/);
+ assert.doesNotMatch(a.d.querySelector('#hero .journey-times>div:last-child small').textContent,/estimate/);
  assert.match(visibleText(a,'.journey-progress'),/Live arrival; position is a time-based estimate/);
  assert.equal(a.d.querySelectorAll('.jp-stop[data-state="reported"]').length,0);
  s.boardsAt=NOW-4*MIN;a.c.render();
@@ -177,7 +177,7 @@ test('independent Signal clarity: Tube headline and progress share vehicle, targ
   s.ald={at:NOW,arrivals:[{...matching,...incompatible}]};a.c.render();
   assert.equal(s.rendered.progress.liveArrival,null,'the headline rejects '+JSON.stringify(incompatible));
   assert.equal(s.rendered.progressModel.source,'modelled','the bar rejects the same incompatible observation');
-  assert.match(a.d.querySelector('#hero .arrlbl').textContent,/estimate/);
+  assert.match(a.d.querySelector('#hero .journey-times>div:last-child small').textContent,/estimate/);
   assert.equal(s.rendered.progressModel.status.deltaMin,null);
  }
  assert.deepEqual(a.errors,[]);a.close();

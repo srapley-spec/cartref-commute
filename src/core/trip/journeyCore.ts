@@ -30,6 +30,9 @@ export interface ChangeStatus {
   at: string; spare: number; plannedSpare: number;
   level: "ok" | "warn" | "bad"; text: string; missed: boolean; notLive: ("arr" | "dep")[];
   via: Ride[];
+  /** Gap between services; explicit transfer duration is unknown when no transfer leg was supplied. */
+  betweenMs?: number;
+  transferMs?: number | null;
 }
 export interface Journey {
   id: string; from: Place | null; to: Place | null; fromStation: Station; toStation: Station;
@@ -67,7 +70,7 @@ export function changeStatus(prev: Ride, next: Ride, via: Ride[], cfg: Pick<Trip
   const plannedSpare = Math.floor((next.schedDep - prev.schedArr - across) / 60e3);
   const at = via.length ? `${prev.to.name} → ${next.from.name}` : next.from.name;
   const notLive: ("arr" | "dep")[] = [...(prev.live.arr ? [] : ["arr" as const]), ...(next.live.dep ? [] : ["dep" as const])];
-  const base = { at, spare, plannedSpare, notLive, via };
+  const base = { at, spare, plannedSpare, notLive, via, betweenMs:next.dep-prev.arr, transferMs:via.length?across:null };
   if (next.cancelled) return { ...base, level: "bad", missed: true, text: `Connection missed: the ${hhmm(next.schedDep)} from ${next.from.name} is cancelled` };
   if (spare < 0) return { ...base, level: "bad", missed: true, text: `Connection missed at ${next.from.name}` };
   if (spare < cfg.change.riskMin) return { ...base, level: "bad", missed: false, text: `Connection at risk, ${spare} min` };

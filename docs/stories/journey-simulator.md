@@ -81,6 +81,12 @@ and real mobile Chromium `tests/browser-simulator-context-reset.py`.
 - Session isolation includes the actual planning date/time, origin/destination input values and runtime alternative origin, not just saved JSON. Both exit paths restore these before normal refreshing and replan the selected By/At question when native GPS resumes. Original unsaved private drafts are included in the redaction union and never exported raw.
 - Report format identifiers and validated structural enums remain intact while untrusted messages and service identifiers are sanitized. Unavailable clipboard access offers a selectable text fallback; download URLs are revoked.
 
+The 2 Nov journey UI regression run exposed an old independent test clicking Next after verification
+published but before sequential playback released the disabled control. Its helper now waits for the real
+enabled button and clicks once atomically, using the existing bounded twelve-second waits. Production
+playback, inference, watchdogs and the deliberately broken train-identification PASS/FAIL checks are unchanged.
+The same readiness policy was already used by the main Journey regression helper.
+
 ## Tests
 - tests/simulator-controls.test.mjs: "Stop exits a ready GPS-only simulator before the journey has started"
 - tests/simulator-controls.test.mjs: "simulator dock starts hidden playback and preserves paused state while showing and hiding controls"

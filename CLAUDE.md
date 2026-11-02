@@ -2,6 +2,14 @@
 
 Read this first, every session. The context for this project lives in this repo, not in any chat.
 
+**Latest approved UI (Sam, 2 Nov):** implement the reviewed journey/leg design across Commute, Leisure and Trip;
+this explicitly supersedes the former Trip-only Signal freeze below. The binding contract is
+`docs/design-system.md` → “Approved journey and leg UI — 2 November 2026”. Keep Total journey directly under
+the journey arrow in planning; active/Live uses Journey remaining from now to the final ETA. Train panels have
+fixed Scheduled / Expected / alighting-station arrival columns. Keep compact mode/view/context controls,
+all existing effort/arrival-first rules, optional Follow, inference/correction and independent planning.
+The review prototype is a visual reference, never a substitute for production state, clocks or ranking.
+
 ## Where the context is
 1. `docs/architecture.md`: what the app is for, the four layers, the principles, data sources, decisions log, plan.
 2. `docs/stories/`: one file per capability: who it's for, the real trip that produced it, acceptance criteria
@@ -42,11 +50,10 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   `archive/panda-2026-11-01`; its switch and the design-parity release rule are retired.
   Keep journey facts, actions, status and unknowns correct across planning and live views using normal
   regression coverage. See `docs/panda-retirement-review.md`; do not reintroduce a design toggle or parity registry.
-- **Signal and all non-Trip functionality are frozen for real-world testing (Sam, 1 Nov).** Do not tweak their UI,
-  palette, layout, controls or behaviour without Sam's express direction. The current task authorises **Trip only**:
-  make Trip reuse the existing Signal UI. Shared tokens or similar CSS values alone are not sufficient. The proposed
-  commute redesign and separate Trip visual direction were rejected; historical prototypes are not permission to
-  change Signal. Preserve existing non-Trip rendering and behaviour when sharing components.
+- **UI changes require Sam's express direction.** The 1 Nov Trip-only freeze was superseded by the approved
+  2 Nov journey/leg review linked above. This authorisation covers that design across Commute, Leisure and Trip;
+  unrelated redesigns remain outside scope. Shared tokens alone are not proof of visual fidelity. Preserve the
+  real control handlers, planning/effort rules, optional Follow, correction, source and simulator behaviour.
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.

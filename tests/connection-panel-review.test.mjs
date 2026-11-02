@@ -25,10 +25,11 @@ test('connection panel review: first and next-best connection clocks stay visibl
  const clocks=a.d.querySelectorAll('#hero .connection-time,#list .connection-time');assert.ok(clocks.length>=4);
  for(const clock of clocks){
   for(let n=clock;n;n=n.parentElement){const style=a.w.getComputedStyle(n);assert.ok(!n.hidden&&style.display!=='none'&&style.visibility!=='hidden'&&style.opacity!=='0','the connection clock must be visible: '+clock.textContent);}
-  const minimum=clock.closest('.journey-row')?30:36;
+  const minimum=clock.classList.contains('word')?17:28;
   assert.ok(parseFloat(a.w.getComputedStyle(clock).fontSize)>=minimum,'train departure stays prominent beside journey times');
-  if(clock.dataset.connectionTime==='expected')assert.equal(clock.parentElement.querySelector('small').textContent,'Expected');
-  else if(clock.closest('.has-expected'))assert.equal(clock.parentElement.querySelector('small').textContent,'Scheduled');
+  if(clock.dataset.connectionTime==='expected')assert.equal(clock.parentElement.querySelector('small').textContent,'Expected departure');
+  else if(clock.dataset.connectionTime==='scheduled')assert.equal(clock.parentElement.querySelector('small').textContent,'Timetable departure');
+  else assert.match(clock.parentElement.querySelector('small').textContent,/At /);
  }
  assert.deepEqual(a.errors,[]);a.close();
 });
@@ -43,7 +44,7 @@ test('connection panel review: unusable future services with passed access deadl
   assert.equal(row.querySelector('[data-dep]'),null,issue+': retained times must not become a departure promise');
   assert.doesNotMatch(row.textContent,/train departs in|train has departed/);
   assert.equal(row.querySelector('[data-connection-time="scheduled"]').textContent,'07:07');
-  assert.match(row.querySelector('.connection-status').textContent,/Cancelled|No estimate/);
+  assert.match(row.querySelector('.journey-connection').textContent,/Cancelled|No estimate/);
  }
  const known=rail(NOW+7*MIN);use(a,[known]);const row=a.d.querySelector('#list .row');
  assert.equal(a.c.ranked(NOW)[0].missed,true);
@@ -60,15 +61,16 @@ test('connection panel review: cancellation while following retracts the current
  train.cancelled=true;use(a,[train,next]);
  const panel=a.d.querySelector('#followPanel');
  assert.equal(a.c.state.saved.followRoute.id,id);
- assert.equal(panel.querySelector(':scope>.journey-heading'),null);
- assert.match(panel.querySelector(':scope>.big').textContent,/Arrival uncertain/);
+ assert.equal(panel.querySelector(':scope>.journey-heading').hasAttribute('data-fact'),false);
+ assert.match(panel.querySelector(':scope>.journey-heading').textContent,/At officeUnavailable/);
+ assert.match(panel.querySelector('.follow-status').textContent,/Arrival uncertain/);
  assert.equal(panel.querySelector(':scope>.journey-connection [data-connection-time="scheduled"]').textContent,'07:30');
- assert.match(panel.querySelector(':scope>.journey-connection .connection-status').textContent,/Cancelled/);
+ assert.match(panel.querySelector(':scope>.journey-connection [data-connection-time="expected"]').textContent,/Cancelled/);
  assert.match(panel.textContent,/Original plan: arrive/);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('connection panel review: Live keeps its original alternative layout while Auto exposes the journey panel',async()=>{
+test('connection panel review: recovery alternatives keep complete journey and leg panels in Auto and Live',async()=>{
  const a=await app(),train=rail(NOW+30*MIN),next=rail(NOW+45*MIN);use(a,[train,next]);
  a.d.querySelector('#hero .opt [data-follow]').click();train.cancelled=true;use(a,[train,next]);
  let alternative=a.d.querySelector('#followPanel>.follow-alternative');assert.ok(alternative);
@@ -77,8 +79,9 @@ test('connection panel review: Live keeps its original alternative layout while 
  const chosen=a.c.state.saved.followRoute.id;
  a.d.querySelector('[data-journey-view="live"]').click();
  alternative=a.d.querySelector('#followPanel>.follow-alternative');assert.ok(alternative);
- assert.equal(alternative.querySelector('.journey-heading,.journey-connection'),null);
- assert.equal(a.w.getComputedStyle(alternative).display,'block','Live keeps the preceding production layout as well as its text');
+ assert.ok(alternative.querySelector('.journey-heading'));
+ assert.ok(alternative.querySelector('[data-connection-time="arrival"]'));
+ assert.equal(a.w.getComputedStyle(alternative).display,'grid','Live keeps the same complete recovery itinerary');
  assert.equal(a.c.state.saved.followRoute.id,chosen);
  assert.deepEqual(a.errors,[]);a.close();
 });
@@ -94,12 +97,12 @@ test('connection panel review: a delayed second Trip train owns its expected clo
  await planBrightonCanterbury(a);
  const row=[...a.d.querySelectorAll('#tripResults .trip-row')].find(r=>r.querySelector('[data-connection-time="scheduled"]')?.textContent==='10:06');assert.ok(row);
  const panels=row.querySelectorAll('.journey-connection');assert.equal(panels.length,4);
- assert.equal(panels[0].querySelector('[data-connection-time="expected"]'),null);
+ assert.equal(panels[0].querySelector('[data-connection-time="expected"]').textContent,'Not live');
  assert.match(panels[1].querySelector('.connection-heading').textContent,/Train from Lewes/);
  assert.equal(panels[1].querySelector('[data-connection-time="scheduled"]').textContent,'10:27');
  assert.equal(panels[1].querySelector('[data-connection-time="expected"]').textContent,'10:30');
  assert.match(panels[1].querySelector('.connection-status').textContent,/3 min late/);
- assert.equal(panels[2].querySelector('[data-connection-time="expected"]'),null);
+ assert.equal(panels[2].querySelector('[data-connection-time="expected"]').textContent,'Not live');
  assert.equal(row.querySelector('.trip-steps').open,false,'each connection is exposed without its steps');
  assert.deepEqual(a.errors,[]);a.close();
 });
@@ -118,19 +121,19 @@ test('connection panel review: a failed Trip board refresh qualifies retained co
  const row=()=>[...a.d.querySelectorAll('#tripResults .trip-row')].find(r=>r.querySelector('[data-connection-time="scheduled"]')?.textContent==='10:06');
  const panel=()=>row()?.querySelector('.journey-connection');assert.ok(panel());
  const expectedStatus=incident==='delayed'?/8 min late/:incident==='cancelled'?/Cancelled/:/On time/;
- assert.match(panel().querySelector('.connection-status').textContent,expectedStatus);
- if(incident==='delayed')assert.equal(panel().querySelector('.connection-expected>small').textContent,'Expected');
+ assert.match(panel().textContent,expectedStatus);
+ if(incident==='delayed')assert.equal(panel().querySelector('.connection-expected>small').textContent,'Expected departure');
  failed=true;a.setNow(now+31000);a.d.querySelector('#refreshBtn').click();
  await until(()=>requests>=2);await sleep(100);
  assert.equal(panel().querySelector('[data-connection-time="scheduled"]').textContent,'10:06','keep the retained scheduled identity');
  assert.match(panel().textContent,/Not live|Last known/i,'source loss must qualify the retained connection status');
- if(incident!=='on-time')assert.match(panel().querySelector('.connection-status').textContent,expectedStatus,'retain the observed problem after source loss');
+ if(incident!=='on-time')assert.match(panel().textContent,expectedStatus,'retain the observed problem after source loss');
  if(incident==='delayed'){
   assert.equal(panel().querySelector('[data-connection-time="expected"]').textContent,'10:14');
   assert.equal(panel().querySelector('.connection-expected>small').textContent,'Last known');
   assert.ok(panel().querySelector('.connection-status').classList.contains('warn'));
  }
- if(incident==='cancelled')assert.ok(panel().querySelector('.connection-status').classList.contains('bad'));
+ if(incident==='cancelled')assert.ok(panel().querySelector('[data-connection-time="expected"]').classList.contains('bad'));
  assert.ok(![...row().querySelectorAll('.flags>*')].some(e=>e.textContent==='On time'),'no unqualified stale On time flag is repeated below the panel');
  assert.deepEqual(a.errors,[]);a.close();
  }

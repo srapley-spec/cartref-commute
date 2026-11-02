@@ -44,9 +44,9 @@ test('Trip cards: Journey steps keep their own disclosure state through refresh 
  refreshed.querySelector('[data-trip-follow]').click();await until(()=>a.d.querySelector('[data-trip-stop]'));
  assert.equal(a.c.state.saved.tripMode.follow.id,id);
  const follow=a.d.querySelector('.trip-follow-card');assert.ok(follow);
- assert.equal(follow.querySelectorAll('.journey-heading').length,1);
- assert.equal(follow.querySelectorAll('.journey-facts').length,1);
- assert.equal(follow.querySelector('.steps>summary').textContent,'Your trip');
+ assert.equal(follow.querySelectorAll('.trip-headline>.journey-heading').length,1);
+ assert.equal(follow.querySelectorAll('.trip-headline>.journey-facts').length,1);
+ assert.equal(follow.querySelector(':scope>.trip-steps>summary').textContent,'Your trip');
  assert.deepEqual([...follow.querySelectorAll('.trip-follow-connections [data-connection-time="scheduled"]')].map(e=>e.textContent),['10:28','12:04','12:57'],'the selected itinerary retains all three trains in order');
  a.d.querySelector('[data-trip-stop]').click();
  assert.equal(a.c.state.saved.tripMode.follow,null);
@@ -83,7 +83,7 @@ test('Trip context: the selected places replace commute copy only while Trip is 
  const route=a.text('#routeLabel'),context=a.text('#signalContextSummary');
  await planBrightonCanterbury(a);
  assert.equal(a.text('#routeLabel'),'Brighton Station → Canterbury Cathedral');
- assert.equal(a.text('#signalContextSummary'),'Trip · Walk to · Walk from');
+ assert.equal(a.text('#signalContextSummary'),'Brighton Station → Canterbury CathedralWalk to · Walk from');
  assert.ok(a.d.querySelector('#signalAdjustments #tripForm'),'Trip uses the existing Journey options component');
  assert.equal(a.d.querySelectorAll('#tripInput-from').length,1,'the original controls are moved, not cloned');
  assert.ok(!a.d.querySelector('[aria-label="Trip question"]').closest('details'),'the planning question stays exposed');
