@@ -557,7 +557,8 @@ test("Elsewhere in London on the way to work: one TfL plan from where you are", 
   app.c.state.saved.dirMode = "office";
   await moveTo(app, { coords: { latitude: 51.5154, longitude: -0.1410, accuracy: 20 } });   // Oxford Circus
   const hero = app.text("#hero");
-  assert.match(hero, new RegExp(`In London · .*${hm(t0 + 25 * 60e3)} ?at the office · TfL journey planner`));
+  assert.match(hero, new RegExp(`In London · .*At office${hm(t0 + 25 * 60e3)}`));
+  assert.match(hero, /TfL journey planner/);
   assert.match(hero, /Walk 5m → Central 15m/);
   app.close();
 });

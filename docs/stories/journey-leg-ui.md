@@ -24,6 +24,7 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
 - Three fixed leg columns: timetable departure; independently qualified expected departure/status; expected
   arrival **at the alighting station**. On time, Not live, No estimate and Cancelled keep their column. Arrival
   can remain known with unknown departure, and vice versa. Advertised train destination is separate metadata.
+  A cancelled or unknown-departure service is qualified in its service summary, never described as the next train.
 - Unselected rail Live is a departure board with separate matched final projection and remaining duration.
   Trip Live is explicitly the loaded first connections; opening it never invents boarding or selects a route.
   Passed required access remains listed, qualified unreachable, with no enabled Follow or arrival-first claim.
@@ -32,6 +33,7 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
   Commute cycling grade or GPS inference is introduced. Show selected Trip access modes in the context control.
 - Original mode, settings, refresh, direction, pace, diagnostics and simulator handlers survive compact layout.
   The visible product heading and redundant standalone route line disappear. Controls remain reachable in Trip.
+  Keep each mode word intact at320px with natural button bases; enlarged text may wrap whole controls.
 - Follow is optional. Existing no-Follow inferred stages, probability, correction and service identity survive.
   Exact Next best selection remains authoritative across refresh, view and appearance changes.
 - Manual Plan preserves the active route, alerts, original target and return action while the independent query
@@ -62,6 +64,8 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Next best selects its own itinerary and confirmation stays separate from clock progression"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: an unreachable selected-access departure stays listed with no enabled Follow or arrival-first claim"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: explicit recovery preserves the completed train and original destination promise with a reason"
+
+- tests/journey-leg-ui.test.mjs: "approved journey UI: an expired unselected Trip Live pin restores its preserved planning question and matching result"
 
 ## Limits
 Live Trip boards show the connections already loaded for its station-pair plan, within the existing six-board

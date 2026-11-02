@@ -627,7 +627,7 @@ html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:va
 /* Approved journey hierarchy — 2 Nov. Reuse controls; preserve their handlers/state. */
 html .signal-modebar {display:flex;align-items:center;gap:6px;min-width:0}
 html .signal-modebar>.seg {display:flex;flex:1;min-width:0}
-html .signal-modebar>.seg button {flex:1;min-width:0;padding-inline:5px;overflow-wrap:anywhere}
+html .signal-modebar>.seg button {flex:1 1 auto;min-width:0;padding-inline:5px;overflow-wrap:anywhere}
 html .signal-utility {display:flex;flex-shrink:0}
 html .signal-utility>.iconbtn {display:grid;place-items:center;min-width:44px;min-height:44px;width:44px;height:44px;padding:8px;border:0;background:transparent;font-size:21px;color:var(--accent)}
 html .signal-toolbar {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:8px;align-items:center}
@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 02 Nov 15:20 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 02 Nov 15:26 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5726,7 +5726,8 @@ function arrangeJourneySummaries(root){
 }
 function nextServiceMarkup(t,from=STATIONS[t.from]||t.from){
   const d=C.departureStatus(t,PROFILE.disruption);
-  return `<div class="journey-next-service"><b>Next train:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
+  const label=t.cancelled?'Cancelled service':t.depUnknown?'Service · no departure estimate':'Next train';
+  return `<div class="journey-next-service"><b>${label}:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
 }
 const isEffortFlag=f=>/^(Arrives first|Latest for|Least late|Fast walk$|Run$|Car needed$|Can't make it$)/.test(f.txt);
 function journeyAccessMarkup(j){

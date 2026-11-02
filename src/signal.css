@@ -442,7 +442,7 @@ html .connection-transfer {margin:3px 0;font-size:13px;line-height:1.45;color:va
 /* Approved journey hierarchy — 2 Nov. Reuse controls; preserve their handlers/state. */
 html .signal-modebar {display:flex;align-items:center;gap:6px;min-width:0}
 html .signal-modebar>.seg {display:flex;flex:1;min-width:0}
-html .signal-modebar>.seg button {flex:1;min-width:0;padding-inline:5px;overflow-wrap:anywhere}
+html .signal-modebar>.seg button {flex:1 1 auto;min-width:0;padding-inline:5px;overflow-wrap:anywhere}
 html .signal-utility {display:flex;flex-shrink:0}
 html .signal-utility>.iconbtn {display:grid;place-items:center;min-width:44px;min-height:44px;width:44px;height:44px;padding:8px;border:0;background:transparent;font-size:21px;color:var(--accent)}
 html .signal-toolbar {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:8px;align-items:center}

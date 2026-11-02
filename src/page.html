@@ -1114,7 +1114,8 @@ function arrangeJourneySummaries(root){
 }
 function nextServiceMarkup(t,from=STATIONS[t.from]||t.from){
   const d=C.departureStatus(t,PROFILE.disruption);
-  return `<div class="journey-next-service"><b>Next train:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
+  const label=t.cancelled?'Cancelled service':t.depUnknown?'Service · no departure estimate':'Next train';
+  return `<div class="journey-next-service"><b>${label}:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
 }
 const isEffortFlag=f=>/^(Arrives first|Latest for|Least late|Fast walk$|Run$|Car needed$|Can't make it$)/.test(f.txt);
 function journeyAccessMarkup(j){
