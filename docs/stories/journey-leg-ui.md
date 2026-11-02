@@ -31,6 +31,15 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
 - Keep existing walk/fast/run/car/cab thresholds, normal versus qualified alternatives and per-effort winners.
   Trip's selected walk/cycle/drive includes its fixed platform/locking/parking allowances. No new automatic
   Commute cycling grade or GPS inference is introduced. Show selected Trip access modes in the context control.
+- Trip recommendation and Follow eligibility use the same full selected-access deadline in all three questions:
+  a leave time exactly now is eligible; a time before now is not (including the former thirty-second grace).
+  The fixed platform/parking/locking allowance stays included. At 10:00, a journey requiring 09:55 set-off for a
+  future 10:05 train remains listed; it cannot be the best Arrive by 10:30 option. A reachable 10:05 set-off arriving
+  10:40 is recommended as least late. Cancelled, unknown and invalid endpoints stay listed without a pick or
+  green arrival-first/latest claim. Ranking and tie-breaking among eligible journeys remain unchanged.
+  Current Train evidence also governs active final ETA and individual arrival slots: retained Ride numbers
+  cannot conceal null/cancelled Train evidence. Confirmed current boarding can retain a known arrival when
+  departure alone is unknown; explicitly completed legs remain history.
 - Original mode, settings, refresh, direction, pace, diagnostics and simulator handlers survive compact layout.
   The visible product heading and redundant standalone route line disappear. Controls remain reachable in Trip.
   Keep each mode word intact at320px with natural button bases; enlarged text may wrap whole controls.
@@ -66,6 +75,12 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: explicit recovery preserves the completed train and original destination promise with a reason"
 
 - tests/journey-leg-ui.test.mjs: "approved journey UI: an expired unselected Trip Live pin restores its preserved planning question and matching result"
+
+- tests/core/trip-reachability-review.test.mjs: "Trip reachability review: Arrive by keeps a passed access journey listed and picks the reachable least-late option"
+- tests/core/trip-reachability-review.test.mjs: "Trip reachability review: all questions use the same exact access cutoff as Follow and preserve fixed platform time"
+- tests/core/trip-reachability-review.test.mjs: "Trip reachability review: stale summary flags cannot make cancelled, unknown or invalid endpoints recommendable"
+
+- tests/core/trip-reachability-review.test.mjs: "Trip reachability review: current Train evidence withdraws an active final ETA despite retained Ride timing"
 
 ## Limits
 Live Trip boards show the connections already loaded for its station-pair plan, within the existing six-board

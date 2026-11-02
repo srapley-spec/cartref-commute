@@ -296,12 +296,12 @@ function createTripUi(deps) {
         status={level:unqualified?'info':status.level,text:unqualified?'Not live':`${status.text} · Not live`};
       }
       const expectedLabel=!r.live.dep&&r.train&&!r.train.timetable&&!r.train.depUnknown?'Last known':'Expected departure';
-      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}${Number.isFinite(change.betweenMs)?`<br>${dur(change.betweenMs)} between services · ${change.transferMs!=null?`${dur(change.transferMs)} transfer${change.spare>=0?` + ${change.spare} min spare`:''}`:'transfer allowance not separately supplied'}`:''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):departure.text,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',to:r.to.name,destination:r.destination||r.train?.destination||'',arrival:!r.cancelled&&!r.train?.arrUnknown&&Number.isFinite(r.arr)?hhmm(r.arr):null,departureSource:r.live.dep?'Live':expectedLabel==='Last known'?'Last known':'Timetable',arrivalSource:r.live.arr?'Live':r.train&&!r.train.timetable?'Last known':'Timetable',arrivalLabel:r.live.arr?'Expected':r.train&&!r.train.timetable?'Last known':'Timetable'})}`;
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}${Number.isFinite(change.betweenMs)?`<br>${dur(change.betweenMs)} between services · ${change.transferMs!=null?`${dur(change.transferMs)} transfer${change.spare>=0?` + ${change.spare} min spare`:''}`:'transfer allowance not separately supplied'}`:''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):departure.text,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',to:r.to.name,destination:r.destination||r.train?.destination||'',arrival:C.tripRideTimingUsable(r,false)?hhmm(r.arr):null,departureSource:r.live.dep?'Live':expectedLabel==='Last known'?'Last known':'Timetable',arrivalSource:r.live.arr?'Live':r.train&&!r.train.timetable?'Last known':'Timetable',arrivalLabel:r.live.arr?'Expected':r.train&&!r.train.timetable?'Last known':'Timetable'})}`;
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
     const countdown=j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed';
-    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:!j.uncertain&&!j.missed,countdown});
+    return journeyTimesMarkup({leave:j.leave,arrive:arrival,dest:j.to?.name||j.toStation.name,available:C.tripJourneyFacts(j).totalDurationMs!=null,countdown});
   }
   function journeyRow(j, opts = {}) {
     const followed = st().follow && st().follow.id === j.id, changes = Math.max(0,mains(j).length-1);
@@ -346,7 +346,7 @@ function createTripUi(deps) {
   }
   function tripNextMarkup(j,first=0,label='Next'){
     const ride=j.rides.slice(first).find(r=>r.kind!=='walk');
-    if(ride?.cancelled)label='Selected service · cancelled';
+    if(ride?.cancelled||ride?.train?.cancelled)label='Selected service · cancelled';
     else if(ride?.train?.depUnknown)label='Selected service · departure estimate unavailable';
     return ride?`<div class="journey-next-service"><b>${label}:</b> <strong class="t">${hhmm(ride.schedDep)} ${esc(ride.operator||ride.label)}</strong> from ${esc(ride.from.name)}${ride.dep!==ride.schedDep?` · expected ${hhmm(ride.dep)}`:''}</div>`:'';
   }
@@ -354,7 +354,7 @@ function createTripUi(deps) {
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
     if(fu.phase==='before'||fu.phase==='access')return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null,countdown:j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'});
-    const left=fu.phase==='ride'?ride.arr:fu.phase==='change'?ride.dep:fu.phase==='final'?now():fu.arrival;
+    const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;
     const label=fu.phase==='ride'?'At '+ride.to.name:fu.phase==='change'?'Next departure':fu.phase==='arrived'?'Arrived':'Now · final leg';
     return journeyTimesMarkup({leave:left,arrive:fu.arrival,dest:destination,leftLabel:label,isLeave:false});
   }
@@ -362,9 +362,9 @@ function createTripUi(deps) {
     const f=fu.route,phase=C.followedTripPhase(f,now()),ride=f.journey.rides[phase.ride];
     if(fu.phase==='arrived')return '<p>Journey complete · arrival confirmed by you.</p>';
     if(fu.phase==='final')return `<div class="trip-confirmation"><p>Final leg · arrival has not been confirmed.</p><button type="button" class="ghost" data-trip-arrived>I’ve arrived</button></div>`;
-    const confirmed=f.activeRide!=null;
-    return `<div class="trip-confirmation"><p>${confirmed?'Confirmed by you: on':ride.cancelled?'Cancelled in the feed · confirm only if you are actually aboard:':'Expected stage from journey times: '+esc(fu.phase)+'. Next/current service:'} ${hhmm(ride.schedDep)} ${esc(ride.operator||ride.label)} · ${esc(ride.from.name)} → ${esc(ride.to.name)}</p>
-      <div class="controls">${confirmed?`<button type="button" class="ghost" data-trip-alighted>Got off at ${esc(ride.to.name)}</button>`:`<button type="button" class="ghost" data-trip-boarded="${phase.ride}">${ride.cancelled?'Actually on this service':'I’m on this service'}</button>`}</div>
+    const confirmed=f.activeRide!=null,cancelled=ride.cancelled||ride.train?.cancelled;
+    return `<div class="trip-confirmation"><p>${confirmed?'Confirmed by you: on':cancelled?'Cancelled in the feed · confirm only if you are actually aboard:':'Expected stage from journey times: '+esc(fu.phase)+'. Next/current service:'} ${hhmm(ride.schedDep)} ${esc(ride.operator||ride.label)} · ${esc(ride.from.name)} → ${esc(ride.to.name)}</p>
+      <div class="controls">${confirmed?`<button type="button" class="ghost" data-trip-alighted>Got off at ${esc(ride.to.name)}</button>`:`<button type="button" class="ghost" data-trip-boarded="${phase.ride}">${cancelled?'Actually on this service':'I’m on this service'}</button>`}</div>
       <details class="steps" data-key="trip-correction|${esc(f.id)}"><summary>Different service or stage?</summary><div class="controls">${f.journey.rides.map((r,index)=>r.kind==='walk'?'':`<button type="button" class="ghost" data-trip-boarded="${index}">On the ${hhmm(r.schedDep)} ${esc(r.operator||r.label)} from ${esc(r.from.name)}</button>`).join('')}<button type="button" class="ghost" data-trip-view="plan">Choose another journey</button></div></details></div>`;
   }
   function trackingMarkup(fu){
@@ -404,7 +404,7 @@ function createTripUi(deps) {
           ${fu.alternative?`<section class="follow-alternative"><b>A way on · not selected</b>${journeyRow(fu.alternative,{noFollow:true})}<button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button><button type="button" class="ghost" data-trip-dismiss="${esc(fu.alternative.id)}">Keep my route</button></section>`:''}
           ${fu.arrival==null?`<button type="button" class="ghost" data-trip-replan>Plan from ${esc(C.tripRecoveryStart(fu.route,now()).station.name)}</button>`:''}
           <button type="button" class="ghost" data-trip-stop>${fu.phase==='arrived'?'Done':'Stop following'}</button></div>`
-        : error?`<div class="trip-card empty" role="alert">${esc(error)}</div>`:best?'':r.close?'':'<div class="trip-card empty">No journeys found.</div>',
+        : error?`<div class="trip-card empty" role="alert">${esc(error)}</div>`:best?'':r.close?'':`<div class="trip-card empty">${r.journeys.length?'No journey we can recommend from here. All services are listed below.':'No journeys found.'}</div>`,
 
       options: () => r.picks.length ? `<div class="hero trip-recommendations"><div class="lbl trip-label">${label} · best${r.picks[1] ? ", and the next best" : ""}</div>${r.picks.map((j,i) => journeyRow(j,{next:i>0})).join("")}</div>` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",

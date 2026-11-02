@@ -29,6 +29,14 @@ const interval = (start: unknown, end: unknown): number | null =>
 const unknownTrain = (train: Train | null) => !!train &&
   (train.cancelled || train.depUnknown || train.arrUnknown === true || interval(train.dep, train.arr) === null);
 
+/** A confirmed current ride can have an independently known arrival even when
+ * its departure estimate is unavailable. Cancellation always withdraws both. */
+export function tripRideTimingUsable(ride: Journey['rides'][number], departureRequired = true): boolean {
+  if(ride.cancelled||ride.train?.cancelled||!finite(ride.arr))return false;
+  if(ride.train&&(ride.train.arrUnknown||!finite(ride.train.arr)))return false;
+  return !departureRequired||interval(ride.dep,ride.arr)!==null&&!unknownTrain(ride.train??null);
+}
+
 /** Live duration is now to the final destination, not the historical journey start.
  * Complete instants retain midnight/date boundaries. An expired estimate is unknown,
  * rather than inventing zero remaining or rolling it forward by a day. */
@@ -65,8 +73,7 @@ export function connectionJourneyFacts(option: TimingOption | null, context: Con
  * Missing access timing can leave rail time known without inventing a total.
  */
 export function tripJourneyFacts(journey: Pick<Journey, 'rides' | 'leave' | 'arrive' | 'uncertain'> & { missed?: boolean }): JourneyFacts {
-  const unavailable = (ride: Journey['rides'][number]) =>
-    ride.cancelled || unknownTrain(ride.train ?? null) || interval(ride.dep, ride.arr) === null;
+  const unavailable = (ride: Journey['rides'][number]) => !tripRideTimingUsable(ride);
   const rail = journey.rides.filter(ride => ride.kind === 'rail');
   return {
     trainDurationMs: !rail.length || rail.some(unavailable) ? null : rail.reduce((total, ride) => total + (ride.arr - ride.dep), 0),

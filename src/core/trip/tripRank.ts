@@ -4,12 +4,14 @@ import type { Option } from "../types";
 import type { Journey } from "./journeyCore";
 import type { TripConfig } from "./config";
 import { hhmm } from '../time';
+import { tripRideTimingUsable } from '../journeyFacts';
 
 export type TripQuestion = { kind: "now" | "at" | "by"; t: number };
 const asRankable = (js: Journey[]) => js as unknown as Option[];   // topPicks reads only leave/arrive/uncertain/missed/late
 
 /** Reachability uses the selected access mode and its full access/boarding allowance. */
-export const tripCanFollow = (j: Journey, now: number) => !j.uncertain&&!j.missed&&Number.isFinite(j.leave)&&j.leave>=now;
+export const tripCanFollow = (j: Journey, now: number) => !j.uncertain&&!j.missed&&Number.isFinite(j.leave)&&j.leave>=now&&Number.isFinite(j.arrive)&&j.arrive>=j.leave
+  &&j.rides.every(r=>tripRideTimingUsable(r));
 
 /** Flags that depend on the question; the list in leaving order; the picks marked `recommended` 1 and 2. */
 export function rankTrips(js: Journey[], q: TripQuestion, now: number, cfg: Pick<TripConfig, "topWindowMin">): Journey[] {
@@ -20,7 +22,7 @@ export function rankTrips(js: Journey[], q: TripQuestion, now: number, cfg: Pick
     if (q.kind === "by" && j.arrive > q.t) { j.late = true; j.flags.unshift({ lvl: "bad", txt: `Late by ${Math.max(1, Math.floor((j.arrive - q.t) / 60e3))} min` }); }
     if (q.kind === "at" && j.leave < q.t) j.flags.unshift({ lvl: "warn", txt: `Leave ${Math.max(1, Math.round((q.t - j.leave) / 60e3))} min before ${new Date(q.t).toTimeString().slice(0, 5)}` });
   }
-  const usable = js.filter(j => j.leave >= now - 30e3 || q.kind === "by");
+  const usable = js.filter(j => tripCanFollow(j,now));
   const picks = topPicks(asRankable(usable), q.kind === "by" ? "by" : "now", cfg.topWindowMin) as unknown as Journey[];
   picks.forEach((j, i) => { j.recommended = i + 1; });
   const first=usable.filter(j=>!j.uncertain&&!j.missed).reduce<Journey|null>((a,j)=>!a||j.arrive<a.arrive||j.arrive===a.arrive&&j.leave>a.leave?j:a,null);

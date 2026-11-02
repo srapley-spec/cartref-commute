@@ -93,6 +93,9 @@ Minutes are whole minutes, rounded down.
 - Station times: walk / cycle don't depend on the time; a drive to the station is timed for the best journey's
   set-off, a drive from it for the best journey's arrival; re-timed when followed.
 - Drive to a station with no car park: "No station car park"; unknown: "Car park not known". Never hidden.
+- Only Trips whose full selected-access deadline has not passed and whose endpoints are usable can be picked,
+  including Arrive by. The unreachable services stay in the full list; there is no thirty-second grace after
+  the required set-off time. Use the same eligibility for Follow; fixed access allowances remain included.
 - The pick: the commute's top-card rule (earliest arrival for Leave now / Leave around; latest leave arriving in time
   for Arrive by; next best within 20 min). "Other stations": the best journey from / to each other station with its
   consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
