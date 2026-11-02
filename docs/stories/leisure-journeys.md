@@ -98,11 +98,10 @@ Minutes are whole minutes, rounded down.
   consequence ("From Ashford International: arrive 12 min sooner, leave 9 min earlier"); at most 4.
 
 ### The trains
-- **Trip only (Sam, 1 Nov, latest clarification):** preserve Signal's current UI and every non-Trip behaviour for
-  real-world testing; changes outside Trip require express direction. Trip uses the actual Signal layout, colours,
-  hierarchy and components. Similar CSS values or shared tokens do not establish visual fidelity. The proposed
-  commute redesign and separate Trip card direction are rejected. Review Trip against unchanged Signal, using
-  matched journey data where possible; sharing renderers must not change non-Trip output or behaviour.
+- **Approved shared UI (Sam, 2 Nov):** the reviewed journey/leg design now applies across Commute, Leisure and
+  Trip, superseding the 1 Nov Trip-only freeze. [Current contract](journey-leg-ui.md),
+  [design system](../design-system.md#approved-journey-and-leg-ui--2-november-2026) and the checked-in approved
+  review define this release. Trip uses the real shared controls, hierarchy, connection panels and actions.
   Sam selected the current commute screen as that reference. Trip recommendations call the same Signal card-frame
   renderer; use the existing hierarchy, surfaces, time sizes, route/status badges and action row. A multi-connection
   Trip repeats the existing connection component. Trip context displays its chosen places and never leaves Trip
@@ -121,7 +120,8 @@ Minutes are whole minutes, rounded down.
   are complete and equally sized; list rows use the shared compact sizes. Address/access inputs remain specific
   to Trip. Before boarding Follow uses the same headline, facts and card; once aboard the next action leads.
   Both duration facts remain exposed through access, ride, change and final-leg phases, as in Commute Follow;
-  the total uses the canonical journey start and current expected arrival, never time remaining.
+  active/Live uses Journey remaining from now to the usable expected final arrival, including waiting and final
+  access. Planning keeps the canonical leave-to-arrival total. The pill sits directly beneath the journey arrow.
   Each connection and its warnings stays attached to the right service. The train caption sums only canonical
   rail ride durations (including across midnight), excluding access, transfers and non-rail rides; Total journey
   uses canonical leave → final arrival. Missing/cancelled rail times withdraw the rail sum and total; unknown
@@ -130,10 +130,16 @@ Minutes are whole minutes, rounded down.
 - **Connection panels (Sam, 1 Nov):** Trip options use the approved journey + train panel hierarchy: exposed
   Leave by / arrival and leave countdown, total journey duration, then a panel for each existing train/Tube/bus
   ride in itinerary order. Each panel retains its own scheduled/expected departure, boarding station,
-  destination, operator/platform and source-qualified status; existing change allowances/warnings remain.
+  alighting-station expected arrival in three fixed columns, plus advertised service destination, operator/platform
+  and independently source-qualified endpoint status. Existing change allowances/warnings remain; show the gap
+  between services, supplied transfer duration and spare distinctly, without inventing a missing allowance.
   Trip Follow retains the remaining connection panels using the engine's current ride index, keeps arrival/next
   action first once aboard, and stops presenting completed rides as upcoming. The renderer repeats the component,
-  without calculating another itinerary or inventing a live status.
+  without calculating another itinerary or inventing a live status. Time alone suggests a stage; only an explicit
+  boarding/arrival answer says it is confirmed. Current-ride correction lasts until alighting or correction.
+  Manual Plan keeps the active route/alerts and a return action, even during loading/failure. Recovery starts at
+  the current or next alighting station, respects the incoming arrival and fixed boarding allowance, requires an
+  explicit selection, and retains earlier legs, original arrival and the reason for the new route.
 - Journeys can have changes, including a cross-London Tube or walk; each change shows where and how long ("Change at
   Clapham Junction · 7 min"; "Waterloo → Bank → Liverpool Street by Tube · 18 min").
 - Rail planner: National Rail's when its address and key are in Settings; otherwise TfL, station to station by the
@@ -215,7 +221,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-controls-review.test.mjs: "Trip controls review: a late place reply cannot replace commute context after leaving Trip"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a saved active Trip mounts in the shared host before its first refresh"
 - tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
-- tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains canonical duration facts through access, rides, changes and the final leg"
+- tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains rail duration and updates journey remaining through every phase"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"

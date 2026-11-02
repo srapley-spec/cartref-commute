@@ -33,7 +33,7 @@ for(const signal of [undefined,false,true])test(`independent Panda retirement: s
  assert.equal(a.c.readSimulationActual().railProgress.enabled,true,'an obsolete design value cannot suppress progress verification');
  assert.equal(a.c.readSimulationActual().railProgress.diagram,true,'the sole design always verifies its real diagram');
  assert.match(a.text('#hero .journey-total-time'),/^Total journey /,'the new whole-journey label is independent of obsolete design settings');
- assert.match(a.text('#followPanel .journey-total-time'),/^Total journey /,'the followed journey uses the same explicit whole-journey meaning');
+ assert.match(a.text('#followPanel .journey-total-time'),/^Journey remaining /,'the followed journey uses the same explicit whole-journey meaning');
  assert.equal(a.c.S().followRoute,true);assert.equal(a.c.S().alongLine,true);
  assert.equal(a.c.state.saved.followRoute.id,route.id);assert.equal(a.c.state.saved.followRoute.plannedArrival,route.plannedArrival);
  assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),route.option.legs);
@@ -72,10 +72,10 @@ test('independent Panda retirement: original controls retain nodes, values and h
   assert.equal(a.d.querySelector('#signalAdjustments').open,true);
  }
  a.d.querySelector('[data-pace="fast"]').click();assert.equal(a.c.state.saved.pace,'fast');
- assert.match(a.text('#signalContextSummary'),/Fast pace/);
+ assert.equal(a.d.querySelector('[data-pace="fast"]').getAttribute('aria-pressed'),'true');
  a.d.querySelector('[data-dir="home"]').click();assert.equal(a.c.direction(),'home');assert.match(a.text('#signalContextSummary'),/To home/);
  a.d.querySelector('[data-mode="leisure"]').click();assert.equal(a.c.state.saved.mode,'leisure');
- assert.match(a.text('#signalContextSummary'),/Leisure/);assert.equal(a.d.querySelector('#dirOutBtn').textContent,'To London');
+ assert.match(a.text('#signalContextSummary'),/To home/);assert.equal(a.d.querySelector('#dirOutBtn').textContent,'To London');
  a.d.querySelector('[data-mode="commute"]').click();a.d.querySelector('[data-dir="office"]').click();
  assert.equal(a.c.direction(),'office');assert.equal(a.c.state.saved.pace,'fast');
  assert.ok(exposed(a,a.d.querySelector('[data-pace="fast"]')));
@@ -99,7 +99,8 @@ for(const platform of ['C',''])test(`independent Panda retirement: a full two-st
  const boarding=detail.querySelector('.altstop');
  assert.ok(exposed(a,boarding),'the two boarding points are exposed on the complete card');
  assert.equal(norm(boarding),`Board at Farringdon 17:55 platform 5 or St Pancras 18:00${platform?' platform C':''}`);
- assert.doesNotMatch(norm(detail.querySelector('.journey-service')),/platform/,'a shared service label cannot assign one station platform to both');
+ assert.equal(detail.querySelector('[data-connection-time="scheduled"]').textContent,'17:55','the train panel identifies its own boarding point');
+ assert.match(detail.querySelector('.connection-heading').textContent,/Farringdon/);
  assert.equal(detail.querySelectorAll('.altstop').length,1,'boarding information is not duplicated in a summary');
  assert.ok(exposed(a,detail.querySelector('[data-follow]:not([disabled])')));
  detail.querySelector('[data-follow]').click();
@@ -108,8 +109,8 @@ for(const platform of ['C',''])test(`independent Panda retirement: a full two-st
  assert.equal(a.c.state.saved.followRoute.option.train.std,'17:55');
  for(const board of Object.values(a.c.state.boards))for(const train of board.services)if(train.serviceId==='second')train.arrUnknown=true;
  a.c.render();
- assert.match(a.text('#followPanel .journey-total-time'),/^Total journey time unavailable$/);
- assert.equal(a.d.querySelector('#followPanel [data-fact="total-duration"]').hasAttribute('data-ms'),false,'the more explicit label cannot turn an unknown total into a retained number');
+ assert.match(a.text('#followPanel .journey-total-time'),/^Journey remaining unavailable$/);
+ assert.equal(a.d.querySelector('#followPanel [data-fact="remaining-duration"]').hasAttribute('data-ms'),false,'the more explicit label cannot turn an unknown total into a retained number');
  assert.deepEqual(a.errors,[]);a.close();
 });
 

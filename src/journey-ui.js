@@ -27,6 +27,7 @@ function applySignalLayout(){
   const root=$('#hero').closest('.wrap');
   const make=(tag,id,html)=>{const node=document.createElement(tag);node.id=id;node.innerHTML=html;root.append(node);return node;};
   signalParts={
+    modebar:make('div','signalModebar',''),
     toolbar:make('div','signalToolbar',''),
     adjustments:make('details','signalAdjustments','<summary id="signalContextSummary">Journey options</summary><div class="signal-adjustment-body"></div>'),
     planning:make('div','signalPlanningControls',''),
@@ -39,9 +40,17 @@ function applySignalLayout(){
     freshness:make('span','signalFreshness','')
   };
   const p=signalParts;
-  p.toolbar.className='signal-toolbar';
+  p.toolbar.className='signal-toolbar';p.modebar.className='signal-modebar';
   for(const key of ['adjustments','notices','network','other'])p[key].dataset.key='signal-'+key;
-  p.adjustments.querySelector('div').append(document.querySelector('[data-mode]').closest('.controls'));
+  const originalControls=document.querySelector('[data-mode]').closest('.controls');
+  const modeButtons=document.querySelector('[data-mode]').closest('.seg');
+  p.adjustments.querySelector('div').append(originalControls,$('#journeySimulatorBtn'));
+  p.modebar.append(modeButtons);
+  const utility=document.createElement('div');utility.className='signal-utility';
+  const settings=$('#settingsBtn'),refresh=$('#refreshBtn');
+  settings.textContent='⚙';settings.setAttribute('aria-label','Settings');settings.title='Settings';
+  refresh.textContent='↻';refresh.setAttribute('aria-label','Refresh');refresh.title='Refresh';
+  utility.append(settings,refresh);p.modebar.append(utility);
   p.toolbar.append($('#journeyViewControl'),p.adjustments);
   p.planning.append(document.querySelector('[data-view]').closest('.controls'),$('#byForm'));
   p.notices.append($('#banners'));
@@ -49,8 +58,13 @@ function applySignalLayout(){
   const statusTitle=$('#status').previousElementSibling;
   p.network.append(statusTitle,$('#status'),$('#modelNote'),root.querySelector('footer > span'));
   root.querySelector('footer').prepend(p.freshness);
-  const header=root.querySelector('header');header.querySelector('h1').textContent='Cartref';
-  for(const node of [header,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  const header=root.querySelector('header');header.hidden=true;
+  for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+}
+function setJourneyContext(label,modes='',detail=''){
+  const summary=$('#signalContextSummary');
+  summary.innerHTML=`<span class="signal-context-copy"><span>${esc(label)}</span>${modes?`<small>${esc(modes)}</small>`:''}</span>`;
+  summary.title=detail||label;summary.setAttribute('aria-label','Journey options: '+label+(modes?' · '+modes:''));
 }
 function signalReadingVisible(node){
   for(let p=node;p;p=p.parentElement)if(p.hidden||(p.tagName==='DETAILS'&&!p.open))return false;
@@ -59,7 +73,9 @@ function signalReadingVisible(node){
 function renderSignalCompact(){
   if(!signalParts)return;
   const p=signalParts;
-  $('#signalContextSummary').textContent=`${state.saved.mode==='leisure'?'Leisure':direction()==='home'?'To home':'To office'} · ${state.saved.mode==='leisure'?'Journey options':state.saved.pace==='fast'?'Fast pace':'Average pace'}`;
+  const context=state.saved.mode==='leisure'?(direction()==='home'?'To home':outTo(direction(),'leisure')?.name||'To London'):direction()==='home'?'To home':'To office';
+  setJourneyContext(context,'',$('#routeLabel').textContent);
+  arrangeJourneySummaries($('#hero'));arrangeJourneySummaries($('#list'));arrangeJourneySummaries($('#followPanel'));
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
   p.notices.hidden=!$('#banners').children.length;
   $('#signalNoticeCount').textContent=$('#banners').children.length?`· ${$('#banners').children.length}`:'';
@@ -159,6 +175,7 @@ function rememberPlanningInput(){
   state.saved.planInputs={...state.saved.planInputs,[state.saved.view]:{date:$("#byDate").value,time:$("#byTime").value}};
 }
 function pinJourneyView(mode){
+  if(tripActive()){tripUiFor().pinView(mode);return;}
   const now=Date.now(), current=journeySituation(now,situation(now));
   state.saved.viewOverride=mode==='auto'?null:C.createViewOverride(mode,now,current.key);
   save();
@@ -301,22 +318,24 @@ function renderFollowPanel(){
   // other views. A saved winning label is not evidence that a route still wins.
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
-  const panelLayout=state.presentation?.mode!=='live'&&r.phase==='before-train';
+  const panelLayout=r.phase==='before-train';
   const access=panelLayout&&!unknown&&!observation.activeConnection?comparison:null;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home'):`${r.phase==='before-train'&&!unknown&&!atStation(true)&&!observation.activeConnection?leaveByMarkup(comparison):''}<div class="big">${unknown?'Arrival uncertain':`Arriving <span class="t">${hhmm(r.expectedArrival)}</span>`}</div>`}
+    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home'):journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
+    ${panelLayout?nextServiceMarkup(t):''}
+    ${comparison?journeyAccessMarkup(comparison):''}
     ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
-    <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
-    ${panelLayout?trainConnectionMarkup(t):''}
-    <div class="follow-status ${result.level}">${esc(result.text)}</div>
+    <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
+    ${r.phase==='after-train'?'':trainConnectionMarkup(t)}
+    <div class="follow-status ${result.level}">${unknown?'Arrival uncertain · ':''}${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
-    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${state.presentation?.mode!=='live'?`${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}`:`: ${esc(C.trainName(alt.train))} via ${esc(HUB_NAME[alt.hub]||alt.hub)} · arriving ${hhmm(alt.arrive)}${delta==null?'':` (${Math.abs(delta)} min ${delta<=0?'sooner':'later'})`}<div class="meta">${journeyFactsMarkup(alt)}</div>`}${pills(alt.flags.filter(f=>state.presentation?.mode==='live'||!f.status),true)}
+    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?'<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>':''}

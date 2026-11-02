@@ -59,9 +59,10 @@ not a claim that every criterion has already passed release verification. See [S
   approach show the next rail panel without restarting the origin walk. Once aboard, the headline remains
   **arriving HH:MM** for the followed route, and the next step ("Walk to Aldgate: leave by 18:27",
   "Circle from Aldgate 18:34, platform 2", "Change at King's Cross: 10 min", "18:54 Great Northern, platform 10").
-- Train duration and whole-journey duration use the same shared facts as planning and Live. The total starts at
-  the chosen option's canonical leave time, never the Follow-tap time. A current expected arrival updates the
-  duration without rewriting that start; uncertain arrival stays unknown. A followed route keeps its identity
+- Planning total starts at the chosen option's canonical leave time, never the Follow-tap time. Since the approved
+  2 Nov review, Follow's exposed pill is **Journey remaining** from now to the current usable final destination ETA,
+  including onward legs; uncertain arrival stays unavailable, with no retained numeric pill. The selected start
+  and original arrival are kept as history. See [journey/leg UI](journey-leg-ui.md). A followed route keeps its identity
   and is not relabelled as a different fastest route merely because the alternatives have re-ranked.
 - **Ahead / on track / behind** for the step you're on, in whole minutes, coloured as elsewhere (green on track or
   ahead, amber 1–2 min behind or only at a fast walk, red if you'd miss the next connection):

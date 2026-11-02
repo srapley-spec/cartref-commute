@@ -50,9 +50,9 @@ Tests:
 - tests/journey-connection-panels.test.mjs: "connection panels: Auto and Plan keep journey and train clocks on both recommendations and every row in all three questions and directions"
 - tests/journey-connection-panels.test.mjs: "connection panels: scheduled and expected clocks retain engine status, early running, timetable confidence and unknown platforms"
 - tests/journey-connection-panels.test.mjs: "connection panels: cancelled and no-estimate trains remain visible without usable journey clocks"
-- tests/journey-connection-panels.test.mjs: "connection panels: following retains the chosen service and explicit Live retains its timetable layout"
+- tests/journey-connection-panels.test.mjs: "connection panels: following retains the chosen service and all three leg clocks in explicit Live"
 - tests/journey-connection-panels.test.mjs: "connection panels: Trip exposes every train in the recorded four-ride journey without opening steps"
-- tests/journey-connection-panels.test.mjs: "connection panels: Auto on a homeward Tube exposes the next rail connections and Live preserves its existing journey view"
+- tests/journey-connection-panels.test.mjs: "connection panels: Auto and Live on a homeward Tube expose the same next rail connections and final arrival"
 
 Production geometry and state checks: [browser-connection-panels.py](../../tests/browser-connection-panels.py),
 including both themes, 320/393 px, 200% type, delayed/unknown/timetable panels, refresh/disclosures, Follow,
@@ -275,6 +275,6 @@ visible train-clock prominence, unusable departures, explicit Live geometry, Tri
 - tests/connection-panel-review.test.mjs: "connection panel review: first and next-best connection clocks stay visible and prominent"
 - tests/connection-panel-review.test.mjs: "connection panel review: unusable future services with passed access deadlines have no departure promise, while a known missed train keeps its countdown"
 - tests/connection-panel-review.test.mjs: "connection panel review: cancellation while following retracts the current access promise without replacing the selected service"
-- tests/connection-panel-review.test.mjs: "connection panel review: Live keeps its original alternative layout while Auto exposes the journey panel"
+- tests/connection-panel-review.test.mjs: "connection panel review: recovery alternatives keep complete journey and leg panels in Auto and Live"
 - tests/connection-panel-review.test.mjs: "connection panel review: a delayed second Trip train owns its expected clock, station and warning"
 - tests/connection-panel-review.test.mjs: "connection panel review: a failed Trip board refresh qualifies retained connection facts instead of claiming current On time"

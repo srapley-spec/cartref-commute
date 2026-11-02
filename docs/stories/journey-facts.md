@@ -16,8 +16,11 @@ parity rule. The registry and release-policy enforcement are gone; the actual jo
   independently configurable; an old design preference must not enable it or change the selected trip.
 - Duration is derived once from the existing canonical itinerary, using `src/core/journeyFacts.ts`: train duration
   uses the relevant train's expected departure/arrival, and total duration uses the option's own leave/arrival.
-  A followed route uses its canonical journey start and current expected arrival, not the time the Follow button
-  was tapped. The same inputs produce the same values in all applicable designs and views.
+  Planning uses the canonical start, never the Follow-tap time. Since Sam's approved 2 Nov review, active/Live
+  shows **Journey remaining**, from the current instant to the usable final destination arrival, including waits,
+  changes and final access. It ticks without a feed refresh. The original total remains a planning fact.
+  The pill sits immediately beneath the journey arrow, before countdown and next service.
+  [Current journey/leg contract](journey-leg-ui.md) supersedes earlier same-total-in-Live assertions.
 - A specific Tube connection uses `connectionJourneyFacts`: its actual board-projected `leaveBy` to its timed
   door-to-door arrival. A rail option rebuilt after the Tube departed may have a later generic access start;
   that start is not reused for this connection. Conditional early departures without an established `leaveBy`

@@ -10,7 +10,7 @@ const tomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); const
 const pairsFetched = (calls) => [...new Set(calls.map(parseJourneyUrl).filter(Boolean).map((q) => `${q.from}-${q.to}`))].sort();
 // Service and duration have independent, stable homes in Signal. Check that the
 // intended service owns its expected facts instead of requiring one inline sentence.
-const serviceText = node => node?.querySelector('.journey-service')?.textContent || '';
+const serviceText = node => [node?.querySelector('[data-connection-time="scheduled"]')?.textContent,node?.querySelector('.connection-operator')?.textContent].filter(Boolean).join(' ');
 const rowFor = (app, service) => [...app.d.querySelectorAll('#list .row')].find(node=>service.test(serviceText(node)));
 function assertTrainFacts(node, service, minutes, total){
   assert.ok(node,'the expected journey is present');
@@ -379,7 +379,7 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   // Default 6 min to the platform: the Circle in 2 min is too soon, so the Met in 8 min is the one.
   assert.match(hero, /Get on the Met to Aldgate eastbound, due \d\d:\d\d/);
   const due = feedAt + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
-  assert.match(hero, new RegExp(`${hm(office)} ?at the office`));
+  assert.match(hero, new RegExp(`At office${hm(office)}`));
   const rows = app.rows();
   assert.equal(rows.length, 4, "Met in 8 and Circle in 12, plus the Circle in 2 and the H&C in 3 if you're near the platform; not westbound");
   assert.match(rows[0], /If you're near the platform/);
@@ -396,10 +396,10 @@ test("At King's Cross: a minute boundary after fetching cannot change the expect
   app.setNow(feedAt + 1000); // Resume with a newer fix, after the assertion's old rounding boundary.
   await moveTo(app, AT_KINGS_CROSS);
   assert.match(app.text("#hero"), /Get on the Met to Aldgate/);
-  assert.match(app.text("#hero"), /10:26 ?at the office/);
+  assert.match(app.text("#hero"), /At office10:26/);
   app.setNow(feedAt + 3000); app.c.render();
-  assert.match(app.text("#hero"), /10:26 ?at the office/, "the arrival belongs to the received prediction, not the later clock");
-  assert.doesNotMatch(app.text("#hero"), /10:27 ?at the office/);
+  assert.match(app.text("#hero"), /At office10:26/, "the arrival belongs to the received prediction, not the later clock");
+  assert.doesNotMatch(app.text("#hero"), /At office10:27/);
   assert.deepEqual(app.errors, []); app.close();
 });
 
@@ -449,7 +449,7 @@ test("At King's Cross: 'Which one are you getting?' reads like the platform boar
 test("At King's Cross without live tube times: says so and estimates", async () => {
   const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/Arrivals/.test(u) ? json({}, 500) : undefined) });
   await moveTo(app, AT_KINGS_CROSS);
-  assert.match(app.text("#hero"), /at the office · estimate.*Get on the next Circle or Met eastbound to Aldgate.*Live tube times unavailable/);
+  assert.match(app.text("#hero"), /At office · estimate.*Get on the next Circle or Met eastbound to Aldgate.*Live tube times unavailable/);
   app.close();
 });
 
@@ -461,9 +461,10 @@ test("Evening at King's Cross: trains home planned from the station, no walk fro
   app.d.querySelector('[data-journey-view="live"]').click();
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · departures · \d\d:\d\d/);
-  assert.match(hero, /^You're at King's Cross · departures · .*?Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/, "a departure board: the train, Expected (TfL timetable: not live), arrival");
+  assert.match(app.text('#hero .journey-connection'),/Timetable departure\d\d:\d\d Expected departureNot live.*At Letchworth/,'the three clocks identify the rail alighting station');
+  assert.match(app.text('#hero .journey-heading'),/At home\d\d:\d\d/);
   assert.match(hero, /walk to the platform by \d\d:\d\d|go to the platform now/);
-  assert.match(hero, /train departs in \d+m/); assert.doesNotMatch(hero, /leave in \d/, "countdown is to the departure");
+  assert.match(hero, /train departs in \d+m/); assert.match(hero,/Leave by/,'the full top recommendation also retains the access deadline');
   assert.ok(!app.rows().some((r) => /leave in \d/.test(r)), app.rows().join("\n"));
   assert.ok(app.rows().filter((r) => /^(Leave|Train)/.test(r)).every((r) => /^Train/.test(r)), app.rows().join("\n"));
   assert.match(hero, /You're at King's Cross: go to the King's Cross platform/);
@@ -524,11 +525,11 @@ test("On the tube: works out which one from when you left King's Cross and follo
     assert.match(hero, /Probably the \d\d:\d\d Met/);
     assert.equal(app.d.querySelector("#hero .slack").className, "slack met", "the ride lozenge is the line's colour too");
     const office = t0 + 19 * 60e3 + (90 + 420) * 1000;
-    assert.match(hero, new RegExp(`${hm(office)} ?at the office`), "uses the live Aldgate time for that train");
+    assert.match(hero, new RegExp(`At office${hm(office)}`), "uses the live Aldgate time for that train");
     assert.match(hero, /live arrival time for this train/);
     platformName = "";
     await app.c.refresh({ force: true });
-    assert.match(app.text("#hero"), /at the office · estimate/, "without the destination platform direction, use the modelled ride");
+    assert.match(app.text("#hero"), /At office · estimate/, "without the destination platform direction, use the modelled ride");
     assert.doesNotMatch(app.text("#hero"), /live arrival time for this train/);
   } finally { app.w.Date.now = realNow; }
   app.close();
@@ -540,7 +541,7 @@ test("Walking from Aldgate to the office: plans from where you are, never from C
   await moveTo(app, { coords: { latitude: 51.5141, longitude: -0.0745, accuracy: 20 } });   // just east of Aldgate station
   const hero = app.text("#hero");
   assert.match(hero, /Walking to the office · \d\d:\d\d · from your location/);
-  assert.match(hero, /at the office · about \d+ min walk/);
+  assert.match(hero, /Now · walking.*At office.*Journey remaining \d+ min/);
   assert.doesNotMatch(hero, /Cartref/);
   await moveTo(app, { coords: { latitude: 51.5139, longitude: -0.0710, accuracy: 10 } });
   assert.match(app.text("#hero"), /you've arrived/);
@@ -756,12 +757,12 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
   await moveTo(plain, AT_KINGS_CROSS);
   assert.ok(plain.d.querySelector('#hero .journey-connection'),'Auto retains the journey and connection panel');
   plain.d.querySelector('[data-journey-view="live"]').click();
-  const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector(".leave"));
+  const rows = [...plain.d.querySelectorAll("#list .row")].filter((r) => r.querySelector("[data-connection-time=scheduled]"));
   assert.ok(rows.length > 0 && rows.every((r) => r.classList.contains("board")), "at the station: every train row is a board row");
-  assert.match(plain.text("#hero"), /Train ?\d\d:\d\d Expected ?Not live At home ?\d\d:\d\d/);
+  assert.match(plain.text('#hero .journey-connection'),/Timetable departure\d\d:\d\d Expected departureNot live.*At Letchworth/);
   assert.doesNotMatch(plain.text("#hero") + plain.text("#list"), /On time/, "timetable data is never claimed on time");
   const word = plain.d.querySelector("#hero .exp");
-  assert.equal(word.className, "optbig word exp info");
+  assert.ok(word.classList.contains("word")&&word.classList.contains("info"));
   // The page's stylesheet colours the Expected column by band, on the card and in the list.
   const css = [...plain.d.querySelectorAll("style")].map((x) => x.textContent).join("\n");
   for (const l of ["ok", "warn", "bad"]) {
@@ -778,12 +779,12 @@ test("Departure board on TfL timetable data: Expected says 'Not live', never 'On
     app.setNow(now + 1000);
     await moveTo(app, AT_KINGS_CROSS);
     app.d.querySelector('[data-journey-view="live"]').click();
-    const hero = app.text("#hero"), m = hero.match(/Train ?(\d\d:\d\d) Expected ?(\d\d:\d\d) At home/);
+    const hero = app.text("#hero"), m = app.text("#hero .journey-connection").match(/Timetable departure(\d\d:\d\d) Expected departure(\d\d:\d\d)/);
     assert.ok(m, `TfL ${late} min late: the expected time, not 'Not live' — ${hero.slice(0, 200)}`);
     const [h, mm] = m[1].split(":").map(Number), exp = new Date(2026, 10, 3, h, mm + late);
     assert.equal(m[2], hm(exp.getTime()), "timetabled plus TfL's delay");
-    assert.equal(app.d.querySelector("#hero .exp").className, `t optbig exp ${level}`, `${late} min: ${level}`);
-    assert.match(app.rows()[0], new RegExp(`^Train ?\\d\\d:\\d\\d ?Expected ?\\d\\d:\\d\\d`), "list too");
+    assert.ok(app.d.querySelector("#hero .exp").classList.contains(level), `${late} min: ${level}`);
+    assert.match(app.rows()[0], new RegExp(`Timetable departure\\d\\d:\\d\\d Expected departure\\d\\d:\\d\\d`), "list too");
     app.close();
   }
 });

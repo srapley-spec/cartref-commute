@@ -1,12 +1,12 @@
 {
  "load": {
   "dirNote": "Location: Walking to the office · phone: in London (±20 m)",
-  "context": "To office · Average pace",
+  "context": "To office",
   "lineStatus": "",
   "statusSummary": "Good service on your lines",
   "significantDisruptions": "",
   "banners": [],
-  "hero": "Walking to the office · 08:20 · from your location 08:23at the office · about 4 min walk 243 m to 20 Mansfield Street in a straight line.",
+  "hero": "Walking to the office · 08:20 · from your location Now · walking08:20 → At office08:23 Journey remaining 4 min 243 m to 20 Mansfield Street in a straight line.",
   "rows": [],
   "diag": "Letchworth → King's Cross, live board: 8 trains: 08:30, 08:38, 09:00, 09:08, 09:30, 09:38, 10:00, 10:08.Letchworth → Farringdon, live board: 4 trains: 08:50, 09:20, 09:50, 10:20.Letchworth → St Pancras, live board: 4 trains: 08:50, 09:20, 09:50, 10:20."
  },

@@ -1,5 +1,71 @@
 # Cartref — Signal design system
 
+## Approved journey and leg UI — 2 November 2026
+
+Sam approved the rendered review, its subsequent refinements, and implementation/release across Commute,
+Leisure and Trip on 2 November. This is the current contract. It supersedes the earlier Trip-only/frozen-Signal
+boundary, Auto/Plan-only connection panel exception, destination-as-train-arrival column, and original-start
+total duration in Live wherever those older sections conflict. Further unrelated UI changes still require
+explicit agreement. [Approved visual reference](design/approved-journey-review.html) contains illustrative
+scenarios, not production state transitions or transport advice.
+
+### Whole journey and individual connections
+
+- Planning preserves **Leave by → At final destination**, canonical precise leave countdown, an explicit next
+  service (scheduled identity, boarding station, changed expected departure), both complete recommendations
+  and every option in the existing engine order. The requested date/deadline remains separate from the answer.
+- **Total journey** is centred immediately below the arrow/time row, before countdown/next-service copy.
+  It is the planned leave-to-final-arrival duration. The rail-only caption remains separately labelled.
+- In **Live and active journeys**, including Auto following/travelling, that same lozenge becomes
+  **Journey remaining**: current time to current expected FINAL destination arrival. It updates as time and
+  the ETA change, including waits, changes, non-rail rides and final access. Unknown/missed/cancelled arrivals
+  have no retained promised duration. Do not substitute a past original-start duration. Full timestamp
+  arithmetic belongs to the pure engine, including midnight/day boundaries.
+- Each train has fixed **Timetable departure / Expected departure or status / At [alighting station]**
+  columns. The scheduled clock identifies the train even when delayed. On time/Not live/No estimate/Cancelled
+  retain the Expected column; operator/platform never occupy it. Departure and arrival qualification are
+  independent. The panel names boarding and alighting stations; advertised destination is separate metadata.
+- The final address/office/home arrival belongs to the journey. A Live departure board's third train clock is
+  arrival at the alighting station, with a separately labelled final-destination projection below where a
+  complete matched itinerary exists. Live without a selection does not invent a followed route.
+- Reuse the same components for Trip's ordered access, rides, transfers and final access. Show time between
+  services separately from spare time after required transfers. A delay may consume waiting without moving
+  the final ETA; an impossible connection withdraws its promise and offers a deliberate replacement.
+
+### Compact controls and effort
+
+- Remove the visible Cartref Commute title and separate route row. Keep the existing mode controls beside
+  accessible Settings/Refresh controls. Direction or Trip route and selected per-end access modes belong to
+  Journey options beside Auto/Plan/Live. Retain meaningful location diagnostics, simulator access, native
+  editing, handlers, saved values, keyboard focus and touch targets.
+- Expose the existing effort and arrival-first results on every applicable recommendation, list/board row
+  and next connection. Walking can have a quiet text description; Fast walk, Run, Car needed, Can't make it
+  and their combined Arrives first qualifiers retain their agreed meaning. Walk/fast walk may lead the normal
+  recommendations. Run/car are explicit qualified alternatives, never an aesthetic rerank. Unreachable trains
+  stay visible; cancelled/no-estimate services receive no effort or fastest claim.
+- Keep the existing start allowance, fixed platform/boarding times, configurable limited run, own car only
+  at home/cab elsewhere, and hysteresis. Arrive by retains Latest for/Least late; Leave around retains its
+  eligible window. Once aboard, effort refers to the next uncompleted access/connection, not the origin.
+- Cycling remains explicit chosen Trip access, including bicycle locking and platform allowances. This
+  approval does not invent an automatic Commute cycling grade or assume that a bicycle/car is available.
+
+### Customer-journey continuity and acceptance
+
+- Follow is optional. Preserve unselected Live departures, inferred/probable train/Tube identities, ambiguity
+  choices, confirmation and correction. A chosen route is not proof of boarding; a clock-derived Trip phase
+  must be qualified rather than advertised as confirmed physical travel.
+- Selecting either complete recommendation follows that exact itinerary. Refresh, theme, disclosure and
+  Plan/Live navigation cannot silently choose another service. Manual planning retains the active journey,
+  important alerts and a way back, using the established override lifetime and interaction deferral.
+- Implement the approved Trip view/confirmation controls using its existing itinerary/controller. Retain
+  explicit recovery and original-arrival reasons; do not replace this work with prototype scenario links or
+  claim a new GPS matching algorithm/provider capability.
+- Verify actual built-app customer journeys, 320/393px light/dark and enlarged text, not only the prototype.
+  The independent implementation review must probe selected Next best, manual planning while travelling,
+  no-Follow inference/correction, effort boundaries, partial/unknown timing, remaining-time ticking and
+  deliberate source/CSS breakages before release. Existing source, ranking and request-budget checks remain.
+
+
 Current implementation (1 Nov 2026): Signal is the only design. Panda is archived, and the Signal switch and
 cross-design parity rule are removed. Follow is still an independent preference. [Retirement and audit](panda-retirement-review.md)
 supersedes older references below to Panda as live, implementation pending, or design on/off restoration.

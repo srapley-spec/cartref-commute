@@ -91,13 +91,13 @@ test('Along UI: enabled navigation stays below the heading before boarding in ei
   const a=await createApp({now:NOW,geo:'denied',settings:{provider:'demo',alongLine:true,appearance,followRoute:false},saved:{dirMode:'office'}});
   const entry=a.d.querySelector('#alongEntry'),nav=a.d.querySelector('#alongNavigation');
   assert.equal(entry.hidden,false);assert.equal(nav.hidden,false);
-  assert.equal(nav.previousElementSibling.tagName,'HEADER');
+  assert.equal(nav.previousElementSibling.id,'signalModebar');
   const before=a.calls.slice();entry.click();
   assert.equal(a.d.querySelector('#alongLine').open,true);assert.match(a.text('#alongJourney'),/Browse/);
   assert.match(a.text('#alongEvidence'),/unavailable or uncertain/);assert.equal(a.d.querySelector('[data-featured="true"]'),null);
   a.d.querySelector('#alongClose').click();
   a.c.state.saved.settings.appearance=appearance==='light'?'dark':'light';a.c.render();
-  assert.equal(nav.previousElementSibling.tagName,'HEADER','changing appearance preserves the navigation position');
+  assert.equal(nav.previousElementSibling.id,'signalModebar','changing appearance preserves the navigation position');
   assert.equal(entry.hidden,false);assert.equal(a.c.state.saved.settings.followRoute,false);assert.deepEqual(a.calls,before);
   a.c.state.saved.settings.alongLine=false;a.c.render();assert.equal(nav.hidden,true);assert.equal(entry.hidden,true);
   assert.deepEqual(a.errors,[]);a.close();

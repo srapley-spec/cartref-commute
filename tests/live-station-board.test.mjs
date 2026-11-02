@@ -29,13 +29,13 @@ test('Live at home with no journey: every train leaving Letchworth, each saying 
   const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
   // Example data from 10:00: Great Northern at :07/:37 to King's Cross, a Thameslink at :21/:51 (to St Pancras and
   // Farringdon: one train, one row), 10:51 cancelled. Two hours of trains are listed, none hidden.
-  assert.deepEqual(rows.map(r=>r.querySelector('.leave .t').textContent),['10:07','10:21','10:37','10:51','11:07','11:21','11:37','11:51','12:07','12:21','12:37','12:51']);
+  assert.deepEqual(rows.map(r=>(r.querySelector('[data-connection-time="scheduled"]')||r.querySelector('.leave .t')).textContent),['10:07','10:21','10:37','10:51','11:07','11:21','11:37','11:51','12:07','12:21','12:37','12:51']);
   assert.match(text[0],/to King's Cross/); assert.match(text[1],/to Farringdon or St Pancras/);
   const grade=a.c.ranked(MORNING).find(option=>option.train.std==='10:07').effort;
   assert.equal(reach(rows[0]),grade,'the board retains the same effort grade as Auto, including a possible car');
   assert.equal(rows[0].classList.contains('gone'),grade==='none');
   assert.equal(reach(rows[2]),'walk'); assert.match(text[2],/You can make it/);
-  assert.match(text[2],/Arrive\s*11:40/,'arrival at the office, from the same plan Auto uses');
+  assert.match(text[2],/Journey to office:.*11:40/,'arrival at the office, from the same plan Auto uses');
   assert.equal(reach(rows[3]),null,'a cancelled train has nothing to make'); assert.match(text[3],/Cancelled/);
   assert.equal(a.c.state.trainLock||null,null,'Live never invents a train you are on');
   auto(a);
@@ -51,7 +51,7 @@ test('Live in the office going home: Aldgate westbound departures, the train hom
   assert.equal(a.text('#listTitle'),'Departures from Aldgate');
   const rows=boardRows(a), text=rows.map(r=>r.textContent.replace(/\s+/g,' '));
   assert.equal(rows.length,3,'every listed tube, including one you cannot make');
-  assert.deepEqual(rows.map(r=>r.querySelector('.leave .t').textContent),['17:33','17:39','17:45']);
+  assert.deepEqual(rows.map(r=>(r.querySelector('[data-connection-time="scheduled"]')||r.querySelector('.leave .t')).textContent),['17:33','17:39','17:45']);
   assert.equal(reach(rows[0]),'none','3 minutes: less than the office walk and platform');
   assert.equal(reach(rows[1]),'walk'); assert.match(text[1],/leave the office by/);
   assert.match(text[1],/Off at (Farringdon|King's Cross)/); assert.match(text[1],/Home\s*\d\d:\d\d/);
@@ -121,7 +121,7 @@ test('Live board rows: a cancelled train has no countdown, nor does a delayed on
   a.close();
   const b=await createApp({now:MORNING,settings:{provider:'demo'}});
   live(b);
-  const brows=boardRows(b), at=std=>brows.find(r=>r.querySelector('.leave .t').textContent===std);
+  const brows=boardRows(b), at=std=>brows.find(r=>(r.querySelector('[data-connection-time="scheduled"]')||r.querySelector('.leave .t')).textContent===std);
   assert.match(at('10:51').textContent,/Cancelled/);
   assert.equal(at('10:51').querySelector('[data-dep]'),null,'a cancelled train has no countdown');
   assert.ok(at('10:37').querySelector('[data-dep]'),'a running train keeps its countdown');
@@ -206,7 +206,7 @@ test('Live in Leisure going home: Farringdon still lists the Thameslinks when on
   live(a);
   const zfd=a.d.querySelector('#liveboard-ZFD');
   assert.ok(zfd,'Farringdon still has a section');
-  const times=[...zfd.querySelectorAll('.row.board .leave .t')].map(e=>e.textContent);
+  const times=[...zfd.querySelectorAll('.row.board [data-connection-time="scheduled"]')].map(e=>e.textContent);
   assert.ok(times.length>0,'derived from the St Pancras trains\' stops');
   assert.ok(times.every(t=>stp.some(s=>{const d=new Date(s.dep-4*MIN);return t===`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;})),times.join(','));
   assert.deepEqual(a.errors,[]);a.close();

@@ -80,7 +80,7 @@ test('connection panels: scheduled and expected clocks retain engine status, ear
  Object.assign(t,{dep:T(t.std),arr:T('14:22'),depLate:0,arrLate:0,timetable:true,platform:null});a.c.render();
  let panel=a.d.querySelector('#list .journey-connection');
  assert.match(panel.textContent,/Not live/);assert.doesNotMatch(panel.textContent,/On time/);
- assert.match(panel.textContent,/Platform unannounced/);assert.equal(panel.querySelector('[data-connection-time="expected"]'),null);
+ assert.match(panel.textContent,/Platform unannounced/);assert.equal(panel.querySelector('[data-connection-time="expected"]').textContent,'Not live');
  t.timetable=false;t.derived=true;a.c.render();panel=a.d.querySelector('#list .journey-connection');
  assert.match(panel.textContent,/Estimated/);assert.doesNotMatch(panel.textContent,/On time/);
  assert.deepEqual(a.errors,[]);a.close();
@@ -94,12 +94,12 @@ test('connection panels: cancelled and no-estimate trains remain visible without
   assert.ok(shown(a,row));assert.equal(row.querySelector('[data-fact="leave-by"]'),null);
   assert.equal(row.querySelector('[data-cd]'),null);assert.match(row.textContent,/Unavailable/);
   assert.equal(row.querySelector('[data-connection-time="scheduled"]').textContent,t.std);
-  assert.match(row.querySelector('.connection-status').textContent,/Cancelled|No estimate/);
+  assert.match(row.querySelector('.journey-connection').textContent,/Cancelled|No estimate/);
  }
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('connection panels: following retains the chosen service and explicit Live retains its timetable layout',async()=>{
+test('connection panels: following retains the chosen service and all three leg clocks in explicit Live',async()=>{
  const a=await fixture(),chosen=a.c.ranked(NOW).find(o=>o.recommended===2);
  a.d.querySelectorAll('#hero>.opt')[1].querySelector('[data-follow]').click();
  const saved=a.c.state.saved.followRoute.id,panel=a.d.querySelector('#followPanel');
@@ -109,10 +109,10 @@ test('connection panels: following retains the chosen service and explicit Live 
  for(const mode of ['live','plan','auto']){
   a.d.querySelector(`[data-journey-view="${mode}"]`).click();
   assert.equal(a.c.state.saved.followRoute.id,saved);
-  if(mode==='live')assert.equal(a.d.querySelector('#followPanel .journey-connection'),null);
+  if(mode==='live')assert.equal(a.d.querySelector('#followPanel [data-connection-time="scheduled"]').textContent,chosen.train.std);
  }
  a.d.querySelector('[data-follow-action="stop"]').click();a.d.querySelector('[data-journey-view="live"]').click();
- assert.equal(a.d.querySelector('#hero .journey-connection,#list .journey-connection'),null);
+ assert.ok(a.d.querySelector('#list .row.board [data-connection-time="arrival"]'));
  assert.ok(a.d.querySelector('#list .row.board .exp'));
  assert.deepEqual(a.errors,[]);a.close();
 });
@@ -139,16 +139,16 @@ test('connection panels: Trip exposes every train in the recorded four-ride jour
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('connection panels: Auto on a homeward Tube exposes the next rail connections and Live preserves its existing journey view',async()=>{
+test('connection panels: Auto and Live on a homeward Tube expose the same next rail connections and final arrival',async()=>{
  const a=await fixture('home'),s=a.c.state;
  Object.assign(s,{here:[51.519,-.099],locAcc:10,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null});
  s.saved.tubeRide={hub:'ALD',from:'ALD',t:NOW-2*MIN,line:'Circle',vehicle:'connection-home',picked:true,rideMs:10*MIN,stop:"King's Cross",stopGeo:[51.5308,-.1238]};
  a.c.render();assert.equal(s.presentation.view,'on-tube-home');
  const connections=a.d.querySelectorAll('#hero .journey-next-connection .journey-connection');assert.ok(connections.length);
  for(const panel of connections){assert.ok(shown(a,panel));assert.match(panel.querySelector('[data-connection-time="scheduled"]').textContent,/^\d\d:\d\d$/);}
- const arrival=a.text('#hero [data-block="headline"]');assert.match(arrival,/at home/);
+ const arrival=a.text('#hero [data-block="headline"]');assert.match(arrival,/At home/);
  a.d.querySelector('[data-journey-view="live"]').click();
- assert.equal(a.d.querySelector('#hero .journey-next-connection'),null);
+ assert.ok(a.d.querySelector('#hero .journey-next-connection'));
  assert.equal(a.text('#hero [data-block="headline"]'),arrival);
  assert.equal(s.saved.tubeRide.vehicle,'connection-home');
  assert.deepEqual(a.errors,[]);a.close();

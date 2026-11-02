@@ -44,12 +44,14 @@ Signal now retains Auto / Plan / Live with the Follow setting still independent;
     both ("to Farringdon or St Pancras").
   - Two trains leaving at the same time by different operators are two rows; a train worked out from another stop's
     calls (derived) gives way to the real one; a train from another station on the same board is left out.
-  - Each row: Train (timetabled) · Expected · where it takes you · operator, final destination, platform, countdown
+  - Since the approved 2 Nov review, every rail row has three fixed slots: timetable departure, expected departure
+    or status, and expected arrival at the **alighting station**. Door-to-door final arrival is a separate journey
+    projection below. Keep operator, advertised service destination, platform, countdown
     (none for cancelled or "Delayed" with no estimate) · the train's own flags (cancelled, late, stopping, standing
-    room, reason) · Arrive (door to door) · Follow, which follows that train from that station (the matched stop's
+    room, reason) · Follow, which follows that train from that station (the matched stop's
     option, not the main option at another station).
-  - Keep the matched option's train duration, total journey duration and canonical “Arrives first” indication
-    visible, with the same values and effort qualifier as planning. Use the option for this boarding station,
+  - Keep the matched option's train duration, **Journey remaining** from now to the usable final arrival, and
+    canonical “Arrives first” indication visible, with the existing effort qualifier and ranking from planning. Use the option for this boarding station,
     including when the train appears as another option's stop. Retain the train's own incident/status flags when
     no usable option exists; unknown timing must not produce an invented total or fastest claim.
   - **Can you make it from here** comes from the same options Auto plans from where you are (no second timing

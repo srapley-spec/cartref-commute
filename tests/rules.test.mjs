@@ -478,7 +478,7 @@ test("Nearly home on your train: home time = the train's expected Letchworth tim
   c.render();
   const s = c.S(), walk = s.walkStationHomeAvg + s.letExit;
   assert.match(app.text('#hero [data-block="label"]'),/Nearly home · 20:14/);
-  assert.match(app.text('#hero [data-block="headline"]'),new RegExp(`${hm(T("20:18")+walk*1000)} ?at home`));
+  assert.match(app.text('#hero [data-block="headline"]'),new RegExp(`At home${hm(T("20:18")+walk*1000)}`));
   assert.match(app.text('#hero [data-block="which"]'),/On the 19:48 Great Northern About 2 min late/);
   assert.match(app.text('#hero [data-block="then"]'),/Letchworth 20:18 expected/);
   assert.equal(app.w.document.querySelector("#hero .slackst").className, "slackst ok", "2 min late is green (amber from 5, Sam 30 Oct)");
@@ -536,7 +536,7 @@ test("Tube going home: at Aldgate the next tube is noted; underground the card s
   const hero = app.text("#hero");
   assert.match(hero, /^On the tube · 16:45 · worked out from when you left Aldgate/);
   assert.match(hero, /Probably the Met to Uxbridge that left Aldgate at 16:41/);
-  assert.match(hero, /Get off at Farringdon 16:48 · home \d\d:\d\d.*Train from Farringdon 16:56 Thameslink Platform 4/);
+  assert.match(hero, /Get off at Farringdon 16:48 · home \d\d:\d\d.*Train from Farringdon.*Timetable departure16:56.*Thameslink.*Platform 4/);
   assert.match(hero, /or get off at King's Cross 16:51 · home .* \(\d+ min later\)/);
   app.close();
 });
@@ -569,7 +569,7 @@ test("At Letchworth station going to work, Leave now is a departure board too", 
   assert.match(app.text("#hero"), /^You're at Letchworth · departures · 07:00/);
   assert.match(app.text('#hero .journey-connection'),/Train from Letchworth.*07:\d\d.*On time/);
   app.d.querySelector('[data-journey-view="live"]').click();
-  assert.match(app.text("#hero"), /Train ?07:\d\d Expected ?On time At office ?\d\d:\d\d/);
+  assert.match(app.text("#hero"), /Timetable departure07:\d\d Expected departureOn time.*At King's Cross/);
   app.close();
 });
 
@@ -954,11 +954,11 @@ test("At Letchworth station a late train shows Train and Expected side by side, 
     const j = c.ranked(now).find((o) => o.train.std === "07:08");
     assert.ok(j, "the 07:08 is listed");
     const exp = late ? `07:${String(8 + late).padStart(2, "0")}` : "On time";
-    const row = app.rows().find((r) => /^Train ?07:08/.test(r));
-    assert.match(row, new RegExp(`^Train ?07:08 ?Expected ?${exp}`), `list: the timetabled time names the train, Expected beside it (${late} min)`);
-    const cells = [...app.d.querySelectorAll("#list .row .exp .exp, #hero .exp")].filter((e) => e.textContent === exp);
+    const row = app.rows().find((r) => /Timetable departure07:08/.test(r));
+    assert.match(row, new RegExp(`Timetable departure07:08 Expected departure${exp}`), `list: the timetabled time names the train, Expected beside it (${late} min)`);
+    const cells = [...app.d.querySelectorAll('#list [data-connection-time="expected"], #hero .exp')].filter((e) => e.textContent === exp);
     assert.ok(cells.length >= 1 && cells.every((e) => e.classList.contains(level)), `${late} min late is ${level}`);
-    if (j.recommended) assert.match(app.text("#hero"), new RegExp(`Train ?07:08 ?Expected ?${exp}`), "card: same columns");
+    if (j.recommended) assert.match(app.text("#hero"), new RegExp(`Timetable departure07:08 Expected departure${exp}`), "card: same columns");
     const pills = [...app.d.querySelectorAll(".pill")].map((p) => p.textContent);
     if (late) {
       const pill = [...app.d.querySelectorAll(".pill")].find((p) => p.textContent === `${late} min late`);

@@ -29,6 +29,13 @@ const interval = (start: unknown, end: unknown): number | null =>
 const unknownTrain = (train: Train | null) => !!train &&
   (train.cancelled || train.depUnknown || train.arrUnknown === true || interval(train.dep, train.arr) === null);
 
+/** Live duration is now to the final destination, not the historical journey start.
+ * Complete instants retain midnight/date boundaries. An expired estimate is unknown,
+ * rather than inventing zero remaining or rolling it forward by a day. */
+export function journeyRemainingMs(arrival: unknown, now: number, usable = true): number | null {
+  return usable ? interval(now, arrival) : null;
+}
+
 /** Durations use the option's canonical start, including any effort retiming.
  * Following a route never replaces that start with the time Follow was tapped,
  * the current clock or a newly inferred walk. A known train without a complete
@@ -57,12 +64,12 @@ export function connectionJourneyFacts(option: TimingOption | null, context: Con
  * changes, Tube/bus rides and access belong to the door-to-door total instead.
  * Missing access timing can leave rail time known without inventing a total.
  */
-export function tripJourneyFacts(journey: Pick<Journey, 'rides' | 'leave' | 'arrive' | 'uncertain'>): JourneyFacts {
+export function tripJourneyFacts(journey: Pick<Journey, 'rides' | 'leave' | 'arrive' | 'uncertain'> & { missed?: boolean }): JourneyFacts {
   const unavailable = (ride: Journey['rides'][number]) =>
     ride.cancelled || unknownTrain(ride.train ?? null) || interval(ride.dep, ride.arr) === null;
   const rail = journey.rides.filter(ride => ride.kind === 'rail');
   return {
     trainDurationMs: !rail.length || rail.some(unavailable) ? null : rail.reduce((total, ride) => total + (ride.arr - ride.dep), 0),
-    totalDurationMs: journey.uncertain || !journey.rides.length || journey.rides.some(unavailable) ? null : interval(journey.leave, journey.arrive),
+    totalDurationMs: journey.uncertain || journey.missed || !journey.rides.length || journey.rides.some(unavailable) ? null : interval(journey.leave, journey.arrive),
   };
 }

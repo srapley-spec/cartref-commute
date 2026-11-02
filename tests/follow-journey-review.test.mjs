@@ -25,7 +25,7 @@ test('journey review: a caught Circle still reaches the followed Thameslink, rat
  const now=evening+20*MIN;fresh(a,now,[51.5186,-.0886]);
  a.c.state.saved.tubeRide={hub:'ALD',from:'ALD',t:evening+18*MIN,line:'Circle',vehicle:'tube-review',picked:true,confirmed:true,rideMs:7*MIN,stop:'Farringdon',stopGeo:[51.52036,-.10514]};
  a.c.render();
- assert.match(a.text('#hero .journey-next-connection'),/Farringdon 18:25.*Train from Farringdon 18:34 Thameslink/,'the existing connection remains exposed in its own panel');
+ assert.match(a.text('#hero .journey-next-connection'),/Farringdon 18:25.*Train from Farringdon.*Timetable departure18:34.*Thameslink/,'the existing connection remains exposed in its own panel');
  assert.equal(a.c.state.followUpdate.status,'on-track');
  assert.equal(a.c.state.saved.followRoute.id,r.id);
  assert.equal(a.c.state.saved.followRoute.expectedArrival,r.expectedArrival);
@@ -60,8 +60,8 @@ test('journey review: a missed selected train no longer promises its old arrival
  const a=await demo(),r=follow(a),now=r.option.train.dep+MIN;
  fresh(a,now,[51.975,-.23]);a.c.render();
  assert.equal(a.c.state.followUpdate.status,'missed');
- assert.match(a.text('#followPanel .big'),/Arrival uncertain/);
- assert.doesNotMatch(a.text('#followPanel .big'),/Arriving/);
+ assert.match(a.text('#followPanel .follow-status'),/Arrival uncertain/);
+ assert.doesNotMatch(a.text('#followPanel .follow-status'),/Arriving/);
  assert.match(a.text('#followPanel'),/no longer make/);
  assert.equal(a.c.state.saved.followRoute.id,r.id);
  assert.deepEqual(a.errors,[]);a.close();
