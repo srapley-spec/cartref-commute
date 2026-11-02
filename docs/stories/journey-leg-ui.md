@@ -45,6 +45,10 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
   Keep each mode word intact at320px with natural button bases; enlarged text may wrap whole controls.
 - Follow is optional. Existing no-Follow inferred stages, probability, correction and service identity survive.
   Exact Next best selection remains authoritative across refresh, view and appearance changes.
+- A selected Trip in its access phase shows the chosen access mode as planned, with progress unconfirmed.
+  The elapsed deadline at the old origin does not prove that someone already following it missed the train.
+  Strict origin reachability still applies to unselected options. Retained live-provider No estimate status
+  remains provider evidence and cannot be labelled Timetable.
 - Manual Plan preserves the active route, alerts, original target and return action while the independent query
   loads or fails. Trip's future question survives an unselected Live now board and returning to Plan.
 - Trip's timed progression is labelled expected, never confirmed. Explicit current ride lasts until alighting or
@@ -81,6 +85,8 @@ Binding component rules: [design system](../design-system.md#approved-journey-an
 - tests/core/trip-reachability-review.test.mjs: "Trip reachability review: stale summary flags cannot make cancelled, unknown or invalid endpoints recommendable"
 
 - tests/core/trip-reachability-review.test.mjs: "Trip reachability review: current Train evidence withdraws an active final ETA despite retained Ride timing"
+
+- tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: a selected access stage does not declare the train unreachable from an elapsed origin deadline"
 
 ## Limits
 Live Trip boards show the connections already loaded for its station-pair plan, within the existing six-board

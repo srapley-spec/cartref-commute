@@ -114,7 +114,10 @@ async function reviewAtStevenage(a){
  await begin(a);
  await waitReview(()=>!a.c.simulator.getView().verification.pending&&a.c.simulator.getView().verification.current?.index===0,'first checkpoint verification settles');
  while(a.c.simulator.getView().checkpoints[a.c.simulator.sim.index].point!=='north'){
-  const before=a.c.simulator.sim.index;click(a,'journeyNext');
+  const before=a.c.simulator.sim.index;
+  // Verification can publish before playback's finally releases the real button.
+  // Wait and click atomically, as the main Journey regression helper does.
+  await waitReview(()=>{const button=a.d.getElementById('journeyNext');assert.ok(button);if(button.disabled)return false;button.click();return true;},'Next is enabled before one sequential click');
   await waitReview(()=>a.c.simulator.sim.index===before+1&&!a.c.simulator.getView().verification.pending&&a.c.simulator.getView().verification.current?.index===before+1,'sequential checkpoint and its real application verification settle');
  }
  return a.c.simulator.getView().verification.current;

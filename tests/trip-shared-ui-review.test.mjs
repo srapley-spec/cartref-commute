@@ -156,3 +156,20 @@ test('Trip shared UI review: explicit recovery preserves the completed train and
  assert.equal(a.d.querySelector('.trip-headline>.journey-heading [data-fact="remaining-duration"]')?.hasAttribute('data-ms'),false,'a newly impossible recovery withdraws the final promise');
  assert.deepEqual(a.errors,[]);a.close();
 });
+
+
+test('Trip shared UI review: a selected access stage does not declare the train unreachable from an elapsed origin deadline',async()=>{
+ const a=await createApp({now:NOW,settings:TRIP_SETTINGS,route:tripRoute});await planBrightonCanterbury(a);await followFirst(a);
+ const original=JSON.parse(JSON.stringify(a.c.state.saved.tripMode.follow)),requests=a.calls.slice();
+ a.setNow(NOW+3*MIN);a.c.render();
+ assert.equal(a.d.querySelector('#tripResults').dataset.view,'trip-access');
+ assert.ok(original.journey.leave<NOW+3*MIN&&original.journey.rides[0].dep>NOW+3*MIN,'the access deadline passed but the chosen train has not left');
+ const reach=a.text('.trip-follow-card .journey-reach');
+ assert.doesNotMatch(reach,/can.t make|not reachable|cannot catch/i,'elapsed origin deadline is not evidence that an already-selected access has failed');
+ assert.match(reach,/Walk/i,'the selected access mode remains visible');
+ assert.match(a.text('.trip-confirmation>p'),/Expected stage.*access/i,'clock progression remains unconfirmed');
+ assert.equal(a.c.state.saved.tripMode.follow.id,original.id);
+ assert.equal(Number(a.d.querySelector('.trip-headline>.journey-heading [data-fact="remaining-duration"]').dataset.ms),original.expectedArrival-(NOW+3*MIN));
+ assert.deepEqual(a.calls,requests,'qualifying selected access starts no new feed or location algorithm');
+ assert.deepEqual(a.errors,[]);a.close();
+});

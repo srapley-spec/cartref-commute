@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 02 Nov 15:45 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 02 Nov 15:53 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -9204,7 +9204,7 @@ function createTripUi(deps) {
         status={level:unqualified?'info':status.level,text:unqualified?'Not live':`${status.text} · Not live`};
       }
       const expectedLabel=!r.live.dep&&r.train&&!r.train.timetable&&!r.train.depUnknown?'Last known':'Expected departure';
-      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}${Number.isFinite(change.betweenMs)?`<br>${dur(change.betweenMs)} between services · ${change.transferMs!=null?`${dur(change.transferMs)} transfer${change.spare>=0?` + ${change.spare} min spare`:''}`:'transfer allowance not separately supplied'}`:''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):departure.text,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',to:r.to.name,destination:r.destination||r.train?.destination||'',arrival:C.tripRideTimingUsable(r,false)?hhmm(r.arr):null,departureSource:r.live.dep?'Live':expectedLabel==='Last known'?'Last known':'Timetable',arrivalSource:r.live.arr?'Live':r.train&&!r.train.timetable?'Last known':'Timetable',arrivalLabel:r.live.arr?'Expected':r.train&&!r.train.timetable?'Last known':'Timetable'})}`;
+      return `${change?`<p class="connection-transfer ${esc(change.level)}">${esc(change.text)} · ${esc(change.at)}${change.notLive.length?' · Not live':''}${Number.isFinite(change.betweenMs)?`<br>${dur(change.betweenMs)} between services · ${change.transferMs!=null?`${dur(change.transferMs)} transfer${change.spare>=0?` + ${change.spare} min spare`:''}`:'transfer allowance not separately supplied'}`:''}</p>`:''}${connectionMarkup({from:r.from.name,scheduled:hhmm(r.schedDep),expected:departure.showTime?hhmm(r.dep):departure.text,expectedLabel,level:departure.level,status,operator:r.operator||r.label,platform:r.platform||r.train?.platform,kind:r.kind==='tube'?'Tube':r.kind==='bus'?'Bus':r.kind==='rail'?'Train':'Connection',to:r.to.name,destination:r.destination||r.train?.destination||'',arrival:C.tripRideTimingUsable(r,false)?hhmm(r.arr):null,departureSource:r.live.dep?'Live':r.train&&!r.train.timetable?'Last known':'Timetable',arrivalSource:r.live.arr?'Live':r.train&&!r.train.timetable?'Last known':'Timetable',arrivalLabel:r.live.arr?'Expected':r.train&&!r.train.timetable?'Last known':'Timetable'})}`;
     }).join('');
   }
   function journeyHeading(j, arrival = j.arrive) {
@@ -9247,10 +9247,10 @@ function createTripUi(deps) {
     if(JSON.stringify(s.viewOverride||null)!==JSON.stringify(shown.override))save({viewOverride:shown.override});
     previousPresentation=shown;deps.renderView?.(shown);return shown;
   }
-  function tripAccessMarkup(j){
+  function tripAccessMarkup(j,{active=false}={}){
     const names={walk:'Walk to station',cycle:'Cycle to station · bicycle required',drive:'Drive to station · car required'};
-    const reachable=C.tripCanFollow(j,now());
-    return `<div class="journey-reach" data-access-mode="${esc(j.modes.from)}">${reachable?flagsMarkup(j.flags.filter(f=>/^(Arrives first|Latest for|Least late)/.test(f.txt))):''}<span class="pill ${reachable?(j.modes.from==='walk'?'info':'warn'):'bad'}">${reachable?names[j.modes.from]:j.uncertain||j.missed?'Access / connection uncertain':'Can’t make it from here · '+names[j.modes.from]}</span></div>`;
+    const reachable=active||C.tripCanFollow(j,now());
+    return `<div class="journey-reach" data-access-mode="${esc(j.modes.from)}">${reachable&&!active?flagsMarkup(j.flags.filter(f=>/^(Arrives first|Latest for|Least late)/.test(f.txt))):''}<span class="pill ${reachable?(j.modes.from==='walk'?'info':'warn'):'bad'}">${reachable?names[j.modes.from]+(active?' · planned access':''):j.uncertain||j.missed?'Access / connection uncertain':'Can’t make it from here · '+names[j.modes.from]}</span>${active?'<span>Progress unconfirmed</span>':''}</div>`;
   }
   function tripNextMarkup(j,first=0,label='Next'){
     const ride=j.rides.slice(first).find(r=>r.kind!=='walk');
@@ -9305,7 +9305,7 @@ function createTripUi(deps) {
     const close = r.close ? `<div class="trip-card">Close enough to ${s.modes.from === "drive" ? "drive" : s.modes.from === "cycle" ? "cycle" : "walk"}: no train needed.${r.journeys.length ? " The trains are below anyway." : ""}</div>` : "";
     const html = { label: () => close + (following||!best?`<div class="lbl trip-label">${label}</div>`:''),
       headline: () => following ? `<div class="trip-headline ${fu.level}">${tripFollowHeading(fu)}${followFacts}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice?`<p>${esc(fu.notice.text)}</p>`:''}${fu.arrival==null||fu.route.expectedArrival!==fu.route.plannedArrival?`<p>Original plan: arrive ${hhmm(fu.route.plannedArrival)}</p>`:''}
-          ${fu.phase==='before'||fu.phase==='access'?tripAccessMarkup(fu.route.journey):''}
+          ${fu.phase==='before'||fu.phase==='access'?tripAccessMarkup(fu.route.journey,{active:true}):''}
           ${fu.phase==='final'||fu.phase==='arrived'?'':tripNextMarkup(fu.route.journey,C.followedTripPhase(fu.route,now()).ride,fu.phase==='ride'?'Current service':'Next')}
           ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}${esc(fu.nextStep.d)}</p>`:''}
           ${fu.route.notices.filter(n=>n.id.startsWith('recovery:')).slice(-1).map(n=>`<p>${esc(n.text)}</p>`).join('')}${tripConfirmation(fu)}
