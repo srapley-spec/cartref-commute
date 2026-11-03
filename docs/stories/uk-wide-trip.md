@@ -57,7 +57,9 @@ Caledonian Sleeper (Euston ⇄ Fort William), offering only the Glasgow sleeper 
   start to it, plus the platform allowance. The stop may be a Tube stop (identity `tfl:<naptan>`). Said in "Why these
   trains?". Not for cycling or driving to the station.
 - Without this, London-office origins lost the 08:30 LNER and every evening Fort William option (3 Nov dry run).
-- Each boarding stop is its own search key (and its own page-cache key): later searches ask TfL from that stop's own
+- Each boarding stop is its own search key and its own page-cache key (`plannerCacheKey`, an engine function the page
+  uses, unit-tested: the page test alone could not tell, since in-flight searches never hit the cache and a repeat
+  plan is served from it for every stop alike): later searches ask TfL from that stop's own
   ID, after the last departure found from it; a stop first seen in a later search is timed before the final answer;
   a stop with no position, or reached by a walk that did not start at the station asked for, is refused.
 - Independent review (3 Nov, 16 mutations, 7 probes): found the page cache keying Tube origins by their empty CRS
@@ -84,6 +86,7 @@ Recorded TfL replies (3 Nov, for Wed 4 Nov; keys removed): `tests/fixtures/trip/
 - tests/core/trip-uk.test.mjs: "Journeys boarding at a Tube stop are keyed by that stop: the later search asks from it, after the last one found; two stops are two keys"
 - tests/core/trip-uk.test.mjs: "A boarding stop first seen in a later search is timed and listed, not silently dropped"
 - tests/trip-page.test.mjs: "Trip UK-wide: two Tube boarding stops from one London station are two planner-cache keys, so each gets its own later search"
+- tests/core/trip-uk.test.mjs: "The page's planner-cache key tells two Tube boarding stops apart, and a place from a station; same stop, direction and 15-minute slot share one"
 - tests/trip-page.test.mjs: "Trip UK-wide: Letchworth → Newcastle plans through the page via Stevenage, with the total, Leave by and a York change flagged"
 - tests/trip-page.test.mjs: "Trip: a place outside the region is refused when chosen, with the region named"
 - tests/core/trip.test.mjs: "Region: Great Britain since 3 Nov (the detail is in tests/core/trip-uk.test.mjs); the old South East box is history"

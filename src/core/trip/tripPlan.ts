@@ -22,6 +22,12 @@ export interface TripResult {
   candidates: { from: Candidate[]; to: Candidate[] }; failed: { pair: string; why: string }[];
   close: boolean; requests: { planner: number; access: number }; notes: string[];
 }
+/** The page's planner-cache key: by stationKey (a Tube stop you board at has no CRS, and two of them must never share
+ *  a key), the direction of the search, and a 15-minute slot of the search time. A place target is keyed by position. */
+export function plannerCacheKey(from: Station, to: Station | { geo: LatLon }, t: number, timeIs: "Departing" | "Arriving"): string {
+  const target = "crs" in to ? stationKey(to) : `@${to.geo.join(",")}`;
+  return `${stationKey(from)}-${target}|${timeIs}|${Math.floor(t / (15 * 60e3))}`;
+}
 export class TripError extends Error { constructor(msg: string, readonly code: "outside" | "no-stations" | "no-access") { super(msg); } }
 
 type AccessMap = Map<string, Timing | null>;

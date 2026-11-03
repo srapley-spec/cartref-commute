@@ -81,10 +81,10 @@ function createTripUi(deps) {
     const cached = async (k, ask) => { const hit = plannerCache.get(k); if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
       const reply = await ask(); plannerCache.set(k, { at: now(), reply }); return reply; };
     return { name: tfl.name,
-      // Keyed by stationKey, not CRS: a Tube stop you board at (UK-wide Trip, 3 Nov) has none, and two of them must not share a key.
-      plan: (a, b, t, timeIs) => cached(`${C.stationKey(a)}-${C.stationKey(b)}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.plan(a, b, t, timeIs)),
-      // To the place itself (issue #56): keyed by its position, so a new destination is a new search.
-      planTo: (a, place, t, timeIs) => cached(`${C.stationKey(a)}-@${place.geo.join(",")}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.planTo(a, place, t, timeIs)) };
+      // Keys from the engine (plannerCacheKey): by stationKey, since a Tube stop you board at has no CRS (UK-wide Trip, 3 Nov);
+      // a place target by its position, so a new destination is a new search.
+      plan: (a, b, t, timeIs) => cached(C.plannerCacheKey(a, b, t, timeIs), () => tfl.plan(a, b, t, timeIs)),
+      planTo: (a, place, t, timeIs) => cached(C.plannerCacheKey(a, place, t, timeIs), () => tfl.planTo(a, place, t, timeIs)) };
   }
 
   // ---------- Places ----------

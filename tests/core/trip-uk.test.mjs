@@ -203,3 +203,16 @@ test("A boarding stop first seen in a later search is timed and listed, not sile
   assert.equal(th.length, 1, r.journeys.map(j => `${core.stationKey(j.fromStation)} ${hm(j.leave)}`).join(", "));
   assert.equal(th[0].before[0].step.d, "Walk to Tower Hill");
 });
+
+test("The page's planner-cache key tells two Tube boarding stops apart, and a place from a station; same stop, direction and 15-minute slot share one", () => {
+  const ald = { crs: "", name: "Aldgate", geo: [51.5142, -0.0757], carPark: "unknown", servicePerHour: 0, ids: { tfl: ["940GZZLUALD"], tflIcs: ["1000003"] } };
+  const twh = { crs: "", name: "Tower Hill", geo: [51.5098, -0.0766], carPark: "unknown", servicePerHour: 0, ids: { tfl: ["940GZZLUTWH"] } };
+  const t = T("04", "09:01");   // slots are 15 minutes from the epoch: 09:00–09:14 is one
+  assert.notEqual(core.plannerCacheKey(ald, st("NCL"), t, "Departing"), core.plannerCacheKey(twh, st("NCL"), t, "Departing"));
+  assert.equal(core.plannerCacheKey(ald, st("NCL"), t, "Departing"), `tfl:940GZZLUALD-NCL|Departing|${Math.floor(t / (15 * 60e3))}`);
+  assert.equal(core.plannerCacheKey(ald, st("NCL"), t, "Departing"), core.plannerCacheKey(ald, st("NCL"), t + 13 * 60e3, "Departing"), "the same 15-minute slot");
+  assert.notEqual(core.plannerCacheKey(ald, st("NCL"), t, "Departing"), core.plannerCacheKey(ald, st("NCL"), t + 15 * 60e3, "Departing"));
+  assert.notEqual(core.plannerCacheKey(ald, st("NCL"), t, "Departing"), core.plannerCacheKey(ald, st("NCL"), t, "Arriving"));
+  assert.notEqual(core.plannerCacheKey(ald, NCL, t, "Departing"), core.plannerCacheKey(twh, NCL, t, "Departing"), "a place target too");
+  assert.equal(core.plannerCacheKey(st("LET"), NCL, t, "Departing"), `LET-@${NCL.geo.join(",")}|Departing|${Math.floor(t / (15 * 60e3))}`);
+});

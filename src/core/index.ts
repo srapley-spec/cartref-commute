@@ -68,7 +68,7 @@ export { TFL_TRIP_MODES, tflStation, tflRailJourneys, cleanName, sameStationName
 export type { TflEnd, PlaceEnd } from "./trip/tflJourney";
 export { rankTrips, otherStations, betterOption, tripDepartureBoard, tripCanFollow } from "./trip/tripRank";
 export type { TripQuestion, OtherStation } from "./trip/tripRank";
-export { planTrip, TripError } from "./trip/tripPlan";
+export { planTrip, TripError, plannerCacheKey } from "./trip/tripPlan";
 export type { TripRequest, TripResult, TripStageName } from "./trip/tripPlan";
 export { liveBudget, matchRide, applyLive } from "./trip/tripLive";
 export type { BoardRequest } from "./trip/tripLive";
