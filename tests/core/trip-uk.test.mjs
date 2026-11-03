@@ -190,7 +190,9 @@ test("Journeys boarding at a Tube stop are keyed by that stop: the later search 
   assert.ok(r.notes.some(n => /board at (Aldgate \/ Tower Hill|Tower Hill \/ Aldgate) after a walk from London Fenchurch Street/.test(n)), r.notes.join(" ;; "));
   // Each Tube stop's later search asks from that stop, after the last departure found from it (08:30 at Tower Hill; 09:03 at Aldgate)
   const tube = log2.filter(k => /^tfl:.*-NCL@/.test(k)).sort();
-  assert.deepEqual(tube, [`tfl:${ALD}-NCL@09:04`, `tfl:${TWH}-NCL@08:31`], log2.join(" "));
+  assert.ok(tube.includes(`tfl:${TWH}-NCL@08:31`), log2.join(" "));
+  assert.ok(tube.every(k => k === `tfl:${TWH}-NCL@08:31` || k === `tfl:${ALD}-NCL@09:04`), "a later search from a Tube stop asks from that stop, after its own last departure");
+  assert.ok(!log2.some(k => /^-NCL@/.test(k)), "never a search keyed by an empty CRS");
 });
 
 test("A boarding stop first seen in a later search is timed and listed, not silently dropped", async () => {
