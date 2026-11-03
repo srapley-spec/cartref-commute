@@ -351,3 +351,71 @@ test("planTrip to a place near a Tube stop is not Aldgate-specific: Brighton →
   assert.ok(!log.some(c => c.endsWith("-@")) && off.journeys.every(j => j.toStation.crs));
   assert.equal(core.TRIP_DEFAULTS.placeSearches, 3);
 });
+
+test("planTrip to a place, Arrive by (#56 follow-up): the same train alighting at different stops are different journeys; the latest leave in time prefers the nearer stop (Aldgate East, not Liverpool Street + 15 min)", async () => {
+  const by = at("2026-11-04", "09:00"), now = at("2026-11-04", "06:30"), log = [];
+  const planner = recorded(log);
+  const arriving = { ...planner, planTo: async (a, p) => { log.push(`${a.crs}-@`); return a.crs === "LET" ? core.tflRailJourneys(fxb("letchworth-onebraham-arrive"), a, { place: p }, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; } };
+  const r = await core.planTrip({ from: letchworth, to: oneBraham, modes: { from: "walk", to: "walk" }, question: { kind: "by", t: by }, now, leisureKmh: 4.5, cfg }, { stations: idx, access: straight, planner: arriving });
+  const on0750 = r.journeys.filter(j => core.hhmm(j.rides[0].schedDep) === "07:50").map(j => `${j.toStation.name} ${core.hhmm(j.arrive)}`).sort();
+  assert.deepEqual(on0750, ["Aldgate East 08:53", "London Liverpool Street 08:59", "Tower Hill 09:05", "Whitechapel 09:04"], on0750.join(" | "));
+  const best = r.picks[0];
+  assert.equal(core.hhmm(best.leave), "07:41"); assert.equal(best.toStation.name, "Aldgate East"); assert.equal(core.hhmm(best.arrive), "08:53");
+  assert.ok(best.flags.some(f => f.txt === "Latest for 09:00"));
+});
+
+test("planTrip to a place outside where TfL plans to places: round 1's place searches are refused and said; round 2 sends no more", async () => {
+  const t0 = at("2026-11-04", "09:00"), log = [];
+  const cambridge = place("Grand Arcade Cambridge", [52.2044, 0.1195]);
+  const planner = { name: "fixture",
+    plan: async (a, b) => { log.push(`${a.crs}-${b.crs}`); return { journeys: [], refused: ["Not recorded"] }; },
+    planTo: async (a, p) => { log.push(`${a.crs}-@`); return { journeys: [], refused: [`TfL found no journey from ${a.name} to ${p.name}`] }; } };
+  await core.planTrip({ from: letchworth, to: cambridge, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg }, { stations: idx, access: straight, planner }).catch(() => null);
+  assert.ok(log.filter(c => c.endsWith("-@")).length <= 3, log.join(" "));
+});
+
+// ---------- Independent review of b3d1738 (3 Nov): survivors turned into tests ----------
+const planOneBraham = (c = cfg, delay = 0) => { const planner = recorded([]), plain = planner.plan;
+  planner.plan = async (...a) => { if (delay) await new Promise(r => setTimeout(r, delay)); return plain(...a); };
+  return core.planTrip({ from: letchworth, to: oneBraham, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: at("2026-11-04", "07:15") }, now: at("2026-11-04", "07:15"), leisureKmh: 4.5, cfg: c }, { stations: idx, access: straight, planner }); };
+test("The same train to two alighting stops is listed twice, whichever TfL reply comes first (#56 review, finding 1)", async () => {
+  for (const delay of [0, 15]) {
+    const r = await planOneBraham(cfg, delay);
+    const stops = r.journeys.filter(j => core.hhmm(j.rides[0].schedDep) === "07:38").map(j => j.toStation.name).sort();
+    assert.deepEqual(stops, ["Aldgate East", "London Liverpool Street", "Tower Hill", "Whitechapel"], `delay ${delay}: ${stops.join(", ")}`);
+    assert.equal(core.hhmm(r.picks[1].arrive), "08:34", `Next best is the 07:38 via Aldgate East (delay ${delay})`);
+    assert.equal(new Set(r.journeys.map(j => j.id)).size, r.journeys.length);
+  }
+});
+test("A refusal kept as a journey to the place is said once, as kept, not again as a refusal (#56 review, finding 2)", async () => {
+  const r = await planOneBraham();
+  assert.ok(!r.notes.some(n => /not London Fenchurch Street/.test(n)), r.notes.join(" ;; "));
+  assert.equal(r.notes.filter(n => /^Letchworth Garden City → London Fenchurch Street/.test(n)).length, 1, r.notes.join(" ;; "));
+});
+test("Other stations tells Tube stops apart (Tower Hill / Aldgate East are not Aldgate) (#56 review, finding 3)", async () => {
+  const r = await planOneBraham();
+  const others = core.otherStations(r.journeys, r.picks[0], 10).map(o => o.text);
+  assert.ok(others.some(o => /^To Tower Hill: /.test(o)) && others.some(o => /^To Aldgate East: /.test(o)), others.join(" | "));
+  assert.ok(!others.some(o => /^To Aldgate: /.test(o)));
+});
+test("A station-pair journey alighting beyond walking reach of the place is not kept (#56 review, finding 4)", async () => {
+  const r = await planOneBraham(core.tripConfig({ reachKm: { walk: 0.25, cycle: 10, drive: 25 } }));
+  const stops = new Set(r.journeys.filter(j => !j.toStation.crs).map(j => j.toStation.name));
+  assert.ok(!stops.has("Tower Hill") && !stops.has("Aldgate"), [...stops].join(","));
+  assert.ok(stops.has("Aldgate East"));
+  assert.ok(r.failed.some(f => /not London Fenchurch Street/.test(f.why)), JSON.stringify(r.failed));
+});
+test("Up to placeSearches origin stations are searched to the place per round (#56 review, finding 5)", async () => {
+  const flat = place("Pimlico flat", [51.4893, -0.1334]), t = at("2026-11-04", "08:45");
+  const ask = async c => { const log = []; await core.planTrip({ from: brighton, to: flat, modes: { from: "walk", to: "walk" }, question: { kind: "now", t }, now: t, leisureKmh: 4.5, cfg: c }, { stations: idx, access: straight, planner: recorded(log) }); return log; };
+  const log3 = await ask(cfg);
+  assert.equal(log3.slice(0, 8).filter(c => c.endsWith("-@")).length, 3, log3.join(" "));
+  const log1 = await ask(core.tripConfig({ placeSearches: 1 }));
+  assert.equal(log1.filter(c => c.endsWith("-@")).length, 2, log1.join(" "));
+});
+test("A nameless or noise-only stop name never matches a station (#56 review, finding 6)", () => {
+  assert.equal(core.sameStationName("Station", "London Fenchurch Street"), false);
+  assert.equal(core.sameStationName("", "London Fenchurch Street"), false);
+  const own = core.tflStation({ lat: 51.5118, lon: -0.0786, commonName: "Rail Station" }, idx, cfg.endMatchM);
+  assert.equal(own.known, false); assert.equal(own.station.crs, "");
+});

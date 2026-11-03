@@ -102,7 +102,10 @@ Minutes are whole minutes, rounded down.
   "Out of Aldgate · 3 min", "Walk to your destination". Round 2 adds the place for up to 3 more good origin stations.
   Stops found this way are timed with the promoted stations, so the first answer is from the station pairs and the
   complete answer can replace it ("Better option found" when ≥ 5 min sooner). Not for cycling or driving at the far
-  end, nor for a planner that can't plan to places; `placeSearches: 0` turns it off.
+  end, nor for a planner that can't plan to places; `placeSearches: 0` turns it off. The same trains alighting at
+  different stops are different journeys (07:50 via Farringdon to Aldgate East, or on to Tower Hill), so Arrive by's
+  latest leave in time prefers the nearer stop. When every round-1 search to the place is refused (a place outside
+  where TfL plans to places, e.g. Cambridge), round 2 sends no more; the refusals are listed in "Why these trains?".
 - A station-pair journey that alights at another stop and walks on to the station asked for (Letchworth → Fenchurch
   Street alights at Aldgate or Tower Hill) is refused as that pair but, when walking at the far end, kept as a journey
   to the place from that stop when it's within walking reach (3 km) of the place. "Why these trains?" says so
@@ -259,6 +262,8 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip.test.mjs: "planTrip to a place near a Tube stop (#56): the first answer is from the stations; the complete answer alights at Aldgate from TfL's own itinerary, timed from that stop, each minute once"
 - tests/core/trip.test.mjs: "planTrip to a place near a Tube stop is not Aldgate-specific: Brighton → Pimlico alights at Pimlico; cycling at the far end, a planner without places, or placeSearches 0 search stations only"
 - tests/trip-page.test.mjs: "Trip to a place near a Tube stop (#56): Letchworth → One Braham recommends alighting at Aldgate, with the Tube leg, exit and final walk shown, and Follow keeps it"
+- tests/core/trip.test.mjs: "planTrip to a place, Arrive by (#56 follow-up): the same train alighting at different stops are different journeys; the latest leave in time prefers the nearer stop (Aldgate East, not Liverpool Street + 15 min)"
+- tests/core/trip.test.mjs: "planTrip to a place outside where TfL plans to places: round 1's place searches are refused and said; round 2 sends no more"
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"

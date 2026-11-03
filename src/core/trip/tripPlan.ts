@@ -59,9 +59,12 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   const search = async (pair: Pair, t: number, timeIs: "Departing" | "Arriving") => {
     requests.planner++;
     const r = pair[1].station ? await ports.planner.plan(pair[0], pair[1].station, t, timeIs) : await ports.planner.planTo!(pair[0], pair[1].place, t, timeIs);
+    // One journey per (trains, alighting stop) for a search key: to a place, the same trains can alight at different
+    // stops (Farringdon → Aldgate East, or on to Tower Hill), and each is a journey of its own.
+    const sig = (j: RailJourney) => `${mainRides(j.rides).map(x => x.schedDep).join(",")}→${stationKey(j.rides[j.rides.length - 1].to)}`;
     const keep = (k: string, js: RailJourney[]) => {
-      const have = rail.get(k) || [], ids = new Set(have.map(j => mainRides(j.rides).map(x => x.schedDep).join(",")));
-      js.forEach(j => { const id = mainRides(j.rides).map(x => x.schedDep).join(","); if (!ids.has(id)) { ids.add(id); have.push(j); } });
+      const have = rail.get(k) || [], ids = new Set(have.map(sig));
+      js.forEach(j => { const id = sig(j); if (!ids.has(id)) { ids.add(id); have.push(j); } });
       rail.set(k, have);
     };
     keep(pairKey(pair[0], pair[1]), r.journeys);
@@ -145,11 +148,13 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   const good = (crs: string, m: Map<string, number>, promoted: boolean) => promoted || (best ? (m.get(crs) ?? Infinity) - best.arrive <= cfg.behindMin * 60e3 : true);
   const fromGood = cf.list.filter(c => good(c.station.crs, fromRank, c.why === "promoted")), toGood = ct.list.filter(c => good(c.station.crs, toRank, c.why === "promoted"));
   const tried = new Set(p1.map(([a, b]) => pairKey(a, b)));
+  // No more searches to the place once round 1's all came back empty (TfL plans to places around London only).
+  const placeWorks = !!toPlace && [...rail.keys()].some(k => k.endsWith("-@place") && (rail.get(k) || []).length > 0);
   const p2: Pair[] = []; let places = 0;
   for (const a of fromGood) {
     if (!accFrom.get(a.station.crs)) continue;
     for (const b of toGood) { const k = pairKey(a.station, toStation(b.station)); if (a.station.crs !== b.station.crs && !tried.has(k) && accTo.get(b.station.crs)) { tried.add(k); p2.push([a.station, toStation(b.station)]); } }
-    if (toPlace && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) { tried.add(pairKey(a.station, toPlace)); p2.push([a.station, toPlace]); places++; }
+    if (toPlace && placeWorks && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) { tried.add(pairKey(a.station, toPlace)); p2.push([a.station, toPlace]); places++; }
   }
   if (p2.length) await runPairs(p2, () => t0, timeIs);
   // Stops that round 2's place searches alight at: timed before the final answer.

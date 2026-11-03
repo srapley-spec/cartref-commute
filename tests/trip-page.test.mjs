@@ -144,8 +144,11 @@ test("Trip to a place near a Tube stop (#56): Letchworth → One Braham recommen
   await type(app, "to", "one braham"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
   await until(() => /Letchworth Garden City → Aldgate(?! East)/.test(app.text("#tripResults")), 6000);
   const text = app.text("#tripResults");
-  assert.match(text, /Leave by/);
-  assert.match(text, /Letchworth Garden City → Aldgate(?! East)/);
+  // The recommendation itself (the first complete card), not merely some row further down the list.
+  const pick = app.d.querySelector("#tripResults .trip-row[data-trip-id]").textContent.replace(/\s+/g, " ");
+  assert.match(pick, /Letchworth Garden City → Aldgate(?! East)/, pick.slice(0, 300));
+  assert.match(pick, /Leave by/);
+  assert.match(text, /Letchworth Garden City → Aldgate East/, "the search to the place itself contributes its own journeys");
   assert.match(text, /Metropolitan line to Aldgate|Tube/);
   assert.match(text, /Out of Aldgate/); assert.match(text, /Walk to your destination/);
   assert.match(text, /London Fenchurch Street: 3 journeys alight at Aldgate \/ Tower Hill and walk on; kept/);

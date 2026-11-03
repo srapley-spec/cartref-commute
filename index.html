@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 21:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 22:01 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4423,10 +4423,11 @@ var CommuteCore = (() => {
     const search = async (pair, t2, timeIs2) => {
       requests.planner++;
       const r = pair[1].station ? await ports.planner.plan(pair[0], pair[1].station, t2, timeIs2) : await ports.planner.planTo(pair[0], pair[1].place, t2, timeIs2);
+      const sig = (j) => `${mainRides(j.rides).map((x) => x.schedDep).join(",")}\u2192${stationKey(j.rides[j.rides.length - 1].to)}`;
       const keep = (k, js) => {
-        const have = rail.get(k) || [], ids = new Set(have.map((j) => mainRides(j.rides).map((x) => x.schedDep).join(",")));
+        const have = rail.get(k) || [], ids = new Set(have.map(sig));
         js.forEach((j) => {
-          const id = mainRides(j.rides).map((x) => x.schedDep).join(",");
+          const id = sig(j);
           if (!ids.has(id)) {
             ids.add(id);
             have.push(j);
@@ -4543,6 +4544,7 @@ var CommuteCore = (() => {
     };
     const fromGood = cf.list.filter((c) => good(c.station.crs, fromRank, c.why === "promoted")), toGood = ct.list.filter((c) => good(c.station.crs, toRank, c.why === "promoted"));
     const tried = new Set(p1.map(([a, b]) => pairKey(a, b)));
+    const placeWorks = !!toPlace && [...rail.keys()].some((k) => k.endsWith("-@place") && (rail.get(k) || []).length > 0);
     const p2 = [];
     let places = 0;
     for (const a of fromGood) {
@@ -4554,7 +4556,7 @@ var CommuteCore = (() => {
           p2.push([a.station, toStation(b.station)]);
         }
       }
-      if (toPlace && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) {
+      if (toPlace && placeWorks && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) {
         tried.add(pairKey(a.station, toPlace));
         p2.push([a.station, toPlace]);
         places++;
