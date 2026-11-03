@@ -1,6 +1,6 @@
 # UK-wide Trip: plan by rail anywhere in Great Britain
 
-Status: building (3–4 Nov 2026). Branch `feat/uk-wide-trip`.
+Status: built 3 Nov 2026 (branch `feat/uk-wide-trip`), live run recorded in `docs/reviews/trip-uk-wide-live-2026-11-03.md`; merging after independent review.
 
 ## Story
 As Sam, I want Trip to plan from any address in Great Britain to any other — a gig in Newcastle, a hotel in
@@ -78,7 +78,7 @@ Recorded TfL replies (3 Nov, for Wed 4 Nov; keys removed): `tests/fixtures/trip/
 - tests/trip-page.test.mjs: "Trip UK-wide: Letchworth → Newcastle plans through the page via Stevenage, with the total, Leave by and a York change flagged"
 - tests/trip-page.test.mjs: "Trip: a place outside the region is refused when chosen, with the region named"
 - tests/core/trip.test.mjs: "Region: Great Britain since 3 Nov (the detail is in tests/core/trip-uk.test.mjs); the old South East box is history"
-Live comparison after the build: `tools/trip-compare.mjs tools/trip-compare.example.json` (the 3 Nov journeys), written up in `docs/reviews/`.
+Live comparison after the build: `tools/trip-compare.mjs tools/trip-compare.example.json` (the 3 Nov journeys), written up in `docs/reviews/trip-uk-wide-live-2026-11-03.md`: every comparable journey matches TfL's trains and stations; against Google only bus legs and the Highland sleeper differ.
 
 ## Not yet / open
 - The Highland sleeper and other services missing from TfL's planner: Google transit as a second route source.
