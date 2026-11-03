@@ -8,7 +8,7 @@ import { hhmm, mins } from "../time";
 import { km } from "../geo";
 import type { StationIndex, LatLon } from "./ports";
 import type { Ride, RideKind, RailJourney, Station } from "./journeyCore";
-import { isMain } from "./journeyCore";
+import { isMain, stationKey } from "./journeyCore";
 
 type J = any;
 const KIND: Record<string, RideKind> = { "national-rail": "rail", "elizabeth-line": "rail", overground: "rail",
@@ -100,7 +100,7 @@ export function tflRailJourneys(body: J, from: Station, to: TflEnd, idx: Station
       notes.push(`Alight at ${last.to.name} for ${to.place.name}`);
     }
     legs.forEach((l: J) => (l.disruptions || []).forEach((d: J) => { if (d && d.description) notes.push(String(d.description)); }));
-    if (!isPlace(to) && last.to.crs !== to.crs) {
+    if (!isPlace(to) && stationKey(last.to) !== stationKey(to)) {
       const why = `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"}, not ${to.name})`;
       refused.push(why);
       if (last.to.geo[0] || last.to.geo[1]) elsewhere.push({ journey: { rides, source: "tfl", notes: [...notes, `Alights at ${last.to.name}, not ${to.name}`] }, why });

@@ -264,6 +264,8 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-page.test.mjs: "Trip to a place near a Tube stop (#56): Letchworth → One Braham recommends alighting at Aldgate, with the Tube leg, exit and final walk shown, and Follow keeps it"
 - tests/core/trip.test.mjs: "planTrip to a place, Arrive by (#56 follow-up): the same train alighting at different stops are different journeys; the latest leave in time prefers the nearer stop (Aldgate East, not Liverpool Street + 15 min)"
 - tests/core/trip.test.mjs: "planTrip to a place outside where TfL plans to places: round 1's place searches are refused and said; round 2 sends no more"
+- tests/core/trip.test.mjs: "The same train found by a station pair and by the place search (alighting at that station) is one journey, not two (#56 review, A)"
+- tests/core/trip.test.mjs: "A station end with no CRS never matches a Tube stop by accident: ends compare by stationKey (#56 review, C)"
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"

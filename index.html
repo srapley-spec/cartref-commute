@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 22:01 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 22:10 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4269,7 +4269,7 @@ var CommuteCore = (() => {
       legs.forEach((l) => (l.disruptions || []).forEach((d) => {
         if (d && d.description) notes.push(String(d.description));
       }));
-      if (!isPlace(to) && last.to.crs !== to.crs) {
+      if (!isPlace(to) && stationKey(last.to) !== stationKey(to)) {
         const why = `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"}, not ${to.name})`;
         refused.push(why);
         if (last.to.geo[0] || last.to.geo[1]) elsewhere.push({ journey: { rides, source: "tfl", notes: [...notes, `Alights at ${last.to.name}, not ${to.name}`] }, why });

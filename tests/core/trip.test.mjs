@@ -365,13 +365,18 @@ test("planTrip to a place, Arrive by (#56 follow-up): the same train alighting a
 });
 
 test("planTrip to a place outside where TfL plans to places: round 1's place searches are refused and said; round 2 sends no more", async () => {
+  // Brighton has three origin stations within walking reach; with placeSearches 1, round 1 tries Brighton only, so
+  // round 2 is where the guard matters (an origin with one candidate could not tell).
   const t0 = at("2026-11-04", "09:00"), log = [];
   const cambridge = place("Grand Arcade Cambridge", [52.2044, 0.1195]);
   const planner = { name: "fixture",
     plan: async (a, b) => { log.push(`${a.crs}-${b.crs}`); return { journeys: [], refused: ["Not recorded"] }; },
     planTo: async (a, p) => { log.push(`${a.crs}-@`); return { journeys: [], refused: [`TfL found no journey from ${a.name} to ${p.name}`] }; } };
-  await core.planTrip({ from: letchworth, to: cambridge, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg }, { stations: idx, access: straight, planner }).catch(() => null);
-  assert.ok(log.filter(c => c.endsWith("-@")).length <= 3, log.join(" "));
+  await core.planTrip({ from: brighton, to: cambridge, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg: core.tripConfig({ placeSearches: 1 }) },
+    { stations: idx, access: straight, planner }).catch(() => null);
+  assert.deepEqual(log.filter(c => c.endsWith("-@")), ["BTN-@"], log.join(" "));
+  const r = await core.planTrip({ from: letchworth, to: cambridge, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg }, { stations: idx, access: straight, planner }).catch(() => null);
+  assert.ok(log.filter(c => c.endsWith("-@")).length <= 4, log.join(" "));
 });
 
 // ---------- Independent review of b3d1738 (3 Nov): survivors turned into tests ----------
@@ -418,4 +423,25 @@ test("A nameless or noise-only stop name never matches a station (#56 review, fi
   assert.equal(core.sameStationName("", "London Fenchurch Street"), false);
   const own = core.tflStation({ lat: 51.5118, lon: -0.0786, commonName: "Rail Station" }, idx, cfg.endMatchM);
   assert.equal(own.known, false); assert.equal(own.station.crs, "");
+});
+
+test("The same train found by a station pair and by the place search (alighting at that station) is one journey, not two (#56 review, A)", async () => {
+  // The 07:50 Letchworth → Farringdon from the One Braham reply with TfL's Tube leg removed: a walk straight from Farringdon.
+  const body = JSON.parse(JSON.stringify(fxb("letchworth-onebraham")));
+  const j = body.journeys[1]; j.legs = [j.legs[0], j.legs[2]]; body.journeys = [j];
+  const near = place("Near Farringdon", [j.legs[1].arrivalPoint.lat, j.legs[1].arrivalPoint.lon]);
+  const railOnly = { journeys: [{ ...j, legs: [j.legs[0]] }] };
+  const log = [];
+  const planner = { name: "fixture",
+    plan: async (a, b) => { log.push(`${a.crs}-${b.crs}`); return a.crs === "LET" && b.crs === "ZFD" ? core.tflRailJourneys(railOnly, a, b, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; },
+    planTo: async (a, p) => { log.push(`${a.crs}-@`); return a.crs === "LET" ? core.tflRailJourneys(body, a, { place: p }, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; } };
+  const t0 = at("2026-11-04", "07:15");
+  const r = await core.planTrip({ from: letchworth, to: near, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg }, { stations: idx, access: straight, planner });
+  assert.ok(log.includes("LET-ZFD") && log.includes("LET-@"), log.join(" "));
+  assert.deepEqual(r.journeys.map(x => x.id), ["LET|ZFD|LET07:50"]);
+});
+test("A station end with no CRS never matches a Tube stop by accident: ends compare by stationKey (#56 review, C)", () => {
+  const bogus = { crs: "", name: "One Braham", geo: oneBraham.geo, carPark: "unknown", servicePerHour: 0, ids: {} };
+  const r = core.tflRailJourneys(fxb("letchworth-onebraham"), st("LET"), bogus, idx, cfg.endMatchM);
+  assert.equal(r.journeys.length, 0); assert.match(r.refused[0], /not One Braham\)$/);
 });
