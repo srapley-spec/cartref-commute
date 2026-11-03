@@ -1,4 +1,4 @@
-// Build data/stations.json: the region's rail stations for Trip mode (docs/leisure-architecture.md §6).
+// Build data/stations.json: Great Britain's rail stations for Trip mode (docs/leisure-architecture.md §6; UK-wide since 3 Nov).
 // Run by hand (needs TFL_APP_KEY and RDM_API_KEY + RDM_BASE_URL in the environment); review the report, commit.
 //   node tools/stations.mjs [--no-service]
 // Sources: the open UK stations list (name, position, CRS; ODbL 1.0, github.com/davwheat/uk-railway-stations),
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REGION = { s: 50.55, w: -1.95, n: 53.0, e: 1.80 };   // the box of TRIP_DEFAULTS.region (src/core/trip/config.ts); stations just outside the outline stay usable
+const REGION = { s: 49.85, w: -8.70, n: 60.90, e: 1.80 };   // the box of TRIP_DEFAULTS.region (src/core/trip/config.ts): Great Britain
 const LIST = "https://raw.githubusercontent.com/davwheat/uk-railway-stations/main/stations.json";
 const TFL = process.env.TFL_APP_KEY, RDM = process.env.RDM_API_KEY, RDM_BASE = (process.env.RDM_BASE_URL || "").replace(/\/+$/, "");
 const keepMeasured = process.argv.includes("--keep-measured");   // re-match TfL IDs only; keep car park / service

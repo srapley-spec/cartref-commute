@@ -32,7 +32,10 @@ export interface StationIndex {
 export interface PlannerReply { journeys: RailJourney[]; refused: string[];
   /** Journeys that alight at another stop than the station asked for and walk on: a usable journey to that stop when
    *  the far end is on foot (the planner decides), each with why it was refused as the asked trip. */
-  elsewhere?: { journey: RailJourney; why: string }[] }
+  elsewhere?: { journey: RailJourney; why: string }[];
+  /** Journeys that begin with TfL's walk from the station asked for to another stop and board there: usable when the
+   *  first mile is on foot (the planner decides), each with why it was refused as the asked trip. */
+  elsewhereFrom?: { journey: RailJourney; why: string }[] }
 export interface RailPlanner {
   readonly name: string;
   plan(from: Station, to: Station, t: number, timeIs: "Departing" | "Arriving"): Promise<PlannerReply>;

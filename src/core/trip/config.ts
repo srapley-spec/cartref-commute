@@ -20,14 +20,16 @@ export interface TripConfig {
   allow: TripAllowances;
 }
 export const TRIP_DEFAULTS: TripConfig = {
-  // London, the South East and the East of England, outlined roughly along their county edges (Hampshire, Berkshire,
-  // Oxfordshire, Buckinghamshire, Bedfordshire, Cambridgeshire, Norfolk): Swindon, Coventry and Northampton are out;
-  // north Norfolk (Cromer, Sheringham, King's Lynn) is in. Approximate: a place within a few km of a county edge may
-  // fall either side.
-  region: { s: 50.55, w: -1.95, n: 53.0, e: 1.80, outline: [
-    [50.55, -1.95], [51.00, -1.95], [51.20, -1.63], [51.45, -1.58], [51.60, -1.68], [51.85, -1.72], [52.10, -1.55],
-    [52.17, -1.30], [52.05, -1.05], [52.20, -0.70], [52.32, -0.45], [52.55, -0.30], [52.75, -0.05], [52.80, 0.20],
-    [53.00, 0.60], [53.00, 1.80], [50.55, 1.80]] },
+  // Great Britain (UK-wide Trip, 3 Nov 2026): England, Scotland and Wales with their islands, outlined roughly along
+  // the coast so that Northern Ireland, Ireland and the Isle of Man are out (no National Rail, not in the station list
+  // or TfL's planner). Approximate: a point at sea near the coast may fall either side. Until 3 Nov this was London,
+  // the South East and the East of England.
+  region: { s: 49.85, w: -8.70, n: 60.90, e: 1.80, outline: [
+    [49.85, -6.60], [50.05, -5.80], [51.15, -5.00], [51.70, -5.60], [52.20, -4.90], [52.95, -4.95], [53.45, -4.80],
+    [54.00, -3.40], [54.55, -3.70], [54.65, -5.25], [55.05, -5.35], [55.40, -5.95], [56.00, -6.70], [56.70, -7.20],
+    [57.60, -7.90], [58.70, -7.40], [58.80, -3.60], [59.30, -3.80], [59.50, -1.90], [60.90, -1.70], [60.90, -0.50],
+    [59.10, -1.00], [57.70, -1.50], [56.00, -1.90], [55.50, -1.20], [54.40, -0.20], [53.60, 0.50], [52.90, 1.80],
+    [51.30, 1.80], [50.60, 0.60], [50.40, -1.30], [49.85, -5.90]] },
   reachKm: { walk: 3, cycle: 10, drive: 25 },
   nearest: 3, wellServed: 2, wellServedFactor: 2, placeSearches: 3,
   round1Max: 9, totalMax: 18, behindMin: 30, laterPairs: 3, windowMin: 100,
@@ -60,4 +62,4 @@ export function inRegion(geo: [number, number], r: Region): boolean {
   }
   return inside;
 }
-export const OUTSIDE_REGION = "Outside the area this plans: London, the South East and the East of England.";
+export const OUTSIDE_REGION = "Outside the area this plans: Great Britain (England, Scotland and Wales by rail).";

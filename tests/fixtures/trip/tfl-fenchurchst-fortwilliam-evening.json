@@ -1,0 +1,1410 @@
+{
+ "recorded": "2026-11-03T22:37:37.057692Z",
+ "request": "Journey/JourneyResults/1001108/to/910GFRTWLM?date=20261104&time=2000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": "200",
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T23:15:00",
+    "duration": 777,
+    "arrivalDateTime": "2026-11-05T12:12:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Transfer to Tower Hill",
+       "detailed": "Transfer to Tower Hill",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Cooper's Row/Trinity Square for 124 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Cooper's Row/Trinity Square",
+         "distance": 124,
+         "cumulativeDistance": 124,
+         "skyDirection": 345,
+         "skyDirectionDescription": "North",
+         "cumulativeTravelTime": 101,
+         "latitude": 51.511093895651,
+         "longitude": -0.077147305488,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 101
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Trinity Place, continue for 35 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "Trinity Place",
+         "distance": 35,
+         "cumulativeDistance": 160,
+         "skyDirection": 293,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 130,
+         "latitude": 51.510000404310006,
+         "longitude": -0.07681865878899999,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 28
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 9 metres",
+         "turnDirection": "SHARP_RIGHT",
+         "streetName": "",
+         "distance": 9,
+         "cumulativeDistance": 169,
+         "skyDirection": 21,
+         "skyDirectionDescription": "North",
+         "cumulativeTravelTime": 138,
+         "latitude": 51.509992374199,
+         "longitude": -0.07632901861100001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a sharp right",
+         "trackType": "None",
+         "travelTime": 7
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 11 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "",
+         "distance": 11,
+         "cumulativeDistance": 181,
+         "skyDirection": 336,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 147,
+         "latitude": 51.509912205425,
+         "longitude": -0.076375628919,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 9
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 10 metres",
+         "turnDirection": "SLIGHT_RIGHT",
+         "streetName": "",
+         "distance": 10,
+         "cumulativeDistance": 191,
+         "skyDirection": 72,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 156,
+         "latitude": 51.509840550608004,
+         "longitude": -0.076393058278,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight right",
+         "trackType": "None",
+         "travelTime": 8
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 13 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 13,
+         "cumulativeDistance": 204,
+         "skyDirection": 80,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 166,
+         "latitude": 51.509816189582,
+         "longitude": -0.076552606212,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 10
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 24 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 24,
+         "cumulativeDistance": 228,
+         "skyDirection": 85,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 186,
+         "latitude": 51.509792300657,
+         "longitude": -0.076740956218,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 19
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T23:15:00",
+      "arrivalTime": "2026-11-04T23:20:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001108",
+       "individualStopId": "4900FENCHRS2",
+       "commonName": "Fenchurch Street Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.511093659538,
+       "lon": -0.07713290395599999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUTWH",
+       "platformName": "",
+       "icsCode": "1000238",
+       "individualStopId": "9400ZZLUTWH2",
+       "commonName": "Tower Hill Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.509770064332,
+       "lon": -0.07703011383
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 228.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:15:00",
+      "scheduledArrivalTime": "2026-11-04T23:20:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "District line to Monument",
+       "detailed": "District line towards Richmond",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:20:00",
+      "arrivalTime": "2026-11-04T23:22:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUTWH",
+       "platformName": "",
+       "icsCode": "1000238",
+       "individualStopId": "9400ZZLUTWH2",
+       "commonName": "Tower Hill Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.509770064332,
+       "lon": -0.07703011383
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMMT",
+       "platformName": "",
+       "icsCode": "1000148",
+       "individualStopId": "9400ZZLUMMT2",
+       "commonName": "Monument Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.510721553261,
+       "lon": -0.086270955927
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "District",
+        "directions": [
+         "Richmond Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "district",
+         "name": "District",
+         "uri": "/Line/district",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.Disruption, Tfl.Api.Presentation.Entities",
+        "category": "PlannedWork",
+        "type": "stopInfo",
+        "categoryDescription": "PlannedWork",
+        "description": "BANK AND MONUMENT STATIONS: From Monday 20 October 2025 until early 2027. Replacement of escalators 4 and 5. These connect the Northern line platforms with the District and Circle line platforms. While this work takes place, the walking route between these platforms will be closed. Please allow a little longer for your journey and follow the signs, which will direct you via an alternative walking route. Depending on your journey, this route may be via street level. To pay the correct fare, just touch out as you exit and touch back in again, as you re-enter.",
+        "summary": "",
+        "additionalInfo": "",
+        "created": "2025-10-07T15:02:00",
+        "lastUpdate": "2026-10-16T14:58:00"
+       }
+      ],
+      "distance": 4.0,
+      "isDisrupted": true,
+      "scheduledDepartureTime": "2026-11-04T23:20:00",
+      "scheduledArrivalTime": "2026-11-04T23:22:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Bank",
+       "detailed": "Walk to Bank",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:23:00",
+      "arrivalTime": "2026-11-04T23:28:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMMT",
+       "platformName": "",
+       "icsCode": "1000148",
+       "individualStopId": "9400ZZLUMMT2",
+       "commonName": "Monument Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.510721553261,
+       "lon": -0.086270955927
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK4",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512312674973,
+       "lon": -0.08789045923199999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 117.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:23:00",
+      "scheduledArrivalTime": "2026-11-04T23:28:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 10,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern line to Euston",
+       "detailed": "Northern line towards High Barnet Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:28:00",
+      "arrivalTime": "2026-11-04T23:38:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK4",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512312674973,
+       "lon": -0.08789045923199999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUEUS",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9400ZZLUEUS2",
+       "commonName": "Euston Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528213681253,
+       "lon": -0.132680556129
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern",
+        "directions": [
+         "High Barnet Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern",
+         "name": "Northern",
+         "uri": "/Line/northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.Disruption, Tfl.Api.Presentation.Entities",
+        "category": "PlannedWork",
+        "type": "stopInfo",
+        "categoryDescription": "PlannedWork",
+        "description": "BANK AND MONUMENT STATIONS: From Monday 20 October 2025 until early 2027. Replacement of escalators 4 and 5. These connect the Northern line platforms with the District and Circle line platforms. While this work takes place, the walking route between these platforms will be closed. Please allow a little longer for your journey and follow the signs, which will direct you via an alternative walking route. Depending on your journey, this route may be via street level. To pay the correct fare, just touch out as you exit and touch back in again, as you re-enter.",
+        "summary": "",
+        "additionalInfo": "",
+        "created": "2025-10-07T15:02:00",
+        "lastUpdate": "2026-10-16T14:58:00"
+       }
+      ],
+      "distance": 54.0,
+      "isDisrupted": true,
+      "scheduledDepartureTime": "2026-11-04T23:28:00",
+      "scheduledArrivalTime": "2026-11-04T23:38:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 465,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Caledonian Sleeper to Glasgow Central",
+       "detailed": "Caledonian Sleeper towards Glasgow Central",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:45:00",
+      "arrivalTime": "2026-11-05T07:30:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEUSTON",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9100EUSTON0",
+       "commonName": "London Euston Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528952000598,
+       "lon": -0.135000319536
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Caledonian Sleeper",
+        "directions": [
+         "Glasgow Central Rail Station"
+        ],
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 120.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:45:00",
+      "scheduledArrivalTime": "2026-11-05T07:30:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 30,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Glasgow Queen Street Rail Station",
+       "detailed": "Walk to Glasgow Queen Street Rail Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:52:00",
+      "arrivalTime": "2026-11-05T08:22:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL2",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862370688488,
+       "lon": -4.250731301795001
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 49.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:52:00",
+      "scheduledArrivalTime": "2026-11-05T08:22:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 230,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Fort William",
+       "detailed": "ScotRail towards Mallaig",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T08:22:00",
+      "arrivalTime": "2026-11-05T12:12:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL2",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862370688488,
+       "lon": -4.250731301795001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Mallaig Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 90.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T08:22:00",
+      "scheduledArrivalTime": "2026-11-05T12:12:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-05T07:00:00",
+    "duration": 549,
+    "arrivalDateTime": "2026-11-05T16:09:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Transfer to Tower Hill",
+       "detailed": "Transfer to Tower Hill",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Cooper's Row/Trinity Square for 124 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Cooper's Row/Trinity Square",
+         "distance": 124,
+         "cumulativeDistance": 124,
+         "skyDirection": 345,
+         "skyDirectionDescription": "North",
+         "cumulativeTravelTime": 101,
+         "latitude": 51.511093895651,
+         "longitude": -0.077147305488,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 101
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Trinity Place, continue for 35 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "Trinity Place",
+         "distance": 35,
+         "cumulativeDistance": 160,
+         "skyDirection": 293,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 130,
+         "latitude": 51.510000404310006,
+         "longitude": -0.07681865878899999,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 28
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 9 metres",
+         "turnDirection": "SHARP_RIGHT",
+         "streetName": "",
+         "distance": 9,
+         "cumulativeDistance": 169,
+         "skyDirection": 21,
+         "skyDirectionDescription": "North",
+         "cumulativeTravelTime": 138,
+         "latitude": 51.509992374199,
+         "longitude": -0.07632901861100001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a sharp right",
+         "trackType": "None",
+         "travelTime": 7
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 11 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "",
+         "distance": 11,
+         "cumulativeDistance": 181,
+         "skyDirection": 336,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 147,
+         "latitude": 51.509912205425,
+         "longitude": -0.076375628919,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 9
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 10 metres",
+         "turnDirection": "SLIGHT_RIGHT",
+         "streetName": "",
+         "distance": 10,
+         "cumulativeDistance": 191,
+         "skyDirection": 72,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 156,
+         "latitude": 51.509840550608004,
+         "longitude": -0.076393058278,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight right",
+         "trackType": "None",
+         "travelTime": 8
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 13 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 13,
+         "cumulativeDistance": 204,
+         "skyDirection": 80,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 166,
+         "latitude": 51.509816189582,
+         "longitude": -0.076552606212,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 10
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 24 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 24,
+         "cumulativeDistance": 228,
+         "skyDirection": 85,
+         "skyDirectionDescription": "East",
+         "cumulativeTravelTime": 186,
+         "latitude": 51.509792300657,
+         "longitude": -0.076740956218,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 19
+        }
+       ]
+      },
+      "departureTime": "2026-11-05T07:00:00",
+      "arrivalTime": "2026-11-05T07:05:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1001108",
+       "individualStopId": "4900FENCHRS2",
+       "commonName": "Fenchurch Street Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.511093659538,
+       "lon": -0.07713290395599999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUTWH",
+       "platformName": "",
+       "icsCode": "1000238",
+       "individualStopId": "9400ZZLUTWH2",
+       "commonName": "Tower Hill Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.509770064332,
+       "lon": -0.07703011383
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 228.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:00:00",
+      "scheduledArrivalTime": "2026-11-05T07:05:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "District line to Monument",
+       "detailed": "District line towards Ealing Broadway",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:05:00",
+      "arrivalTime": "2026-11-05T07:07:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUTWH",
+       "platformName": "",
+       "icsCode": "1000238",
+       "individualStopId": "9400ZZLUTWH2",
+       "commonName": "Tower Hill Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.509770064332,
+       "lon": -0.07703011383
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMMT",
+       "platformName": "",
+       "icsCode": "1000148",
+       "individualStopId": "9400ZZLUMMT2",
+       "commonName": "Monument Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.510721553261,
+       "lon": -0.086270955927
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "District",
+        "directions": [
+         "Ealing Broadway Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "district",
+         "name": "District",
+         "uri": "/Line/district",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.Disruption, Tfl.Api.Presentation.Entities",
+        "category": "PlannedWork",
+        "type": "stopInfo",
+        "categoryDescription": "PlannedWork",
+        "description": "BANK AND MONUMENT STATIONS: From Monday 20 October 2025 until early 2027. Replacement of escalators 4 and 5. These connect the Northern line platforms with the District and Circle line platforms. While this work takes place, the walking route between these platforms will be closed. Please allow a little longer for your journey and follow the signs, which will direct you via an alternative walking route. Depending on your journey, this route may be via street level. To pay the correct fare, just touch out as you exit and touch back in again, as you re-enter.",
+        "summary": "",
+        "additionalInfo": "",
+        "created": "2025-10-07T15:02:00",
+        "lastUpdate": "2026-10-16T14:58:00"
+       }
+      ],
+      "distance": 4.0,
+      "isDisrupted": true,
+      "scheduledDepartureTime": "2026-11-05T07:05:00",
+      "scheduledArrivalTime": "2026-11-05T07:07:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Bank",
+       "detailed": "Walk to Bank",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:08:00",
+      "arrivalTime": "2026-11-05T07:13:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMMT",
+       "platformName": "",
+       "icsCode": "1000148",
+       "individualStopId": "9400ZZLUMMT2",
+       "commonName": "Monument Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.510721553261,
+       "lon": -0.086270955927
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK4",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512312674973,
+       "lon": -0.08789045923199999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 117.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:08:00",
+      "scheduledArrivalTime": "2026-11-05T07:13:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 10,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern line to Euston",
+       "detailed": "Northern line towards Edgware Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:13:00",
+      "arrivalTime": "2026-11-05T07:23:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBNK",
+       "platformName": "",
+       "icsCode": "1000013",
+       "individualStopId": "9400ZZLUBNK4",
+       "commonName": "Bank Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.512312674973,
+       "lon": -0.08789045923199999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUEUS",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9400ZZLUEUS2",
+       "commonName": "Euston Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528213681253,
+       "lon": -0.132680556129
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern",
+        "directions": [
+         "Edgware Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern",
+         "name": "Northern",
+         "uri": "/Line/northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.Disruption, Tfl.Api.Presentation.Entities",
+        "category": "PlannedWork",
+        "type": "stopInfo",
+        "categoryDescription": "PlannedWork",
+        "description": "BANK AND MONUMENT STATIONS: From Monday 20 October 2025 until early 2027. Replacement of escalators 4 and 5. These connect the Northern line platforms with the District and Circle line platforms. While this work takes place, the walking route between these platforms will be closed. Please allow a little longer for your journey and follow the signs, which will direct you via an alternative walking route. Depending on your journey, this route may be via street level. To pay the correct fare, just touch out as you exit and touch back in again, as you re-enter.",
+        "summary": "",
+        "additionalInfo": "",
+        "created": "2025-10-07T15:02:00",
+        "lastUpdate": "2026-10-16T14:58:00"
+       }
+      ],
+      "distance": 54.0,
+      "isDisrupted": true,
+      "scheduledDepartureTime": "2026-11-05T07:13:00",
+      "scheduledArrivalTime": "2026-11-05T07:23:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 271,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Avanti West Coast to Glasgow Central",
+       "detailed": "Avanti West Coast towards Glasgow Central",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:30:00",
+      "arrivalTime": "2026-11-05T12:01:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEUSTON",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9100EUSTON0",
+       "commonName": "London Euston Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528952000598,
+       "lon": -0.135000319536
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Avanti West Coast",
+        "directions": [
+         "Glasgow Central Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "avanti-west-coast",
+         "name": "Avanti West Coast",
+         "uri": "/Line/avanti-west-coast",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 120.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:30:00",
+      "scheduledArrivalTime": "2026-11-05T12:01:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 25,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Dalmuir",
+       "detailed": "ScotRail towards Dalmuir",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T12:17:00",
+      "arrivalTime": "2026-11-05T12:42:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGCLL2",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.858556820221,
+       "lon": -4.258260849273
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDALMUIR",
+       "platformName": "",
+       "stopLetter": "WB-C",
+       "icsCode": "90002007",
+       "individualStopId": "9100DALMUIR2",
+       "commonName": "Dalmuir Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.912112821881,
+       "lon": -4.42686840232
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Dalmuir Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 63.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T12:17:00",
+      "scheduledArrivalTime": "2026-11-05T12:42:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 205,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Fort William",
+       "detailed": "ScotRail towards Mallaig",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T12:44:00",
+      "arrivalTime": "2026-11-05T16:09:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDALMUIR",
+       "platformName": "",
+       "stopLetter": "WB-C",
+       "icsCode": "90002007",
+       "individualStopId": "9100DALMUIR2",
+       "commonName": "Dalmuir Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.912112821881,
+       "lon": -4.42686840232
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Mallaig Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 90.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T12:44:00",
+      "scheduledArrivalTime": "2026-11-05T16:09:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "district",
+    "name": "District",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=District&serviceTypes=Regular"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "northern",
+    "name": "Northern",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Northern&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Northern&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-04T20:00:00",
+   "dateTimeType": "Departing",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1001108/to/910gfrtwlm?date=20261104&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "1945",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1001108/to/910gfrtwlm?date=20261104&time=1945&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0701",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1001108/to/910gfrtwlm?date=20261105&time=0701&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1001108/to/910gfrtwlm?date=20261105&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "1001108",
+   "to": "90002865",
+   "via": "",
+   "uri": "/journey/journeyresults/1001108/to/910gfrtwlm?date=20261104&time=2000&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL (UK-wide Trip, 3 Nov); app_key removed; leg path geometry removed (unused)."
+}

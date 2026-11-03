@@ -361,6 +361,19 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **3 Nov (late), UK-wide Trip.** Sam: "I want to be able to travel anywhere in the UK by rail including gigs to tube
+  stations in London and then walking"; "this is the one that's critical to test and document." The region becomes
+  Great Britain (coast outline; Northern Ireland, Ireland and the Isle of Man out), the station list national (2,609,
+  TfL IDs for 2,588 with overrides for 14 TfL names differently), endpoints by station ID everywhere and by position
+  only where TfL can (London). Found in the dry run and fixed in the same change: TfL replies from the London office's
+  stations often *begin* with a walk to another Tube stop (Fenchurch Street → Aldgate; Liverpool Street → Moorgate) and
+  were refused as "a different place", losing the 08:30 LNER and every evening Fort William option; such journeys are
+  now kept as boarding at that stop when the first mile is on foot and the stop is within walking reach, the mirror of
+  #56 at the departure end (my call, within Sam's "don't limit yourself"; flagged). Known and recorded: TfL's planner
+  lacks the direct Highland Caledonian Sleeper, so Fort William shows the Glasgow sleeper plus a connection until a
+  second route source exists; departures-per-hour is measured only for the South East, so elsewhere the three nearest
+  stations are the candidates. Story: `docs/stories/uk-wide-trip.md`; mechanism: `docs/trip-engine.md`.
+
 - **3 Nov, alight at Tube stops; plan to the place (issue #56).** Letchworth → One Braham (next to Aldgate East) was
   recommended via Liverpool Street and a long walk; the same train via Aldgate arrives about 8 min sooner. Causes,
   proved with live TfL replies through the app's code: Tube-only stops can't be in the station list so could never be

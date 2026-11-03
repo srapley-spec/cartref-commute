@@ -1,0 +1,893 @@
+{
+ "recorded": "2026-11-03T22:32:55.615317Z",
+ "request": "Journey/JourneyResults/910GFRTWLM/to/1000460?date=20261104&time=1700&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": "200",
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T17:37:00",
+    "duration": 872,
+    "arrivalDateTime": "2026-11-05T08:09:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 246,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Glasgow Queen Street",
+       "detailed": "ScotRail towards Glasgow Queen Street",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T17:37:00",
+      "arrivalTime": "2026-11-04T21:43:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "EB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL1",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862415578195,
+       "lon": -4.25073389876
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Glasgow Queen Street Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 98.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T17:37:00",
+      "scheduledArrivalTime": "2026-11-04T21:43:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 30,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Glasgow Central Rail Station",
+       "detailed": "Walk to Glasgow Central Rail Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:10:00",
+      "arrivalTime": "2026-11-04T23:40:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "EB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL1",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862415578195,
+       "lon": -4.25073389876
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 18.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:10:00",
+      "scheduledArrivalTime": "2026-11-04T23:40:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 455,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Caledonian Sleeper to London Euston",
+       "detailed": "Caledonian Sleeper towards London Euston",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:40:00",
+      "arrivalTime": "2026-11-05T07:15:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEUSTON",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9100EUSTON0",
+       "commonName": "London Euston Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528952000598,
+       "lon": -0.135000319536
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Caledonian Sleeper",
+        "directions": [
+         "London Euston Rail Station"
+        ],
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 55.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:40:00",
+      "scheduledArrivalTime": "2026-11-05T07:15:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 4,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Victoria line to Highbury & Islington",
+       "detailed": "Victoria line towards Walthamstow Central",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:22:00",
+      "arrivalTime": "2026-11-05T07:26:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUEUS",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9400ZZLUEUS1",
+       "commonName": "Euston Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528393643432,
+       "lon": -0.132687609688
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUHAI",
+       "platformName": "",
+       "icsCode": "1000108",
+       "individualStopId": "9400ZZLUHAI1",
+       "commonName": "Highbury & Islington Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.546929620722004,
+       "lon": -0.103689094256
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Victoria",
+        "directions": [
+         "Walthamstow Central Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "victoria",
+         "name": "Victoria",
+         "uri": "/Line/victoria",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 68.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:22:00",
+      "scheduledArrivalTime": "2026-11-05T07:26:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Great Northern to Finsbury Park",
+       "detailed": "Great Northern towards Stevenage",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:28:00",
+      "arrivalTime": "2026-11-05T07:33:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHGHI",
+       "platformName": "",
+       "icsCode": "1000108",
+       "individualStopId": "9100HGHI2",
+       "commonName": "Highbury & Islington Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.546944564902,
+       "lon": -0.10350097704
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFNPK",
+       "platformName": "",
+       "icsCode": "1000334",
+       "individualStopId": "9100FNPK1",
+       "commonName": "Finsbury Park Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.564744134315,
+       "lon": -0.10649738215200001
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Great Northern",
+        "directions": [
+         "Stevenage Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "great-northern",
+         "name": "Great Northern",
+         "uri": "/Line/great-northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 113.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:28:00",
+      "scheduledArrivalTime": "2026-11-05T07:33:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 31,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Thameslink to Letchworth",
+       "detailed": "Thameslink towards Cambridge",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:38:00",
+      "arrivalTime": "2026-11-05T08:09:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFNPK",
+       "platformName": "",
+       "icsCode": "1000334",
+       "individualStopId": "9100FNPK1",
+       "commonName": "Finsbury Park Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.564744134315,
+       "lon": -0.10649738215200001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLTCE",
+       "platformName": "",
+       "icsCode": "1000460",
+       "individualStopId": "9100LTCE0",
+       "commonName": "Letchworth Garden City Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.979962322550996,
+       "lon": -0.229264157914
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Thameslink",
+        "directions": [
+         "Cambridge Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "thameslink",
+         "name": "Thameslink",
+         "uri": "/Line/thameslink",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 145.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:38:00",
+      "scheduledArrivalTime": "2026-11-05T08:09:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-05T07:44:00",
+    "duration": 577,
+    "arrivalDateTime": "2026-11-05T17:21:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 194,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Dumbarton Central",
+       "detailed": "ScotRail towards Glasgow Queen Street",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:44:00",
+      "arrivalTime": "2026-11-05T10:58:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDMBRTNC",
+       "platformName": "",
+       "stopLetter": "EB",
+       "icsCode": "90002164",
+       "individualStopId": "9100DMBRTNC1",
+       "commonName": "Dumbarton Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.946559272203,
+       "lon": -4.56755494678
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Glasgow Queen Street Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 36.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:44:00",
+      "scheduledArrivalTime": "2026-11-05T10:58:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 102,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Edinburgh",
+       "detailed": "ScotRail towards Edinburgh",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T11:10:00",
+      "arrivalTime": "2026-11-05T12:52:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDMBRTNC",
+       "platformName": "",
+       "stopLetter": "EB",
+       "icsCode": "90002164",
+       "individualStopId": "9100DMBRTNC1",
+       "commonName": "Dumbarton Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.946559272203,
+       "lon": -4.56755494678
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEDINBUR",
+       "platformName": "",
+       "icsCode": "90002457",
+       "individualStopId": "9100EDINBUR0",
+       "commonName": "Edinburgh Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.952642869781,
+       "lon": -3.188235355074
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Edinburgh Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 57.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T11:10:00",
+      "scheduledArrivalTime": "2026-11-05T12:52:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 134,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "London North Eastern Railway to York",
+       "detailed": "London North Eastern Railway towards London King's Cross",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T13:00:00",
+      "arrivalTime": "2026-11-05T15:14:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEDINBUR",
+       "platformName": "",
+       "icsCode": "90002457",
+       "individualStopId": "9100EDINBUR0",
+       "commonName": "Edinburgh Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.952642869781,
+       "lon": -3.188235355074
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GYORK",
+       "platformName": "",
+       "stopLetter": "SB",
+       "icsCode": "90008178",
+       "individualStopId": "9100YORK2",
+       "commonName": "York Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 53.958153017174,
+       "lon": -1.0931780396489998
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "London North Eastern Railway",
+        "directions": [
+         "London King's Cross Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "london-north-eastern-railway",
+         "name": "London North Eastern Railway",
+         "uri": "/Line/london-north-eastern-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 6.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T13:00:00",
+      "scheduledArrivalTime": "2026-11-05T15:14:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 92,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "London North Eastern Railway to Stevenage",
+       "detailed": "London North Eastern Railway towards London King's Cross",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T15:31:00",
+      "arrivalTime": "2026-11-05T17:03:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GYORK",
+       "platformName": "",
+       "stopLetter": "SB",
+       "icsCode": "90008178",
+       "individualStopId": "9100YORK2",
+       "commonName": "York Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 53.958153017174,
+       "lon": -1.0931780396489998
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GSTEVNGE",
+       "platformName": "",
+       "icsCode": "1023126",
+       "commonName": "Stevenage Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.901685850901,
+       "lon": -0.20710946325500001
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "London North Eastern Railway",
+        "directions": [
+         "London King's Cross Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "london-north-eastern-railway",
+         "name": "London North Eastern Railway",
+         "uri": "/Line/london-north-eastern-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 50.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T15:31:00",
+      "scheduledArrivalTime": "2026-11-05T17:03:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 12,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Great Northern to Letchworth",
+       "detailed": "Great Northern towards Letchworth",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T17:09:00",
+      "arrivalTime": "2026-11-05T17:21:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GSTEVNGE",
+       "platformName": "",
+       "icsCode": "1023126",
+       "commonName": "Stevenage Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.901685850901,
+       "lon": -0.20710946325500001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GLTCE",
+       "platformName": "",
+       "icsCode": "1000460",
+       "commonName": "Letchworth Garden City Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.979962322550996,
+       "lon": -0.229264157914
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Great Northern",
+        "directions": [
+         "Letchworth Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "great-northern",
+         "name": "Great Northern",
+         "uri": "/Line/great-northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 138.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T17:09:00",
+      "scheduledArrivalTime": "2026-11-05T17:21:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "victoria",
+    "name": "Victoria",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Victoria&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Victoria&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-04T17:00:00",
+   "dateTimeType": "Departing",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gfrtwlm/to/1000460?date=20261104&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "1645",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gfrtwlm/to/1000460?date=20261104&time=1645&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0745",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gfrtwlm/to/1000460?date=20261105&time=0745&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/910gfrtwlm/to/1000460?date=20261105&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "90002865",
+   "to": "1000460",
+   "via": "",
+   "uri": "/journey/journeyresults/910gfrtwlm/to/1000460?date=20261104&time=1700&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL (UK-wide Trip, 3 Nov); app_key removed; leg path geometry removed (unused)."
+}

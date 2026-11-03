@@ -1,0 +1,798 @@
+{
+ "recorded": "2026-11-03T22:32:48.775356Z",
+ "request": "Journey/JourneyResults/1000138/to/910GFRTWLM?date=20261104&time=2000&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": "200",
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T23:25:00",
+    "duration": 767,
+    "arrivalDateTime": "2026-11-05T12:12:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Transfer to Moorgate Station",
+       "detailed": "Transfer to Moorgate Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:25:00",
+      "arrivalTime": "2026-11-04T23:30:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9100LIVSTLL0",
+       "commonName": "Liverpool Street Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518379547636,
+       "lon": -0.08109252348
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMGT",
+       "platformName": "",
+       "icsCode": "1000149",
+       "individualStopId": "9400ZZLUMGT3",
+       "commonName": "Moorgate Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.51892427501,
+       "lon": -0.08801714332499999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 8.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:25:00",
+      "scheduledArrivalTime": "2026-11-04T23:30:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 8,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern line to Euston",
+       "detailed": "Northern line towards High Barnet Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:30:00",
+      "arrivalTime": "2026-11-04T23:38:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMGT",
+       "platformName": "",
+       "icsCode": "1000149",
+       "individualStopId": "9400ZZLUMGT3",
+       "commonName": "Moorgate Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.51892427501,
+       "lon": -0.08801714332499999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUEUS",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9400ZZLUEUS2",
+       "commonName": "Euston Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528213681253,
+       "lon": -0.132680556129
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern",
+        "directions": [
+         "High Barnet Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern",
+         "name": "Northern",
+         "uri": "/Line/northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 54.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:30:00",
+      "scheduledArrivalTime": "2026-11-04T23:38:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 465,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Caledonian Sleeper to Glasgow Central",
+       "detailed": "Caledonian Sleeper towards Glasgow Central",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T23:45:00",
+      "arrivalTime": "2026-11-05T07:30:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEUSTON",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9100EUSTON0",
+       "commonName": "London Euston Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528952000598,
+       "lon": -0.135000319536
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Caledonian Sleeper",
+        "directions": [
+         "Glasgow Central Rail Station"
+        ],
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 120.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T23:45:00",
+      "scheduledArrivalTime": "2026-11-05T07:30:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 30,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Glasgow Queen Street Rail Station",
+       "detailed": "Walk to Glasgow Queen Street Rail Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:52:00",
+      "arrivalTime": "2026-11-05T08:22:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL2",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862370688488,
+       "lon": -4.250731301795001
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 49.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:52:00",
+      "scheduledArrivalTime": "2026-11-05T08:22:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 230,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Fort William",
+       "detailed": "ScotRail towards Mallaig",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T08:22:00",
+      "arrivalTime": "2026-11-05T12:12:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGQHL",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002986",
+       "individualStopId": "9100GLGQHL2",
+       "commonName": "Glasgow Queen Street Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.862370688488,
+       "lon": -4.250731301795001
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Mallaig Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 90.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T08:22:00",
+      "scheduledArrivalTime": "2026-11-05T12:12:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-05T07:10:00",
+    "duration": 539,
+    "arrivalDateTime": "2026-11-05T16:09:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Transfer to Moorgate Station",
+       "detailed": "Transfer to Moorgate Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:10:00",
+      "arrivalTime": "2026-11-05T07:15:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "platformName": "",
+       "icsCode": "1000138",
+       "individualStopId": "9100LIVSTLL0",
+       "commonName": "Liverpool Street Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.518379547636,
+       "lon": -0.08109252348
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMGT",
+       "platformName": "",
+       "icsCode": "1000149",
+       "individualStopId": "9400ZZLUMGT3",
+       "commonName": "Moorgate Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.51892427501,
+       "lon": -0.08801714332499999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 8.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:10:00",
+      "scheduledArrivalTime": "2026-11-05T07:15:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 8,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern line to Euston",
+       "detailed": "Northern line towards Edgware Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:15:00",
+      "arrivalTime": "2026-11-05T07:23:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUMGT",
+       "platformName": "",
+       "icsCode": "1000149",
+       "individualStopId": "9400ZZLUMGT3",
+       "commonName": "Moorgate Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.51892427501,
+       "lon": -0.08801714332499999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUEUS",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9400ZZLUEUS2",
+       "commonName": "Euston Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528213681253,
+       "lon": -0.132680556129
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern",
+        "directions": [
+         "Edgware Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern",
+         "name": "Northern",
+         "uri": "/Line/northern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 54.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:15:00",
+      "scheduledArrivalTime": "2026-11-05T07:23:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 271,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Avanti West Coast to Glasgow Central",
+       "detailed": "Avanti West Coast towards Glasgow Central",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T07:30:00",
+      "arrivalTime": "2026-11-05T12:01:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GEUSTON",
+       "platformName": "",
+       "icsCode": "1000077",
+       "individualStopId": "9100EUSTON0",
+       "commonName": "London Euston Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.528952000598,
+       "lon": -0.135000319536
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGC0",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.859713317428,
+       "lon": -4.257928466761999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Avanti West Coast",
+        "directions": [
+         "Glasgow Central Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "avanti-west-coast",
+         "name": "Avanti West Coast",
+         "uri": "/Line/avanti-west-coast",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 120.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T07:30:00",
+      "scheduledArrivalTime": "2026-11-05T12:01:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 25,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Dalmuir",
+       "detailed": "ScotRail towards Dalmuir",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T12:17:00",
+      "arrivalTime": "2026-11-05T12:42:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GGLGC",
+       "platformName": "",
+       "stopLetter": "WB",
+       "icsCode": "90002969",
+       "individualStopId": "9100GLGCLL2",
+       "commonName": "Glasgow Central Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.858556820221,
+       "lon": -4.258260849273
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDALMUIR",
+       "platformName": "",
+       "stopLetter": "WB-C",
+       "icsCode": "90002007",
+       "individualStopId": "9100DALMUIR2",
+       "commonName": "Dalmuir Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.912112821881,
+       "lon": -4.42686840232
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Dalmuir Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 63.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T12:17:00",
+      "scheduledArrivalTime": "2026-11-05T12:42:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 205,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "ScotRail to Fort William",
+       "detailed": "ScotRail towards Mallaig",
+       "steps": []
+      },
+      "departureTime": "2026-11-05T12:44:00",
+      "arrivalTime": "2026-11-05T16:09:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GDALMUIR",
+       "platformName": "",
+       "stopLetter": "WB-C",
+       "icsCode": "90002007",
+       "individualStopId": "9100DALMUIR2",
+       "commonName": "Dalmuir Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 55.912112821881,
+       "lon": -4.42686840232
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRTWLM",
+       "platformName": "",
+       "icsCode": "90002865",
+       "individualStopId": "9100FRTWLM0",
+       "commonName": "Fort William Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 56.820442646470006,
+       "lon": -5.106143199747
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "ScotRail",
+        "directions": [
+         "Mallaig Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "scotrail",
+         "name": "ScotRail",
+         "uri": "/Line/scotrail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 90.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-05T12:44:00",
+      "scheduledArrivalTime": "2026-11-05T16:09:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "northern",
+    "name": "Northern",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Northern&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Northern&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [
+   "Step-free routes from Liverpool Street to Kings Cross St Pancras and Euston (via Euston Square): For Kings Cross, take a Metropolitan line eastbound train (platform 1) to Aldgate. Stay on the train. After a few minutes, the train reverses and travels westbound: you can get off at Kings Cross step-free. Eastbound journeys from Kings Cross are step-free direct to Liverpool Street. \n\nFor Euston, take a Metropolitan line eastbound train (platform 1) to Aldgate. Stay on the train. After a few minutes, the train reverses and travels westbound and you can get off at Euston Square step-free. It is then a 10 minute step-free walk via the street to Euston. Euston Square is step-free westbound only, so you cannot do the same journey in reverse to return to Liverpool Street. \n\nMini ramps are available at Liverpool Street, Kings Cross and Euston Square. To request a mini ramp speak to a member of staff before you start your journey."
+  ],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-04T20:00:00",
+   "dateTimeType": "Departing",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1000138/to/910gfrtwlm?date=20261104&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "1945",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1000138/to/910gfrtwlm?date=20261104&time=1945&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0711",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1000138/to/910gfrtwlm?date=20261105&time=0711&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/1000138/to/910gfrtwlm?date=20261105&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "1000138",
+   "to": "90002865",
+   "via": "",
+   "uri": "/journey/journeyresults/1000138/to/910gfrtwlm?date=20261104&time=2000&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL (UK-wide Trip, 3 Nov); app_key removed; leg path geometry removed (unused)."
+}

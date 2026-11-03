@@ -29,7 +29,7 @@ type AccessMap = Map<string, Timing | null>;
 type Target = { station: Station; place?: undefined } | { place: Place; station?: undefined };
 type Pair = [Station, Target];
 const targetName = (t: Target) => (t.station ? t.station.name : t.place.name);
-const pairKey = (a: Station, t: Target) => `${a.crs}-${t.station ? t.station.crs : "@place"}`;
+const pairKey = (a: Station, t: Target) => `${stationKey(a)}-${t.station ? stationKey(t.station) : "@place"}`;
 const toStation = (s: Station): Target => ({ station: s });
 
 export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r: TripResult) => void): Promise<TripResult> {
@@ -45,6 +45,9 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   // Searches to the place itself (issue #56): only walking at the far end, only where the planner can; the stop you
   // alight at may be a Tube stop the station list doesn't know, and the final walk is timed from it like any station.
   const toPlace: Target | null = modes.to === "walk" && ports.planner.planTo && cfg.placeSearches > 0 ? { place: to } : null;
+  // Boarding elsewhere (UK-wide Trip, 3 Nov): a reply that begins with TfL's walk from the station asked for to another
+  // stop is kept as a journey boarding at that stop when the first mile is on foot and the stop is within walking reach.
+  const fromWalk = modes.from === "walk";
   // Drive times depend on the time: first timed for a first guess (Leave now / around: then; Arrive by: 2 h before),
   // then re-timed once for the best journey's real set-off / arrival (below).
   const firstGuess = q.kind === "by" ? q.t - 2 * 3600e3 : q.kind === "at" ? q.t : now;
@@ -72,11 +75,16 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     // as journeys to the place from that stop (its own walk, timed from there), within walking reach of the place.
     const kept = toPlace && pair[1].station ? (r.elsewhere || []).filter(e => km(e.journey.rides[e.journey.rides.length - 1].to.geo, to.geo) <= cfg.reachKm.walk) : [];
     if (kept.length) keep(pairKey(pair[0], toPlace!), kept.map(e => e.journey));
-    if (!r.journeys.length && !kept.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
+    // Journeys that board at another stop after TfL's walk from the station asked for: when the first mile is on
+    // foot, kept as journeys boarding there (the walk from the start timed to that stop), within walking reach.
+    const boarded = fromWalk ? (r.elsewhereFrom || []).filter(e => km(e.journey.rides[0].from.geo, from.geo) <= cfg.reachKm.walk) : [];
+    boarded.forEach(e => keep(pairKey(e.journey.rides[0].from, pair[1]), [e.journey]));
+    if (!r.journeys.length && !kept.length && !boarded.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
     // Some of a reply refused (its ends weren't the ones asked for): said, never silently dropped.
-    const keptWhy = new Set(kept.map(e => e.why));
+    const keptWhy = new Set([...kept, ...boarded].map(e => e.why));
     r.refused.forEach(why => { if (!keptWhy.has(why)) note(`${pair[0].name} → ${targetName(pair[1])}: ${why}`); });
     if (kept.length) note(`${pair[0].name} → ${targetName(pair[1])}: ${kept.length === 1 ? "a journey alights" : `${kept.length} journeys alight`} at ${[...new Set(kept.map(e => e.journey.rides[e.journey.rides.length - 1].to.name))].join(" / ")} and walk on; kept as journeys to ${to.name} from there`);
+    if (boarded.length) note(`${pair[0].name} → ${targetName(pair[1])}: ${boarded.length === 1 ? "a journey boards" : `${boarded.length} journeys board`} at ${[...new Set(boarded.map(e => e.journey.rides[0].from.name))].join(" / ")} after a walk from ${pair[0].name}; kept as journeys from there`);
   };
   const timeIs: "Departing" | "Arriving" = q.kind === "by" ? "Arriving" : "Departing";
   const t0 = q.kind === "now" ? now : q.t;
@@ -100,6 +108,12 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     const seen = new Map<string, Station>();
     rail.forEach((list, k) => { if (!k.endsWith("-@place")) return;
       list.forEach(rj => { const s = rj.rides[rj.rides.length - 1].to, key = stationKey(s); if (!accTo.has(key) && !seen.has(key)) seen.set(key, s); }); });
+    return [...seen.values()];
+  };
+  /** Stops that kept journeys board at (not timed yet): the walk from the start to them is timed the same way. */
+  const startStops = (): Station[] => {
+    const seen = new Map<string, Station>();
+    rail.forEach(list => list.forEach(rj => { const s = rj.rides[0].from, key = stationKey(s); if (!accFrom.has(key) && !seen.has(key)) seen.set(key, s); }));
     return [...seen.values()];
   };
   const pairOf = new WeakMap<Journey, Pair>();
@@ -136,7 +150,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   const pf = promote(from.geo, modes.from, cf.list, seenFrom, cfg), pt = promote(to.geo, modes.to, ct.list, seenTo, cfg);
   cf.list.push(...pf); ct.list.push(...pt);
   await Promise.all([
-    timeAccess(from.geo, stationsOf(cf.list), modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
+    timeAccess(from.geo, [...stationsOf(cf.list), ...startStops()], modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
     timeAccess(to.geo, [...stationsOf(ct.list), ...endStops()], modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
   ]);
   // Round 2: untried pairs of the best stations at each end (by door-to-door arrival), then a later search for the
@@ -144,7 +158,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   const ranked = assemble("timetable").journeys.filter(j => !j.uncertain);
   const best = ranked.reduce<Journey | undefined>((b, j) => (!b || j.arrive < b.arrive ? j : b), undefined);
   const bestBy = (key: (j: Journey) => string) => { const m = new Map<string, number>(); ranked.forEach(j => { const k = key(j); m.set(k, Math.min(m.get(k) ?? Infinity, j.arrive)); }); return m; };
-  const fromRank = bestBy(j => j.fromStation.crs), toRank = bestBy(j => j.toStation.crs);
+  const fromRank = bestBy(j => stationKey(j.fromStation)), toRank = bestBy(j => stationKey(j.toStation));
   const good = (crs: string, m: Map<string, number>, promoted: boolean) => promoted || (best ? (m.get(crs) ?? Infinity) - best.arrive <= cfg.behindMin * 60e3 : true);
   const fromGood = cf.list.filter(c => good(c.station.crs, fromRank, c.why === "promoted")), toGood = ct.list.filter(c => good(c.station.crs, toRank, c.why === "promoted"));
   const tried = new Set(p1.map(([a, b]) => pairKey(a, b)));
@@ -157,8 +171,11 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     if (toPlace && placeWorks && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) { tried.add(pairKey(a.station, toPlace)); p2.push([a.station, toPlace]); places++; }
   }
   if (p2.length) await runPairs(p2, () => t0, timeIs);
-  // Stops that round 2's place searches alight at: timed before the final answer.
-  await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); });
+  // Stops that round 2's searches alight at or board at: timed before the final answer.
+  await Promise.all([
+    timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
+    timeAccess(from.geo, startStops(), modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
+  ]);
   // Later searches for the best pairs, until the window is covered (Leave around / now: to T + windowMin; Arrive by:
   // from T − windowMin).
   const bestPairs = [...new Map(assemble("timetable").journeys.filter(j => !j.uncertain).sort((x, y) => x.arrive - y.arrive)
@@ -173,7 +190,10 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     return q.kind === "by" ? !deps.some(d => d <= q.t - cfg.windowMin * 60e3 + 30 * 60e3) : !deps.some(d => d >= t0 + cfg.windowMin * 60e3);
   });
   if (need.length) await runPairs(need, later, "Departing");
-  await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); });
+  await Promise.all([
+    timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
+    timeAccess(from.geo, startStops(), modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
+  ]);
   // Drives re-timed once for the best journey's real set-off (to the station) and arrival (from it).
   const chosen = assemble("timetable").picks[0];
   if (chosen && (modes.from === "drive" || modes.to === "drive")) {

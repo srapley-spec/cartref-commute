@@ -45,9 +45,9 @@ Budget: at most 18 planner searches per plan (`totalMax`), 2–4 Google matrix c
 
 ## 3. Which stations are tried (`stations.ts`)
 
-1. **Region.** Both places must be inside `cfg.region` (today: London, the South East and the East of England, a box
-   plus an outline). Outside: `TripError("outside")` and the page says so. This is the limit that refuses Newcastle or
-   Fort William today; TfL itself plans station to station across Great Britain.
+1. **Region.** Both places must be inside `cfg.region`: since 3 Nov, Great Britain (a box plus a coast outline that keeps
+   Northern Ireland, Ireland and the Isle of Man out; until then London, the South East and the East of England).
+   Outside: `TripError("outside")` and the page says "Outside the area this plans: Great Britain …".
 2. **Reach** in a straight line: walk 3 km, cycle 10 km, drive 25 km.
 3. **Candidates** per end: the **3 nearest** within reach, plus up to **2 well-served** stations within reach whose
    `servicePerHour` is at least **2×** the best of the nearest three (highest first). None within reach: the single
@@ -55,8 +55,11 @@ Budget: at most 18 planner searches per plan (`totalMax`), 2–4 Google matrix c
 4. **Promotion** (after round 1): a station within reach where a round-1 journey boards or changes becomes a
    candidate (found from live data, not the prior).
 
-`servicePerHour` comes from `data/stations.json`, measured once from National Rail boards (a coarse prior; the
-Saturday-evening sample is noted in the file's metadata). It only ever adds stations; the nearest three are always in.
+`servicePerHour` comes from `data/stations.json`, measured once from National Rail boards for the South East's stations
+(a coarse prior; the Saturday-evening sample is noted in the file's metadata) and **0 elsewhere**, so outside the South
+East the three nearest stations within reach are the candidates. It only ever adds stations; the nearest three are
+always in. The list is national since 3 Nov: 2,609 stations, 2,588 with TfL IDs (`data/stations-report.md` lists the
+rest; `data/stations-overrides.json` fixes the ones TfL names differently, Edinburgh Waverley among them).
 
 ## 4. What is searched (`tripPlan.ts`)
 
@@ -80,6 +83,13 @@ and optional `planTo(fromStation, place, t, timeIs)`; TfL's adapter implements b
 per **(trains' departures, alighting stop)**: the same 07:50 alighting at Aldgate East and at Tower Hill are two
 journeys. Across keys, `assemble` keeps one journey per `Journey.id`, so a train found both by a station pair and by a
 place search is listed once.
+
+**Journeys that board somewhere else** (3 Nov, UK-wide Trip). A station-pair reply from a London station often *begins*
+with TfL's walk to another stop (Fenchurch Street → Aldgate → Tube; Liverpool Street → Moorgate). The parser refuses it
+as that pair but returns it in `elsewhereFrom`; when the first mile is on foot and the stop is within walking reach
+(3 km) of the start, the engine keeps it as a journey **boarding at that stop**, under the key of that stop and the
+target, times the walk from the start to the stop with Google, and says so in the notes. A later search for that pair
+asks TfL from the stop's own ID. A journey wrong at both ends is refused outright.
 
 **Journeys that alight somewhere else.** A station-pair reply often ends with TfL walking from a nearby stop to the
 station asked for (Letchworth → Fenchurch Street: "… → Aldgate → walk to Fenchurch Street"). The parser refuses it as
@@ -173,14 +183,18 @@ The page shows failed and notes under "Why these trains?". A refusal is never si
 
 ## 10. Known limits (3 Nov)
 
-1. **Region.** Places outside the South East are refused. TfL plans UK-wide by station ID; the limit is the app's
-   (`TRIP_DEFAULTS.region`, `tools/stations.mjs`). Planned next (decisions log, 3 Nov).
-2. **Origin side has no place search.** You board at a listed rail station; from an office next to a Tube stop the
-   app walks you to the nearest mainline station first (One Braham → Liverpool Street, 15 min, where TfL and Google
-   start at Aldgate East, 6 min). The mirror of #56; needs Sam's direction on first-mile rules.
+1. **Region.** Great Britain since 3 Nov; Northern Ireland, Ireland and the Isle of Man are refused (no National Rail,
+   not in TfL's planner). Places with no station within reach get the nearest, flagged with its distance, and a long
+   walk is shown rather than hidden (Washington NE38 8SE: Chester-le-Street, 5.6 km).
+2. **Origin side has no place search of its own.** You board where TfL's reply from a listed station boards (since
+   3 Nov that includes the stop TfL walks you to first, e.g. Aldgate from Fenchurch Street), but the engine never asks
+   TfL *from* the start's position, so a stop TfL wouldn't walk to from any candidate station is not found. Needs Sam's
+   direction on first-mile rules.
 3. **TfL's data gaps.** Its interchange walks are conservative (King's Cross ↔ St Pancras 13–14 min; Google 5–6); it
    lacks the direct Highland Caledonian Sleeper (Euston ⇄ Fort William) and offers only the Glasgow sleeper plus a
-   connection. A second route source (Google transit) is the planned answer.
+   connection, so an evening plan to Fort William arrives 12:16 rather than 10:00; and it can return a 0-minute change
+   as a journey (Letchworth → Newcastle at York), which the engine flags "Connection at risk" and never hides. A second
+   route source (Google transit) is the planned answer to the first two.
 4. **Reach is a hard edge** (3 km walking): a fast station at 3.1 km is never tried.
 5. **Leave-by margins.** The platform allowance plus Google's walk from your door can make a train unreachable that
    Google Maps would start you 1–2 minutes sooner for. Deliberate conservatism; the allowance is yours to set.

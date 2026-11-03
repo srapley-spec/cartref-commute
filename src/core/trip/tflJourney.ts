@@ -79,20 +79,27 @@ export interface TflParsed { journeys: RailJourney[]; refused: string[];
   /** Journeys to a station that alight somewhere else and walk on (TfL's walk dropped): refused as the asked trip,
    *  but a usable journey to that other stop when the far end is on foot (issue #56: Letchworth → Fenchurch Street
    *  alights at Aldgate). Each with the reason it was refused. */
-  elsewhere: { journey: RailJourney; why: string }[] }
+  elsewhere: { journey: RailJourney; why: string }[];
+  /** Journeys that begin with TfL's walk from the station asked for to another stop and board there (Fenchurch
+   *  Street → walk → Aldgate → Tube): refused as the asked trip, but a usable journey boarding at that stop when
+   *  the first mile is on foot (UK-wide Trip, 3 Nov). Each with the reason. */
+  elsewhereFrom: { journey: RailJourney; why: string }[] }
 export function tflRailJourneys(body: J, from: Station, to: TflEnd, idx: StationIndex, endMatchM: number): TflParsed {
-  const out: RailJourney[] = [], refused: string[] = [], elsewhere: TflParsed["elsewhere"] = [];
+  const out: RailJourney[] = [], refused: string[] = [], elsewhere: TflParsed["elsewhere"] = [], elsewhereFrom: TflParsed["elsewhereFrom"] = [];
   for (const j of (body && body.journeys) || []) {
     const notes: string[] = [];
     const legs = (j.legs || []) as J[];
     let rides = legs.map(l => rideOf(l, idx, endMatchM)).filter((r): r is Ride => !!r);
+    // A leading walk that starts at the station asked for and ends somewhere else: TfL boards there instead.
+    const walkedFromAsked = rides.length > 0 && rides[0].kind === "walk" && stationKey(rides[0].from) === stationKey(from);
     while (rides.length && rides[0].kind === "walk") { notes.push(`Dropped TfL's walk: ${rides[0].label}`); rides = rides.slice(1); }
     while (rides.length && rides[rides.length - 1].kind === "walk") { notes.push(`Dropped TfL's walk: ${rides[rides.length - 1].label}`); rides = rides.slice(0, -1); }
     const mains = rides.filter(isMain);
     if (!mains.length) { refused.push("No train in TfL's journey"); continue; }
     const last = rides[rides.length - 1];
     const other = () => `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"})`;
-    if (rides[0].from.crs !== from.crs) { refused.push(other()); continue; }
+    const boardsElsewhere = stationKey(rides[0].from) !== stationKey(from);
+    if (boardsElsewhere && !(walkedFromAsked && (rides[0].from.geo[0] || rides[0].from.geo[1]))) { refused.push(other()); continue; }
     if (isPlace(to)) {
       const endPt = legs.length ? legs[legs.length - 1].arrivalPoint : null;
       const endGeo: LatLon | null = endPt && Number.isFinite(endPt.lat) && Number.isFinite(endPt.lon) ? [endPt.lat, endPt.lon] : last.to.geo;
@@ -100,6 +107,14 @@ export function tflRailJourneys(body: J, from: Station, to: TflEnd, idx: Station
       notes.push(`Alight at ${last.to.name} for ${to.place.name}`);
     }
     legs.forEach((l: J) => (l.disruptions || []).forEach((d: J) => { if (d && d.description) notes.push(String(d.description)); }));
+    if (boardsElsewhere) {
+      // The far end must still be right; a journey wrong at both ends is refused outright.
+      const endOk = isPlace(to) ? true : stationKey(last.to) === stationKey(to);
+      const why = `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"}, not from ${from.name})`;
+      refused.push(why);
+      if (endOk) elsewhereFrom.push({ journey: { rides, source: "tfl", notes: [...notes, `Boards at ${rides[0].from.name}, not ${from.name}`] }, why });
+      continue;
+    }
     if (!isPlace(to) && stationKey(last.to) !== stationKey(to)) {
       const why = `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"}, not ${to.name})`;
       refused.push(why);
@@ -108,5 +123,5 @@ export function tflRailJourneys(body: J, from: Station, to: TflEnd, idx: Station
     }
     out.push({ rides, source: "tfl", notes });
   }
-  return { journeys: out, refused, elsewhere };
+  return { journeys: out, refused, elsewhere, elsewhereFrom };
 }

@@ -79,7 +79,8 @@ Minutes are whole minutes, rounded down.
   newer one. Combobox / listbox for VoiceOver; arrow keys, Enter, Escape; rows ≥ 44 px.
 - One Google session per search, ended by fetching the chosen place. Recent places keep Google's place ID and the
   name (not positions; Google's terms).
-- Outside the region: "Outside the area this plans: London, the South East and the East of England."
+- Outside the region: "Outside the area this plans: Great Britain (England, Scotland and Wales by rail)." Since 3 Nov the
+  region is Great Britain (`uk-wide-trip.md`); until then it was London, the South East and the East of England.
 - Choosing From starts timing its stations at once (before To is chosen); choosing To starts planning at once.
 
 ### Getting to and from the station
@@ -267,7 +268,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip.test.mjs: "planTrip to a place outside where TfL plans to places: round 1's place searches are refused and said; round 2 sends no more"
 - tests/core/trip.test.mjs: "The same train found by a station pair and by the place search (alighting at that station) is one journey, not two (#56 review, A)"
 - tests/core/trip.test.mjs: "A station end with no CRS never matches a Tube stop by accident: ends compare by stationKey (#56 review, C)"
-- tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
+- tests/core/trip.test.mjs: "Region: Great Britain since 3 Nov (the detail is in tests/core/trip-uk.test.mjs); the old South East box is history"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"
 - tests/core/trip.test.mjs: "Station candidates: reach is 3 / 10 / 25 km; none within reach gives the nearest, flagged with its distance"

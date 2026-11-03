@@ -1,0 +1,150 @@
+// UK-wide Trip (docs/stories/uk-wide-trip.md): Great Britain as the region, the national station list, Sam's 3 Nov
+// journeys from recorded TfL replies, and boarding at the stop TfL walks you to from the station asked for.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { core, fixture, at } from "./helpers.mjs";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const data = JSON.parse(readFileSync(path.join(ROOT, "data/stations.json"), "utf8"));
+const idx = core.stationIndex(data.stations), cfg = core.tripConfig();
+const st = crs => idx.byCrs(crs);
+const fxb = n => fixture(`trip/tfl-${n}.json`).body;
+const place = (name, geo) => ({ id: name, name, address: name, geo, kind: "address" });
+const straight = { matrix: async (p, list) => list.map(g => ({ metres: Math.round(core.km(p, g) * 1300), secs: Math.round(core.km(p, g) * 1300 / 1.4) })) };
+const hm = t => core.hhmm(t);
+const day = t => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(t).getDay()];
+
+// Public points, not Sam's addresses: the office itself and town centres.
+const LON = place("London office (One Braham)", [51.5139, -0.0712]), LET = place("Letchworth town centre", [51.983, -0.228]);
+const NCL = place("Grey's Monument, Newcastle", [54.9738, -1.6131]), ALM = place("Schooner Hotel, Alnmouth", [55.3872, -1.6124]);
+const FTW = place("Fort William", [56.8210, -5.1048]), WASH = place("Washington NE38 8SE", [54.8874, -1.5101]);
+
+const FX = { "LET-NCL": "letchworth-newcastle", "LET-ALM": "letchworth-alnmouth", "LET-FTW": "letchworth-fortwilliam", "LET-CLS": "letchworth-chesterlestreet",
+  "LST-NCL": "liverpoolst-newcastle", "FST-NCL": "fenchurchst-newcastle", "LST-ALM": "liverpoolst-alnmouth", "FST-ALM": "fenchurchst-alnmouth", "LST-CLS": "liverpoolst-chesterlestreet", "FST-CLS": "fenchurchst-chesterlestreet",
+  "NCL-LET": "newcastle-letchworth", "NCL-LST": "newcastle-liverpoolst", "ALM-LET": "alnmouth-letchworth", "FTW-LET": "fortwilliam-letchworth", "CLS-LET": "chesterlestreet-letchworth", "CLS-LST": "chesterlestreet-liverpoolst" };
+const EVENING = { "LET-FTW": "letchworth-fortwilliam-evening", "LST-FTW": "liverpoolst-fortwilliam-evening", "FST-FTW": "fenchurchst-fortwilliam-evening", "FTW-LST": "fortwilliam-liverpoolst-evening" };
+const ARRIVING = { "LET-NCL": "letchworth-newcastle-arrive" };
+/** A planner answering from the recorded replies by station pair; a TfL stop with no CRS (a Tube stop) is searched by its key. */
+const recorded = (map = FX, log = []) => ({ name: "fixture",
+  plan: async (a, b, t, timeIs) => { const k = `${a.crs || core.stationKey(a)}-${b.crs}`; log.push(k + (timeIs === "Arriving" ? "/A" : ""));
+    const n = (timeIs === "Arriving" && ARRIVING[k]) || map[k];
+    return n ? core.tflRailJourneys(fxb(n), a, b, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; },
+  planTo: async (a, p) => { log.push(`${a.crs}-@`); return { journeys: [], refused: [`TfL found no journey from ${a.name} to ${p.name}`] }; } });
+const plan = (from, to, q, opts = {}) => core.planTrip({ from, to, modes: opts.modes || { from: "walk", to: "walk" }, question: q, now: opts.now ?? (q.kind === "by" ? q.t - 4 * 3600e3 : q.t), leisureKmh: 4.5, cfg: opts.cfg || cfg },
+  { stations: idx, access: straight, planner: recorded(opts.map || FX, opts.log || []) });
+const T = (d, t) => at(`2026-11-${d}`, t);
+
+test("Region: Great Britain; Belfast, Dublin, the Isle of Man and Calais are out; Stranraer, Penzance, Thurso, Shetland and the Hebrides are in", () => {
+  const r = cfg.region, inside = g => core.inRegion(g, r);
+  for (const g of [[54.974, -1.613], [55.387, -1.612], [56.821, -5.105], [54.90, -5.03], [50.12, -5.53], [58.595, -3.522], [60.15, -1.15], [58.21, -6.39], [53.31, -4.63], [50.69, -1.30], [51.98, -0.23], [52.48, -1.90]])
+    assert.equal(inside(g), true, String(g));   // Newcastle, Alnmouth, Fort William, Stranraer, Penzance, Thurso, Lerwick, Stornoway, Holyhead, Isle of Wight, Letchworth, Birmingham
+  for (const g of [[54.597, -5.93], [53.35, -6.26], [54.15, -4.48], [50.95, 1.86], [54.85, -5.81]])
+    assert.equal(inside(g), false, String(g));  // Belfast, Dublin, Isle of Man, Calais, Larne
+  assert.match(core.OUTSIDE_REGION, /Great Britain/);
+});
+
+test("Station data is national: 2,600+ stations, Newcastle / Alnmouth / Fort William / Edinburgh Waverley with TfL IDs; Chester-le-Street is Washington's nearest at 5.6 km", () => {
+  assert.ok(data.stations.length >= 2600, String(data.stations.length));
+  for (const [crs, id] of [["NCL", "910GNWCSTLE"], ["ALM", "910GALNMOTH"], ["FTW", "910GFRTWLM"], ["EDB", "910GEDINBUR"], ["CLS", "910GCLST"], ["LET", "910GLTCE"]]) assert.deepEqual(st(crs).ids.tfl, [id], crs);
+  assert.ok(data.stations.filter(s => s.ids.tfl).length >= 2580);
+  const c = core.candidates(WASH.geo, "walk", idx, cfg);
+  assert.equal(c.list.length, 1); assert.equal(c.list[0].station.crs, "CLS"); assert.equal(c.list[0].why, "fallback"); assert.equal(c.farKm.toFixed(1), "5.6");
+});
+
+test("London office → Newcastle: boards the Tube at Aldgate after TfL's walk from Fenchurch Street, the 08:30 LNER, arrives 11:09 (what TfL and Google say)", async () => {
+  const log = [];
+  const r = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { log });
+  const p = r.picks[0];
+  assert.equal(core.stationKey(p.fromStation), "tfl:940GZZLUALD"); assert.equal(p.fromStation.name, "Aldgate"); assert.equal(p.toStation.crs, "NCL");
+  assert.deepEqual(p.rides.map(x => `${x.kind}:${x.from.name}→${x.to.name} ${hm(x.dep)}`), ["tube:Aldgate→London Kings Cross 08:10", "walk:London Kings Cross→London Kings Cross 08:19", "rail:London Kings Cross→Newcastle 08:30"]);
+  assert.equal(hm(p.leave), "08:01"); assert.equal(hm(p.arrive), "11:23");   // 11:09 + 3 min out + 11 min walk
+  assert.equal(p.id, "tfl:940GZZLUALD|NCL|KGX08:30");
+  assert.deepEqual(p.before.map(s => [s.kind, s.step && s.step.d]), [["walk", "Walk to Aldgate"], ["station", null]], "the walk from the office to Aldgate, then the platform allowance");
+  assert.ok(r.notes.some(n => /^London Fenchurch Street → Newcastle: 3 journeys board at Aldgate after a walk from London Fenchurch Street; kept as journeys from there$/.test(n)), r.notes.join(" ;; "));
+  // Live asks for the train's board, not the Tube's
+  assert.deepEqual(core.liveBudget([p], null, T("04", "08:00"), cfg).map(b => b.key), ["KGX-NCL"]);
+  // Arrive by 12:00: the latest leave in time (08:33 via York, flagged for its 0-minute change), the direct 08:30 as next best
+  const by = await plan(LON, NCL, { kind: "by", t: T("04", "12:00") });
+  assert.equal(hm(by.picks[0].arrive), "11:41"); assert.ok(by.picks[0].flags.some(f => f.txt === "Latest for 12:00") && by.picks[0].flags.some(f => /Connection at risk, 0 min/.test(f.txt)), by.picks[0].flags.map(f => f.txt).join("; "));
+  assert.equal(hm(by.picks[1].arrive), "11:23");
+});
+
+test("Letchworth → Newcastle goes via Stevenage, not King's Cross; Alnmouth by the York change; Arrive by 12:00 picks the 08:30 as Latest", async () => {
+  const r = await plan(LET, NCL, { kind: "now", t: T("04", "08:00") });
+  const p = r.picks[0];
+  assert.deepEqual(p.rides.map(x => `${x.from.crs}→${x.to.crs} ${hm(x.dep)}`), ["LET→HIT 08:30", "HIT→SVG 08:39", "SVG→YRK 08:55", "YRK→NCL 10:26"]);
+  assert.equal(hm(p.leave), "08:21"); assert.equal(hm(p.arrive), "11:41");
+  assert.ok(p.flags.some(f => /Connection at risk, 0 min/.test(f.txt)), "a 0-minute change at York is flagged, never hidden");
+  assert.ok(!r.journeys.some(j => j.rides.some(x => x.to.crs === "KGX")), "no journey via King's Cross");
+  const by = await plan(LET, NCL, { kind: "by", t: T("04", "12:00") });
+  assert.equal(hm(by.picks[0].rides[0].schedDep), "08:30"); assert.ok(by.picks[0].flags.some(f => f.txt === "Latest for 12:00"));
+  assert.ok(by.journeys.some(j => j.flags.some(f => f.txt === "Late by 14 min")));
+  const a = await plan(LET, ALM, { kind: "now", t: T("04", "08:00") });
+  assert.deepEqual(a.picks[0].rides.map(x => x.to.crs), ["HIT", "SVG", "YRK", "ALM"]); assert.equal(hm(a.picks[0].arrive), "12:35");
+  const la = await plan(LON, ALM, { kind: "now", t: T("04", "08:00") });
+  assert.deepEqual(la.picks[0].rides.filter(x => x.kind === "rail").map(x => `${x.from.crs}→${x.to.crs} ${hm(x.dep)}`), ["KGX→NCL 08:30", "NCL→ALM 11:15"]); assert.equal(hm(la.picks[0].arrive), "12:15");
+});
+
+test("Washington NE38 8SE: no station within walking reach, so Chester-le-Street (5.6 km) is used and flagged; the long walk is shown, not hidden", async () => {
+  const r = await plan(LET, WASH, { kind: "now", t: T("04", "08:00") });
+  assert.equal(r.candidates.to.map(c => `${c.station.crs}:${c.why}`).join(), "CLS:fallback");
+  const p = r.picks[0];
+  assert.equal(p.toStation.crs, "CLS"); assert.ok(p.flags.some(f => f.txt === "Nearest station to where you're going is 5.6 km away"), p.flags.map(f => f.txt).join("; "));
+  assert.equal(p.after[1].step.d, "Walk to your destination"); assert.ok(p.after[1].secs > 60 * 60, "a 5.6 km × 1.3 walk at 4.5 km/h is over an hour");
+  assert.equal(hm(p.arrive), "13:50");
+  // Return: every recorded journey leaves before 17:00 once the walk to Chester-le-Street is counted; listed, none picked
+  const back = await plan(WASH, LET, { kind: "now", t: T("04", "17:00") });
+  assert.equal(back.picks.length, 0); assert.equal(back.journeys.length, 3);
+  assert.ok(back.journeys.every(j => j.flags.some(f => f.txt === "Leave time passed") && j.flags.some(f => f.txt === "Nearest station is 5.6 km away")));
+});
+
+test("Fort William: by day via York, Edinburgh and Glasgow Queen Street; in the evening the Euston → Glasgow sleeper then Queen Street, arriving tomorrow (the direct Highland sleeper is not in TfL's data)", async () => {
+  const d = await plan(LET, FTW, { kind: "now", t: T("04", "08:00") });
+  assert.deepEqual(d.picks[0].rides.map(x => x.to.crs), ["SVG", "YRK", "EDB", "GLQ", "FTW"]); assert.equal(hm(d.picks[0].arrive), "22:10");
+  const e = await plan(LET, FTW, { kind: "now", t: T("04", "20:00") }, { map: { ...FX, ...EVENING } });
+  const p = e.picks[0];
+  assert.equal(`${day(p.leave)} ${hm(p.leave)}`, "Wed 22:19"); assert.equal(`${day(p.arrive)} ${hm(p.arrive)}`, "Thu 12:16");
+  assert.ok(p.rides.some(x => x.kind === "rail" && x.from.crs === "EUS" && x.to.crs === "GLC" && hm(x.schedDep) === "23:45"), "the Lowland sleeper, Euston 23:45 → Glasgow Central");
+  assert.ok(!e.journeys.some(j => j.rides.some(x => x.from.crs === "EUS" && x.to.crs === "FTW")), "no direct Euston → Fort William: TfL lacks the Highland sleeper");
+  assert.ok(e.journeys.filter(j => j !== p).every(j => j.flags.some(f => /^Tomorrow · Thu 5 Nov/.test(f.txt))), "later options are tomorrow's day trains, flagged");
+  // From the London office in the evening: TfL walks from Fenchurch Street to Tower Hill; boarding there is kept
+  const l = await plan(LON, FTW, { kind: "now", t: T("04", "20:00") }, { map: { ...FX, ...EVENING } });
+  assert.equal(l.picks[0].fromStation.name, "Tower Hill"); assert.equal(`${day(l.picks[0].arrive)} ${hm(l.picks[0].arrive)}`, "Thu 12:16");
+  assert.ok(l.notes.some(n => /journeys? boards? at Tower Hill after a walk from London Fenchurch Street/.test(n)), l.notes.join(" ;; "));
+});
+
+test("Returns: Newcastle → Letchworth via Stevenage 20:21; Newcastle → London office by King's Cross and the Tube; Fort William → Letchworth by the sleeper, arriving tomorrow", async () => {
+  const n = await plan(NCL, LET, { kind: "now", t: T("04", "17:00") });
+  assert.deepEqual(n.picks[0].rides.map(x => `${x.from.crs}→${x.to.crs} ${hm(x.dep)}`), ["NCL→SVG 17:27", "SVG→LET 20:09"]); assert.equal(hm(n.picks[0].arrive), "20:29");
+  const o = await plan(NCL, LON, { kind: "now", t: T("04", "17:00") });
+  assert.deepEqual(o.picks[0].rides.map(x => `${x.kind}:${x.to.name}`), ["rail:London Kings Cross", "walk:London Kings Cross", "tube:London Liverpool Street"]); assert.equal(hm(o.picks[0].arrive), "20:47");
+  const f = await plan(FTW, LET, { kind: "now", t: T("04", "17:00") });
+  const p = f.picks[0];
+  assert.ok(p.rides.some(x => x.from.crs === "GLC" && x.to.crs === "EUS" && hm(x.schedDep) === "23:40"), "Glasgow Central 23:40 sleeper");
+  assert.equal(`${day(p.arrive)} ${hm(p.arrive)}`, "Thu 08:17");
+  const a = await plan(ALM, LET, { kind: "now", t: T("04", "17:00") });
+  assert.equal(hm(a.picks[0].rides[0].schedDep), "18:30"); assert.equal(hm(a.picks[0].arrive), "22:37");
+});
+
+test("Boarding elsewhere needs the first mile on foot and the stop within walking reach; cycling to the station keeps the strict match; a journey wrong at both ends is refused", async () => {
+  const log = [];
+  const cyc = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { modes: { from: "cycle", to: "walk" }, log });
+  assert.ok(cyc.journeys.every(j => j.fromStation.crs), "every journey boards at a listed station when cycling");
+  assert.ok(cyc.notes.some(n => /not from London Fenchurch Street/.test(n)) || cyc.failed.some(f => /not from London Fenchurch Street/.test(f.why)), "the refusal is said");
+  const tight = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { cfg: core.tripConfig({ reachKm: { walk: 0.2, cycle: 10, drive: 25 } }) });
+  assert.ok(tight.journeys.every(j => j.fromStation.crs), "Aldgate (≈ 300 m) is beyond a 200 m reach");
+  const r = core.tflRailJourneys(fxb("fenchurchst-newcastle"), st("FST"), st("MAS"), idx, cfg.endMatchM);
+  assert.equal(r.journeys.length, 0); assert.equal(r.elsewhereFrom.length, 0, "boards elsewhere and ends elsewhere: refused outright"); assert.ok(r.refused.length);
+  const ok = core.tflRailJourneys(fxb("fenchurchst-newcastle"), st("FST"), st("NCL"), idx, cfg.endMatchM);
+  assert.equal(ok.journeys.length, 0); assert.equal(ok.elsewhereFrom.length, 3); assert.equal(ok.elsewhereFrom[0].journey.rides[0].from.name, "Aldgate");
+  assert.match(ok.refused[0], /^TfL matched a different place \(Aldgate → Newcastle, not from London Fenchurch Street\)$/);
+  assert.ok(ok.elsewhereFrom[0].journey.notes.includes("Boards at Aldgate, not London Fenchurch Street"));
+});
+
+test("Outside Great Britain is refused with the area named; a Great Britain place far from any station still plans", async () => {
+  await assert.rejects(plan(place("Belfast", [54.597, -5.93]), LET, { kind: "now", t: T("04", "08:00") }), /Outside the area this plans: Great Britain/);
+  await assert.rejects(plan(LET, place("Dublin", [53.35, -6.26]), { kind: "now", t: T("04", "08:00") }), /Great Britain/);
+});

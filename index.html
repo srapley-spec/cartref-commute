@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 22:10 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 22:46 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -3899,28 +3899,43 @@ var CommuteCore = (() => {
 
   // src/core/trip/config.ts
   var TRIP_DEFAULTS = {
-    // London, the South East and the East of England, outlined roughly along their county edges (Hampshire, Berkshire,
-    // Oxfordshire, Buckinghamshire, Bedfordshire, Cambridgeshire, Norfolk): Swindon, Coventry and Northampton are out;
-    // north Norfolk (Cromer, Sheringham, King's Lynn) is in. Approximate: a place within a few km of a county edge may
-    // fall either side.
-    region: { s: 50.55, w: -1.95, n: 53, e: 1.8, outline: [
-      [50.55, -1.95],
-      [51, -1.95],
-      [51.2, -1.63],
-      [51.45, -1.58],
-      [51.6, -1.68],
-      [51.85, -1.72],
-      [52.1, -1.55],
-      [52.17, -1.3],
-      [52.05, -1.05],
-      [52.2, -0.7],
-      [52.32, -0.45],
-      [52.55, -0.3],
-      [52.75, -0.05],
-      [52.8, 0.2],
-      [53, 0.6],
-      [53, 1.8],
-      [50.55, 1.8]
+    // Great Britain (UK-wide Trip, 3 Nov 2026): England, Scotland and Wales with their islands, outlined roughly along
+    // the coast so that Northern Ireland, Ireland and the Isle of Man are out (no National Rail, not in the station list
+    // or TfL's planner). Approximate: a point at sea near the coast may fall either side. Until 3 Nov this was London,
+    // the South East and the East of England.
+    region: { s: 49.85, w: -8.7, n: 60.9, e: 1.8, outline: [
+      [49.85, -6.6],
+      [50.05, -5.8],
+      [51.15, -5],
+      [51.7, -5.6],
+      [52.2, -4.9],
+      [52.95, -4.95],
+      [53.45, -4.8],
+      [54, -3.4],
+      [54.55, -3.7],
+      [54.65, -5.25],
+      [55.05, -5.35],
+      [55.4, -5.95],
+      [56, -6.7],
+      [56.7, -7.2],
+      [57.6, -7.9],
+      [58.7, -7.4],
+      [58.8, -3.6],
+      [59.3, -3.8],
+      [59.5, -1.9],
+      [60.9, -1.7],
+      [60.9, -0.5],
+      [59.1, -1],
+      [57.7, -1.5],
+      [56, -1.9],
+      [55.5, -1.2],
+      [54.4, -0.2],
+      [53.6, 0.5],
+      [52.9, 1.8],
+      [51.3, 1.8],
+      [50.6, 0.6],
+      [50.4, -1.3],
+      [49.85, -5.9]
     ] },
     reachKm: { walk: 3, cycle: 10, drive: 25 },
     nearest: 3,
@@ -3973,7 +3988,7 @@ var CommuteCore = (() => {
     }
     return inside;
   }
-  var OUTSIDE_REGION = "Outside the area this plans: London, the South East and the East of England.";
+  var OUTSIDE_REGION = "Outside the area this plans: Great Britain (England, Scotland and Wales by rail).";
 
   // src/core/trip/journeyCore.ts
   var stationKey = (s) => s.crs || Object.entries(s.ids || {}).map(([p, ids]) => ids && ids[0] ? `${p}:${ids[0]}` : "").find(Boolean) || `name:${s.name}`;
@@ -4233,11 +4248,12 @@ var CommuteCore = (() => {
   }
   var isPlace = (e) => !!e.place;
   function tflRailJourneys(body, from, to, idx, endMatchM) {
-    const out = [], refused = [], elsewhere = [];
+    const out = [], refused = [], elsewhere = [], elsewhereFrom = [];
     for (const j of body && body.journeys || []) {
       const notes = [];
       const legs = j.legs || [];
       let rides = legs.map((l) => rideOf(l, idx, endMatchM)).filter((r) => !!r);
+      const walkedFromAsked = rides.length > 0 && rides[0].kind === "walk" && stationKey(rides[0].from) === stationKey(from);
       while (rides.length && rides[0].kind === "walk") {
         notes.push(`Dropped TfL's walk: ${rides[0].label}`);
         rides = rides.slice(1);
@@ -4253,7 +4269,8 @@ var CommuteCore = (() => {
       }
       const last = rides[rides.length - 1];
       const other = () => `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"})`;
-      if (rides[0].from.crs !== from.crs) {
+      const boardsElsewhere = stationKey(rides[0].from) !== stationKey(from);
+      if (boardsElsewhere && !(walkedFromAsked && (rides[0].from.geo[0] || rides[0].from.geo[1]))) {
         refused.push(other());
         continue;
       }
@@ -4269,6 +4286,13 @@ var CommuteCore = (() => {
       legs.forEach((l) => (l.disruptions || []).forEach((d) => {
         if (d && d.description) notes.push(String(d.description));
       }));
+      if (boardsElsewhere) {
+        const endOk = isPlace(to) ? true : stationKey(last.to) === stationKey(to);
+        const why = `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"}, not from ${from.name})`;
+        refused.push(why);
+        if (endOk) elsewhereFrom.push({ journey: { rides, source: "tfl", notes: [...notes, `Boards at ${rides[0].from.name}, not ${from.name}`] }, why });
+        continue;
+      }
       if (!isPlace(to) && stationKey(last.to) !== stationKey(to)) {
         const why = `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"}, not ${to.name})`;
         refused.push(why);
@@ -4277,7 +4301,7 @@ var CommuteCore = (() => {
       }
       out.push({ rides, source: "tfl", notes });
     }
-    return { journeys: out, refused, elsewhere };
+    return { journeys: out, refused, elsewhere, elsewhereFrom };
   }
 
   // src/core/journeyFacts.ts
@@ -4393,7 +4417,7 @@ var CommuteCore = (() => {
     }
   };
   var targetName = (t2) => t2.station ? t2.station.name : t2.place.name;
-  var pairKey = (a, t2) => `${a.crs}-${t2.station ? t2.station.crs : "@place"}`;
+  var pairKey = (a, t2) => `${stationKey(a)}-${t2.station ? stationKey(t2.station) : "@place"}`;
   var toStation = (s) => ({ station: s });
   async function planTrip(req, ports, onStage) {
     const { from, to, modes, question: q, now, cfg } = req;
@@ -4407,6 +4431,7 @@ var CommuteCore = (() => {
     };
     const accFrom = /* @__PURE__ */ new Map(), accTo = /* @__PURE__ */ new Map();
     const toPlace = modes.to === "walk" && ports.planner.planTo && cfg.placeSearches > 0 ? { place: to } : null;
+    const fromWalk = modes.from === "walk";
     const firstGuess = q.kind === "by" ? q.t - 2 * 36e5 : q.kind === "at" ? q.t : now;
     const timeAccess = async (place, list, mode, dir, into, at = firstGuess, again = false) => {
       const todo = list.filter((s) => again || !into.has(stationKey(s)));
@@ -4438,12 +4463,15 @@ var CommuteCore = (() => {
       keep(pairKey(pair[0], pair[1]), r.journeys);
       const kept = toPlace && pair[1].station ? (r.elsewhere || []).filter((e) => km(e.journey.rides[e.journey.rides.length - 1].to.geo, to.geo) <= cfg.reachKm.walk) : [];
       if (kept.length) keep(pairKey(pair[0], toPlace), kept.map((e) => e.journey));
-      if (!r.journeys.length && !kept.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
-      const keptWhy = new Set(kept.map((e) => e.why));
+      const boarded = fromWalk ? (r.elsewhereFrom || []).filter((e) => km(e.journey.rides[0].from.geo, from.geo) <= cfg.reachKm.walk) : [];
+      boarded.forEach((e) => keep(pairKey(e.journey.rides[0].from, pair[1]), [e.journey]));
+      if (!r.journeys.length && !kept.length && !boarded.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
+      const keptWhy = new Set([...kept, ...boarded].map((e) => e.why));
       r.refused.forEach((why) => {
         if (!keptWhy.has(why)) note(`${pair[0].name} \u2192 ${targetName(pair[1])}: ${why}`);
       });
       if (kept.length) note(`${pair[0].name} \u2192 ${targetName(pair[1])}: ${kept.length === 1 ? "a journey alights" : `${kept.length} journeys alight`} at ${[...new Set(kept.map((e) => e.journey.rides[e.journey.rides.length - 1].to.name))].join(" / ")} and walk on; kept as journeys to ${to.name} from there`);
+      if (boarded.length) note(`${pair[0].name} \u2192 ${targetName(pair[1])}: ${boarded.length === 1 ? "a journey boards" : `${boarded.length} journeys board`} at ${[...new Set(boarded.map((e) => e.journey.rides[0].from.name))].join(" / ")} after a walk from ${pair[0].name}; kept as journeys from there`);
     };
     const timeIs = q.kind === "by" ? "Arriving" : "Departing";
     const t0 = q.kind === "now" ? now : q.t;
@@ -4473,6 +4501,14 @@ var CommuteCore = (() => {
           if (!accTo.has(key) && !seen.has(key)) seen.set(key, s);
         });
       });
+      return [...seen.values()];
+    };
+    const startStops = () => {
+      const seen = /* @__PURE__ */ new Map();
+      rail.forEach((list) => list.forEach((rj) => {
+        const s = rj.rides[0].from, key = stationKey(s);
+        if (!accFrom.has(key) && !seen.has(key)) seen.set(key, s);
+      }));
       return [...seen.values()];
     };
     const pairOf = /* @__PURE__ */ new WeakMap();
@@ -4519,7 +4555,7 @@ var CommuteCore = (() => {
     cf.list.push(...pf);
     ct.list.push(...pt);
     await Promise.all([
-      timeAccess(from.geo, stationsOf(cf.list), modes.from, "to", accFrom).catch((e) => {
+      timeAccess(from.geo, [...stationsOf(cf.list), ...startStops()], modes.from, "to", accFrom).catch((e) => {
         notes.push(`Times to the stations: ${e.message}`);
       }),
       timeAccess(to.geo, [...stationsOf(ct.list), ...endStops()], modes.to, "from", accTo).catch((e) => {
@@ -4537,7 +4573,7 @@ var CommuteCore = (() => {
       });
       return m;
     };
-    const fromRank = bestBy((j) => j.fromStation.crs), toRank = bestBy((j) => j.toStation.crs);
+    const fromRank = bestBy((j) => stationKey(j.fromStation)), toRank = bestBy((j) => stationKey(j.toStation));
     const good = (crs, m, promoted) => {
       var _a;
       return promoted || (best ? ((_a = m.get(crs)) != null ? _a : Infinity) - best.arrive <= cfg.behindMin * 6e4 : true);
@@ -4563,9 +4599,14 @@ var CommuteCore = (() => {
       }
     }
     if (p2.length) await runPairs(p2, () => t0, timeIs);
-    await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
-      notes.push(`Times from the stations: ${e.message}`);
-    });
+    await Promise.all([
+      timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
+        notes.push(`Times from the stations: ${e.message}`);
+      }),
+      timeAccess(from.geo, startStops(), modes.from, "to", accFrom).catch((e) => {
+        notes.push(`Times to the stations: ${e.message}`);
+      })
+    ]);
     const bestPairs = [...new Map(assemble("timetable").journeys.filter((j) => !j.uncertain).sort((x, y) => x.arrive - y.arrive).map((j) => {
       const p = pairOf.get(j);
       return [pairKey(p[0], p[1]), p];
@@ -4580,9 +4621,14 @@ var CommuteCore = (() => {
       return q.kind === "by" ? !deps.some((d) => d <= q.t - cfg.windowMin * 6e4 + 30 * 6e4) : !deps.some((d) => d >= t0 + cfg.windowMin * 6e4);
     });
     if (need.length) await runPairs(need, later, "Departing");
-    await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
-      notes.push(`Times from the stations: ${e.message}`);
-    });
+    await Promise.all([
+      timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
+        notes.push(`Times from the stations: ${e.message}`);
+      }),
+      timeAccess(from.geo, startStops(), modes.from, "to", accFrom).catch((e) => {
+        notes.push(`Times to the stations: ${e.message}`);
+      })
+    ]);
     const chosen = assemble("timetable").picks[0];
     if (chosen && (modes.from === "drive" || modes.to === "drive")) {
       await Promise.all([

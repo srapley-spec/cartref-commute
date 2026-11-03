@@ -1,1 +1,122 @@
-{"SRG": {"tfl": ["910GSEERGRN"], "tflIcs": ["1000559"]}}
+{
+ "SRG": {
+  "tfl": [
+   "910GSEERGRN"
+  ],
+  "tflIcs": [
+   "1000559"
+  ]
+ },
+ "EDB": {
+  "tfl": [
+   "910GEDINBUR"
+  ],
+  "tflIcs": [
+   "90002457"
+  ]
+ },
+ "NNG": {
+  "tfl": [
+   "910GNEWANG"
+  ],
+  "tflIcs": [
+   "90005189"
+  ]
+ },
+ "DFE": {
+  "tfl": [
+   "910GDNFRMLE"
+  ],
+  "tflIcs": [
+   "90002172"
+  ]
+ },
+ "PRA": {
+  "tfl": [
+   "910GPWCKAPT"
+  ],
+  "tflIcs": [
+   "90005902"
+  ]
+ },
+ "PTW": {
+  "tfl": [
+   "910GPWCK"
+  ],
+  "tflIcs": [
+   "90005901"
+  ]
+ },
+ "TEA": {
+  "tfl": [
+   "910GTSDARPR"
+  ],
+  "tflIcs": [
+   "90007410"
+  ]
+ },
+ "PPL": {
+  "tfl": [
+   "910GPONTYPL"
+  ],
+  "tflIcs": [
+   "90005751"
+  ]
+ },
+ "RIA": {
+  "tfl": [
+   "910GRHOOSE"
+  ],
+  "tflIcs": [
+   "90006056"
+  ]
+ },
+ "BHC": {
+  "tfl": [
+   "910GBALLOCH"
+  ],
+  "tflIcs": [
+   "90000384"
+  ]
+ },
+ "BTD": {
+  "tfl": [
+   "910GBLTNODR"
+  ],
+  "tflIcs": [
+   "90000698"
+  ]
+ },
+ "CPN": {
+  "tfl": [
+   "910GCHAPLTN"
+  ],
+  "tflIcs": [
+   "90001359"
+  ]
+ },
+ "COE": {
+  "tfl": [
+   "910GCOOMBE"
+  ],
+  "tflIcs": [
+   "90001686"
+  ]
+ },
+ "RAV": {
+  "tfl": [
+   "910GRGLS"
+  ],
+  "tflIcs": [
+   "90006050"
+  ]
+ },
+ "JCH": {
+  "tfl": [
+   "910GJAMCOK"
+  ],
+  "tflIcs": [
+   "90003951"
+  ]
+ }
+}

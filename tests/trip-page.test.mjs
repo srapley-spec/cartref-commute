@@ -163,6 +163,24 @@ test("Trip to a place near a Tube stop (#56): Letchworth → One Braham recommen
   assert.match(app.text("#tripResults"), /Aldgate/);
 });
 
+test("Trip UK-wide: Letchworth → Newcastle plans through the page via Stevenage, with the total, Leave by and a York change flagged", async () => {
+  PLACES.newcastle = { id: "G-NCL", primary: "Grey's Monument", secondary: "Newcastle upon Tyne NE1 7AL", geo: [54.9738, -1.6131] };
+  const ncl = JSON.parse(readFileSync(path.join(ROOT, "tests/fixtures/trip/tfl-letchworth-newcastle.json"), "utf8"), (k, v) =>
+    typeof v === "string" && /^2026-11-04T\d\d:\d\d:\d\d$/.test(v) ? `2026-11-03T${String(Number(v.slice(11, 13)) + 2).padStart(2, "0")}${v.slice(13)}` : v).body;
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: u => /JourneyResults\/1000460\/to\/90005367\?/.test(u) ? json(ncl) : route(u) });   // Newcastle by its ICS code
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "from", "letchworth town"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "grey's monument"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Letchworth Garden City → Newcastle/.test(app.text("#tripResults")), 6000);
+  const pick = app.d.querySelector("#tripResults .trip-row[data-trip-id]").textContent.replace(/\s+/g, " ");
+  assert.match(pick, /Leave by/); assert.match(pick, /Letchworth Garden City → Newcastle/); assert.match(pick, /3 changes/);
+  assert.match(pick, /Connection at risk, 0 min/);
+  assert.match(pick, /Arrive Newcastle/);
+  assert.ok(!/Outside the area/.test(app.text("#tripResults")));
+  delete PLACES.newcastle;
+});
+
 test("Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it", async () => {
   const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
   googleStub(app.w);
@@ -193,7 +211,7 @@ test("Trip: back to Commute restores the commute screen and Trip's places are ke
 });
 
 // ---------- Edges the independent review found untested ----------
-PLACES.birmingham = { id: "G-BHM", primary: "Birmingham New Street", secondary: "Birmingham B2 4QA", geo: [52.4778, -1.8990] };
+PLACES.dublin = { id: "G-DUB", primary: "Dublin Connolly", secondary: "Amiens Street, Dublin 1", geo: [53.3509, -6.2501] };
 PLACES.lewes = { id: "G-LEW", primary: "Lewes Castle", secondary: "Lewes BN7 1YE", geo: [50.8737, 0.0076] };
 
 test("Trip search: nothing is asked for until 250 ms after the last keystroke", async () => {
@@ -251,8 +269,8 @@ test("Trip: a place outside the region is refused when chosen, with the region n
   const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
   googleStub(app.w);
   app.d.querySelector("#tripModeBtn").click(); await sleep(50);
-  await type(app, "to", "birmingham"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter"); await sleep(100);
-  assert.match(app.text("#tripResults"), /Outside the area this plans: London, the South East and the East of England/);
+  await type(app, "to", "dublin"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter"); await sleep(100);
+  assert.match(app.text("#tripResults"), /Outside the area this plans: Great Britain/);
   assert.equal(JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).tripMode.to, undefined);
 });
 

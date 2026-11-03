@@ -20,15 +20,11 @@ const village = [51.23, 0.97];
 const kent = core.stationIndex([S("AAA", "Alpha", 51.24, 0.97, 2), S("BBB", "Bravo", 51.25, 1.00, 2), S("CCC", "Charlie", 51.26, 0.95, 2),
   S("JUN", "Junction", 51.30, 0.90, 6), S("BIG", "Big International", 51.14, 0.87, 10), S("FAR", "Far Away", 52.20, 0.10, 12)]);
 
-test("Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out", () => {
+test("Region: Great Britain since 3 Nov (the detail is in tests/core/trip-uk.test.mjs); the old South East box is history", () => {
   const r = cfg.region, inside = g => core.inRegion(g, r);
-  for (const g of [st("LET").geo, st("BTN").geo, [51.75, -1.26], [52.06, -1.34], [52.14, -0.48], [52.57, -0.24], [52.75, 0.40], [52.93, 1.30], [52.47, 1.75], [51.13, 1.31], [52.03, -0.77]])
-    assert.equal(inside(g), true, String(g));   // Letchworth, Brighton, Oxford, Banbury, Bedford, Peterborough, King's Lynn, Cromer, Lowestoft, Dover, Milton Keynes
-  for (const g of [[52.48, -1.90], [52.41, -1.51], [52.24, -0.90], [51.56, -1.78], [53.2, 0.5], [50.5, 0.0], [51.5, 1.81], [51.5, -1.96]])
-    assert.equal(inside(g), false, String(g));  // Birmingham, Coventry, Northampton, Swindon, Lincolnshire, the Channel, the North Sea, Wiltshire
-  assert.equal(inside([50.55, 1.0]), true, "the south edge is in"); assert.equal(inside([51.5, 1.80]), true, "the east edge is in");
-  assert.equal(inside([NaN, 0]), false);
-  assert.match(core.OUTSIDE_REGION, /London, the South East and the East of England/);
+  assert.equal(inside([52.48, -1.90]), true, "Birmingham is in now");
+  assert.equal(inside([54.597, -5.93]), false, "Belfast is out");
+  assert.match(core.OUTSIDE_REGION, /Great Britain/);
 });
 
 test("Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60", () => {
@@ -208,7 +204,7 @@ test("planTrip: one station pair failing still plans the others; a refusal is re
 });
 
 test("planTrip: a place outside the region is refused with the region named; places within 1.5 km say no train needed", async () => {
-  await assert.rejects(core.planTrip({ from: place("Birmingham", [52.48, -1.99]), to: canterbury, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: now }, now, leisureKmh: 4.5, cfg }, ports()),
+  await assert.rejects(core.planTrip({ from: place("Dublin", [53.35, -6.26]), to: canterbury, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: now }, now, leisureKmh: 4.5, cfg }, ports()),
     /Outside the area this plans/);
   const near = place("Near the cathedral", [51.2850, 1.0800]);
   const r = await core.planTrip({ from: canterbury, to: near, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: now }, now, leisureKmh: 4.5, cfg }, ports()).catch(e => e);
