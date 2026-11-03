@@ -119,6 +119,8 @@ Routes API by the Worker's address instead.
 - Keys from the environment; a test fails if any data or fixture file contains `app_key=` or `x-apikey`.
 
 ## 7. Station candidates and searches
+The mechanism as built, with the 3 Nov changes (searches to the place itself, Tube-stop identity, journeys that
+alight elsewhere), is in `docs/trip-engine.md`; this section is the design as decided.
 Reach in a straight line: walk 3 km, cycle 10 km, drive 25 km. Per end:
 - **Prior**: the 3 nearest within reach + up to 2 within reach with `servicePerHour` ≥ 2× the best of the nearest three,
   highest first (max 5). None within reach → the nearest, flagged "Nearest station is N km away".

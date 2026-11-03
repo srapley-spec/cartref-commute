@@ -1,0 +1,653 @@
+[
+ {
+  "title": "Letchworth \u2192 One Braham E1 (issue #56)",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T07:15"
+  }
+ },
+ {
+  "title": "Letchworth \u2192 One Braham, Arrive by 09:00",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "by",
+   "at": "2026-11-04T09:00"
+  }
+ },
+ {
+  "title": "Brighton (Seven Dials) \u2192 Pimlico",
+  "from": {
+   "name": "Brighton Seven Dials",
+   "geo": [
+    50.8318,
+    -0.1478
+   ],
+   "station": "Brighton"
+  },
+  "to": {
+   "name": "Pimlico",
+   "geo": [
+    51.4893,
+    -0.1334
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:30"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 NE38 8SE, Washington",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "NE38 8SE, Washington",
+   "geo": [
+    54.8874,
+    -1.5101
+   ],
+   "station": "Heworth"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "NE38 8SE, Washington \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "NE38 8SE, Washington",
+   "geo": [
+    54.8874,
+    -1.5101
+   ],
+   "station": "Heworth"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 Newcastle (Grey's Monument)",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "Newcastle (Grey's Monument)",
+   "geo": [
+    54.9738,
+    -1.6131
+   ],
+   "station": "Newcastle"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Newcastle (Grey's Monument) \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "Newcastle (Grey's Monument)",
+   "geo": [
+    54.9738,
+    -1.6131
+   ],
+   "station": "Newcastle"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 7 Cloudesley Road, St Leonards",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "7 Cloudesley Road, St Leonards",
+   "geo": [
+    50.8605,
+    0.5604
+   ],
+   "station": "St Leonards Warrior Square"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "7 Cloudesley Road, St Leonards \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "7 Cloudesley Road, St Leonards",
+   "geo": [
+    50.8605,
+    0.5604
+   ],
+   "station": "St Leonards Warrior Square"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 Schooner Hotel, Alnmouth",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "Schooner Hotel, Alnmouth",
+   "geo": [
+    55.3872,
+    -1.6124
+   ],
+   "station": "Alnmouth"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Schooner Hotel, Alnmouth \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "Schooner Hotel, Alnmouth",
+   "geo": [
+    55.3872,
+    -1.6124
+   ],
+   "station": "Alnmouth"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 Fort William (station area)",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Fort William (station area) \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 Fort William (station area), evening (sleeper?)",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T20:00"
+  }
+ },
+ {
+  "title": "London office (One Braham E1) \u2192 202 Lower Road, Great Bookham",
+  "from": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "to": {
+   "name": "202 Lower Road, Great Bookham",
+   "geo": [
+    51.2801,
+    -0.3726
+   ],
+   "station": "Bookham"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "202 Lower Road, Great Bookham \u2192 London office (One Braham E1) (return)",
+  "from": {
+   "name": "202 Lower Road, Great Bookham",
+   "geo": [
+    51.2801,
+    -0.3726
+   ],
+   "station": "Bookham"
+  },
+  "to": {
+   "name": "London office (One Braham E1)",
+   "geo": [
+    51.5139,
+    -0.0712
+   ]
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 NE38 8SE, Washington",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "NE38 8SE, Washington",
+   "geo": [
+    54.8874,
+    -1.5101
+   ],
+   "station": "Heworth"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "NE38 8SE, Washington \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "NE38 8SE, Washington",
+   "geo": [
+    54.8874,
+    -1.5101
+   ],
+   "station": "Heworth"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 Newcastle (Grey's Monument)",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "Newcastle (Grey's Monument)",
+   "geo": [
+    54.9738,
+    -1.6131
+   ],
+   "station": "Newcastle"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Newcastle (Grey's Monument) \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "Newcastle (Grey's Monument)",
+   "geo": [
+    54.9738,
+    -1.6131
+   ],
+   "station": "Newcastle"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 7 Cloudesley Road, St Leonards",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "7 Cloudesley Road, St Leonards",
+   "geo": [
+    50.8605,
+    0.5604
+   ],
+   "station": "St Leonards Warrior Square"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "7 Cloudesley Road, St Leonards \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "7 Cloudesley Road, St Leonards",
+   "geo": [
+    50.8605,
+    0.5604
+   ],
+   "station": "St Leonards Warrior Square"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 Schooner Hotel, Alnmouth",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "Schooner Hotel, Alnmouth",
+   "geo": [
+    55.3872,
+    -1.6124
+   ],
+   "station": "Alnmouth"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Schooner Hotel, Alnmouth \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "Schooner Hotel, Alnmouth",
+   "geo": [
+    55.3872,
+    -1.6124
+   ],
+   "station": "Alnmouth"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 Fort William (station area)",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "Fort William (station area) \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 Fort William (station area), evening (sleeper?)",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "Fort William (station area)",
+   "geo": [
+    56.821,
+    -5.1048
+   ],
+   "station": "Fort William"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T20:00"
+  }
+ },
+ {
+  "title": "Letchworth town centre \u2192 202 Lower Road, Great Bookham",
+  "from": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "to": {
+   "name": "202 Lower Road, Great Bookham",
+   "geo": [
+    51.2801,
+    -0.3726
+   ],
+   "station": "Bookham"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T08:00"
+  }
+ },
+ {
+  "title": "202 Lower Road, Great Bookham \u2192 Letchworth town centre (return)",
+  "from": {
+   "name": "202 Lower Road, Great Bookham",
+   "geo": [
+    51.2801,
+    -0.3726
+   ],
+   "station": "Bookham"
+  },
+  "to": {
+   "name": "Letchworth town centre",
+   "geo": [
+    51.983,
+    -0.228
+   ],
+   "station": "Letchworth Garden City"
+  },
+  "question": {
+   "kind": "now",
+   "at": "2026-11-04T17:00"
+  }
+ }
+]

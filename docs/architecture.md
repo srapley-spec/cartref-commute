@@ -284,6 +284,7 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   stations (step-free access is known, outages are not).
 
 ## Code layout (29 Oct)
+Trip's engine, step by step with its numbers and its evidence: `docs/trip-engine.md` (3 Nov).
 Engine (`src/core`): `situation.ts` (direction, at a station, on the line incl. movement, which train, on a tube,
 tube home, nearly home, office arrival), `connections.ts` (generic connection at any station: planConnection, Ride),
 `effort.ts` (what it takes to catch each train: walk, fast walk, run, car, can't; "Arrives first" per level),

@@ -242,6 +242,7 @@ Minutes are whole minutes, rounded down.
 | TfL station lookups | 0 (bundled) |
 
 ## Tests
+How the engine works and how it was tested, end to end: `docs/trip-engine.md`. Live comparison runs: `docs/reviews/trip-20-journeys-2026-11-03.md`, `docs/reviews/trip-complex-journeys-2026-11-03.md`; re-run with `tools/trip-compare.mjs`.
 Built so far (the build log in the architecture says what is and isn't on screen):
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: sum time aboard trains across midnight and keep access, changes and other modes in the total"
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: unknown access keeps known rail duration without inventing a door-to-door total"
