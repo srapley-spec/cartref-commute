@@ -148,7 +148,7 @@ test("Trip to a place near a Tube stop (#56): Letchworth → One Braham recommen
   const pick = app.d.querySelector("#tripResults .trip-row[data-trip-id]").textContent.replace(/\s+/g, " ");
   assert.match(pick, /Letchworth Garden City → Aldgate(?! East)/, pick.slice(0, 300));
   assert.match(pick, /Leave by/);
-  assert.match(text, /Letchworth Garden City → Aldgate East/, "the search to the place itself contributes its own journeys");
+  assert.ok([...app.d.querySelectorAll("#tripResults [data-trip-id]")].some(e => /Letchworth Garden City → Aldgate East/.test(e.textContent)), "the search to the place itself contributes its own journey rows (not merely a diagnostic line)");
   assert.match(text, /Metropolitan line to Aldgate|Tube/);
   assert.match(text, /Out of Aldgate/); assert.match(text, /Walk to your destination/);
   assert.match(text, /London Fenchurch Street: 3 journeys alight at Aldgate \/ Tower Hill and walk on; kept/);
