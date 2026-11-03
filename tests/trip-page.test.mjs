@@ -176,9 +176,32 @@ test("Trip UK-wide: Letchworth → Newcastle plans through the page via Stevenag
   const pick = app.d.querySelector("#tripResults .trip-row[data-trip-id]").textContent.replace(/\s+/g, " ");
   assert.match(pick, /Leave by/); assert.match(pick, /Letchworth Garden City → Newcastle/); assert.match(pick, /3 changes/);
   assert.match(pick, /Connection at risk, 0 min/);
-  assert.match(pick, /Arrive Newcastle/);
+  assert.match(pick, /Arrive Newcastle/); assert.match(pick, /Stevenage/); assert.ok(!/Arrive London Kings Cross/.test(pick), "not via King's Cross");
   assert.ok(!/Outside the area/.test(app.text("#tripResults")));
   delete PLACES.newcastle;
+});
+
+test("Trip UK-wide: two Tube boarding stops from one London station are two planner-cache keys, so each gets its own later search", async () => {
+  PLACES.office = { id: "G-OB2", primary: "One Braham (office)", secondary: "1 Braham Street, London E1 8EE", geo: [51.5139, -0.0712] };
+  PLACES.newcastle = { id: "G-NCL", primary: "Grey's Monument", secondary: "Newcastle upon Tyne NE1 7AL", geo: [54.9738, -1.6131] };
+  const shift = body => JSON.parse(JSON.stringify(body), (k, v) => typeof v === "string" && /^2026-11-04T\d\d:\d\d:\d\d$/.test(v) ? `2026-11-03T${String(Number(v.slice(11, 13)) + 2).padStart(2, "0")}${v.slice(13)}` : v);
+  // Fenchurch Street → Newcastle: TfL walks to Aldgate first; journey 1 re-pointed to walk to Tower Hill instead (a stop TfL knows, the list doesn't)
+  const fst = shift(JSON.parse(readFileSync(path.join(ROOT, "tests/fixtures/trip/tfl-fenchurchst-newcastle.json"), "utf8")).body);
+  const j = fst.journeys[1]; j.legs[1].departurePoint = { naptanId: "940GZZLUTWH", commonName: "Tower Hill Underground Station", lat: 51.5098, lon: -0.0766 }; j.legs[0].arrivalPoint = { ...j.legs[1].departurePoint };
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: u => /JourneyResults\/1001108\/to\/90005367\?/.test(u) ? json(fst) : route(u) });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  const before = app.calls.length;
+  await type(app, "from", "one braham (office"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "grey's monument"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Aldgate → Newcastle/.test(app.text("#tripResults")) && app.d.querySelector("#tripResults .trip-row"), 6000);
+  await sleep(600);
+  const text = app.text("#tripResults");
+  assert.match(text, /Aldgate → Newcastle/); assert.match(text, /Tower Hill → Newcastle/);
+  const after = app.calls.slice(before);
+  assert.ok(after.some(u => /JourneyResults\/1000003\/to\/90005367\?/.test(u)), "a later search from Aldgate (its ICS code)");
+  assert.ok(after.some(u => /JourneyResults\/940GZZLUTWH\/to\/90005367\?/.test(u)), "and one from Tower Hill: not served from Aldgate's cache entry");
+  delete PLACES.office; delete PLACES.newcastle;
 });
 
 test("Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it", async () => {

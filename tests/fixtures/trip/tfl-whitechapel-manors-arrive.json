@@ -1,0 +1,1863 @@
+{
+ "recorded": "2026-11-03T23:03:44.895137Z",
+ "request": "Journey/JourneyResults/1000268/to/910GMANORS?date=20261104&time=1200&timeIs=Arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": "200",
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T07:11:00",
+    "duration": 216,
+    "arrivalDateTime": "2026-11-04T10:47:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 13,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Hammersmith & City line to King's Cross St.Pancras",
+       "detailed": "Hammersmith & City line towards Hammersmith (H&C and Circle Lines)",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T07:11:00",
+      "arrivalTime": "2026-11-04T07:24:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUWPL",
+       "platformName": "",
+       "icsCode": "1000268",
+       "individualStopId": "9400ZZLUWPL2",
+       "commonName": "Whitechapel Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.519412626501,
+       "lon": -0.060797269435
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Hammersmith & City",
+        "directions": [
+         "Hammersmith (H&C and Circle Lines)"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "hammersmith-city",
+         "name": "Hammersmith & City",
+         "uri": "/Line/hammersmith-city",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 12.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T07:11:00",
+      "scheduledArrivalTime": "2026-11-04T07:24:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 9,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to King's Cross Rail Station",
+       "detailed": "Walk to King's Cross Rail Station",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Euston Road for 23 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 23,
+         "cumulativeDistance": 23,
+         "skyDirection": 51,
+         "skyDirectionDescription": "NorthEast",
+         "cumulativeTravelTime": 18,
+         "latitude": 51.529863164348,
+         "longitude": -0.12390500885,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 18
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 8 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 8,
+         "cumulativeDistance": 31,
+         "skyDirection": 149,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 25,
+         "latitude": 51.529741499499,
+         "longitude": -0.12416952153,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 6
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 35,
+         "skyDirection": 150,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 68,
+         "latitude": 51.529805327252,
+         "longitude": -0.124224567118,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 43
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "SLIGHT_RIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 50,
+         "skyDirection": 211,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 80,
+         "latitude": 51.529832747821004,
+         "longitude": -0.124252274655,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight right",
+         "trackType": "None",
+         "travelTime": 12
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 18 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 18,
+         "cumulativeDistance": 69,
+         "skyDirection": 147,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 135,
+         "latitude": 51.529921231408,
+         "longitude": -0.124162133722,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 55
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 74,
+         "skyDirection": 243,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 139,
+         "latitude": 51.53006732086,
+         "longitude": -0.124300302526,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 3
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 88,
+         "skyDirection": 235,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 191,
+         "latitude": 51.530093359096,
+         "longitude": -0.124241562745,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 51
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Euston Road, continue for 36 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 36,
+         "cumulativeDistance": 125,
+         "skyDirection": 233,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 261,
+         "latitude": 51.530171473624,
+         "longitude": -0.124065343001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 69
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 16 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 16,
+         "cumulativeDistance": 141,
+         "skyDirection": 148,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530371943445,
+         "longitude": -0.12366783027200001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 13
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to enter Train XX 026, continue for 125 metres",
+         "turnDirection": "UNKNOWN",
+         "streetName": "enter Train XX 026",
+         "distance": 125,
+         "cumulativeDistance": 266,
+         "skyDirection": 180,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530490612792995,
+         "longitude": -0.123778291134,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 0
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T07:24:00",
+      "arrivalTime": "2026-11-04T07:33:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 266.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T07:24:00",
+      "scheduledArrivalTime": "2026-11-04T07:33:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 182,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "London North Eastern Railway to Newcastle",
+       "detailed": "London North Eastern Railway towards Newcastle",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T07:33:00",
+      "arrivalTime": "2026-11-04T10:35:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE1",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.968444286624,
+       "lon": -1.6169982533770002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "London North Eastern Railway",
+        "directions": [
+         "Newcastle Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "london-north-eastern-railway",
+         "name": "London North Eastern Railway",
+         "uri": "/Line/london-north-eastern-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 24.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T07:33:00",
+      "scheduledArrivalTime": "2026-11-04T10:35:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern Rail to Manors",
+       "detailed": "Northern Rail towards Morpeth",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T10:45:00",
+      "arrivalTime": "2026-11-04T10:47:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE1",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.968444286624,
+       "lon": -1.6169982533770002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GMANORS",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90004718",
+       "individualStopId": "9100MANORS1",
+       "commonName": "Manors Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.972524868419,
+       "lon": -1.6059930372270002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern Rail",
+        "directions": [
+         "Morpeth Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern-rail",
+         "name": "Northern Rail",
+         "uri": "/Line/northern-rail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 10.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:45:00",
+      "scheduledArrivalTime": "2026-11-04T10:47:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T08:04:00",
+    "duration": 203,
+    "arrivalDateTime": "2026-11-04T11:27:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Elizabeth line to Farringdon Station",
+       "detailed": "Elizabeth line towards Paddington Station",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:04:00",
+      "arrivalTime": "2026-11-04T08:09:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWCHAPXR",
+       "platformName": "",
+       "icsCode": "1000268",
+       "individualStopId": "9100WCHAPXR1",
+       "commonName": "Whitechapel",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520092660166,
+       "lon": -0.060047664594
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRNDXR",
+       "platformName": "",
+       "icsCode": "1000080",
+       "individualStopId": "9100FRNDXR1",
+       "commonName": "Farringdon",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520187698025005,
+       "lon": -0.10491545736699999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Elizabeth line",
+        "directions": [
+         "Paddington Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "elizabeth",
+         "name": "Elizabeth line",
+         "uri": "/Line/elizabeth",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "elizabeth-line",
+       "name": "elizabeth-line",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "9",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 29.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:04:00",
+      "scheduledArrivalTime": "2026-11-04T08:09:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Barbican",
+       "detailed": "Walk to Barbican",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:10:00",
+      "arrivalTime": "2026-11-04T08:15:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRNDXR",
+       "platformName": "",
+       "icsCode": "1000080",
+       "individualStopId": "9100FRNDXR1",
+       "commonName": "Farringdon",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520187698025005,
+       "lon": -0.10491545736699999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBBN",
+       "platformName": "",
+       "icsCode": "1000014",
+       "individualStopId": "9400ZZLUBBN2",
+       "commonName": "Barbican Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.52019354104,
+       "lon": -0.098054006555
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 77.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:10:00",
+      "scheduledArrivalTime": "2026-11-04T08:15:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 4,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Metropolitan line to King's Cross St.Pancras",
+       "detailed": "Metropolitan line towards Chesham",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:15:00",
+      "arrivalTime": "2026-11-04T08:19:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBBN",
+       "platformName": "",
+       "icsCode": "1000014",
+       "individualStopId": "9400ZZLUBBN2",
+       "commonName": "Barbican Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.52019354104,
+       "lon": -0.098054006555
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Metropolitan",
+        "directions": [
+         "Chesham Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "metropolitan",
+         "name": "Metropolitan",
+         "uri": "/Line/metropolitan",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 12.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:15:00",
+      "scheduledArrivalTime": "2026-11-04T08:19:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 9,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to King's Cross Rail Station",
+       "detailed": "Walk to King's Cross Rail Station",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Euston Road for 23 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 23,
+         "cumulativeDistance": 23,
+         "skyDirection": 51,
+         "skyDirectionDescription": "NorthEast",
+         "cumulativeTravelTime": 18,
+         "latitude": 51.529863164348,
+         "longitude": -0.12390500885,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 18
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 8 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 8,
+         "cumulativeDistance": 31,
+         "skyDirection": 149,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 25,
+         "latitude": 51.529741499499,
+         "longitude": -0.12416952153,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 6
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 35,
+         "skyDirection": 150,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 68,
+         "latitude": 51.529805327252,
+         "longitude": -0.124224567118,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 43
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "SLIGHT_RIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 50,
+         "skyDirection": 211,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 80,
+         "latitude": 51.529832747821004,
+         "longitude": -0.124252274655,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight right",
+         "trackType": "None",
+         "travelTime": 12
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 18 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 18,
+         "cumulativeDistance": 69,
+         "skyDirection": 147,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 135,
+         "latitude": 51.529921231408,
+         "longitude": -0.124162133722,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 55
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 74,
+         "skyDirection": 243,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 139,
+         "latitude": 51.53006732086,
+         "longitude": -0.124300302526,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 3
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 88,
+         "skyDirection": 235,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 191,
+         "latitude": 51.530093359096,
+         "longitude": -0.124241562745,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 51
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Euston Road, continue for 36 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 36,
+         "cumulativeDistance": 125,
+         "skyDirection": 233,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 261,
+         "latitude": 51.530171473624,
+         "longitude": -0.124065343001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 69
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 16 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 16,
+         "cumulativeDistance": 141,
+         "skyDirection": 148,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530371943445,
+         "longitude": -0.12366783027200001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 13
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to enter Train XX 026, continue for 125 metres",
+         "turnDirection": "UNKNOWN",
+         "streetName": "enter Train XX 026",
+         "distance": 125,
+         "cumulativeDistance": 266,
+         "skyDirection": 180,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530490612792995,
+         "longitude": -0.123778291134,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 0
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T08:21:00",
+      "arrivalTime": "2026-11-04T08:30:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 266.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:21:00",
+      "scheduledArrivalTime": "2026-11-04T08:30:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 159,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "London North Eastern Railway to Newcastle",
+       "detailed": "London North Eastern Railway towards Edinburgh",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:30:00",
+      "arrivalTime": "2026-11-04T11:09:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE1",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.968444286624,
+       "lon": -1.6169982533770002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "London North Eastern Railway",
+        "directions": [
+         "Edinburgh Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "london-north-eastern-railway",
+         "name": "London North Eastern Railway",
+         "uri": "/Line/london-north-eastern-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 24.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:30:00",
+      "scheduledArrivalTime": "2026-11-04T11:09:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern Rail to Manors",
+       "detailed": "Northern Rail towards Ashington (Northumberland), Ashington",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T11:25:00",
+      "arrivalTime": "2026-11-04T11:27:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE0",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.96840024105,
+       "lon": -1.617279833365
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GMANORS",
+       "platformName": "",
+       "icsCode": "90004718",
+       "individualStopId": "9100MANORS0",
+       "commonName": "Manors Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.972763437982,
+       "lon": -1.604740961906
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern Rail",
+        "directions": [
+         "Ashington (Northumberland), Ashington Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern-rail",
+         "name": "Northern Rail",
+         "uri": "/Line/northern-rail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 14.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T11:25:00",
+      "scheduledArrivalTime": "2026-11-04T11:27:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T08:09:00",
+    "duration": 217,
+    "arrivalDateTime": "2026-11-04T11:46:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Elizabeth line to Farringdon Station",
+       "detailed": "Elizabeth line towards Heathrow Terminal 4",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:09:00",
+      "arrivalTime": "2026-11-04T08:14:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GWCHAPXR",
+       "platformName": "",
+       "icsCode": "1000268",
+       "individualStopId": "9100WCHAPXR1",
+       "commonName": "Whitechapel",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520092660166,
+       "lon": -0.060047664594
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRNDXR",
+       "platformName": "",
+       "icsCode": "1000080",
+       "individualStopId": "9100FRNDXR1",
+       "commonName": "Farringdon",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520187698025005,
+       "lon": -0.10491545736699999
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Elizabeth line",
+        "directions": [
+         "Heathrow Terminal 4"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "elizabeth",
+         "name": "Elizabeth line",
+         "uri": "/Line/elizabeth",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "elizabeth-line",
+       "name": "elizabeth-line",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "9",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 29.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:09:00",
+      "scheduledArrivalTime": "2026-11-04T08:14:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to Barbican",
+       "detailed": "Walk to Barbican",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:14:00",
+      "arrivalTime": "2026-11-04T08:19:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GFRNDXR",
+       "platformName": "",
+       "icsCode": "1000080",
+       "individualStopId": "9100FRNDXR1",
+       "commonName": "Farringdon",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.520187698025005,
+       "lon": -0.10491545736699999
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBBN",
+       "platformName": "",
+       "icsCode": "1000014",
+       "individualStopId": "9400ZZLUBBN2",
+       "commonName": "Barbican Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.52019354104,
+       "lon": -0.098054006555
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 77.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:14:00",
+      "scheduledArrivalTime": "2026-11-04T08:19:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Metropolitan line to King's Cross St.Pancras",
+       "detailed": "Metropolitan line towards Uxbridge",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:19:00",
+      "arrivalTime": "2026-11-04T08:24:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUBBN",
+       "platformName": "",
+       "icsCode": "1000014",
+       "individualStopId": "9400ZZLUBBN2",
+       "commonName": "Barbican Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.52019354104,
+       "lon": -0.098054006555
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Metropolitan",
+        "directions": [
+         "Uxbridge Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "metropolitan",
+         "name": "Metropolitan",
+         "uri": "/Line/metropolitan",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 12.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:19:00",
+      "scheduledArrivalTime": "2026-11-04T08:24:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 9,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to King's Cross Rail Station",
+       "detailed": "Walk to King's Cross Rail Station",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Euston Road for 23 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 23,
+         "cumulativeDistance": 23,
+         "skyDirection": 51,
+         "skyDirectionDescription": "NorthEast",
+         "cumulativeTravelTime": 18,
+         "latitude": 51.529863164348,
+         "longitude": -0.12390500885,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 18
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 8 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 8,
+         "cumulativeDistance": 31,
+         "skyDirection": 149,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 25,
+         "latitude": 51.529741499499,
+         "longitude": -0.12416952153,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 6
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 35,
+         "skyDirection": 150,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 68,
+         "latitude": 51.529805327252,
+         "longitude": -0.124224567118,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 43
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "SLIGHT_RIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 50,
+         "skyDirection": 211,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 80,
+         "latitude": 51.529832747821004,
+         "longitude": -0.124252274655,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight right",
+         "trackType": "None",
+         "travelTime": 12
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 18 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 18,
+         "cumulativeDistance": 69,
+         "skyDirection": 147,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 135,
+         "latitude": 51.529921231408,
+         "longitude": -0.124162133722,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 55
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 4 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 4,
+         "cumulativeDistance": 74,
+         "skyDirection": 243,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 139,
+         "latitude": 51.53006732086,
+         "longitude": -0.124300302526,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 3
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 14 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 14,
+         "cumulativeDistance": 88,
+         "skyDirection": 235,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 191,
+         "latitude": 51.530093359096,
+         "longitude": -0.124241562745,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 51
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Euston Road, continue for 36 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Euston Road",
+         "distance": 36,
+         "cumulativeDistance": 125,
+         "skyDirection": 233,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 261,
+         "latitude": 51.530171473624,
+         "longitude": -0.124065343001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 69
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 16 metres",
+         "turnDirection": "LEFT",
+         "streetName": "",
+         "distance": 16,
+         "cumulativeDistance": 141,
+         "skyDirection": 148,
+         "skyDirectionDescription": "SouthEast",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530371943445,
+         "longitude": -0.12366783027200001,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 13
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to enter Train XX 026, continue for 125 metres",
+         "turnDirection": "UNKNOWN",
+         "streetName": "enter Train XX 026",
+         "distance": 125,
+         "cumulativeDistance": 266,
+         "skyDirection": 180,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 274,
+         "latitude": 51.530490612792995,
+         "longitude": -0.123778291134,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 0
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T08:24:00",
+      "arrivalTime": "2026-11-04T08:33:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUKSX",
+       "platformName": "",
+       "icsCode": "1000129",
+       "individualStopId": "9400ZZLUKSX8",
+       "commonName": "King's Cross St. Pancras Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.529872381373,
+       "lon": -0.123919047254
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "99",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 266.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:24:00",
+      "scheduledArrivalTime": "2026-11-04T08:33:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 182,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "London North Eastern Railway to Newcastle",
+       "detailed": "London North Eastern Railway towards Newcastle",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T08:33:00",
+      "arrivalTime": "2026-11-04T11:35:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GKNGX",
+       "platformName": "",
+       "icsCode": "1001171",
+       "individualStopId": "9100KNGX",
+       "commonName": "London King's Cross Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.531579140347,
+       "lon": -0.123243328666
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE1",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.968444286624,
+       "lon": -1.6169982533770002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "London North Eastern Railway",
+        "directions": [
+         "Newcastle Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "london-north-eastern-railway",
+         "name": "London North Eastern Railway",
+         "uri": "/Line/london-north-eastern-railway",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 24.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T08:33:00",
+      "scheduledArrivalTime": "2026-11-04T11:35:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Northern Rail to Manors",
+       "detailed": "Northern Rail towards Morpeth",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T11:44:00",
+      "arrivalTime": "2026-11-04T11:46:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GNWCSTLE",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90005367",
+       "individualStopId": "9100NWCSTLE1",
+       "commonName": "Newcastle Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.968444286624,
+       "lon": -1.6169982533770002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GMANORS",
+       "platformName": "",
+       "stopLetter": "NB",
+       "icsCode": "90004718",
+       "individualStopId": "9100MANORS1",
+       "commonName": "Manors Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 54.972524868419,
+       "lon": -1.6059930372270002
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Northern Rail",
+        "directions": [
+         "Morpeth Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "northern-rail",
+         "name": "Northern Rail",
+         "uri": "/Line/northern-rail",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 10.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T11:44:00",
+      "scheduledArrivalTime": "2026-11-04T11:46:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "elizabeth",
+    "name": "Elizabeth line",
+    "modeName": "elizabeth-line",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.05Z",
+    "modified": "2026-09-22T09:53:41.05Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Elizabeth line&serviceTypes=Regular"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "hammersmith-city",
+    "name": "Hammersmith & City",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Hammersmith & City&serviceTypes=Regular"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "metropolitan",
+    "name": "Metropolitan",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Metropolitan&serviceTypes=Regular"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-04T12:00:00",
+   "dateTimeType": "Arriving",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/1000268/to/910gmanors?date=20261104&time=0300&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "1046",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/1000268/to/910gmanors?date=20261104&time=1046&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "1215",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/1000268/to/910gmanors?date=20261104&time=1215&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0300",
+     "timeIs": "arriving",
+     "uri": "/journey/journeyresults/1000268/to/910gmanors?date=20261105&time=0300&timeIs=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "1000268",
+   "to": "90004718",
+   "via": "",
+   "uri": "/journey/journeyresults/1000268/to/910gmanors?date=20261104&time=1200&timeis=arriving&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL (UK-wide Trip, 3 Nov); app_key removed; leg path geometry removed (unused)."
+}

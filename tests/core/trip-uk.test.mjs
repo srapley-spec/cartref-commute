@@ -22,19 +22,33 @@ const LON = place("London office (One Braham)", [51.5139, -0.0712]), LET = place
 const NCL = place("Grey's Monument, Newcastle", [54.9738, -1.6131]), ALM = place("Schooner Hotel, Alnmouth", [55.3872, -1.6124]);
 const FTW = place("Fort William", [56.8210, -5.1048]), WASH = place("Washington NE38 8SE", [54.8874, -1.5101]);
 
-const FX = { "LET-NCL": "letchworth-newcastle", "LET-ALM": "letchworth-alnmouth", "LET-FTW": "letchworth-fortwilliam", "LET-CLS": "letchworth-chesterlestreet",
+const FX = { "FST-MAS": "fenchurchst-manors", "LST-MAS": "liverpoolst-manors", "ZLW-MAS": "whitechapel-manors", "LET-NCL": "letchworth-newcastle", "LET-ALM": "letchworth-alnmouth", "LET-FTW": "letchworth-fortwilliam", "LET-CLS": "letchworth-chesterlestreet",
   "LST-NCL": "liverpoolst-newcastle", "FST-NCL": "fenchurchst-newcastle", "LST-ALM": "liverpoolst-alnmouth", "FST-ALM": "fenchurchst-alnmouth", "LST-CLS": "liverpoolst-chesterlestreet", "FST-CLS": "fenchurchst-chesterlestreet",
   "NCL-LET": "newcastle-letchworth", "NCL-LST": "newcastle-liverpoolst", "ALM-LET": "alnmouth-letchworth", "FTW-LET": "fortwilliam-letchworth", "CLS-LET": "chesterlestreet-letchworth", "CLS-LST": "chesterlestreet-liverpoolst" };
 const EVENING = { "LET-FTW": "letchworth-fortwilliam-evening", "LST-FTW": "liverpoolst-fortwilliam-evening", "FST-FTW": "fenchurchst-fortwilliam-evening", "FTW-LST": "fortwilliam-liverpoolst-evening" };
-const ARRIVING = { "LET-NCL": "letchworth-newcastle-arrive" };
+const ARRIVING = { "LET-NCL": "letchworth-newcastle-arrive", "FST-NCL": "fenchurchst-newcastle-arrive", "FST-MAS": "fenchurchst-manors-arrive", "LST-MAS": "liverpoolst-manors-arrive", "ZLW-MAS": "whitechapel-manors-arrive" };
 /** A planner answering from the recorded replies by station pair; a TfL stop with no CRS (a Tube stop) is searched by its key. */
 const recorded = (map = FX, log = []) => ({ name: "fixture",
-  plan: async (a, b, t, timeIs) => { const k = `${a.crs || core.stationKey(a)}-${b.crs}`; log.push(k + (timeIs === "Arriving" ? "/A" : ""));
+  plan: async (a, b, t, timeIs) => { const k = `${a.crs || core.stationKey(a)}-${b.crs}`; log.push(`${k}${timeIs === "Arriving" ? "/A" : ""}@${hm(t)}`);
     const n = (timeIs === "Arriving" && ARRIVING[k]) || map[k];
     return n ? core.tflRailJourneys(fxb(n), a, b, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; },
   planTo: async (a, p) => { log.push(`${a.crs}-@`); return { journeys: [], refused: [`TfL found no journey from ${a.name} to ${p.name}`] }; } });
 const plan = (from, to, q, opts = {}) => core.planTrip({ from, to, modes: opts.modes || { from: "walk", to: "walk" }, question: q, now: opts.now ?? (q.kind === "by" ? q.t - 4 * 3600e3 : q.t), leisureKmh: 4.5, cfg: opts.cfg || cfg },
-  { stations: idx, access: straight, planner: recorded(opts.map || FX, opts.log || []) });
+  { stations: idx, access: straight, planner: opts.planner || recorded(opts.map || FX, opts.log || []) });
+const TWH = "940GZZLUTWH", ALD = "940GZZLUALD";
+/** The Fenchurch Street → Newcastle reply with journey i's leading walk re-pointed to end at Tower Hill (a stop TfL knows, the list doesn't). */
+function reboard(body, i, { fromAsked = true } = {}) {
+  const b = JSON.parse(JSON.stringify(body)), j = b.journeys[i];
+  j.legs[1].departurePoint = { naptanId: TWH, commonName: "Tower Hill Underground Station", lat: 51.5098, lon: -0.0766 };
+  j.legs[0].arrivalPoint = { ...j.legs[1].departurePoint };
+  if (!fromAsked) j.legs[0].departurePoint = { naptanId: ALD, icsCode: "1000003", commonName: "Aldgate Underground Station", lat: 51.5142, lon: -0.0757 };
+  return b;
+}
+/** A recorded planner with one pair answered differently. */
+const withPair = (pair, body, log = []) => ({ ...recorded(FX, log), plan: async (a, b, t, ti) => {
+  const k = `${a.crs || core.stationKey(a)}-${b.crs}`; log.push(`${k}${ti === "Arriving" ? "/A" : ""}@${hm(t)}`);
+  if (k === pair) return core.tflRailJourneys(body, a, b, idx, cfg.endMatchM);
+  return FX[k] ? core.tflRailJourneys(fxb(FX[k]), a, b, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; } });
 const T = (d, t) => at(`2026-11-${d}`, t);
 
 test("Region: Great Britain; Belfast, Dublin, the Isle of Man and Calais are out; Stranraer, Penzance, Thurso, Shetland and the Hebrides are in", () => {
@@ -134,8 +148,24 @@ test("Boarding elsewhere needs the first mile on foot and the stop within walkin
   const cyc = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { modes: { from: "cycle", to: "walk" }, log });
   assert.ok(cyc.journeys.every(j => j.fromStation.crs), "every journey boards at a listed station when cycling");
   assert.ok(cyc.notes.some(n => /not from London Fenchurch Street/.test(n)) || cyc.failed.some(f => /not from London Fenchurch Street/.test(f.why)), "the refusal is said");
-  const tight = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { cfg: core.tripConfig({ reachKm: { walk: 0.2, cycle: 10, drive: 25 } }) });
-  assert.ok(tight.journeys.every(j => j.fromStation.crs), "Aldgate (≈ 300 m) is beyond a 200 m reach");
+  // Beyond reach: the far end stays Newcastle (the place is the station itself), Aldgate (≈ 300 m from the office) is beyond a 200 m reach
+  const atNcl = place("Newcastle Central", st("NCL").geo);
+  const tight = await plan(LON, atNcl, { kind: "now", t: T("04", "08:00") }, { cfg: core.tripConfig({ reachKm: { walk: 0.2, cycle: 10, drive: 25 } }) });
+  assert.equal(tight.candidates.to[0].station.crs, "NCL");
+  // Every reply from Fenchurch Street boards at Aldgate, so nothing is kept: no journeys, and the refusal is said (with the filter dropped, Aldgate journeys would appear)
+  assert.equal(tight.journeys.length, 0, tight.journeys.map(j => core.stationKey(j.fromStation)).join());
+  assert.ok(tight.notes.some(n => /not from London Fenchurch Street/.test(n)) || tight.failed.some(f => /not from London Fenchurch Street/.test(f.why)));
+  // Parser edges: boards elsewhere with no walk from the asked station is refused; a walk from somewhere else is not a walk from it; no position, no keeping
+  const noWalk = JSON.parse(JSON.stringify(fxb("fenchurchst-newcastle"))); noWalk.journeys.forEach(j => { j.legs = j.legs.slice(1); });
+  const r1 = core.tflRailJourneys(noWalk, st("FST"), st("NCL"), idx, cfg.endMatchM);
+  assert.equal(r1.elsewhereFrom.length, 0); assert.deepEqual(r1.refused, Array(3).fill("TfL matched a different place (Aldgate → Newcastle)"));
+  const r2 = core.tflRailJourneys(reboard(fxb("fenchurchst-newcastle"), 0, { fromAsked: false }), st("FST"), st("NCL"), idx, cfg.endMatchM);
+  assert.equal(r2.elsewhereFrom.length, 2, "a walk from somewhere other than the asked station is not a walk from it");
+  const noGeo = JSON.parse(JSON.stringify(fxb("fenchurchst-newcastle"))); noGeo.journeys.forEach(j => { const d = j.legs[1].departurePoint; delete d.lat; delete d.lon; });
+  const r3 = core.tflRailJourneys(noGeo, st("FST"), st("NCL"), idx, cfg.endMatchM);
+  assert.equal(r3.elsewhereFrom.length, 0); assert.equal(r3.refused.length, 3, "a stop with no position is refused, never kept at 0,0");
+  const r4 = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") });
+  assert.ok(!r4.notes.some(n => /not from London Fenchurch Street/.test(n)), "a kept refusal is not repeated as a note");
   const r = core.tflRailJourneys(fxb("fenchurchst-newcastle"), st("FST"), st("MAS"), idx, cfg.endMatchM);
   assert.equal(r.journeys.length, 0); assert.equal(r.elsewhereFrom.length, 0, "boards elsewhere and ends elsewhere: refused outright"); assert.ok(r.refused.length);
   const ok = core.tflRailJourneys(fxb("fenchurchst-newcastle"), st("FST"), st("NCL"), idx, cfg.endMatchM);
@@ -147,4 +177,27 @@ test("Boarding elsewhere needs the first mile on foot and the stop within walkin
 test("Outside Great Britain is refused with the area named; a Great Britain place far from any station still plans", async () => {
   await assert.rejects(plan(place("Belfast", [54.597, -5.93]), LET, { kind: "now", t: T("04", "08:00") }), /Outside the area this plans: Great Britain/);
   await assert.rejects(plan(LET, place("Dublin", [53.35, -6.26]), { kind: "now", t: T("04", "08:00") }), /Great Britain/);
+});
+
+test("Journeys boarding at a Tube stop are keyed by that stop: the later search asks from it, after the last one found; two stops are two keys", async () => {
+  const log = [];
+  await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { log });
+  assert.deepEqual(log.filter(k => k.startsWith(`tfl:${ALD}-NCL`)), [`tfl:${ALD}-NCL@09:04`], log.join(" "));
+  const log2 = [];
+  // Five later searches instead of three, so both Tube stops (not only the three best pairs) get theirs
+  const r = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { planner: withPair("FST-NCL", reboard(fxb("fenchurchst-newcastle"), 0), log2), cfg: core.tripConfig({ laterPairs: 5 }) });
+  assert.deepEqual([...new Set(r.journeys.map(j => j.fromStation.name))].filter(n => /Aldgate|Tower Hill/.test(n)).sort(), ["Aldgate", "Tower Hill"]);
+  assert.ok(r.notes.some(n => /board at (Aldgate \/ Tower Hill|Tower Hill \/ Aldgate) after a walk from London Fenchurch Street/.test(n)), r.notes.join(" ;; "));
+  // Each Tube stop's later search asks from that stop, after the last departure found from it (08:30 at Tower Hill; 09:03 at Aldgate)
+  const tube = log2.filter(k => /^tfl:.*-NCL@/.test(k)).sort();
+  assert.deepEqual(tube, [`tfl:${ALD}-NCL@09:04`, `tfl:${TWH}-NCL@08:31`], log2.join(" "));
+});
+
+test("A boarding stop first seen in a later search is timed and listed, not silently dropped", async () => {
+  const log = [];
+  const r = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { planner: withPair(`tfl:${ALD}-NCL`, reboard(fxb("fenchurchst-newcastle"), 2, { fromAsked: false }), log) });
+  assert.ok(log.includes(`tfl:${ALD}-NCL@09:04`), log.join(" "));
+  const th = r.journeys.filter(j => j.fromStation.name === "Tower Hill");
+  assert.equal(th.length, 1, r.journeys.map(j => `${core.stationKey(j.fromStation)} ${hm(j.leave)}`).join(", "));
+  assert.equal(th[0].before[0].step.d, "Walk to Tower Hill");
 });
