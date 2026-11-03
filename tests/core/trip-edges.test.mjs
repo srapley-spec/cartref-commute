@@ -260,7 +260,7 @@ test("Flags: a later day says Tomorrow only when it is the next day; otherwise t
 test("Trip defaults are the story's numbers (docs/stories/leisure-journeys.md)", () => {
   const d = core.TRIP_DEFAULTS;
   assert.deepEqual(d.reachKm, { walk: 3, cycle: 10, drive: 25 });
-  assert.deepEqual([d.nearest, d.wellServed, d.wellServedFactor], [3, 2, 2]);
+  assert.deepEqual([d.nearest, d.wellServed, d.wellServedFactor, d.placeSearches], [3, 2, 2, 3]);
   assert.deepEqual([d.round1Max, d.totalMax, d.behindMin, d.laterPairs, d.windowMin], [9, 18, 30, 3, 100]);
   assert.deepEqual([d.closeKm, d.atStationM, d.endMatchM, d.replanMovedM], [1.5, 400, 300, 500]);
   assert.deepEqual(d.change, { riskMin: 2, tightMin: 5 });

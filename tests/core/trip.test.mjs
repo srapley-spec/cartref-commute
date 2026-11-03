@@ -247,3 +247,107 @@ test("TfL journeys: Winchester → Norwich crosses London by Tube; the Tube is t
   const steps = core.journeySteps(core.buildJourney(j, null, null, { from: "walk", to: "walk" }, [], [], cfg, now));
   assert.ok(steps.some(s => s.tube), "the Tube rides are in the steps");
 });
+
+// ---------- Alighting at a Tube stop (issue #56): Letchworth → One Braham, Brighton → Pimlico (recorded 3 Nov for Wed 4 Nov) ----------
+const fxb = n => fixture(`trip/tfl-${n}.json`).body;
+const oneBraham = place("One Braham", [51.5139, -0.0712]);
+test("TfL stops: a Tube stop 180 m from a mainline station keeps its own identity (Tower Hill is not Fenchurch Street); hubs match by ICS code or name", () => {
+  const r = core.tflRailJourneys(fxb("letchworth-fenchurchst"), st("LET"), st("FST"), idx, cfg.endMatchM);
+  assert.equal(r.journeys.length, 0);
+  assert.deepEqual(r.elsewhere.map(e => e.journey.rides.at(-1).to.name), ["Aldgate", "Tower Hill", "Tower Hill"]);
+  const th = r.elsewhere[1].journey.rides.at(-1).to;
+  assert.equal(th.crs, ""); assert.deepEqual(th.ids, { tfl: ["940GZZLUTWH"], tflIcs: ["1000238"] }); assert.equal(core.stationKey(th), "tfl:940GZZLUTWH");
+  assert.match(r.refused[0], /^TfL matched a different place \(Letchworth Garden City → Aldgate, not London Fenchurch Street\)$/);
+  assert.equal(r.elsewhere[0].why, r.refused[0]);
+  // King's Cross St Pancras (Tube; its own ICS code) is King's Cross by name and position; Farringdon's Tube stop shares its ICS code.
+  const lst = core.tflRailJourneys(fxb("letchworth-liverpoolst"), st("LET"), st("LST"), idx, cfg.endMatchM);
+  assert.deepEqual(lst.journeys.map(j => j.rides.map(x => `${x.kind}:${x.from.crs}-${x.to.crs}`).join(" ")), ["rail:LET-KGX walk:KGX-KGX tube:KGX-LST", "rail:LET-KGX walk:KGX-KGX tube:KGX-LST", "rail:LET-ZFD rail:ZFD-LST"]);
+  assert.equal(core.sameStationName("Tower Hill Underground Station", "London Fenchurch Street"), false);
+  assert.equal(core.sameStationName("King's Cross St. Pancras Underground Station", "London Kings Cross"), true);
+  assert.equal(core.sameStationName("Liverpool Street Underground Station", "London Liverpool Street"), true);
+  assert.equal(core.sameStationName("Hampden Park Rail Station", "Hampden Park (Sussex)"), true);
+  assert.equal(core.sameStationName("Hackney Downs Rail Station", "Hackney Central"), false);
+  // Position alone never names a station: a nameless point 100 m from Fenchurch Street is a stop of its own
+  const own = core.tflStation({ lat: 51.5120, lon: -0.0774, commonName: "Somewhere" }, idx, cfg.endMatchM);
+  assert.equal(own.known, false); assert.equal(own.station.crs, ""); assert.equal(core.stationKey(own.station), "name:Somewhere");
+});
+
+test("TfL to a place: TfL's walk to the address is dropped, you alight at the last stop (Aldgate East, a Tube stop); a reply for another place is refused", () => {
+  const r = core.tflRailJourneys(fxb("letchworth-onebraham"), st("LET"), { place: oneBraham }, idx, cfg.endMatchM);
+  assert.equal(r.journeys.length, 3); assert.deepEqual(r.refused, []); assert.deepEqual(r.elsewhere, []);
+  const j = r.journeys[0], last = j.rides.at(-1);
+  assert.equal(last.kind, "tube"); assert.equal(last.to.name, "Aldgate East"); assert.equal(last.to.crs, ""); assert.equal(core.stationKey(last.to), "tfl:940GZZLUADE");
+  assert.deepEqual(last.to.geo.map(x => +x.toFixed(4)), [51.5156, -0.0710]);
+  assert.ok(j.notes.includes("Alight at Aldgate East for One Braham"), j.notes.join(";"));
+  assert.ok(j.notes.some(n => /^Dropped TfL's walk/.test(n)));
+  const wrong = core.tflRailJourneys(fxb("letchworth-onebraham"), st("LET"), { place: place("Elsewhere", [51.52, -0.09]) }, idx, cfg.endMatchM);
+  assert.equal(wrong.journeys.length, 0); assert.match(wrong.refused[0], /TfL matched a different place \(Letchworth Garden City → Aldgate East\)/);
+  // The 23:00-style check still holds for places: a point exactly where TfL's walk ends is accepted; 300 m is the limit
+  const edge = core.tflRailJourneys(fxb("letchworth-onebraham"), st("LET"), { place: place("Nearby", [51.5139 + 0.0026, -0.0712]) }, idx, cfg.endMatchM);
+  assert.equal(edge.journeys.length, 3);
+  const far = core.tflRailJourneys(fxb("letchworth-onebraham"), st("LET"), { place: place("Too far", [51.5139 + 0.0030, -0.0712]) }, idx, cfg.endMatchM);
+  assert.equal(far.journeys.length, 0);
+});
+
+const recorded = (log = []) => ({ name: "fixture",
+  plan: async (a, b) => { log.push(`${a.crs}-${b.crs}`);
+    const fx = { "LET-FST": "letchworth-fenchurchst", "LET-LST": "letchworth-liverpoolst", "LET-ZLW": "letchworth-whitechapel", "BTN-VIC": "brighton-victoria" }[`${a.crs}-${b.crs}`];
+    return fx ? core.tflRailJourneys(fxb(fx), a, b, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; },
+  planTo: async (a, p) => { log.push(`${a.crs}-@`);
+    const fx = { LET: "letchworth-onebraham", BTN: "brighton-pimlico" }[a.crs];
+    return fx ? core.tflRailJourneys(fxb(fx), a, { place: p }, idx, cfg.endMatchM) : { journeys: [], refused: ["Not recorded"] }; } });
+const straight = { matrix: async (p, list) => list.map(g => ({ metres: Math.round(core.km(p, g) * 1300), secs: Math.round(core.km(p, g) * 1300 / 1.4) })) };
+const letchworth = place("Letchworth town centre", [51.983, -0.228]);
+
+test("planTrip to a place near a Tube stop (#56): the first answer is from the stations; the complete answer alights at Aldgate from TfL's own itinerary, timed from that stop, each minute once", async () => {
+  const t0 = at("2026-11-04", "07:15"), log = [], stages = [];
+  const r = await core.planTrip({ from: letchworth, to: oneBraham, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg },
+    { stations: idx, access: straight, planner: recorded(log) }, s => stages.push(s.picks[0]?.toStation.name));
+  assert.deepEqual(stages, ["London Liverpool Street", "Aldgate"]);
+  const best = r.picks[0];
+  assert.equal(best.toStation.crs, ""); assert.equal(core.stationKey(best.toStation), "tfl:940GZZLUALD"); assert.equal(best.id, "LET|tfl:940GZZLUALD|LET07:30");
+  assert.equal(core.hhmm(best.leave), "07:21"); assert.equal(core.hhmm(best.arrive), "08:32");   // 07:30 train; Tube at Aldgate 08:24 + 3 min out + 5 min walk (320 m at 4.5 km/h)
+  assert.equal(best.rides.at(-1).kind, "tube"); assert.equal(best.rides.at(-1).to.name, "Aldgate");
+  assert.deepEqual(best.after.map(s => [s.kind, s.secs, s.step.d]), [["station", 180, "Out of Aldgate"], ["walk", 320, "Walk to your destination"]]);
+  const steps = core.journeySteps(best).map(s => s.d);
+  assert.ok(steps.includes("Out of Aldgate") && steps.at(-1) === "Walk to your destination", steps.join(" | "));
+  assert.equal(core.tripJourneyFacts(best).totalDurationMs, best.arrive - best.leave);
+  // Liverpool Street from the same train is still listed, 8 min later, and said in Other stations: nothing hidden
+  const lst = r.journeys.find(j => j.toStation.crs === "LST" && core.hhmm(j.leave) === "07:21");
+  assert.equal(core.hhmm(lst.arrive), "08:40");
+  assert.ok(r.others.some(o => /^To London Liverpool Street: arrive 8 min later/.test(o.text)), JSON.stringify(r.others.map(o => o.text)));
+  // The Fenchurch Street reply's journeys (alight at Aldgate / Tower Hill, walk on) are kept to the place and said; not a failed pair
+  assert.ok(r.notes.some(n => n === "Letchworth Garden City → London Fenchurch Street: 3 journeys alight at Aldgate / Tower Hill and walk on; kept as journeys to One Braham from there"), r.notes.join(" ;; "));
+  assert.ok(!r.failed.some(f => f.pair === "Letchworth Garden City → London Fenchurch Street"), JSON.stringify(r.failed));
+  assert.ok(r.journeys.some(j => j.toStation.name === "Tower Hill"));
+  // Budget: at most 3 place searches per round, inside the 18; one journey per id
+  assert.ok(log.filter(c => c.endsWith("-@")).length <= 6 && r.requests.planner <= 18, log.join(" "));
+  assert.equal(new Set(r.journeys.map(j => j.id)).size, r.journeys.length);
+  // Live asks for the train's board only (no Tube board); Follow saves and restores a journey ending at a Tube stop
+  assert.deepEqual(core.liveBudget([best], null, t0, cfg).map(b => b.key), ["LET-KGX"]);
+  const f = core.startFollowTrip(best, t0);
+  assert.ok(core.restoreFollowTrip(JSON.parse(JSON.stringify(f))));
+  assert.equal(core.tripRecoveryStart(f, best.arrive - 60e3).station.name, "Aldgate");
+});
+
+test("planTrip to a place near a Tube stop is not Aldgate-specific: Brighton → Pimlico alights at Pimlico; cycling at the far end, a planner without places, or placeSearches 0 search stations only", async () => {
+  const t0 = at("2026-11-04", "08:45"), flat = place("Pimlico flat", [51.4893, -0.1334]), log = [];
+  const ask = (modes, planner, c = cfg) => core.planTrip({ from: brighton, to: flat, modes, question: { kind: "now", t: t0 }, now: t0, leisureKmh: 4.5, cfg: c }, { stations: idx, access: straight, planner });
+  const r = await ask({ from: "walk", to: "walk" }, recorded(log));
+  const pim = r.journeys.filter(j => core.stationKey(j.toStation) === "tfl:940GZZLUPCO"), vic = r.journeys.filter(j => j.toStation.crs === "VIC");
+  assert.equal(pim.length, 3); assert.ok(vic.length >= 2);
+  assert.equal(pim[0].toStation.name, "Pimlico"); assert.equal(pim[0].after[0].step.d, "Out of Pimlico");
+  assert.ok(pim[0].after[1].secs < 3 * 60 && vic[0].after[1].secs > 10 * 60, "the walk is timed from where you alight");
+  assert.ok(pim[0].arrive < vic[0].arrive, `${core.hhmm(pim[0].arrive)} vs ${core.hhmm(vic[0].arrive)}`);
+  assert.equal(core.stationKey(r.picks[0].toStation), "tfl:940GZZLUPCO");
+  log.length = 0;
+  const cyc = await ask({ from: "walk", to: "cycle" }, recorded(log));
+  assert.ok(!log.some(c => c.endsWith("-@")) && cyc.journeys.length && cyc.journeys.every(j => j.toStation.crs), log.join(" "));
+  const { planTo, ...stationsOnly } = recorded(log);
+  const so = await ask({ from: "walk", to: "walk" }, stationsOnly);
+  assert.ok(so.journeys.length && so.journeys.every(j => j.toStation.crs));
+  log.length = 0;
+  const off = await ask({ from: "walk", to: "walk" }, recorded(log), core.tripConfig({ placeSearches: 0 }));
+  assert.ok(!log.some(c => c.endsWith("-@")) && off.journeys.every(j => j.toStation.crs));
+  assert.equal(core.TRIP_DEFAULTS.placeSearches, 3);
+});

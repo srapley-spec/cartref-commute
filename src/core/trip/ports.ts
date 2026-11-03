@@ -29,10 +29,16 @@ export interface StationIndex {
   nearestTo(geo: LatLon, metres: number): Station | null;
   all(): Station[];
 }
-export interface PlannerReply { journeys: RailJourney[]; refused: string[] }
+export interface PlannerReply { journeys: RailJourney[]; refused: string[];
+  /** Journeys that alight at another stop than the station asked for and walk on: a usable journey to that stop when
+   *  the far end is on foot (the planner decides), each with why it was refused as the asked trip. */
+  elsewhere?: { journey: RailJourney; why: string }[] }
 export interface RailPlanner {
   readonly name: string;
   plan(from: Station, to: Station, t: number, timeIs: "Departing" | "Arriving"): Promise<PlannerReply>;
+  /** From a station to the place itself (its position), where the provider plans to places: the last stop may be
+   *  one with no CRS (a Tube stop), and the journey's final walk starts there. Absent: the provider can't. */
+  planTo?(from: Station, place: Place, t: number, timeIs: "Departing" | "Arriving"): Promise<PlannerReply>;
 }
 export interface LiveBoards {
   board(fromCrs: string, toCrs: string): Promise<Board>;

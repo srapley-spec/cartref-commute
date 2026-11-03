@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 02 Nov 15:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 21:43 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1268,6 +1268,7 @@ var CommuteCore = (() => {
     samAlongLine: () => samAlongLine,
     samAlongStations: () => samAlongStations,
     samRoutes: () => samRoutes,
+    sameStationName: () => sameStationName,
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
     serviceFlags: () => serviceFlags,
@@ -1276,6 +1277,7 @@ var CommuteCore = (() => {
     startFollowRoute: () => startFollowRoute,
     startFollowTrip: () => startFollowTrip,
     stationIndex: () => stationIndex,
+    stationKey: () => stationKey,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
     statusLine: () => statusLine,
@@ -3924,6 +3926,7 @@ var CommuteCore = (() => {
     nearest: 3,
     wellServed: 2,
     wellServedFactor: 2,
+    placeSearches: 3,
     round1Max: 9,
     totalMax: 18,
     behindMin: 30,
@@ -3973,6 +3976,7 @@ var CommuteCore = (() => {
   var OUTSIDE_REGION = "Outside the area this plans: London, the South East and the East of England.";
 
   // src/core/trip/journeyCore.ts
+  var stationKey = (s) => s.crs || Object.entries(s.ids || {}).map(([p, ids]) => ids && ids[0] ? `${p}:${ids[0]}` : "").find(Boolean) || `name:${s.name}`;
   var secs = (xs) => xs.reduce((s, x) => s + x.secs, 0) * 1e3;
   function daysBetween(a, b) {
     const d = (t2) => {
@@ -4041,13 +4045,13 @@ var CommuteCore = (() => {
   function buildJourney(rail, from, to, modes, before, after, cfg, now, extra = {}) {
     var _a;
     const rides = rail.rides, mains = mainRides(rides);
-    const fromStation = rides[0].from, toStation = rides[rides.length - 1].to;
+    const fromStation = rides[0].from, toStation2 = rides[rides.length - 1].to;
     const { leave, arrive } = journeyTimes(before, rides, after);
     const changes = journeyChanges(rides, cfg);
     const day2 = (_a = extra.day) != null ? _a : now;
     const tomorrow = daysBetween(day2, (mains[0] || rides[0]).schedDep) > 0;
-    const id = [fromStation.crs, toStation.crs, ...mains.map((r) => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
-    const j = { id, from, to, fromStation, toStation, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
+    const id = [stationKey(fromStation), stationKey(toStation2), ...mains.map((r) => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
+    const j = { id, from, to, fromStation, toStation: toStation2, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
     j.flags = [...journeyFlags(j, { ...extra, day: day2 }), ...(extra.noRoute || []).map((txt) => ({ lvl: "bad", txt }))];
     j.uncertain = !!(extra.noRoute && extra.noRoute.length) || mains.some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
     j.missed = changes.some((c) => c.missed);
@@ -4175,11 +4179,23 @@ var CommuteCore = (() => {
   };
   var TFL_TRIP_MODES = "national-rail,tube,overground,elizabeth-line,dlr,walking";
   var cleanName = (n2) => String(n2 || "").replace(/\s+(Rail|Railway|Underground|DLR)?\s*Station$/i, "").replace(/^London\s+(?=\S)/, "").trim();
+  var NAME_NOISE = /* @__PURE__ */ new Set(["london", "rail", "railway", "station", "underground", "dlr", "tram", "stop"]);
+  var nameWords = (n2) => new Set(String(n2 || "").toLowerCase().replace(/\(.*?\)/g, " ").replace(/&/g, " and ").replace(/[^a-z0-9 ]+/g, "").split(/\s+/).filter((w) => w && !NAME_NOISE.has(w)));
+  function sameStationName(a, b) {
+    const A = nameWords(a), B = nameWords(b);
+    if (!A.size || !B.size) return false;
+    return [...A].every((w) => B.has(w)) || [...B].every((w) => A.has(w));
+  }
   function tflStation(p, idx, m) {
-    var _a, _b;
-    const s = p && p.naptanId && idx.byId("tfl", p.naptanId) || p && p.icsCode && idx.byId("tflIcs", String(p.icsCode)) || (p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? idx.nearestTo([p.lat, p.lon], m) : null);
-    if (s) return { station: s, known: true };
-    return { station: { crs: "", name: cleanName(p && p.commonName), geo: [(_a = p == null ? void 0 : p.lat) != null ? _a : 0, (_b = p == null ? void 0 : p.lon) != null ? _b : 0], carPark: "unknown", servicePerHour: 0, ids: {} }, known: false };
+    const byId = p && p.naptanId && idx.byId("tfl", p.naptanId) || p && p.icsCode && idx.byId("tflIcs", String(p.icsCode)) || null;
+    if (byId) return { station: byId, known: true };
+    const geo = p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? [p.lat, p.lon] : null;
+    const near = geo ? idx.nearestTo(geo, m) : null;
+    if (near && sameStationName(near.name, p.commonName)) return { station: near, known: true };
+    const ids = {};
+    if (p && p.naptanId) ids.tfl = [String(p.naptanId)];
+    if (p && p.icsCode) ids.tflIcs = [String(p.icsCode)];
+    return { station: { crs: "", name: cleanName(p && p.commonName), geo: geo || [0, 0], carPark: "unknown", servicePerHour: 0, ids }, known: false };
   }
   var t = (s) => s ? new Date(s).getTime() : NaN;
   function rideOf(l, idx, m) {
@@ -4215,11 +4231,13 @@ var CommuteCore = (() => {
     }
     return ride;
   }
+  var isPlace = (e) => !!e.place;
   function tflRailJourneys(body, from, to, idx, endMatchM) {
-    const out = [], refused = [];
+    const out = [], refused = [], elsewhere = [];
     for (const j of body && body.journeys || []) {
       const notes = [];
-      let rides = (j.legs || []).map((l) => rideOf(l, idx, endMatchM)).filter((r) => !!r);
+      const legs = j.legs || [];
+      let rides = legs.map((l) => rideOf(l, idx, endMatchM)).filter((r) => !!r);
       while (rides.length && rides[0].kind === "walk") {
         notes.push(`Dropped TfL's walk: ${rides[0].label}`);
         rides = rides.slice(1);
@@ -4233,16 +4251,33 @@ var CommuteCore = (() => {
         refused.push("No train in TfL's journey");
         continue;
       }
-      if (rides[0].from.crs !== from.crs || rides[rides.length - 1].to.crs !== to.crs) {
-        refused.push(`TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${rides[rides.length - 1].to.name || "?"})`);
+      const last = rides[rides.length - 1];
+      const other = () => `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"})`;
+      if (rides[0].from.crs !== from.crs) {
+        refused.push(other());
         continue;
       }
-      (j.legs || []).forEach((l) => (l.disruptions || []).forEach((d) => {
+      if (isPlace(to)) {
+        const endPt = legs.length ? legs[legs.length - 1].arrivalPoint : null;
+        const endGeo = endPt && Number.isFinite(endPt.lat) && Number.isFinite(endPt.lon) ? [endPt.lat, endPt.lon] : last.to.geo;
+        if (!endGeo || km(endGeo, to.place.geo) * 1e3 > endMatchM) {
+          refused.push(other());
+          continue;
+        }
+        notes.push(`Alight at ${last.to.name} for ${to.place.name}`);
+      }
+      legs.forEach((l) => (l.disruptions || []).forEach((d) => {
         if (d && d.description) notes.push(String(d.description));
       }));
+      if (!isPlace(to) && last.to.crs !== to.crs) {
+        const why = `TfL matched a different place (${rides[0].from.name || "?"} \u2192 ${last.to.name || "?"}, not ${to.name})`;
+        refused.push(why);
+        if (last.to.geo[0] || last.to.geo[1]) elsewhere.push({ journey: { rides, source: "tfl", notes: [...notes, `Alights at ${last.to.name}, not ${to.name}`] }, why });
+        continue;
+      }
       out.push({ rides, source: "tfl", notes });
     }
-    return { journeys: out, refused };
+    return { journeys: out, refused, elsewhere };
   }
 
   // src/core/journeyFacts.ts
@@ -4312,7 +4347,7 @@ var CommuteCore = (() => {
     for (const journey of journeys) {
       const ride = journey.rides.find((r) => r.kind !== "walk");
       if (!ride || ride.dep < now && !ride.cancelled && !((_a = ride.train) == null ? void 0 : _a.depUnknown)) continue;
-      const key = [ride.from.crs, ride.kind, ride.schedDep, ride.operator || ride.label, ride.destination || ride.to.crs].join("|");
+      const key = [stationKey(ride.from), ride.kind, ride.schedDep, ride.operator || ride.label, ride.destination || stationKey(ride.to)].join("|");
       const previous = rows.get(key);
       if (!previous || tripCanFollow(journey, now) && !tripCanFollow(previous.journey, now) || tripCanFollow(journey, now) === tripCanFollow(previous.journey, now) && journey.arrive < previous.journey.arrive) rows.set(key, { ride, journey });
     }
@@ -4338,11 +4373,11 @@ var CommuteCore = (() => {
       const lv = l === 0 ? "" : l > 0 ? `, leave ${l} min earlier` : `, leave ${-l} min later`;
       return { end, station: name, crs: end === "from" ? j.fromStation.crs : j.toStation.crs, journey: j, arriveMin: a, leaveMin: l, text: `${end === "from" ? "From" : "To"} ${name}: ${arr}${lv}` };
     };
-    bestPer((j) => j.fromStation.crs).forEach((j, crs) => {
-      if (crs !== best.fromStation.crs) out.push(say("from", j));
+    bestPer((j) => stationKey(j.fromStation)).forEach((j, k) => {
+      if (k !== stationKey(best.fromStation)) out.push(say("from", j));
     });
-    bestPer((j) => j.toStation.crs).forEach((j, crs) => {
-      if (crs !== best.toStation.crs) out.push(say("to", j));
+    bestPer((j) => stationKey(j.toStation)).forEach((j, k) => {
+      if (k !== stationKey(best.toStation)) out.push(say("to", j));
     });
     return out.sort((a, b) => a.arriveMin - b.arriveMin).slice(0, max);
   }
@@ -4357,7 +4392,9 @@ var CommuteCore = (() => {
       this.code = code;
     }
   };
-  var pairKey = (a, b) => `${a.crs}-${b.crs}`;
+  var targetName = (t2) => t2.station ? t2.station.name : t2.place.name;
+  var pairKey = (a, t2) => `${a.crs}-${t2.station ? t2.station.crs : "@place"}`;
+  var toStation = (s) => ({ station: s });
   async function planTrip(req, ports, onStage) {
     const { from, to, modes, question: q, now, cfg } = req;
     if (!inRegion(from.geo, cfg.region) || !inRegion(to.geo, cfg.region)) throw new TripError(OUTSIDE_REGION, "outside");
@@ -4365,68 +4402,98 @@ var CommuteCore = (() => {
     if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
     const close = km(from.geo, to.geo) <= cfg.closeKm || cf.list[0].station.crs === ct.list[0].station.crs;
     const requests = { planner: 0, access: 0 }, failed = [], notes = [];
+    const note = (s) => {
+      if (!notes.includes(s)) notes.push(s);
+    };
     const accFrom = /* @__PURE__ */ new Map(), accTo = /* @__PURE__ */ new Map();
+    const toPlace = modes.to === "walk" && ports.planner.planTo && cfg.placeSearches > 0 ? { place: to } : null;
     const firstGuess = q.kind === "by" ? q.t - 2 * 36e5 : q.kind === "at" ? q.t : now;
     const timeAccess = async (place, list, mode, dir, into, at = firstGuess, again = false) => {
-      const todo = list.filter((c) => again || !into.has(c.station.crs));
+      const todo = list.filter((s) => again || !into.has(stationKey(s)));
       if (!todo.length) return;
       requests.access++;
-      const res = await ports.access.matrix(place, todo.map((c) => c.station.geo), mode, at, dir);
-      todo.forEach((c, i) => {
+      const res = await ports.access.matrix(place, todo.map((s) => s.geo), mode, at, dir);
+      todo.forEach((s, i) => {
         var _a;
-        return into.set(c.station.crs, (_a = res[i]) != null ? _a : null);
+        return into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
       });
     };
+    const stationsOf = (list) => list.map((c) => c.station);
     const rail = /* @__PURE__ */ new Map();
     const search = async (pair, t2, timeIs2) => {
       requests.planner++;
-      const r = await ports.planner.plan(pair[0], pair[1], t2, timeIs2);
-      const k = pairKey(pair[0], pair[1]);
-      const have = rail.get(k) || [], ids = new Set(have.map((j) => mainRides(j.rides).map((x) => x.schedDep).join(",")));
-      r.journeys.forEach((j) => {
-        const id = mainRides(j.rides).map((x) => x.schedDep).join(",");
-        if (!ids.has(id)) {
-          ids.add(id);
-          have.push(j);
-        }
+      const r = pair[1].station ? await ports.planner.plan(pair[0], pair[1].station, t2, timeIs2) : await ports.planner.planTo(pair[0], pair[1].place, t2, timeIs2);
+      const keep = (k, js) => {
+        const have = rail.get(k) || [], ids = new Set(have.map((j) => mainRides(j.rides).map((x) => x.schedDep).join(",")));
+        js.forEach((j) => {
+          const id = mainRides(j.rides).map((x) => x.schedDep).join(",");
+          if (!ids.has(id)) {
+            ids.add(id);
+            have.push(j);
+          }
+        });
+        rail.set(k, have);
+      };
+      keep(pairKey(pair[0], pair[1]), r.journeys);
+      const kept = toPlace && pair[1].station ? (r.elsewhere || []).filter((e) => km(e.journey.rides[e.journey.rides.length - 1].to.geo, to.geo) <= cfg.reachKm.walk) : [];
+      if (kept.length) keep(pairKey(pair[0], toPlace), kept.map((e) => e.journey));
+      if (!r.journeys.length && !kept.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
+      const keptWhy = new Set(kept.map((e) => e.why));
+      r.refused.forEach((why) => {
+        if (!keptWhy.has(why)) note(`${pair[0].name} \u2192 ${targetName(pair[1])}: ${why}`);
       });
-      rail.set(k, have);
-      if (!r.journeys.length) throw Object.assign(new Error(r.refused[0] || "No journeys found."), {});
+      if (kept.length) note(`${pair[0].name} \u2192 ${targetName(pair[1])}: ${kept.length === 1 ? "a journey alights" : `${kept.length} journeys alight`} at ${[...new Set(kept.map((e) => e.journey.rides[e.journey.rides.length - 1].to.name))].join(" / ")} and walk on; kept as journeys to ${to.name} from there`);
     };
     const timeIs = q.kind === "by" ? "Arriving" : "Departing";
     const t0 = q.kind === "now" ? now : q.t;
-    const p1 = roundOnePairs(cf.list, ct.list, cfg);
+    const p1 = roundOnePairs(cf.list, ct.list, cfg).map(([a, b]) => [a, toStation(b)]);
+    if (toPlace) cf.list.slice(0, cfg.placeSearches).forEach((c) => p1.push([c.station, toPlace]));
     const runPairs = async (pairs, at, ti) => {
       const res = await runRounds(pairs, [() => true], (p) => search(p, at(p), ti), { concurrency: pairs.length || 1, maxRequests: cfg.totalMax - requests.planner });
-      res.why.forEach((why, p) => failed.push({ pair: `${p[0].name} \u2192 ${p[1].name}`, why }));
+      res.why.forEach((why, p) => failed.push({ pair: `${p[0].name} \u2192 ${targetName(p[1])}`, why }));
       return res;
     };
     await Promise.all([
-      timeAccess(from.geo, cf.list, modes.from, "to", accFrom).catch((e) => {
+      timeAccess(from.geo, stationsOf(cf.list), modes.from, "to", accFrom).catch((e) => {
         notes.push(`Times to the stations: ${e.message}`);
       }),
-      timeAccess(to.geo, ct.list, modes.to, "from", accTo).catch((e) => {
+      timeAccess(to.geo, stationsOf(ct.list), modes.to, "from", accTo).catch((e) => {
         notes.push(`Times from the stations: ${e.message}`);
       }),
       runPairs(p1, () => t0, timeIs)
     ]);
     if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
+    const endStops = () => {
+      const seen = /* @__PURE__ */ new Map();
+      rail.forEach((list, k) => {
+        if (!k.endsWith("-@place")) return;
+        list.forEach((rj) => {
+          const s = rj.rides[rj.rides.length - 1].to, key = stationKey(s);
+          if (!accTo.has(key) && !seen.has(key)) seen.set(key, s);
+        });
+      });
+      return [...seen.values()];
+    };
+    const pairOf = /* @__PURE__ */ new WeakMap();
     const assemble = (stage) => {
-      const js = [];
+      const byId = /* @__PURE__ */ new Map();
       const fromKm = cf.farKm, toKm = ct.farKm;
-      rail.forEach((list2) => list2.forEach((rj) => {
-        const a = rj.rides[0].from, b = rj.rides[rj.rides.length - 1].to;
-        if (!accFrom.has(a.crs) || !accTo.has(b.crs)) return;
-        const ta = accFrom.get(a.crs), tb = accTo.get(b.crs), noRoute = [];
+      rail.forEach((list2, k) => list2.forEach((rj) => {
+        const a = rj.rides[0].from, b = rj.rides[rj.rides.length - 1].to, ka = stationKey(a), kb = stationKey(b);
+        if (!accFrom.has(ka) || !accTo.has(kb)) return;
+        const ta = accFrom.get(ka), tb = accTo.get(kb), noRoute = [];
         const word = { walk: "walking", cycle: "cycling", drive: "driving" };
         if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
         if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
         const atStation = from.kind === "current" && km(from.geo, a.geo) * 1e3 <= cfg.atStationM;
         const before = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation) : [];
         const after = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh) : [];
-        js.push(buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute }));
+        const j = buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute });
+        if (byId.has(j.id)) return;
+        byId.set(j.id, j);
+        pairOf.set(j, [a, k.endsWith("-@place") && toPlace ? toPlace : toStation(b)]);
       }));
-      const list = rankTrips(js, q, now, cfg);
+      const list = rankTrips([...byId.values()], q, now, cfg);
       const picks = list.filter((j) => j.recommended).sort((x, y) => x.recommended - y.recommended);
       return {
         stage,
@@ -4451,14 +4518,14 @@ var CommuteCore = (() => {
     cf.list.push(...pf);
     ct.list.push(...pt);
     await Promise.all([
-      timeAccess(from.geo, cf.list, modes.from, "to", accFrom).catch((e) => {
+      timeAccess(from.geo, stationsOf(cf.list), modes.from, "to", accFrom).catch((e) => {
         notes.push(`Times to the stations: ${e.message}`);
       }),
-      timeAccess(to.geo, ct.list, modes.to, "from", accTo).catch((e) => {
+      timeAccess(to.geo, [...stationsOf(ct.list), ...endStops()], modes.to, "from", accTo).catch((e) => {
         notes.push(`Times from the stations: ${e.message}`);
       })
     ]);
-    const ranked = first.journeys.filter((j) => !j.uncertain);
+    const ranked = assemble("timetable").journeys.filter((j) => !j.uncertain);
     const best = ranked.reduce((b, j) => !b || j.arrive < b.arrive ? j : b, void 0);
     const bestBy = (key) => {
       const m = /* @__PURE__ */ new Map();
@@ -4477,15 +4544,30 @@ var CommuteCore = (() => {
     const fromGood = cf.list.filter((c) => good(c.station.crs, fromRank, c.why === "promoted")), toGood = ct.list.filter((c) => good(c.station.crs, toRank, c.why === "promoted"));
     const tried = new Set(p1.map(([a, b]) => pairKey(a, b)));
     const p2 = [];
-    for (const a of fromGood) for (const b of toGood) {
-      const k = pairKey(a.station, b.station);
-      if (a.station.crs !== b.station.crs && !tried.has(k) && accFrom.get(a.station.crs) && accTo.get(b.station.crs)) {
-        tried.add(k);
-        p2.push([a.station, b.station]);
+    let places = 0;
+    for (const a of fromGood) {
+      if (!accFrom.get(a.station.crs)) continue;
+      for (const b of toGood) {
+        const k = pairKey(a.station, toStation(b.station));
+        if (a.station.crs !== b.station.crs && !tried.has(k) && accTo.get(b.station.crs)) {
+          tried.add(k);
+          p2.push([a.station, toStation(b.station)]);
+        }
+      }
+      if (toPlace && places < cfg.placeSearches && !tried.has(pairKey(a.station, toPlace))) {
+        tried.add(pairKey(a.station, toPlace));
+        p2.push([a.station, toPlace]);
+        places++;
       }
     }
     if (p2.length) await runPairs(p2, () => t0, timeIs);
-    const bestPairs = [...new Map(assemble("timetable").journeys.filter((j) => !j.uncertain).sort((x, y) => x.arrive - y.arrive).map((j) => [pairKey(j.fromStation, j.toStation), [j.fromStation, j.toStation]])).values()].slice(0, cfg.laterPairs);
+    await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
+      notes.push(`Times from the stations: ${e.message}`);
+    });
+    const bestPairs = [...new Map(assemble("timetable").journeys.filter((j) => !j.uncertain).sort((x, y) => x.arrive - y.arrive).map((j) => {
+      const p = pairOf.get(j);
+      return [pairKey(p[0], p[1]), p];
+    })).values()].slice(0, cfg.laterPairs);
     const later = (p) => {
       const deps = (rail.get(pairKey(p[0], p[1])) || []).map((j) => mainRides(j.rides)[0].schedDep);
       if (q.kind === "by") return Math.max(now, q.t - cfg.windowMin * 6e4);
@@ -4496,13 +4578,16 @@ var CommuteCore = (() => {
       return q.kind === "by" ? !deps.some((d) => d <= q.t - cfg.windowMin * 6e4 + 30 * 6e4) : !deps.some((d) => d >= t0 + cfg.windowMin * 6e4);
     });
     if (need.length) await runPairs(need, later, "Departing");
+    await timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch((e) => {
+      notes.push(`Times from the stations: ${e.message}`);
+    });
     const chosen = assemble("timetable").picks[0];
     if (chosen && (modes.from === "drive" || modes.to === "drive")) {
       await Promise.all([
-        modes.from === "drive" ? timeAccess(from.geo, cf.list, "drive", "to", accFrom, chosen.leave, true).catch((e) => {
+        modes.from === "drive" ? timeAccess(from.geo, stationsOf(cf.list), "drive", "to", accFrom, chosen.leave, true).catch((e) => {
           notes.push(`Drive re-timed: ${e.message}`);
         }) : null,
-        modes.to === "drive" ? timeAccess(to.geo, ct.list, "drive", "from", accTo, chosen.arrive, true).catch((e) => {
+        modes.to === "drive" ? timeAccess(to.geo, stationsOf(ct.list), "drive", "from", accTo, chosen.arrive, true).catch((e) => {
           notes.push(`Drive re-timed: ${e.message}`);
         }) : null
       ]);
@@ -4687,7 +4772,7 @@ var CommuteCore = (() => {
     const broken = missed || cancelled || unknown;
     const deltaMin = Math.round((r.expectedArrival - r.plannedArrival) / 6e4);
     const recovery = tripRecoveryStart(r, i.now), underWay = phase !== "before" && phase !== "access" || r.activeRide != null || r.alightedRide != null;
-    const alternative = (phase === "arrived" ? [] : i.options || []).filter((o) => o.id !== r.id && !r.dismissed.includes(o.id) && tripCanFollow(o, i.now)).filter((o) => !underWay || o.fromStation.crs === recovery.station.crs && o.leave >= recovery.readyAt).filter((o) => broken || o.arrive <= r.expectedArrival - FOLLOW_BETTER_MIN * 6e4).sort((a, b) => a.arrive - b.arrive)[0] || null;
+    const alternative = (phase === "arrived" ? [] : i.options || []).filter((o) => o.id !== r.id && !r.dismissed.includes(o.id) && tripCanFollow(o, i.now)).filter((o) => !underWay || stationKey(o.fromStation) === stationKey(recovery.station) && o.leave >= recovery.readyAt).filter((o) => broken || o.arrive <= r.expectedArrival - FOLLOW_BETTER_MIN * 6e4).sort((a, b) => a.arrive - b.arrive)[0] || null;
     const steps = journeySteps(j), nextStep = steps.find((s) => s.t != null && s.t >= i.now) || null;
     let status = "on-track", level = "ok", text2 = `Arriving ${hhmm(r.expectedArrival)}`;
     if (phase === "arrived") {
@@ -4754,8 +4839,8 @@ var CommuteCore = (() => {
     var _a, _b;
     const start = tripRecoveryStart(route, now), phase = followedTripPhase(route, now);
     const underWay = phase.phase !== "before" && phase.phase !== "access" || route.activeRide != null || route.alightedRide != null;
-    if (!tripCanFollow(next, now) || next.leave < start.readyAt || underWay && next.fromStation.crs !== start.station.crs) return null;
-    if ((((_a = route.journey.to) == null ? void 0 : _a.id) || route.journey.toStation.crs) !== (((_b = next.to) == null ? void 0 : _b.id) || next.toStation.crs)) return null;
+    if (!tripCanFollow(next, now) || next.leave < start.readyAt || underWay && stationKey(next.fromStation) !== stationKey(start.station)) return null;
+    if ((((_a = route.journey.to) == null ? void 0 : _a.id) || stationKey(route.journey.toStation)) !== (((_b = next.to) == null ? void 0 : _b.id) || stationKey(next.toStation))) return null;
     const count2 = underWay ? phase.phase === "ride" ? phase.ride + 1 : phase.phase === "change" ? phase.ride : route.journey.rides.length : 0;
     const prior = route.journey.rides.slice(0, count2);
     const allowance = next.before.reduce((ms, s) => ms + s.secs * 1e3, 0);
@@ -6994,6 +7079,9 @@ function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}
    const from=m&&(coordinates[m[1]]||m[1]),to=m&&(coordinates[m[2]]||m[2]);
    const found=services().filter(s=>!s.cancelled&&s.calls.some(p=>p.code===from)&&s.calls.findIndex(p=>p.code===to)>s.calls.findIndex(p=>p.code===from));
    if(found.length)return response({journeys:found.map(s=>journey(s,from,to))});
+   // Trip's search from a station to a place's position (#56): synthetic feeds plan station to station only, so
+   // answer as TfL does outside its area (404), which Trip reports as a refusal rather than an outage.
+   if(/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(m[2])&&!/^-?\d+(?:\.\d+)?,/.test(m[1]))return response({message:"No journey found: synthetic feeds plan station to station only"},404);
    const local=localJourney(from,to);
    return local?response({journeys:[local]}):response({message:"Unsupported synthetic Journey Planner endpoints"},422);
   }
@@ -8863,23 +8951,35 @@ const tripAdapters = (() => {
     };
   }
 
-  /** TfL's journey planner, station to station by each station's ICS code (one per station, unlike naptan IDs). */
+  /** TfL's journey planner: station to station by each station's ICS code (one per station, unlike naptan IDs), or
+   *  station to a place by its position (TfL plans to lat,lon around London; elsewhere it answers 404). */
   function tflPlanner({ net, getKey, idx, endMatchM, core }) {
+    const stationId = s => (s.ids.tflIcs || [])[0] || (s.ids.tfl || [])[0];
+    async function ask(from, a, b, toName, t, timeIs) {
+      const d = new Date(t), p = n => String(n).padStart(2, "0");
+      const key = getKey();
+      const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
+      const epoch = net.epoch(); let r;
+      try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
+      net.assertEpoch(epoch);
+      if (r.status === 404) return { refused: `TfL found no journey from ${from.name} to ${toName}` };
+      if (r.status === 300) return { refused: `TfL couldn't pin down ${from.name} or ${toName}` };
+      if (!r.ok) throw httpError(r.status, "TfL's journey planner");
+      return { body: await r.json() };
+    }
     return {
       name: "TfL",
       async plan(from, to, t, timeIs) {
-        const a = (from.ids.tflIcs || [])[0] || (from.ids.tfl || [])[0], b = (to.ids.tflIcs || [])[0] || (to.ids.tfl || [])[0];
+        const a = stationId(from), b = stationId(to);
         if (!a || !b) return { journeys: [], refused: [`TfL doesn't know ${!a ? from.name : to.name}`] };
-        const d = new Date(t), p = n => String(n).padStart(2, "0");
-        const key = getKey();
-        const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
-        const epoch = net.epoch(); let r;
-        try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
-        net.assertEpoch(epoch);
-        if (r.status === 404) return { journeys: [], refused: [`TfL found no journey from ${from.name} to ${to.name}`] };
-        if (r.status === 300) return { journeys: [], refused: [`TfL couldn't pin down ${from.name} or ${to.name}`] };
-        if (!r.ok) throw httpError(r.status, "TfL's journey planner");
-        return core.tflRailJourneys(await r.json(), from, to, idx, endMatchM);
+        const r = await ask(from, a, b, to.name, t, timeIs);
+        return r.body ? core.tflRailJourneys(r.body, from, to, idx, endMatchM) : { journeys: [], refused: [r.refused] };
+      },
+      async planTo(from, place, t, timeIs) {
+        const a = stationId(from);
+        if (!a) return { journeys: [], refused: [`TfL doesn't know ${from.name}`] };
+        const r = await ask(from, a, `${Number(place.geo[0]).toFixed(5)},${Number(place.geo[1]).toFixed(5)}`, place.name, t, timeIs);
+        return r.body ? core.tflRailJourneys(r.body, from, { place: { name: place.name, geo: place.geo } }, idx, endMatchM) : { journeys: [], refused: [r.refused] };
       },
     };
   }
@@ -8986,10 +9086,12 @@ function createTripUi(deps) {
   };
   function planner(index) {
     const tfl = tripAdapters.tflPlanner({ net, getKey: () => S().tflKey, idx: index, endMatchM: cfg().endMatchM, core: C });
-    return { name: tfl.name, async plan(a, b, t, timeIs) {
-      const k = `${a.crs}-${b.crs}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, hit = plannerCache.get(k);
-      if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
-      const reply = await tfl.plan(a, b, t, timeIs); plannerCache.set(k, { at: now(), reply }); return reply; } };
+    const cached = async (k, ask) => { const hit = plannerCache.get(k); if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
+      const reply = await ask(); plannerCache.set(k, { at: now(), reply }); return reply; };
+    return { name: tfl.name,
+      plan: (a, b, t, timeIs) => cached(`${a.crs}-${b.crs}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.plan(a, b, t, timeIs)),
+      // To the place itself (issue #56): keyed by its position, so a new destination is a new search.
+      planTo: (a, place, t, timeIs) => cached(`${a.crs}-@${place.geo.join(",")}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.planTo(a, place, t, timeIs)) };
   }
 
   // ---------- Places ----------
@@ -9340,8 +9442,8 @@ function createTripUi(deps) {
     const dismiss=t.closest('[data-trip-dismiss]');if(dismiss&&st().follow){save({follow:C.dismissTripAlternative(st().follow,dismiss.dataset.tripDismiss)});renderResults();return;}
     if(t.closest('[data-trip-replan]')&&st().follow){
       const route=st().follow,start=C.tripRecoveryStart(route,now()),station=start.station;
-      const place={id:'station:'+station.crs,name:station.name,address:'',geo:station.geo,kind:'station'};
-      const destination=route.journey.to||{id:'station:'+route.journey.toStation.crs,name:route.journey.toStation.name,address:'',geo:route.journey.toStation.geo,kind:'station'};
+      const place={id:'station:'+C.stationKey(station),name:station.name,address:'',geo:station.geo,kind:'station'};
+      const destination=route.journey.to||{id:'station:'+C.stationKey(route.journey.toStation),name:route.journey.toStation.name,address:'',geo:route.journey.toStation.geo,kind:'station'};
       save({from:place,to:destination,modes:{...route.journey.modes,from:'walk'},question:{kind:'now',t:0},notBefore:start.readyAt});pinView('plan');fill();plan();return;
     }
     const f = t.closest("[data-trip-follow]");

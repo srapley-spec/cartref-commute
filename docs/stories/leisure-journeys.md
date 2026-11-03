@@ -32,6 +32,16 @@ Decisions the same evening (Sam, answering design questions):
   one adapter and a setting ("Google: key in this browser | My proxy").
 - Trip needs a TfL key (TfL refuses concurrent searches without one).
 
+3 Nov 2026 (issue #56): Sam planned Letchworth Garden City → One Braham (1 Braham Street, E1 8EE, a BT office next to
+Aldgate East). Trip recommended Liverpool Street and a long walk; Google Maps and TfL both said Aldgate. Found from live
+TfL replies run through the app's own code: the Fenchurch Street reply already held "King's Cross → Tube → Aldgate →
+walk to Fenchurch Street" and the parser refused it silently; Tower Hill (180 m from Fenchurch Street) was being
+relabelled "London Fenchurch Street" by position; Aldgate and Aldgate East are not in the station list so could never
+be where you alight; and TfL plans to a position around London (Letchworth → One Braham's coordinates ends at Aldgate
+East + 6 min walk) but by shortest duration, so it omitted the 07:30 via Aldgate that the station-pair reply had. The
+same train arrived about 8 min sooner via Aldgate. Sam's direction: fix it, then plan UK-wide on TfL (it plans station
+to station across Great Britain; the South East limit is the app's own) and add Google transit as a second source.
+
 Evidence (live calls from the build session and the independent review, 31 Oct):
 - TfL's journey planner plans national rail **station to station** across the region with exact station IDs: Brighton →
   Canterbury East (185 min via Victoria), Reading → Brighton (128 min via Gatwick), Brighton → Letchworth Garden City
@@ -84,6 +94,20 @@ Minutes are whole minutes, rounded down.
   well-served stations within reach (departures per hour at least twice the best of the nearest three, highest
   first). None within reach: the nearest, flagged "Nearest station is N km away".
 - A station within reach where a round-1 journey boards or changes becomes a candidate too (found from live data).
+- **Walking at the far end: the place itself is searched too (issue #56).** Round 1 also searches from up to 3 origin
+  stations to the place's position (TfL plans to a position around London; elsewhere it answers "no journey", said in
+  "Why these trains?"). You alight wherever that journey's last ride ends: a station, or a Tube stop the station list
+  doesn't know, kept as a stop of its own with TfL's IDs (identity `tfl:<naptan>`, no CRS; never a mainline station
+  guessed from position alone). The final walk is Google's from that stop, plus the usual 3 min out, each minute once;
+  "Out of Aldgate · 3 min", "Walk to your destination". Round 2 adds the place for up to 3 more good origin stations.
+  Stops found this way are timed with the promoted stations, so the first answer is from the station pairs and the
+  complete answer can replace it ("Better option found" when ≥ 5 min sooner). Not for cycling or driving at the far
+  end, nor for a planner that can't plan to places; `placeSearches: 0` turns it off.
+- A station-pair journey that alights at another stop and walks on to the station asked for (Letchworth → Fenchurch
+  Street alights at Aldgate or Tower Hill) is refused as that pair but, when walking at the far end, kept as a journey
+  to the place from that stop when it's within walking reach (3 km) of the place. "Why these trains?" says so
+  ("3 journeys alight at Aldgate / Tower Hill and walk on; kept as journeys to One Braham from there"); a reply partly
+  refused is said there too, never silently dropped.
 - Pinned with fixture stations: driving from near Chilham, Ashford International is searched, both by the
   well-served rule and by promotion (Chilham → London changes there). (Live Saturday counts, 31 Oct, 2 h: Chilham,
   Chartham, Selling 4 each; Canterbury West 9; Faversham 14; Ashford International 20.)
@@ -146,8 +170,12 @@ Minutes are whole minutes, rounded down.
 - Journeys can have changes, including a cross-London Tube or walk; each change shows where and how long ("Change at
   Clapham Junction · 7 min"; "Waterloo → Bank → Liverpool Street by Tube · 18 min").
 - Rail planner: National Rail's when its address and key are in Settings; otherwise TfL, station to station by the
-  station's own TfL IDs. A reply whose ends aren't the asked stations (by ID, else ICS code, else within 300 m) is
-  refused for that pair: "TfL matched a different place".
+  station's own TfL IDs, and station to the place's position when walking at the far end. A TfL stop point is a known
+  station by its naptan ID, else its ICS code (shared by a hub's rail and Tube stops), else the nearest within 300 m
+  **with the same name** (one name's words all in the other's: "King's Cross St. Pancras Underground Station" is
+  King's Cross; "Tower Hill" is never Fenchurch Street); else a stop of its own. A reply whose ends aren't the asked
+  ones is refused for that pair: "TfL matched a different place (A → B, not C)"; for a place, TfL's final walk must end
+  within 300 m of it.
 - A bus or coach ride inside a journey is kept and flagged "Bus between X and Y".
 - A journey departing on a later day than the one asked about is flagged with its date: "Tomorrow · Wed 4 Nov" for the
   next day, "Fri 6 Nov" for later.
@@ -226,6 +254,11 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains rail duration and updates journey remaining through every phase"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
+- tests/core/trip.test.mjs: "TfL stops: a Tube stop 180 m from a mainline station keeps its own identity (Tower Hill is not Fenchurch Street); hubs match by ICS code or name"
+- tests/core/trip.test.mjs: "TfL to a place: TfL's walk to the address is dropped, you alight at the last stop (Aldgate East, a Tube stop); a reply for another place is refused"
+- tests/core/trip.test.mjs: "planTrip to a place near a Tube stop (#56): the first answer is from the stations; the complete answer alights at Aldgate from TfL's own itinerary, timed from that stop, each minute once"
+- tests/core/trip.test.mjs: "planTrip to a place near a Tube stop is not Aldgate-specific: Brighton → Pimlico alights at Pimlico; cycling at the far end, a planner without places, or placeSearches 0 search stations only"
+- tests/trip-page.test.mjs: "Trip to a place near a Tube stop (#56): Letchworth → One Braham recommends alighting at Aldgate, with the Tube leg, exit and final walk shown, and Follow keeps it"
 - tests/core/trip.test.mjs: "Region: London, the South East and the East of England; Birmingham, Coventry, Northampton and Swindon out"
 - tests/core/trip.test.mjs: "Allowances: defaults 10 / 4 / 3 / 3 / 5 min; Settings clamp to 0–60"
 - tests/core/trip.test.mjs: "Station candidates: 3 nearest within reach plus up to 2 well-served (≥ 2× the best nearby); driving finds the main line"

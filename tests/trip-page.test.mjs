@@ -15,7 +15,14 @@ const BTN_CBW = JSON.parse(readFileSync(path.join(ROOT, "tests/fixtures/trip/tfl
 const PLACES = {
   brighton: { id: "G-BTN", primary: "Brighton Station", secondary: "Queens Road, Brighton BN1 3XP", geo: [50.8290, -0.1412] },
   cathedral: { id: "G-CAT", primary: "Canterbury Cathedral", secondary: "The Precincts, Canterbury CT1 2EH", geo: [51.2798, 1.0828] },
+  letchworth: { id: "G-LET", primary: "Letchworth town centre", secondary: "Letchworth Garden City SG6", geo: [51.983, -0.228] },
+  braham: { id: "G-OB", primary: "One Braham", secondary: "1 Braham Street, London E1 8EE", geo: [51.5139, -0.0712] },
 };
+// Issue #56 replies, recorded for Wed 4 Nov 07:30–09:00; moved to the test clock's day, three hours later (10:30–).
+const shifted = n => JSON.parse(readFileSync(path.join(ROOT, `tests/fixtures/trip/tfl-${n}.json`), "utf8"), (k, v) =>
+  typeof v === "string" && /^2026-11-04T\d\d:\d\d:\d\d$/.test(v) ? `2026-11-03T${String(Number(v.slice(11, 13)) + 3).padStart(2, "0")}${v.slice(13)}` : v).body;
+const LET_TO = { 1001108: shifted("letchworth-fenchurchst"), 1000138: shifted("letchworth-liverpoolst"), 1000268: shifted("letchworth-whitechapel") };
+const LET_TO_BRAHAM = shifted("letchworth-onebraham");
 const ON = { provider: "tfl", tflKey: "k", followRoute: true, trip: true };
 const isTrip = u => /data\/stations\.json|JourneyResults\/\d+\/to\/\d+|maps\.googleapis|google:/.test(u);
 
@@ -44,6 +51,8 @@ function googleStub(w, opts = {}) {
 const route = (u) => {
   if (/data\/stations\.json/.test(u)) return json(STATIONS);
   if (/JourneyResults\/90000899\/to\/1001160/.test(u)) return json(BTN_CBW);
+  const let_ = /JourneyResults\/1000460\/to\/(\d+)\?/.exec(u); if (let_ && LET_TO[let_[1]]) return json(LET_TO[let_[1]]);
+  if (/JourneyResults\/1000460\/to\/51\.51390,-0\.07120\?/.test(u)) return json(LET_TO_BRAHAM);
   if (/JourneyResults\/\d+\/to\/\d+/.test(u)) return json({ message: "No journey found" }, 404);
   return undefined;
 };
@@ -124,6 +133,31 @@ test("Trip: Brighton → Canterbury plans door to door from TfL, every journey l
   assert.ok(!after.some(u => /JourneyResults\/51\.|Line\/|national-rail\/Status|GetDepBoard.*LET/.test(u)), after.filter(u => !isTrip(u)).join("\n"));
   const planner = after.filter(u => /JourneyResults/.test(u)).length;
   assert.ok(planner <= 18, `${planner} planner searches`);
+});
+
+test("Trip to a place near a Tube stop (#56): Letchworth → One Braham recommends alighting at Aldgate, with the Tube leg, exit and final walk shown, and Follow keeps it", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  const before = app.calls.length;
+  await type(app, "from", "letchworth town"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "one braham"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Letchworth Garden City → Aldgate(?! East)/.test(app.text("#tripResults")), 6000);
+  const text = app.text("#tripResults");
+  assert.match(text, /Leave by/);
+  assert.match(text, /Letchworth Garden City → Aldgate(?! East)/);
+  assert.match(text, /Metropolitan line to Aldgate|Tube/);
+  assert.match(text, /Out of Aldgate/); assert.match(text, /Walk to your destination/);
+  assert.match(text, /London Fenchurch Street: 3 journeys alight at Aldgate \/ Tower Hill and walk on; kept/);
+  const after = app.calls.slice(before);
+  assert.ok(after.some(u => /JourneyResults\/1000460\/to\/51\.51390,-0\.07120\?/.test(u)), "asked TfL for the place itself");
+  assert.ok(after.filter(u => /JourneyResults/.test(u)).length <= 18);
+  await until(() => app.d.querySelector("#tripResults [data-trip-follow]"));
+  app.d.querySelector("#tripResults [data-trip-follow]").click();
+  await until(() => app.d.querySelector("[data-trip-stop]"));
+  const saved = JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).tripMode.follow;
+  assert.equal(saved.journey.toStation.name, "Aldgate"); assert.equal(saved.journey.toStation.crs, ""); assert.deepEqual(saved.journey.toStation.ids.tfl, ["940GZZLUALD"]);
+  assert.match(app.text("#tripResults"), /Aldgate/);
 });
 
 test("Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it", async () => {

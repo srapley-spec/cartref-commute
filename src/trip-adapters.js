@@ -120,23 +120,35 @@ const tripAdapters = (() => {
     };
   }
 
-  /** TfL's journey planner, station to station by each station's ICS code (one per station, unlike naptan IDs). */
+  /** TfL's journey planner: station to station by each station's ICS code (one per station, unlike naptan IDs), or
+   *  station to a place by its position (TfL plans to lat,lon around London; elsewhere it answers 404). */
   function tflPlanner({ net, getKey, idx, endMatchM, core }) {
+    const stationId = s => (s.ids.tflIcs || [])[0] || (s.ids.tfl || [])[0];
+    async function ask(from, a, b, toName, t, timeIs) {
+      const d = new Date(t), p = n => String(n).padStart(2, "0");
+      const key = getKey();
+      const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
+      const epoch = net.epoch(); let r;
+      try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
+      net.assertEpoch(epoch);
+      if (r.status === 404) return { refused: `TfL found no journey from ${from.name} to ${toName}` };
+      if (r.status === 300) return { refused: `TfL couldn't pin down ${from.name} or ${toName}` };
+      if (!r.ok) throw httpError(r.status, "TfL's journey planner");
+      return { body: await r.json() };
+    }
     return {
       name: "TfL",
       async plan(from, to, t, timeIs) {
-        const a = (from.ids.tflIcs || [])[0] || (from.ids.tfl || [])[0], b = (to.ids.tflIcs || [])[0] || (to.ids.tfl || [])[0];
+        const a = stationId(from), b = stationId(to);
         if (!a || !b) return { journeys: [], refused: [`TfL doesn't know ${!a ? from.name : to.name}`] };
-        const d = new Date(t), p = n => String(n).padStart(2, "0");
-        const key = getKey();
-        const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
-        const epoch = net.epoch(); let r;
-        try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
-        net.assertEpoch(epoch);
-        if (r.status === 404) return { journeys: [], refused: [`TfL found no journey from ${from.name} to ${to.name}`] };
-        if (r.status === 300) return { journeys: [], refused: [`TfL couldn't pin down ${from.name} or ${to.name}`] };
-        if (!r.ok) throw httpError(r.status, "TfL's journey planner");
-        return core.tflRailJourneys(await r.json(), from, to, idx, endMatchM);
+        const r = await ask(from, a, b, to.name, t, timeIs);
+        return r.body ? core.tflRailJourneys(r.body, from, to, idx, endMatchM) : { journeys: [], refused: [r.refused] };
+      },
+      async planTo(from, place, t, timeIs) {
+        const a = stationId(from);
+        if (!a) return { journeys: [], refused: [`TfL doesn't know ${from.name}`] };
+        const r = await ask(from, a, `${Number(place.geo[0]).toFixed(5)},${Number(place.geo[1]).toFixed(5)}`, place.name, t, timeIs);
+        return r.body ? core.tflRailJourneys(r.body, from, { place: { name: place.name, geo: place.geo } }, idx, endMatchM) : { journeys: [], refused: [r.refused] };
       },
     };
   }

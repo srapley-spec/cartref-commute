@@ -114,6 +114,9 @@ function createSimulatedTransportFeeds({now=()=>Date.now(),scenario=()=>({})}={}
    const from=m&&(coordinates[m[1]]||m[1]),to=m&&(coordinates[m[2]]||m[2]);
    const found=services().filter(s=>!s.cancelled&&s.calls.some(p=>p.code===from)&&s.calls.findIndex(p=>p.code===to)>s.calls.findIndex(p=>p.code===from));
    if(found.length)return response({journeys:found.map(s=>journey(s,from,to))});
+   // Trip's search from a station to a place's position (#56): synthetic feeds plan station to station only, so
+   // answer as TfL does outside its area (404), which Trip reports as a refusal rather than an outage.
+   if(/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(m[2])&&!/^-?\d+(?:\.\d+)?,/.test(m[1]))return response({message:"No journey found: synthetic feeds plan station to station only"},404);
    const local=localJourney(from,to);
    return local?response({journeys:[local]}):response({message:"Unsupported synthetic Journey Planner endpoints"},422);
   }

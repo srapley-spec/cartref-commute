@@ -360,6 +360,32 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **3 Nov, alight at Tube stops; plan to the place (issue #56).** Letchworth → One Braham (next to Aldgate East) was
+  recommended via Liverpool Street and a long walk; the same train via Aldgate arrives about 8 min sooner. Causes,
+  proved with live TfL replies through the app's code: Tube-only stops can't be in the station list so could never be
+  where you alight; the parser snapped any unknown stop to the nearest station within 300 m (Tower Hill became
+  "London Fenchurch Street"); journeys that alighted at Aldgate and walked on to Fenchurch Street were refused
+  silently; and TfL was only ever asked station to station. Decisions: (1) a TfL stop is a known station by ID, by
+  ICS code, or by position *and* name; otherwise it is a stop of its own with TfL's IDs (`stationKey()`), so a journey
+  can end at a Tube stop and Google times the final walk from it, plus the usual exit allowance, each minute once;
+  (2) walking at the far end, TfL is also asked from up to 3 origin stations to the place's position per round, and
+  station-pair journeys that alight elsewhere within walking reach are kept as journeys to the place; (3) partial
+  refusals are recorded in "Why these trains?". Ranking and the first-answer path are unchanged: Tube stops are timed
+  with the promoted stations, so the complete answer can replace the first ("Better option found"). Defaults taken
+  without Sam (he was asleep; flagged for review): the exit allowance applies at a Tube stop as at a station; the
+  train panel's alighting column stays on the mainline station and the Tube ride is a Journey step, as cross-London
+  Tube changes already are; at most 3 extra TfL requests per round. Also established: TfL's planner answers National
+  Rail journeys across Great Britain by station ID (Leeds → Manchester, Edinburgh → Glasgow, Cardiff → Bristol,
+  Leeds → One Braham's coordinates via Aldgate); coordinates outside London return 404. The Trip region limit is the
+  app's own (`TRIP_DEFAULTS.region`, `tools/stations.mjs`). Sam's direction, 3 Nov: next, UK-wide Trip on TfL
+  (national station list, no region box; station endpoints outside London, place endpoints in London), then Google
+  transit as a *second* route source for trips ending on foot, ranked by the same rules, with Darwin as the live
+  layer and TfL status for Tube legs; a broken connection triggers a fresh search. Google transit's coverage,
+  alternatives, live data and terms are unverified until a key is in the cloud environment. Not chosen: replacing TfL
+  with Google as the sole route source (it plans public transport + walking only, so drive/cycle-to-station would
+  still need the station search; it returns few alternatives of its own choosing; no CRS codes; terms on storing and
+  mixing its routes unchecked).
+
 - **1 Nov, complete second recommendation** Sam's Arrive by screenshot showed the earlier 07:20 Thameslink as
   a reduced summary below the 07:30 Great Northern, despite it being an attractive choice with more arrival
   margin. Show the same content categories, actions and type sizes on both complete cards. Remove the

@@ -1,0 +1,1086 @@
+{
+ "recorded": "2026-11-03T21:28:09.398892Z",
+ "request": "Journey/JourneyResults/90000899/to/51.4893,-0.1334?date=20261104&time=0900&timeIs=Departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeyPreference=leasttime",
+ "status": "200",
+ "body": {
+  "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.ItineraryResult, Tfl.Api.Presentation.Entities",
+  "journeys": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T09:09:00",
+    "duration": 79,
+    "arrivalDateTime": "2026-11-04T10:28:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 62,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Gatwick Express to London Victoria",
+       "detailed": "Gatwick Express towards London Victoria",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T09:09:00",
+      "arrivalTime": "2026-11-04T10:11:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GVICTRIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9100VICTRIE0",
+       "commonName": "London Victoria Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.494943285717,
+       "lon": -0.143563060104
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Gatwick Express",
+        "directions": [
+         "London Victoria Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "gatwick-express",
+         "name": "Gatwick Express",
+         "uri": "/Line/gatwick-express",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 44.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T09:09:00",
+      "scheduledArrivalTime": "2026-11-04T10:11:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Victoria line to Pimlico",
+       "detailed": "Victoria line towards Brixton",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T10:21:00",
+      "arrivalTime": "2026-11-04T10:23:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUVIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9400ZZLUVIC3",
+       "commonName": "Victoria Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.496801814686,
+       "lon": -0.14281042582800002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Victoria",
+        "directions": [
+         "Brixton Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "victoria",
+         "name": "Victoria",
+         "uri": "/Line/victoria",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 29.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:21:00",
+      "scheduledArrivalTime": "2026-11-04T10:23:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to stairs, LONDON",
+       "detailed": "Walk to stairs, LONDON",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Tachbrook Street for 46 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Tachbrook Street",
+         "distance": 46,
+         "cumulativeDistance": 46,
+         "skyDirection": 314,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 37,
+         "latitude": 51.489268634795,
+         "longitude": -0.13447388012300002,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 37
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Rampayne Street, continue for 14 metres",
+         "turnDirection": "LEFT",
+         "streetName": "Rampayne Street",
+         "distance": 14,
+         "cumulativeDistance": 60,
+         "skyDirection": 200,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 49,
+         "latitude": 51.489106470004,
+         "longitude": -0.13388991788399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 11
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 67,
+         "skyDirection": 284,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 54,
+         "latitude": 51.489231138501005,
+         "longitude": -0.13381280511399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 5
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 2 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 2,
+         "cumulativeDistance": 69,
+         "skyDirection": 282,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 56,
+         "latitude": 51.489211790529,
+         "longitude": -0.133727168376,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 1
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 75,
+         "skyDirection": 230,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 61,
+         "latitude": 51.489211103227,
+         "longitude": -0.133683983053,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 4
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T10:23:00",
+      "arrivalTime": "2026-11-04T10:28:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.Place, Tfl.Api.Presentation.Entities",
+       "commonName": "stairs, LONDON",
+       "placeType": "StopPoint",
+       "lat": 51.489245,
+       "lon": -0.133553
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "100",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 75.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:23:00",
+      "scheduledArrivalTime": "2026-11-04T10:28:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T09:14:00",
+    "duration": 91,
+    "arrivalDateTime": "2026-11-04T10:45:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 16,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Thameslink to Haywards Heath",
+       "detailed": "Thameslink towards Cambridge",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T09:14:00",
+      "arrivalTime": "2026-11-04T09:30:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHYWRDSH",
+       "platformName": "",
+       "icsCode": "1001418",
+       "individualStopId": "9100HYWRDSH0",
+       "commonName": "Haywards Heath Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.005679970775,
+       "lon": -0.105077781363
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Thameslink",
+        "directions": [
+         "Cambridge Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "thameslink",
+         "name": "Thameslink",
+         "uri": "/Line/thameslink",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Outbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 235.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T09:14:00",
+      "scheduledArrivalTime": "2026-11-04T09:30:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 46,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Southern to London Victoria",
+       "detailed": "Southern towards London Victoria",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T09:43:00",
+      "arrivalTime": "2026-11-04T10:29:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GHYWRDSH",
+       "platformName": "",
+       "icsCode": "1001418",
+       "commonName": "Haywards Heath Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.005679970775,
+       "lon": -0.105077781363
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GVICTRIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9100VICTRIC0",
+       "commonName": "London Victoria Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.494678491573,
+       "lon": -0.145014434984
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Southern",
+        "directions": [
+         "London Victoria Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "southern",
+         "name": "Southern",
+         "uri": "/Line/southern",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 14.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T09:43:00",
+      "scheduledArrivalTime": "2026-11-04T10:29:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 1,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Victoria line to Pimlico",
+       "detailed": "Victoria line towards Brixton",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T10:39:00",
+      "arrivalTime": "2026-11-04T10:40:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUVIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9400ZZLUVIC3",
+       "commonName": "Victoria Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.496801814686,
+       "lon": -0.14281042582800002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Victoria",
+        "directions": [
+         "Brixton Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "victoria",
+         "name": "Victoria",
+         "uri": "/Line/victoria",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 29.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:39:00",
+      "scheduledArrivalTime": "2026-11-04T10:40:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to stairs, LONDON",
+       "detailed": "Walk to stairs, LONDON",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Tachbrook Street for 46 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Tachbrook Street",
+         "distance": 46,
+         "cumulativeDistance": 46,
+         "skyDirection": 314,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 37,
+         "latitude": 51.489268634795,
+         "longitude": -0.13447388012300002,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 37
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Rampayne Street, continue for 14 metres",
+         "turnDirection": "LEFT",
+         "streetName": "Rampayne Street",
+         "distance": 14,
+         "cumulativeDistance": 60,
+         "skyDirection": 200,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 49,
+         "latitude": 51.489106470004,
+         "longitude": -0.13388991788399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 11
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 67,
+         "skyDirection": 284,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 54,
+         "latitude": 51.489231138501005,
+         "longitude": -0.13381280511399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 5
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 2 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 2,
+         "cumulativeDistance": 69,
+         "skyDirection": 282,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 56,
+         "latitude": 51.489211790529,
+         "longitude": -0.133727168376,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 1
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 75,
+         "skyDirection": 230,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 61,
+         "latitude": 51.489211103227,
+         "longitude": -0.133683983053,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 4
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T10:40:00",
+      "arrivalTime": "2026-11-04T10:45:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.Place, Tfl.Api.Presentation.Entities",
+       "commonName": "stairs, LONDON",
+       "placeType": "StopPoint",
+       "lat": 51.489245,
+       "lon": -0.133553
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "100",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 75.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:40:00",
+      "scheduledArrivalTime": "2026-11-04T10:45:00"
+     }
+    ]
+   },
+   {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Journey, Tfl.Api.Presentation.Entities",
+    "startDateTime": "2026-11-04T09:39:00",
+    "duration": 80,
+    "arrivalDateTime": "2026-11-04T10:59:00",
+    "alternativeRoute": false,
+    "legs": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 62,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Gatwick Express to London Victoria",
+       "detailed": "Gatwick Express towards London Victoria",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T09:39:00",
+      "arrivalTime": "2026-11-04T10:41:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GBRGHTN",
+       "platformName": "",
+       "icsCode": "90000899",
+       "individualStopId": "9100BRGHTN0",
+       "commonName": "Brighton Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 50.829003045638004,
+       "lon": -0.14128036127600002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "910GVICTRIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9100VICTRIE0",
+       "commonName": "London Victoria Rail Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.494943285717,
+       "lon": -0.143563060104
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Gatwick Express",
+        "directions": [
+         "London Victoria Rail Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "gatwick-express",
+         "name": "Gatwick Express",
+         "uri": "/Line/gatwick-express",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "national-rail",
+       "name": "national-rail",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "6",
+       "network": "nrc"
+      },
+      "disruptions": [],
+      "distance": 44.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T09:39:00",
+      "scheduledArrivalTime": "2026-11-04T10:41:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 2,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Victoria line to Pimlico",
+       "detailed": "Victoria line towards Brixton",
+       "steps": []
+      },
+      "departureTime": "2026-11-04T10:52:00",
+      "arrivalTime": "2026-11-04T10:54:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUVIC",
+       "platformName": "",
+       "icsCode": "1000248",
+       "individualStopId": "9400ZZLUVIC3",
+       "commonName": "Victoria Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.496801814686,
+       "lon": -0.14281042582800002
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "Victoria",
+        "directions": [
+         "Brixton Underground Station"
+        ],
+        "lineIdentifier": {
+         "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+         "id": "victoria",
+         "name": "Victoria",
+         "uri": "/Line/victoria",
+         "type": "Line",
+         "crowding": {
+          "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+         },
+         "routeType": "Unknown",
+         "status": "Unknown"
+        },
+        "direction": "Inbound"
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "tube",
+       "name": "tube",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "1",
+       "network": "tfl"
+      },
+      "disruptions": [],
+      "distance": 29.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:52:00",
+      "scheduledArrivalTime": "2026-11-04T10:54:00"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.Leg, Tfl.Api.Presentation.Entities",
+      "duration": 5,
+      "instruction": {
+       "$type": "Tfl.Api.Presentation.Entities.Instruction, Tfl.Api.Presentation.Entities",
+       "summary": "Walk to stairs, LONDON",
+       "detailed": "Walk to stairs, LONDON",
+       "steps": [
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "Tachbrook Street for 46 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "Tachbrook Street",
+         "distance": 46,
+         "cumulativeDistance": 46,
+         "skyDirection": 314,
+         "skyDirectionDescription": "NorthWest",
+         "cumulativeTravelTime": 37,
+         "latitude": 51.489268634795,
+         "longitude": -0.13447388012300002,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 37
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "on to Rampayne Street, continue for 14 metres",
+         "turnDirection": "LEFT",
+         "streetName": "Rampayne Street",
+         "distance": 14,
+         "cumulativeDistance": 60,
+         "skyDirection": 200,
+         "skyDirectionDescription": "South",
+         "cumulativeTravelTime": 49,
+         "latitude": 51.489106470004,
+         "longitude": -0.13388991788399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn left",
+         "trackType": "None",
+         "travelTime": 11
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "RIGHT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 67,
+         "skyDirection": 284,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 54,
+         "latitude": 51.489231138501005,
+         "longitude": -0.13381280511399998,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Turn right",
+         "trackType": "None",
+         "travelTime": 5
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 2 metres",
+         "turnDirection": "STRAIGHT",
+         "streetName": "",
+         "distance": 2,
+         "cumulativeDistance": 69,
+         "skyDirection": 282,
+         "skyDirectionDescription": "West",
+         "cumulativeTravelTime": 56,
+         "latitude": 51.489211790529,
+         "longitude": -0.133727168376,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Continue along ",
+         "trackType": "None",
+         "travelTime": 1
+        },
+        {
+         "$type": "Tfl.Api.Presentation.Entities.InstructionStep, Tfl.Api.Presentation.Entities",
+         "description": "for 6 metres",
+         "turnDirection": "SLIGHT_LEFT",
+         "streetName": "",
+         "distance": 6,
+         "cumulativeDistance": 75,
+         "skyDirection": 230,
+         "skyDirectionDescription": "SouthWest",
+         "cumulativeTravelTime": 61,
+         "latitude": 51.489211103227,
+         "longitude": -0.133683983053,
+         "pathAttribute": {
+          "$type": "Tfl.Api.Presentation.Entities.PathAttribute, Tfl.Api.Presentation.Entities"
+         },
+         "descriptionHeading": "Take a slight left",
+         "trackType": "None",
+         "travelTime": 4
+        }
+       ]
+      },
+      "departureTime": "2026-11-04T10:54:00",
+      "arrivalTime": "2026-11-04T10:59:00",
+      "departurePoint": {
+       "$type": "Tfl.Api.Presentation.Entities.StopPoint, Tfl.Api.Presentation.Entities",
+       "naptanId": "940GZZLUPCO",
+       "platformName": "",
+       "icsCode": "1000180",
+       "individualStopId": "9400ZZLUPCO2",
+       "commonName": "Pimlico Underground Station",
+       "placeType": "StopPoint",
+       "additionalProperties": [],
+       "lat": 51.489189586388,
+       "lon": -0.134592342431
+      },
+      "arrivalPoint": {
+       "$type": "Tfl.Api.Presentation.Entities.Place, Tfl.Api.Presentation.Entities",
+       "commonName": "stairs, LONDON",
+       "placeType": "StopPoint",
+       "lat": 51.489245,
+       "lon": -0.133553
+      },
+      "routeOptions": [
+       {
+        "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.RouteOption, Tfl.Api.Presentation.Entities",
+        "name": "",
+        "directions": [
+         ""
+        ],
+        "direction": ""
+       }
+      ],
+      "mode": {
+       "$type": "Tfl.Api.Presentation.Entities.Identifier, Tfl.Api.Presentation.Entities",
+       "id": "walking",
+       "name": "walking",
+       "type": "Mode",
+       "routeType": "Unknown",
+       "status": "Unknown",
+       "motType": "100",
+       "network": ""
+      },
+      "disruptions": [],
+      "distance": 75.0,
+      "isDisrupted": false,
+      "scheduledDepartureTime": "2026-11-04T10:54:00",
+      "scheduledArrivalTime": "2026-11-04T10:59:00"
+     }
+    ]
+   }
+  ],
+  "lines": [
+   {
+    "$type": "Tfl.Api.Presentation.Entities.Line, Tfl.Api.Presentation.Entities",
+    "id": "victoria",
+    "name": "Victoria",
+    "modeName": "tube",
+    "disruptions": [],
+    "created": "2026-09-22T09:53:41.037Z",
+    "modified": "2026-09-22T09:53:41.037Z",
+    "lineStatuses": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineStatus, Tfl.Api.Presentation.Entities",
+      "id": 0,
+      "statusSeverity": 10,
+      "statusSeverityDescription": "Good Service",
+      "created": "0001-01-01T00:00:00",
+      "validityPeriods": []
+     }
+    ],
+    "routeSections": [],
+    "serviceTypes": [
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Regular",
+      "uri": "/Line/Route?ids=Victoria&serviceTypes=Regular"
+     },
+     {
+      "$type": "Tfl.Api.Presentation.Entities.LineServiceTypeInfo, Tfl.Api.Presentation.Entities",
+      "name": "Night",
+      "uri": "/Line/Route?ids=Victoria&serviceTypes=Night"
+     }
+    ],
+    "crowding": {
+     "$type": "Tfl.Api.Presentation.Entities.Crowding, Tfl.Api.Presentation.Entities"
+    }
+   }
+  ],
+  "stopMessages": [],
+  "recommendedMaxAgeMinutes": 5,
+  "searchCriteria": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.SearchCriteria, Tfl.Api.Presentation.Entities",
+   "dateTime": "2026-11-04T09:00:00",
+   "dateTimeType": "Departing",
+   "timeAdjustments": {
+    "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustments, Tfl.Api.Presentation.Entities",
+    "earliest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/90000899/to/51.4893,-0.1334?date=20261104&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "earlier": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0845",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/90000899/to/51.4893,-0.1334?date=20261104&time=0845&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "later": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261104",
+     "time": "0940",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/90000899/to/51.4893,-0.1334?date=20261104&time=0940&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    },
+    "latest": {
+     "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.TimeAdjustment, Tfl.Api.Presentation.Entities",
+     "date": "20261105",
+     "time": "0300",
+     "timeIs": "departing",
+     "uri": "/journey/journeyresults/90000899/to/51.4893,-0.1334?date=20261105&time=0300&timeIs=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+    }
+   }
+  },
+  "journeyVector": {
+   "$type": "Tfl.Api.Presentation.Entities.JourneyPlanner.JourneyVector, Tfl.Api.Presentation.Entities",
+   "from": "90000899",
+   "to": "-0.1334:51.4893:WGS84[DD.dddd]",
+   "via": "",
+   "uri": "/journey/journeyresults/90000899/to/51.4893,-0.1334?date=20261104&time=0900&timeis=departing&mode=national-rail,tube,overground,elizabeth-line,dlr,walking&journeypreference=leasttime&app_key=REMOVED"
+  }
+ },
+ "note": "Recorded from TfL; app_key removed; leg path geometry removed (unused). Home/destination points are public places, not a residence."
+}

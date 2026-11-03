@@ -9,6 +9,8 @@ export interface TripConfig {
   region: Region;
   reachKm: Record<AccessMode, number>;
   nearest: number; wellServed: number; wellServedFactor: number;
+  /** Walking at the far end: searches from this many origin stations to the place itself per round (0: none). */
+  placeSearches: number;
   round1Max: number; totalMax: number; behindMin: number; laterPairs: number; windowMin: number;
   closeKm: number; atStationM: number; endMatchM: number; replanMovedM: number;
   change: { riskMin: number; tightMin: number };
@@ -27,7 +29,7 @@ export const TRIP_DEFAULTS: TripConfig = {
     [52.17, -1.30], [52.05, -1.05], [52.20, -0.70], [52.32, -0.45], [52.55, -0.30], [52.75, -0.05], [52.80, 0.20],
     [53.00, 0.60], [53.00, 1.80], [50.55, 1.80]] },
   reachKm: { walk: 3, cycle: 10, drive: 25 },
-  nearest: 3, wellServed: 2, wellServedFactor: 2,
+  nearest: 3, wellServed: 2, wellServedFactor: 2, placeSearches: 3,
   round1Max: 9, totalMax: 18, behindMin: 30, laterPairs: 3, windowMin: 100,
   closeKm: 1.5, atStationM: 400, endMatchM: 300, replanMovedM: 500,
   change: { riskMin: 2, tightMin: 5 },

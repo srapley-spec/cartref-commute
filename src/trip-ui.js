@@ -78,10 +78,12 @@ function createTripUi(deps) {
   };
   function planner(index) {
     const tfl = tripAdapters.tflPlanner({ net, getKey: () => S().tflKey, idx: index, endMatchM: cfg().endMatchM, core: C });
-    return { name: tfl.name, async plan(a, b, t, timeIs) {
-      const k = `${a.crs}-${b.crs}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, hit = plannerCache.get(k);
-      if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
-      const reply = await tfl.plan(a, b, t, timeIs); plannerCache.set(k, { at: now(), reply }); return reply; } };
+    const cached = async (k, ask) => { const hit = plannerCache.get(k); if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
+      const reply = await ask(); plannerCache.set(k, { at: now(), reply }); return reply; };
+    return { name: tfl.name,
+      plan: (a, b, t, timeIs) => cached(`${a.crs}-${b.crs}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.plan(a, b, t, timeIs)),
+      // To the place itself (issue #56): keyed by its position, so a new destination is a new search.
+      planTo: (a, place, t, timeIs) => cached(`${a.crs}-@${place.geo.join(",")}|${timeIs}|${Math.floor(t / (15 * 60e3))}`, () => tfl.planTo(a, place, t, timeIs)) };
   }
 
   // ---------- Places ----------
@@ -432,8 +434,8 @@ function createTripUi(deps) {
     const dismiss=t.closest('[data-trip-dismiss]');if(dismiss&&st().follow){save({follow:C.dismissTripAlternative(st().follow,dismiss.dataset.tripDismiss)});renderResults();return;}
     if(t.closest('[data-trip-replan]')&&st().follow){
       const route=st().follow,start=C.tripRecoveryStart(route,now()),station=start.station;
-      const place={id:'station:'+station.crs,name:station.name,address:'',geo:station.geo,kind:'station'};
-      const destination=route.journey.to||{id:'station:'+route.journey.toStation.crs,name:route.journey.toStation.name,address:'',geo:route.journey.toStation.geo,kind:'station'};
+      const place={id:'station:'+C.stationKey(station),name:station.name,address:'',geo:station.geo,kind:'station'};
+      const destination=route.journey.to||{id:'station:'+C.stationKey(route.journey.toStation),name:route.journey.toStation.name,address:'',geo:route.journey.toStation.geo,kind:'station'};
       save({from:place,to:destination,modes:{...route.journey.modes,from:'walk'},question:{kind:'now',t:0},notBefore:start.readyAt});pinView('plan');fill();plan();return;
     }
     const f = t.closest("[data-trip-follow]");

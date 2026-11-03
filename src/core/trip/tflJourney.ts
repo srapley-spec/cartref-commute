@@ -1,9 +1,12 @@
-// TfL Journey Planner replies → RailJourney (rides with changes), checked against the stations asked for.
-// From recorded replies (tests/fixtures/trip): TfL omits naptan IDs at change and final arrivals (ICS code and
-// position only), adds its own walk out of a station, and gives cross-London changes as Tube legs with gaps.
+// TfL Journey Planner replies → RailJourney (rides with changes), checked against the stations (or the place) asked
+// for. From recorded replies (tests/fixtures/trip): TfL omits naptan IDs at change and final arrivals (ICS code and
+// position only), adds its own walk out of a station, and gives cross-London changes as Tube legs with gaps. A reply
+// for a place (issue #56) ends with TfL's walk from the last stop, which may be a Tube stop the station list doesn't
+// know: that stop is kept as a station of its own, with TfL's IDs, and becomes where the journey's final walk starts.
 import type { Train } from "../types";
 import { hhmm, mins } from "../time";
-import type { StationIndex } from "./ports";
+import { km } from "../geo";
+import type { StationIndex, LatLon } from "./ports";
 import type { Ride, RideKind, RailJourney, Station } from "./journeyCore";
 import { isMain } from "./journeyCore";
 
@@ -13,14 +16,34 @@ const KIND: Record<string, RideKind> = { "national-rail": "rail", "elizabeth-lin
 /** TfL's modes for Trip searches (no buses asked for; any that come back are kept and flagged). */
 export const TFL_TRIP_MODES = "national-rail,tube,overground,elizabeth-line,dlr,walking";
 export const cleanName = (n: string) => String(n || "").replace(/\s+(Rail|Railway|Underground|DLR)?\s*Station$/i, "").replace(/^London\s+(?=\S)/, "").trim();
+/** The end a reply is checked against: the station asked for, or the place itself (its name and position). */
+export type PlaceEnd = { place: { name: string; geo: LatLon } };
+export type TflEnd = Station | PlaceEnd;
 
-/** The station a TfL stop point is: by naptan ID, else ICS code, else the nearest within `m` metres; else a
- *  station of its own (a Tube stop), never another station guessed by name. */
+const NAME_NOISE = new Set(["london", "rail", "railway", "station", "underground", "dlr", "tram", "stop"]);
+const nameWords = (n: string) => new Set(String(n || "").toLowerCase().replace(/\(.*?\)/g, " ").replace(/&/g, " and ")
+  .replace(/[^a-z0-9 ]+/g, "").split(/\s+/).filter(w => w && !NAME_NOISE.has(w)));
+/** The same place by name: one name's words are all in the other's ("King's Cross St. Pancras" ⊇ "Kings Cross";
+ *  "Liverpool Street Underground Station" = "London Liverpool Street"). "Tower Hill" is never "Fenchurch Street". */
+export function sameStationName(a: string, b: string): boolean {
+  const A = nameWords(a), B = nameWords(b);
+  if (!A.size || !B.size) return false;
+  return [...A].every(w => B.has(w)) || [...B].every(w => A.has(w));
+}
+
+/** The station a TfL stop point is: by naptan ID, else ICS code, else the nearest within `m` metres *with the same
+ *  name* (TfL omits IDs at some arrivals); else a station of its own (a Tube stop) carrying TfL's IDs, never another
+ *  station guessed from position alone (Tower Hill is 180 m from Fenchurch Street and is not it; issue #56). */
 export function tflStation(p: J, idx: StationIndex, m: number): { station: Station; known: boolean } {
-  const s = (p && p.naptanId && idx.byId("tfl", p.naptanId)) || (p && p.icsCode && idx.byId("tflIcs", String(p.icsCode)))
-    || (p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? idx.nearestTo([p.lat, p.lon], m) : null);
-  if (s) return { station: s, known: true };
-  return { station: { crs: "", name: cleanName(p && p.commonName), geo: [p?.lat ?? 0, p?.lon ?? 0], carPark: "unknown", servicePerHour: 0, ids: {} }, known: false };
+  const byId = (p && p.naptanId && idx.byId("tfl", p.naptanId)) || (p && p.icsCode && idx.byId("tflIcs", String(p.icsCode))) || null;
+  if (byId) return { station: byId, known: true };
+  const geo: LatLon | null = p && Number.isFinite(p.lat) && Number.isFinite(p.lon) ? [p.lat, p.lon] : null;
+  const near = geo ? idx.nearestTo(geo, m) : null;
+  if (near && sameStationName(near.name, p.commonName)) return { station: near, known: true };
+  const ids: Record<string, string[]> = {};
+  if (p && p.naptanId) ids.tfl = [String(p.naptanId)];
+  if (p && p.icsCode) ids.tflIcs = [String(p.icsCode)];
+  return { station: { crs: "", name: cleanName(p && p.commonName), geo: geo || [0, 0], carPark: "unknown", servicePerHour: 0, ids }, known: false };
 }
 const t = (s: string | undefined) => (s ? new Date(s).getTime() : NaN);
 
@@ -44,22 +67,46 @@ function rideOf(l: J, idx: StationIndex, m: number): Ride | null {
   return ride;
 }
 
-/** Parse one reply. Journeys whose ends aren't the asked stations are refused with the reason. */
-export function tflRailJourneys(body: J, from: Station, to: Station, idx: StationIndex, endMatchM: number): { journeys: RailJourney[]; refused: string[] } {
-  const out: RailJourney[] = [], refused: string[] = [];
+const isPlace = (e: TflEnd): e is PlaceEnd => !!(e as PlaceEnd).place;
+
+/**
+ * Parse one reply. Journeys whose ends aren't the asked ones are refused with the reason: for a station, the last
+ * ride must end at it; for a place, TfL's final walk must end within `endMatchM` of it, and the ride before that walk
+ * ends wherever you alight (a station, or a Tube stop of its own). TfL's own walks into and out of the stations are
+ * dropped: Trip adds its own access and exit from the segments.
+ */
+export interface TflParsed { journeys: RailJourney[]; refused: string[];
+  /** Journeys to a station that alight somewhere else and walk on (TfL's walk dropped): refused as the asked trip,
+   *  but a usable journey to that other stop when the far end is on foot (issue #56: Letchworth → Fenchurch Street
+   *  alights at Aldgate). Each with the reason it was refused. */
+  elsewhere: { journey: RailJourney; why: string }[] }
+export function tflRailJourneys(body: J, from: Station, to: TflEnd, idx: StationIndex, endMatchM: number): TflParsed {
+  const out: RailJourney[] = [], refused: string[] = [], elsewhere: TflParsed["elsewhere"] = [];
   for (const j of (body && body.journeys) || []) {
     const notes: string[] = [];
-    let rides = ((j.legs || []) as J[]).map(l => rideOf(l, idx, endMatchM)).filter((r): r is Ride => !!r);
-    // TfL's own walks into and out of the stations: dropped (Trip adds its own access and exit).
+    const legs = (j.legs || []) as J[];
+    let rides = legs.map(l => rideOf(l, idx, endMatchM)).filter((r): r is Ride => !!r);
     while (rides.length && rides[0].kind === "walk") { notes.push(`Dropped TfL's walk: ${rides[0].label}`); rides = rides.slice(1); }
     while (rides.length && rides[rides.length - 1].kind === "walk") { notes.push(`Dropped TfL's walk: ${rides[rides.length - 1].label}`); rides = rides.slice(0, -1); }
     const mains = rides.filter(isMain);
     if (!mains.length) { refused.push("No train in TfL's journey"); continue; }
-    if (rides[0].from.crs !== from.crs || rides[rides.length - 1].to.crs !== to.crs) {
-      refused.push(`TfL matched a different place (${rides[0].from.name || "?"} → ${rides[rides.length - 1].to.name || "?"})`); continue;
+    const last = rides[rides.length - 1];
+    const other = () => `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"})`;
+    if (rides[0].from.crs !== from.crs) { refused.push(other()); continue; }
+    if (isPlace(to)) {
+      const endPt = legs.length ? legs[legs.length - 1].arrivalPoint : null;
+      const endGeo: LatLon | null = endPt && Number.isFinite(endPt.lat) && Number.isFinite(endPt.lon) ? [endPt.lat, endPt.lon] : last.to.geo;
+      if (!endGeo || km(endGeo, to.place.geo) * 1000 > endMatchM) { refused.push(other()); continue; }
+      notes.push(`Alight at ${last.to.name} for ${to.place.name}`);
     }
-    (j.legs || []).forEach((l: J) => (l.disruptions || []).forEach((d: J) => { if (d && d.description) notes.push(String(d.description)); }));
+    legs.forEach((l: J) => (l.disruptions || []).forEach((d: J) => { if (d && d.description) notes.push(String(d.description)); }));
+    if (!isPlace(to) && last.to.crs !== to.crs) {
+      const why = `TfL matched a different place (${rides[0].from.name || "?"} → ${last.to.name || "?"}, not ${to.name})`;
+      refused.push(why);
+      if (last.to.geo[0] || last.to.geo[1]) elsewhere.push({ journey: { rides, source: "tfl", notes: [...notes, `Alights at ${last.to.name}, not ${to.name}`] }, why });
+      continue;
+    }
     out.push({ rides, source: "tfl", notes });
   }
-  return { journeys: out, refused };
+  return { journeys: out, refused, elsewhere };
 }

@@ -6,7 +6,7 @@ import { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS } from "../follow";
 import type { Leg } from "../journey";
 import { hhmm } from "../time";
 import type { Journey } from "./journeyCore";
-import { mainRides, journeySteps, buildJourney } from "./journeyCore";
+import { mainRides, journeySteps, buildJourney, stationKey } from "./journeyCore";
 import type { TripConfig } from './config';
 import { tripRideTimingUsable } from '../journeyFacts';
 import { tripCanFollow } from './tripRank';
@@ -139,7 +139,7 @@ export function updateFollowTrip(route: FollowTrip, i: FollowTripInput): FollowT
   // An alternative only when broken or ≥ 5 min sooner; still reachable (leave not passed); not one you dismissed.
   const recovery=tripRecoveryStart(r,i.now),underWay=phase!=='before'&&phase!=='access'||r.activeRide!=null||r.alightedRide!=null;
   const alternative = (phase==='arrived'?[]:i.options || []).filter(o => o.id !== r.id && !r.dismissed.includes(o.id) && tripCanFollow(o,i.now))
-    .filter(o=>!underWay||o.fromStation.crs===recovery.station.crs&&o.leave>=recovery.readyAt)
+    .filter(o=>!underWay||stationKey(o.fromStation)===stationKey(recovery.station)&&o.leave>=recovery.readyAt)
     .filter(o => broken || o.arrive <= r.expectedArrival - FOLLOW_BETTER_MIN * 60e3).sort((a, b) => a.arrive - b.arrive)[0] || null;
   const steps = journeySteps(j), nextStep = steps.find(s => s.t != null && s.t >= i.now) || null;
   let status: FollowTripUpdate["status"] = "on-track", level: FollowTripUpdate["level"] = "ok", text = `Arriving ${hhmm(r.expectedArrival)}`;
@@ -180,8 +180,8 @@ export function tripRecoveryStart(route: FollowTrip, now: number) {
 export function recoverFollowTrip(route: FollowTrip, next: Journey, now: number, cfg: Pick<TripConfig,'change'>): FollowTrip | null {
   const start=tripRecoveryStart(route,now),phase=followedTripPhase(route,now);
   const underWay=phase.phase!=='before'&&phase.phase!=='access'||route.activeRide!=null||route.alightedRide!=null;
-  if(!tripCanFollow(next,now)||next.leave<start.readyAt||underWay&&next.fromStation.crs!==start.station.crs)return null;
-  if((route.journey.to?.id||route.journey.toStation.crs)!==(next.to?.id||next.toStation.crs))return null;
+  if(!tripCanFollow(next,now)||next.leave<start.readyAt||underWay&&stationKey(next.fromStation)!==stationKey(start.station))return null;
+  if((route.journey.to?.id||stationKey(route.journey.toStation))!==(next.to?.id||stationKey(next.toStation)))return null;
   const count=underWay?(phase.phase==='ride'?phase.ride+1:phase.phase==='change'?phase.ride:route.journey.rides.length):0;
   const prior=route.journey.rides.slice(0,count);
   const allowance=next.before.reduce((ms,s)=>ms+s.secs*1000,0);

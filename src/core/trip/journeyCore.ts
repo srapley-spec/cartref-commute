@@ -14,6 +14,9 @@ export interface Station {
   ids: Record<string, string[]>;
 }
 export type RideKind = "rail" | "tube" | "walk" | "bus" | "other";
+/** A station's identity: its CRS; a stop with none (a Tube stop) by its provider ID; else its name. */
+export const stationKey = (s: Pick<Station, "crs" | "name" | "ids">): string => s.crs
+  || Object.entries(s.ids || {}).map(([p, ids]) => (ids && ids[0] ? `${p}:${ids[0]}` : "")).find(Boolean) || `name:${s.name}`;
 /** One ride. `dep` / `arr` are the best known times (live when `live` says so, else timetabled). */
 export interface Ride {
   kind: RideKind; from: Station; to: Station;
@@ -125,7 +128,7 @@ export function buildJourney(rail: RailJourney, from: Place | null, to: Place | 
   // A later day than the one asked about (Leave now: today).
   const day = extra.day ?? now;
   const tomorrow = daysBetween(day, (mains[0] || rides[0]).schedDep) > 0;
-  const id = [fromStation.crs, toStation.crs, ...mains.map(r => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
+  const id = [stationKey(fromStation), stationKey(toStation), ...mains.map(r => `${r.from.crs}${hhmm(r.schedDep)}`)].join("|");
   const j: Journey = { id, from, to, fromStation, toStation, modes, before, rides, after, leave, arrive, flags: [], changes, tomorrow, source: rail.source };
   j.flags = [...journeyFlags(j, { ...extra, day }), ...(extra.noRoute || []).map(txt => ({ lvl: "bad" as const, txt }))];
   // No route to or from a station: shown (never hidden) but never picked, since its door-to-door times are unknown.

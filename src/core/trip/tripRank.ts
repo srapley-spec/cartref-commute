@@ -1,7 +1,7 @@
 // Ranking trips with the commute's top-card rule (rank.ts topPicks), and "Other stations" with their consequence.
 import { topPicks } from "../rank";
 import type { Option } from "../types";
-import type { Journey } from "./journeyCore";
+import { stationKey, type Journey } from "./journeyCore";
 import type { TripConfig } from "./config";
 import { hhmm } from '../time';
 import { tripRideTimingUsable } from '../journeyFacts';
@@ -38,7 +38,7 @@ export function tripDepartureBoard(journeys: Journey[], now: number) {
   for(const journey of journeys){
     const ride=journey.rides.find(r=>r.kind!=='walk');
     if(!ride||ride.dep<now&&!ride.cancelled&&!ride.train?.depUnknown)continue;
-    const key=[ride.from.crs,ride.kind,ride.schedDep,ride.operator||ride.label,ride.destination||ride.to.crs].join('|');
+    const key=[stationKey(ride.from),ride.kind,ride.schedDep,ride.operator||ride.label,ride.destination||stationKey(ride.to)].join('|');
     const previous=rows.get(key);
     if(!previous||tripCanFollow(journey,now)&&!tripCanFollow(previous.journey,now)||tripCanFollow(journey,now)===tripCanFollow(previous.journey,now)&&journey.arrive<previous.journey.arrive)rows.set(key,{ride,journey});
   }
@@ -62,8 +62,8 @@ export function otherStations(js: Journey[], best: Journey | undefined, max: num
     const lv = l === 0 ? "" : l > 0 ? `, leave ${l} min earlier` : `, leave ${-l} min later`;
     return { end, station: name, crs: end === "from" ? j.fromStation.crs : j.toStation.crs, journey: j, arriveMin: a, leaveMin: l, text: `${end === "from" ? "From" : "To"} ${name}: ${arr}${lv}` };
   };
-  bestPer(j => j.fromStation.crs).forEach((j, crs) => { if (crs !== best.fromStation.crs) out.push(say("from", j)); });
-  bestPer(j => j.toStation.crs).forEach((j, crs) => { if (crs !== best.toStation.crs) out.push(say("to", j)); });
+  bestPer(j => stationKey(j.fromStation)).forEach((j, k) => { if (k !== stationKey(best.fromStation)) out.push(say("from", j)); });
+  bestPer(j => stationKey(j.toStation)).forEach((j, k) => { if (k !== stationKey(best.toStation)) out.push(say("to", j)); });
   return out.sort((a, b) => a.arriveMin - b.arriveMin).slice(0, max);
 }
 

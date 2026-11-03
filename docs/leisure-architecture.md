@@ -108,7 +108,9 @@ Routes API by the Worker's address instead.
 ## 6. Station data (bundled)
 `data/stations.json` from `tools/stations.mjs` (run by hand, reviewed, committed, reruns diffed):
 - Open UK stations list (name, position, CRS; ODbL 1.0, attribution in Settings → About), region box: 1,092 stations.
-  Tube-only stops are not in it (consistent with "walk to a rail station"; the planner adds Tube transfers).
+  Tube-only stops are not in it (consistent with "walk to a rail station"; the planner adds Tube transfers). Since
+  3 Nov (#56) a Tube stop a journey alights at is a `Station` of its own at run time (CRS "", TfL IDs in `ids`,
+  identity `stationKey()` = `tfl:<naptan>`): the station list is where you board, not the only place you can alight.
 - `ids.tfl` / `ids.tflIcs`: TfL nearby-stations search at each position (≤ 400 m), normalised name match; all matching
   IDs kept (St Pancras has several); unmatched / ambiguous rows reported and fixed in an overrides file.
 - `carPark` from TfL station detail (`Car park`; absent → unknown).
