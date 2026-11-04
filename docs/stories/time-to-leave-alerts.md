@@ -117,6 +117,7 @@ with Wrangler (no GitHub Action yet).
 - tests/push.test.mjs: "Push routes: each bad field of a plan or wake-up config is refused on its own"
 - tests/push.test.mjs: "Scheduler: a 404 from the push service forgets the phone; an expired plan is cleared; a plan the page changed mid-run is kept"
 - tests/push.test.mjs: "Scheduler on a UTC machine in summer: the wake-up check and the start of watching are London time"
+- tests/push.test.mjs: "Scheduler: a plan that ends during a run doesn't wipe a new Follow the page posted meanwhile"
 - tests/push-alerts.test.mjs: "Alerts on: permission is asked first, inside the Save tap; then the phone subscribes through the proxy and a test alert is sent"
 - tests/push-alerts.test.mjs: "Alerts on: refused permission, no proxy, or no push support says why and subscribes nothing"
 - tests/push-alerts.test.mjs: "Followed journey: the plan is posted when it changes (Leave by moved a minute, Follow stopped), not on every render; never in a simulation"
@@ -141,8 +142,11 @@ the RFC example and a fresh message) and the VAPID signature with Node's own ECD
 - Deploying from GitHub (an Action with a Cloudflare API token) is offered, not built.
 - Known limits from the independent review (4 Nov), accepted for a one-person, Experimental feature:
   - Workers KV is eventually consistent and cron runs can overlap (10 phones × 10 s timeouts): a minute's run can read
-    state from before the last write and send a notice again. The service worker makes an identical repeat silent;
-    a Durable Object would remove it.
+    state from before the last write and send a notice again. The service worker makes an identical repeat silent,
+    but a stale repeat with a different minute ("Leave in 4 min" after "Leave in 5 min") still buzzes. To check on
+    the deployed Worker; a Durable Object would remove it.
+  - A plan the page posts in the same moment as a run can lose that run's "sent" record, so its first alert may come
+    twice (rare).
   - The Origin check can be faked by a non-browser client: anyone with the Worker's address can fill the 10 phone
     slots (never expired) or spend upstream quota. A Cloudflare rate-limiting rule is recommended; a shared secret and
     expiry of idle phones are not built.

@@ -238,6 +238,7 @@ test("Scheduler in summer on a UTC machine (Cloudflare's): board times and the a
       assert.deepEqual(await decrypt(pushes[0].opts.body, phone), { kind: "soon", tag: "leave-f1", title: "Leave in 5 min · by 18:22", body: "For the 18:48 from King's Cross (on time)." });
       // What's stored is real time again (not shifted).
       assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).planState.lastLeaveBy, dep - PLAN.leadMs);
+      assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).planState.lastDep, dep);
     }, { board: () => gnBoard("On time") });
     process.env.TZ = "Europe/London";
     assert.equal(londonShift(Date.parse("2026-07-01T17:17:00Z")), 0, "in London's own time zone there's nothing to shift");
@@ -349,4 +350,17 @@ test("Scheduler on a UTC machine in summer: the wake-up check and the start of w
       await runAlerts(e2, Date.parse("2026-07-01T16:22:00Z")); assert.equal(boards.length, 1);
     }, { board: () => gnBoard() });
   } finally { if (realTz === undefined) delete process.env.TZ; else process.env.TZ = realTz; }
+});
+
+test("Scheduler: a plan that ends during a run doesn't wipe a new Follow the page posted meanwhile", async () => {
+  const { env } = await envWith(), phone = await phoneKeys();
+  const { body: me } = await subscribe(env, phone, { morning: null });
+  await planPost(env, me, PLAN);
+  const fresh = { ...PLAN, followId: "f2", std: "18:54", dep: at(DAY, "18:54"), leaveBy: at(DAY, "18:28") };
+  await withFeeds(async ({ pushes }) => {
+    await runAlerts(env, at(DAY, "18:17"));
+    assert.equal(pushes.length, 1, "the cancellation of the old train is still said");
+    const r = JSON.parse(env.PUSH.m.get(`sub:${me.id}`));
+    assert.equal(r.plan.followId, "f2", "the new Follow survives the old plan ending");
+  }, { board: () => { const r = JSON.parse(env.PUSH.m.get(`sub:${me.id}`)); if (r.plan.followId === "f1") env.PUSH.m.set(`sub:${me.id}`, JSON.stringify({ ...r, plan: fresh, planState: {}, planAt: Date.now() })); return gnBoard("Cancelled"); } });
 });

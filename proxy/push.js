@@ -110,7 +110,8 @@ export async function pushRoute(request, env, cors, url, allowed) {
   if (!rec) return json({ error: "Unknown phone" }, 403, cors);
   if (path === "/push/plan") {
     if (b.plan == null) { if (rec.plan) await env.PUSH.put(`sub:${rec.id}`, JSON.stringify({ ...rec, plan: null, planState: null, planAt: now })); return json({ ok: true }, 200, cors); }
-    // The page posts only on a change (about once a minute at most); anything faster is refused, which bounds KV writes.
+    // The page posts only on a change (about once a minute at most); anything faster is refused. This slows a
+    // misbehaving client; it doesn't keep a deliberate one (faking the Origin) under KV's 1,000 writes a day.
     if (rec.planAt && now - rec.planAt < PLAN_MIN_GAP_MS && now >= rec.planAt) return json({ error: "Too soon" }, 429, cors);
     const plan = cleanPlan(b.plan, env, allowed, now);
     if (!plan) return json({ error: "Bad plan" }, 400, cors);
@@ -145,7 +146,12 @@ async function board(env, from, to, lnow) {
   } catch (e) { return null; }
 }
 const shiftPlan = (p, d) => ({ ...p, dep: p.dep + d, leaveBy: p.leaveBy + d });
-const shiftState = (s, d) => (s && s.lastLeaveBy != null ? { ...s, lastLeaveBy: s.lastLeaveBy + d } : { ...(s || {}) });
+// State instants (lastLeaveBy, lastDep) are stored in real time and shifted like the plan.
+const shiftState = (s, d) => {
+  const out = { ...(s || {}) };
+  for (const k of ["lastLeaveBy", "lastDep"]) if (Number.isFinite(out[k])) out[k] += d;
+  return out;
+};
 
 /**
  * One scheduler run (every minute). Returns what was sent, for tests and logs.

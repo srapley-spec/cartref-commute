@@ -150,6 +150,7 @@ test("Page: time-to-leave alerts are off by default, in Settings → Experimenta
 });
 
 test("Followed journey: retried at a minute, not before; the proxy forgetting the phone (403) stops and says so; a refused plan (400) isn't retried", async () => {
+  assert.equal(pushAlerts.RETRY_MS, 60e3, "the story's 1 min");
   let mode = 500;
   const t = setup({ settings: { proxyBase: PROXY, leaveAlerts: true }, fail: (u) => u.endsWith("/push/plan") && mode });
   t.state.saved.pushAlerts = { id: "ID1", token: "TOK", planKey: null };
