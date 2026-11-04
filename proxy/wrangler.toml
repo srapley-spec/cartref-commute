@@ -1,0 +1,20 @@
+# Cloudflare Worker for Cartref Commute (docs/proxy-setup.md). Deploy from the repo root:
+#   npm ci && npm run build && npx wrangler deploy --config proxy/wrangler.toml
+# Secrets are set in the Cloudflare dashboard (or `npx wrangler secret put NAME --config proxy/wrangler.toml`),
+# never in this file: RDM_KEY, RDM_SD_KEY (optional), GOOGLE_KEY (optional), VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY.
+name = "cartref-rail"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+# Keep variables and secrets set in the dashboard when deploying.
+keep_vars = true
+
+# Variables (ALLOW_ORIGIN, RDM_BASE, VAPID_SUBJECT, ...) live in the dashboard; keep_vars keeps them on deploy.
+
+# Time-to-leave and wake-up alerts: who is subscribed and what they're following.
+# Create once: npx wrangler kv namespace create PUSH --config proxy/wrangler.toml, then put its id here.
+[[kv_namespaces]]
+binding = "PUSH"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[triggers]
+crons = ["* * * * *"]

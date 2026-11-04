@@ -344,6 +344,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station).</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. Needs My proxy, and on iPhone the Home Screen app.</span></label>
+      <label class="f" id="wakeAtRow"><span>Wake-up check (weekdays)</span><input id="s_wakeAt" type="time" value="06:30"></label>
+      <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
+      <p class="hint" id="alertsStatus" aria-live="polite"></p>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
@@ -1939,6 +1943,7 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  try{ leaveAlerts.sync(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
   const focus=journeyFocus();
@@ -2330,6 +2335,13 @@ $("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey')
 /*__FOLLOW_TRANSPORT__*/
 /*__JOURNEY_UI__*/
 /*__TRIP_UI__*/
+// ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
+/*__PUSH_ALERTS__*/
+const alertsMorning = s => ({ from:HOME, to:Object.keys(HUB_NAME), time:s.wakeAt||pushAlerts.DEFAULT_WAKE, days:[1,2,3,4,5], names:{...STATIONS,...HUB_NAME} });
+const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, names:{...STATIONS,...HUB_NAME}, morning:alertsMorning,
+  followed:()=>S().followRoute?C.restoreFollowRoute(state.saved.followRoute):null,
+  simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
+  win:window, status:t=>{ const el=$("#alertsStatus"); if(el) el.textContent=t; } });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -2367,6 +2379,7 @@ function fillSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
+  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts);
   $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
   $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
@@ -2387,6 +2400,7 @@ function readSettings(){
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_trip").checked) o.trip=true;
+  if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
   o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
   { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
@@ -2429,7 +2443,8 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["followRoute","appearance","follow","alongLine"]);
+ leaveAlerts.onSave(previous, effective);
+ const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -2444,6 +2459,7 @@ $("#settingsForm").addEventListener("submit",e=>{
 
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+$("#alertsTestBtn").addEventListener("click",()=>leaveAlerts.test());
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
@@ -2494,6 +2510,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

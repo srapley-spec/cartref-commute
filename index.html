@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:02 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:15 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -906,6 +906,10 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station).</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. Needs My proxy, and on iPhone the Home Screen app.</span></label>
+      <label class="f" id="wakeAtRow"><span>Wake-up check (weekdays)</span><input id="s_wakeAt" type="time" value="06:30"></label>
+      <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
+      <p class="hint" id="alertsStatus" aria-live="polite"></p>
       <p class="hint">Off: the app works exactly as before.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
@@ -1098,6 +1102,13 @@ var CommuteCore = (() => {
     FOLLOW_TUBE_FRESH_MS: () => FOLLOW_TUBE_FRESH_MS,
     LATE_BAD_MIN: () => LATE_BAD_MIN,
     LATE_WARN_MIN: () => LATE_WARN_MIN,
+    LEAVE_ALERT_CHANGE_MS: () => LEAVE_ALERT_CHANGE_MS,
+    LEAVE_ALERT_GRACE_MS: () => LEAVE_ALERT_GRACE_MS,
+    LEAVE_ALERT_MAX_MS: () => LEAVE_ALERT_MAX_MS,
+    LEAVE_ALERT_SOON_MS: () => LEAVE_ALERT_SOON_MS,
+    LEAVE_ALERT_WATCH_MS: () => LEAVE_ALERT_WATCH_MS,
+    MORNING_LATE_MS: () => MORNING_LATE_MS,
+    MORNING_WINDOW_MIN: () => MORNING_WINDOW_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
     OUTSIDE_REGION: () => OUTSIDE_REGION,
@@ -1168,6 +1179,7 @@ var CommuteCore = (() => {
     effortOffers: () => effortOffers,
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
+    findPlannedTrain: () => findPlannedTrain,
     followMatchesObservedTrain: () => followMatchesObservedTrain,
     followMatchesService: () => followMatchesService,
     followServiceKey: () => followServiceKey,
@@ -1196,6 +1208,10 @@ var CommuteCore = (() => {
     journeyTimes: () => journeyTimes,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
+    leaveAlertExpired: () => leaveAlertExpired,
+    leaveAlertPlan: () => leaveAlertPlan,
+    leaveAlertStep: () => leaveAlertStep,
+    leaveAlertWatching: () => leaveAlertWatching,
     leaveBy: () => leaveBy,
     leftAgo: () => leftAgo,
     leftHome: () => leftHome,
@@ -1206,6 +1222,7 @@ var CommuteCore = (() => {
     liveBudget: () => liveBudget,
     liveCovers: () => liveCovers,
     liveHorizon: () => liveHorizon,
+    localMinute: () => localMinute,
     lockOf: () => lockOf,
     lockedTrain: () => lockedTrain,
     mainRides: () => mainRides,
@@ -1219,6 +1236,8 @@ var CommuteCore = (() => {
     minTimeToTrain: () => minTimeToTrain,
     mins: () => mins,
     missingPairSearches: () => missingPairSearches,
+    morningAlert: () => morningAlert,
+    morningDue: () => morningDue,
     nearOffice: () => nearOffice,
     nearlyHome: () => nearlyHome,
     nearlyHomeEta: () => nearlyHomeEta,
@@ -5223,6 +5242,130 @@ var CommuteCore = (() => {
   ];
   var samAlongStations = [{ code: "LET", name: "Letchworth" }, { code: "HIT", name: "Hitchin" }, { code: "SVG", name: "Stevenage" }, { code: "KBW", name: "Knebworth" }, { code: "WLW", name: "Welwyn North" }, { code: "WGC", name: "Welwyn Garden City" }, { code: "HAT", name: "Hatfield" }, { code: "PBR", name: "Potters Bar" }, { code: "AAP", name: "Alexandra Palace" }, { code: "FPK", name: "Finsbury Park" }];
 
+  // src/core/alerts.ts
+  var LEAVE_ALERT_SOON_MS = 5 * 6e4;
+  var LEAVE_ALERT_CHANGE_MS = 2 * 6e4;
+  var LEAVE_ALERT_WATCH_MS = 60 * 6e4;
+  var LEAVE_ALERT_GRACE_MS = 6e4;
+  var MORNING_WINDOW_MIN = 120;
+  var MORNING_LATE_MS = 10 * 6e4;
+  function leaveAlertPlan(route, names) {
+    if (!route || route.phase !== "before-train" || route.incident) return null;
+    const o = route.option, t2 = o && o.train;
+    if (!t2 || !Number.isFinite(t2.dep) || t2.cancelled) return null;
+    const leaveBy2 = Number.isFinite(o.leaveBy) ? o.leaveBy : o.leave;
+    if (!Number.isFinite(leaveBy2) || leaveBy2 > t2.dep) return null;
+    const now = route.lastTrain && Number.isFinite(route.lastTrain.dep) && !route.lastTrain.cancelled && !route.lastTrain.depUnknown ? route.lastTrain : t2;
+    const leadMs = t2.dep - leaveBy2;
+    return {
+      v: 1,
+      followId: route.id,
+      serviceId: t2.serviceId,
+      from: t2.from,
+      to: t2.to,
+      std: t2.std,
+      operator: t2.operator || void 0,
+      dep: now.dep,
+      leaveBy: now.dep - leadMs,
+      leadMs,
+      train: `the ${t2.std} from ${names[t2.from] || t2.from}`
+    };
+  }
+  function findPlannedTrain(plan, board) {
+    const svcs = board && board.services || [];
+    return plan.serviceId && svcs.find((s) => s.serviceId === plan.serviceId) || svcs.find((s) => s.std === plan.std && (!plan.operator || s.operator === plan.operator)) || null;
+  }
+  var LEAVE_ALERT_MAX_MS = 3 * 36e5;
+  var leaveAlertWatching = (plan, now) => now >= plan.leaveBy - LEAVE_ALERT_WATCH_MS && !leaveAlertExpired(plan, now);
+  var leaveAlertExpired = (plan, now) => now > plan.dep + LEAVE_ALERT_MAX_MS;
+  var lateText = (t2) => t2.depLate >= 1 ? `${t2.depLate} min late` : "on time";
+  function leaveAlertStep(plan, state, observed, now) {
+    const s = { ...state };
+    const tag = `leave-${plan.followId}`;
+    if (observed && observed.cancelled) {
+      if (s.cancelledSent) return { notice: null, state: s, done: true };
+      s.cancelledSent = true;
+      return { notice: { kind: "cancelled", tag, title: `${plan.std} cancelled`, body: `${cap(plan.train)} is cancelled. Open the app for another train.` }, state: s, done: true };
+    }
+    const live = observed && !observed.depUnknown && Number.isFinite(observed.dep) ? observed : null;
+    const leaveBy2 = (live ? live.dep : plan.dep) - plan.leadMs;
+    const left = leaveBy2 - now;
+    if (now > leaveBy2 + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
+    const status = live ? ` (${lateText(live)})` : observed ? " (delayed, no estimate)" : " (no live times: timetable)";
+    if (!s.soonSent) {
+      if (left > LEAVE_ALERT_SOON_MS) return { notice: null, state: s, done: false };
+      s.soonSent = true;
+      s.lastLeaveBy = leaveBy2;
+      if (observed && observed.depUnknown) s.unknownSent = true;
+      const m = Math.max(0, mins(left));
+      return { notice: {
+        kind: "soon",
+        tag,
+        title: m > 0 ? `Leave in ${m} min \xB7 by ${hhmm(leaveBy2)}` : `Leave now \xB7 by ${hhmm(leaveBy2)}`,
+        body: `For ${plan.train}${status}.`
+      }, state: s, done: false };
+    }
+    if (observed && observed.depUnknown && !s.unknownSent) {
+      s.unknownSent = true;
+      return { notice: { kind: "unknown", tag, title: `${plan.std} delayed`, body: `${cap(plan.train)} is delayed with no estimate. Open the app before you go.` }, state: s, done: false };
+    }
+    if (s.lastLeaveBy != null && Math.abs(leaveBy2 - s.lastLeaveBy) >= LEAVE_ALERT_CHANGE_MS) {
+      const earlier = leaveBy2 < s.lastLeaveBy;
+      s.lastLeaveBy = leaveBy2;
+      return { notice: {
+        kind: "changed",
+        tag,
+        title: `${earlier ? "Leave earlier" : "Leave later"} \xB7 by ${hhmm(leaveBy2)}`,
+        body: `${cap(plan.train)} is now expected ${hhmm(live ? live.dep : plan.dep)}${status}.`
+      }, state: s, done: false };
+    }
+    return { notice: null, state: s, done: false };
+  }
+  var cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+  var localMinute = (now) => ({ hm: hhmm(now), day: new Date(now).getDay(), date: isoLocal(now) });
+  var isoLocal = (t2) => {
+    const d = new Date(t2);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  function morningDue(cfg, now, lastDate) {
+    if (!cfg || !/^\d\d:\d\d$/.test(cfg.time) || !Array.isArray(cfg.days)) return false;
+    const l = localMinute(now);
+    const since = now - minuteOf(now, cfg.time);
+    return cfg.days.includes(l.day) && l.date !== lastDate && since >= 0 && since < MORNING_LATE_MS;
+  }
+  var minuteOf = (now, hm) => {
+    const d = new Date(now);
+    d.setHours(+hm.slice(0, 2), +hm.slice(3, 5), 0, 0);
+    return d.getTime();
+  };
+  function morningAlert(cfg, boards, now, policy) {
+    const warn = resolveDisruptionPolicy(policy).rail.warnMin;
+    if (cfg.to.every((to) => !boards[`${cfg.from}-${to}`])) return {
+      kind: "morning",
+      tag: `morning-${localMinute(now).date}`,
+      title: "Couldn't check your morning trains",
+      body: "The live National Rail feed didn't answer. Check the app before you go."
+    };
+    const seen = /* @__PURE__ */ new Set(), hit = [];
+    const trains = cfg.to.flatMap((to) => ((boards[`${cfg.from}-${to}`] || { services: [] }).services || []).map((t2) => ({ t: t2, to }))).filter((x) => x.t.dep >= now && x.t.dep <= now + MORNING_WINDOW_MIN * 6e4).sort((a, b) => a.t.dep - b.t.dep);
+    for (const { t: t2, to } of trains) {
+      const id = t2.serviceId || `${t2.std}|${t2.operator}`;
+      const name = cfg.names[to] || to, late = Math.max(t2.depLate || 0, t2.arrLate || 0);
+      const what = t2.cancelled ? "cancelled" : t2.depUnknown || t2.arrUnknown ? "delayed, no estimate" : late >= warn ? `${late} min late` : null;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (what) hit.push(`${t2.std} to ${name} ${what}`);
+    }
+    if (!hit.length) return null;
+    const shown = hit.slice(0, 4), more = hit.length - shown.length;
+    return {
+      kind: "morning",
+      tag: `morning-${localMinute(now).date}`,
+      title: `Commute: ${hit.length} train${hit.length > 1 ? "s" : ""} disrupted`,
+      body: shown.join("; ") + (more > 0 ? `; and ${more} more` : "") + "."
+    };
+  }
+
   // src/core/index.ts
   var profiles = { samCommute };
   var ENGINE_VERSION = "1";
@@ -6789,6 +6932,7 @@ const detailsKey = d => d.dataset.key || `${(d.closest("[id]")||{}).id||""}|${(d
 document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||d.closest("#simDock")) return; if(d.open) openKeys.add(detailsKey(d)); else openKeys.delete(detailsKey(d)); }, true);
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
+  try{ leaveAlerts.sync(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
   const focus=journeyFocus();
@@ -9664,6 +9808,110 @@ function createTripUi(deps) {
 }
 
 
+// ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
+// Time-to-leave and wake-up alerts: the page's side (docs/stories/time-to-leave-alerts.md).
+// Settings → Experimental → "Time-to-leave alerts" (off by default). On: this phone subscribes to push through the
+// proxy (My proxy URL), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
+// you follow a journey, the page hands the proxy its plan (core leaveAlertPlan); the proxy watches the train and
+// sends the alerts even when the app is closed. The page plans nothing here: the engine decides what to say.
+// It never runs during a simulation, so simulated journeys can't reach the real phone.
+const pushAlerts = (() => {
+  const b64ToBytes = (s) => {
+    const p = String(s).replace(/-/g, "+").replace(/_/g, "/"), bin = atob(p + "===".slice((p.length + 3) % 4));
+    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  };
+  const DEFAULT_WAKE = "06:30";
+
+  /**
+   * deps: S() settings, saved() → state.saved, save(), core (C), names (station names), morning(settings) → the
+   * wake-up config, followed() → the followed route or null, simulating() → true in a simulation, win (window),
+   * status(text) for Settings.
+   */
+  function create(deps) {
+    const { S, saved, save, core, names, morning, followed, simulating, win, status } = deps;
+    const base = (s = S()) => String(s.proxyBase || "").trim().replace(/\/+$/, "");
+    const supported = () => !!(win.navigator && win.navigator.serviceWorker && win.PushManager && win.Notification);
+    let retryAt = 0;
+
+    async function call(path, body, s) {
+      const ctl = new win.AbortController(), timer = win.setTimeout(() => ctl.abort(), 10000);
+      try {
+        const r = await win.fetch(base(s) + path, body === undefined ? { signal: ctl.signal }
+          : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+        let j = null; try { j = await r.json(); } catch (e) { /* no body */ }
+        if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
+        return j;
+      } finally { win.clearTimeout(timer); }
+    }
+    const ids = () => { const p = saved().pushAlerts; return p && p.id && p.token ? { id: p.id, token: p.token } : null; };
+
+    /** Turn alerts on for this phone. Call from the Save tap itself: iPhone only asks for permission from a tap. */
+    function enable(next) {
+      if (!base(next)) { status("Alerts need your proxy: Settings → National Rail → Source → My proxy, and its URL."); return Promise.resolve(false); }
+      if (!supported()) { status("This browser can't receive notifications. On iPhone, open Commute from the Home Screen (iOS 16.4 or later)."); return Promise.resolve(false); }
+      const asked = win.Notification.permission === "granted" ? Promise.resolve("granted") : win.Notification.requestPermission();
+      return (async () => {
+        try {
+          if (await asked !== "granted") { status("Notifications are off for Commute. Allow them in iPhone Settings → Notifications → Commute."); return false; }
+          status("Turning alerts on…");
+          const reg = await win.navigator.serviceWorker.register("sw.js");
+          await win.navigator.serviceWorker.ready;
+          const { key } = await call("/push/key", undefined, next);
+          const sub = (await reg.pushManager.getSubscription()) ||
+            (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) }));
+          const r = await call("/push/subscribe", { subscription: sub.toJSON(), morning: morning(next), ...(ids() || {}) }, next);
+          saved().pushAlerts = { id: r.id, token: r.token, planKey: null }; save();
+          await call("/push/test", ids(), next).catch(() => null);
+          status(`On. A test alert is on its way; the wake-up check runs weekdays at ${next.wakeAt || DEFAULT_WAKE}.`);
+          sync(next);
+          return true;
+        } catch (e) { status(`Couldn't turn alerts on: ${e.message}`); return false; }
+      })();
+    }
+    /** Turn alerts off: the proxy forgets this phone, and the phone's push subscription is dropped. */
+    async function disable(prev) {
+      const who = ids();
+      delete saved().pushAlerts; save();
+      try { if (who) await call("/push/unsubscribe", who, prev); } catch (e) { /* the proxy drops it when the push service says it's gone */ }
+      try { const reg = supported() && (await win.navigator.serviceWorker.getRegistration()); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); } catch (e) { /* nothing to drop */ }
+      status("Off.");
+    }
+    /** Settings saved: start, stop or update (a new wake-up time). Must run inside the Save tap. */
+    function onSave(prev, next) {
+      const was = !!prev.leaveAlerts, on = !!next.leaveAlerts;
+      if (on && (!was || !ids() || base(prev) !== base(next))) return enable(next);
+      if (!on && was) return disable(prev);
+      if (on && (prev.wakeAt || DEFAULT_WAKE) !== (next.wakeAt || DEFAULT_WAKE)) return enable(next);
+      return Promise.resolve(null);
+    }
+    /**
+     * Hand the proxy the followed journey's plan when it changes (a new Follow, Leave by moved a minute, the train
+     * caught, Follow stopped). Cheap to call on every render: it only posts on a change.
+     */
+    function sync(s = S()) {
+      const who = ids();
+      if (!s.leaveAlerts || !who || simulating() || Date.now() < retryAt) return null;
+      const plan = core.leaveAlertPlan(followed(), names);
+      const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3)]) : "none";
+      if (key === saved().pushAlerts.planKey) return null;
+      saved().pushAlerts.planKey = key; save();
+      return call("/push/plan", { ...who, plan }, s).catch(() => {
+        if (saved().pushAlerts) { saved().pushAlerts.planKey = null; save(); }
+        retryAt = Date.now() + 60e3;
+      });
+    }
+    const test = () => (ids() ? call("/push/test", ids()).then(() => status("Test alert sent."), (e) => status(`Couldn't send a test alert: ${e.message}`)) : Promise.resolve(status("Alerts are off.")));
+    return { enable, disable, onSave, sync, test, DEFAULT_WAKE };
+  }
+  return { create, DEFAULT_WAKE };
+})();
+
+
+const alertsMorning = s => ({ from:HOME, to:Object.keys(HUB_NAME), time:s.wakeAt||pushAlerts.DEFAULT_WAKE, days:[1,2,3,4,5], names:{...STATIONS,...HUB_NAME} });
+const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, names:{...STATIONS,...HUB_NAME}, morning:alertsMorning,
+  followed:()=>S().followRoute?C.restoreFollowRoute(state.saved.followRoute):null,
+  simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
+  win:window, status:t=>{ const el=$("#alertsStatus"); if(el) el.textContent=t; } });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -9701,6 +9949,7 @@ function fillSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
+  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts);
   $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
   $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
@@ -9721,6 +9970,7 @@ function readSettings(){
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_trip").checked) o.trip=true;
+  if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
   o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
   { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
@@ -9763,7 +10013,8 @@ $("#resetBtn").addEventListener("click",()=>{ TIME_KEYS.forEach(k=>{ const el=$(
 $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
- const presentationKeys=new Set(["followRoute","appearance","follow","alongLine"]);
+ leaveAlerts.onSave(previous, effective);
+ const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -9778,6 +10029,7 @@ $("#settingsForm").addEventListener("submit",e=>{
 
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
+$("#alertsTestBtn").addEventListener("click",()=>leaveAlerts.test());
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
@@ -9828,7 +10080,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

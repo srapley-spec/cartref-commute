@@ -61,6 +61,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Capture live data from the platform](capture-live-data.md) · Done
 - [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
+- [Time-to-leave and wake-up alerts](time-to-leave-alerts.md) · Behind toggle (4 Nov; needs the proxy deployed; not yet verified on an iPhone)
 
 ### Beyond the commute
 - [Along the line: discover the journey outside your window](along-the-line.md) · Behind toggle (#24, #16)
@@ -74,7 +75,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Family day out](family-day-out.md) · Planned
 
 ### Ideas (issues only, not yet stories)
-Passing points #23 · Searchable place picker #25 · Proxy #17 · National Rail
+Passing points #23 · Searchable place picker #25 · National Rail
 timetable #18 · Early platforms #19 · Structured incidents #20 · Train length and crowding #21 · Native iPhone
 #2–#7, #10–#12.
 

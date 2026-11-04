@@ -331,6 +331,10 @@ the live deployment. Do not leave completed changes waiting on a PR or introduce
 
 ## Known risks and technical debt
 Accepted on purpose, with a plan to resolve. Each has a story or issue.
+- **Alerts depend on a Worker no test environment runs** (4 Nov). The Worker is tested in Node with a fake KV,
+  recorded-shape boards and a fake push service; Cloudflare's runtime, the Cron Trigger and delivery to an iPhone are
+  only checked by hand after Sam deploys. Its engine bundle is whatever `npm run build` produced on the machine that
+  deployed: redeploy after engine changes. → [time-to-leave-alerts](stories/time-to-leave-alerts.md)
 - **Changes go live before GitHub has tested them** (accepted 30 Oct, Sam; low priority to resolve). For fast cycle
   time while trips find bugs, most changes merge once the local check passes, and Pages publishes `main` at once.
   Risk: a change that passes locally but fails on GitHub's machine (e.g. a timing-sensitive page test) is live for a
@@ -362,6 +366,21 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+
+- **4 Nov, the proxy becomes a server: Cloudflare (Sam).** Sam set up a Cloudflare account and chose: finish #17 (the
+  Worker as a full live source) and time-to-leave push notifications, then: "There should also be a warning when I wake
+  up if the trains on my commute are delayed." Decisions (the design questions went unanswered, so the recommended
+  defaults were taken, to revisit): alerts for a **followed** journey (the page hands the Worker the engine's plan; the
+  Worker re-checks the train every minute with a Cron Trigger and sends Web Push, so it works with the app closed),
+  5 min before Leave by plus moves of 2 min or more and cancellations; a weekday wake-up check (06:30 by default) of the
+  morning trains, silent when nothing is wrong; behind Settings → Experimental, off by default; Sam deploys with
+  Wrangler (`docs/proxy-setup.md`). What to say and when is engine code (`src/core/alerts.ts`), bundled into the
+  Worker; the Worker only fetches, stores (KV) and sends. Web Push is implemented with WebCrypto (no library), checked
+  against RFC 8291's worked example. Not chosen yet: a fixed schedule without Follow (needs the planner and routes in
+  the Worker), a GitHub deploy Action, accounts. For a native app (#2–#7) the same scheduler and plans carry over;
+  only delivery changes (APNs directly, and Live Activity updates). For other people: the keys already live in one
+  place, but they'd need accounts, per-person profiles (stations, wake time) and request budgets; Rail Data
+  Marketplace's and Google's terms for serving others are to check. Story: `docs/stories/time-to-leave-alerts.md`.
 
 - **4 Nov, a taxi leg and Google as the gap-finder (Sam).** After the UK-wide live run: "We should be using Google to
   identify these gaps and show them. If the distance to or from the station is not walkable — over a couple of

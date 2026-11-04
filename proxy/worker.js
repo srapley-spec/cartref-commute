@@ -2,7 +2,11 @@
 // National Rail (Darwin) departure boards from a browser, without the key ever reaching the phone.
 // It keeps the keys server-side, and works whether or not Rail Data Marketplace allows direct browser calls (CORS).
 //
-// Setup (Cloudflare dashboard → Workers & Pages → Create → Worker → paste this):
+// Deploy with Wrangler from the repo (it bundles this file with proxy/push.js and the engine):
+//   npm ci && npm run build && npx wrangler deploy --config proxy/wrangler.toml
+// (docs/proxy-setup.md has every step). Pasting this file alone into the dashboard no longer works: it imports.
+//
+// Settings (Cloudflare dashboard → Workers & Pages → the worker):
 //   Settings → Variables and Secrets:
 //     RDM_KEY      (Secret)  your Rail Data Marketplace consumer key
 //     RDM_BASE     (Text)    endpoint base from the product page, e.g.
@@ -14,12 +18,15 @@
 //   Optional: add a Cloudflare rate-limiting rule on the worker route as a second line of defence.
 // Then put the worker URL into the page: Settings → Source → My proxy.
 //
-// Security notes:
 // Routes (docs/stories/live-and-timetable.md, issue #17):
 //   GET /board/FROM/TO[?offset=N]  departures FROM → TO, 120 min window, starting N min from now (-120..119;
 //                                  -40 when you're on the train, ahead for Leave around / Arrive by)
 //   GET /service/ID                Service Details for the train you're on (where it was last reported)
+//   /push/...                      time-to-leave and wake-up alerts (proxy/push.js), off unless configured:
+//     KV namespace binding PUSH, VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (Secrets, from `node tools/vapid-keys.mjs`),
+//     VAPID_SUBJECT (Text, e.g. mailto:you@example.com), and the Cron Trigger "* * * * *" (proxy/wrangler.toml).
 //
+// Security notes:
 // - The Origin check stops other websites using your proxy from a browser. A non-browser client can fake
 //   the Origin header, so it limits casual misuse rather than guaranteeing it. Only the four fixed
 //   stations' boards can be requested (unless ALLOW_ANY_STATION), and upstream answers are cached at
@@ -30,6 +37,8 @@
 //   ALLOW_ANY_STATION (Text)  "yes": boards for any well-formed station code (Trip's rides), not just the four.
 //   GOOGLE_KEY        (Secret) your Google Maps key: enables /google/places/... and /google/routes/... with fixed upstream
 //                              hosts and fixed field masks (which also fix what Google bills for).
+
+import { pushRoute, runAlerts } from "./push.js";
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
@@ -99,6 +108,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
     const reqUrl = new URL(request.url);
     if (reqUrl.pathname.startsWith("/google/")) return google(request, env, cors, reqUrl);
+    if (reqUrl.pathname.startsWith("/push/")) return pushRoute(request, env, cors, reqUrl, ALLOWED_CRS);
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: cors });
 
     const svc = reqUrl.pathname.match(/^\/service\/([^/]+)$/);
@@ -126,5 +136,9 @@ export default {
     const base = trimBase(env.RDM_BASE);
     if (!base || !env.RDM_KEY) return new Response("Proxy not configured: set RDM_BASE and RDM_KEY.", { status: 500, headers: cors });
     return rdm(`${base}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${off ? `&timeOffset=${off}` : ""}`, env.RDM_KEY, cors);
+  },
+  // Time-to-leave and wake-up alerts (proxy/push.js): a Cron Trigger every minute.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runAlerts(env, Date.now()));
   },
 };
