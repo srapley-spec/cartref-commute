@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:15 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:29 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5650,7 +5650,15 @@ async function fetchBoard(from,to,offsetMin){
   const {url,headers}=boardUrl(from,to,offsetMin);
   let r;
   try{ r=await fetchT(url,{headers}); }
-  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : S().provider==="proxy" ? "Couldn't reach your proxy. Check its URL in Settings." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  if(!S().simulatedFeeds && S().provider==="proxy" && !r.ok){
+    // Your own proxy (proxy/worker.js): say what to fix there, not on Rail Data Marketplace's product page.
+    if(r.status===403) throw new Error("Your proxy refused this page (HTTP 403). Its ALLOW_ORIGIN must be this page's address.");
+    if(r.status===401) throw new Error("Your proxy's National Rail key was refused (HTTP 401). Check RDM_KEY in the proxy and that you're subscribed.");
+    if(r.status===404||r.status===400) throw new Error(`Your proxy doesn't know this request (HTTP ${r.status}). Redeploy proxy/worker.js from the app's repository.`);
+    if(r.status===500) throw new Error("Your proxy isn't set up (HTTP 500). Set RDM_BASE and RDM_KEY in its settings.");
+    throw new Error(`Your proxy or the National Rail feed failed (HTTP ${r.status}).`);
+  }
   if(r.status===401||r.status===403) throw new Error(`National Rail feed refused the key (HTTP ${r.status}). Check the key and that you're subscribed to this product.`);
   if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
   if(!r.ok) throw new Error(`National Rail feed error (HTTP ${r.status}).`);

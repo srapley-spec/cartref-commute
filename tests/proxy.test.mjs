@@ -39,6 +39,7 @@ test("Proxy: asks for the board with the key in a header and passes the answer b
     const body = await r.text();
     assert.equal(body, '{"trainServices":[]}');
     assert.ok(![...r.headers.values()].some((v) => v.includes("secret-key")));
+    assert.equal(r.headers.get("Cache-Control"), "no-store");
   }, () => new Response('{"trainServices":[]}', { status: 200 }));
   await withUpstream(async () => {
     assert.equal((await worker.fetch(req("/board/KGX/LET"), ENV)).status, 401, "upstream status passed through");
@@ -94,6 +95,7 @@ test("Proxy: the board's start offset is passed on only as a whole number the fe
   await withUpstream(async (seen) => {
     assert.equal((await worker.fetch(req("/board/KGX/LET?offset=-40"), ENV)).status, 200);
     assert.equal(seen[0].url, "https://up.test/LDBWS/api/20220120/GetDepBoardWithDetails/KGX?numRows=10&filterCrs=LET&filterType=to&timeWindow=120&timeOffset=-40");
+    assert.equal(seen[0].opts.cf.cacheTtl, 20, "Cloudflare caches each board and offset 20 s");
     assert.equal((await worker.fetch(req("/board/LET/KGX?offset=119"), ENV)).status, 200);
     assert.match(seen[1].url, /&timeOffset=119$/);
     assert.equal((await worker.fetch(req("/board/LET/KGX?offset=-120"), ENV)).status, 200);
@@ -116,6 +118,7 @@ test("Proxy: Service Details by ID with its own key (else the board key), at its
     assert.equal(r.headers.get("Access-Control-Allow-Origin"), "https://srapley-spec.github.io");
     assert.ok(![...r.headers.values()].some((v) => v.includes("sd-key")));
     assert.equal(await r.text(), '{"locationName":"x"}');
+    assert.equal(seen[0].opts.cf.cacheTtl, 20); assert.equal(r.headers.get("Cache-Control"), "no-store", "the phone doesn't keep an old position");
     // Without its own key or base: the board key and Rail Data Marketplace's Service Details product.
     await worker.fetch(req("/service/1234567KNGX____"), ENV);
     assert.equal(seen[1].url, "https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120/GetServiceDetails/1234567KNGX____");
@@ -127,6 +130,9 @@ test("Proxy: Service Details by ID with its own key (else the board key), at its
     assert.equal(seen.length, 2);
     assert.equal((await worker.fetch(req("/service/X1", { method: "POST" }), ENV)).status, 405);
   }, () => new Response('{"locationName":"x"}', { status: 200 }));
-  assert.equal((await worker.fetch(req("/service/X1"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN })).status, 500, "no key");
+  await withUpstream(async (seen) => {
+    assert.equal((await worker.fetch(req("/service/X1"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN })).status, 500, "no key");
+    assert.equal(seen.length, 0, "nothing asked upstream");
+  }, () => new Response("{}", { status: 200 }));
   assert.equal((await worker.fetch(req("/service/X1", { origin: "https://evil.test" }), ENV)).status, 403);
 });

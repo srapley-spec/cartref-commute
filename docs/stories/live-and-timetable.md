@@ -22,8 +22,11 @@ know which times to trust.
   no key is sent from the phone. The Worker (`proxy/worker.js`) holds `RDM_KEY` (and optionally `RDM_SD_KEY` /
   `RDM_SD_BASE`; else the board key and Rail Data Marketplace's Service Details product), passes an offset only as a
   whole number from −120 to 119 (anything else: 400, never sent upstream), a service ID only of up to 64 letters,
-  digits and `+/=_-` (else 404), keeps the origin check and four-station allowlist, and caches upstream answers 20 s.
-  Proxy refusals say where to fix the key ("set RDM_SD_KEY in your proxy"). The Rail Data Marketplace source is
+  digits and `+/=_-` (else 404), keeps the origin check and four-station allowlist, and caches upstream answers 20 s (the phone is told `no-store`). A client faking the Origin can still spend
+  upstream quota (each offset and service ID is its own cache entry): add a Cloudflare rate-limiting rule.
+  Proxy refusals say what to fix in the proxy, not on Rail Data Marketplace's product page: a board's 403 →
+  `ALLOW_ORIGIN`, 401 → `RDM_KEY`, 404/400 → redeploy `proxy/worker.js`, 500 → set `RDM_BASE` and `RDM_KEY`;
+  Service Details' 401/403 → "set RDM_SD_KEY in your proxy". Simulated feeds stay synthetic with the proxy source. The Rail Data Marketplace source is
   unchanged. Not verified against the live Worker: Sam deploys it; whether Cloudflare's 20 s cache applies on a
   `*.workers.dev` address (rather than a custom domain) is to check once it's live.
 
@@ -45,6 +48,10 @@ know which times to trust.
 - tests/proxy-page.test.mjs: "Proxy source: boards and Leave around's start offset go through the proxy, with no key sent"
 - tests/proxy-page.test.mjs: "Proxy source: Service Details for the train you're on go to the proxy's /service/ID, the ID encoded"
 - tests/proxy-page.test.mjs: "Rail Data Marketplace source is unchanged: Service Details direct, with the key, at the product's base"
+- tests/proxy-page.test.mjs: "Proxy source on the train: the board starts 40 min back and the train you're on is followed through /service/ID"
+- tests/proxy-page.test.mjs: "Simulated feeds with the proxy source: Service Details stay synthetic, nothing reaches the proxy"
+- tests/proxy-page.test.mjs: "Rail Data Marketplace Service Details without their own key or base: the board key and the product's default base"
+- tests/proxy-page.test.mjs: "Proxy source: a board refused by the proxy says what to fix in the proxy (origin, key, redeploy, setup)"
 
 ## Not yet / open questions
 - #18: National Rail timetable via a daily GitHub job instead of TfL for trains.
