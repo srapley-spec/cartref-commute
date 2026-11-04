@@ -184,10 +184,11 @@ tight. A trailing Tube ride is not a change; it is the last ride, and the journe
 Once per plan, if a `routes` port is supplied (the page supplies Google: DirectionsService in the Maps JS adapter,
 Routes API `computeRoutes` through the proxy), Google Maps' own door-to-door transit route is asked for in parallel
 with round 1 (train / Tube / tram, alternatives on). In the complete answer, `googleGaps` keeps the routes with no bus
-leg that arrive **5 min or more** (`gapMin`) before the best journey found here, or any rail-only route when nothing
-here could be picked; at most two, soonest first, the same trains once; for Arrive by, none arriving after T. Each
-`Gap` is text (the rides with times) and a reason ("arrives 2h 13m sooner than the best found here; not in TfL's
-planner, so no live times or Follow for it"). A gap is advice: it has no station identity, so it is never picked,
+leg whose last ride reaches the last station **5 min or more** (`gapMin`) before the best journey found here reaches
+its last stop (at the station, not the door: the sources estimate walks differently), or any rail-only route when
+nothing here could be picked; at most two, soonest first, the same trains once; for Arrive by, none arriving after T.
+Each `Gap` is text (the rides with times) and a reason ("reaches Fort William 2h 12m sooner than the best found
+here; not in TfL's planner, so no live times or Follow for it"). A gap is advice: it has no station identity, so it is never picked,
 followed or mixed into the list. The block "Google Maps also finds" sits after Other stations.
 
 ## 9. Diagnostics

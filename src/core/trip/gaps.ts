@@ -19,12 +19,14 @@ export interface Gap {
 const rideText = (l: GapLeg) => `${l.from} ${hhmm(l.dep)} → ${l.to} ${hhmm(l.arr)}${l.line ? ` (${l.line})` : ""}`;
 
 /**
- * Routes from another planner that beat the app's best by `gapMin` minutes or more, or any rail-only route when the
- * app found nothing it could pick. Routes with a bus leg are not rail answers and are ignored. At most `max`,
- * soonest arrival first; the same trains listed once.
+ * Routes from another planner whose last ride arrives `gapMin` minutes or more before the app's best journey's last
+ * ride (compared at the station, not the door: the two sources estimate walks differently, and a different walk is
+ * not a different route), or any rail-only route when the app found nothing it could pick. Routes with a bus leg are
+ * not rail answers and are ignored. At most `max`, soonest arrival first; the same trains listed once.
  */
 export function googleGaps(routes: GapRoute[], picks: Journey[], q: TripQuestion, gapMin: number, max = 2): Gap[] {
   const best = picks[0];
+  const bestLastArr = best ? best.rides[best.rides.length - 1].arr : NaN;
   const seen = new Set<string>();
   const out: Gap[] = [];
   for (const r of routes.slice().sort((a, b) => a.arrive - b.arrive)) {
@@ -33,10 +35,11 @@ export function googleGaps(routes: GapRoute[], picks: Journey[], q: TripQuestion
     if (q.kind === "by" && r.arrive > q.t) continue;
     const key = rides.map(l => `${l.from}|${l.dep}|${l.to}`).join(",");
     if (seen.has(key)) continue;
-    const soonerMin = best ? Math.round((best.arrive - r.arrive) / 60e3) : null;
+    const last = rides[rides.length - 1];
+    const soonerMin = best ? Math.round((bestLastArr - last.arr) / 60e3) : null;
     if (best && soonerMin !== null && soonerMin < gapMin) continue;
     seen.add(key);
-    const why = best ? `arrives ${dur(best.arrive - r.arrive)} sooner than the best found here; not in TfL's planner, so no live times or Follow for it`
+    const why = best ? `reaches ${last.to} ${dur(bestLastArr - last.arr)} sooner than the best found here; not in TfL's planner, so no live times or Follow for it`
       : "nothing here could be recommended; not in TfL's planner, so no live times or Follow for it";
     out.push({ source: r.source, depart: r.depart, arrive: r.arrive, soonerMin, legs: r.legs, why,
       text: `Leave ${hhmm(r.depart)}, arrive ${hhmm(r.arrive)}: ${rides.map(rideText).join(" · ")}` });

@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 07:50 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 08:02 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4432,6 +4432,7 @@ var CommuteCore = (() => {
   var rideText = (l) => `${l.from} ${hhmm(l.dep)} \u2192 ${l.to} ${hhmm(l.arr)}${l.line ? ` (${l.line})` : ""}`;
   function googleGaps(routes, picks, q, gapMin, max = 2) {
     const best = picks[0];
+    const bestLastArr = best ? best.rides[best.rides.length - 1].arr : NaN;
     const seen = /* @__PURE__ */ new Set();
     const out = [];
     for (const r of routes.slice().sort((a, b) => a.arrive - b.arrive)) {
@@ -4440,10 +4441,11 @@ var CommuteCore = (() => {
       if (q.kind === "by" && r.arrive > q.t) continue;
       const key = rides.map((l) => `${l.from}|${l.dep}|${l.to}`).join(",");
       if (seen.has(key)) continue;
-      const soonerMin = best ? Math.round((best.arrive - r.arrive) / 6e4) : null;
+      const last = rides[rides.length - 1];
+      const soonerMin = best ? Math.round((bestLastArr - last.arr) / 6e4) : null;
       if (best && soonerMin !== null && soonerMin < gapMin) continue;
       seen.add(key);
-      const why = best ? `arrives ${dur(best.arrive - r.arrive)} sooner than the best found here; not in TfL's planner, so no live times or Follow for it` : "nothing here could be recommended; not in TfL's planner, so no live times or Follow for it";
+      const why = best ? `reaches ${last.to} ${dur(bestLastArr - last.arr)} sooner than the best found here; not in TfL's planner, so no live times or Follow for it` : "nothing here could be recommended; not in TfL's planner, so no live times or Follow for it";
       out.push({
         source: r.source,
         depart: r.depart,

@@ -91,8 +91,8 @@ test("Gaps: Google Maps' direct Highland sleeper (Euston 21:15 → Fort William 
   assert.equal(hm(g.arrive), "10:03"); assert.equal(hm(g.depart), "20:36");
   assert.ok(g.legs.some(l => l.kind === "rail" && l.from === "Euston" && l.to === "Fort William" && l.line === "Caledonian Sleeper"), JSON.stringify(g.legs));
   assert.match(g.text, /^Leave 20:36, arrive 10:03: Aldgate East 20:41 → Euston Square 20:57 \(Hammersmith & City\) · Euston 21:15 → Fort William 10:00 \(Caledonian Sleeper\)$/);
-  assert.equal(g.soonerMin, 133);
-  assert.match(g.why, /^arrives 2h 13m sooner than the best found here; not in TfL's planner, so no live times or Follow for it$/, g.why);
+  assert.equal(g.soonerMin, 132, "at the station: Fort William 10:00 against TfL's 12:12, not door to door");
+  assert.match(g.why, /^reaches Fort William 2h 12m sooner than the best found here; not in TfL's planner, so no live times or Follow for it$/, g.why);
   assert.ok(r.gaps.length <= 2);
   assert.ok(!r.gaps.some(x => x.legs.some(l => l.kind === "bus")));
   // the gaps are in the first answer too when routes came back first? No: they are part of the complete answer only
@@ -111,7 +111,11 @@ test("Gaps: nothing shown when Google agrees (London → Newcastle: the same 08:
   assert.deepEqual(broken.gaps, []); assert.ok(broken.notes.includes("Google Maps: quota")); assert.ok(broken.picks.length);
 });
 
-test("googleGaps: by Arrive by, a route arriving after T is not a gap; with nothing pickable any rail-only route is; at most two, soonest first", () => {
+test("googleGaps: the same train with a shorter walk is not a gap (compared at the last station); by Arrive by, a route arriving after T is not a gap; with nothing pickable any rail-only route is; at most two, soonest first", () => {
+  // London → Newcastle: Google's walks are shorter, its 08:30 LNER the same; at the door 5 min sooner, at Newcastle identical
+  const sameTrain = { source: "Google Maps", depart: T("04", "08:01"), arrive: T("04", "11:18"), legs: [{ kind: "tube", from: "Aldgate East", to: "King's Cross St. Pancras", dep: T("04", "08:05"), arr: T("04", "08:21") }, { kind: "rail", from: "King's Cross", to: "Newcastle", dep: T("04", "08:30"), arr: T("04", "11:09") }] };
+  const appBest = { arrive: T("04", "11:23"), rides: [{ arr: T("04", "08:19") }, { arr: T("04", "08:28") }, { arr: T("04", "11:09") }] };
+  assert.deepEqual(core.googleGaps([sameTrain], [appBest], { kind: "now", t: T("04", "08:00") }, 5), []);
   const q = { kind: "by", t: T("04", "10:00") };
   const leg = (from, to, dep, arr, kind = "rail") => ({ kind, from, to, dep: T("04", dep), arr: T("04", arr) });
   const routes = [
@@ -124,8 +128,8 @@ test("googleGaps: by Arrive by, a route arriving after T is not a gap; with noth
   const gaps = core.googleGaps(routes, [], q, 5);
   assert.deepEqual(gaps.map(g => hm(g.arrive)), ["09:50", "09:55"], JSON.stringify(gaps.map(g => g.text)));
   assert.equal(gaps[0].soonerMin, null); assert.match(gaps[0].why, /^nothing here could be recommended/);
-  const best = { arrive: T("04", "09:53") };
-  assert.deepEqual(core.googleGaps(routes, [best], q, 5).map(g => hm(g.arrive)), [], "3 minutes sooner is not a gap at a 5-minute bar");
+  const best = { arrive: T("04", "09:53"), rides: [{ arr: T("04", "09:48") }] };   // its last ride reaches B at 09:48
+  assert.deepEqual(core.googleGaps(routes, [best], q, 5).map(g => hm(g.arrive)), [], "3 minutes sooner at the station is not a gap at a 5-minute bar");
   assert.deepEqual(core.googleGaps(routes, [best], q, 3).map(g => hm(g.arrive)), ["09:50"]);
 });
 

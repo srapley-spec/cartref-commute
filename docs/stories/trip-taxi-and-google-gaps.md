@@ -44,15 +44,19 @@ sleeper (arriving Fort William 12:12 via Queen Street); Google Maps has the dire
 - Once per plan, Google Maps' own door-to-door transit route (train / Tube / tram only, alternatives on) is asked
   for, through the same Google adapter (Maps JS: DirectionsService; proxy: Routes API computeRoutes, which the Worker
   now forwards). One request per plan; not retried.
-- A Google route is a **gap** when it has no bus leg and arrives **5 minutes or more** before the best journey found
-  here (or when nothing here could be recommended). At most two are shown, soonest first, the same trains once, as
-  text: "Leave 20:36, arrive 10:03: Aldgate East 20:41 → Euston Square 20:57 (Hammersmith & City) · Euston 21:15 →
-  Fort William 10:00 (Caledonian Sleeper)", with "arrives 2h 13m sooner than the best found here; not in TfL's
-  planner, so no live times or Follow for it", under the heading "Google Maps also finds", with Google's attribution.
+- A Google route is a **gap** when it has no bus leg and its last ride **reaches the last station 5 minutes or more**
+  before the best journey found here reaches its last stop (compared at the station, not the door: the two sources
+  estimate walks differently, and the same train with a shorter walk is not a different route), or when nothing here
+  could be recommended. At most two are shown, soonest first, the same trains once, as text: "Leave 20:36, arrive
+  10:03: Aldgate East 20:41 → Euston Square 20:57 (Hammersmith & City) · Euston 21:15 → Fort William 10:00 (Caledonian
+  Sleeper)", with "reaches Fort William 2h 12m sooner than the best found here; not in TfL's planner, so no live times
+  or Follow for it", under the heading "Google Maps also finds", with Google's attribution.
 - A gap is advice, not a journey: it has no station identity for live boards or Follow, so it is never picked, never
   followed, never mixed into the list. It belongs to the complete answer, not the first.
-- When Google agrees with the app (London → Newcastle: the same 08:30 LNER), nothing is shown. Without a Google
-  route (no key, or the request failed) nothing is shown and "Why these trains?" says why.
+- When Google agrees with the app (London → Newcastle: the same 08:30 LNER, reaching Newcastle 11:09 in both; Google's
+  shorter walks made it "5 min sooner" at the door in the first live run, which is why the comparison is at the
+  station), nothing is shown. Without a Google route (no key, or the request failed) nothing is shown and "Why these
+  trains?" says why.
 - For Arrive by, a Google route arriving after the time asked is not a gap.
 
 ## Not in this story
@@ -68,7 +72,7 @@ Recorded Google Routes API replies (4 Nov, keys removed): `tests/fixtures/trip/g
 - tests/core/trip-taxi-gaps.test.mjs: "Taxi at the start too, and cycling never becomes a taxi; a drive matrix that fails leaves the walk and says so"
 - tests/core/trip-taxi-gaps.test.mjs: "Gaps: Google Maps' direct Highland sleeper (Euston 21:15 → Fort William 10:00) is shown against TfL's Glasgow sleeper, 2 h sooner; buses never count; the same trains once"
 - tests/core/trip-taxi-gaps.test.mjs: "Gaps: nothing shown when Google agrees (London → Newcastle: the same 08:30 LNER); nothing without a routes port; a failing routes port is a note, not a failure"
-- tests/core/trip-taxi-gaps.test.mjs: "googleGaps: by Arrive by, a route arriving after T is not a gap; with nothing pickable any rail-only route is; at most two, soonest first"
+- tests/core/trip-taxi-gaps.test.mjs: "googleGaps: the same train with a shorter walk is not a gap (compared at the last station); by Arrive by, a route arriving after T is not a gap; with nothing pickable any rail-only route is; at most two, soonest first"
 - tests/core/trip-taxi-gaps.test.mjs: "Adapters: the Routes API reply and the Maps JS DirectionsService reply both become the same GapRoute shape"
 - tests/core/trip-taxi-gaps.test.mjs: "Proxy adapter: transit asks the Worker's computeRoutes path with the time, the question and rail-only modes, and maps the reply"
 - tests/core/trip-uk.test.mjs: "Washington NE38 8SE: no station within walking reach, so the three nearest are tried, Chester-le-Street (5.6 km) first and flagged; the last leg is a taxi with the walk said"
