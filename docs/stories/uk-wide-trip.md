@@ -78,7 +78,7 @@ Recorded TfL replies (3 Nov, for Wed 4 Nov; keys removed): `tests/fixtures/trip/
 - tests/core/trip-uk.test.mjs: "Station data is national: 2,600+ stations, Newcastle / Alnmouth / Fort William / Edinburgh Waverley with TfL IDs; Chester-le-Street is Washington's nearest at 5.6 km"
 - tests/core/trip-uk.test.mjs: "London office → Newcastle: boards the Tube at Aldgate after TfL's walk from Fenchurch Street, the 08:30 LNER, arrives 11:09 (what TfL and Google say)"
 - tests/core/trip-uk.test.mjs: "Letchworth → Newcastle goes via Stevenage, not King's Cross; Alnmouth by the York change; Arrive by 12:00 picks the 08:30 as Latest"
-- tests/core/trip-uk.test.mjs: "Washington NE38 8SE: no station within walking reach, so Chester-le-Street (5.6 km) is used and flagged; the long walk is shown, not hidden"
+- tests/core/trip-uk.test.mjs: "Washington NE38 8SE: no station within walking reach, so the three nearest are tried, Chester-le-Street (5.6 km) first and flagged; the last leg is a taxi with the walk said"
 - tests/core/trip-uk.test.mjs: "Fort William: by day via York, Edinburgh and Glasgow Queen Street; in the evening the Euston → Glasgow sleeper then Queen Street, arriving tomorrow (the direct Highland sleeper is not in TfL's data)"
 - tests/core/trip-uk.test.mjs: "Returns: Newcastle → Letchworth via Stevenage 20:21; Newcastle → London office by King's Cross and the Tube; Fort William → Letchworth by the sleeper, arriving tomorrow"
 - tests/core/trip-uk.test.mjs: "Boarding elsewhere needs the first mile on foot and the stop within walking reach; cycling to the station keeps the strict match; a journey wrong at both ends is refused"

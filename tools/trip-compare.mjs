@@ -42,6 +42,7 @@ const googleAccess = { async matrix(place, stations, mode, at, dir) {
   return out; } };
 const standIn = { async matrix(p, gs, mode) { const v = { walk: 1.4, cycle: 4.5, drive: 9 }[mode]; return gs.map(g => { const m = Math.round(core.km(p, g) * 1300); return { metres: m, secs: Math.round(m / v) }; }); } };
 const access = GKEY ? googleAccess : standIn;
+const routesPort = GKEY ? { name: "Google Maps", async transit(from, to, t, timeIs) { const r = googleTransit({ geo: from }, { geo: to }, { kind: timeIs === "Arriving" ? "by" : "now", t }); if (r.status !== 200) throw new Error(r.error || `HTTP ${r.status}`); return (r.raw || []).map(tripAdapters.gapRouteFromRest).filter(Boolean); } } : null;
 
 const hm = t => (Number.isFinite(t) ? new Date(t).toTimeString().slice(0, 5) : "?");
 const dayhm = t => { const d = new Date(t); return `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]} ${hm(t)}`; };
@@ -69,7 +70,7 @@ function googleTransit(from, to, q) {
     ...(q.kind === "by" ? { arrivalTime: when } : { departureTime: when }), transitPreferences: { allowedTravelModes: ["TRAIN", "SUBWAY", "LIGHT_RAIL", "RAIL"] } }, "routes.duration,routes.legs.steps");
   if (r.status !== 200) return { status: r.status, error: JSON.stringify(r.body).slice(0, 300), routes: [] };
   const secs = x => parseFloat(String(x || "0").replace(/s$/, "")) || 0, lt = s => (s ? hm(new Date(s).getTime()) : "?");
-  return { status: 200, routes: (r.body.routes || []).map(rt => { const steps = rt.legs[0].steps || [], ti = steps.map((s, i) => (s.travelMode === "TRANSIT" ? i : -1)).filter(i => i >= 0);
+  return { status: 200, raw: r.body.routes || [], routes: (r.body.routes || []).map(rt => { const steps = rt.legs[0].steps || [], ti = steps.map((s, i) => (s.travelMode === "TRANSIT" ? i : -1)).filter(i => i >= 0);
     if (!ti.length) return { start: "?", arrive: "?", duration: rt.duration, legs: "(no transit)" };
     const firstDep = new Date(steps[ti[0]].transitDetails.stopDetails.departureTime).getTime(), lastArr = new Date(steps[ti[ti.length - 1]].transitDetails.stopDetails.arrivalTime).getTime();
     const before = steps.slice(0, ti[0]).reduce((a, s) => a + secs(s.staticDuration), 0), after = steps.slice(ti[ti.length - 1] + 1).reduce((a, s) => a + secs(s.staticDuration), 0);
@@ -88,11 +89,13 @@ for (const [i, jn] of J.entries()) {
   const q = { kind: jn.question.kind, t: new Date(jn.question.at).getTime() };
   const now = jn.now ? new Date(jn.now).getTime() : q.kind === "by" ? q.t - 4 * 3600e3 : q.t;
   const c0 = tflCalls, g0 = gCalls; let app, err = null;
-  try { app = await core.planTrip({ from, to, modes, question: q, now, leisureKmh: jn.leisureKmh || 4.5, cfg }, { stations: idx, access, planner }); } catch (e) { err = `${e.code || ""} ${e.message}`; }
+  try { app = await core.planTrip({ from, to, modes, question: q, now, leisureKmh: jn.leisureKmh || 4.5, cfg }, { stations: idx, access, planner, ...(routesPort ? { routes: routesPort } : {}) }); } catch (e) { err = `${e.code || ""} ${e.message}`; }
   const tfl = await tflDoor(from, to, q), g = googleTransit(from, to, q), pick = app && app.picks[0];
   const row = { title: jn.title, question: `${q.kind} ${dayhm(q.t)}`, walks: GKEY ? "Google route matrix" : "straight-line stand-in",
     app: err ? { error: err } : { pick: pick ? { leave: dayhm(pick.leave), arrive: dayhm(pick.arrive), alight: pick.toStation.name, alightKey: core.stationKey(pick.toStation), legs: legs(pick), after: pick.after.map(s => `${s.step.d} ${Math.round(s.secs / 60)}m`).join("; "), flags: pick.flags.map(f => f.txt) } : null,
       next: app.picks[1] ? { leave: dayhm(app.picks[1].leave), arrive: dayhm(app.picks[1].arrive), alight: app.picks[1].toStation.name } : null,
+      access: pick ? { before: pick.before.filter(s => s.step).map(s => `${s.step.d}${s.step.note ? ` (${s.step.note})` : ""}`), after: pick.after.filter(s => s.step).map(s => `${s.step.d}${s.step.note ? ` (${s.step.note})` : ""}`) } : null,
+      gaps: (app.gaps || []).map(g => `${g.text} — ${g.why}`),
       boardings: [...new Set(app.journeys.map(j => j.fromStation.name))], alightings: [...new Set(app.journeys.map(j => j.toStation.name))], journeys: app.journeys.length, requests: app.requests, failed: app.failed, notes: app.notes },
     tfl: tfl.status === 200 ? { how: tfl.how, journeys: tfl.journeys.slice(0, 3) } : { how: tfl.how, status: tfl.status }, google: g.status === 200 ? g.routes.slice(0, 3) : { status: g.status, error: g.error }, calls: { tfl: tflCalls - c0, google: gCalls - g0 } };
   results.push(row);
@@ -100,6 +103,8 @@ for (const [i, jn] of J.entries()) {
   if (err) console.log("  APP ERROR:", err); else { console.log("  APP pick:", pick ? `leave ${dayhm(pick.leave)} → arrive ${dayhm(pick.arrive)} alight ${pick.toStation.name} :: ${legs(pick)} :: ${row.app.pick.after}` : "none");
     if (app.picks[1]) console.log(`  APP next: ${dayhm(app.picks[1].leave)} → ${dayhm(app.picks[1].arrive)} alight ${app.picks[1].toStation.name}`);
     console.log(`  APP boardings: ${row.app.boardings.join(", ")} | alightings: ${row.app.alightings.join(", ")} | journeys ${app.journeys.length} | requests ${JSON.stringify(app.requests)}`);
+    if (pick && pick.before.concat(pick.after).some(s => s.kind === "taxi")) console.log("  APP taxi:", pick.before.concat(pick.after).filter(s => s.kind === "taxi").map(s => `${s.step.d} (${s.step.note})`).join(" | "));
+    (app.gaps || []).forEach(g => console.log("  APP gap (Google Maps):", g.text, "—", g.why));
     if (app.failed.length) console.log("  APP failed:", app.failed.map(f => `${f.pair}: ${f.why}`).join(" ;; ")); if (app.notes.length) console.log("  APP notes:", app.notes.join(" ;; ")); }
   if (tfl.status !== 200) console.log(`  TFL (${tfl.how}): HTTP`, tfl.status); else tfl.journeys.slice(0, 3).forEach(j => console.log(`  TFL (${tfl.how}): ${j.start} → ${j.arrive} (${j.duration}m) :: ${j.legs}`));
   if (g.status !== 200) console.log("  GOOGLE:", g.error || `HTTP ${g.status}`); else g.routes.slice(0, 3).forEach(r => console.log(`  GOOGLE: ${r.start} → ${r.arrive} (${r.duration}) :: ${r.legs}`));

@@ -1,0 +1,1811 @@
+{
+ "recorded": "2026-11-04T07:39:49.772856Z",
+ "request": "routes.googleapis.com/directions/v2:computeRoutes TRANSIT (train/subway/light rail/rail), alternatives",
+ "status": "200",
+ "body": {
+  "routes": [
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 34,
+        "staticDuration": "27s",
+        "localizedValues": {
+         "distance": {
+          "text": "34 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 164,
+        "staticDuration": "136s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 10,
+        "staticDuration": "8s",
+        "localizedValues": {
+         "distance": {
+          "text": "10 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 68,
+        "staticDuration": "83s",
+        "localizedValues": {
+         "distance": {
+          "text": "68 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4425,
+        "staticDuration": "660s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.4 km"
+         },
+         "staticDuration": {
+          "text": "11 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T08:17:09Z",
+          "departureStop": {
+           "name": "Aldgate East"
+          },
+          "departureTime": "2026-11-04T08:06:09Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:17"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:06"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Hammersmith via King's Cross",
+         "headway": "480s",
+         "transitLine": {
+          "name": "Hammersmith & City Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Hammersmith & City",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 311,
+        "staticDuration": "286s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 431555,
+        "staticDuration": "9540s",
+        "localizedValues": {
+         "distance": {
+          "text": "432 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 39 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T11:09:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T08:30:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "11:09"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:30"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 87,
+        "staticDuration": "68s",
+        "localizedValues": {
+         "distance": {
+          "text": "87 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 26,
+        "staticDuration": "31s",
+        "localizedValues": {
+         "distance": {
+          "text": "26 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 391,
+        "staticDuration": "358s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "6 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 131,
+        "staticDuration": "107s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "14s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 13,
+        "staticDuration": "11s",
+        "localizedValues": {
+         "distance": {
+          "text": "13 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 17 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 17 mins"
+       }
+      }
+     }
+    ],
+    "duration": "11815s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 160,
+        "staticDuration": "132s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "45s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "89s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 25,
+        "staticDuration": "42s",
+        "localizedValues": {
+         "distance": {
+          "text": "25 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4159,
+        "staticDuration": "540s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.2 km"
+         },
+         "staticDuration": {
+          "text": "9 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T08:19:00Z",
+          "departureStop": {
+           "name": "Aldgate"
+          },
+          "departureTime": "2026-11-04T08:10:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:19"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:10"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Chesham",
+         "headway": "240s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 311,
+        "staticDuration": "286s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 431555,
+        "staticDuration": "9540s",
+        "localizedValues": {
+         "distance": {
+          "text": "432 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 39 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T11:09:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T08:30:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "11:09"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:30"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 87,
+        "staticDuration": "68s",
+        "localizedValues": {
+         "distance": {
+          "text": "87 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 26,
+        "staticDuration": "31s",
+        "localizedValues": {
+         "distance": {
+          "text": "26 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 391,
+        "staticDuration": "358s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "6 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 131,
+        "staticDuration": "107s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "14s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 13,
+        "staticDuration": "11s",
+        "localizedValues": {
+         "distance": {
+          "text": "13 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 15 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 15 mins"
+       }
+      }
+     }
+    ],
+    "duration": "11702s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 160,
+        "staticDuration": "132s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "45s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "89s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 25,
+        "staticDuration": "42s",
+        "localizedValues": {
+         "distance": {
+          "text": "25 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4159,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.2 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T08:54:00Z",
+          "departureStop": {
+           "name": "Aldgate"
+          },
+          "departureTime": "2026-11-04T08:44:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:54"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:44"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Harrow-on-the-Hill",
+         "headway": "240s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 300,
+        "staticDuration": "315s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 431636,
+        "staticDuration": "10620s",
+        "localizedValues": {
+         "distance": {
+          "text": "432 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 57 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T12:00:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T09:03:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:00"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:03"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 6
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 87,
+        "staticDuration": "68s",
+        "localizedValues": {
+         "distance": {
+          "text": "87 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 26,
+        "staticDuration": "31s",
+        "localizedValues": {
+         "distance": {
+          "text": "26 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 391,
+        "staticDuration": "358s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "6 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 131,
+        "staticDuration": "107s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "14s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 13,
+        "staticDuration": "11s",
+        "localizedValues": {
+         "distance": {
+          "text": "13 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 32 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 32 mins"
+       }
+      }
+     }
+    ],
+    "duration": "12722s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 160,
+        "staticDuration": "132s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "45s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "89s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 25,
+        "staticDuration": "42s",
+        "localizedValues": {
+         "distance": {
+          "text": "25 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4159,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.2 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T09:20:00Z",
+          "departureStop": {
+           "name": "Aldgate"
+          },
+          "departureTime": "2026-11-04T09:10:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "09:20"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:10"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Watford",
+         "headway": "180s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 353,
+        "staticDuration": "346s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "6 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 431514,
+        "staticDuration": "9480s",
+        "localizedValues": {
+         "distance": {
+          "text": "432 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 38 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T12:08:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T09:30:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:08"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:30"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 87,
+        "staticDuration": "68s",
+        "localizedValues": {
+         "distance": {
+          "text": "87 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 26,
+        "staticDuration": "31s",
+        "localizedValues": {
+         "distance": {
+          "text": "26 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 391,
+        "staticDuration": "358s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "6 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 131,
+        "staticDuration": "107s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "14s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 13,
+        "staticDuration": "11s",
+        "localizedValues": {
+         "distance": {
+          "text": "13 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 14 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 14 mins"
+       }
+      }
+     }
+    ],
+    "duration": "11642s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 160,
+        "staticDuration": "132s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "45s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "89s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 25,
+        "staticDuration": "42s",
+        "localizedValues": {
+         "distance": {
+          "text": "25 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4159,
+        "staticDuration": "540s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.2 km"
+         },
+         "staticDuration": {
+          "text": "9 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T09:24:00Z",
+          "departureStop": {
+           "name": "Aldgate"
+          },
+          "departureTime": "2026-11-04T09:15:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "09:24"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:15"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Uxbridge",
+         "headway": "180s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 278,
+        "staticDuration": "289s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 431605,
+        "staticDuration": "10920s",
+        "localizedValues": {
+         "distance": {
+          "text": "432 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 2 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T12:35:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T09:33:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:35"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:33"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Newcastle",
+         "transitLine": {
+          "name": "Newcastle - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 7
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "18s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "5s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "20s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "5s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 577,
+        "staticDuration": "120s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.6 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Monument METRO"
+          },
+          "arrivalTime": "2026-11-04T12:42:30Z",
+          "departureStop": {
+           "name": "Central Station"
+          },
+          "departureTime": "2026-11-04T12:40:30Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:42"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "12:40"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Newcastle Airport",
+         "transitLine": {
+          "name": "Green Line",
+          "nameShort": "GRN",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 1
+        },
+        "travelMode": "TRANSIT"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 34 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 34 mins"
+       }
+      }
+     }
+    ],
+    "duration": "12823s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 34,
+        "staticDuration": "27s",
+        "localizedValues": {
+         "distance": {
+          "text": "34 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 164,
+        "staticDuration": "136s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 10,
+        "staticDuration": "8s",
+        "localizedValues": {
+         "distance": {
+          "text": "10 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 68,
+        "staticDuration": "83s",
+        "localizedValues": {
+         "distance": {
+          "text": "68 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4425,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.4 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "arrivalTime": "2026-11-04T10:04:00Z",
+          "departureStop": {
+           "name": "Aldgate East"
+          },
+          "departureTime": "2026-11-04T09:54:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "10:04"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "09:54"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Hammersmith via King's Cross",
+         "headway": "540s",
+         "transitLine": {
+          "name": "Hammersmith & City Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Hammersmith & City",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 314,
+        "staticDuration": "294s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 430872,
+        "staticDuration": "10200s",
+        "localizedValues": {
+         "distance": {
+          "text": "431 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 50 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Newcastle"
+          },
+          "arrivalTime": "2026-11-04T13:05:00Z",
+          "departureStop": {
+           "name": "King\u2019s Cross"
+          },
+          "departureTime": "2026-11-04T10:15:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "13:05"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "10:15"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "lumo",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "18s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "5s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "20s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "5s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 577,
+        "staticDuration": "120s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.6 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Monument METRO"
+          },
+          "arrivalTime": "2026-11-04T13:13:00Z",
+          "departureStop": {
+           "name": "Central Station"
+          },
+          "departureTime": "2026-11-04T13:11:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "13:13"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "13:11"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Tynemouth",
+         "transitLine": {
+          "name": "Yellow Line",
+          "uri": "https://www.nexus.org.uk/metro",
+          "nameShort": "YEL",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 1
+        },
+        "travelMode": "TRANSIT"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "437 km"
+       },
+       "duration": {
+        "text": "3 hours 23 mins"
+       },
+       "staticDuration": {
+        "text": "3 hours 23 mins"
+       }
+      }
+     }
+    ],
+    "duration": "12195s"
+   }
+  ]
+ },
+ "note": "Recorded from Google Routes API (3 Nov, for Wed 4 Nov); key removed; polylines, locations and icons removed (unused)."
+}

@@ -33,6 +33,9 @@ const GOOGLE = [
     mask: "id,displayName,formattedAddress,location" },
   { re: /^\/google\/routes\/distanceMatrix\/v2:computeRouteMatrix$/, method: "POST", url: () => "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix",
     mask: "originIndex,destinationIndex,status,condition,distanceMeters,duration" },
+  // Trip: one transit route per plan, to show what TfL's planner misses (docs/stories/trip-taxi-and-google-gaps.md).
+  { re: /^\/google\/routes\/directions\/v2:computeRoutes$/, method: "POST", url: () => "https://routes.googleapis.com/directions/v2:computeRoutes",
+    mask: "routes.duration,routes.legs.steps.travelMode,routes.legs.steps.staticDuration,routes.legs.steps.distanceMeters,routes.legs.steps.transitDetails" },
 ];
 async function google(request, env, cors, url) {
   const route = GOOGLE.map(g => ({ g, m: url.pathname.match(g.re) })).find(x => x.m);

@@ -48,8 +48,8 @@ export function applyLive(j: Journey, boards: Record<string, Board | undefined>,
   const { leave, arrive } = journeyTimes(j.before, rides, j.after);
   const changes = journeyChanges(rides, cfg);
   const next: Journey = { ...j, rides, leave, arrive, changes };
-  // Flags that don't come from the rides (how far the nearest station is) are kept as they were.
-  next.flags = [...journeyFlags(next), ...j.flags.filter(f => /^Nearest station/.test(f.txt))];
+  // Flags that don't come from the rides (how far the nearest station is; a taxi leg's distance and road time) are kept as they were.
+  next.flags = [...journeyFlags(next), ...j.flags.filter(f => /^(Nearest station|Taxi (to|from) )/.test(f.txt))];
   next.uncertain = mainRides(rides).some(r => r.cancelled || (r.train && (r.train.depUnknown || r.train.arrUnknown)));
   next.missed = changes.some(c => c.missed);
   return next;

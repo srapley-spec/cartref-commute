@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 03 Nov 23:16 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 07:50 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1174,6 +1174,7 @@ var CommuteCore = (() => {
     followTubeArrival: () => followTubeArrival,
     followedLegs: () => followedLegs,
     followedTripPhase: () => followedTripPhase,
+    googleGaps: () => googleGaps,
     gradeEffort: () => gradeEffort,
     headlineKind: () => headlineKind,
     hhmm: () => hhmm,
@@ -1283,6 +1284,7 @@ var CommuteCore = (() => {
     stationOf: () => stationOf,
     statusLine: () => statusLine,
     stopsRequests: () => stopsRequests,
+    taxiWorthIt: () => taxiWorthIt,
     terminusDepartures: () => terminusDepartures,
     tflDropReason: () => tflDropReason,
     tflPickPlaces: () => tflPickPlaces,
@@ -2748,9 +2750,9 @@ var CommuteCore = (() => {
     "in-london": ["label", "headline", "then", "lines"],
     "on-tube-home": ["label", "headline", "which", "then", "lines", "board"],
     "nearly-home": ["label", "headline", "then"],
-    "plan-trip-now": ["label", "headline", "options", "others", "board", "why", "source"],
-    "plan-trip-by": ["label", "headline", "options", "others", "board", "why", "source"],
-    "plan-trip-at": ["label", "headline", "options", "others", "board", "why", "source"],
+    "plan-trip-now": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
+    "plan-trip-by": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
+    "plan-trip-at": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
     "trip-follow": ["label", "headline", "which", "then", "source"],
     "trip-access": ["label", "way", "headline", "then", "source"],
     "trip-ride": ["label", "headline", "which", "progress", "then", "source"],
@@ -3958,6 +3960,9 @@ var CommuteCore = (() => {
     otherStationsMax: 4,
     topWindowMin: 20,
     drive: { recheckMs: 5 * 6e4, withinMin: 60, moveMin: 2 },
+    taxi: { fromKm: 3.2, waitMin: 5 },
+    fallbacks: 3,
+    gapMin: 5,
     allow: { parkMin: 10, lockMin: 4, stationMin: 3, exitMin: 3, carBackMin: 5 }
   };
   function tripConfig(over = {}) {
@@ -3973,7 +3978,8 @@ var CommuteCore = (() => {
       change: { ...TRIP_DEFAULTS.change, ...over.change || {} },
       live: { ...TRIP_DEFAULTS.live, ...over.live || {} },
       drive: { ...TRIP_DEFAULTS.drive, ...over.drive || {} },
-      reachKm: { ...TRIP_DEFAULTS.reachKm, ...over.reachKm || {} }
+      reachKm: { ...TRIP_DEFAULTS.reachKm, ...over.reachKm || {} },
+      taxi: { ...TRIP_DEFAULTS.taxi, ...over.taxi || {} }
     };
   }
   function inRegion(geo, r) {
@@ -4122,8 +4128,8 @@ var CommuteCore = (() => {
     const reach = cfg.reachKm[mode];
     const within = idx.near(geo, reach).map((s) => ({ station: s, km: km(geo, s.geo) }));
     if (!within.length) {
-      const all2 = idx.all().map((s) => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km);
-      return all2.length ? { list: [{ ...all2[0], why: "fallback" }], farKm: all2[0].km } : { list: [] };
+      const all2 = idx.all().map((s) => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km).slice(0, Math.max(1, cfg.fallbacks));
+      return all2.length ? { list: all2.map((c) => ({ ...c, why: "fallback" })), farKm: all2[0].km } : { list: [] };
     }
     const nearest = within.slice(0, cfg.nearest).map((c) => ({ ...c, why: "nearest" }));
     const bar = Math.max(0, ...nearest.map((c) => c.station.servicePerHour || 0)) * cfg.wellServedFactor;
@@ -4161,17 +4167,29 @@ var CommuteCore = (() => {
     if (mode === "walk") return Math.round(t2.metres / 1e3 / leisureKmh * 3600);
     return Math.round(t2.secs);
   }
-  function beforeSegments(mode, t2, st, a, leisureKmh, atStation = false) {
+  var taxiWorthIt = (mode, walk, taxi) => mode === "walk" && !!walk && walk.metres > taxi.fromKm * 1e3;
+  var kmText = (m) => `${(m / 1e3).toFixed(1)} km`;
+  function taxiSegment(at, drive, walk, st, taxi, leisureKmh) {
+    const walkMin = Math.round(travelSecs("walk", walk, leisureKmh) / 60);
+    return { kind: "taxi", secs: taxi.waitMin * 60 + Math.round(drive.secs), step: {
+      at,
+      d: at === "start" ? `Taxi to ${st.name}` : "Taxi to your destination",
+      note: `${kmText(drive.metres)} \xB7 about ${dur(drive.secs * 1e3)} by road, ${taxi.waitMin} min to get one \xB7 ${dur(walkMin * 6e4)} on foot`
+    } };
+  }
+  function beforeSegments(mode, t2, st, a, leisureKmh, atStation = false, taxi) {
     const plat = { kind: "station", secs: a.stationMin * 60, step: null };
     if (atStation) return [{ kind: "station", secs: a.stationMin * 60, step: { at: "start", d: `At ${st.name}: to the platform`, note: `${a.stationMin} min` } }];
+    if (taxi && mode === "walk") return [taxiSegment("start", taxi.drive, t2, st, taxi.rule, leisureKmh), plat];
     const s = travelSecs(mode, t2, leisureKmh);
     const go = { kind: mode === "walk" ? "walk" : mode, secs: s, step: { at: "start", d: `${MODE_WORD[mode]} to ${st.name}`, note: dur(s * 1e3) } };
     if (mode === "walk") return [go, plat];
     const extra = mode === "drive" ? a.parkMin : a.lockMin;
     return [go, { kind: "station", secs: extra * 60, step: { at: "start", d: mode === "drive" ? "Park and reach the platform" : "Lock the bike and reach the platform", note: `${extra} min` } }];
   }
-  function afterSegments(mode, t2, st, a, leisureKmh, here = false) {
+  function afterSegments(mode, t2, st, a, leisureKmh, here = false, taxi) {
     if (here) return [{ kind: "station", secs: a.exitMin * 60, step: { at: "end", d: `Out of ${st.name}`, note: `${a.exitMin} min` } }];
+    if (taxi && mode === "walk") return [{ kind: "station", secs: a.exitMin * 60, step: { at: "end", d: `Out of ${st.name}`, note: `${a.exitMin} min` } }, taxiSegment("end", taxi.drive, t2, st, taxi.rule, leisureKmh)];
     const s = travelSecs(mode, t2, leisureKmh);
     const off = mode === "drive" ? a.carBackMin : a.exitMin;
     return [
@@ -4410,6 +4428,36 @@ var CommuteCore = (() => {
     return !!(prev && next && prev.id !== next.id && prev.arrive - next.arrive >= betterMin * 6e4);
   }
 
+  // src/core/trip/gaps.ts
+  var rideText = (l) => `${l.from} ${hhmm(l.dep)} \u2192 ${l.to} ${hhmm(l.arr)}${l.line ? ` (${l.line})` : ""}`;
+  function googleGaps(routes, picks, q, gapMin, max = 2) {
+    const best = picks[0];
+    const seen = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const r of routes.slice().sort((a, b) => a.arrive - b.arrive)) {
+      const rides = r.legs.filter((l) => l.kind !== "walk");
+      if (!rides.length || rides.some((l) => l.kind === "bus")) continue;
+      if (q.kind === "by" && r.arrive > q.t) continue;
+      const key = rides.map((l) => `${l.from}|${l.dep}|${l.to}`).join(",");
+      if (seen.has(key)) continue;
+      const soonerMin = best ? Math.round((best.arrive - r.arrive) / 6e4) : null;
+      if (best && soonerMin !== null && soonerMin < gapMin) continue;
+      seen.add(key);
+      const why = best ? `arrives ${dur(best.arrive - r.arrive)} sooner than the best found here; not in TfL's planner, so no live times or Follow for it` : "nothing here could be recommended; not in TfL's planner, so no live times or Follow for it";
+      out.push({
+        source: r.source,
+        depart: r.depart,
+        arrive: r.arrive,
+        soonerMin,
+        legs: r.legs,
+        why,
+        text: `Leave ${hhmm(r.depart)}, arrive ${hhmm(r.arrive)}: ${rides.map(rideText).join(" \xB7 ")}`
+      });
+      if (out.length >= max) break;
+    }
+    return out;
+  }
+
   // src/core/trip/tripPlan.ts
   function plannerCacheKey(from, to, t2, timeIs) {
     const target = "crs" in to ? stationKey(to) : `@${to.geo.join(",")}`;
@@ -4430,11 +4478,23 @@ var CommuteCore = (() => {
     const cf = candidates(from.geo, modes.from, ports.stations, cfg), ct = candidates(to.geo, modes.to, ports.stations, cfg);
     if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
     const close = km(from.geo, to.geo) <= cfg.closeKm || cf.list[0].station.crs === ct.list[0].station.crs;
-    const requests = { planner: 0, access: 0 }, failed = [], notes = [];
+    const requests = { planner: 0, access: 0, routes: 0 }, failed = [], notes = [];
     const note = (s) => {
       if (!notes.includes(s)) notes.push(s);
     };
     const accFrom = /* @__PURE__ */ new Map(), accTo = /* @__PURE__ */ new Map();
+    const taxiFrom = /* @__PURE__ */ new Map(), taxiTo = /* @__PURE__ */ new Map();
+    const timeTaxis = async (place, acc, into, byKey, dir, at) => {
+      const todo = [...acc.entries()].filter(([k, w]) => taxiWorthIt(dir === "to" ? modes.from : modes.to, w, cfg.taxi) && !into.has(k) && byKey.has(k)).map(([k]) => byKey.get(k));
+      if (!todo.length) return;
+      requests.access++;
+      const res = await ports.access.matrix(place, todo.map((s) => s.geo), "drive", at, dir);
+      todo.forEach((s, i) => {
+        var _a;
+        return into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
+      });
+    };
+    const stationsByKey = /* @__PURE__ */ new Map();
     const toPlace = modes.to === "walk" && ports.planner.planTo && cfg.placeSearches > 0 ? { place: to } : null;
     const fromWalk = modes.from === "walk";
     const firstGuess = q.kind === "by" ? q.t - 2 * 36e5 : q.kind === "at" ? q.t : now;
@@ -4445,9 +4505,18 @@ var CommuteCore = (() => {
       const res = await ports.access.matrix(place, todo.map((s) => s.geo), mode, at, dir);
       todo.forEach((s, i) => {
         var _a;
-        return into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
+        into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
+        stationsByKey.set(stationKey(s), s);
       });
     };
+    let gapRoutes = null;
+    if (ports.routes) {
+      requests.routes++;
+      gapRoutes = ports.routes.transit(from.geo, to.geo, q.kind === "now" ? now : q.t, q.kind === "by" ? "Arriving" : "Departing").catch((e) => {
+        notes.push(`${ports.routes.name}: ${e.message}`);
+        return [];
+      });
+    }
     const stationsOf = (list) => list.map((c) => c.station);
     const rail = /* @__PURE__ */ new Map();
     const search = async (pair, t2, timeIs2) => {
@@ -4497,6 +4566,15 @@ var CommuteCore = (() => {
       runPairs(p1, () => t0, timeIs)
     ]);
     if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
+    const taxis = () => Promise.all([
+      timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess).catch((e) => {
+        notes.push(`Taxi times to the stations: ${e.message}`);
+      }),
+      timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess).catch((e) => {
+        notes.push(`Taxi times from the stations: ${e.message}`);
+      })
+    ]);
+    await taxis();
     const endStops = () => {
       const seen = /* @__PURE__ */ new Map();
       rail.forEach((list, k) => {
@@ -4528,9 +4606,13 @@ var CommuteCore = (() => {
         if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
         if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
         const atStation = from.kind === "current" && km(from.geo, a.geo) * 1e3 <= cfg.atStationM;
-        const before = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation) : [];
-        const after = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh) : [];
+        const taxiA = ta && taxiWorthIt(modes.from, ta, cfg.taxi) && taxiFrom.get(ka) ? { drive: taxiFrom.get(ka), rule: cfg.taxi } : void 0;
+        const taxiB = tb && taxiWorthIt(modes.to, tb, cfg.taxi) && taxiTo.get(kb) ? { drive: taxiTo.get(kb), rule: cfg.taxi } : void 0;
+        const before = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation, taxiA) : [];
+        const after = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh, false, taxiB) : [];
         const j = buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute });
+        if (taxiA) j.flags.push({ lvl: "info", txt: `Taxi to ${a.name}: ${(taxiA.drive.metres / 1e3).toFixed(1)} km, about ${Math.round(taxiA.drive.secs / 60)} min by road` });
+        if (taxiB) j.flags.push({ lvl: "info", txt: `Taxi from ${b.name}: ${(taxiB.drive.metres / 1e3).toFixed(1)} km, about ${Math.round(taxiB.drive.secs / 60)} min by road` });
         if (byId.has(j.id)) return;
         byId.set(j.id, j);
         pairOf.set(j, [a, k.endsWith("-@place") && toPlace ? toPlace : toStation(b)]);
@@ -4546,9 +4628,12 @@ var CommuteCore = (() => {
         failed: failed.slice(),
         close,
         requests: { ...requests },
-        notes: notes.slice()
+        notes: notes.slice(),
+        gaps: gapsFound(picks)
       };
     };
+    let routesSeen = [];
+    const gapsFound = (picks) => googleGaps(routesSeen, picks, q, cfg.gapMin);
     const first = assemble("timetable");
     onStage == null ? void 0 : onStage(first);
     const seenFrom = [], seenTo = [];
@@ -4567,6 +4652,7 @@ var CommuteCore = (() => {
         notes.push(`Times from the stations: ${e.message}`);
       })
     ]);
+    await taxis();
     const ranked = assemble("timetable").journeys.filter((j) => !j.uncertain);
     const best = ranked.reduce((b, j) => !b || j.arrive < b.arrive ? j : b, void 0);
     const bestBy = (key) => {
@@ -4612,6 +4698,7 @@ var CommuteCore = (() => {
         notes.push(`Times to the stations: ${e.message}`);
       })
     ]);
+    await taxis();
     const bestPairs = [...new Map(assemble("timetable").journeys.filter((j) => !j.uncertain).sort((x, y) => x.arrive - y.arrive).map((j) => {
       const p = pairOf.get(j);
       return [pairKey(p[0], p[1]), p];
@@ -4645,6 +4732,7 @@ var CommuteCore = (() => {
         }) : null
       ]);
     }
+    if (gapRoutes) routesSeen = await gapRoutes;
     const done = assemble("complete");
     onStage == null ? void 0 : onStage(done);
     return done;
@@ -4696,7 +4784,7 @@ var CommuteCore = (() => {
     const { leave, arrive } = journeyTimes(j.before, rides, j.after);
     const changes = journeyChanges(rides, cfg);
     const next = { ...j, rides, leave, arrive, changes };
-    next.flags = [...journeyFlags(next), ...j.flags.filter((f) => /^Nearest station/.test(f.txt))];
+    next.flags = [...journeyFlags(next), ...j.flags.filter((f) => /^(Nearest station|Taxi (to|from) )/.test(f.txt))];
     next.uncertain = mainRides(rides).some((r) => r.cancelled || r.train && (r.train.depUnknown || r.train.arrUnknown));
     next.missed = changes.some((c) => c.missed);
     return next;
@@ -8903,6 +8991,41 @@ const tripAdapters = (() => {
     : status === 401 || status === 403 ? err(`${what} refused the request (HTTP ${status}).`, { refused: true })
     : err(`${what} error (HTTP ${status}).`, { network: true });
   const MODE_JS = { walk: "WALKING", cycle: "BICYCLING", drive: "DRIVING" };
+  /** A Google transit route → GapRoute (src/core/trip/gaps.ts): rides and walks over a minute, times as epoch ms. From the
+   *  Routes API REST shape (steps with transitDetails) and the Maps JS DirectionsService shape (steps with `transit`). */
+  const GAP_KIND = v => /SUBWAY|METRO_RAIL|TRAM|LIGHT_RAIL/.test(v) ? "tube" : /BUS|COACH|TROLLEY/.test(v) ? "bus" : /RAIL|TRAIN/.test(v) ? "rail" : "other";
+  const secsOf = x => typeof x === "number" ? x : parseFloat(String(x || "0").replace(/s$/, "")) || 0;
+  function gapRouteFromRest(route) {
+    const steps = ((route.legs || [])[0] || {}).steps || [], legs = [];
+    let firstDep = NaN, lastArr = NaN, before = 0, after = 0, sawTransit = false;
+    for (const s of steps) {
+      if (s.travelMode === "TRANSIT" && s.transitDetails) {
+        const td = s.transitDetails, sd = td.stopDetails || {}, dep = Date.parse(sd.departureTime), arr = Date.parse(sd.arrivalTime);
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
+        const line = td.transitLine || {};
+        legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((sd.departureStop || {}).name || "?"), to: String((sd.arrivalStop || {}).name || "?"), dep, arr, line: String(line.nameShort || line.name || "") || undefined });
+      } else { const sec = secsOf(s.staticDuration || s.duration); if (!sawTransit) before += sec; else after += sec; if (sec >= 60) legs.push({ kind: "walk", from: "", to: "", dep: NaN, arr: NaN, secs: sec }); }
+    }
+    if (!sawTransit) return null;
+    return { depart: firstDep - before * 1000, arrive: lastArr + after * 1000, legs, source: "Google Maps" };
+  }
+  function gapRouteFromJs(route) {
+    const leg = (route.legs || [])[0]; if (!leg) return null;
+    const legs = []; let firstDep = NaN, lastArr = NaN, before = 0, after = 0, sawTransit = false;
+    for (const s of leg.steps || []) {
+      if (s.travel_mode === "TRANSIT" && s.transit) {
+        const t = s.transit, dep = t.departure_time && t.departure_time.value ? new Date(t.departure_time.value).getTime() : NaN, arr = t.arrival_time && t.arrival_time.value ? new Date(t.arrival_time.value).getTime() : NaN;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
+        const line = t.line || {};
+        legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((t.departure_stop || {}).name || "?"), to: String((t.arrival_stop || {}).name || "?"), dep, arr, line: String(line.short_name || line.name || "") || undefined });
+      } else { const sec = s.duration && s.duration.value ? s.duration.value : 0; if (!sawTransit) before += sec; else after += sec; if (sec >= 60) legs.push({ kind: "walk", from: "", to: "", dep: NaN, arr: NaN, secs: sec }); }
+    }
+    if (!sawTransit) return null;
+    return { depart: firstDep - before * 1000, arrive: lastArr + after * 1000, legs, source: "Google Maps" };
+  }
+  const TRANSIT_REST = { travelMode: "TRANSIT", computeAlternativeRoutes: true, languageCode: "en-GB", units: "METRIC", transitPreferences: { allowedTravelModes: ["TRAIN", "SUBWAY", "LIGHT_RAIL", "RAIL"] } };
   const MODE_REST = { walk: "WALK", cycle: "BICYCLE", drive: "DRIVE" };
   const ATTRIBUTION = "Powered by Google";
   let sessions = 0;
@@ -8961,6 +9084,17 @@ const tripAdapters = (() => {
             return { metres: Math.round(item.distanceMeters), secs: Math.floor(item.durationMillis / 1000) }; });
         });
       },
+      /** One transit route (with alternatives) door to door: Google's DirectionsService, rail / Tube / tram only. Built
+       *  from Google's documentation; unverified in a browser until a key is used there (the REST adapter is tested). */
+      async transit(from, to, t, timeIs) {
+        return guarded("transit routes", "google:routes/transit", async () => {
+          const { DirectionsService, TravelMode, TransitMode } = await lib("routes");
+          const svc = new DirectionsService();
+          const res = await svc.route({ origin: { lat: from[0], lng: from[1] }, destination: { lat: to[0], lng: to[1] }, travelMode: TravelMode.TRANSIT, provideRouteAlternatives: true,
+            transitOptions: { ...(timeIs === "Arriving" ? { arrivalTime: new Date(t) } : { departureTime: new Date(Math.max(t, Date.now())) }), modes: [TransitMode.RAIL, TransitMode.SUBWAY, TransitMode.TRAIN, TransitMode.TRAM] } });
+          return ((res && res.routes) || []).map(gapRouteFromJs).filter(Boolean);
+        });
+      },
     };
   }
 
@@ -8990,6 +9124,11 @@ const tripAdapters = (() => {
       async resolve(id, session) {
         const j = await call("place", `places/v1/places/${encodeURIComponent(id)}?sessionToken=${encodeURIComponent(session)}`, {});
         return { id, name: String((j.displayName && j.displayName.text) || ""), address: String(j.formattedAddress || ""), geo: [j.location.latitude, j.location.longitude], kind: "address" };
+      },
+      async transit(from, to, t, timeIs) {
+        const when = new Date(timeIs === "Arriving" ? t : Math.max(t, Date.now())).toISOString();
+        const j = await call("transit routes", "routes/directions/v2:computeRoutes", post({ origin: ll(from).waypoint, destination: ll(to).waypoint, ...TRANSIT_REST, ...(timeIs === "Arriving" ? { arrivalTime: when } : { departureTime: when }) }));
+        return ((j && j.routes) || []).map(gapRouteFromRest).filter(Boolean);
       },
       async matrix(place, stations, mode, at, dir) {
         const a = [ll(place)], b = stations.map(ll);
@@ -9055,7 +9194,9 @@ const tripAdapters = (() => {
   function fixtureAccess(core, speeds = { walk: 1.4, cycle: 4.5, drive: 9 }) {
     return { async matrix(place, stations, mode) { return stations.map(g => { const m = Math.round(core.km(place, g) * 1300); return { metres: m, secs: Math.round(m / speeds[mode]) }; }); } };
   }
-  return { googleMapsJs, googleProxy, tflPlanner, darwinLive, fixturePlaces, fixtureAccess, googleError, ATTRIBUTION };
+  /** Routes for tests and the simulator: recorded Google Routes API replies (REST shape), chosen by a function. */
+  function fixtureRoutes(pick) { return { name: "Google Maps", async transit(from, to, t, timeIs) { const body = await pick(from, to, t, timeIs); return (((body && body.routes) || [])).map(gapRouteFromRest).filter(Boolean); } }; }
+  return { googleMapsJs, googleProxy, tflPlanner, darwinLive, fixturePlaces, fixtureAccess, fixtureRoutes, gapRouteFromRest, gapRouteFromJs, googleError, ATTRIBUTION };
 })();
 
 
@@ -9293,7 +9434,7 @@ function createTripUi(deps) {
       const q = question.kind === "now" ? { kind: "now", t: planningNow } : question;
       const leisureKmh = deps.leisureKmh();
       const r = await C.planTrip({ from: f.place, to: s.to, modes: s.modes, question: q, now: planningNow, leisureKmh, cfg: cfg() },
-        { stations: index, access, planner: planner(index) },
+        { stations: index, access, planner: planner(index), routes: { name: google().attribution.replace(/^Powered by /, ""), transit: (a, b, t, ti) => google().transit(a, b, t, ti) } },
         part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults();
           // Live times for the first answer straight away (the third step), not after the whole plan.
           if (part.stage === "timetable") live(true).then(() => { if (mine === planToken) renderResults(); }); });
@@ -9404,7 +9545,7 @@ function createTripUi(deps) {
     previousPresentation=shown;deps.renderView?.(shown);return shown;
   }
   function tripAccessMarkup(j,{active=false}={}){
-    const names={walk:'Walk to station',cycle:'Cycle to station · bicycle required',drive:'Drive to station · car required'};
+    const names={walk:j.before.some(s=>s.kind==='taxi')?'Taxi to station':'Walk to station',cycle:'Cycle to station · bicycle required',drive:'Drive to station · car required'};
     const reachable=active||C.tripCanFollow(j,now());
     return `<div class="journey-reach" data-access-mode="${esc(j.modes.from)}">${reachable&&!active?flagsMarkup(j.flags.filter(f=>/^(Arrives first|Latest for|Least late)/.test(f.txt))):''}<span class="pill ${reachable?(j.modes.from==='walk'?'info':'warn'):'bad'}">${reachable?names[j.modes.from]+(active?' · planned access':''):j.uncertain||j.missed?'Access / connection uncertain':'Can’t make it from here · '+names[j.modes.from]}</span>${active?'<span>Progress unconfirmed</span>':''}</div>`;
   }
@@ -9473,6 +9614,7 @@ function createTripUi(deps) {
       options: () => r.picks.length ? `<div class="hero trip-recommendations"><div class="lbl trip-label">${label} · best${r.picks[1] ? ", and the next best" : ""}</div>${r.picks.map((j,i) => journeyRow(j,{next:i>0})).join("")}</div>` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
       board: () => `<h3 class="trip-h">Every journey, in leaving order</h3><div class="list trip-list">${r.journeys.map(j => journeyRow(j,{compact:true})).join("") || `<p class="note">None found.</p>`}</div>`,
+      gaps: () => (r.gaps && r.gaps.length) ? `<section class="trip-gaps" aria-label="What Google Maps also finds"><h3 class="trip-h">Google Maps also finds</h3>${r.gaps.map(g => `<p class="note trip-gap"><b>${esc(g.text)}</b><br>${esc(g.why.charAt(0).toUpperCase() + g.why.slice(1))}.</p>`).join("")}<p class="note trip-attrib">${esc(google().attribution)}</p></section>` : "",
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",

@@ -5,6 +5,7 @@ import type { Board } from "../types";
 import type { ServiceProgress } from "../adapters/darwin";
 import type { AccessMode, Region } from "./config";
 import type { RailJourney, Station } from "./journeyCore";
+import type { GapRoute } from "./gaps";
 
 export type LatLon = [number, number];
 export interface Suggestion { id: string; primary: string; secondary: string }
@@ -47,4 +48,9 @@ export interface LiveBoards {
   board(fromCrs: string, toCrs: string): Promise<Board>;
   service(id: string): Promise<ServiceProgress>;
 }
-export interface TripPorts { places?: PlaceSearch; access: AccessTimer; stations: StationIndex; planner: RailPlanner; live?: LiveBoards }
+/** Another planner's door-to-door routes (Google Maps transit), to show what the rail planner missed. */
+export interface RoutePlanner {
+  readonly name: string;
+  transit(from: LatLon, to: LatLon, t: number, timeIs: "Departing" | "Arriving"): Promise<GapRoute[]>;
+}
+export interface TripPorts { places?: PlaceSearch; access: AccessTimer; stations: StationIndex; planner: RailPlanner; live?: LiveBoards; routes?: RoutePlanner }

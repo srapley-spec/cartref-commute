@@ -19,6 +19,41 @@ const tripAdapters = (() => {
     : status === 401 || status === 403 ? err(`${what} refused the request (HTTP ${status}).`, { refused: true })
     : err(`${what} error (HTTP ${status}).`, { network: true });
   const MODE_JS = { walk: "WALKING", cycle: "BICYCLING", drive: "DRIVING" };
+  /** A Google transit route → GapRoute (src/core/trip/gaps.ts): rides and walks over a minute, times as epoch ms. From the
+   *  Routes API REST shape (steps with transitDetails) and the Maps JS DirectionsService shape (steps with `transit`). */
+  const GAP_KIND = v => /SUBWAY|METRO_RAIL|TRAM|LIGHT_RAIL/.test(v) ? "tube" : /BUS|COACH|TROLLEY/.test(v) ? "bus" : /RAIL|TRAIN/.test(v) ? "rail" : "other";
+  const secsOf = x => typeof x === "number" ? x : parseFloat(String(x || "0").replace(/s$/, "")) || 0;
+  function gapRouteFromRest(route) {
+    const steps = ((route.legs || [])[0] || {}).steps || [], legs = [];
+    let firstDep = NaN, lastArr = NaN, before = 0, after = 0, sawTransit = false;
+    for (const s of steps) {
+      if (s.travelMode === "TRANSIT" && s.transitDetails) {
+        const td = s.transitDetails, sd = td.stopDetails || {}, dep = Date.parse(sd.departureTime), arr = Date.parse(sd.arrivalTime);
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
+        const line = td.transitLine || {};
+        legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((sd.departureStop || {}).name || "?"), to: String((sd.arrivalStop || {}).name || "?"), dep, arr, line: String(line.nameShort || line.name || "") || undefined });
+      } else { const sec = secsOf(s.staticDuration || s.duration); if (!sawTransit) before += sec; else after += sec; if (sec >= 60) legs.push({ kind: "walk", from: "", to: "", dep: NaN, arr: NaN, secs: sec }); }
+    }
+    if (!sawTransit) return null;
+    return { depart: firstDep - before * 1000, arrive: lastArr + after * 1000, legs, source: "Google Maps" };
+  }
+  function gapRouteFromJs(route) {
+    const leg = (route.legs || [])[0]; if (!leg) return null;
+    const legs = []; let firstDep = NaN, lastArr = NaN, before = 0, after = 0, sawTransit = false;
+    for (const s of leg.steps || []) {
+      if (s.travel_mode === "TRANSIT" && s.transit) {
+        const t = s.transit, dep = t.departure_time && t.departure_time.value ? new Date(t.departure_time.value).getTime() : NaN, arr = t.arrival_time && t.arrival_time.value ? new Date(t.arrival_time.value).getTime() : NaN;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
+        const line = t.line || {};
+        legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((t.departure_stop || {}).name || "?"), to: String((t.arrival_stop || {}).name || "?"), dep, arr, line: String(line.short_name || line.name || "") || undefined });
+      } else { const sec = s.duration && s.duration.value ? s.duration.value : 0; if (!sawTransit) before += sec; else after += sec; if (sec >= 60) legs.push({ kind: "walk", from: "", to: "", dep: NaN, arr: NaN, secs: sec }); }
+    }
+    if (!sawTransit) return null;
+    return { depart: firstDep - before * 1000, arrive: lastArr + after * 1000, legs, source: "Google Maps" };
+  }
+  const TRANSIT_REST = { travelMode: "TRANSIT", computeAlternativeRoutes: true, languageCode: "en-GB", units: "METRIC", transitPreferences: { allowedTravelModes: ["TRAIN", "SUBWAY", "LIGHT_RAIL", "RAIL"] } };
   const MODE_REST = { walk: "WALK", cycle: "BICYCLE", drive: "DRIVE" };
   const ATTRIBUTION = "Powered by Google";
   let sessions = 0;
@@ -77,6 +112,17 @@ const tripAdapters = (() => {
             return { metres: Math.round(item.distanceMeters), secs: Math.floor(item.durationMillis / 1000) }; });
         });
       },
+      /** One transit route (with alternatives) door to door: Google's DirectionsService, rail / Tube / tram only. Built
+       *  from Google's documentation; unverified in a browser until a key is used there (the REST adapter is tested). */
+      async transit(from, to, t, timeIs) {
+        return guarded("transit routes", "google:routes/transit", async () => {
+          const { DirectionsService, TravelMode, TransitMode } = await lib("routes");
+          const svc = new DirectionsService();
+          const res = await svc.route({ origin: { lat: from[0], lng: from[1] }, destination: { lat: to[0], lng: to[1] }, travelMode: TravelMode.TRANSIT, provideRouteAlternatives: true,
+            transitOptions: { ...(timeIs === "Arriving" ? { arrivalTime: new Date(t) } : { departureTime: new Date(Math.max(t, Date.now())) }), modes: [TransitMode.RAIL, TransitMode.SUBWAY, TransitMode.TRAIN, TransitMode.TRAM] } });
+          return ((res && res.routes) || []).map(gapRouteFromJs).filter(Boolean);
+        });
+      },
     };
   }
 
@@ -106,6 +152,11 @@ const tripAdapters = (() => {
       async resolve(id, session) {
         const j = await call("place", `places/v1/places/${encodeURIComponent(id)}?sessionToken=${encodeURIComponent(session)}`, {});
         return { id, name: String((j.displayName && j.displayName.text) || ""), address: String(j.formattedAddress || ""), geo: [j.location.latitude, j.location.longitude], kind: "address" };
+      },
+      async transit(from, to, t, timeIs) {
+        const when = new Date(timeIs === "Arriving" ? t : Math.max(t, Date.now())).toISOString();
+        const j = await call("transit routes", "routes/directions/v2:computeRoutes", post({ origin: ll(from).waypoint, destination: ll(to).waypoint, ...TRANSIT_REST, ...(timeIs === "Arriving" ? { arrivalTime: when } : { departureTime: when }) }));
+        return ((j && j.routes) || []).map(gapRouteFromRest).filter(Boolean);
       },
       async matrix(place, stations, mode, at, dir) {
         const a = [ll(place)], b = stations.map(ll);
@@ -171,6 +222,8 @@ const tripAdapters = (() => {
   function fixtureAccess(core, speeds = { walk: 1.4, cycle: 4.5, drive: 9 }) {
     return { async matrix(place, stations, mode) { return stations.map(g => { const m = Math.round(core.km(place, g) * 1300); return { metres: m, secs: Math.round(m / speeds[mode]) }; }); } };
   }
-  return { googleMapsJs, googleProxy, tflPlanner, darwinLive, fixturePlaces, fixtureAccess, googleError, ATTRIBUTION };
+  /** Routes for tests and the simulator: recorded Google Routes API replies (REST shape), chosen by a function. */
+  function fixtureRoutes(pick) { return { name: "Google Maps", async transit(from, to, t, timeIs) { const body = await pick(from, to, t, timeIs); return (((body && body.routes) || [])).map(gapRouteFromRest).filter(Boolean); } }; }
+  return { googleMapsJs, googleProxy, tflPlanner, darwinLive, fixturePlaces, fixtureAccess, fixtureRoutes, gapRouteFromRest, gapRouteFromJs, googleError, ATTRIBUTION };
 })();
 if (typeof module !== "undefined") module.exports = tripAdapters;

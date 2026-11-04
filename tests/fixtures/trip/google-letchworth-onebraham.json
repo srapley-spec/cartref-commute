@@ -1,0 +1,1986 @@
+{
+ "recorded": "2026-11-04T07:39:50.213775Z",
+ "request": "routes.googleapis.com/directions/v2:computeRoutes TRANSIT (train/subway/light rail/rail), alternatives",
+ "status": "200",
+ "body": {
+  "routes": [
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 55565,
+        "staticDuration": "1980s",
+        "localizedValues": {
+         "distance": {
+          "text": "55.6 km"
+         },
+         "staticDuration": {
+          "text": "33 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King\u2019s Cross"
+          },
+          "arrivalTime": "2026-11-04T08:03:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:03"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 287,
+        "staticDuration": "286s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4179,
+        "staticDuration": "627s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.2 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Aldgate"
+          },
+          "arrivalTime": "2026-11-04T08:24:00Z",
+          "departureStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "departureTime": "2026-11-04T08:13:33Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:24"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:13"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Aldgate",
+         "headway": "180s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 24,
+        "staticDuration": "43s",
+        "localizedValues": {
+         "distance": {
+          "text": "24 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "43s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 160,
+        "staticDuration": "124s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "61.0 km"
+       },
+       "duration": {
+        "text": "1 hour 9 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 9 mins"
+       }
+      }
+     }
+    ],
+    "duration": "4076s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 55565,
+        "staticDuration": "1980s",
+        "localizedValues": {
+         "distance": {
+          "text": "55.6 km"
+         },
+         "staticDuration": {
+          "text": "33 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King\u2019s Cross"
+          },
+          "arrivalTime": "2026-11-04T08:03:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:03"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 287,
+        "staticDuration": "286s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4436,
+        "staticDuration": "720s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.4 km"
+         },
+         "staticDuration": {
+          "text": "12 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Aldgate East"
+          },
+          "arrivalTime": "2026-11-04T08:28:00Z",
+          "departureStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "departureTime": "2026-11-04T08:16:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:28"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:16"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Barking via Liverpool St",
+         "headway": "600s",
+         "transitLine": {
+          "name": "Hammersmith & City Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Hammersmith & City",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 69,
+        "staticDuration": "84s",
+        "localizedValues": {
+         "distance": {
+          "text": "69 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 10,
+        "staticDuration": "8s",
+        "localizedValues": {
+         "distance": {
+          "text": "10 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 164,
+        "staticDuration": "130s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 34,
+        "staticDuration": "27s",
+        "localizedValues": {
+         "distance": {
+          "text": "34 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "61.2 km"
+       },
+       "duration": {
+        "text": "1 hour 11 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 11 mins"
+       }
+      }
+     }
+    ],
+    "duration": "4209s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4285,
+        "staticDuration": "300s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Hitchin"
+          },
+          "arrivalTime": "2026-11-04T07:36:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "07:36"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 1
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 53719,
+        "staticDuration": "2400s",
+        "localizedValues": {
+         "distance": {
+          "text": "53.7 km"
+         },
+         "staticDuration": {
+          "text": "40 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Farringdon"
+          },
+          "arrivalTime": "2026-11-04T08:19:00Z",
+          "departureStop": {
+           "name": "Hitchin"
+          },
+          "departureTime": "2026-11-04T07:39:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:19"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:39"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Horsham",
+         "transitLine": {
+          "name": "Horsham - Peterborough",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 125,
+        "staticDuration": "112s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 2288,
+        "staticDuration": "414s",
+        "localizedValues": {
+         "distance": {
+          "text": "2.3 km"
+         },
+         "staticDuration": {
+          "text": "7 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Aldgate"
+          },
+          "arrivalTime": "2026-11-04T08:33:00Z",
+          "departureStop": {
+           "name": "Farringdon"
+          },
+          "departureTime": "2026-11-04T08:26:06Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:33"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:26"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Aldgate",
+         "headway": "240s",
+         "transitLine": {
+          "name": "Metropolitan Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Metropolitan",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 4
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 24,
+        "staticDuration": "43s",
+        "localizedValues": {
+         "distance": {
+          "text": "24 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 22,
+        "staticDuration": "28s",
+        "localizedValues": {
+         "distance": {
+          "text": "22 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 45,
+        "staticDuration": "36s",
+        "localizedValues": {
+         "distance": {
+          "text": "45 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 107,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "43s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 160,
+        "staticDuration": "124s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "61.4 km"
+       },
+       "duration": {
+        "text": "1 hour 18 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 18 mins"
+       }
+      }
+     }
+    ],
+    "duration": "4616s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4285,
+        "staticDuration": "300s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Hitchin"
+          },
+          "arrivalTime": "2026-11-04T07:36:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "07:36"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 1
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 53719,
+        "staticDuration": "2400s",
+        "localizedValues": {
+         "distance": {
+          "text": "53.7 km"
+         },
+         "staticDuration": {
+          "text": "40 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Farringdon"
+          },
+          "arrivalTime": "2026-11-04T08:19:00Z",
+          "departureStop": {
+           "name": "Hitchin"
+          },
+          "departureTime": "2026-11-04T07:39:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:19"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:39"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Horsham",
+         "transitLine": {
+          "name": "Horsham - Peterborough",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 125,
+        "staticDuration": "112s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 2545,
+        "staticDuration": "630s",
+        "localizedValues": {
+         "distance": {
+          "text": "2.5 km"
+         },
+         "staticDuration": {
+          "text": "11 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Aldgate East"
+          },
+          "arrivalTime": "2026-11-04T08:39:00Z",
+          "departureStop": {
+           "name": "Farringdon"
+          },
+          "departureTime": "2026-11-04T08:28:30Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:39"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:28"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Barking via Liverpool St",
+         "headway": "600s",
+         "transitLine": {
+          "name": "Hammersmith & City Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Hammersmith & City",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 4
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 69,
+        "staticDuration": "84s",
+        "localizedValues": {
+         "distance": {
+          "text": "69 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 10,
+        "staticDuration": "8s",
+        "localizedValues": {
+         "distance": {
+          "text": "10 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 164,
+        "staticDuration": "130s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 34,
+        "staticDuration": "27s",
+        "localizedValues": {
+         "distance": {
+          "text": "34 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "61.6 km"
+       },
+       "duration": {
+        "text": "1 hour 22 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 22 mins"
+       }
+      }
+     }
+    ],
+    "duration": "4869s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 55565,
+        "staticDuration": "1980s",
+        "localizedValues": {
+         "distance": {
+          "text": "55.6 km"
+         },
+         "staticDuration": {
+          "text": "33 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King\u2019s Cross"
+          },
+          "arrivalTime": "2026-11-04T08:03:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:03"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "197s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4337,
+        "staticDuration": "561s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.3 km"
+         },
+         "staticDuration": {
+          "text": "9 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Bank Station"
+          },
+          "arrivalTime": "2026-11-04T08:22:00Z",
+          "departureStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "departureTime": "2026-11-04T08:12:39Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:22"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:12"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Morden via Bank",
+         "headway": "180s",
+         "transitLine": {
+          "name": "Northern Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Northern",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 4
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 373,
+        "staticDuration": "218s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.4 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 1395,
+        "staticDuration": "240s",
+        "localizedValues": {
+         "distance": {
+          "text": "1.4 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Aldgate East"
+          },
+          "arrivalTime": "2026-11-04T08:37:00Z",
+          "departureStop": {
+           "name": "Monument"
+          },
+          "departureTime": "2026-11-04T08:33:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:37"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:33"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Dagenham East",
+         "headway": "180s",
+         "transitLine": {
+          "name": "District",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 69,
+        "staticDuration": "84s",
+        "localizedValues": {
+         "distance": {
+          "text": "69 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 10,
+        "staticDuration": "8s",
+        "localizedValues": {
+         "distance": {
+          "text": "10 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 164,
+        "staticDuration": "130s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 34,
+        "staticDuration": "27s",
+        "localizedValues": {
+         "distance": {
+          "text": "34 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "62.7 km"
+       },
+       "duration": {
+        "text": "1 hour 20 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 20 mins"
+       }
+      }
+     }
+    ],
+    "duration": "4749s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 55565,
+        "staticDuration": "1980s",
+        "localizedValues": {
+         "distance": {
+          "text": "55.6 km"
+         },
+         "staticDuration": {
+          "text": "33 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King\u2019s Cross"
+          },
+          "arrivalTime": "2026-11-04T08:03:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T07:31:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:03"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "07:31"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 287,
+        "staticDuration": "286s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "5 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 4749,
+        "staticDuration": "840s",
+        "localizedValues": {
+         "distance": {
+          "text": "4.7 km"
+         },
+         "staticDuration": {
+          "text": "14 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Tower Hill"
+          },
+          "arrivalTime": "2026-11-04T08:34:00Z",
+          "departureStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "departureTime": "2026-11-04T08:20:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:34"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:20"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Circle Line via Liverpool St",
+         "headway": "600s",
+         "transitLine": {
+          "name": "Circle Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Circle",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 6
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 18,
+        "staticDuration": "43s",
+        "localizedValues": {
+         "distance": {
+          "text": "18 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 3,
+        "staticDuration": "2s",
+        "localizedValues": {
+         "distance": {
+          "text": "3 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 1,
+        "staticDuration": "1s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 26,
+        "staticDuration": "24s",
+        "localizedValues": {
+         "distance": {
+          "text": "26 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 87,
+        "staticDuration": "69s",
+        "localizedValues": {
+         "distance": {
+          "text": "87 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 99,
+        "staticDuration": "83s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 147,
+        "staticDuration": "118s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 222,
+        "staticDuration": "198s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 160,
+        "staticDuration": "134s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "62.0 km"
+       },
+       "duration": {
+        "text": "1 hour 24 mins"
+       },
+       "staticDuration": {
+        "text": "1 hour 24 mins"
+       }
+      }
+     }
+    ],
+    "duration": "5000s"
+   }
+  ]
+ },
+ "note": "Recorded from Google Routes API (3 Nov, for Wed 4 Nov); key removed; polylines, locations and icons removed (unused)."
+}

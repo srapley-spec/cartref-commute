@@ -62,7 +62,8 @@ export type Block =
   | "source"       // one line on where the numbers come from
   | "board"        // every train, in leaving order (never hide a train)
   | "why"          // why these trains: what each source returned and dropped
-  | "others";      // Trip: the best journey from / to each other station, with what it costs
+  | "others"       // Trip: the best journey from / to each other station, with what it costs
+  | "gaps";        // Trip: what Google Maps also finds that beats the best here (not in TfL's planner)
 
 export interface Presentation {
   view: View;
@@ -101,9 +102,9 @@ export const BLOCKS: Record<View, Block[]> = {
   "in-london": ["label", "headline", "then", "lines"],
   "on-tube-home": ["label", "headline", "which", "then", "lines", "board"],
   "nearly-home": ["label", "headline", "then"],
-  "plan-trip-now": ["label", "headline", "options", "others", "board", "why", "source"],
-  "plan-trip-by": ["label", "headline", "options", "others", "board", "why", "source"],
-  "plan-trip-at": ["label", "headline", "options", "others", "board", "why", "source"],
+  "plan-trip-now": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
+  "plan-trip-by": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
+  "plan-trip-at": ["label", "headline", "options", "others", "gaps", "board", "why", "source"],
   "trip-follow": ["label", "headline", "which", "then", "source"],
   "trip-access": ["label", "way", "headline", "then", "source"],
   "trip-ride": ["label", "headline", "which", "progress", "then", "source"],

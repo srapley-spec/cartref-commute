@@ -232,7 +232,7 @@ function createTripUi(deps) {
       const q = question.kind === "now" ? { kind: "now", t: planningNow } : question;
       const leisureKmh = deps.leisureKmh();
       const r = await C.planTrip({ from: f.place, to: s.to, modes: s.modes, question: q, now: planningNow, leisureKmh, cfg: cfg() },
-        { stations: index, access, planner: planner(index) },
+        { stations: index, access, planner: planner(index), routes: { name: google().attribution.replace(/^Powered by /, ""), transit: (a, b, t, ti) => google().transit(a, b, t, ti) } },
         part => { if (mine !== planToken) return; result = part; stageText = part.stage === "complete" ? "Checking live times…" : "Finding more trains…"; renderResults();
           // Live times for the first answer straight away (the third step), not after the whole plan.
           if (part.stage === "timetable") live(true).then(() => { if (mine === planToken) renderResults(); }); });
@@ -343,7 +343,7 @@ function createTripUi(deps) {
     previousPresentation=shown;deps.renderView?.(shown);return shown;
   }
   function tripAccessMarkup(j,{active=false}={}){
-    const names={walk:'Walk to station',cycle:'Cycle to station · bicycle required',drive:'Drive to station · car required'};
+    const names={walk:j.before.some(s=>s.kind==='taxi')?'Taxi to station':'Walk to station',cycle:'Cycle to station · bicycle required',drive:'Drive to station · car required'};
     const reachable=active||C.tripCanFollow(j,now());
     return `<div class="journey-reach" data-access-mode="${esc(j.modes.from)}">${reachable&&!active?flagsMarkup(j.flags.filter(f=>/^(Arrives first|Latest for|Least late)/.test(f.txt))):''}<span class="pill ${reachable?(j.modes.from==='walk'?'info':'warn'):'bad'}">${reachable?names[j.modes.from]+(active?' · planned access':''):j.uncertain||j.missed?'Access / connection uncertain':'Can’t make it from here · '+names[j.modes.from]}</span>${active?'<span>Progress unconfirmed</span>':''}</div>`;
   }
@@ -412,6 +412,7 @@ function createTripUi(deps) {
       options: () => r.picks.length ? `<div class="hero trip-recommendations"><div class="lbl trip-label">${label} · best${r.picks[1] ? ", and the next best" : ""}</div>${r.picks.map((j,i) => journeyRow(j,{next:i>0})).join("")}</div>` : "",
       others: () => r.others.length ? `<details class="trip-others"><summary>Other stations</summary><ul>${r.others.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul></details>` : "",
       board: () => `<h3 class="trip-h">Every journey, in leaving order</h3><div class="list trip-list">${r.journeys.map(j => journeyRow(j,{compact:true})).join("") || `<p class="note">None found.</p>`}</div>`,
+      gaps: () => (r.gaps && r.gaps.length) ? `<section class="trip-gaps" aria-label="What Google Maps also finds"><h3 class="trip-h">Google Maps also finds</h3>${r.gaps.map(g => `<p class="note trip-gap"><b>${esc(g.text)}</b><br>${esc(g.why.charAt(0).toUpperCase() + g.why.slice(1))}.</p>`).join("")}<p class="note trip-attrib">${esc(google().attribution)}</p></section>` : "",
       why: () => (r.failed.length || r.notes.length) ? `<details class="diag"><summary>Why these trains?</summary><ul>${r.failed.map(f => `<li>${esc(f.pair)}: ${esc(f.why)}</li>`).join("")}${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>` : "",
       source: () => `<p class="note trip-source">Trains: TfL journey planner (timetable), live times from National Rail where shown. Station times: ${esc(google().attribution)}.</p>`,
       which: () => "", progress: () => "", way: () => "",

@@ -9,8 +9,9 @@ import type { Place, Timing, TripPorts, LatLon } from "./ports";
 import type { Journey, RailJourney, Station } from "./journeyCore";
 import { buildJourney, mainRides, stationKey } from "./journeyCore";
 import { candidates, promote, roundOnePairs, type Candidate } from "./stations";
-import { beforeSegments, afterSegments } from "./access";
+import { beforeSegments, afterSegments, taxiWorthIt } from "./access";
 import { rankTrips, otherStations, type TripQuestion, type OtherStation } from "./tripRank";
+import { googleGaps, type Gap } from "./gaps";
 
 export interface TripRequest {
   from: Place; to: Place; modes: { from: AccessMode; to: AccessMode };
@@ -20,7 +21,9 @@ export type TripStageName = "timetable" | "complete";
 export interface TripResult {
   stage: TripStageName; journeys: Journey[]; picks: Journey[]; others: OtherStation[];
   candidates: { from: Candidate[]; to: Candidate[] }; failed: { pair: string; why: string }[];
-  close: boolean; requests: { planner: number; access: number }; notes: string[];
+  close: boolean; requests: { planner: number; access: number; routes: number }; notes: string[];
+  /** What another planner (Google Maps) finds that beats the best here, or anything when nothing could be picked. */
+  gaps: Gap[];
 }
 /** The page's planner-cache key: by stationKey (a Tube stop you board at has no CRS, and two of them must never share
  *  a key), the direction of the search, and a 15-minute slot of the search time. A place target is keyed by position. */
@@ -45,9 +48,19 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   if (!cf.list.length || !ct.list.length) throw new TripError("No railway station found near one of the places.", "no-stations");
   // Close enough not to need a train: within closeKm, or both places' nearest station is the same one.
   const close = km(from.geo, to.geo) <= cfg.closeKm || cf.list[0].station.crs === ct.list[0].station.crs;
-  const requests = { planner: 0, access: 0 }, failed: { pair: string; why: string }[] = [], notes: string[] = [];
+  const requests = { planner: 0, access: 0, routes: 0 }, failed: { pair: string; why: string }[] = [], notes: string[] = [];
   const note = (s: string) => { if (!notes.includes(s)) notes.push(s); };
   const accFrom: AccessMap = new Map(), accTo: AccessMap = new Map();
+  // Driving times for walks too long to walk (a taxi instead): asked for only those stations, once each.
+  const taxiFrom: AccessMap = new Map(), taxiTo: AccessMap = new Map();
+  const timeTaxis = async (place: LatLon, acc: AccessMap, into: AccessMap, byKey: Map<string, Station>, dir: "to" | "from", at: number) => {
+    const todo = [...acc.entries()].filter(([k, w]) => taxiWorthIt(dir === "to" ? modes.from : modes.to, w, cfg.taxi) && !into.has(k) && byKey.has(k)).map(([k]) => byKey.get(k)!);
+    if (!todo.length) return;
+    requests.access++;
+    const res = await ports.access.matrix(place, todo.map(s => s.geo), "drive", at, dir);
+    todo.forEach((s, i) => into.set(stationKey(s), res[i] ?? null));
+  };
+  const stationsByKey = new Map<string, Station>();
   // Searches to the place itself (issue #56): only walking at the far end, only where the planner can; the stop you
   // alight at may be a Tube stop the station list doesn't know, and the final walk is timed from it like any station.
   const toPlace: Target | null = modes.to === "walk" && ports.planner.planTo && cfg.placeSearches > 0 ? { place: to } : null;
@@ -61,8 +74,11 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     const todo = list.filter(s => again || !into.has(stationKey(s))); if (!todo.length) return;
     requests.access++;
     const res = await ports.access.matrix(place, todo.map(s => s.geo), mode, at, dir);
-    todo.forEach((s, i) => into.set(stationKey(s), res[i] ?? null));
+    todo.forEach((s, i) => { into.set(stationKey(s), res[i] ?? null); stationsByKey.set(stationKey(s), s); });
   };
+  // Google Maps' own door-to-door route, once per plan, to show what the rail planner missed (gaps.ts).
+  let gapRoutes: Promise<import("./gaps").GapRoute[]> | null = null;
+  if (ports.routes) { requests.routes++; gapRoutes = ports.routes.transit(from.geo, to.geo, q.kind === "now" ? now : q.t, q.kind === "by" ? "Arriving" : "Departing").catch(e => { notes.push(`${ports.routes!.name}: ${e.message}`); return []; }); }
   const stationsOf = (list: Candidate[]) => list.map(c => c.station);
   const rail = new Map<string, RailJourney[]>();
   const search = async (pair: Pair, t: number, timeIs: "Departing" | "Arriving") => {
@@ -108,6 +124,11 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     runPairs(p1, () => t0, timeIs),
   ]);
   if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
+  const taxis = () => Promise.all([
+    timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess).catch(e => { notes.push(`Taxi times to the stations: ${e.message}`); }),
+    timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess).catch(e => { notes.push(`Taxi times from the stations: ${e.message}`); }),
+  ]);
+  await taxis();
 
   /** Where searches to the place alight (not timed yet): timed with the promoted stations, before the next round. */
   const endStops = (): Station[] => {
@@ -134,9 +155,13 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
       if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
       if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
       const atStation = from.kind === "current" && km(from.geo, a.geo) * 1000 <= cfg.atStationM;
-      const before: Segment[] = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation) : [];
-      const after: Segment[] = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh) : [];
+      const taxiA = ta && taxiWorthIt(modes.from, ta, cfg.taxi) && taxiFrom.get(ka) ? { drive: taxiFrom.get(ka)!, rule: cfg.taxi } : undefined;
+      const taxiB = tb && taxiWorthIt(modes.to, tb, cfg.taxi) && taxiTo.get(kb) ? { drive: taxiTo.get(kb)!, rule: cfg.taxi } : undefined;
+      const before: Segment[] = ta ? beforeSegments(modes.from, ta, a, cfg.allow, req.leisureKmh, atStation, taxiA) : [];
+      const after: Segment[] = tb ? afterSegments(modes.to, tb, b, cfg.allow, req.leisureKmh, false, taxiB) : [];
       const j = buildJourney(rj, from, to, modes, before, after, cfg, now, { farKm: { from: fromKm, to: toKm }, day: q.kind === "now" ? now : q.t, noRoute });
+      if (taxiA) j.flags.push({ lvl: "info", txt: `Taxi to ${a.name}: ${(taxiA.drive.metres / 1000).toFixed(1)} km, about ${Math.round(taxiA.drive.secs / 60)} min by road` });
+      if (taxiB) j.flags.push({ lvl: "info", txt: `Taxi from ${b.name}: ${(taxiB.drive.metres / 1000).toFixed(1)} km, about ${Math.round(taxiB.drive.secs / 60)} min by road` });
       // The same trains to the same stop found by two searches (a station pair, and the place): one journey.
       if (byId.has(j.id)) return;
       byId.set(j.id, j);
@@ -145,8 +170,10 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     const list = rankTrips([...byId.values()], q, now, cfg);
     const picks = list.filter(j => j.recommended).sort((x, y) => (x.recommended as number) - (y.recommended as number));
     return { stage, journeys: list, picks, others: otherStations(list, picks[0], cfg.otherStationsMax),
-      candidates: { from: cf.list, to: ct.list }, failed: failed.slice(), close, requests: { ...requests }, notes: notes.slice() };
+      candidates: { from: cf.list, to: ct.list }, failed: failed.slice(), close, requests: { ...requests }, notes: notes.slice(), gaps: gapsFound(picks) };
   };
+  let routesSeen: import("./gaps").GapRoute[] = [];
+  const gapsFound = (picks: Journey[]) => googleGaps(routesSeen, picks, q, cfg.gapMin);
   const first = assemble("timetable");
   onStage?.(first);
 
@@ -159,6 +186,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     timeAccess(from.geo, [...stationsOf(cf.list), ...startStops()], modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
     timeAccess(to.geo, [...stationsOf(ct.list), ...endStops()], modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
   ]);
+  await taxis();
   // Round 2: untried pairs of the best stations at each end (by door-to-door arrival), then a later search for the
   // best pairs to cover the question's window. None for pairs more than behindMin behind the best.
   const ranked = assemble("timetable").journeys.filter(j => !j.uncertain);
@@ -182,6 +210,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     timeAccess(to.geo, endStops(), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
     timeAccess(from.geo, startStops(), modes.from, "to", accFrom).catch(e => { notes.push(`Times to the stations: ${e.message}`); }),
   ]);
+  await taxis();
   // Later searches for the best pairs, until the window is covered (Leave around / now: to T + windowMin; Arrive by:
   // from T − windowMin).
   const bestPairs = [...new Map(assemble("timetable").journeys.filter(j => !j.uncertain).sort((x, y) => x.arrive - y.arrive)
@@ -208,6 +237,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
       modes.to === "drive" ? timeAccess(to.geo, stationsOf(ct.list), "drive", "from", accTo, chosen.arrive, true).catch(e => { notes.push(`Drive re-timed: ${e.message}`); }) : null,
     ]);
   }
+  if (gapRoutes) routesSeen = await gapRoutes;
   const done = assemble("complete");
   onStage?.(done);
   return done;

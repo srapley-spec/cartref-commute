@@ -204,6 +204,42 @@ test("Trip UK-wide: two Tube boarding stops from one London station are two plan
   delete PLACES.office; delete PLACES.newcastle;
 });
 
+test("Trip taxi and gaps: Letchworth → Washington shows a taxi from Chester-le-Street with distance and road time; London → Fort William in the evening shows Google Maps' direct sleeper as a gap", async () => {
+  PLACES.washington = { id: "G-WASH", primary: "Washington NE38 8SE", secondary: "Washington, Tyne and Wear", geo: [54.8874, -1.5101] };
+  PLACES.office = { id: "G-OB2", primary: "One Braham (office)", secondary: "1 Braham Street, London E1 8EE", geo: [51.5139, -0.0712] };
+  PLACES.fortwilliam = { id: "G-FTW", primary: "Fort William", secondary: "Highland PH33", geo: [56.8210, -5.1048] };
+  const shift = (name, hours) => JSON.parse(readFileSync(path.join(ROOT, `tests/fixtures/trip/${name}.json`), "utf8"), (k, v) =>
+    typeof v === "string" && /^2026-11-0[45]T\d\d:\d\d:\d\d(Z?)$/.test(v) ? new Date(Date.parse(v.endsWith("Z") ? v : v + "Z") + hours * 3600e3 - 86400e3).toISOString().replace(/\.000Z$/, v.endsWith("Z") ? "Z" : "") : v).body;
+  const cls = shift("tfl-letchworth-chesterlestreet", 2), ftw = shift("tfl-fenchurchst-fortwilliam-evening", -9), gftw = shift("google-london-fortwilliam-evening", -9);
+  let gapsAsked = 0;
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: u => /JourneyResults\/1000460\/to\/90001577\?/.test(u) ? json(cls) : /JourneyResults\/1001108\/to\/90002865\?/.test(u) ? json(ftw) : route(u) });
+  googleStub(app.w);
+  // Google's transit routes through the Maps JS stub: a DirectionsService answering in the library's shape from the recorded REST reply
+  const rest = gftw.routes[0].legs[0].steps;
+  app.w.google.maps.importLibrary = (orig => async name => { const lib = await orig(name); if (name !== "routes") return lib;
+    return { ...lib, TravelMode: { TRANSIT: "TRANSIT" }, TransitMode: { RAIL: "RAIL", SUBWAY: "SUBWAY", TRAIN: "TRAIN", TRAM: "TRAM" },
+      DirectionsService: class { async route() { gapsAsked++; return { routes: [{ legs: [{ steps: rest.map(s => s.travelMode === "TRANSIT" ? { travel_mode: "TRANSIT", transit: { departure_stop: { name: s.transitDetails.stopDetails.departureStop.name }, arrival_stop: { name: s.transitDetails.stopDetails.arrivalStop.name },
+        departure_time: { value: new Date(s.transitDetails.stopDetails.departureTime) }, arrival_time: { value: new Date(s.transitDetails.stopDetails.arrivalTime) }, line: { short_name: s.transitDetails.transitLine.nameShort, vehicle: { type: s.transitDetails.transitLine.vehicle.type } } } }
+        : { travel_mode: "WALKING", duration: { value: parseFloat(s.staticDuration) } }) }] }] }; } } }; })(app.w.google.maps.importLibrary);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await type(app, "from", "letchworth town"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "washington ne38"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Taxi to your destination/.test(app.text("#tripResults")), 6000);
+  const text = app.text("#tripResults");
+  assert.match(text, /Taxi to your destination · 7\.\d km · about \d+ min by road, 5 min to get one · 1h \d+m on foot/);
+  assert.match(text, /Taxi from Chester-Le-Street: 7\.\d km, about \d+ min by road/);
+  assert.match(text, /Nearest station to where you're going is 5\.6 km away/);
+  // The evening Fort William plan from the office: the gap block names Google's direct sleeper and says why it can't be followed
+  await type(app, "from", "one braham (office"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "fort william"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Google Maps also finds/.test(app.text("#tripResults")), 8000);
+  const t2 = app.text("#tripResults");
+  assert.match(t2, /Google Maps also finds/); assert.match(t2, /Euston .* → Fort William .* \(Caledonian Sleeper\)/); assert.match(t2, /not in TfL's planner, so no live times or Follow for it/);
+  assert.match(t2, /Powered by Google/);
+  assert.ok(gapsAsked >= 1, "Google's transit route was asked for once per plan");
+  delete PLACES.washington; delete PLACES.office; delete PLACES.fortwilliam;
+});
+
 test("Trip: Follow a journey; the followed trip is saved and shown, and Stop following clears it", async () => {
   const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route });
   googleStub(app.w);

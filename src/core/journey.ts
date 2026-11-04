@@ -6,7 +6,7 @@ import { standingRoomOnly, isStopping, trainStatus } from "./rules";
 
 /** A step shown in "Journey steps", at the start or end of a segment. */
 export interface Step { at: "start" | "end"; d: string; note?: string; tube?: boolean; }
-export type SegmentKind = "walk" | "station" | "margin" | "change" | "wait" | "ride" | "stop" | "planned" | "cycle" | "drive";
+export type SegmentKind = "walk" | "station" | "margin" | "change" | "wait" | "ride" | "stop" | "planned" | "cycle" | "drive" | "taxi";
 /** Part of getting to or from the train. `secs` is final (pace already applied). */
 export interface Segment { kind: SegmentKind; secs: number; step?: Step | null;
   /** Walks: the same walk at your average and fast pace (s), for effort levels. Default: `secs`. */

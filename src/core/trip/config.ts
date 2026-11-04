@@ -5,6 +5,9 @@ export type AccessMode = "walk" | "cycle" | "drive";
  *  ([lat, lon] points) that decides what is in. */
 export interface Region { s: number; w: number; n: number; e: number; outline?: [number, number][] }
 export interface TripAllowances { parkMin: number; lockMin: number; stationMin: number; exitMin: number; carBackMin: number }
+/** A walk to or from a station longer than `fromKm` (Google's walking distance) is offered as a taxi instead: Google's
+ *  driving time plus `waitMin` to get one. The walk stays visible. */
+export interface TaxiRule { fromKm: number; waitMin: number }
 export interface TripConfig {
   region: Region;
   reachKm: Record<AccessMode, number>;
@@ -17,6 +20,11 @@ export interface TripConfig {
   live: { maxBoards: number; firstWithinMin: number; boardWindowMin: number; refreshMs: number };
   betterMin: number; otherStationsMax: number; topWindowMin: number;
   drive: { recheckMs: number; withinMin: number; moveMin: number };
+  taxi: TaxiRule;
+  /** Stations tried when none is within reach (nearest first). */
+  fallbacks: number;
+  /** A route from another planner (Google Maps) arriving this many minutes before the app's best is shown as a gap. */
+  gapMin: number;
   allow: TripAllowances;
 }
 export const TRIP_DEFAULTS: TripConfig = {
@@ -38,6 +46,7 @@ export const TRIP_DEFAULTS: TripConfig = {
   live: { maxBoards: 6, firstWithinMin: 30, boardWindowMin: 119, refreshMs: 30e3 },
   betterMin: 5, otherStationsMax: 4, topWindowMin: 20,
   drive: { recheckMs: 5 * 60e3, withinMin: 60, moveMin: 2 },
+  taxi: { fromKm: 3.2, waitMin: 5 }, fallbacks: 3, gapMin: 5,
   allow: { parkMin: 10, lockMin: 4, stationMin: 3, exitMin: 3, carBackMin: 5 },
 };
 /** Defaults with any overrides; allowances are clamped to 0–60 min (Settings range). */
@@ -47,7 +56,8 @@ export function tripConfig(over: Partial<TripConfig> = {}): TripConfig {
     const v = Number(allow[k]); allow[k] = Number.isFinite(v) ? Math.min(60, Math.max(0, v)) : TRIP_DEFAULTS.allow[k]; });
   return { ...TRIP_DEFAULTS, ...over, allow,
     change: { ...TRIP_DEFAULTS.change, ...(over.change || {}) }, live: { ...TRIP_DEFAULTS.live, ...(over.live || {}) },
-    drive: { ...TRIP_DEFAULTS.drive, ...(over.drive || {}) }, reachKm: { ...TRIP_DEFAULTS.reachKm, ...(over.reachKm || {}) } };
+    drive: { ...TRIP_DEFAULTS.drive, ...(over.drive || {}) }, reachKm: { ...TRIP_DEFAULTS.reachKm, ...(over.reachKm || {}) },
+    taxi: { ...TRIP_DEFAULTS.taxi, ...(over.taxi || {}) } };
 }
 /** Inside the box and, when there is one, inside the outline (ray casting; a point on an edge counts as in). */
 export function inRegion(geo: [number, number], r: Region): boolean {

@@ -13,7 +13,8 @@ const idx = core.stationIndex(data.stations), cfg = core.tripConfig();
 const st = crs => idx.byCrs(crs);
 const fxb = n => fixture(`trip/tfl-${n}.json`).body;
 const place = (name, geo) => ({ id: name, name, address: name, geo, kind: "address" });
-const straight = { matrix: async (p, list) => list.map(g => ({ metres: Math.round(core.km(p, g) * 1300), secs: Math.round(core.km(p, g) * 1300 / 1.4) })) };
+// Walks: straight line × 1.3 at 1.4 m/s; drives (taxi legs): × 1.4 at 40 km/h. Stand-ins; the app asks Google.
+const straight = { matrix: async (p, list, mode) => list.map(g => { const d = core.km(p, g); return mode === "drive" ? { metres: Math.round(d * 1400), secs: Math.round(d * 1400 / 11.1) } : { metres: Math.round(d * 1300), secs: Math.round(d * 1300 / 1.4) }; }) };
 const hm = t => core.hhmm(t);
 const day = t => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(t).getDay()];
 
@@ -65,7 +66,7 @@ test("Station data is national: 2,600+ stations, Newcastle / Alnmouth / Fort Wil
   for (const [crs, id] of [["NCL", "910GNWCSTLE"], ["ALM", "910GALNMOTH"], ["FTW", "910GFRTWLM"], ["EDB", "910GEDINBUR"], ["CLS", "910GCLST"], ["LET", "910GLTCE"]]) assert.deepEqual(st(crs).ids.tfl, [id], crs);
   assert.ok(data.stations.filter(s => s.ids.tfl).length >= 2580);
   const c = core.candidates(WASH.geo, "walk", idx, cfg);
-  assert.equal(c.list.length, 1); assert.equal(c.list[0].station.crs, "CLS"); assert.equal(c.list[0].why, "fallback"); assert.equal(c.farKm.toFixed(1), "5.6");
+  assert.equal(c.list.length, 3, "the three nearest when none is within reach"); assert.equal(c.list[0].station.crs, "CLS"); assert.ok(c.list.every(x => x.why === "fallback")); assert.equal(c.farKm.toFixed(1), "5.6");
 });
 
 test("London office → Newcastle: boards the Tube at Aldgate after TfL's walk from Fenchurch Street, the 08:30 LNER, arrives 11:09 (what TfL and Google say)", async () => {
@@ -102,17 +103,16 @@ test("Letchworth → Newcastle goes via Stevenage, not King's Cross; Alnmouth by
   assert.deepEqual(la.picks[0].rides.filter(x => x.kind === "rail").map(x => `${x.from.crs}→${x.to.crs} ${hm(x.dep)}`), ["KGX→NCL 08:30", "NCL→ALM 11:15"]); assert.equal(hm(la.picks[0].arrive), "12:15");
 });
 
-test("Washington NE38 8SE: no station within walking reach, so Chester-le-Street (5.6 km) is used and flagged; the long walk is shown, not hidden", async () => {
+test("Washington NE38 8SE: no station within walking reach, so the three nearest are tried, Chester-le-Street (5.6 km) first and flagged; the last leg is a taxi with the walk said", async () => {
   const r = await plan(LET, WASH, { kind: "now", t: T("04", "08:00") });
-  assert.equal(r.candidates.to.map(c => `${c.station.crs}:${c.why}`).join(), "CLS:fallback");
+  assert.equal(r.candidates.to.map(c => `${c.station.crs}:${c.why}`).join(), "CLS:fallback,HEW:fallback,SUN:fallback");
   const p = r.picks[0];
   assert.equal(p.toStation.crs, "CLS"); assert.ok(p.flags.some(f => f.txt === "Nearest station to where you're going is 5.6 km away"), p.flags.map(f => f.txt).join("; "));
-  assert.equal(p.after[1].step.d, "Walk to your destination"); assert.ok(p.after[1].secs > 60 * 60, "a 5.6 km × 1.3 walk at 4.5 km/h is over an hour");
-  assert.equal(hm(p.arrive), "13:50");
-  // Return: every recorded journey leaves before 17:00 once the walk to Chester-le-Street is counted; listed, none picked
+  assert.equal(p.after[1].kind, "taxi"); assert.equal(p.after[1].step.d, "Taxi to your destination"); assert.match(p.after[1].step.note, /on foot$/);
+  // Return: with a taxi to Chester-le-Street the 17:13 is reachable at 17:00 (the 94-minute walk would have lost every recorded train)
   const back = await plan(WASH, LET, { kind: "now", t: T("04", "17:00") });
-  assert.equal(back.picks.length, 0); assert.equal(back.journeys.length, 3);
-  assert.ok(back.journeys.every(j => j.flags.some(f => f.txt === "Leave time passed") && j.flags.some(f => f.txt === "Nearest station is 5.6 km away")));
+  assert.ok(back.picks.length >= 1, back.journeys.map(j => `${hm(j.leave)} ${j.flags.map(f => f.txt).join("/")}`).join(" | "));
+  assert.equal(back.picks[0].before[0].kind, "taxi"); assert.ok(back.picks[0].flags.some(f => f.txt === "Nearest station is 5.6 km away"));
 });
 
 test("Fort William: by day via York, Edinburgh and Glasgow Queen Street; in the evening the Euston → Glasgow sleeper then Queen Street, arriving tomorrow (the direct Highland sleeper is not in TfL's data)", async () => {
@@ -152,8 +152,8 @@ test("Boarding elsewhere needs the first mile on foot and the stop within walkin
   const atNcl = place("Newcastle Central", st("NCL").geo);
   const tight = await plan(LON, atNcl, { kind: "now", t: T("04", "08:00") }, { cfg: core.tripConfig({ reachKm: { walk: 0.2, cycle: 10, drive: 25 } }) });
   assert.equal(tight.candidates.to[0].station.crs, "NCL");
-  // Every reply from Fenchurch Street boards at Aldgate, so nothing is kept: no journeys, and the refusal is said (with the filter dropped, Aldgate journeys would appear)
-  assert.equal(tight.journeys.length, 0, tight.journeys.map(j => core.stationKey(j.fromStation)).join());
+  // Every reply from Fenchurch Street boards at Aldgate, so none of those is kept; what remains boards at listed stations (the fallbacks), and the refusal is said
+  assert.ok(tight.journeys.length > 0 && tight.journeys.every(j => j.fromStation.crs), tight.journeys.map(j => core.stationKey(j.fromStation)).join());
   assert.ok(tight.notes.some(n => /not from London Fenchurch Street/.test(n)) || tight.failed.some(f => /not from London Fenchurch Street/.test(f.why)));
   // Parser edges: boards elsewhere with no walk from the asked station is refused; a walk from somewhere else is not a walk from it; no position, no keeping
   const noWalk = JSON.parse(JSON.stringify(fxb("fenchurchst-newcastle"))); noWalk.journeys.forEach(j => { j.legs = j.legs.slice(1); });

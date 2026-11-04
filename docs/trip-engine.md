@@ -50,8 +50,8 @@ Budget: at most 18 planner searches per plan (`totalMax`), 2–4 Google matrix c
    Outside: `TripError("outside")` and the page says "Outside the area this plans: Great Britain …".
 2. **Reach** in a straight line: walk 3 km, cycle 10 km, drive 25 km.
 3. **Candidates** per end: the **3 nearest** within reach, plus up to **2 well-served** stations within reach whose
-   `servicePerHour` is at least **2×** the best of the nearest three (highest first). None within reach: the single
-   nearest station, flagged "Nearest station is N km away".
+   `servicePerHour` is at least **2×** the best of the nearest three (highest first). None within reach: the **three
+   nearest** (`fallbacks`, since 4 Nov; one before), flagged "Nearest station is N km away" with the nearest's distance.
 4. **Promotion** (after round 1): a station within reach where a round-1 journey boards or changes becomes a
    candidate (found from live data, not the prior).
 
@@ -142,6 +142,10 @@ timing arithmetic (`journeyTimes`: leave = first ride's departure − before; ar
 - Allowances are Settings values, clamped 0–60 min. Defaults 10 / 4 / 3 / 3 / 5.
 - Walk times are time-independent and cached for the session by the page; drives are re-timed for the chosen journey's
   real set-off and arrival, and again every 5 minutes while following.
+- **Taxi** (4 Nov): a walk over **3.2 km** by Google's walking distance becomes a taxi leg: Google's **driving** time
+  for that leg (asked once per end, traffic-aware, only for the stations over the limit) plus **5 min** to get one; the
+  step says the distance, the road time and the walk it replaces; a flag repeats the distance and road time. Only a
+  walk becomes a taxi; if the drive can't be timed, the walk stands and the notes say why.
 - Known imprecision: Google is asked from the station's listed coordinate, which at a large station can be the middle
   of the complex rather than the exit nearest you (Euston: 17 min measured against Google Maps' 9).
 
@@ -175,6 +179,17 @@ tight. A trailing Tube ride is not a change; it is the last ride, and the journe
   answers, recovery from the stop you can actually reach (a Tube stop included), and restores from saved state only
   when the saved shape validates. A journey ending at a Tube stop saves and restores (tested).
 
+## 8a. What Google Maps also finds (`gaps.ts`, 4 Nov)
+
+Once per plan, if a `routes` port is supplied (the page supplies Google: DirectionsService in the Maps JS adapter,
+Routes API `computeRoutes` through the proxy), Google Maps' own door-to-door transit route is asked for in parallel
+with round 1 (train / Tube / tram, alternatives on). In the complete answer, `googleGaps` keeps the routes with no bus
+leg that arrive **5 min or more** (`gapMin`) before the best journey found here, or any rail-only route when nothing
+here could be picked; at most two, soonest first, the same trains once; for Arrive by, none arriving after T. Each
+`Gap` is text (the rides with times) and a reason ("arrives 2h 13m sooner than the best found here; not in TfL's
+planner, so no live times or Follow for it"). A gap is advice: it has no station identity, so it is never picked,
+followed or mixed into the list. The block "Google Maps also finds" sits after Other stations.
+
 ## 9. Diagnostics
 
 `TripResult.failed` (a search that returned nothing: "Baldock → Grand Arcade Cambridge: TfL found no journey …"),
@@ -184,8 +199,9 @@ The page shows failed and notes under "Why these trains?". A refusal is never si
 ## 10. Known limits (3 Nov)
 
 1. **Region.** Great Britain since 3 Nov; Northern Ireland, Ireland and the Isle of Man are refused (no National Rail,
-   not in TfL's planner). Places with no station within reach get the nearest, flagged with its distance, and a long
-   walk is shown rather than hidden (Washington NE38 8SE: Chester-le-Street, 5.6 km).
+   not in TfL's planner). Places with no station within reach get the three nearest, flagged with the nearest's
+   distance; since 4 Nov a walk over 3.2 km is a taxi leg with Google's driving time (Washington NE38 8SE:
+   Chester-le-Street, about 8 km by road), the walk still said.
 2. **Origin side has no place search of its own.** You board where TfL's reply from a listed station boards (since
    3 Nov that includes the stop TfL walks you to first, e.g. Aldgate from Fenchurch Street), but the engine never asks
    TfL *from* the start's position, so a stop TfL wouldn't walk to from any candidate station is not found. Needs Sam's
@@ -193,8 +209,9 @@ The page shows failed and notes under "Why these trains?". A refusal is never si
 3. **TfL's data gaps.** Its interchange walks are conservative (King's Cross ↔ St Pancras 13–14 min; Google 5–6); it
    lacks the direct Highland Caledonian Sleeper (Euston ⇄ Fort William) and offers only the Glasgow sleeper plus a
    connection, so an evening plan to Fort William arrives 12:16 rather than 10:00; and it can return a 0-minute change
-   as a journey (Letchworth → Newcastle at York), which the engine flags "Connection at risk" and never hides. A second
-   route source (Google transit) is the planned answer to the first two.
+   as a journey (Letchworth → Newcastle at York), which the engine flags "Connection at risk" and never hides. Since
+   4 Nov the sleeper gap is **shown** ("Google Maps also finds …", §8a); making such a route pickable and followable
+   is the second-route-source work.
 4. **Reach is a hard edge** (3 km walking): a fast station at 3.1 km is never tried.
 5. **Leave-by margins.** The platform allowance plus Google's walk from your door can make a train unreachable that
    Google Maps would start you 1–2 minutes sooner for. Deliberate conservatism; the allowance is yours to set.

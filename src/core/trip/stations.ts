@@ -33,8 +33,9 @@ export function candidates(geo: LatLon, mode: AccessMode, idx: StationIndex, cfg
   const reach = cfg.reachKm[mode];
   const within = idx.near(geo, reach).map(s => ({ station: s, km: km(geo, s.geo) }));
   if (!within.length) {
-    const all = idx.all().map(s => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km);
-    return all.length ? { list: [{ ...all[0], why: "fallback" }], farKm: all[0].km } : { list: [] };
+    // None within reach: the nearest few (a taxi may make a farther one the better choice), flagged with the nearest's distance.
+    const all = idx.all().map(s => ({ station: s, km: km(geo, s.geo) })).sort((a, b) => a.km - b.km).slice(0, Math.max(1, cfg.fallbacks));
+    return all.length ? { list: all.map(c => ({ ...c, why: "fallback" as const })), farKm: all[0].km } : { list: [] };
   }
   const nearest = within.slice(0, cfg.nearest).map(c => ({ ...c, why: "nearest" as const }));
   const bar = Math.max(0, ...nearest.map(c => c.station.servicePerHour || 0)) * cfg.wellServedFactor;

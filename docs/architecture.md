@@ -361,6 +361,17 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **4 Nov, a taxi leg and Google as the gap-finder (Sam).** After the UK-wide live run: "We should be using Google to
+  identify these gaps and show them. If the distance to or from the station is not walkable — over a couple of
+  miles — why don't you recommend getting a taxi? You just need to say the distance and driving time. But you don't
+  need to plot it on a map." Decisions: a walk over 3.2 km by Google's walking distance becomes a taxi leg (Google's
+  driving time + 5 min to get one), the walk still said, each minute once; when no station is within reach the three
+  nearest are tried; once per plan Google Maps' own transit route is asked for and any rail-only route arriving
+  ≥ 5 min before the best found here is shown as "Google Maps also finds …", as advice (no live times or Follow: it
+  has no station identity), so TfL's gaps (the Highland sleeper) are visible rather than silent. Not chosen: Google
+  as a route *source* (that is the later second-source work); a map; a fare. Story:
+  `docs/stories/trip-taxi-and-google-gaps.md`.
+
 - **3 Nov (late), UK-wide Trip.** Sam: "I want to be able to travel anywhere in the UK by rail including gigs to tube
   stations in London and then walking"; "this is the one that's critical to test and document." The region becomes
   Great Britain (coast outline; Northern Ireland, Ireland and the Isle of Man out), the station list national (2,609,

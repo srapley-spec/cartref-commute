@@ -1,0 +1,2395 @@
+{
+ "recorded": "2026-11-04T07:39:48.139991Z",
+ "request": "routes.googleapis.com/directions/v2:computeRoutes TRANSIT (train/subway/light rail/rail), alternatives",
+ "status": "200",
+ "body": {
+  "routes": [
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 51555,
+        "staticDuration": "1860s",
+        "localizedValues": {
+         "distance": {
+          "text": "51.6 km"
+         },
+         "staticDuration": {
+          "text": "31 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Finsbury Park"
+          },
+          "arrivalTime": "2026-11-04T20:51:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T20:20:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "20:51"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "20:20"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brighton",
+         "transitLine": {
+          "name": "Cambridge - Brighton",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 58,
+        "staticDuration": "113s",
+        "localizedValues": {
+         "distance": {
+          "text": "58 m"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 5279,
+        "staticDuration": "442s",
+        "localizedValues": {
+         "distance": {
+          "text": "5.3 km"
+         },
+         "staticDuration": {
+          "text": "7 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Euston"
+          },
+          "arrivalTime": "2026-11-04T21:04:22Z",
+          "departureStop": {
+           "name": "Finsbury Park"
+          },
+          "departureTime": "2026-11-04T20:57:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "21:04"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "20:57"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brixton",
+         "headway": "180s",
+         "transitLine": {
+          "name": "Victoria line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Victoria",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 253,
+        "staticDuration": "254s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 918763,
+        "staticDuration": "45900s",
+        "localizedValues": {
+         "distance": {
+          "text": "919 km"
+         },
+         "staticDuration": {
+          "text": "12 hours 45 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T10:00:00Z",
+          "departureStop": {
+           "name": "Euston"
+          },
+          "departureTime": "2026-11-04T21:15:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "10:00"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "21:15"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Fort William",
+         "transitLine": {
+          "name": "London Euston - Fort William",
+          "nameShort": "Caledonian Sleeper",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 20
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 120,
+        "staticDuration": "121s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "977 km"
+       },
+       "duration": {
+        "text": "13 hours 52 mins"
+       },
+       "staticDuration": {
+        "text": "13 hours 52 mins"
+       }
+      }
+     }
+    ],
+    "duration": "49946s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 51561,
+        "staticDuration": "2820s",
+        "localizedValues": {
+         "distance": {
+          "text": "51.6 km"
+         },
+         "staticDuration": {
+          "text": "47 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Finsbury Park"
+          },
+          "arrivalTime": "2026-11-04T23:15:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T22:28:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "23:15"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "22:28"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 9
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 58,
+        "staticDuration": "113s",
+        "localizedValues": {
+         "distance": {
+          "text": "58 m"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 5279,
+        "staticDuration": "392s",
+        "localizedValues": {
+         "distance": {
+          "text": "5.3 km"
+         },
+         "staticDuration": {
+          "text": "7 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Euston"
+          },
+          "arrivalTime": "2026-11-04T23:30:32Z",
+          "departureStop": {
+           "name": "Finsbury Park"
+          },
+          "departureTime": "2026-11-04T23:24:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "23:30"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "23:24"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brixton",
+         "headway": "300s",
+         "transitLine": {
+          "name": "Victoria line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Victoria",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 253,
+        "staticDuration": "254s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 645296,
+        "staticDuration": "27900s",
+        "localizedValues": {
+         "distance": {
+          "text": "645 km"
+         },
+         "staticDuration": {
+          "text": "7 hours 45 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Glasgow Central"
+          },
+          "arrivalTime": "2026-11-05T07:30:00Z",
+          "departureStop": {
+           "name": "Euston"
+          },
+          "departureTime": "2026-11-04T23:45:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "07:30"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "23:45"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Glasgow Central",
+         "transitLine": {
+          "name": "Glasgow Central - London Euston",
+          "nameShort": "Caledonian Sleeper",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 81,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "81 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 12,
+        "staticDuration": "10s",
+        "localizedValues": {
+         "distance": {
+          "text": "12 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 227,
+        "staticDuration": "191s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 183,
+        "staticDuration": "150s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 104,
+        "staticDuration": "85s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 46,
+        "staticDuration": "47s",
+        "localizedValues": {
+         "distance": {
+          "text": "46 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 194438,
+        "staticDuration": "13800s",
+        "localizedValues": {
+         "distance": {
+          "text": "194 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 50 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T12:12:00Z",
+          "departureStop": {
+           "name": "Queen Street Station"
+          },
+          "departureTime": "2026-11-05T08:22:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:12"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:22"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Mallaig",
+         "transitLine": {
+          "name": "Glasgow Queen Street - Mallaig",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 15
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 120,
+        "staticDuration": "121s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "898 km"
+       },
+       "duration": {
+        "text": "13 hours 56 mins"
+       },
+       "staticDuration": {
+        "text": "13 hours 56 mins"
+       }
+      }
+     }
+    ],
+    "duration": "50186s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 55451,
+        "staticDuration": "3240s",
+        "localizedValues": {
+         "distance": {
+          "text": "55.5 km"
+         },
+         "staticDuration": {
+          "text": "54 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "King\u2019s Cross"
+          },
+          "arrivalTime": "2026-11-04T23:22:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-04T22:28:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "23:22"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "22:28"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "London Kings Cross",
+         "transitLine": {
+          "name": "Cambridge - London Kings Cross",
+          "nameShort": "Great Northern",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 10
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 159,
+        "staticDuration": "265s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 826,
+        "staticDuration": "120s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.8 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Euston"
+          },
+          "arrivalTime": "2026-11-04T23:34:00Z",
+          "departureStop": {
+           "name": "King's Cross St. Pancras"
+          },
+          "departureTime": "2026-11-04T23:32:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "23:34"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "23:32"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Golders Green",
+         "headway": "240s",
+         "transitLine": {
+          "name": "Northern Line",
+          "uri": "https://tfl.gov.uk/modes/tube/",
+          "nameShort": "Northern",
+          "vehicle": {
+           "name": {
+            "text": "Underground"
+           },
+           "type": "SUBWAY"
+          }
+         },
+         "stopCount": 1
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 264,
+        "staticDuration": "265s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.3 km"
+         },
+         "staticDuration": {
+          "text": "4 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 645296,
+        "staticDuration": "27900s",
+        "localizedValues": {
+         "distance": {
+          "text": "645 km"
+         },
+         "staticDuration": {
+          "text": "7 hours 45 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Glasgow Central"
+          },
+          "arrivalTime": "2026-11-05T07:30:00Z",
+          "departureStop": {
+           "name": "Euston"
+          },
+          "departureTime": "2026-11-04T23:45:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "07:30"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "23:45"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Glasgow Central",
+         "transitLine": {
+          "name": "Glasgow Central - London Euston",
+          "nameShort": "Caledonian Sleeper",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 5
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 81,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "81 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 12,
+        "staticDuration": "10s",
+        "localizedValues": {
+         "distance": {
+          "text": "12 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 227,
+        "staticDuration": "191s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 183,
+        "staticDuration": "150s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "3 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 104,
+        "staticDuration": "85s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 46,
+        "staticDuration": "47s",
+        "localizedValues": {
+         "distance": {
+          "text": "46 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 194438,
+        "staticDuration": "13800s",
+        "localizedValues": {
+         "distance": {
+          "text": "194 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 50 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T12:12:00Z",
+          "departureStop": {
+           "name": "Queen Street Station"
+          },
+          "departureTime": "2026-11-05T08:22:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:12"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:22"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Mallaig",
+         "transitLine": {
+          "name": "Glasgow Queen Street - Mallaig",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 15
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 120,
+        "staticDuration": "121s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "898 km"
+       },
+       "duration": {
+        "text": "13 hours 56 mins"
+       },
+       "staticDuration": {
+        "text": "13 hours 56 mins"
+       }
+      }
+     }
+    ],
+    "duration": "50186s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 11310,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "11.3 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Stevenage"
+          },
+          "arrivalTime": "2026-11-05T06:00:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-05T05:50:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "06:00"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "05:50"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brighton",
+         "transitLine": {
+          "name": "Cambridge - Brighton",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 24,
+        "staticDuration": "25s",
+        "localizedValues": {
+         "distance": {
+          "text": "24 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 586568,
+        "staticDuration": "13860s",
+        "localizedValues": {
+         "distance": {
+          "text": "587 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 51 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "arrivalTime": "2026-11-05T09:57:00Z",
+          "departureStop": {
+           "name": "Stevenage"
+          },
+          "departureTime": "2026-11-05T06:06:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "09:57"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "06:06"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "lumo",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 76019,
+        "staticDuration": "3120s",
+        "localizedValues": {
+         "distance": {
+          "text": "76.0 km"
+         },
+         "staticDuration": {
+          "text": "52 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Queen Street Station"
+          },
+          "arrivalTime": "2026-11-05T11:07:00Z",
+          "departureStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "departureTime": "2026-11-05T10:15:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "11:07"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "10:15"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Glasgow Queen Street",
+         "transitLine": {
+          "name": "Glasgow\u2013Edinburgh via Falkirk line",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 6
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 194648,
+        "staticDuration": "13620s",
+        "localizedValues": {
+         "distance": {
+          "text": "195 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 47 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T16:09:00Z",
+          "departureStop": {
+           "name": "Queen Street Station"
+          },
+          "departureTime": "2026-11-05T12:22:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "16:09"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "12:22"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Mallaig",
+         "transitLine": {
+          "name": "Glasgow Queen Street - Mallaig",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 15
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 123,
+        "staticDuration": "124s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "869 km"
+       },
+       "duration": {
+        "text": "10 hours 31 mins"
+       },
+       "staticDuration": {
+        "text": "10 hours 31 mins"
+       }
+      }
+     }
+    ],
+    "duration": "37886s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 11310,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "11.3 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Stevenage"
+          },
+          "arrivalTime": "2026-11-05T06:00:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-05T05:50:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "06:00"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "05:50"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brighton",
+         "transitLine": {
+          "name": "Cambridge - Brighton",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 24,
+        "staticDuration": "25s",
+        "localizedValues": {
+         "distance": {
+          "text": "24 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 586568,
+        "staticDuration": "13860s",
+        "localizedValues": {
+         "distance": {
+          "text": "587 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 51 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "arrivalTime": "2026-11-05T09:57:00Z",
+          "departureStop": {
+           "name": "Stevenage"
+          },
+          "departureTime": "2026-11-05T06:06:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "09:57"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "06:06"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - London Kings Cross",
+          "nameShort": "lumo",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 3
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 94886,
+        "staticDuration": "6780s",
+        "localizedValues": {
+         "distance": {
+          "text": "94.9 km"
+         },
+         "staticDuration": {
+          "text": "1 hour 53 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Dumbarton Central"
+          },
+          "arrivalTime": "2026-11-05T12:01:00Z",
+          "departureStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "departureTime": "2026-11-05T10:08:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:01"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "10:08"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Helensburgh Cen via Bathgate, Glasgow QS",
+         "transitLine": {
+          "name": "Helensburgh Central - Edinburgh",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 26
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 170982,
+        "staticDuration": "11760s",
+        "localizedValues": {
+         "distance": {
+          "text": "171 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 16 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T16:09:00Z",
+          "departureStop": {
+           "name": "Dumbarton Central"
+          },
+          "departureTime": "2026-11-05T12:53:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "16:09"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "12:53"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Mallaig",
+         "transitLine": {
+          "name": "Glasgow Queen Street - Mallaig",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 13
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 123,
+        "staticDuration": "124s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "865 km"
+       },
+       "duration": {
+        "text": "10 hours 31 mins"
+       },
+       "staticDuration": {
+        "text": "10 hours 31 mins"
+       }
+      }
+     }
+    ],
+    "duration": "37886s"
+   },
+   {
+    "legs": [
+     {
+      "steps": [
+       {
+        "distanceMeters": 44,
+        "staticDuration": "41s",
+        "localizedValues": {
+         "distance": {
+          "text": "44 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 157,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 174,
+        "staticDuration": "149s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.2 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 117,
+        "staticDuration": "103s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 63,
+        "staticDuration": "51s",
+        "localizedValues": {
+         "distance": {
+          "text": "63 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 40,
+        "staticDuration": "32s",
+        "localizedValues": {
+         "distance": {
+          "text": "40 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 11287,
+        "staticDuration": "600s",
+        "localizedValues": {
+         "distance": {
+          "text": "11.3 km"
+         },
+         "staticDuration": {
+          "text": "10 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Stevenage"
+          },
+          "arrivalTime": "2026-11-05T06:30:00Z",
+          "departureStop": {
+           "name": "Letchworth Garden City"
+          },
+          "departureTime": "2026-11-05T06:20:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "06:30"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "06:20"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Brighton",
+         "transitLine": {
+          "name": "Cambridge - Brighton",
+          "nameShort": "Thameslink",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 14,
+        "staticDuration": "15s",
+        "localizedValues": {
+         "distance": {
+          "text": "14 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 258606,
+        "staticDuration": "5580s",
+        "localizedValues": {
+         "distance": {
+          "text": "259 km"
+         },
+         "staticDuration": {
+          "text": "1 hour 33 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "York (YRK)"
+          },
+          "arrivalTime": "2026-11-05T08:27:00Z",
+          "departureStop": {
+           "name": "Stevenage"
+          },
+          "departureTime": "2026-11-05T06:54:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "08:27"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "06:54"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Newcastle",
+         "transitLine": {
+          "name": "Newcastle - London Kings Cross",
+          "nameShort": "LNER",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 2
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 328667,
+        "staticDuration": "9120s",
+        "localizedValues": {
+         "distance": {
+          "text": "329 km"
+         },
+         "staticDuration": {
+          "text": "2 hours 32 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "arrivalTime": "2026-11-05T11:08:00Z",
+          "departureStop": {
+           "name": "York (YRK)"
+          },
+          "departureTime": "2026-11-05T08:36:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "11:08"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "08:36"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Edinburgh",
+         "transitLine": {
+          "name": "Edinburgh - Birmingham New Street",
+          "nameShort": "CrossCountry",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 6
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 76019,
+        "staticDuration": "3060s",
+        "localizedValues": {
+         "distance": {
+          "text": "76.0 km"
+         },
+         "staticDuration": {
+          "text": "51 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Queen Street Station"
+          },
+          "arrivalTime": "2026-11-05T12:06:00Z",
+          "departureStop": {
+           "name": "Edinburgh Waverley"
+          },
+          "departureTime": "2026-11-05T11:15:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "12:06"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "11:15"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Glasgow Queen Street",
+         "transitLine": {
+          "name": "Glasgow\u2013Edinburgh via Falkirk line",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 6
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "staticDuration": "0s",
+        "localizedValues": {
+         "distance": {
+          "text": "1 m"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 194648,
+        "staticDuration": "13620s",
+        "localizedValues": {
+         "distance": {
+          "text": "195 km"
+         },
+         "staticDuration": {
+          "text": "3 hours 47 mins"
+         }
+        },
+        "transitDetails": {
+         "stopDetails": {
+          "arrivalStop": {
+           "name": "Fort William"
+          },
+          "arrivalTime": "2026-11-05T16:09:00Z",
+          "departureStop": {
+           "name": "Queen Street Station"
+          },
+          "departureTime": "2026-11-05T12:22:00Z"
+         },
+         "localizedValues": {
+          "arrivalTime": {
+           "time": {
+            "text": "16:09"
+           },
+           "timeZone": "Europe/London"
+          },
+          "departureTime": {
+           "time": {
+            "text": "12:22"
+           },
+           "timeZone": "Europe/London"
+          }
+         },
+         "headsign": "Mallaig",
+         "transitLine": {
+          "name": "Glasgow Queen Street - Mallaig",
+          "nameShort": "ScotRail",
+          "vehicle": {
+           "name": {
+            "text": "Train"
+           },
+           "type": "HEAVY_RAIL"
+          }
+         },
+         "stopCount": 15
+        },
+        "travelMode": "TRANSIT"
+       },
+       {
+        "distanceMeters": 123,
+        "staticDuration": "124s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "2 mins"
+         }
+        },
+        "travelMode": "WALK"
+       },
+       {
+        "distanceMeters": 103,
+        "staticDuration": "82s",
+        "localizedValues": {
+         "distance": {
+          "text": "0.1 km"
+         },
+         "staticDuration": {
+          "text": "1 min"
+         }
+        },
+        "travelMode": "WALK"
+       }
+      ],
+      "localizedValues": {
+       "distance": {
+        "text": "870 km"
+       },
+       "duration": {
+        "text": "10 hours 1 min"
+       },
+       "staticDuration": {
+        "text": "10 hours 1 min"
+       }
+      }
+     }
+    ],
+    "duration": "36086s"
+   }
+  ]
+ },
+ "note": "Recorded from Google Routes API (3 Nov, for Wed 4 Nov); key removed; polylines, locations and icons removed (unused)."
+}
