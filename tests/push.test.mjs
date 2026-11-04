@@ -68,6 +68,9 @@ const PLAN = { v: 1, followId: "f1", serviceId: "S1848", from: "KGX", to: "LET",
   dep: at(DAY, "18:48"), leaveBy: at(DAY, "18:22"), leadMs: 26 * MIN, train: "the 18:48 from King's Cross" };
 const MORNING = { from: "LET", to: ["KGX", "ZFD", "STP"], time: "06:30", days: [1, 2, 3, 4, 5], names: { KGX: "King's Cross", ZFD: "Farringdon", STP: "St Pancras", LET: "Letchworth Garden City" } };
 
+// /push/plan takes one change per phone every 10 s: tests that post several in a row move the last one back.
+const unthrottle = (env, id) => { const r = JSON.parse(env.PUSH.m.get(`sub:${id}`)); delete r.planAt; env.PUSH.m.set(`sub:${id}`, JSON.stringify(r)); };
+async function planPost(env, me, plan) { const r = await worker.fetch(post("/push/plan", { ...me, plan }), env); unthrottle(env, me.id); return r; }
 async function subscribe(env, phone, extra = {}) {
   const r = await worker.fetch(post("/push/subscribe", { subscription: { endpoint: "https://web.push.apple.com/QGuQyavXu", keys: phone.keys }, morning: MORNING, ...extra }), env);
   return { status: r.status, body: await r.json() };
@@ -134,16 +137,16 @@ test("Push routes: a plan or test needs the phone's token; only well-formed plan
   for (const bad of [{ ...PLAN, from: "CBG" }, { ...PLAN, leadMs: -1 }, { ...PLAN, leaveBy: PLAN.leaveBy + 5 * MIN }, { ...PLAN, dep: Date.now() + 25 * 3600e3, leaveBy: Date.now() + 25 * 3600e3 - PLAN.leadMs },
     { ...PLAN, v: 2 }, { ...PLAN, std: "6:48" }, { ...PLAN, serviceId: "a b" }, { ...PLAN, train: "" }])
     assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: bad }), env)).status, 400, JSON.stringify(bad));
-  assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: { ...PLAN, extra: "<script>" } }), env)).status, 200);
+  assert.equal((await planPost(env, me, { ...PLAN, extra: "<script>" })).status, 200);
   const rec = JSON.parse(env.PUSH.m.get(`sub:${me.id}`));
   assert.deepEqual(rec.plan, PLAN, "only the plan's own fields are kept"); assert.deepEqual(rec.planState, {});
   // The same Follow keeps what's been sent; a new one starts again; null clears it.
   env.PUSH.m.set(`sub:${me.id}`, JSON.stringify({ ...rec, planState: { soonSent: true, lastLeaveBy: PLAN.leaveBy } }));
-  await worker.fetch(post("/push/plan", { ...me, plan: { ...PLAN, dep: PLAN.dep + MIN, leaveBy: PLAN.leaveBy + MIN } }), env);
+  await planPost(env, me, { ...PLAN, dep: PLAN.dep + MIN, leaveBy: PLAN.leaveBy + MIN });
   assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).planState.soonSent, true);
-  await worker.fetch(post("/push/plan", { ...me, plan: { ...PLAN, followId: "f2" } }), env);
+  await planPost(env, me, { ...PLAN, followId: "f2" });
   assert.deepEqual(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).planState, {});
-  await worker.fetch(post("/push/plan", { ...me, plan: null }), env);
+  await planPost(env, me, null);
   assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).plan, null);
   // Test alert: encrypted for this phone, VAPID-signed, sent once.
   await withFeeds(async ({ pushes }) => {
@@ -173,6 +176,9 @@ test("Scheduler: the followed 18:48 is watched with the app closed: Leave in 5 m
     assert.deepEqual(await runAlerts(env, at(DAY, "18:16")), []);
     assert.equal(boards.length, 1); assert.match(boards[0].url, /GetDepBoardWithDetails\/KGX\?numRows=10&filterCrs=LET/);
     assert.equal(boards[0].opts.headers["x-apikey"], "rdm-secret");
+    assert.equal(puts(), p0 + 1, "the first live departure is kept (used if a later board fails)");
+    p0 = puts();
+    assert.deepEqual(await runAlerts(env, at(DAY, "18:16") + 20e3), []);
     assert.equal(puts(), p0, "nothing changed, nothing written");
     let sent = await runAlerts(env, at(DAY, "18:17"));
     assert.equal(sent.length, 1);
@@ -237,5 +243,110 @@ test("Scheduler in summer on a UTC machine (Cloudflare's): board times and the a
     assert.equal(londonShift(Date.parse("2026-07-01T17:17:00Z")), 0, "in London's own time zone there's nothing to shift");
     process.env.TZ = "America/New_York";
     assert.equal(londonShift(Date.parse("2026-07-01T17:17:00Z")), 5 * 3600e3);
+  } finally { if (realTz === undefined) delete process.env.TZ; else process.env.TZ = realTz; }
+});
+
+test("Scheduler: if the state can't be written, nothing is sent (no repeat every minute); one broken phone doesn't stop the others", async () => {
+  const { env } = await envWith(), a = await phoneKeys(), b = await phoneKeys();
+  const { body: A } = await subscribe(env, a, { morning: null });
+  const { body: B } = await subscribe(env, b, { morning: null });
+  await planPost(env, A, PLAN); await planPost(env, B, PLAN);
+  // Phone A's record is damaged (keys that can't encrypt): B is still alerted.
+  const ra = JSON.parse(env.PUSH.m.get(`sub:${A.id}`)); ra.sub.keys.p256dh = "AAAA"; env.PUSH.m.set(`sub:${A.id}`, JSON.stringify(ra));
+  await withFeeds(async ({ pushes }) => {
+    const sent = await runAlerts(env, at(DAY, "18:17"));
+    assert.ok(sent.some(x => x.id === A.id && x.error), "A failed");
+    assert.equal(pushes.length, 1); assert.equal((await decrypt(pushes[0].opts.body, b)).kind, "soon");
+  }, { board: () => gnBoard() });
+  // KV refuses writes (e.g. the free tier's daily limit): no alert, so none repeats; once writes work, one alert.
+  const { env: env2 } = await envWith(), c = await phoneKeys();
+  const { body: C } = await subscribe(env2, c, { morning: null });
+  await planPost(env2, C, PLAN);
+  const put = env2.PUSH.put; env2.PUSH.put = async () => { throw new Error("KV put() limit exceeded for the day."); };
+  await withFeeds(async ({ pushes }) => {
+    for (const t of ["18:17", "18:18", "18:19"]) await runAlerts(env2, at(DAY, t));
+    assert.equal(pushes.length, 0);
+    env2.PUSH.put = put;
+    await runAlerts(env2, at(DAY, "18:20")); await runAlerts(env2, at(DAY, "18:21"));
+    assert.equal(pushes.length, 1, "sent once");
+  }, { board: () => gnBoard() });
+});
+
+test("Push routes: keys that aren't a real P-256 point or a 16-byte secret are refused; plans are rate-limited; VAPID_SUBJECT is required", async () => {
+  const { env } = await envWith(), phone = await phoneKeys();
+  for (const keys of [{ ...phone.keys, p256dh: "AAAA" }, { ...phone.keys, p256dh: b64u.encode(new Uint8Array(65).fill(4)) }, { ...phone.keys, auth: "AAAA" }])
+    assert.equal((await worker.fetch(post("/push/subscribe", { subscription: { endpoint: "https://web.push.apple.com/x", keys } }), env)).status, 400, JSON.stringify(keys));
+  const { body: me } = await subscribe(env, phone);
+  assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: PLAN }), env)).status, 200);
+  assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: { ...PLAN, followId: "f9" } }), env)).status, 429, "a second change within 10 s");
+  assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).plan.followId, "f1");
+  assert.equal((await worker.fetch(get("/push/key"), { ...env, VAPID_SUBJECT: "" })).status, 500);
+  // A test alert to a damaged record answers 502, not a crash.
+  const r = JSON.parse(env.PUSH.m.get(`sub:${me.id}`)); r.sub.keys.p256dh = "AAAA"; env.PUSH.m.set(`sub:${me.id}`, JSON.stringify(r));
+  assert.equal((await worker.fetch(post("/push/test", me), env)).status, 502);
+});
+
+test("Push routes: each bad field of a plan or wake-up config is refused on its own", async () => {
+  const { env } = await envWith(), phone = await phoneKeys();
+  const { body: me } = await subscribe(env, phone);
+  const now = Date.now(), old = now - 2 * 3600e3;
+  for (const [why, bad] of [["negative lead", { ...PLAN, leadMs: -MIN, leaveBy: PLAN.dep + MIN }], ["lead over 6 h", { ...PLAN, leadMs: 6 * 3600e3 + MIN, leaveBy: PLAN.dep - 6 * 3600e3 - MIN }],
+    ["departed 2 h ago", { ...PLAN, dep: old, leaveBy: old - PLAN.leadMs }], ["to not allowed", { ...PLAN, to: "CBG" }], ["operator too long", { ...PLAN, operator: "x".repeat(61) }],
+    ["followId too long", { ...PLAN, followId: "x".repeat(101) }], ["no followId", { ...PLAN, followId: "" }]])
+    assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: bad }), env)).status, 400, why);
+  assert.equal((await worker.fetch(post("/push/plan", { ...me, plan: { ...PLAN, train: "x".repeat(9000) } }), env)).status, 400, "body over 8 KB");
+  const morningOf = async (m) => { const r = await subscribe(env, phone, { id: me.id, token: me.token, morning: m }); assert.equal(r.status, 200); return JSON.parse(env.PUSH.m.get(`sub:${me.id}`)).morning; };
+  assert.equal(await morningOf({ ...MORNING, days: [] }), null, "no days");
+  assert.equal(await morningOf({ ...MORNING, to: ["CBG", "BTN"] }), null, "no allowed London station");
+  assert.equal(await morningOf({ ...MORNING, from: "CBG" }), null, "from not allowed");
+  assert.equal(await morningOf({ ...MORNING, time: "24:00" }), null);
+  assert.deepEqual((await morningOf({ ...MORNING, to: ["CBG", "KGX"], days: [1, 1, 9] })), { ...MORNING, to: ["KGX"], days: [1], names: { LET: MORNING.names.LET, KGX: "King's Cross" } });
+});
+
+test("Scheduler: a 404 from the push service forgets the phone; an expired plan is cleared; a plan the page changed mid-run is kept", async () => {
+  const { env } = await envWith(), phone = await phoneKeys();
+  const { body: me } = await subscribe(env, phone, { morning: null });
+  await planPost(env, me, PLAN);
+  await withFeeds(async () => { await runAlerts(env, at(DAY, "18:17")); }, { board: () => gnBoard(), pushStatus: () => 404 });
+  assert.equal(env.PUSH.m.get(`sub:${me.id}`), undefined);
+  // Expired: 3 h after the planned departure, cleared without a board.
+  const { body: me2 } = await subscribe(env, phone, { morning: null });
+  await planPost(env, me2, PLAN);
+  await withFeeds(async ({ boards }) => {
+    await runAlerts(env, PLAN.dep + 3 * 3600e3 + MIN);
+    assert.equal(boards.length, 0); assert.equal(JSON.parse(env.PUSH.m.get(`sub:${me2.id}`)).plan, null);
+  });
+  // The page follows a new journey while the scheduler is fetching the old one's board: the new plan survives.
+  await planPost(env, me2, PLAN);
+  const fresh = { ...PLAN, followId: "f2", std: "18:54", dep: at(DAY, "18:54"), leaveBy: at(DAY, "18:28") };
+  await withFeeds(async () => {
+    await runAlerts(env, at(DAY, "18:17"));
+    const r = JSON.parse(env.PUSH.m.get(`sub:${me2.id}`));
+    assert.equal(r.plan.followId, "f2"); assert.deepEqual(r.planState, {});
+  }, { board: () => { const r = JSON.parse(env.PUSH.m.get(`sub:${me2.id}`)); env.PUSH.m.set(`sub:${me2.id}`, JSON.stringify({ ...r, plan: fresh, planState: {}, planAt: Date.now() })); return gnBoard(); } });
+});
+
+test("Scheduler on a UTC machine in summer: the wake-up check and the start of watching are London time", async () => {
+  const realTz = process.env.TZ;
+  try {
+    process.env.TZ = "UTC";
+    const { env } = await envWith(), phone = await phoneKeys();
+    await subscribe(env, phone);
+    await withFeeds(async ({ boards, pushes }) => {
+      await runAlerts(env, Date.parse("2026-07-01T05:29:00Z")); assert.equal(boards.length, 0, "06:29 BST");
+      await runAlerts(env, Date.parse("2026-07-01T05:30:00Z")); assert.equal(boards.length, 3, "06:30 BST");
+      // 08:20 is 110 min after 06:30 BST: counted. Read as UTC it would be 170 min away and missed.
+      assert.equal((await decrypt(pushes[0].opts.body, phone)).body, "08:20 to King's Cross cancelled.");
+    }, { board: (u) => (/KGX/.test(u) ? { trainServices: [{ std: "08:20", etd: "Cancelled", operator: "Great Northern", serviceID: "M1", subsequentCallingPoints: [{ callingPoint: [{ crs: "KGX", st: "08:55", et: "Cancelled" }] }] }] } : { trainServices: [] }) });
+    // Watching starts 60 min before Leave by, London time: 18:22 BST = 17:22 UTC → from 16:22 UTC.
+    const { env: e2 } = await envWith();
+    const { body: me } = await subscribe(e2, phone, { morning: null });
+    const dep = Date.parse("2026-07-01T17:48:00Z");
+    const r = JSON.parse(e2.PUSH.m.get(`sub:${me.id}`));
+    e2.PUSH.m.set(`sub:${me.id}`, JSON.stringify({ ...r, plan: { ...PLAN, dep, leaveBy: dep - PLAN.leadMs }, planState: {} }));
+    await withFeeds(async ({ boards }) => {
+      await runAlerts(e2, Date.parse("2026-07-01T16:21:00Z")); assert.equal(boards.length, 0);
+      await runAlerts(e2, Date.parse("2026-07-01T16:22:00Z")); assert.equal(boards.length, 1);
+    }, { board: () => gnBoard() });
   } finally { if (realTz === undefined) delete process.env.TZ; else process.env.TZ = realTz; }
 });

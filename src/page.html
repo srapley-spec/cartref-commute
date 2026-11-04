@@ -661,14 +661,16 @@ async function fetchBoard(from,to,offsetMin){
   const {url,headers}=boardUrl(from,to,offsetMin);
   let r;
   try{ r=await fetchT(url,{headers}); }
-  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : S().provider==="proxy" ? "Couldn't reach your proxy. Check its URL in Settings." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : !S().simulatedFeeds && S().provider==="proxy" ? "Couldn't reach your proxy. Check its URL in Settings, and that its ALLOW_ORIGIN is this page's address." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
   if(!S().simulatedFeeds && S().provider==="proxy" && !r.ok){
-    // Your own proxy (proxy/worker.js): say what to fix there, not on Rail Data Marketplace's product page.
-    if(r.status===403) throw new Error("Your proxy refused this page (HTTP 403). Its ALLOW_ORIGIN must be this page's address.");
-    if(r.status===401) throw new Error("Your proxy's National Rail key was refused (HTTP 401). Check RDM_KEY in the proxy and that you're subscribed.");
-    if(r.status===404||r.status===400) throw new Error(`Your proxy doesn't know this request (HTTP ${r.status}). Redeploy proxy/worker.js from the app's repository.`);
-    if(r.status===500) throw new Error("Your proxy isn't set up (HTTP 500). Set RDM_BASE and RDM_KEY in its settings.");
-    throw new Error(`Your proxy or the National Rail feed failed (HTTP ${r.status}).`);
+    // Your own proxy (proxy/worker.js). Its own refusals are labelled (X-Proxy-Refusal); anything else is National
+    // Rail's answer passed through. (A wrong ALLOW_ORIGIN can't be seen here: the browser hides that reply.)
+    const refusal=r.headers&&r.headers.get&&r.headers.get("X-Proxy-Refusal");
+    if(refusal==="config") throw new Error(`Your proxy isn't set up (HTTP ${r.status}). Set RDM_BASE and RDM_KEY in its settings.`);
+    if(refusal==="route") throw new Error(`Your proxy doesn't know this request (HTTP ${r.status}). Redeploy proxy/worker.js from the app's repository.`);
+    if(r.status===401||r.status===403) throw new Error(`National Rail refused your proxy's key (HTTP ${r.status}). Check RDM_KEY in the proxy and that you're subscribed.`);
+    if(r.status===404) throw new Error("National Rail feed URL not found through your proxy (HTTP 404). Check RDM_BASE in the proxy.");
+    throw new Error(`National Rail feed error through your proxy (HTTP ${r.status}).`);
   }
   if(r.status===401||r.status===403) throw new Error(`National Rail feed refused the key (HTTP ${r.status}). Check the key and that you're subscribed to this product.`);
   if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
@@ -2387,7 +2389,7 @@ function fillSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
-  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts);
+  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
   $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
   $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });

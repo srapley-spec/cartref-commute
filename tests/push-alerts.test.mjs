@@ -6,7 +6,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { core } from "./core/helpers.mjs";
-import { createApp, closeAll } from "./harness.mjs";
+import { createApp, closeAll, sleep } from "./harness.mjs";
 after(closeAll);
 const require = createRequire(import.meta.url);
 const pushAlerts = require("../src/push-alerts.js");
@@ -24,7 +24,7 @@ function setup({ permission = "default", answer = "granted", settings = { proxyB
   const state = { saved: {}, settings: { ...settings }, followed: route(), sim };
   let existingSub = null;
   const sub = { toJSON: () => ({ endpoint: "https://web.push.apple.com/abc", keys: { p256dh: "P", auth: "A" } }), unsubscribe: async () => { order.push("unsubscribe"); existingSub = null; return true; } };
-  const reg = { pushManager: { getSubscription: async () => existingSub, subscribe: async (o) => { order.push(["subscribe", o.userVisibleOnly, o.applicationServerKey.length]); existingSub = sub; return sub; } } };
+  const reg = { unregister: async () => { order.push("unregister"); return true; }, pushManager: { getSubscription: async () => existingSub, subscribe: async (o) => { order.push(["subscribe", o.userVisibleOnly, o.applicationServerKey.length]); existingSub = sub; return sub; } } };
   const win = {
     setTimeout, clearTimeout, AbortController,
     Notification: supported ? { permission, requestPermission: () => { order.push("permission"); return Promise.resolve(answer); } } : undefined,
@@ -32,7 +32,8 @@ function setup({ permission = "default", answer = "granted", settings = { proxyB
     navigator: supported ? { serviceWorker: { register: async (u) => { order.push(["register", u]); return reg; }, ready: Promise.resolve(reg), getRegistration: async () => reg } } : {},
     fetch: async (url, opts = {}) => {
       const body = opts.body ? JSON.parse(opts.body) : undefined; calls.push({ url, body });
-      if (fail && fail(url)) return new Response(JSON.stringify({ error: "nope" }), { status: 500 });
+      const f = fail && fail(url);
+      if (f) return new Response(JSON.stringify({ error: "nope" }), { status: typeof f === "number" ? f : 500 });
       if (url.endsWith("/push/key")) return new Response(JSON.stringify({ key: "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8" }));
       if (url.endsWith("/push/subscribe")) return new Response(JSON.stringify({ id: "ID1", token: "TOK" }), { status: 201 });
       return new Response(JSON.stringify({ ok: true }));
@@ -128,7 +129,7 @@ test("Alerts off: the proxy forgets the phone and the push subscription is dropp
   assert.equal(await t.a.onSave({ leaveAlerts: true, proxyBase: PROXY, wakeAt: "07:10" }, { leaveAlerts: true, proxyBase: PROXY, wakeAt: "07:10" }), null, "nothing changed");
   await t.a.onSave({ leaveAlerts: true, proxyBase: PROXY }, { proxyBase: PROXY });
   assert.deepEqual(posts(t.calls, "/push/unsubscribe")[0].body, { id: "ID1", token: "TOK" });
-  assert.ok(t.order.includes("unsubscribe"));
+  assert.ok(t.order.includes("unsubscribe")); assert.ok(t.order.includes("unregister"), "the service worker goes too");
   assert.equal(t.state.saved.pushAlerts, undefined); assert.equal(t.statuses.at(-1), "Off.");
 });
 
@@ -146,4 +147,64 @@ test("Page: time-to-leave alerts are off by default, in Settings → Experimenta
   assert.equal(app.c.S().leaveAlerts, true, "the setting is kept");
   assert.equal(app.calls.filter(u => /\/push\//.test(u)).length, 0);
   app.close();
+});
+
+test("Followed journey: retried at a minute, not before; the proxy forgetting the phone (403) stops and says so; a refused plan (400) isn't retried", async () => {
+  let mode = 500;
+  const t = setup({ settings: { proxyBase: PROXY, leaveAlerts: true }, fail: (u) => u.endsWith("/push/plan") && mode });
+  t.state.saved.pushAlerts = { id: "ID1", token: "TOK", planKey: null };
+  const realNow = Date.now;
+  let clock = realNow();
+  Date.now = () => clock;
+  try {
+    await t.a.sync();
+    clock += pushAlerts.RETRY_MS - 1; await t.a.sync();
+    assert.equal(posts(t.calls, "/push/plan").length, 1, "not before a minute");
+    clock += 1; mode = 0; await t.a.sync();
+    assert.equal(posts(t.calls, "/push/plan").length, 2, "at a minute");
+    // 400: the same plan isn't posted again.
+    t.state.followed = route({ id: "f2" }); mode = 400; await t.a.sync(); await t.a.sync();
+    assert.equal(posts(t.calls, "/push/plan").length, 3);
+    // 403: ids dropped, the reason kept for Settings.
+    t.state.followed = route({ id: "f3" }); mode = 403; await t.a.sync();
+    assert.equal(t.state.saved.pushAlerts, undefined);
+    assert.match(t.state.saved.pushAlertsStatus, /no longer knows this phone/);
+    t.state.followed = route({ id: "f4" }); await t.a.sync();
+    assert.equal(posts(t.calls, "/push/plan").length, 4, "nothing more until it's turned on again");
+  } finally { Date.now = realNow; }
+  // Saving with alerts on and no ids subscribes again; so does a new proxy URL.
+  const u = setup({ permission: "granted" });
+  await u.a.onSave({ leaveAlerts: true, proxyBase: PROXY }, { leaveAlerts: true, proxyBase: PROXY });
+  assert.equal(posts(u.calls, "/push/subscribe").length, 1, "no ids: subscribe again");
+  const other = "https://other.example.workers.dev";
+  await u.a.onSave({ leaveAlerts: true, proxyBase: PROXY }, { leaveAlerts: true, proxyBase: other });
+  assert.ok(u.calls.some(c => c.url === other + "/push/subscribe"), "a new proxy: subscribe there");
+});
+
+test("Page: with alerts on, following a journey hands the proxy its plan once; simulated feeds or GPS simulation hand over nothing", async () => {
+  const base = { provider: "demo", followRoute: true, leaveAlerts: true, proxyBase: PROXY };
+  const run = async (simBox) => {
+    const plans = [];
+    const app = await createApp({ settings: base, saved: { pushAlerts: { id: "ID1", token: "TOK", planKey: null } },
+      route: (u, opts) => { if (u === PROXY + "/push/plan") { plans.push(JSON.parse(opts.body)); return new Response(JSON.stringify({ ok: true })); } return undefined; } });
+    if (simBox) {   // simulations are switched on in Settings (they're never restored from storage)
+      app.d.querySelector("#settingsBtn").click(); app.d.querySelector(simBox).checked = true;
+      app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true }));
+      await sleep(100);
+    }
+    const before = plans.length;
+    const btn = app.d.querySelector("#hero .opt [data-follow]") || app.d.querySelector("[data-follow]:not([disabled])");
+    assert.ok(btn, "a followable journey");
+    btn.click();
+    await sleep(50);
+    app.c.render(); app.c.render();
+    await sleep(50);
+    const after = plans.slice(before);
+    app.close();
+    return after;
+  };
+  const real = (await run(null)).filter(p => p.plan);
+  assert.equal(real.length, 1, "once, not on every render");
+  assert.equal(real[0].token, "TOK"); assert.equal(real[0].plan.v, 1);
+  for (const box of ["#s_simulatedFeeds", "#s_simulator"]) assert.deepEqual(await run(box), [], box);
 });

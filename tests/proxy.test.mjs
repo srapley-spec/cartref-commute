@@ -136,3 +136,18 @@ test("Proxy: Service Details by ID with its own key (else the board key), at its
   }, () => new Response("{}", { status: 200 }));
   assert.equal((await worker.fetch(req("/service/X1", { origin: "https://evil.test" }), ENV)).status, 403);
 });
+
+test("Proxy: its own refusals are labelled X-Proxy-Refusal (readable by the page); National Rail's answers are not", async () => {
+  const any = { ...ENV };
+  const label = async (path, env = any) => { const r = await worker.fetch(req(path), env); return [r.status, r.headers.get("X-Proxy-Refusal")]; };
+  assert.deepEqual(await label("/board/KGX/CBG"), [404, "route"]);
+  assert.deepEqual(await label("/board/KGX/LET?offset=999"), [400, "route"]);
+  assert.deepEqual(await label("/service/a%20b"), [404, "route"]);
+  assert.deepEqual(await label("/board/KGX/LET", { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN }), [500, "config"]);
+  assert.deepEqual(await withUpstream(async () => label("/service/X1", { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN }), () => new Response("{}")), [500, "config"]);
+  await withUpstream(async () => {
+    assert.deepEqual(await label("/board/KGX/LET"), [403, null], "National Rail's 403 passed through, unlabelled");
+  }, () => new Response("no", { status: 403 }));
+  const pre = await worker.fetch(req("/board/KGX/LET", { method: "OPTIONS" }), ENV);
+  assert.equal(pre.headers.get("Access-Control-Expose-Headers"), "X-Proxy-Refusal");
+});

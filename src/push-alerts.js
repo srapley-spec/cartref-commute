@@ -10,6 +10,8 @@ const pushAlerts = (() => {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
   };
   const DEFAULT_WAKE = "06:30";
+  /** A failed plan post is tried again no sooner than this. */
+  const RETRY_MS = 60e3;
 
   /**
    * deps: S() settings, saved() → state.saved, save(), core (C), names (station names), morning(settings) → the
@@ -17,7 +19,9 @@ const pushAlerts = (() => {
    * status(text) for Settings.
    */
   function create(deps) {
-    const { S, saved, save, core, names, morning, followed, simulating, win, status } = deps;
+    const { S, saved, save, core, names, morning, followed, simulating, win } = deps;
+    // What alerts last said, kept so Settings shows it when reopened (the dialog closes on Save).
+    const status = (t) => { saved().pushAlertsStatus = t; save(); deps.status(t); };
     const base = (s = S()) => String(s.proxyBase || "").trim().replace(/\/+$/, "");
     const supported = () => !!(win.navigator && win.navigator.serviceWorker && win.PushManager && win.Notification);
     let retryAt = 0;
@@ -28,7 +32,7 @@ const pushAlerts = (() => {
         const r = await win.fetch(base(s) + path, body === undefined ? { signal: ctl.signal }
           : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
         let j = null; try { j = await r.json(); } catch (e) { /* no body */ }
-        if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
+        if (!r.ok) { const e = new Error((j && j.error) || `HTTP ${r.status}`); e.status = r.status; throw e; }
         return j;
       } finally { win.clearTimeout(timer); }
     }
@@ -62,7 +66,7 @@ const pushAlerts = (() => {
       const who = ids();
       delete saved().pushAlerts; save();
       try { if (who) await call("/push/unsubscribe", who, prev); } catch (e) { /* the proxy drops it when the push service says it's gone */ }
-      try { const reg = supported() && (await win.navigator.serviceWorker.getRegistration()); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); } catch (e) { /* nothing to drop */ }
+      try { const reg = supported() && (await win.navigator.serviceWorker.getRegistration()); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); if (reg) await reg.unregister(); } catch (e) { /* nothing to drop */ }
       status("Off.");
     }
     /** Settings saved: start, stop or update (a new wake-up time). Must run inside the Save tap. */
@@ -84,14 +88,23 @@ const pushAlerts = (() => {
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3)]) : "none";
       if (key === saved().pushAlerts.planKey) return null;
       saved().pushAlerts.planKey = key; save();
-      return call("/push/plan", { ...who, plan }, s).catch(() => {
-        if (saved().pushAlerts) { saved().pushAlerts.planKey = null; save(); }
-        retryAt = Date.now() + 60e3;
+      return call("/push/plan", { ...who, plan }, s).catch((e) => {
+        if (!saved().pushAlerts) return;
+        if (e.status === 403) {
+          // The proxy no longer knows this phone (its push subscription expired, or it was removed): say so, and
+          // the next Save in Settings subscribes again.
+          delete saved().pushAlerts; save();
+          status("Alerts stopped: your proxy no longer knows this phone. Open Settings and Save to turn them on again.");
+          return;
+        }
+        if (e.status === 400) return;   // refused for good (e.g. a station the proxy doesn't allow): not retried
+        saved().pushAlerts.planKey = null; save();
+        retryAt = Date.now() + RETRY_MS;
       });
     }
     const test = () => (ids() ? call("/push/test", ids()).then(() => status("Test alert sent."), (e) => status(`Couldn't send a test alert: ${e.message}`)) : Promise.resolve(status("Alerts are off.")));
     return { enable, disable, onSave, sync, test, DEFAULT_WAKE };
   }
-  return { create, DEFAULT_WAKE };
+  return { create, DEFAULT_WAKE, RETRY_MS };
 })();
 if (typeof module !== "undefined") module.exports = pushAlerts;

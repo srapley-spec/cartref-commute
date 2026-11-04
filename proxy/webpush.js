@@ -94,7 +94,7 @@ export async function sendPush(subscription, message, vapid, nowMs, ttlSec = 15 
   const body = await encryptPayload(enc.encode(JSON.stringify(message)), subscription.keys);
   let r;
   try {
-    r = await fetch(subscription.endpoint, { method: "POST", body, signal: AbortSignal.timeout(10000), headers: {
+    r = await fetch(subscription.endpoint, { method: "POST", body, redirect: "manual", signal: AbortSignal.timeout(10000), headers: {
       Authorization: await vapidAuth(subscription.endpoint, vapid, nowMs), "Content-Encoding": "aes128gcm",
       "Content-Type": "application/octet-stream", TTL: String(ttlSec), Urgency: "high" } });
   } catch (e) { return { ok: false, gone: false, status: 0 }; }

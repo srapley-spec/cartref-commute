@@ -18,6 +18,8 @@ export const LEAVE_ALERT_GRACE_MS = 60e3;
 export const MORNING_WINDOW_MIN = 120;
 /** A wake-up check missed by the scheduler is still sent up to this long after its time, never later. */
 export const MORNING_LATE_MS = 10 * 60e3;
+/** A train "Delayed" with no estimate, due up to this long before the check, may still be waiting: it's warned. */
+export const MORNING_STILL_WAITING_MS = 30 * 60e3;
 
 export interface LeaveAlertPlan {
   v: 1;
@@ -30,7 +32,11 @@ export interface LeaveAlertPlan {
   /** "the 18:48 from King's Cross" */
   train: string;
 }
-export interface LeaveAlertState { soonSent?: boolean; lastLeaveBy?: number; cancelledSent?: boolean; unknownSent?: boolean; }
+export interface LeaveAlertState {
+  soonSent?: boolean; lastLeaveBy?: number; cancelledSent?: boolean; unknownSent?: boolean;
+  /** The last live expected departure seen, and how late it was: used when there's no fresh estimate. */
+  lastDep?: number; lastLate?: number;
+}
 export interface PushNotice { kind: "soon" | "changed" | "cancelled" | "unknown" | "morning"; title: string; body: string; tag: string; }
 
 /**
@@ -38,7 +44,8 @@ export interface PushNotice { kind: "soon" | "changed" | "cancelled" | "unknown"
  * leave for), only with a Leave by and a train. `names` gives station names (profile data).
  */
 export function leaveAlertPlan(route: FollowRoute | null | undefined, names: Record<string, string>): LeaveAlertPlan | null {
-  if (!route || route.phase !== "before-train" || route.incident) return null;
+  // "Delayed, no estimate" keeps the plan (the proxy says so and keeps watching); cancelled, missed or boarding ends it.
+  if (!route || route.phase !== "before-train" || (route.incident && route.incident !== "unknown")) return null;
   const o = route.option, t = o && o.train;
   if (!t || !Number.isFinite(t.dep) || t.cancelled) return null;
   const leaveBy = Number.isFinite(o.leaveBy) ? (o.leaveBy as number) : o.leave;
@@ -64,11 +71,13 @@ export const leaveAlertWatching = (plan: LeaveAlertPlan, now: number): boolean =
   now >= plan.leaveBy - LEAVE_ALERT_WATCH_MS && !leaveAlertExpired(plan, now);
 export const leaveAlertExpired = (plan: LeaveAlertPlan, now: number): boolean => now > plan.dep + LEAVE_ALERT_MAX_MS;
 
-const lateText = (t: Train) => (t.depLate >= 1 ? `${t.depLate} min late` : "on time");
+const lateText = (late: number) => (late >= 1 ? `${late} min late` : "on time");
 
 /**
  * One scheduler step for a plan. `observed` is the plan's train on a fresh board (null: not found or no board).
  * Returns at most one notice, the new state, and whether the plan is finished.
+ * Only evidence moves Leave by: with no fresh estimate (board failed, train not on it, "Delayed"), the last live
+ * departure seen stands, so a blip never ends the plan, never says "earlier", never undoes a "later".
  */
 export function leaveAlertStep(plan: LeaveAlertPlan, state: LeaveAlertState, observed: Train | null | undefined, now: number):
   { notice: PushNotice | null; state: LeaveAlertState; done: boolean } {
@@ -80,11 +89,13 @@ export function leaveAlertStep(plan: LeaveAlertPlan, state: LeaveAlertState, obs
     return { notice: { kind: "cancelled", tag, title: `${plan.std} cancelled`, body: `${cap(plan.train)} is cancelled. Open the app for another train.` }, state: s, done: true };
   }
   const live = observed && !observed.depUnknown && Number.isFinite(observed.dep) ? observed : null;
-  const leaveBy = (live ? live.dep : plan.dep) - plan.leadMs;
-  const left = leaveBy - now;
-  if (now > leaveBy + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
-  const status = live ? ` (${lateText(live)})` : observed ? " (delayed, no estimate)" : " (no live times: timetable)";
+  if (live) { s.lastDep = live.dep; s.lastLate = live.depLate || 0; }
+  const dep = live ? live.dep : Number.isFinite(s.lastDep) ? (s.lastDep as number) : plan.dep;
+  const leaveBy = dep - plan.leadMs, left = leaveBy - now;
+  const known = live || Number.isFinite(s.lastDep) ? ` (${lateText(s.lastLate || 0)})` : "";
+  const status = live ? known : observed ? " (delayed, no estimate)" : known ? `${known.slice(0, -1)}, last known)` : " (no live times: timetable)";
   if (!s.soonSent) {
+    if (now > leaveBy + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
     if (left > LEAVE_ALERT_SOON_MS) return { notice: null, state: s, done: false };
     s.soonSent = true; s.lastLeaveBy = leaveBy; if (observed && observed.depUnknown) s.unknownSent = true;
     const m = Math.max(0, mins(left));
@@ -95,12 +106,15 @@ export function leaveAlertStep(plan: LeaveAlertPlan, state: LeaveAlertState, obs
     s.unknownSent = true;
     return { notice: { kind: "unknown", tag, title: `${plan.std} delayed`, body: `${cap(plan.train)} is delayed with no estimate. Open the app before you go.` }, state: s, done: false };
   }
-  if (s.lastLeaveBy != null && Math.abs(leaveBy - s.lastLeaveBy) >= LEAVE_ALERT_CHANGE_MS) {
+  // Moves are said only on a fresh estimate, and before the plan can end: a train back on time after a "later"
+  // alert must still hear "Leave now", even when the new Leave by has already passed.
+  if (live && s.lastLeaveBy != null && Math.abs(leaveBy - s.lastLeaveBy) >= LEAVE_ALERT_CHANGE_MS) {
     const earlier = leaveBy < s.lastLeaveBy;
     s.lastLeaveBy = leaveBy;
-    return { notice: { kind: "changed", tag, title: `${earlier ? "Leave earlier" : "Leave later"} · by ${hhmm(leaveBy)}`,
-      body: `${cap(plan.train)} is now expected ${hhmm(live ? live.dep : plan.dep)}${status}.` }, state: s, done: false };
+    const title = earlier && leaveBy <= now ? `Leave now · by ${hhmm(leaveBy)}` : `${earlier ? "Leave earlier" : "Leave later"} · by ${hhmm(leaveBy)}`;
+    return { notice: { kind: "changed", tag, title, body: `${cap(plan.train)} is now expected ${hhmm(live.dep)}${status}.` }, state: s, done: false };
   }
+  if (now > leaveBy + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
   return { notice: null, state: s, done: false };
 }
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
@@ -138,7 +152,8 @@ export function morningAlert(cfg: MorningConfig, boards: Record<string, Board | 
     title: "Couldn't check your morning trains", body: "The live National Rail feed didn't answer. Check the app before you go." };
   const seen = new Set<string>(), hit: string[] = [];
   const trains = cfg.to.flatMap(to => ((boards[`${cfg.from}-${to}`] || { services: [] }).services || []).map(t => ({ t, to })))
-    .filter(x => x.t.dep >= now && x.t.dep <= now + MORNING_WINDOW_MIN * 60e3).sort((a, b) => a.t.dep - b.t.dep);
+    .filter(x => x.t.dep <= now + MORNING_WINDOW_MIN * 60e3 && (x.t.dep >= now || ((x.t.depUnknown || x.t.arrUnknown) && !x.t.cancelled && x.t.dep >= now - MORNING_STILL_WAITING_MS)))
+    .sort((a, b) => a.t.dep - b.t.dep);
   for (const { t, to } of trains) {
     const id = t.serviceId || `${t.std}|${t.operator}`;
     const name = cfg.names[to] || to, late = Math.max(t.depLate || 0, t.arrLate || 0);

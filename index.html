@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:29 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 13:37 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1108,6 +1108,7 @@ var CommuteCore = (() => {
     LEAVE_ALERT_SOON_MS: () => LEAVE_ALERT_SOON_MS,
     LEAVE_ALERT_WATCH_MS: () => LEAVE_ALERT_WATCH_MS,
     MORNING_LATE_MS: () => MORNING_LATE_MS,
+    MORNING_STILL_WAITING_MS: () => MORNING_STILL_WAITING_MS,
     MORNING_WINDOW_MIN: () => MORNING_WINDOW_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
@@ -5249,8 +5250,9 @@ var CommuteCore = (() => {
   var LEAVE_ALERT_GRACE_MS = 6e4;
   var MORNING_WINDOW_MIN = 120;
   var MORNING_LATE_MS = 10 * 6e4;
+  var MORNING_STILL_WAITING_MS = 30 * 6e4;
   function leaveAlertPlan(route, names) {
-    if (!route || route.phase !== "before-train" || route.incident) return null;
+    if (!route || route.phase !== "before-train" || route.incident && route.incident !== "unknown") return null;
     const o = route.option, t2 = o && o.train;
     if (!t2 || !Number.isFinite(t2.dep) || t2.cancelled) return null;
     const leaveBy2 = Number.isFinite(o.leaveBy) ? o.leaveBy : o.leave;
@@ -5278,7 +5280,7 @@ var CommuteCore = (() => {
   var LEAVE_ALERT_MAX_MS = 3 * 36e5;
   var leaveAlertWatching = (plan, now) => now >= plan.leaveBy - LEAVE_ALERT_WATCH_MS && !leaveAlertExpired(plan, now);
   var leaveAlertExpired = (plan, now) => now > plan.dep + LEAVE_ALERT_MAX_MS;
-  var lateText = (t2) => t2.depLate >= 1 ? `${t2.depLate} min late` : "on time";
+  var lateText = (late) => late >= 1 ? `${late} min late` : "on time";
   function leaveAlertStep(plan, state, observed, now) {
     const s = { ...state };
     const tag = `leave-${plan.followId}`;
@@ -5288,11 +5290,16 @@ var CommuteCore = (() => {
       return { notice: { kind: "cancelled", tag, title: `${plan.std} cancelled`, body: `${cap(plan.train)} is cancelled. Open the app for another train.` }, state: s, done: true };
     }
     const live = observed && !observed.depUnknown && Number.isFinite(observed.dep) ? observed : null;
-    const leaveBy2 = (live ? live.dep : plan.dep) - plan.leadMs;
-    const left = leaveBy2 - now;
-    if (now > leaveBy2 + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
-    const status = live ? ` (${lateText(live)})` : observed ? " (delayed, no estimate)" : " (no live times: timetable)";
+    if (live) {
+      s.lastDep = live.dep;
+      s.lastLate = live.depLate || 0;
+    }
+    const dep = live ? live.dep : Number.isFinite(s.lastDep) ? s.lastDep : plan.dep;
+    const leaveBy2 = dep - plan.leadMs, left = leaveBy2 - now;
+    const known = live || Number.isFinite(s.lastDep) ? ` (${lateText(s.lastLate || 0)})` : "";
+    const status = live ? known : observed ? " (delayed, no estimate)" : known ? `${known.slice(0, -1)}, last known)` : " (no live times: timetable)";
     if (!s.soonSent) {
+      if (now > leaveBy2 + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
       if (left > LEAVE_ALERT_SOON_MS) return { notice: null, state: s, done: false };
       s.soonSent = true;
       s.lastLeaveBy = leaveBy2;
@@ -5309,16 +5316,13 @@ var CommuteCore = (() => {
       s.unknownSent = true;
       return { notice: { kind: "unknown", tag, title: `${plan.std} delayed`, body: `${cap(plan.train)} is delayed with no estimate. Open the app before you go.` }, state: s, done: false };
     }
-    if (s.lastLeaveBy != null && Math.abs(leaveBy2 - s.lastLeaveBy) >= LEAVE_ALERT_CHANGE_MS) {
+    if (live && s.lastLeaveBy != null && Math.abs(leaveBy2 - s.lastLeaveBy) >= LEAVE_ALERT_CHANGE_MS) {
       const earlier = leaveBy2 < s.lastLeaveBy;
       s.lastLeaveBy = leaveBy2;
-      return { notice: {
-        kind: "changed",
-        tag,
-        title: `${earlier ? "Leave earlier" : "Leave later"} \xB7 by ${hhmm(leaveBy2)}`,
-        body: `${cap(plan.train)} is now expected ${hhmm(live ? live.dep : plan.dep)}${status}.`
-      }, state: s, done: false };
+      const title = earlier && leaveBy2 <= now ? `Leave now \xB7 by ${hhmm(leaveBy2)}` : `${earlier ? "Leave earlier" : "Leave later"} \xB7 by ${hhmm(leaveBy2)}`;
+      return { notice: { kind: "changed", tag, title, body: `${cap(plan.train)} is now expected ${hhmm(live.dep)}${status}.` }, state: s, done: false };
     }
+    if (now > leaveBy2 + LEAVE_ALERT_GRACE_MS) return { notice: null, state: s, done: true };
     return { notice: null, state: s, done: false };
   }
   var cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
@@ -5347,7 +5351,7 @@ var CommuteCore = (() => {
       body: "The live National Rail feed didn't answer. Check the app before you go."
     };
     const seen = /* @__PURE__ */ new Set(), hit = [];
-    const trains = cfg.to.flatMap((to) => ((boards[`${cfg.from}-${to}`] || { services: [] }).services || []).map((t2) => ({ t: t2, to }))).filter((x) => x.t.dep >= now && x.t.dep <= now + MORNING_WINDOW_MIN * 6e4).sort((a, b) => a.t.dep - b.t.dep);
+    const trains = cfg.to.flatMap((to) => ((boards[`${cfg.from}-${to}`] || { services: [] }).services || []).map((t2) => ({ t: t2, to }))).filter((x) => x.t.dep <= now + MORNING_WINDOW_MIN * 6e4 && (x.t.dep >= now || (x.t.depUnknown || x.t.arrUnknown) && !x.t.cancelled && x.t.dep >= now - MORNING_STILL_WAITING_MS)).sort((a, b) => a.t.dep - b.t.dep);
     for (const { t: t2, to } of trains) {
       const id = t2.serviceId || `${t2.std}|${t2.operator}`;
       const name = cfg.names[to] || to, late = Math.max(t2.depLate || 0, t2.arrLate || 0);
@@ -5650,14 +5654,16 @@ async function fetchBoard(from,to,offsetMin){
   const {url,headers}=boardUrl(from,to,offsetMin);
   let r;
   try{ r=await fetchT(url,{headers}); }
-  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : S().provider==="proxy" ? "Couldn't reach your proxy. Check its URL in Settings." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
+  catch(e){ throw new Error(e.timeout ? "The National Rail feed didn't respond in time." : !S().simulatedFeeds && S().provider==="proxy" ? "Couldn't reach your proxy. Check its URL in Settings, and that its ALLOW_ORIGIN is this page's address." : "Couldn't reach the National Rail feed. The provider may not allow calls from a browser; use the proxy option in Settings."); }
   if(!S().simulatedFeeds && S().provider==="proxy" && !r.ok){
-    // Your own proxy (proxy/worker.js): say what to fix there, not on Rail Data Marketplace's product page.
-    if(r.status===403) throw new Error("Your proxy refused this page (HTTP 403). Its ALLOW_ORIGIN must be this page's address.");
-    if(r.status===401) throw new Error("Your proxy's National Rail key was refused (HTTP 401). Check RDM_KEY in the proxy and that you're subscribed.");
-    if(r.status===404||r.status===400) throw new Error(`Your proxy doesn't know this request (HTTP ${r.status}). Redeploy proxy/worker.js from the app's repository.`);
-    if(r.status===500) throw new Error("Your proxy isn't set up (HTTP 500). Set RDM_BASE and RDM_KEY in its settings.");
-    throw new Error(`Your proxy or the National Rail feed failed (HTTP ${r.status}).`);
+    // Your own proxy (proxy/worker.js). Its own refusals are labelled (X-Proxy-Refusal); anything else is National
+    // Rail's answer passed through. (A wrong ALLOW_ORIGIN can't be seen here: the browser hides that reply.)
+    const refusal=r.headers&&r.headers.get&&r.headers.get("X-Proxy-Refusal");
+    if(refusal==="config") throw new Error(`Your proxy isn't set up (HTTP ${r.status}). Set RDM_BASE and RDM_KEY in its settings.`);
+    if(refusal==="route") throw new Error(`Your proxy doesn't know this request (HTTP ${r.status}). Redeploy proxy/worker.js from the app's repository.`);
+    if(r.status===401||r.status===403) throw new Error(`National Rail refused your proxy's key (HTTP ${r.status}). Check RDM_KEY in the proxy and that you're subscribed.`);
+    if(r.status===404) throw new Error("National Rail feed URL not found through your proxy (HTTP 404). Check RDM_BASE in the proxy.");
+    throw new Error(`National Rail feed error through your proxy (HTTP ${r.status}).`);
   }
   if(r.status===401||r.status===403) throw new Error(`National Rail feed refused the key (HTTP ${r.status}). Check the key and that you're subscribed to this product.`);
   if(r.status===404) throw new Error("National Rail feed URL not found (HTTP 404). Copy the endpoint base URL from your Rail Data Marketplace product page.");
@@ -9829,6 +9835,8 @@ const pushAlerts = (() => {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
   };
   const DEFAULT_WAKE = "06:30";
+  /** A failed plan post is tried again no sooner than this. */
+  const RETRY_MS = 60e3;
 
   /**
    * deps: S() settings, saved() → state.saved, save(), core (C), names (station names), morning(settings) → the
@@ -9836,7 +9844,9 @@ const pushAlerts = (() => {
    * status(text) for Settings.
    */
   function create(deps) {
-    const { S, saved, save, core, names, morning, followed, simulating, win, status } = deps;
+    const { S, saved, save, core, names, morning, followed, simulating, win } = deps;
+    // What alerts last said, kept so Settings shows it when reopened (the dialog closes on Save).
+    const status = (t) => { saved().pushAlertsStatus = t; save(); deps.status(t); };
     const base = (s = S()) => String(s.proxyBase || "").trim().replace(/\/+$/, "");
     const supported = () => !!(win.navigator && win.navigator.serviceWorker && win.PushManager && win.Notification);
     let retryAt = 0;
@@ -9847,7 +9857,7 @@ const pushAlerts = (() => {
         const r = await win.fetch(base(s) + path, body === undefined ? { signal: ctl.signal }
           : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
         let j = null; try { j = await r.json(); } catch (e) { /* no body */ }
-        if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
+        if (!r.ok) { const e = new Error((j && j.error) || `HTTP ${r.status}`); e.status = r.status; throw e; }
         return j;
       } finally { win.clearTimeout(timer); }
     }
@@ -9881,7 +9891,7 @@ const pushAlerts = (() => {
       const who = ids();
       delete saved().pushAlerts; save();
       try { if (who) await call("/push/unsubscribe", who, prev); } catch (e) { /* the proxy drops it when the push service says it's gone */ }
-      try { const reg = supported() && (await win.navigator.serviceWorker.getRegistration()); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); } catch (e) { /* nothing to drop */ }
+      try { const reg = supported() && (await win.navigator.serviceWorker.getRegistration()); const sub = reg && (await reg.pushManager.getSubscription()); if (sub) await sub.unsubscribe(); if (reg) await reg.unregister(); } catch (e) { /* nothing to drop */ }
       status("Off.");
     }
     /** Settings saved: start, stop or update (a new wake-up time). Must run inside the Save tap. */
@@ -9903,15 +9913,24 @@ const pushAlerts = (() => {
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3)]) : "none";
       if (key === saved().pushAlerts.planKey) return null;
       saved().pushAlerts.planKey = key; save();
-      return call("/push/plan", { ...who, plan }, s).catch(() => {
-        if (saved().pushAlerts) { saved().pushAlerts.planKey = null; save(); }
-        retryAt = Date.now() + 60e3;
+      return call("/push/plan", { ...who, plan }, s).catch((e) => {
+        if (!saved().pushAlerts) return;
+        if (e.status === 403) {
+          // The proxy no longer knows this phone (its push subscription expired, or it was removed): say so, and
+          // the next Save in Settings subscribes again.
+          delete saved().pushAlerts; save();
+          status("Alerts stopped: your proxy no longer knows this phone. Open Settings and Save to turn them on again.");
+          return;
+        }
+        if (e.status === 400) return;   // refused for good (e.g. a station the proxy doesn't allow): not retried
+        saved().pushAlerts.planKey = null; save();
+        retryAt = Date.now() + RETRY_MS;
       });
     }
     const test = () => (ids() ? call("/push/test", ids()).then(() => status("Test alert sent."), (e) => status(`Couldn't send a test alert: ${e.message}`)) : Promise.resolve(status("Alerts are off.")));
     return { enable, disable, onSave, sync, test, DEFAULT_WAKE };
   }
-  return { create, DEFAULT_WAKE };
+  return { create, DEFAULT_WAKE, RETRY_MS };
 })();
 
 
@@ -9957,7 +9976,7 @@ function fillSettings(){
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
-  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts);
+  $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
   $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
   $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });

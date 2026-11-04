@@ -107,7 +107,7 @@ test("Simulated feeds with the proxy source: Service Details stay synthetic, not
 
 test("Rail Data Marketplace Service Details without their own key or base: the board key and the product's default base", async () => {
   const seen = [];
-  const app = await createApp({ geo: AT_OFFICE, settings: { provider: "rdm", rdmKey: "board-key", rdmBase: "https://darwin.test/LDBWS/api/20220120" },
+  const app = await createApp({ geo: AT_OFFICE, settings: { provider: "rdm", rdmKey: "board-key", rdmBase: "https://darwin.test/LDBWS/api/20220120", rdmSdBase: "" },
     route: (u, opts) => { if (/raildata\.org\.uk/.test(u)) { seen.push({ u, opts }); return json({ subsequentCallingPoints: [] }); } return /darwin\.test/.test(u) ? json({ trainServices: [] }) : undefined; } });
   await app.c.fetchServiceDetails("X1");
   assert.equal(seen[0].u, "https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120/GetServiceDetails/X1");
@@ -115,11 +115,19 @@ test("Rail Data Marketplace Service Details without their own key or base: the b
   app.close();
 });
 
-test("Proxy source: a board refused by the proxy says what to fix in the proxy (origin, key, redeploy, setup)", async () => {
-  for (const [status, re] of [[403, /ALLOW_ORIGIN/], [401, /RDM_KEY/], [404, /Redeploy proxy\/worker\.js/], [400, /Redeploy/], [500, /Set RDM_BASE and RDM_KEY/], [502, /proxy or the National Rail feed failed \(HTTP 502\)/]]) {
-    const app = await createApp({ geo: AT_OFFICE, settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => (u.startsWith(PROXY) ? json({}, status) : undefined) });
-    assert.match(app.banners().join(" "), re, String(status));
+test("Proxy source: a board refused by the proxy says what to fix in the proxy; National Rail's own answers say so", async () => {
+  const reply = (status, refusal) => new Response("{}", { status, headers: refusal ? { "X-Proxy-Refusal": refusal } : {} });
+  for (const [status, refusal, re] of [[500, "config", /Your proxy isn't set up \(HTTP 500\)\. Set RDM_BASE and RDM_KEY/], [404, "route", /Redeploy proxy\/worker\.js/], [400, "route", /Redeploy/],
+    [401, null, /National Rail refused your proxy's key \(HTTP 401\)\. Check RDM_KEY/], [403, null, /National Rail refused your proxy's key \(HTTP 403\)/],
+    [404, null, /not found through your proxy \(HTTP 404\)\. Check RDM_BASE/], [500, null, /National Rail feed error through your proxy \(HTTP 500\)/]]) {
+    const app = await createApp({ geo: AT_OFFICE, settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => (u.startsWith(PROXY) ? reply(status, refusal) : undefined) });
+    assert.match(app.banners().join(" "), re, `${status} ${refusal}`);
     assert.doesNotMatch(app.banners().join(" "), /product page/, "not Rail Data Marketplace's wording");
     app.close();
   }
+  // Unreachable (or a wrong ALLOW_ORIGIN, which the browser hides as a network error).
+  const down = await createApp({ geo: AT_OFFICE, settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => { if (u.startsWith(PROXY)) throw new TypeError("Failed to fetch"); return undefined; } });
+  assert.match(down.banners().join(" "), /Couldn't reach your proxy\. Check its URL in Settings, and that its ALLOW_ORIGIN/);
+  down.close();
 });
+

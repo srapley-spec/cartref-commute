@@ -15,6 +15,16 @@ import * as C from "../dist/core.mjs";
 import { b64u, sendPush, validPushEndpoint } from "./webpush.js";
 
 const MAX_PHONES = 10;
+/** /push/plan accepts one change per phone this often. */
+export const PLAN_MIN_GAP_MS = 10e3;
+/** A subscription's keys must be a real P-256 point and a 16-byte auth secret, or encryption would fail at send time. */
+async function validKeys(keys) {
+  try {
+    if (b64u.decode(keys.auth).length !== 16) return false;
+    await crypto.subtle.importKey("raw", b64u.decode(keys.p256dh), { name: "ECDH", namedCurve: "P-256" }, false, []);
+    return true;
+  } catch (e) { return false; }
+}
 const CRS = /^[A-Z]{3}$/;
 const json = (body, status, cors) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -81,7 +91,7 @@ export async function pushRoute(request, env, cors, url, allowed) {
 
   if (path === "/push/subscribe") {
     const s = b.subscription;
-    if (!s || !validPushEndpoint(s.endpoint) || !s.keys || !str(s.keys.p256dh, 200) || !str(s.keys.auth, 100)) return json({ error: "Bad subscription" }, 400, cors);
+    if (!s || !validPushEndpoint(s.endpoint) || !s.keys || !str(s.keys.p256dh, 200) || !str(s.keys.auth, 100) || !(await validKeys(s.keys))) return json({ error: "Bad subscription" }, 400, cors);
     const sub = { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } };
     const morning = cleanMorning(b.morning, env, allowed);
     const existing = b.id ? await phone(env, b) : null;
@@ -99,16 +109,20 @@ export async function pushRoute(request, env, cors, url, allowed) {
   const rec = await phone(env, b);
   if (!rec) return json({ error: "Unknown phone" }, 403, cors);
   if (path === "/push/plan") {
-    if (b.plan == null) { await env.PUSH.put(`sub:${rec.id}`, JSON.stringify({ ...rec, plan: null, planState: null })); return json({ ok: true }, 200, cors); }
+    if (b.plan == null) { if (rec.plan) await env.PUSH.put(`sub:${rec.id}`, JSON.stringify({ ...rec, plan: null, planState: null, planAt: now })); return json({ ok: true }, 200, cors); }
+    // The page posts only on a change (about once a minute at most); anything faster is refused, which bounds KV writes.
+    if (rec.planAt && now - rec.planAt < PLAN_MIN_GAP_MS && now >= rec.planAt) return json({ error: "Too soon" }, 429, cors);
     const plan = cleanPlan(b.plan, env, allowed, now);
     if (!plan) return json({ error: "Bad plan" }, 400, cors);
     // The same followed journey keeps what's already been sent; a new one starts again.
     const keep = rec.plan && rec.plan.followId === plan.followId && rec.plan.std === plan.std && rec.plan.from === plan.from;
-    await env.PUSH.put(`sub:${rec.id}`, JSON.stringify({ ...rec, plan, planState: keep ? rec.planState || {} : {} }));
+    await env.PUSH.put(`sub:${rec.id}`, JSON.stringify({ ...rec, plan, planState: keep ? rec.planState || {} : {}, planAt: now }));
     return json({ ok: true }, 200, cors);
   }
   if (path === "/push/test") {
-    const r = await sendPush(rec.sub, { title: "Alerts are on", body: "You'll hear from Commute before Leave by, and on a disrupted morning.", tag: "test" }, vapid(env), now);
+    let r;
+    try { r = await sendPush(rec.sub, { title: "Alerts are on", body: "You'll hear from Commute before Leave by, and on a disrupted morning.", tag: "test" }, vapid(env), now); }
+    catch (e) { r = { ok: false, status: 0 }; }
     return json({ ok: r.ok, status: r.status }, r.ok ? 200 : 502, cors);
   }
   // unsubscribe
@@ -134,47 +148,59 @@ const shiftPlan = (p, d) => ({ ...p, dep: p.dep + d, leaveBy: p.leaveBy + d });
 const shiftState = (s, d) => (s && s.lastLeaveBy != null ? { ...s, lastLeaveBy: s.lastLeaveBy + d } : { ...(s || {}) });
 
 /**
- * One scheduler run (every minute). Returns what was sent, for tests and logs. Writes to KV only when something
- * changed (KV's free tier allows 1,000 writes a day).
+ * One scheduler run (every minute). Returns what was sent, for tests and logs.
+ * Per phone: work out the notices and the new state, write the state first, then send. If the write fails nothing is
+ * sent (a notice whose "sent" can't be recorded would repeat every minute). One phone's failure never stops the rest.
+ * KV is written only when something changed (KV's free tier allows 1,000 writes a day). The write re-reads the record
+ * and keeps a plan or wake-up time the page changed meanwhile.
  */
 export async function runAlerts(env, now) {
   if (!env.PUSH || !env.VAPID_PRIVATE_KEY) return [];
   const d = londonShift(now), lnow = now + d, sent = [];
   const ids = (await env.PUSH.get("subs", "json")) || [];
   for (const id of ids) {
-    const rec = await env.PUSH.get(`sub:${id}`, "json");
-    if (!rec) continue;
-    let next = rec, changed = false;
-    const send = async notice => {
-      const r = await sendPush(rec.sub, notice, vapid(env), now);
-      sent.push({ id, notice, status: r.status });
-      if (r.gone) { next = null; changed = true; }
-    };
-    if (rec.plan) {
-      const plan = shiftPlan(rec.plan, d);
-      if (C.leaveAlertExpired(plan, lnow)) { next = { ...next, plan: null, planState: null }; changed = true; }
-      else if (C.leaveAlertWatching(plan, lnow)) {
-        const b = await board(env, plan.from, plan.to, lnow);
-        const step = C.leaveAlertStep(plan, shiftState(rec.planState, d), b ? C.findPlannedTrain(plan, b) : null, lnow);
-        if (step.notice) await send(step.notice);
-        if (next) {
+    try {
+      const rec = await env.PUSH.get(`sub:${id}`, "json");
+      if (!rec) continue;
+      const notices = [], upd = {};
+      if (rec.plan) {
+        const plan = shiftPlan(rec.plan, d);
+        if (C.leaveAlertExpired(plan, lnow)) { upd.plan = null; upd.planState = null; }
+        else if (C.leaveAlertWatching(plan, lnow)) {
+          const b = await board(env, plan.from, plan.to, lnow);
+          const step = C.leaveAlertStep(plan, shiftState(rec.planState, d), b ? C.findPlannedTrain(plan, b) : null, lnow);
+          if (step.notice) notices.push(step.notice);
           const state = shiftState(step.state, -d);
-          if (step.done) { next = { ...next, plan: null, planState: null }; changed = true; }
-          else if (JSON.stringify(state) !== JSON.stringify(rec.planState || {})) { next = { ...next, planState: state }; changed = true; }
+          if (step.done) { upd.plan = null; upd.planState = null; }
+          else if (JSON.stringify(state) !== JSON.stringify(rec.planState || {})) upd.planState = state;
         }
       }
-    }
-    if (next && C.morningDue(rec.morning, lnow, rec.morningLast)) {
-      const m = rec.morning, boards = {};
-      for (const to of m.to) boards[`${m.from}-${to}`] = await board(env, m.from, to, lnow);
-      const notice = C.morningAlert(m, boards, lnow);
-      next = { ...next, morningLast: C.localMinute(lnow).date }; changed = true;
-      if (notice) await send(notice);
-    }
-    if (changed) {
-      if (next) await env.PUSH.put(`sub:${id}`, JSON.stringify(next));
-      else { await env.PUSH.delete(`sub:${id}`); await env.PUSH.put("subs", JSON.stringify(((await env.PUSH.get("subs", "json")) || []).filter(x => x !== id))); }
-    }
+      if (C.morningDue(rec.morning, lnow, rec.morningLast)) {
+        const m = rec.morning, boards = {};
+        for (const to of m.to) boards[`${m.from}-${to}`] = await board(env, m.from, to, lnow);
+        const notice = C.morningAlert(m, boards, lnow);
+        upd.morningLast = C.localMinute(lnow).date;
+        if (notice) notices.push(notice);
+      }
+      if (Object.keys(upd).length) {
+        const fresh = await env.PUSH.get(`sub:${id}`, "json");
+        if (!fresh) continue;
+        const samePlan = !!fresh.plan === !!rec.plan && (!rec.plan || (fresh.plan.followId === rec.plan.followId && fresh.plan.std === rec.plan.std && fresh.planAt === rec.planAt));
+        const merged = { ...fresh, ...(upd.morningLast ? { morningLast: upd.morningLast } : {}) };
+        if (samePlan && "plan" in upd) { merged.plan = upd.plan; merged.planState = upd.planState; }
+        else if (samePlan && "planState" in upd) merged.planState = upd.planState;
+        await env.PUSH.put(`sub:${id}`, JSON.stringify(merged));
+      }
+      for (const notice of notices) {
+        const r = await sendPush(rec.sub, notice, vapid(env), now);
+        sent.push({ id, notice, status: r.status });
+        if (r.gone) {
+          await env.PUSH.delete(`sub:${id}`);
+          await env.PUSH.put("subs", JSON.stringify(((await env.PUSH.get("subs", "json")) || []).filter(x => x !== id)));
+          break;
+        }
+      }
+    } catch (e) { sent.push({ id, error: String(e && e.message || e) }); }
   }
   return sent;
 }

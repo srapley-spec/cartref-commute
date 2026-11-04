@@ -136,3 +136,65 @@ test("Wake-up warning: when no board answered, it says it couldn't check (silenc
   // One board is enough to judge.
   assert.equal(core.morningAlert(MORNING, { "LET-KGX": { services: [], msgs: [] }, "LET-ZFD": null, "LET-STP": null }, at(DAY, "06:30")), null);
 });
+
+test("Leave alert: no fresh estimate (board failed, train missing, \"Delayed\") keeps the last live departure: no silent end, no flip-flop", () => {
+  const plan = core.leaveAlertPlan(route(), NAMES);
+  // S1: the train goes 20 min late before any alert (real Leave by 18:42); one failed board at 18:30 must not end it.
+  let r = core.leaveAlertStep(plan, {}, gn({ dep: dep + 20 * MIN, depLate: 20 }), at(DAY, "18:29"));
+  assert.equal(r.notice, null); assert.equal(r.done, false);
+  r = core.leaveAlertStep(plan, r.state, null, at(DAY, "18:30"));
+  assert.equal(r.done, false, "a blip doesn't end the plan");
+  r = core.leaveAlertStep(plan, r.state, null, at(DAY, "18:37"));
+  assert.equal(r.notice.title, "Leave in 5 min · by 18:42"); assert.equal(r.notice.body, "For the 18:48 from King's Cross (20 min late, last known).");
+  // S3: alerted, then 5 min late (later), then a board blip: no "earlier", and no "later" again after it.
+  let st = {};
+  const step = (t, obs) => { const x = core.leaveAlertStep(plan, st, obs, at(DAY, t)); st = x.state; return x; };
+  assert.equal(step("18:17", gn()).notice.kind, "soon");
+  assert.equal(step("18:18", gn({ dep: dep + 5 * MIN, depLate: 5 })).notice.title, "Leave later · by 18:27");
+  assert.equal(step("18:21", null).notice, null, "no Leave earlier on a blip");
+  assert.equal(step("18:22", gn({ dep: dep + 5 * MIN, depLate: 5 })).notice, null, "and no second Leave later");
+  // S3b: a blip after the planned Leave by doesn't end the plan; a later cancellation is still said.
+  const b = step("18:24", null);
+  assert.equal(b.done, false);
+  assert.equal(step("18:25", gn({ cancelled: true })).notice.kind, "cancelled");
+  // S4/S5: 8 min late, then "Delayed": said once, Leave by stays 18:30 (not back to 18:22), plan not ended.
+  st = { soonSent: true, lastLeaveBy: at(DAY, "18:30"), lastDep: dep + 8 * MIN, lastLate: 8 };
+  assert.equal(step("18:24", gn({ depUnknown: true })).notice.kind, "unknown");
+  const q = step("18:25", gn({ depUnknown: true }));
+  assert.equal(q.notice, null, "no Leave earlier"); assert.equal(q.done, false);
+});
+
+test("Leave alert: a train back on time after a Leave later still says Leave now, even when the new Leave by has passed", () => {
+  const plan = core.leaveAlertPlan(route(), NAMES);
+  let r = core.leaveAlertStep(plan, {}, gn({ dep: dep + 10 * MIN, depLate: 10 }), at(DAY, "18:27"));
+  assert.equal(r.notice.title, "Leave in 5 min · by 18:32");
+  r = core.leaveAlertStep(plan, r.state, gn(), at(DAY, "18:28"));
+  assert.equal(r.notice.kind, "changed"); assert.equal(r.notice.title, "Leave now · by 18:22");
+  assert.equal(r.notice.body, "The 18:48 from King's Cross is now expected 18:48 (on time).");
+  r = core.leaveAlertStep(plan, r.state, gn(), at(DAY, "18:29"));
+  assert.equal(r.notice, null); assert.equal(r.done, true, "then it ends");
+});
+
+test("Leave alert plan: Leave by may equal the departure; without leaveBy the walking leave; 'Delayed' keeps the plan; 1 min late is said", () => {
+  assert.ok(core.leaveAlertPlan(route({ option: { ...route().option, leave: dep, leaveBy: dep } }), NAMES), "at its station: Leave by = departure");
+  const { leaveBy: _drop, ...noLeaveBy } = route().option;
+  assert.equal(core.leaveAlertPlan(route({ option: { ...noLeaveBy, leave: at(DAY, "18:20") } }), NAMES).leaveBy, at(DAY, "18:20"));
+  assert.ok(core.leaveAlertPlan(route({ incident: "unknown" }), NAMES), "delayed, no estimate: still watched");
+  for (const incident of ["cancelled", "missed", "boarding"]) assert.equal(core.leaveAlertPlan(route({ incident }), NAMES), null, incident);
+  // The last known train has no estimate: the plan's times stay the option's own.
+  assert.equal(core.leaveAlertPlan(route({ lastTrain: gn({ dep: dep + 9 * MIN, depUnknown: true }) }), NAMES).dep, dep);
+  const r = core.leaveAlertStep(core.leaveAlertPlan(route(), NAMES), {}, gn({ dep: dep + MIN, depLate: 1 }), at(DAY, "18:18"));
+  assert.match(r.notice.body, /\(1 min late\)/);
+});
+
+test("Wake-up warning: trains up to 120 min ahead; a train 'Delayed' with no estimate due shortly before still counts; a cancelled one gone doesn't", () => {
+  const now = at(DAY, "06:30");
+  const one = (t) => core.morningAlert(MORNING, { "LET-KGX": { services: [t], msgs: [] } }, now);
+  assert.match(one(am("08:25", "KGX", { cancelled: true })).body, /^08:25 to King's Cross cancelled/, "115 min ahead");
+  assert.equal(one(am("08:31", "KGX", { cancelled: true })), null, "121 min ahead");
+  assert.equal(one(am("08:30", "KGX", { cancelled: true })).title, "Commute: 1 train disrupted", "exactly 120 min");
+  assert.match(one(am("07:00", "KGX", { arrUnknown: true })).body, /07:00 to King's Cross delayed, no estimate/);
+  assert.match(one(am("06:25", "KGX", { depUnknown: true })).body, /06:25 to King's Cross delayed, no estimate/, "still waiting");
+  assert.equal(one(am("05:59", "KGX", { depUnknown: true })), null, "over 30 min before: gone");
+  assert.equal(one(am("06:29", "KGX", { cancelled: true })), null, "a cancelled train already due isn't the one to catch");
+});

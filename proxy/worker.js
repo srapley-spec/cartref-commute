@@ -104,7 +104,11 @@ export default {
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin",
+      // The page tells the proxy's own refusals from National Rail's (whose statuses are passed through).
+      "Access-Control-Expose-Headers": "X-Proxy-Refusal",
     };
+    // A refusal by this Worker itself, labelled so the page can say what to fix here rather than at the feed.
+    const refuse = (kind, status, text) => new Response(text, { status, headers: { ...cors, "X-Proxy-Refusal": kind } });
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
     const reqUrl = new URL(request.url);
     if (reqUrl.pathname.startsWith("/google/")) return google(request, env, cors, reqUrl);
@@ -114,27 +118,25 @@ export default {
     const svc = reqUrl.pathname.match(/^\/service\/([^/]+)$/);
     if (svc) {
       let id; try { id = decodeURIComponent(svc[1]); } catch (e) { id = ""; }
-      if (!SERVICE_ID.test(id)) return new Response("Not found", { status: 404, headers: cors });
+      if (!SERVICE_ID.test(id)) return refuse("route", 404, "Not found");
       const key = env.RDM_SD_KEY || env.RDM_KEY;
-      if (!key) return new Response("Proxy not configured: set RDM_KEY (or RDM_SD_KEY).", { status: 500, headers: cors });
+      if (!key) return refuse("config", 500, "Proxy not configured: set RDM_KEY (or RDM_SD_KEY).");
       return rdm(`${trimBase(env.RDM_SD_BASE) || SD_BASE}/GetServiceDetails/${encodeURIComponent(id)}`, key, cors);
     }
 
     const m = reqUrl.pathname.match(/^\/board\/([A-Z]{3})\/([A-Z]{3})$/);
     const ok = crs => (env.ALLOW_ANY_STATION === "yes" ? CRS.test(crs) : ALLOWED_CRS.has(crs));
-    if (!m || !ok(m[1]) || !ok(m[2])) {
-      return new Response("Not found", { status: 404, headers: cors });
-    }
+    if (!m || !ok(m[1]) || !ok(m[2])) return refuse("route", 404, "Not found");
     const [, from, to] = m;
     // Start offset in minutes, as Rail Data Marketplace allows: a whole number from -120 to 119.
     const offRaw = reqUrl.searchParams.get("offset");
     let off = 0;
     if (offRaw !== null) {
-      if (!/^-?\d{1,3}$/.test(offRaw) || +offRaw < -120 || +offRaw > 119) return new Response("Bad offset", { status: 400, headers: cors });
+      if (!/^-?\d{1,3}$/.test(offRaw) || +offRaw < -120 || +offRaw > 119) return refuse("route", 400, "Bad offset");
       off = +offRaw;
     }
     const base = trimBase(env.RDM_BASE);
-    if (!base || !env.RDM_KEY) return new Response("Proxy not configured: set RDM_BASE and RDM_KEY.", { status: 500, headers: cors });
+    if (!base || !env.RDM_KEY) return refuse("config", 500, "Proxy not configured: set RDM_BASE and RDM_KEY.");
     return rdm(`${base}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${off ? `&timeOffset=${off}` : ""}`, env.RDM_KEY, cors);
   },
   // Time-to-leave and wake-up alerts (proxy/push.js): a Cron Trigger every minute.
