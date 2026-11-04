@@ -1716,7 +1716,7 @@ function renderDiag(){
     keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
       const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
-    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. To widen this, ${tflKeyAdvice()}.</p>`);
+    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. ${allViaProxy()?"Adding TFL_KEY to your proxy in Cloudflare widens this.":"A free TfL key in Settings widens this."}</p>`);
   }
   if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
