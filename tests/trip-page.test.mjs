@@ -552,3 +552,30 @@ test("Trip: walking times are asked for once; the 5-min re-plan reuses them (onl
   app.setNow(T + 5.1 * 60e3); app.d.querySelector("#refreshBtn").click(); await sleep(900);
   assert.equal(g.modes.length, before, `re-asked: ${g.modes.slice(before)}`);
 });
+
+test("Trip with My proxy as the source: TfL's planner and Google both go through the proxy, with no key from the phone", async () => {
+  const P = "https://proxy.example", seen = [];
+  const rows = (b) => b.origins.flatMap((o, i) => b.destinations.map((d, j) => {
+    const a = o.waypoint.location.latLng, z = d.waypoint.location.latLng, m = Math.round(Math.hypot((a.latitude - z.latitude) * 111, (a.longitude - z.longitude) * 70) * 1300);
+    return { originIndex: i, destinationIndex: j, condition: "ROUTE_EXISTS", distanceMeters: m, duration: `${Math.round(m / 1.3)}s` }; }));
+  const proxyRoute = async (u, o) => {
+    if (u.startsWith(P)) seen.push(u);
+    if (u.startsWith(P + "/google/places/v1/places:autocomplete")) { const b = JSON.parse(o.body);
+      return json({ suggestions: Object.values(PLACES).filter(p => (p.primary + " " + p.secondary).toLowerCase().includes(b.input.toLowerCase()))
+        .map(p => ({ placePrediction: { placeId: p.id, text: { text: p.primary }, structuredFormat: { mainText: { text: p.primary }, secondaryText: { text: p.secondary } } } })) }); }
+    if (u.startsWith(P + "/google/places/v1/places/")) { const id = decodeURIComponent(u.split("/places/v1/places/")[1].split("?")[0]); const p = Object.values(PLACES).find(x => x.id === id);
+      return json({ id, displayName: { text: p.primary }, formattedAddress: p.secondary, location: { latitude: p.geo[0], longitude: p.geo[1] } }); }
+    if (u.startsWith(P + "/google/routes/distanceMatrix")) return json(rows(JSON.parse(o.body)));
+    if (u.startsWith(P + "/google/routes/directions")) return json({ routes: [] });
+    if (u === P + "/status") return json({ v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: false });
+    if (u.startsWith(P + "/board/")) return json({ trainServices: [], nrccMessages: [] });
+    return route(u, o);
+  };
+  const app = await createApp({ settings: { ...ON, provider: "proxy", proxyBase: P, tflKey: "PHONEKEY", googleKey: "" }, route: proxyRoute });
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => seen.some(u => /\/tfl\/Journey\/JourneyResults\/90000899\/to\/1001160/.test(u)), 6000);
+  assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "TfL's planner through the proxy:\n" + seen.join("\n"));
+  assert.ok(seen.some(u => u.startsWith(P + "/google/places/")) && seen.some(u => u.startsWith(P + "/google/routes/")), "Google through the proxy");
+  assert.ok(app.calls.every(u => !u.startsWith("https://api.tfl.gov.uk") && !/maps\.googleapis/.test(u) && !/PHONEKEY|app_key/.test(u)), app.calls.join("\n"));
+});

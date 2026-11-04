@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 14:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 15:16 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5557,16 +5557,29 @@ async function fetchT(url, opts){
 }
 // TfL: optional free app key (raises the rate limit) and a shared back-off after HTTP 429.
 // My proxy carries every feed (docs/stories/keys-in-the-proxy.md): TfL goes to its /tfl/... route, the key added there.
-const allViaProxy = () => !S().simulatedFeeds && S().provider==="proxy";
 const proxyBaseUrl = () => String(S().proxyBase||"").trim().replace(/\/+$/,"");
+// Only with an address: My proxy chosen but not yet given one keeps TfL direct (as the rail source falls back too).
+const allViaProxy = () => !S().simulatedFeeds && S().provider==="proxy" && !!proxyBaseUrl();
+// A proxy address as the app accepts it from a setup link: https, a host name (no IP, port, user, path, query or
+// fragment). Returns its origin, or null.
+function proxyOrigin(str){
+  const raw=String(str||"").trim();
+  if(!raw||/[\\\s]/.test(raw)) return null;
+  try{ const u=new URL(raw);
+    if(u.protocol!=="https:"||u.username||u.password||u.port||u.pathname!=="/"||u.search||u.hash) return null;
+    if(/^\[|^\d+(\.\d+){3}$/.test(u.hostname)||!u.hostname.includes(".")) return null;
+    return u.origin; }catch(e){ return null; }
+}
 function tflUrl(u){
   if(allViaProxy() && u.startsWith("https://api.tfl.gov.uk/")) return `${proxyBaseUrl()}/tfl/${u.slice("https://api.tfl.gov.uk/".length)}`;
   const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
 // Without a key TfL allows only a handful of requests a minute per IP address, so keyless use keeps
 // each load to a minimum and runs requests one at a time.
-const tflKeyed = () => allViaProxy() ? !!(state.saved.proxyStatus && state.saved.proxyStatus.tflKey) : !!S().tflKey;
+// Through the proxy: keyed when the proxy said so, for the address in use now (an old proxy's answer doesn't count).
+const tflKeyed = () => { if(!allViaProxy()) return !!S().tflKey; const st=state.saved.proxyStatus; return !!(st && st.tflKey && st.base===proxyBaseUrl()); };
+const tflKeyAdvice = () => allViaProxy() ? "add TFL_KEY to your proxy in Cloudflare" : "add a free TfL app key in Settings";
 const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retrying in a minute."
-  : "TfL limits requests without a key to a handful a minute. Retrying in a minute; add a free TfL app key in Settings to avoid this.";
+  : `TfL limits requests without a key to a handful a minute. Retrying in a minute; ${tflKeyAdvice()} to avoid this.`;
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
 function noteTfl429(){ state.tflBackoffUntil=Date.now()+60e3; }
 async function fetchTfl_(u){
@@ -6696,7 +6709,7 @@ function renderDiag(){
     keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
       const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
-    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. A free TfL key in Settings widens this.</p>`);
+    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. To widen this, ${tflKeyAdvice()}.</p>`);
   }
   if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
@@ -9840,12 +9853,13 @@ function createTripUi(deps) {
 // ---------- My proxy: what it's set up for, keys on this phone, and a setup link for another device ----------
 const PHONE_KEYS = ["rdmKey","rdmSdKey","tflKey","googleKey","huxleyToken"];
 const proxySetupLink = base => `${location.origin}${location.pathname}#setup=${encodeURIComponent(base)}`;
-// What the proxy reports (/status: true/false only). Kept so the first refresh knows whether TfL is keyed.
+// What the proxy reports (/status: true/false only). Kept, so from the second launch the first refresh already knows
+// whether TfL is keyed (on a new device the first refresh counts it as unkeyed; the next one uses the answer).
 async function refreshProxyStatus(){
   const base=proxyBaseUrl(); if(!base) return null;
-  try{ const r=await fetchT(`${base}/status`); if(!r.ok) throw new Error(`HTTP ${r.status}`); const j=await r.json();
+  try{ const r=await fetchT(`${base}/status`); if(!r.ok){ const e=new Error(`HTTP ${r.status}`); e.status=r.status; throw e; } const j=await r.json();
     state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,at:Date.now(),base}; state.proxyStatusErr=""; }
-  catch(e){ state.proxyStatusErr=e.message||"unreachable"; }
+  catch(e){ state.proxyStatusErr=e.status===404?"redeploy":(e.message||"unreachable"); }
   save(); renderProxyStatus(); return state.saved.proxyStatus||null;
 }
 function renderProxyStatus(){
@@ -9853,22 +9867,30 @@ function renderProxyStatus(){
   const st=state.saved.proxyStatus, base=proxyBaseUrl(), keys=PHONE_KEYS.filter(k=>S()[k]);
   $("#clearKeysBtn").hidden=!(S().provider==="proxy"&&keys.length);
   if(!base){ el.textContent=""; return; }
+  if(state.proxyStatusErr==="redeploy"){ el.textContent="Your proxy needs redeploying: it doesn't know this version of the app (HTTP 404). See docs/proxy-setup.md."; return; }
   if(state.proxyStatusErr&&(!st||st.base!==base)){ el.textContent=`Couldn't reach your proxy (${state.proxyStatusErr}). Check the address, and that its ALLOW_ORIGIN is this page's address.`; return; }
   if(!st||st.base!==base){ el.textContent="Checking your proxy…"; return; }
-  const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
+  const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.tflKey&&"TfL key (TFL_KEY; without it TfL's shared limit applies)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
   el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to set in Cloudflare: ${need.join("; ")}.`:"")+(keys.length?" This phone still holds keys you can remove.":"");
 }
 // A setup link (#setup=<proxy address>) sets up a new device in one tap: My proxy for every feed, nothing else changed.
+// It names the proxy's host in the question (an address that only looks like yours is refused or shown as what it is).
+// Accepted, the link stays in the address bar so "Add to Home Screen" next carries it; a device already set up for
+// that proxy isn't asked again.
 function acceptSetupLink(){
   const m=/^#setup=(.+)$/.exec(location.hash||""); if(!m) return false;
-  let base=""; try{ base=decodeURIComponent(m[1]).trim().replace(/\/+$/,""); }catch(e){}
-  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
-  if(!/^https:\/\/[^\s/?#]+$/.test(base)) return false;
-  let ok=false; try{ ok=window.confirm(`Use ${base} for all live data on this device? Train, TfL and Google requests (including the places you plan between) will go through it.`); }catch(e){ ok=false; }
-  if(!ok) return false;
-  state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:base}; save();
+  const clear=()=>{ try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} };
+  let raw=""; try{ raw=decodeURIComponent(m[1]); }catch(e){}
+  const origin=proxyOrigin(raw);
+  if(!origin){ clear(); return false; }
+  if(S().provider==="proxy"&&proxyBaseUrl()===origin) return false;
+  let ok=false;
+  try{ ok=window.confirm(`Use ${new URL(origin).host} for all live data on this device?\n\nOnly say yes if you set this proxy up or trust whoever sent the link: every train, TfL and Google request goes through it (including the places you plan between), and it decides the times you see.`); }catch(e){ ok=false; }
+  if(!ok){ clear(); return false; }
+  state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:origin}; save();
   return true;
 }
+window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxyStatus(); refresh({force:true}); } });
 
 // ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
 // Time-to-leave and wake-up alerts: the page's side (docs/stories/time-to-leave-alerts.md).
@@ -10057,8 +10079,8 @@ function readSettings(){
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
 ["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
 $("#s_provider").addEventListener("change",showProviderFields);
-$("#proxyLinkBtn").addEventListener("click",async()=>{ const base=String($("#s_proxyBase").value||"").trim().replace(/\/+$/,""); if(!/^https:\/\//.test(base)){ $("#proxyStatus").textContent="Enter your proxy's https address first."; return; }
-  const link=proxySetupLink(base); try{ if(navigator.share){ await navigator.share({title:"Commute setup",url:link}); return; } await navigator.clipboard.writeText(link); $("#proxyStatus").textContent="Setup link copied. Open it on the other device (from its Home Screen app, or then add it to the Home Screen)."; }catch(e){ $("#proxyStatus").textContent=link; } });
+$("#proxyLinkBtn").addEventListener("click",async()=>{ const base=proxyOrigin($("#s_proxyBase").value); if(!base){ $("#proxyStatus").textContent="Enter your proxy's address first (https://, just the host)."; return; }
+  const link=proxySetupLink(base); try{ if(navigator.share){ await navigator.share({title:"Commute setup",url:link}); return; } await navigator.clipboard.writeText(link); $("#proxyStatus").textContent="Setup link copied. On the other device, open it in the browser and say yes; on iPhone then Share → Add to Home Screen and open Commute from there (if it asks again, say yes)."; }catch(e){ $("#proxyStatus").textContent=link; } });
 $("#clearKeysBtn").addEventListener("click",()=>{ PHONE_KEYS.forEach(k=>{ delete state.saved.settings[k]; const el=$("#s_"+k); if(el) el.value=""; }); save(); renderProxyStatus(); $("#proxyStatus").textContent+=" Keys removed from this phone."; });
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -10162,7 +10184,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

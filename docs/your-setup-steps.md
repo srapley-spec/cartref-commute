@@ -21,7 +21,8 @@ Last updated: 4 Nov 2026 (every key in the proxy; time-to-leave alerts; #17).
 - [ ] `RDM_BASE` (Text): the Live Departure Board endpoint base from the Rail Data Marketplace product page
 - [ ] `RDM_KEY` (Secret): its consumer key
 - [ ] `RDM_SD_KEY` (Secret): only if Service Details has its own key
-- [ ] `TFL_KEY` (Secret): your TfL app key (api-portal.tfl.gov.uk). Optional, but without it TfL's lower limit applies
+- [ ] `TFL_KEY` (Secret): your TfL app key (api-portal.tfl.gov.uk). Needed in practice: without it the Worker shares
+      TfL's anonymous limit with Cloudflare's other customers
 - [ ] **`GOOGLE_KEY` (Secret): your Google Maps key.** Not done yet (Sam, 4 Nov). In Google Cloud, a key used by
       the Worker can't be restricted by website; restrict it to Places API (New) and Routes API instead. The existing
       browser key is website-restricted, so a second, server key is usual
@@ -39,8 +40,9 @@ Last updated: 4 Nov 2026 (every key in the proxy; time-to-leave alerts; #17).
       test alert should arrive
 
 ## 4. Another device
-- [ ] On your phone: Settings → Copy setup link for another device; open the link on the other device, say yes, then
-      add it to its Home Screen (alerts on iPhone need the Home Screen app)
+- [ ] On your phone: Settings → Copy setup link for another device. On the other device open the link in the browser
+      and say yes; on iPhone then Share → Add to Home Screen, open Commute from the Home Screen, and say yes again if
+      it asks (alerts on iPhone need the Home Screen app)
 
 ## After a change to `proxy/` or `src/core/`
 - [ ] Redeploy: `npm run build && npx wrangler deploy --config proxy/wrangler.toml` (Claude says in the report when

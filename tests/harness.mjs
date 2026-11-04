@@ -66,13 +66,13 @@ const open = [];
 export const closeAll = () => { while (open.length) open.pop().close(); };
 
 export async function createApp({ settings = { provider: "tfl" }, saved = {}, geo = NEAR_LETCHWORTH, geoDelay = 20,
-  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null, relocateMs = 0 } = {}) {
+  journeys = tflTimetable(), route = null, timeoutMs = 300, settle = 400, now = null, relocateMs = 0, url = "https://srapley-spec.github.io/cartref-commute/", beforeScripts = null } = {}) {
   const calls = [];
   const clock = { t: now };
   let pendingGeo = null;   // frozen clock; tests move it with app.setNow()
   const errors = [];
   const dom = new JSDOM(HTML, {
-    runScripts: "dangerously", pretendToBeVisual: true, url: "https://srapley-spec.github.io/cartref-commute/",
+    runScripts: "dangerously", pretendToBeVisual: true, url,
     beforeParse(w) {
       w.COMMUTE_FETCH_TIMEOUT_MS = timeoutMs;
       if (relocateMs != null) w.COMMUTE_RELOCATE_MS = relocateMs;   // tests swap the location source and expect a restart
@@ -90,6 +90,7 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
       // The test persona lives at NEAR_LETCHWORTH (home set in Settings), unless a test says otherwise (home: null).
       w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg", settings, home: TEST_HOME }, saved)));
       w.addEventListener("error", (e) => errors.push(e.message));
+      if (beforeScripts) beforeScripts(w);   // e.g. a confirm() answer for a page opened from a setup link
       w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
       w.HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
       Object.defineProperty(w.navigator, "geolocation", { value: {

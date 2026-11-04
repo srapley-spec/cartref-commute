@@ -158,7 +158,7 @@ test("Proxy (TfL): only the app's TfL paths; the key is added here, never taken 
     let r = await worker.fetch(req("/tfl/Journey/JourneyResults/51.97,-0.23/to/1000122?mode=national-rail&timeIs=Departing&app_key=phone-key"), T);
     assert.equal(r.status, 200);
     assert.equal(seen[0].url, "https://api.tfl.gov.uk/Journey/JourneyResults/51.97,-0.23/to/1000122?mode=national-rail&timeIs=Departing&app_key=tfl-secret%2B%2F");
-    assert.equal(seen[0].opts.cf.cacheTtl, 60);
+    assert.deepEqual(seen[0].opts.cf.cacheTtlByStatus, { "200-399": 60, "404": 60, "429": 0, "500-599": 0 }, "answers cached, rate limits and failures not");
     const body = await r.text();
     assert.ok(!body.includes("tfl-secret") && !body.includes("tfl-secret%2B%2F"), body);
     assert.match(body, /\*\*\*/);
@@ -166,13 +166,22 @@ test("Proxy (TfL): only the app's TfL paths; the key is added here, never taken 
     assert.equal(r.headers.get("Cache-Control"), "no-store");
     for (const [path, ttl] of [["/tfl/StopPoint/940GZZLUALD/Arrivals", 15], ["/tfl/Line/circle,metropolitan,hammersmith-city/Status", 60], ["/tfl/Line/Mode/national-rail/Status", 60], ["/tfl/trackernet/PredictionDetailed/M/ALD", 15]]) {
       r = await worker.fetch(req(path), T);
-      assert.equal(r.status, 200, path); assert.equal(seen.at(-1).url, `https://api.tfl.gov.uk${path.slice(4)}?app_key=tfl-secret%2B%2F`); assert.equal(seen.at(-1).opts.cf.cacheTtl, ttl);
+      assert.equal(r.status, 200, path); assert.equal(seen.at(-1).url, `https://api.tfl.gov.uk${path.slice(4)}?app_key=tfl-secret%2B%2F`); assert.equal(seen.at(-1).opts.cf.cacheTtlByStatus["200-399"], ttl);
     }
     // Without TFL_KEY: forwarded without a key (TfL's lower anonymous limit), and a phone's key is still dropped.
-    r = await worker.fetch(req("/tfl/StopPoint/940GZZLUALD/Arrivals?app_key=phone-key&app_id=x"), ENV);
-    assert.equal(seen.at(-1).url, "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
+    r = await worker.fetch(req("/tfl/StopPoint/940GZZLUALD/Arrivals?app_key=phone-key&app_id=x&APP_KEY=y&App_Id=z"), ENV);
+    assert.equal(seen.at(-1).url, "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals", "every spelling of the key dropped");
+    // A query of exactly 1,000 characters is accepted.
+    r = await worker.fetch(req(`/tfl/StopPoint/940GZZLUALD/Arrivals?x=${"y".repeat(997)}`), ENV);
+    assert.equal(r.status, 200);
+    // A journey end may be an escaped place name.
+    r = await worker.fetch(req("/tfl/Journey/JourneyResults/1000460/to/Science%20Museum%2C%20London"), ENV);
+    assert.equal(r.status, 200);
     const n = seen.length;
-    for (const bad of ["/tfl/AccidentStats/2019", "/tfl/StopPoint/940GZZLUALD", "/tfl/Line/circle/Status/extra", "/tfl/Journey/JourneyResults/a/to/b/c", "/tfl/../BikePoint", `/tfl/StopPoint/940GZZLUALD/Arrivals?x=${"y".repeat(1001)}`]) {
+    for (const bad of ["/tfl/AccidentStats/2019", "/tfl/StopPoint/940GZZLUALD", "/tfl/Line/circle/Status/extra", "/tfl/Journey/JourneyResults/a/to/b/c", "/tfl/../BikePoint",
+      `/tfl/StopPoint/940GZZLUALD/Arrivals?x=${"y".repeat(998)}`, "/tfl/Journey/JourneyResults/a/b/to/c", "/tfl/StopPoint/a/b/Arrivals", "/tfl/StopPoint/X/Arrivals/x",
+      "/tfl/Line/a/b/Status", "/tfl/Line/Circle!/Status", "/tfl/x/tfl/trackernet/PredictionDetailed/M/ALD", "/tfl/trackernet/PredictionDetailed/m/ald", "/tfl/trackernet/PredictionDetailed/M/ALDX",
+      "/tfl/Journey/JourneyResults/x%2F..%2F..%2FBikePoint/to/y", "/tfl/Journey/JourneyResults/a/to/b%5c..", "/tfl/StopPoint/940GZZLUALD/Arrivalsx"]) {
       const x = await worker.fetch(req(bad), T);
       assert.equal(x.status, 404, bad); assert.equal(x.headers.get("X-Proxy-Refusal"), "route");
     }
@@ -192,6 +201,12 @@ test("Proxy: /status says what it's set up for, true or false only, never a key"
   const text = await r.text();
   assert.deepEqual(JSON.parse(text), { v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: true });
   for (const secret of ["secret-key", "sd-key-1", "tfl-key-2", "g-key-3", "pub-4", "priv-5"]) assert.ok(!text.includes(secret), secret);
+  assert.equal(r.headers.get("Cache-Control"), "no-store");
+  const partial = async (env) => (await worker.fetch(req("/status"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN, ...env })).json();
+  assert.equal((await partial({ RDM_KEY: "k" })).rail, false, "a key without its base isn't National Rail");
+  assert.equal((await partial({ RDM_KEY: "k" })).serviceDetails, true, "the board key serves Service Details");
+  assert.equal((await partial({ VAPID_PUBLIC_KEY: "p", VAPID_PRIVATE_KEY: "v", VAPID_SUBJECT: "m" })).alerts, false, "no storage, no alerts");
+  assert.equal((await partial({ ALLOW_ANY_STATION: "no" })).anyStation, false);
   r = await worker.fetch(req("/status"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN });
   assert.deepEqual(await r.json(), { v: 1, rail: false, serviceDetails: false, tflKey: false, google: false, anyStation: false, alerts: false });
   assert.equal((await worker.fetch(req("/status", { origin: "https://evil.test" }), full)).status, 403);

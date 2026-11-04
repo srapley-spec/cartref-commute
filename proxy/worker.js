@@ -48,7 +48,8 @@ const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
 // TfL: the only paths the Worker forwards (docs/stories/keys-in-the-proxy.md), and how long Cloudflare keeps each.
 const TFL = [
-  { re: /^\/tfl\/Journey\/JourneyResults\/[^/]{1,200}\/to\/[^/]{1,200}$/, ttl: 60 },
+  // A journey's two ends: plain characters or %XX escapes, but never an escaped / or \ (no path tricks upstream).
+  { re: /^\/tfl\/Journey\/JourneyResults\/(?:[^/%\\]|%(?!2[Ff]|5[Cc])[0-9A-Fa-f]{2}){1,200}\/to\/(?:[^/%\\]|%(?!2[Ff]|5[Cc])[0-9A-Fa-f]{2}){1,200}$/, ttl: 60 },
   { re: /^\/tfl\/StopPoint\/[A-Za-z0-9]{1,20}\/Arrivals$/, ttl: 15 },
   { re: /^\/tfl\/Line\/[a-z0-9,-]{1,100}\/Status$/, ttl: 60 },
   { re: /^\/tfl\/Line\/Mode\/national-rail\/Status$/, ttl: 60 },
@@ -58,13 +59,14 @@ async function tfl(env, cors, url, refuse) {
   const route = TFL.find(t => t.re.test(url.pathname));
   if (!route || url.search.length > 1000) return refuse("route", 404, "Not found");
   const q = new URLSearchParams(url.search);
-  q.delete("app_key"); q.delete("app_id");
+  for (const k of [...q.keys()]) if (/^app_(key|id)$/i.test(k)) q.delete(k);
   if (env.TFL_KEY) q.set("app_key", env.TFL_KEY);
   const qs = q.toString();
   let upstream;
   try {
     upstream = await fetch(`https://api.tfl.gov.uk${url.pathname.slice(4)}${qs ? `?${qs}` : ""}`,
-      { cf: { cacheTtl: route.ttl, cacheEverything: true }, signal: AbortSignal.timeout(10000) });
+      // Answers are cached (journeys and "not found" alike); TfL's rate limits and failures are not.
+      { cf: { cacheTtlByStatus: { "200-399": route.ttl, "404": route.ttl, "429": 0, "500-599": 0 }, cacheEverything: true }, signal: AbortSignal.timeout(10000) });
   } catch (e) { return new Response("Upstream timeout", { status: 504, headers: cors }); }
   // TfL's error replies can quote the request, key included: it never leaves the Worker.
   let body = await upstream.text();
