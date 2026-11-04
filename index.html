@@ -824,7 +824,7 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 08:02 UTC</span></span>
+    <span><span id="updated">Not updated yet</span> · <span id="build">build 04 Nov 08:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4439,7 +4439,8 @@ var CommuteCore = (() => {
       const rides = r.legs.filter((l) => l.kind !== "walk");
       if (!rides.length || rides.some((l) => l.kind === "bus")) continue;
       if (q.kind === "by" && r.arrive > q.t) continue;
-      const key = rides.map((l) => `${l.from}|${l.dep}|${l.to}`).join(",");
+      const rail = rides.filter((l) => l.kind === "rail");
+      const key = (rail.length ? rail : rides).map((l) => `${l.from}|${l.dep}|${l.to}`).join(",");
       if (seen.has(key)) continue;
       const last = rides[rides.length - 1];
       const soonerMin = best ? Math.round((bestLastArr - last.arr) / 6e4) : null;
@@ -4490,10 +4491,18 @@ var CommuteCore = (() => {
       const todo = [...acc.entries()].filter(([k, w]) => taxiWorthIt(dir === "to" ? modes.from : modes.to, w, cfg.taxi) && !into.has(k) && byKey.has(k)).map(([k]) => byKey.get(k));
       if (!todo.length) return;
       requests.access++;
-      const res = await ports.access.matrix(place, todo.map((s) => s.geo), "drive", at, dir);
+      let res;
+      try {
+        res = await ports.access.matrix(place, todo.map((s) => s.geo), "drive", at, dir);
+      } catch (e) {
+        todo.forEach((s) => into.set(stationKey(s), null));
+        note(`Taxi times ${dir === "to" ? "to" : "from"} the stations: ${e.message}`);
+        return;
+      }
       todo.forEach((s, i) => {
         var _a;
-        return into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
+        into.set(stationKey(s), (_a = res[i]) != null ? _a : null);
+        if (!res[i]) note(`Google found no driving route ${dir === "to" ? "to" : "from"} ${s.name}: the walk stands`);
       });
     };
     const stationsByKey = /* @__PURE__ */ new Map();
@@ -4568,14 +4577,7 @@ var CommuteCore = (() => {
       runPairs(p1, () => t0, timeIs)
     ]);
     if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
-    const taxis = () => Promise.all([
-      timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess).catch((e) => {
-        notes.push(`Taxi times to the stations: ${e.message}`);
-      }),
-      timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess).catch((e) => {
-        notes.push(`Taxi times from the stations: ${e.message}`);
-      })
-    ]);
+    const taxis = () => Promise.all([timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess), timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess)]);
     await taxis();
     const endStops = () => {
       const seen = /* @__PURE__ */ new Map();
@@ -9003,7 +9005,7 @@ const tripAdapters = (() => {
     for (const s of steps) {
       if (s.travelMode === "TRANSIT" && s.transitDetails) {
         const td = s.transitDetails, sd = td.stopDetails || {}, dep = Date.parse(sd.departureTime), arr = Date.parse(sd.arrivalTime);
-        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) return null;   // a ride with no times: not half a route
         if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
         const line = td.transitLine || {};
         legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((sd.departureStop || {}).name || "?"), to: String((sd.arrivalStop || {}).name || "?"), dep, arr, line: String(line.nameShort || line.name || "") || undefined });
@@ -9018,7 +9020,7 @@ const tripAdapters = (() => {
     for (const s of leg.steps || []) {
       if (s.travel_mode === "TRANSIT" && s.transit) {
         const t = s.transit, dep = t.departure_time && t.departure_time.value ? new Date(t.departure_time.value).getTime() : NaN, arr = t.arrival_time && t.arrival_time.value ? new Date(t.arrival_time.value).getTime() : NaN;
-        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) return null;
         if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
         const line = t.line || {};
         legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((t.departure_stop || {}).name || "?"), to: String((t.arrival_stop || {}).name || "?"), dep, arr, line: String(line.short_name || line.name || "") || undefined });

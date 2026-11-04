@@ -57,8 +57,10 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     const todo = [...acc.entries()].filter(([k, w]) => taxiWorthIt(dir === "to" ? modes.from : modes.to, w, cfg.taxi) && !into.has(k) && byKey.has(k)).map(([k]) => byKey.get(k)!);
     if (!todo.length) return;
     requests.access++;
-    const res = await ports.access.matrix(place, todo.map(s => s.geo), "drive", at, dir);
-    todo.forEach((s, i) => into.set(stationKey(s), res[i] ?? null));
+    let res: (Timing | null)[];
+    try { res = await ports.access.matrix(place, todo.map(s => s.geo), "drive", at, dir); }
+    catch (e) { todo.forEach(s => into.set(stationKey(s), null)); note(`Taxi times ${dir === "to" ? "to" : "from"} the stations: ${(e as Error).message}`); return; }   // asked once; the walk stands
+    todo.forEach((s, i) => { into.set(stationKey(s), res[i] ?? null); if (!res[i]) note(`Google found no driving route ${dir === "to" ? "to" : "from"} ${s.name}: the walk stands`); });
   };
   const stationsByKey = new Map<string, Station>();
   // Searches to the place itself (issue #56): only walking at the far end, only where the planner can; the stop you
@@ -124,10 +126,7 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     runPairs(p1, () => t0, timeIs),
   ]);
   if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
-  const taxis = () => Promise.all([
-    timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess).catch(e => { notes.push(`Taxi times to the stations: ${e.message}`); }),
-    timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess).catch(e => { notes.push(`Taxi times from the stations: ${e.message}`); }),
-  ]);
+  const taxis = () => Promise.all([timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess), timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess)]);
   await taxis();
 
   /** Where searches to the place alight (not timed yet): timed with the promoted stations, before the next round. */

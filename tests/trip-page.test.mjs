@@ -210,9 +210,9 @@ test("Trip taxi and gaps: Letchworth → Washington shows a taxi from Chester-le
   PLACES.fortwilliam = { id: "G-FTW", primary: "Fort William", secondary: "Highland PH33", geo: [56.8210, -5.1048] };
   const shift = (name, hours) => JSON.parse(readFileSync(path.join(ROOT, `tests/fixtures/trip/${name}.json`), "utf8"), (k, v) =>
     typeof v === "string" && /^2026-11-0[45]T\d\d:\d\d:\d\d(Z?)$/.test(v) ? new Date(Date.parse(v.endsWith("Z") ? v : v + "Z") + hours * 3600e3 - 86400e3).toISOString().replace(/\.000Z$/, v.endsWith("Z") ? "Z" : "") : v).body;
-  const cls = shift("tfl-letchworth-chesterlestreet", 2), ftw = shift("tfl-fenchurchst-fortwilliam-evening", -9), gftw = shift("google-london-fortwilliam-evening", -9);
+  const cls = shift("tfl-letchworth-chesterlestreet", 2), back = shift("tfl-chesterlestreet-letchworth", -7), ftw = shift("tfl-fenchurchst-fortwilliam-evening", -9), gftw = shift("google-london-fortwilliam-evening", -9);
   let gapsAsked = 0;
-  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: u => /JourneyResults\/1000460\/to\/90001577\?/.test(u) ? json(cls) : /JourneyResults\/1001108\/to\/90002865\?/.test(u) ? json(ftw) : route(u) });
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route: u => /JourneyResults\/1000460\/to\/90001577\?/.test(u) ? json(cls) : /JourneyResults\/90001577\/to\/1000460\?/.test(u) ? json(back) : /JourneyResults\/1001108\/to\/90002865\?/.test(u) ? json(ftw) : route(u) });
   googleStub(app.w);
   // Google's transit routes through the Maps JS stub: a DirectionsService answering in the library's shape from the recorded REST reply
   const rest = gftw.routes[0].legs[0].steps;
@@ -229,14 +229,25 @@ test("Trip taxi and gaps: Letchworth → Washington shows a taxi from Chester-le
   assert.match(text, /Taxi to your destination · 7\.\d km · about \d+ min by road, 5 min to get one · 1h \d+m on foot/);
   assert.match(text, /Taxi from Chester-Le-Street: 7\.\d km, about \d+ min by road/);
   assert.match(text, /Nearest station to where you're going is 5\.6 km away/);
+  assert.ok(!/Taxi to station/.test(app.d.querySelector("#tripResults .journey-reach").textContent), "the pill says Walk to station when the taxi is at the far end");
+  // The return plans from Washington: the taxi is the first leg and the access pill says so
+  await type(app, "from", "washington ne38"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
+  await type(app, "to", "letchworth town"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
+  await until(() => /Taxi to Chester-Le-Street/.test(app.text("#tripResults")), 6000);
+  const reach = app.d.querySelector("#tripResults .journey-reach").textContent;
+  assert.match(reach, /Taxi to station/, reach); assert.ok(!/Walk to station/.test(reach), reach);
   // The evening Fort William plan from the office: the gap block names Google's direct sleeper and says why it can't be followed
-  await type(app, "from", "one braham (office"); await sleep(320); key(app, "from", "ArrowDown"); key(app, "from", "Enter");
-  await type(app, "to", "fort william"); await sleep(320); key(app, "to", "ArrowDown"); key(app, "to", "Enter");
-  await until(() => /Google Maps also finds/.test(app.text("#tripResults")), 8000);
-  const t2 = app.text("#tripResults");
-  assert.match(t2, /Google Maps also finds/); assert.match(t2, /Euston .* → Fort William .* \(Caledonian Sleeper\)/); assert.match(t2, /not in TfL's planner, so no live times or Follow for it/);
-  assert.match(t2, /Powered by Google/);
-  assert.ok(gapsAsked >= 1, "Google's transit route was asked for once per plan");
+  const choose = async (end, text, re) => { for (let i = 0; i < 3 && !re.test(app.d.querySelector(`#tripInput-${end}`).value); i++) {
+    await type(app, end, text); await until(() => options(app, end).some(o => re.test(o)), 2000); key(app, end, "ArrowDown"); key(app, end, "Enter"); await sleep(150); }
+    assert.match(app.d.querySelector(`#tripInput-${end}`).value, re, `${end} chosen`); };
+  await choose("from", "one braham (office", /One Braham/); await choose("to", "fort william", /Fort William/);
+  await until(() => /Google Maps also finds/.test(app.text("#tripResults")) && /Fort William/.test(app.text("#tripResults .trip-row") || ""), 8000);
+  const gap = app.d.querySelector("#tripResults .trip-gaps"); assert.ok(gap, "gaps block present");
+  assert.match(gap.textContent, /Leave \d\d:\d\d, arrive \d\d:\d\d: .*Euston \d\d:\d\d → Fort William \d\d:\d\d \(Caledonian Sleeper\)/);
+  assert.match(gap.textContent, /Reaches Fort William \d+h \d+m sooner than the best found here; not in TfL's planner, so no live times or Follow for it\./);
+  assert.match(gap.querySelector(".trip-attrib").textContent, /Powered by Google/);
+  assert.equal(gap.querySelectorAll(".trip-gap").length, 1, "the same sleeper by another Tube is one gap");
+  assert.ok(gapsAsked >= 3, `Google's transit route asked for each plan (Washington, the return, Fort William): ${gapsAsked}`);
   delete PLACES.washington; delete PLACES.office; delete PLACES.fortwilliam;
 });
 

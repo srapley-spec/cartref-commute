@@ -29,8 +29,11 @@ sleeper (arriving Fort William 12:12 via Queen Street); Google Maps has the dire
   12 min by road". No map; no fare.
 - Each minute counts once: the journey's leave or arrive time is the train plus the station allowance plus the taxi
   leg (wait + road), as for any other access leg. "Leave by" and the countdown follow from it as usual.
-- Driving times are asked from Google once per end, only for the stations whose walk is over the limit (one extra
-  route-matrix request at that end); traffic-aware for the set-off or arrival time like a drive to the station.
+- Driving times are asked from Google once per end per round, only for the stations whose walk is over the limit (one
+  extra route-matrix request at that end), traffic-aware for the plan's first guess of the set-off or arrival time;
+  unlike a drive to the station they are not re-timed for the chosen journey (approximate by a few minutes). A
+  refused request is not retried and is said once; a station Google can't drive to keeps its walk and is said
+  ("Google found no driving route from X: the walk stands").
 - Only a **walk** becomes a taxi. Cycling or driving to the station stays as chosen. If Google can't time the drive,
   the walk stands and "Why these trains?" says why ("Taxi times from the stations: …").
 - The access pill reads "Taxi to station" when the first leg is a taxi.
@@ -75,6 +78,11 @@ Recorded Google Routes API replies (4 Nov, keys removed): `tests/fixtures/trip/g
 - tests/core/trip-taxi-gaps.test.mjs: "googleGaps: the same train with a shorter walk is not a gap (compared at the last station); by Arrive by, a route arriving after T is not a gap; with nothing pickable any rail-only route is; at most two, soonest first"
 - tests/core/trip-taxi-gaps.test.mjs: "Adapters: the Routes API reply and the Maps JS DirectionsService reply both become the same GapRoute shape"
 - tests/core/trip-taxi-gaps.test.mjs: "Proxy adapter: transit asks the Worker's computeRoutes path with the time, the question and rail-only modes, and maps the reply"
+- tests/core/trip-taxi-gaps.test.mjs: "Taxi: a boarding stop found from live data (Aldgate) over the limit gets a taxi too, timed after the round that found it; driving times once per end per round"
+- tests/core/trip-taxi-gaps.test.mjs: "googleGaps: each rule alone: after T is out even with room; the same trains once even with room (a different Tube to the same sleeper is not another route); at most two even with more"
+- tests/core/trip-taxi-gaps.test.mjs: "Gaps: Google's Washington routes all use a bus, so none is a gap even with nothing picked; a ride with no times voids the route; the routes port is asked exactly once per plan with the question"
+- tests/core/trip-taxi-gaps.test.mjs: "Live on a taxi journey: a late last train moves the arrival by the taxi too; the taxi flag survives the refresh and Follow keeps the taxi leg"
+- tests/proxy.test.mjs: "Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field masks, the key sent upstream only"
 - tests/core/trip-uk.test.mjs: "Washington NE38 8SE: no station within walking reach, so the three nearest are tried, Chester-le-Street (5.6 km) first and flagged; the last leg is a taxi with the walk said"
 - tests/trip-page.test.mjs: "Trip taxi and gaps: Letchworth → Washington shows a taxi from Chester-le-Street with distance and road time; London → Fort William in the evening shows Google Maps' direct sleeper as a gap"
 The Maps JS DirectionsService path is built from Google's documentation and stubbed in the page test; it is

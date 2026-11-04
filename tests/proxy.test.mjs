@@ -75,7 +75,12 @@ test("Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field ma
     assert.equal(m.status, 200); assert.equal(seen[2].url, "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix");
     assert.equal(seen[2].opts.headers["X-Goog-FieldMask"], "originIndex,destinationIndex,status,condition,distanceMeters,duration");
     assert.equal(seen[0].opts.headers["X-Goog-FieldMask"], "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat");
-    assert.equal(seen.length, 3);
+    // Trip's one transit route per plan (what Google Maps also finds): fixed host, the steps' field mask, nothing else under routes/directions
+    const t = await worker.fetch(post("/google/routes/directions/v2:computeRoutes", { travelMode: "TRANSIT" }), G);
+    assert.equal(t.status, 200); assert.equal(seen[3].url, "https://routes.googleapis.com/directions/v2:computeRoutes");
+    assert.equal(seen[3].opts.headers["X-Goog-FieldMask"], "routes.duration,routes.legs.steps.travelMode,routes.legs.steps.staticDuration,routes.legs.steps.distanceMeters,routes.legs.steps.transitDetails");
+    assert.equal((await worker.fetch(post("/google/routes/directions/v2:computeRoutes/other", {}), G)).status, 404);
+    assert.equal(seen.length, 4);
   }, () => new Response('{"ok":true}', { status: 200 }));
   assert.equal((await worker.fetch(req("/google/places/v1/places:autocomplete"), G)).status, 405, "autocomplete is POST only");
   assert.equal((await worker.fetch(req("/google/other/thing"), G)).status, 404);

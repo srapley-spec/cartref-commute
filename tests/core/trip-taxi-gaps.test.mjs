@@ -20,6 +20,8 @@ const place = (name, geo) => ({ id: name, name, address: name, geo, kind: "addre
 const hm = t => core.hhmm(t);
 const T = (d, t) => at(`2026-11-${d}`, t);
 const LON = place("London office (One Braham)", [51.5139, -0.0712]), LET = place("Letchworth town centre", [51.983, -0.228]);
+const far = place("A farm 4 km west of Letchworth station", [51.983, -0.290]);   // > 3 km from every station: Hitchin 3.8, Letchworth 4.2
+const MIN = 60e3;
 const NCL = place("Grey's Monument, Newcastle", [54.9738, -1.6131]), FTW = place("Fort William", [56.8210, -5.1048]), WASH = place("Washington NE38 8SE", [54.8874, -1.5101]);
 const FX = { "LET-CLS": "letchworth-chesterlestreet", "LET-NCL": "letchworth-newcastle", "LET-FTW": "letchworth-fortwilliam", "FST-NCL": "fenchurchst-newcastle", "LST-NCL": "liverpoolst-newcastle", "FST-MAS": "fenchurchst-manors", "LST-MAS": "liverpoolst-manors", "ZLW-MAS": "whitechapel-manors",
   "FST-FTW": "fenchurchst-fortwilliam-evening", "LST-FTW": "liverpoolst-fortwilliam-evening", "LET-FTW-eve": "letchworth-fortwilliam-evening" };
@@ -66,7 +68,6 @@ test("Washington NE38 8SE on foot: Chester-le-Street, Heworth-side stations trie
 });
 
 test("Taxi at the start too, and cycling never becomes a taxi; a drive matrix that fails leaves the walk and says so", async () => {
-  const far = place("A farm 4 km west of Letchworth station", [51.983, -0.290]);   // > 3 km from every station: Hitchin 3.8, Letchworth 4.2
   const r = await plan(far, NCL, { kind: "now", t: T("04", "08:00") });
   const p = r.picks[0];
   assert.equal(p.before[0].kind, "taxi"); assert.equal(p.before[0].step.d, "Taxi to Letchworth Garden City");
@@ -74,10 +75,17 @@ test("Taxi at the start too, and cycling never becomes a taxi; a drive matrix th
   assert.equal(p.leave, p.rides[0].dep - (p.before[0].secs + 3 * 60) * 1000, "leave = train − taxi (wait + road) − platform minutes");
   const cyc = await plan(far, NCL, { kind: "now", t: T("04", "08:00") }, { modes: { from: "cycle", to: "walk" } });
   assert.deepEqual(cyc.picks[0].before.map(s => s.kind), ["cycle", "station"]);
-  const failing = { async matrix(p, gs, mode) { if (mode === "drive") throw new Error("Google refused the travel times request"); return access().matrix(p, gs, mode); } };
+  const calls = [];
+  const failing = { async matrix(p, gs, mode) { calls.push(mode); if (mode === "drive") throw new Error("Google refused the travel times request"); return access().matrix(p, gs, mode); } };
   const r2 = await core.planTrip({ from: far, to: NCL, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: T("04", "08:00") }, now: T("04", "08:00"), leisureKmh: 4.5, cfg }, { stations: idx, access: failing, planner: recorded() });
   assert.equal(r2.picks[0].before[0].kind, "walk", "no driving time: the walk stands");
-  assert.ok(r2.notes.some(n => /^Taxi times to the stations: Google refused/.test(n)), r2.notes.join(" ;; "));
+  assert.equal(calls.filter(m => m === "drive").length, 1, "a refused drive matrix is asked once, not again after each round");
+  assert.equal(r2.notes.filter(n => /^Taxi times to the stations: Google refused/.test(n)).length, 1, r2.notes.join(" ;; "));
+  // Google has no driving route to that station: the walk stands and the notes say so
+  const noRoute = { async matrix(p, gs, mode) { return mode === "drive" ? gs.map(() => null) : access().matrix(p, gs, mode); } };
+  const r3 = await core.planTrip({ from: far, to: NCL, modes: { from: "walk", to: "walk" }, question: { kind: "now", t: T("04", "08:00") }, now: T("04", "08:00"), leisureKmh: 4.5, cfg }, { stations: idx, access: noRoute, planner: recorded() });
+  assert.equal(r3.picks[0].before[0].kind, "walk");
+  assert.ok(r3.notes.some(n => /^Google found no driving route to (Letchworth Garden City|Hitchin): the walk stands$/.test(n)), r3.notes.join(" ;; "));
 });
 
 test("Gaps: Google Maps' direct Highland sleeper (Euston 21:15 → Fort William 10:00) is shown against TfL's Glasgow sleeper, 2 h sooner; buses never count; the same trains once", async () => {
@@ -161,4 +169,57 @@ test("Proxy adapter: transit asks the Worker's computeRoutes path with the time,
   assert.ok(routes.length >= 3); assert.ok(routes[0].legs.some(l => l.kind === "rail" && /Newcastle/.test(l.to)));
   const by = await ad.transit([51.5139, -0.0712], [54.9738, -1.6131], T("04", "12:00"), "Arriving");
   assert.equal(calls[1].body.arrivalTime, new Date(T("04", "12:00")).toISOString()); assert.ok(!calls[1].body.departureTime); assert.ok(by.length);
+});
+
+test("Taxi: a boarding stop found from live data (Aldgate) over the limit gets a taxi too, timed after the round that found it; driving times once per end per round", async () => {
+  const low = core.tripConfig({ taxi: { fromKm: 0.2, waitMin: 5 } }), accessLog = [];
+  const r = await plan(LON, NCL, { kind: "now", t: T("04", "08:00") }, { cfg: low, accessLog });
+  const ald = r.journeys.filter(j => core.stationKey(j.fromStation) === "tfl:940GZZLUALD");
+  assert.ok(ald.length >= 2, "Aldgate boardings are in the list");
+  assert.ok(ald.every(j => j.before[0].kind === "taxi"), ald.map(j => j.before.map(s => s.kind).join("+")).join(" | "));
+  assert.deepEqual(accessLog.filter(c => c.startsWith("drive")), ["drive:to:3", "drive:from:2", "drive:to:1"], accessLog.join(" "));
+});
+
+test("googleGaps: each rule alone: after T is out even with room; the same trains once even with room (a different Tube to the same sleeper is not another route); at most two even with more", () => {
+  const q = { kind: "by", t: T("04", "10:00") };
+  const leg = (from, to, dep, arr, kind = "rail") => ({ kind, from, to, dep: T("04", dep), arr: T("04", arr) });
+  const route = (dep, arr, legs) => ({ source: "Google Maps", depart: T("04", dep), arrive: T("04", arr), legs });
+  assert.deepEqual(core.googleGaps([route("08:00", "10:05", [leg("A", "B", "08:10", "10:00")])], [], q, 5), [], "after T");
+  const dup = [route("08:20", "09:55", [leg("A", "B", "08:30", "09:50")]), route("08:20", "09:58", [leg("A", "B", "08:30", "09:50")])];
+  assert.equal(core.googleGaps(dup, [], q, 5).length, 1, "the same train with a different walk");
+  const sleeper = [route("20:36", "10:03", [leg("Aldgate East", "Euston Square", "20:41", "20:57", "tube"), leg("Euston", "Fort William", "21:15", "10:00")]), route("20:46", "10:03", [leg("Aldgate", "Euston Square", "20:53", "21:04", "tube"), leg("Euston", "Fort William", "21:15", "10:00")])];
+  assert.equal(core.googleGaps(sleeper, [], { kind: "now", t: T("04", "20:00") }, 5).length, 1, "the same sleeper by another Tube is one gap");
+  const three = [route("08:00", "09:40", [leg("A", "B", "08:10", "09:35")]), route("08:05", "09:30", [leg("A", "B", "08:15", "09:25")]), route("08:10", "09:50", [leg("A", "B", "08:20", "09:45")])];
+  assert.deepEqual(core.googleGaps(three, [{ arrive: T("04", "10:30"), rides: [{ arr: T("04", "10:20") }] }], q, 5).map(g => hm(g.arrive)), ["09:30", "09:40"]);
+  assert.equal(core.googleGaps(three, [], q, 5, 3).length, 3, "max is a parameter");
+});
+
+test("Gaps: Google's Washington routes all use a bus, so none is a gap even with nothing picked; a ride with no times voids the route; the routes port is asked exactly once per plan with the question", async () => {
+  const wash = gfx("letchworth-washington").routes.map(A.gapRouteFromRest).filter(Boolean);
+  assert.ok(wash.length >= 6); assert.ok(wash.every(r => r.legs.some(l => l.kind === "bus")), wash.map(r => r.legs.map(l => l.kind).join("+")).join(" | "));
+  assert.deepEqual(core.googleGaps(wash, [], { kind: "now", t: T("04", "08:00") }, 5), []);
+  const r = await plan(LET, WASH, { kind: "now", t: T("04", "08:00") }, { routes: A.fixtureRoutes(async () => gfx("letchworth-washington")) });
+  assert.deepEqual(r.gaps, []); assert.equal(r.requests.routes, 1);
+  const iso = t => new Date(t).toISOString();
+  const timed = { travelMode: "TRANSIT", staticDuration: "3600s", transitDetails: { stopDetails: { departureTime: iso(T("04", "08:00")), arrivalTime: iso(T("04", "09:00")), departureStop: { name: "A" }, arrivalStop: { name: "B" } }, transitLine: { nameShort: "X", vehicle: { type: "HEAVY_RAIL" } } } };
+  const untimed = { travelMode: "TRANSIT", staticDuration: "1800s", transitDetails: { transitLine: { nameShort: "Y", vehicle: { type: "HEAVY_RAIL" } } } };
+  assert.equal(A.gapRouteFromRest({ legs: [{ steps: [timed, { travelMode: "WALK", staticDuration: "600s" }, untimed] }] }), null, "not half a route");
+  const calls = [];
+  const routes = { name: "Google Maps", async transit(a, b, t, timeIs) { calls.push([hm(t), timeIs]); return []; } };
+  await plan(LON, NCL, { kind: "by", t: T("04", "12:00") }, { routes, now: T("04", "08:00") });
+  assert.deepEqual(calls, [["12:00", "Arriving"]]);
+});
+
+test("Live on a taxi journey: a late last train moves the arrival by the taxi too; the taxi flag survives the refresh and Follow keeps the taxi leg", async () => {
+  const r = await plan(LET, WASH, { kind: "now", t: T("04", "08:00") });
+  const p = r.picks[0], last = core.mainRides(p.rides).at(-1);
+  const svc = { from: last.from.crs, to: last.to.crs, std: hm(last.schedDep), dep: last.schedDep + 5 * MIN, arr: last.schedArr + 5 * MIN, depLate: 5, arrLate: 5, depUnknown: false, platform: "2", operator: last.operator, cancelled: false, reason: "", destination: last.destination || last.to.name, serviceId: "s1" };
+  const live = core.applyLive(p, { [`${last.from.crs}-${last.to.crs}`]: { services: [svc], msgs: [] } }, cfg);
+  assert.equal(live.arrive, p.arrive + 5 * MIN);
+  assert.deepEqual(live.after.map(s => s.kind), ["station", "taxi"]);
+  assert.ok(live.flags.some(f => /^Taxi from Chester-Le-Street/.test(f.txt)), live.flags.map(f => f.txt).join("; "));
+  assert.ok(live.flags.some(f => /^Nearest station to where you're going/.test(f.txt)));
+  assert.equal(core.tripJourneyFacts(live).totalDurationMs, live.arrive - live.leave);
+  const f = core.restoreFollowTrip(JSON.parse(JSON.stringify(core.startFollowTrip(live, T("04", "08:00")))));
+  assert.deepEqual(f.journey.after.map(s => s.kind), ["station", "taxi"]);
 });

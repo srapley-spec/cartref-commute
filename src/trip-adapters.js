@@ -29,7 +29,7 @@ const tripAdapters = (() => {
     for (const s of steps) {
       if (s.travelMode === "TRANSIT" && s.transitDetails) {
         const td = s.transitDetails, sd = td.stopDetails || {}, dep = Date.parse(sd.departureTime), arr = Date.parse(sd.arrivalTime);
-        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) return null;   // a ride with no times: not half a route
         if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
         const line = td.transitLine || {};
         legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((sd.departureStop || {}).name || "?"), to: String((sd.arrivalStop || {}).name || "?"), dep, arr, line: String(line.nameShort || line.name || "") || undefined });
@@ -44,7 +44,7 @@ const tripAdapters = (() => {
     for (const s of leg.steps || []) {
       if (s.travel_mode === "TRANSIT" && s.transit) {
         const t = s.transit, dep = t.departure_time && t.departure_time.value ? new Date(t.departure_time.value).getTime() : NaN, arr = t.arrival_time && t.arrival_time.value ? new Date(t.arrival_time.value).getTime() : NaN;
-        if (!Number.isFinite(dep) || !Number.isFinite(arr)) continue;
+        if (!Number.isFinite(dep) || !Number.isFinite(arr)) return null;
         if (!sawTransit) firstDep = dep; sawTransit = true; lastArr = arr; after = 0;
         const line = t.line || {};
         legs.push({ kind: GAP_KIND(String((line.vehicle && line.vehicle.type) || "")), from: String((t.departure_stop || {}).name || "?"), to: String((t.arrival_stop || {}).name || "?"), dep, arr, line: String(line.short_name || line.name || "") || undefined });

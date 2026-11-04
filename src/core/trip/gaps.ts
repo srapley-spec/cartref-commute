@@ -33,7 +33,9 @@ export function googleGaps(routes: GapRoute[], picks: Journey[], q: TripQuestion
     const rides = r.legs.filter(l => l.kind !== "walk");
     if (!rides.length || rides.some(l => l.kind === "bus")) continue;
     if (q.kind === "by" && r.arrive > q.t) continue;
-    const key = rides.map(l => `${l.from}|${l.dep}|${l.to}`).join(",");
+    // The same trains once: keyed by the rail rides (a different Tube to the same sleeper is not another route).
+    const rail = rides.filter(l => l.kind === "rail");
+    const key = (rail.length ? rail : rides).map(l => `${l.from}|${l.dep}|${l.to}`).join(",");
     if (seen.has(key)) continue;
     const last = rides[rides.length - 1];
     const soonerMin = best ? Math.round((bestLastArr - last.arr) / 60e3) : null;
