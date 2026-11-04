@@ -1,6 +1,6 @@
 // Cloudflare Worker: a tiny proxy so the Cartref Commute page can read
 // National Rail (Darwin) departure boards from a browser, without the key ever reaching the phone.
-// Only needed if Rail Data Marketplace refuses direct browser calls (CORS), or to keep the key server-side.
+// It keeps the keys server-side, and works whether or not Rail Data Marketplace allows direct browser calls (CORS).
 //
 // Setup (Cloudflare dashboard → Workers & Pages → Create → Worker → paste this):
 //   Settings → Variables and Secrets:
@@ -9,13 +9,21 @@
 //                            https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120
 //     ALLOW_ORIGIN (Text)    required: your page's origin, e.g. https://srapley-spec.github.io
 //                            (comma-separate several). Requests from any other origin are refused.
+//     RDM_SD_KEY   (Secret)  optional: the Service Details product's own key, if different from RDM_KEY
+//     RDM_SD_BASE  (Text)    optional: Service Details endpoint base (default below)
 //   Optional: add a Cloudflare rate-limiting rule on the worker route as a second line of defence.
 // Then put the worker URL into the page: Settings → Source → My proxy.
 //
 // Security notes:
+// Routes (docs/stories/live-and-timetable.md, issue #17):
+//   GET /board/FROM/TO[?offset=N]  departures FROM → TO, 120 min window, starting N min from now (-120..119;
+//                                  -40 when you're on the train, ahead for Leave around / Arrive by)
+//   GET /service/ID                Service Details for the train you're on (where it was last reported)
+//
 // - The Origin check stops other websites using your proxy from a browser. A non-browser client can fake
-//   the Origin header, so it limits casual misuse rather than guaranteeing it. Only the three fixed
-//   station boards can be requested, and responses are cached for 20 seconds, which caps upstream use.
+//   the Origin header, so it limits casual misuse rather than guaranteeing it. Only the four fixed
+//   stations' boards can be requested (unless ALLOW_ANY_STATION), and upstream answers are cached at
+//   Cloudflare for 20 seconds per board/offset and service (not verified on a *.workers.dev address).
 // - The key is only ever sent upstream; it never appears in responses or logs.
 //
 // Trip mode (optional, docs/leisure-architecture.md §5 and §9). Off unless configured, so an existing Worker is unchanged:
@@ -25,6 +33,27 @@
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
+// Darwin service IDs: letters, digits and the base64 / underscore characters seen in LDBWS IDs.
+const SERVICE_ID = /^[A-Za-z0-9+/=_-]{1,64}$/;
+const SD_BASE = "https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120";
+const trimBase = u => String(u || "").trim().replace(/\/+$/, "");
+// Ask Rail Data Marketplace with the key in a header; the key is never in the answer.
+async function rdm(url, key, cors) {
+  let upstream;
+  try {
+    upstream = await fetch(url, {
+      headers: { "x-apikey": key },
+      cf: { cacheTtl: 20, cacheEverything: true },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (e) {
+    return new Response("Upstream timeout", { status: 504, headers: cors });
+  }
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
 // Google: the only paths and field masks the Worker will forward.
 const GOOGLE = [
   { re: /^\/google\/places\/v1\/places:autocomplete$/, method: "POST", url: () => "https://places.googleapis.com/v1/places:autocomplete",
@@ -72,29 +101,30 @@ export default {
     if (reqUrl.pathname.startsWith("/google/")) return google(request, env, cors, reqUrl);
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: cors });
 
+    const svc = reqUrl.pathname.match(/^\/service\/([^/]+)$/);
+    if (svc) {
+      let id; try { id = decodeURIComponent(svc[1]); } catch (e) { id = ""; }
+      if (!SERVICE_ID.test(id)) return new Response("Not found", { status: 404, headers: cors });
+      const key = env.RDM_SD_KEY || env.RDM_KEY;
+      if (!key) return new Response("Proxy not configured: set RDM_KEY (or RDM_SD_KEY).", { status: 500, headers: cors });
+      return rdm(`${trimBase(env.RDM_SD_BASE) || SD_BASE}/GetServiceDetails/${encodeURIComponent(id)}`, key, cors);
+    }
+
     const m = reqUrl.pathname.match(/^\/board\/([A-Z]{3})\/([A-Z]{3})$/);
     const ok = crs => (env.ALLOW_ANY_STATION === "yes" ? CRS.test(crs) : ALLOWED_CRS.has(crs));
     if (!m || !ok(m[1]) || !ok(m[2])) {
       return new Response("Not found", { status: 404, headers: cors });
     }
     const [, from, to] = m;
-    const base = String(env.RDM_BASE || "").replace(/\/+$/, "");
-    if (!base || !env.RDM_KEY) return new Response("Proxy not configured: set RDM_BASE and RDM_KEY.", { status: 500, headers: cors });
-    const url = `${base}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120`;
-
-    let upstream;
-    try {
-      upstream = await fetch(url, {
-        headers: { "x-apikey": env.RDM_KEY },
-        cf: { cacheTtl: 20, cacheEverything: true },
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch (e) {
-      return new Response("Upstream timeout", { status: 504, headers: cors });
+    // Start offset in minutes, as Rail Data Marketplace allows: a whole number from -120 to 119.
+    const offRaw = reqUrl.searchParams.get("offset");
+    let off = 0;
+    if (offRaw !== null) {
+      if (!/^-?\d{1,3}$/.test(offRaw) || +offRaw < -120 || +offRaw > 119) return new Response("Bad offset", { status: 400, headers: cors });
+      off = +offRaw;
     }
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
-    });
+    const base = trimBase(env.RDM_BASE);
+    if (!base || !env.RDM_KEY) return new Response("Proxy not configured: set RDM_BASE and RDM_KEY.", { status: 500, headers: cors });
+    return rdm(`${base}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${off ? `&timeOffset=${off}` : ""}`, env.RDM_KEY, cors);
   },
 };

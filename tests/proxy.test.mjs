@@ -89,3 +89,44 @@ test("Proxy (Trip): Google only when GOOGLE_KEY is set, fixed hosts and field ma
   assert.equal((await worker.fetch(post("/google/places/v1/places:autocomplete", { input: "x".repeat(9000) }), G)).status, 413);
   assert.equal((await worker.fetch(post("/google/places/v1/places:autocomplete", { input: "x" }), { ...G, ALLOW_ORIGIN: "https://other.test" })).status, 403);
 });
+
+test("Proxy: the board's start offset is passed on only as a whole number the feed allows (-120 to 119)", async () => {
+  await withUpstream(async (seen) => {
+    assert.equal((await worker.fetch(req("/board/KGX/LET?offset=-40"), ENV)).status, 200);
+    assert.equal(seen[0].url, "https://up.test/LDBWS/api/20220120/GetDepBoardWithDetails/KGX?numRows=10&filterCrs=LET&filterType=to&timeWindow=120&timeOffset=-40");
+    assert.equal((await worker.fetch(req("/board/LET/KGX?offset=119"), ENV)).status, 200);
+    assert.match(seen[1].url, /&timeOffset=119$/);
+    assert.equal((await worker.fetch(req("/board/LET/KGX?offset=-120"), ENV)).status, 200);
+    assert.match(seen[2].url, /&timeOffset=-120$/);
+    assert.equal((await worker.fetch(req("/board/LET/KGX?offset=0"), ENV)).status, 200);
+    assert.doesNotMatch(seen[3].url, /timeOffset/, "zero: no offset");
+    for (const bad of ["120", "-121", "4.5", "abc", "", "1e2", "0x10"]) {
+      assert.equal((await worker.fetch(req(`/board/LET/KGX?offset=${bad}`), ENV)).status, 400, bad);
+    }
+    assert.equal(seen.length, 4, "a refused offset never reaches the feed");
+  }, () => new Response('{"trainServices":[]}', { status: 200 }));
+});
+
+test("Proxy: Service Details by ID with its own key (else the board key), at its own base; the key never returned", async () => {
+  await withUpstream(async (seen) => {
+    const r = await worker.fetch(req("/service/ab%2Fc%2B1%3D"), { ...ENV, RDM_SD_KEY: "sd-key", RDM_SD_BASE: "https://sd.test/LDBWS/api/20220120/" });
+    assert.equal(r.status, 200);
+    assert.equal(seen[0].url, "https://sd.test/LDBWS/api/20220120/GetServiceDetails/ab%2Fc%2B1%3D");
+    assert.equal(seen[0].opts.headers["x-apikey"], "sd-key");
+    assert.equal(r.headers.get("Access-Control-Allow-Origin"), "https://srapley-spec.github.io");
+    assert.ok(![...r.headers.values()].some((v) => v.includes("sd-key")));
+    assert.equal(await r.text(), '{"locationName":"x"}');
+    // Without its own key or base: the board key and Rail Data Marketplace's Service Details product.
+    await worker.fetch(req("/service/1234567KNGX____"), ENV);
+    assert.equal(seen[1].url, "https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120/GetServiceDetails/1234567KNGX____");
+    assert.equal(seen[1].opts.headers["x-apikey"], "secret-key");
+    // Only well-formed IDs; nothing else under /service/.
+    for (const bad of ["/service/", "/service/a%20b", "/service/a/b", "/service/%E0%A4%A", `/service/${"x".repeat(65)}`, "/service/..%2F..%2Fx"]) {
+      assert.equal((await worker.fetch(req(bad), ENV)).status, 404, bad);
+    }
+    assert.equal(seen.length, 2);
+    assert.equal((await worker.fetch(req("/service/X1", { method: "POST" }), ENV)).status, 405);
+  }, () => new Response('{"locationName":"x"}', { status: 200 }));
+  assert.equal((await worker.fetch(req("/service/X1"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN })).status, 500, "no key");
+  assert.equal((await worker.fetch(req("/service/X1", { origin: "https://evil.test" }), ENV)).status, 403);
+});

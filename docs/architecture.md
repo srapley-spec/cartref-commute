@@ -264,7 +264,9 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   at Aldgate) and line status. TrackerNet (per-platform) refuses the key we have (31 Oct, 401): a separate TfL product.
 - **Places** (Any start and end point toggle): TfL Journey Planner, its "which place did you mean?" replies
   matched to the best guess. Searchable picker considered (#25).
-- **Planned/considered**: proxy with offsets and Service Details (#17), staff board for early platforms (#19),
+- **Proxy** (`proxy/worker.js`, Cloudflare Worker, 4 Nov #17): boards with offsets and Service Details, keys held by the
+  Worker; a full alternative to keys in Settings ([live-and-timetable](stories/live-and-timetable.md)).
+- **Planned/considered**: staff board for early platforms (#19),
   structured incidents (#20), train length and crowding (#21), passing points via Darwin real-time (#23).
 - **Google Maps Platform** (Trip mode; Sam's key, set up 31 Oct night; the key lives only in the phone's Settings or,
   later, as the proxy's `GOOGLE_KEY` secret, never in the repo or chat). APIs enabled on the key:

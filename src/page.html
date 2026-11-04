@@ -406,7 +406,8 @@ const PAIRS = [[HOME,"KGX"],[HOME,"ZFD"],[HOME,"STP"],["KGX",HOME],["ZFD",HOME],
 // Live boards for the direction you're going: all three London stations, so the same train is known at each.
 const livePairs = () => PAIRS.filter(([a,b]) => direction()==="office" ? a===HOME : b===HOME);
 // Live boards from a later time (Rail Data Marketplace allows starting up to 119 min ahead, 120 min window).
-const canLiveAhead = () => state.railSource==="darwin" && S().provider==="rdm";
+const liveDarwin = () => S().provider==="rdm" || S().provider==="proxy";
+const canLiveAhead = () => state.railSource==="darwin" && liveDarwin();
 async function fetchLiveAhead(offsetMin){
   const off=C.clampOffset(offsetMin), pairs=livePairs();
   const rs=await Promise.allSettled(pairs.map(([a,b])=>fetchBoard(a,b,off)));
@@ -587,7 +588,7 @@ const stripHtml = h => {
 function boardUrl(from,to,offsetMin){
   const s=S(), trim=u=>String(u||"").trim().replace(/\/+$/,"");
   if(s.simulatedFeeds || s.provider==="rdm") return { url:`${trim(s.rdmBase)}/GetDepBoardWithDetails/${from}?numRows=10&filterCrs=${to}&filterType=to&timeWindow=120${offsetMin?`&timeOffset=${offsetMin}`:""}`, headers:{"x-apikey":s.rdmKey} };
-  if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}`, headers:{} };
+  if(s.provider==="proxy") return { url:`${trim(s.proxyBase)}/board/${from}/${to}${offsetMin?`?offset=${offsetMin}`:""}`, headers:{} };
   return { url:`${trim(s.huxleyBase)}/departures/${from}/to/${to}/10?accessToken=${encodeURIComponent(s.huxleyToken)}&expand=true&timeWindow=120`, headers:{} };
 }
 // Which train source runs: demo, tfl (timetable), or darwin. Darwin without a key falls back to tfl.
@@ -665,10 +666,11 @@ async function fetchBoard(from,to,offsetMin){
 
 // Service Details for the train you're on: where it was last reported, and its expected times ahead.
 async function fetchServiceDetails(id){
-  const s=S(), base=String(s.rdmSdBase||DEFAULTS.rdmSdBase).trim().replace(/\/+$/,""), key=s.rdmSdKey||s.rdmKey;
-  let r; try{ r=await fetchT(`${base}/GetServiceDetails/${encodeURIComponent(id)}`, {headers:{"x-apikey":key}}); }
+  const s=S(), viaProxy=!s.simulatedFeeds && s.provider==="proxy";
+  const base=String(viaProxy?s.proxyBase:(s.rdmSdBase||DEFAULTS.rdmSdBase)).trim().replace(/\/+$/,""), key=s.rdmSdKey||s.rdmKey;
+  let r; try{ r=await fetchT(viaProxy?`${base}/service/${encodeURIComponent(id)}`:`${base}/GetServiceDetails/${encodeURIComponent(id)}`, viaProxy?{headers:{}}:{headers:{"x-apikey":key}}); }
   catch(e){ throw new Error(e.timeout?"Service Details didn't respond in time.":"Couldn't reach Service Details."); }
-  if(r.status===401||r.status===403) throw new Error(`Service Details refused the key (HTTP ${r.status}). Check you're subscribed, or add its own key in Settings.`);
+  if(r.status===401||r.status===403) throw new Error(`Service Details refused the key (HTTP ${r.status}). Check you're subscribed, or ${viaProxy?"set RDM_SD_KEY in your proxy":"add its own key in Settings"}.`);
   if(!r.ok) throw new Error(`Service Details error (HTTP ${r.status}).`);
   return C.parseServiceDetails(await r.json(), Date.now());
 }
@@ -677,7 +679,7 @@ async function fetchServiceDetails(id){
 const progressFor = (id, maxAge=3*60e3) => { const p=state.progressById && id && state.progressById[id]; return p && Date.now()-p.at<maxAge ? p : null; };
 async function refreshTrainProgress(){
  const epoch=sourceEpoch;
-  if(state.railSource!=="darwin" || (!S().simulatedFeeds && S().provider!=="rdm")) return;
+  if(state.railSource!=="darwin" || (!S().simulatedFeeds && !liveDarwin())) return;
   if(!state.onLine && !(nearlyHome() && state.trainLock)) return;
   const m=state.onLine ? whichTrain(Date.now()) : null, lt=state.onLine ? null : lockedTrain();
   const ids = m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])].filter(Boolean) : lt && lt.serviceId ? [lt.serviceId] : [];
@@ -2492,6 +2494,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
