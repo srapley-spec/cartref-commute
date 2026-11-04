@@ -264,8 +264,10 @@ is not evidence of production tracking, alert delivery or interaction deferral.
   at Aldgate) and line status. TrackerNet (per-platform) refuses the key we have (31 Oct, 401): a separate TfL product.
 - **Places** (Any start and end point toggle): TfL Journey Planner, its "which place did you mean?" replies
   matched to the best guess. Searchable picker considered (#25).
-- **Proxy** (`proxy/worker.js`, Cloudflare Worker, 4 Nov #17): boards with offsets and Service Details, keys held by the
-  Worker; a full alternative to keys in Settings ([live-and-timetable](stories/live-and-timetable.md)).
+- **Proxy** (`proxy/worker.js`, Cloudflare Worker, 4 Nov): with Source → My proxy it carries every feed (National
+  Rail boards with offsets and Service Details, TfL's allowlisted paths, Google Places/Routes) and holds every key; a
+  device needs only its address ([live-and-timetable](stories/live-and-timetable.md),
+  [keys-in-the-proxy](stories/keys-in-the-proxy.md)). Sam's setup steps: `docs/your-setup-steps.md`.
 - **Planned/considered**: staff board for early platforms (#19),
   structured incidents (#20), train length and crowding (#21), passing points via Darwin real-time (#23).
 - **Google Maps Platform** (Trip mode; Sam's key, set up 31 Oct night; the key lives only in the phone's Settings or,
@@ -366,6 +368,14 @@ Native backlog: #2–#7, #10–#12.
 Design: Signal selected ([`design/`](design/README.md), [design system](design-system.md)); the sole design (Panda retired 1 Nov; see retirement review). Ideas: "Along the line" nerd mode (#24, supersedes #16).
 
 ## Decisions log
+
+- **4 Nov, every key in the proxy (Sam).** "I would like all the API keys moved so that deployment to other devices is
+  easier." Decisions: My proxy as the National Rail source means every feed goes through it (TfL and Google too); one
+  choice, not three. TfL is forwarded only for the paths the app uses, the key added and scrubbed by the Worker.
+  `/status` (booleans) lets Settings say what's still to set; a `#setup=` link sets up another device after a
+  confirmation (it names the proxy, since every request, places included, goes through it). Keys left on a phone are
+  removed only by an explicit button. Sam's own steps are kept in `docs/your-setup-steps.md` (Sam asked for a log).
+  Story: `docs/stories/keys-in-the-proxy.md`.
 
 - **4 Nov, the proxy becomes a server: Cloudflare (Sam).** Sam set up a Cloudflare account and chose: finish #17 (the
   Worker as a full live source) and time-to-leave push notifications, then: "There should also be a warning when I wake

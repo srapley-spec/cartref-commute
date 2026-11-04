@@ -61,6 +61,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Capture live data from the platform](capture-live-data.md) · Done
 - [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
+- [Every key in the proxy: a new device needs only its address](keys-in-the-proxy.md) · Done in code (4 Nov); waiting for the Worker deployment
 - [Time-to-leave and wake-up alerts](time-to-leave-alerts.md) · Behind toggle (4 Nov; needs the proxy deployed; not yet verified on an iPhone)
 
 ### Beyond the commute

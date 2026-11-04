@@ -151,3 +151,48 @@ test("Proxy: its own refusals are labelled X-Proxy-Refusal (readable by the page
   const pre = await worker.fetch(req("/board/KGX/LET", { method: "OPTIONS" }), ENV);
   assert.equal(pre.headers.get("Access-Control-Expose-Headers"), "X-Proxy-Refusal");
 });
+
+test("Proxy (TfL): only the app's TfL paths; the key is added here, never taken from the phone, and scrubbed from replies", async () => {
+  const T = { ...ENV, TFL_KEY: "tfl-secret+/" };
+  await withUpstream(async (seen) => {
+    let r = await worker.fetch(req("/tfl/Journey/JourneyResults/51.97,-0.23/to/1000122?mode=national-rail&timeIs=Departing&app_key=phone-key"), T);
+    assert.equal(r.status, 200);
+    assert.equal(seen[0].url, "https://api.tfl.gov.uk/Journey/JourneyResults/51.97,-0.23/to/1000122?mode=national-rail&timeIs=Departing&app_key=tfl-secret%2B%2F");
+    assert.equal(seen[0].opts.cf.cacheTtl, 60);
+    const body = await r.text();
+    assert.ok(!body.includes("tfl-secret") && !body.includes("tfl-secret%2B%2F"), body);
+    assert.match(body, /\*\*\*/);
+    assert.equal(r.headers.get("Access-Control-Allow-Origin"), "https://srapley-spec.github.io");
+    assert.equal(r.headers.get("Cache-Control"), "no-store");
+    for (const [path, ttl] of [["/tfl/StopPoint/940GZZLUALD/Arrivals", 15], ["/tfl/Line/circle,metropolitan,hammersmith-city/Status", 60], ["/tfl/Line/Mode/national-rail/Status", 60], ["/tfl/trackernet/PredictionDetailed/M/ALD", 15]]) {
+      r = await worker.fetch(req(path), T);
+      assert.equal(r.status, 200, path); assert.equal(seen.at(-1).url, `https://api.tfl.gov.uk${path.slice(4)}?app_key=tfl-secret%2B%2F`); assert.equal(seen.at(-1).opts.cf.cacheTtl, ttl);
+    }
+    // Without TFL_KEY: forwarded without a key (TfL's lower anonymous limit), and a phone's key is still dropped.
+    r = await worker.fetch(req("/tfl/StopPoint/940GZZLUALD/Arrivals?app_key=phone-key&app_id=x"), ENV);
+    assert.equal(seen.at(-1).url, "https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals");
+    const n = seen.length;
+    for (const bad of ["/tfl/AccidentStats/2019", "/tfl/StopPoint/940GZZLUALD", "/tfl/Line/circle/Status/extra", "/tfl/Journey/JourneyResults/a/to/b/c", "/tfl/../BikePoint", `/tfl/StopPoint/940GZZLUALD/Arrivals?x=${"y".repeat(1001)}`]) {
+      const x = await worker.fetch(req(bad), T);
+      assert.equal(x.status, 404, bad); assert.equal(x.headers.get("X-Proxy-Refusal"), "route");
+    }
+    assert.equal(seen.length, n, "refused paths never reach TfL");
+    assert.equal((await worker.fetch(req("/tfl/StopPoint/940GZZLUALD/Arrivals", { origin: "https://evil.test" }), T)).status, 403);
+  }, (url) => new Response(JSON.stringify({ relativeUri: String(url).replace("https://api.tfl.gov.uk", ""), note: "tfl-secret+/" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  // TfL's own statuses pass through (300 "which place?", 429 rate limit), unlabelled.
+  await withUpstream(async () => {
+    const r = await worker.fetch(req("/tfl/Journey/JourneyResults/a/to/b"), T);
+    assert.equal(r.status, 429); assert.equal(r.headers.get("X-Proxy-Refusal"), null);
+  }, () => new Response("{}", { status: 429 }));
+});
+
+test("Proxy: /status says what it's set up for, true or false only, never a key", async () => {
+  const full = { ...ENV, RDM_SD_KEY: "sd-key-1", TFL_KEY: "tfl-key-2", GOOGLE_KEY: "g-key-3", ALLOW_ANY_STATION: "yes", PUSH: {}, VAPID_PUBLIC_KEY: "pub-4", VAPID_PRIVATE_KEY: "priv-5", VAPID_SUBJECT: "mailto:x" };
+  let r = await worker.fetch(req("/status"), full);
+  const text = await r.text();
+  assert.deepEqual(JSON.parse(text), { v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: true });
+  for (const secret of ["secret-key", "sd-key-1", "tfl-key-2", "g-key-3", "pub-4", "priv-5"]) assert.ok(!text.includes(secret), secret);
+  r = await worker.fetch(req("/status"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN });
+  assert.deepEqual(await r.json(), { v: 1, rail: false, serviceDetails: false, tflKey: false, google: false, anyStation: false, alerts: false });
+  assert.equal((await worker.fetch(req("/status", { origin: "https://evil.test" }), full)).status, 403);
+});

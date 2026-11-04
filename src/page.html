@@ -287,9 +287,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <label class="f wide" data-p="rdm"><span>Service Details key (only if different from the key above)</span><input id="s_rdmSdKey" type="password" autocomplete="off" spellcheck="false"></label>
       <label class="f wide" data-p="rdm"><span>Service Details endpoint base URL</span><input id="s_rdmSdBase" type="url" spellcheck="false"></label>
       <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
+      <div class="f wide" data-p="proxy">
+        <p class="hint">My proxy carries every feed: National Rail, TfL and Google (Trip). This phone keeps no keys; they live in Cloudflare.</p>
+        <p class="hint" id="proxyStatus" aria-live="polite"></p>
+        <button type="button" class="ghost" id="proxyLinkBtn">Copy setup link for another device</button>
+        <button type="button" class="ghost" id="clearKeysBtn" hidden>Remove keys stored on this phone</button>
+      </div>
       <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
       <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide"><span>TfL app key (optional, free from api-portal.tfl.gov.uk; raises TfL's request limit)</span><input id="s_tflKey" type="password" autocomplete="off" spellcheck="false"></label>
+      <label class="f wide" data-not-proxy><span>TfL app key (optional, free from api-portal.tfl.gov.uk; raises TfL's request limit)</span><input id="s_tflKey" type="password" autocomplete="off" spellcheck="false"></label>
       <p class="hint">Keys are stored only in this browser on this device. A key typed here can be read by anything that runs on this page; the proxy option keeps the National Rail key off the phone entirely.</p>
     </fieldset>
 
@@ -357,7 +363,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <legend>Trip</legend>
       <p class="hint">Addresses and the time to and from the station come from Google; trains from TfL's journey planner, with live
         National Rail times. Station list: UK railway stations (ODbL 1.0, github.com/davwheat/uk-railway-stations).</p>
-      <label class="f wide"><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
+      <label class="f wide" data-not-proxy><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
       <label class="f wide" id="googleKeyRow"><span>Google Maps key (website-restricted)</span><input id="s_googleKey" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="googleKeyNote"></span></label>
       <label class="f"><span>Park and reach the platform (min)</span><input id="s_tripParkMin" type="number" step="1" min="0" max="60"></label>
       <label class="f"><span>Lock the bike and reach the platform (min)</span><input id="s_tripLockMin" type="number" step="1" min="0" max="60"></label>
@@ -557,10 +563,15 @@ async function fetchT(url, opts){
   finally{clearTimeout(id);pendingRequests.delete(ctl);}
 }
 // TfL: optional free app key (raises the rate limit) and a shared back-off after HTTP 429.
-function tflUrl(u){ const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
+// My proxy carries every feed (docs/stories/keys-in-the-proxy.md): TfL goes to its /tfl/... route, the key added there.
+const allViaProxy = () => !S().simulatedFeeds && S().provider==="proxy";
+const proxyBaseUrl = () => String(S().proxyBase||"").trim().replace(/\/+$/,"");
+function tflUrl(u){
+  if(allViaProxy() && u.startsWith("https://api.tfl.gov.uk/")) return `${proxyBaseUrl()}/tfl/${u.slice("https://api.tfl.gov.uk/".length)}`;
+  const k=S().tflKey; return k ? `${u}${u.includes("?")?"&":"?"}app_key=${encodeURIComponent(k)}` : u; }
 // Without a key TfL allows only a handful of requests a minute per IP address, so keyless use keeps
 // each load to a minimum and runs requests one at a time.
-const tflKeyed = () => !!S().tflKey;
+const tflKeyed = () => allViaProxy() ? !!(state.saved.proxyStatus && state.saved.proxyStatus.tflKey) : !!S().tflKey;
 const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retrying in a minute."
   : "TfL limits requests without a key to a handful a minute. Retrying in a minute; add a free TfL app key in Settings to avoid this.";
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
@@ -2345,6 +2356,39 @@ $("#journeySimulatorBtn").addEventListener('click',()=>journeyUI.open('journey')
 /*__FOLLOW_TRANSPORT__*/
 /*__JOURNEY_UI__*/
 /*__TRIP_UI__*/
+// ---------- My proxy: what it's set up for, keys on this phone, and a setup link for another device ----------
+const PHONE_KEYS = ["rdmKey","rdmSdKey","tflKey","googleKey","huxleyToken"];
+const proxySetupLink = base => `${location.origin}${location.pathname}#setup=${encodeURIComponent(base)}`;
+// What the proxy reports (/status: true/false only). Kept so the first refresh knows whether TfL is keyed.
+async function refreshProxyStatus(){
+  const base=proxyBaseUrl(); if(!base) return null;
+  try{ const r=await fetchT(`${base}/status`); if(!r.ok) throw new Error(`HTTP ${r.status}`); const j=await r.json();
+    state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,at:Date.now(),base}; state.proxyStatusErr=""; }
+  catch(e){ state.proxyStatusErr=e.message||"unreachable"; }
+  save(); renderProxyStatus(); return state.saved.proxyStatus||null;
+}
+function renderProxyStatus(){
+  const el=$("#proxyStatus"); if(!el) return;
+  const st=state.saved.proxyStatus, base=proxyBaseUrl(), keys=PHONE_KEYS.filter(k=>S()[k]);
+  $("#clearKeysBtn").hidden=!(S().provider==="proxy"&&keys.length);
+  if(!base){ el.textContent=""; return; }
+  if(state.proxyStatusErr&&(!st||st.base!==base)){ el.textContent=`Couldn't reach your proxy (${state.proxyStatusErr}). Check the address, and that its ALLOW_ORIGIN is this page's address.`; return; }
+  if(!st||st.base!==base){ el.textContent="Checking your proxy…"; return; }
+  const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
+  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to set in Cloudflare: ${need.join("; ")}.`:"")+(keys.length?" This phone still holds keys you can remove.":"");
+}
+// A setup link (#setup=<proxy address>) sets up a new device in one tap: My proxy for every feed, nothing else changed.
+function acceptSetupLink(){
+  const m=/^#setup=(.+)$/.exec(location.hash||""); if(!m) return false;
+  let base=""; try{ base=decodeURIComponent(m[1]).trim().replace(/\/+$/,""); }catch(e){}
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+  if(!/^https:\/\/[^\s/?#]+$/.test(base)) return false;
+  let ok=false; try{ ok=window.confirm(`Use ${base} for all live data on this device? Train, TfL and Google requests (including the places you plan between) will go through it.`); }catch(e){ ok=false; }
+  if(!ok) return false;
+  state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:base}; save();
+  return true;
+}
+
 // ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
 /*__PUSH_ALERTS__*/
 const alertsMorning = s => ({ from:HOME, to:Object.keys(HUB_NAME), time:s.wakeAt||pushAlerts.DEFAULT_WAKE, days:[1,2,3,4,5], names:{...STATIONS,...HUB_NAME} });
@@ -2358,7 +2402,7 @@ const tripEnabled = () => !!S().trip;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
-  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, connectionMarkup:connectionPanelMarkup,
+  if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, tflUrl, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,arrangeJourneySummaries,tick,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     controlsRoot:$("#signalAdjustments .signal-adjustment-body"),dayLabel,
     renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'},route=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$('#routeLabel').textContent=route;setJourneyContext(route,`${modes[s.modes.from]} to · ${modes[s.modes.to]} from`,route);}},
@@ -2395,8 +2439,9 @@ function fillSettings(){
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
 }
-function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"; }
-function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; }); }
+function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"||$("#s_provider").value==="proxy"; }
+function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; });
+  document.querySelectorAll("[data-not-proxy]").forEach(el=>{ el.hidden=p==="proxy"; }); showTripFields(); renderProxyStatus(); }
 function readSettings(){
   const o={};
   ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
@@ -2421,6 +2466,9 @@ function readSettings(){
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
 ["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
 $("#s_provider").addEventListener("change",showProviderFields);
+$("#proxyLinkBtn").addEventListener("click",async()=>{ const base=String($("#s_proxyBase").value||"").trim().replace(/\/+$/,""); if(!/^https:\/\//.test(base)){ $("#proxyStatus").textContent="Enter your proxy's https address first."; return; }
+  const link=proxySetupLink(base); try{ if(navigator.share){ await navigator.share({title:"Commute setup",url:link}); return; } await navigator.clipboard.writeText(link); $("#proxyStatus").textContent="Setup link copied. Open it on the other device (from its Home Screen app, or then add it to the Home Screen)."; }catch(e){ $("#proxyStatus").textContent=link; } });
+$("#clearKeysBtn").addEventListener("click",()=>{ PHONE_KEYS.forEach(k=>{ delete state.saved.settings[k]; const el=$("#s_"+k); if(el) el.value=""; }); save(); renderProxyStatus(); $("#proxyStatus").textContent+=" Keys removed from this phone."; });
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{
@@ -2454,6 +2502,7 @@ $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
  leaveAlerts.onSave(previous, effective);
+ if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
  const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
@@ -2509,6 +2558,8 @@ window.addEventListener("pagehide",invalidateSources);
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
 if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
+acceptSetupLink();
+if(allViaProxy()) refreshProxyStatus();
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
 simSetup(); locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
@@ -2520,6 +2571,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

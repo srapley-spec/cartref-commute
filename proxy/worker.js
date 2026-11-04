@@ -15,6 +15,7 @@
 //                            (comma-separate several). Requests from any other origin are refused.
 //     RDM_SD_KEY   (Secret)  optional: the Service Details product's own key, if different from RDM_KEY
 //     RDM_SD_BASE  (Text)    optional: Service Details endpoint base (default below)
+//     TFL_KEY      (Secret)  optional: your TfL app key, added to /tfl/... requests (the phone never sends one)
 //   Optional: add a Cloudflare rate-limiting rule on the worker route as a second line of defence.
 // Then put the worker URL into the page: Settings → Source → My proxy.
 //
@@ -22,6 +23,9 @@
 //   GET /board/FROM/TO[?offset=N]  departures FROM → TO, 120 min window, starting N min from now (-120..119;
 //                                  -40 when you're on the train, ahead for Leave around / Arrive by)
 //   GET /service/ID                Service Details for the train you're on (where it was last reported)
+//   GET /tfl/...                   TfL (Journey Planner, Tube arrivals, line status, TrackerNet): only the paths
+//                                  the app uses; TFL_KEY (Secret, optional) added here, never sent by the phone
+//   GET /status                    what this proxy is set up for (true/false only, no secrets): Settings shows it
 //   /push/...                      time-to-leave and wake-up alerts (proxy/push.js), off unless configured:
 //     KV namespace binding PUSH, VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (Secrets, from `node tools/vapid-keys.mjs`),
 //     VAPID_SUBJECT (Text, e.g. mailto:you@example.com), and the Cron Trigger "* * * * *" (proxy/wrangler.toml).
@@ -42,6 +46,37 @@ import { pushRoute, runAlerts } from "./push.js";
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
+// TfL: the only paths the Worker forwards (docs/stories/keys-in-the-proxy.md), and how long Cloudflare keeps each.
+const TFL = [
+  { re: /^\/tfl\/Journey\/JourneyResults\/[^/]{1,200}\/to\/[^/]{1,200}$/, ttl: 60 },
+  { re: /^\/tfl\/StopPoint\/[A-Za-z0-9]{1,20}\/Arrivals$/, ttl: 15 },
+  { re: /^\/tfl\/Line\/[a-z0-9,-]{1,100}\/Status$/, ttl: 60 },
+  { re: /^\/tfl\/Line\/Mode\/national-rail\/Status$/, ttl: 60 },
+  { re: /^\/tfl\/trackernet\/PredictionDetailed\/[A-Z]\/[A-Z]{3}$/, ttl: 15 },
+];
+async function tfl(env, cors, url, refuse) {
+  const route = TFL.find(t => t.re.test(url.pathname));
+  if (!route || url.search.length > 1000) return refuse("route", 404, "Not found");
+  const q = new URLSearchParams(url.search);
+  q.delete("app_key"); q.delete("app_id");
+  if (env.TFL_KEY) q.set("app_key", env.TFL_KEY);
+  const qs = q.toString();
+  let upstream;
+  try {
+    upstream = await fetch(`https://api.tfl.gov.uk${url.pathname.slice(4)}${qs ? `?${qs}` : ""}`,
+      { cf: { cacheTtl: route.ttl, cacheEverything: true }, signal: AbortSignal.timeout(10000) });
+  } catch (e) { return new Response("Upstream timeout", { status: 504, headers: cors }); }
+  // TfL's error replies can quote the request, key included: it never leaves the Worker.
+  let body = await upstream.text();
+  if (env.TFL_KEY) for (const k of [env.TFL_KEY, encodeURIComponent(env.TFL_KEY)]) body = body.split(k).join("***");
+  return new Response(body, { status: upstream.status, headers: { ...cors, "Content-Type": upstream.headers.get("Content-Type") || "application/json", "Cache-Control": "no-store" } });
+}
+/** What this proxy is set up for: booleans only, so Settings on a new device can say what's missing. */
+function status(env) {
+  return { v: 1, rail: !!(env.RDM_KEY && env.RDM_BASE), serviceDetails: !!(env.RDM_SD_KEY || env.RDM_KEY), tflKey: !!env.TFL_KEY,
+    google: !!env.GOOGLE_KEY, anyStation: env.ALLOW_ANY_STATION === "yes",
+    alerts: !!(env.PUSH && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT) };
+}
 // Darwin service IDs: letters, digits and the base64 / underscore characters seen in LDBWS IDs.
 const SERVICE_ID = /^[A-Za-z0-9+/=_-]{1,64}$/;
 const SD_BASE = "https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120";
@@ -114,6 +149,8 @@ export default {
     if (reqUrl.pathname.startsWith("/google/")) return google(request, env, cors, reqUrl);
     if (reqUrl.pathname.startsWith("/push/")) return pushRoute(request, env, cors, reqUrl, ALLOWED_CRS);
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: cors });
+    if (reqUrl.pathname.startsWith("/tfl/")) return tfl(env, cors, reqUrl, refuse);
+    if (reqUrl.pathname === "/status") return new Response(JSON.stringify(status(env)), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
     const svc = reqUrl.pathname.match(/^\/service\/([^/]+)$/);
     if (svc) {

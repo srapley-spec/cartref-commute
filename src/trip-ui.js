@@ -54,7 +54,7 @@ function createTripUi(deps) {
     return idxLoading;
   }
   function google() {
-    const via = S().googleVia === "proxy" ? "proxy" : "browser";
+    const via = googleViaProxy() ? "proxy" : "browser";
     if (!googleAd || googleVia !== via) {
       googleVia = via;
       googleAd = via === "proxy" ? tripAdapters.googleProxy({ getBase: () => S().proxyBase, net })
@@ -62,7 +62,9 @@ function createTripUi(deps) {
     }
     return googleAd;
   }
-  const hasGoogle = () => (S().googleVia === "proxy" ? !!String(S().proxyBase || "").trim() : !!String(S().googleKey || "").trim());
+  // My proxy as the National Rail source carries Google too (docs/stories/keys-in-the-proxy.md).
+  function googleViaProxy() { return S().googleVia === "proxy" || (S().provider === "proxy" && !S().simulatedFeeds); }
+  const hasGoogle = () => (googleViaProxy() ? !!String(S().proxyBase || "").trim() : !!String(S().googleKey || "").trim());
   // Shell wrappers: caching and cadence live here, never in the engine.
   const accessCache = new Map();
   const access = {
@@ -77,7 +79,7 @@ function createTripUi(deps) {
     },
   };
   function planner(index) {
-    const tfl = tripAdapters.tflPlanner({ net, getKey: () => S().tflKey, idx: index, endMatchM: cfg().endMatchM, core: C });
+    const tfl = tripAdapters.tflPlanner({ net, getKey: () => S().tflKey, urlFor: deps.tflUrl, idx: index, endMatchM: cfg().endMatchM, core: C });
     const cached = async (k, ask) => { const hit = plannerCache.get(k); if (hit && now() - hit.at < 5 * 60e3) return hit.reply;
       const reply = await ask(); plannerCache.set(k, { at: now(), reply }); return reply; };
     return { name: tfl.name,
@@ -384,7 +386,7 @@ function createTripUi(deps) {
     deps.renderContext?.(s);blocks();
     if(result&&!s.follow&&questionKey(resultQuestion||s.question)!==questionKey(effectiveQuestion())){plan();return;}
     setup.hidden = hasGoogle();
-    if (!hasGoogle()) setup.innerHTML = `<p>${S().googleVia === "proxy" ? "Set your proxy's address in Settings to search addresses and time the trip to the station." : "Add a Google Maps key in Settings to search addresses and time the trip to the station."}</p><button type="button" class="ghost" data-trip-settings>Open Settings</button>`;
+    if (!hasGoogle()) setup.innerHTML = `<p>${googleViaProxy() ? "Set your proxy's address in Settings to search addresses and time the trip to the station." : "Add a Google Maps key in Settings to search addresses and time the trip to the station."}</p><button type="button" class="ghost" data-trip-settings>Open Settings</button>`;
     root.querySelector("#tripStage").textContent = better ? "Better option found" : stageText || driveNote;
     const out = root.querySelector("#tripResults");
     updateFollowing();

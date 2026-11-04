@@ -173,12 +173,14 @@ const tripAdapters = (() => {
 
   /** TfL's journey planner: station to station by each station's ICS code (one per station, unlike naptan IDs), or
    *  station to a place by its position (TfL plans to lat,lon around London; elsewhere it answers 404). */
-  function tflPlanner({ net, getKey, idx, endMatchM, core }) {
+  // urlFor (optional): the page's tflUrl, which adds the key or sends the request through My proxy instead.
+  function tflPlanner({ net, getKey, urlFor, idx, endMatchM, core }) {
     const stationId = s => (s.ids.tflIcs || [])[0] || (s.ids.tfl || [])[0];
     async function ask(from, a, b, toName, t, timeIs) {
       const d = new Date(t), p = n => String(n).padStart(2, "0");
+      const plain = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime`;
       const key = getKey();
-      const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${a}/to/${b}?date=${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}&time=${p(d.getHours())}${p(d.getMinutes())}&timeIs=${timeIs}&mode=${core.TFL_TRIP_MODES}&journeyPreference=leasttime${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
+      const url = urlFor ? urlFor(plain) : `${plain}${key ? `&app_key=${encodeURIComponent(key)}` : ""}`;
       const epoch = net.epoch(); let r;
       try { r = await net.fetchT(url); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw err(e && e.timeout ? "TfL's journey planner didn't respond in time." : "Couldn't reach TfL's journey planner.", { timeout: !!(e && e.timeout), network: true, rateLimited: !!(e && e.rateLimited) }); }
       net.assertEpoch(epoch);

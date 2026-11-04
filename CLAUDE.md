@@ -11,6 +11,8 @@ all existing effort/arrival-first rules, optional Follow, inference/correction a
 The review prototype is a visual reference, never a substitute for production state, clocks or ranking.
 
 ## Where the context is
+0. `docs/your-setup-steps.md`: what Sam still has to do himself (Cloudflare Worker, keys, phone). Keep it current: a
+   change that needs a step from Sam adds it there in the same commit; tick a step when Sam says it's done.
 1. `docs/architecture.md`: what the app is for, the four layers, the principles, data sources, decisions log, plan.
 2. `docs/stories/`: one file per capability: who it's for, the real trip that produced it, acceptance criteria
    with the exact thresholds, the tests that prove it, status. `docs/stories/README.md` is the index.

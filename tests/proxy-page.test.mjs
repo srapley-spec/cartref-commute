@@ -14,7 +14,7 @@ test("Proxy source: boards and Leave around's start offset go through the proxy,
   const board = () => ({ locationName: "x", trainServices: [{ std: hm(now + 70 * m), etd: "On time", operator: "Great Northern", platform: "9",
     subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", locationName: "Letchworth Garden City", st: hm(now + 105 * m), et: "On time" }] }] }], nrccMessages: [] });
   const app = await createApp({ geo: AT_OFFICE, settings: { provider: "proxy", proxyBase: PROXY + "/" },
-    route: (u, opts) => { if (!u.startsWith(PROXY)) return undefined; seen.push({ u, opts }); return json(board()); } });
+    route: (u, opts) => { if (!u.startsWith(PROXY + "/board/")) return undefined; seen.push({ u, opts }); return json(board()); } });
   assert.equal(app.c.state.railSource, "darwin", "the proxy counts as a live source");
   const boards = seen.map(x => x.u);
   assert.ok(boards.length >= 3, boards.join("\n"));
