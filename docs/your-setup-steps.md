@@ -4,7 +4,7 @@ What you need to do yourself, in order, for what's been built. Keep this file cu
 from Sam adds it here, and a step is ticked when Sam says it's done. Keys never go in this file, the repo or chat.
 Detail for each step: [proxy-setup.md](proxy-setup.md).
 
-Last updated: 4 Nov 2026 (every key in the proxy; time-to-leave alerts; #17).
+Last updated: 10 Nov 2026 (display mode for Home Assistant).
 
 ## 1. The Cloudflare Worker (once)
 - [x] Cloudflare account (Sam, 4 Nov)
@@ -43,6 +43,16 @@ Last updated: 4 Nov 2026 (every key in the proxy; time-to-leave alerts; #17).
 - [ ] On your phone: Settings → Copy setup link for another device. On the other device open the link in the browser
       and say yes; on iPhone then Share → Add to Home Screen, open Commute from the Home Screen, and say yes again if
       it asks (alerts on iPhone need the Home Screen app)
+
+## 5. The display in Home Assistant (display mode)
+- [ ] In a Home Assistant dashboard: Add card → **Webpage**. Address:
+      `https://srapley-spec.github.io/cartref-commute/?display`. Pick the card's size (it scrolls if the list is
+      longer than the card)
+- [ ] For live times (needs sections 1–2 done): on your phone, Settings → Copy setup link for another device. The
+      link ends `#setup=…`. Put `?display` before the `#` and use that as the card's address:
+      `https://srapley-spec.github.io/cartref-commute/?display#setup=…`. The card then asks once, on the page, whether
+      to use your proxy; tap **Yes, use it**. Without this the card shows timetable times, marked "not live"
+- [ ] Tell Claude how it looks at the card's size, and whether it asks again after Home Assistant restarts
 
 ## After a change to `proxy/` or `src/core/`
 - [ ] Redeploy: `npm run build && npx wrangler deploy --config proxy/wrangler.toml` (Claude says in the report when

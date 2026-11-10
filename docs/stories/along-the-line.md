@@ -92,6 +92,9 @@ existing journey/phone state and renders the model. `src/along-line.css` supplie
 field. It consumes the same qualified journey-progress model as the main Signal view. Existing save/simulation
 snapshot rules apply; no new requests or Follow opt-in. Native dialog state and manual following are session-only.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the button is a link in the one-row controls on a train and isn't pinned at other times (A5). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 - tests/core/alongLine.test.mjs: "Along: Welwyn is shared, interests and depth are independent, and malformed preferences are safe"
 - tests/core/alongLine.test.mjs: "Along: route and direction scope points without claiming the wrong tunnel or flyover"

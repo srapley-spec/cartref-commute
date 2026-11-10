@@ -56,6 +56,9 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 
 - Going home, the short final3% corridor just outside a recently observed departure hub can establish rail movement before identity is settled: a fresh fix good to250m, measured speed12m/s or more, within300m of that hub's profile line, outside every hub radius including uncertainty, and a plausible noncancelled departure towards home in the previous10minutes. The visit must be within10minutes and a known or selected Underground ride vetoes this inference. This supplies movement geometry only; normal train comparison still determines identity and confidence. An unknown service cannot use this rule to force passage inside another hub.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): a stops check for a picked train (C1), "I'm on it" asking when there's more than one candidate (C2), the pick saved across a reload (C3) and the picker limited to trains that could be yours (C12). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 - tests/core/situation.test.mjs: "railTrackingContext: a provisional observed train preserves movement without resolving its identity"
 - tests/core/situation.test.mjs: "railTrackingContext: a recent departure can establish rail movement in the end-corridor gap without choosing a train"

@@ -1,5 +1,143 @@
 # Cartref — Signal design system
 
+## Journey card amendment — 10 November 2026 (Sam, from the trip debrief #57)
+
+**Status: agreed by Sam on 10 Nov; not yet built.** The production app still follows the 2 November contract below
+until each item ships. Review mockups, drawn with the app's own Signal styles:
+[`design/journey-amendment-2026-11-10.html`](design/journey-amendment-2026-11-10.html). Finding IDs (A1 … F3) are
+those in issue #57, which holds the evidence, root causes and the clashes between fixes. Wording marked *(words to
+confirm)* is Claude's proposal for Sam to confirm on the mockups.
+
+This amendment changes the 2 November design only where it says so; everything else below stands. Where it
+contradicts an earlier line, this section wins, and the line is listed under "Rules this supersedes".
+
+### 1. One journey card while you follow a route (C5, C6, D1)
+- While a route is followed and the journey is under way (on the train, at the change station, on the tube, on the
+  final walk), the screen has **one** journey card. The separate live card ("On the train", "You're at Farringdon",
+  "On the tube", "Walking to the office") is not drawn beside it; its content moves into the one card.
+- Order inside the card, top to bottom:
+  1. **The journey:** the next clock (arrival at your stop · next tube · now, walking) → final arrival, with Journey
+     remaining beneath; one line naming the service you're on and its status.
+  2. **The legs:** Journey stages (Walk · Train · Tube · Walk as Done / Now / Next), then the current leg's station
+     line (section 5).
+  3. **What's next:** the next step, then the onward connection (section 2).
+  4. **Folded away:** "Not your train?" (correction), Report details, Your journey steps, Stop following.
+- Everything in the card comes from the followed route: its train, its stop, its arrival. When the same train calls
+  at another station that would also work, that is offered as "Another option", never mixed into the card.
+- The app keeps working out where you are independently. When that disagrees with the followed train, the card asks
+  (section 6); it never silently switches and never hides the doubt.
+- Without Follow, the live views are unchanged.
+- **Arrival at the change station:** the card's final arrival is the recommended tube's arrival, worked out with the
+  same station-exit allowance and measured walk as the plan (#57 F1), so the plan and the live figure agree unless
+  something real changed. Until F1 ships, the followed arrival moves only when you board a tube (as now).
+
+### 2. The onward tube, from the start (A2, C7, D2, D3) — Sam, 10 Nov
+"The tube guidance earlier on the journey needs to show the best tube route or routes and the line using the standard
+line colours in lozenges."
+- Before boarding and on the train, directly under the train (or the next step): a **Then** line with the best onward
+  tube route or routes from your stop. Each line is a lozenge in TfL's colour with its name (`--circle`, `--met`,
+  `--hc`: identity, not status), then destination, direction and typical ride:
+  "Then **[Circle] [Met]** to Aldgate · eastbound · about 7 min". A second route is listed when it gets you there no
+  later: "or **[H&C]** to Aldgate East".
+- From about 15 minutes before you reach the change station, the Then line becomes the next tubes with live times
+  (up to three rows: lozenge, destination, time, arrival at your destination). Until then it says nothing about
+  particular trains.
+- At the change station: **one** list of tubes, not pick buttons plus a list. A row is tapped to say "I'm getting
+  this one". Rows are headed "Tube", not "Train". The position number is labelled as what it is ("1st on the
+  platform board"). A Circle train that reaches Aldgate the long way round names it: "Circle via Aldgate".
+  "If you're near the platform" is said once.
+
+### 3. Before the train (A1, A3, A4, B1)
+- **"Arrives first" appears once** on a recommendation.
+- **The train is stated once, by the train panel** (scheduled time, expected time, arrival at your stop, operator,
+  destination, platform). The separate "Next train: …" line and, before boarding, the "Next: …" line are removed.
+  This touches the protected connection clock: Sam approved it on 10 Nov on the basis that the panel carries the
+  same facts prominently.
+- **At the station** the deadline stays (protected answer) and is worded for where you are: label "On the platform
+  by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text. *(words to confirm)*
+- **Urgency:** with under 2 minutes to the leave deadline, the countdown becomes the most prominent line on the card:
+  "Leave now · 45 s", in the headline's weight and ink on an accent-tinted band. It does not use a status colour:
+  red, amber and green keep their one meaning. Once the deadline passes, the existing effort wording takes over.
+  *(words to confirm)*
+
+### 4. On the train (C10, C11)
+- The card leads with arrival at your stop → final arrival, and one line: "You're on the 07:20 Thameslink to
+  Brighton · On time". The departure platform and the three-column departure panel are not shown once aboard; the
+  panel's arrival figure is the card's first clock.
+- "Not your train?" is folded while the train is confirmed or certain, and open when the app is unsure.
+
+### 5. Progress along a leg (C9, C13, E1)
+- The continuous bar above the stations is removed. The **station line is the progress display**: a station is
+  filled in when there is a report for it, and a "you are here" marker ("At Moorgate", "Between Hitchin and
+  Stevenage") is drawn only when there is evidence. With no evidence the line shows the stations and times and says
+  "Estimated from the timetable".
+- Journey stages show Done / Now / Next without a partly filled bar.
+- **Evidence for tubes:** TfL's own location text for the tube you're matched to ("At Barbican Platform 1",
+  "Between Liverpool Street and Aldgate") counts as a report. This replaces the rule that a tube is never shown at
+  intermediate stations.
+- Copy: "Last reported at Stevenage 07:30." (no "passing-point position" wording).
+
+### 6. When the app doubts your train (C1, C2, C4, C12)
+- The question appears inside the one card as a caution panel (yellow `note`, not a status colour): "The 07:20
+  stopped at Hitchin at 07:25; you didn't. Which train are you on?" with the candidates as buttons and "Keep the
+  07:20". *(words to confirm)*
+- "I'm on it" confirms only when the app has one candidate; when it has more than one it shows them and asks.
+- The correction control is always reachable from the followed card (folded when certain). It lists trains that
+  could be yours; every other train stays reachable under "More trains".
+
+### 7. Controls once a journey is under way (A5)
+- While a route is followed, or Auto is showing a live view, the mode bar, Auto / Plan / Live, the location line and
+  Leave now / Arrive by / Leave around collapse into **one row**: a summary ("Commute · To office · Leave now") that
+  opens the full controls, with Settings and Refresh. Planning (nothing followed, not live) keeps every control
+  exposed as now.
+- "Along the line" is a link in that row while you're on a train, and is not pinned to the top of the screen at
+  other times.
+- The location line is shown outside the folded controls only when it has something you need: a position that is
+  old or unavailable (section 8).
+
+### 8. Location (C8, E4)
+- The line names the nearest known place or station ("at Aldgate", "near Stevenage"), not "near Letchworth" or "in
+  London" for anywhere within 15 km. An old position says when it's from ("at Farringdon as of 08:08"). When the
+  train's last report is newer than the phone's position, the report leads.
+- "Update location" on the line asks the phone for a fresh position without reloading the page. It only runs when
+  tapped.
+
+### 9. Notices and small things (E2, E3, F2, F3)
+- A change to the followed arrival says what changed and why: "Arriving 08:24 (was 08:22): you took the 08:09 Met."
+  No notice when the arrival is back at the original plan, and none for a change under 3 minutes on the final walk.
+  It is dismissed with a plain close control, not "Seen". *(words to confirm)*
+- After the train, the status line shows line status (or nothing), not "Journey data not available yet".
+- The walking card leads with minutes ("about 4 min walk"); a distance, if shown, is labelled "as the crow flies".
+- A section heading with nothing under it ("Nearly there") is not shown.
+
+### Rules this supersedes
+- 2 Nov, "an explicit next service (scheduled identity, boarding station, changed expected departure)" as a separate
+  line beside the train panel → the panel alone (section 3).
+- 2 Nov, the fixed three-column train panel in every active phase → not once aboard (section 4).
+- 1 Nov protected answer, "At the actual station, retain the canonical platform-access deadline and platform
+  instruction" → kept; its label and countdown wording are now specified (section 3).
+- 31 Oct compact controls: "Auto/Plan/Live and Leave now/Arrive by/Leave around stay exposed", "Keep the existing
+  inferred-location diagnostic visible", and the along-the-line story's "keep it accessible while scrolling" → apply
+  to planning only; under way, section 7.
+- journey-progress story: "Keep a different Follow choice intact in its own panel" and the ban on showing a tube at
+  intermediate stations → sections 1 and 5.
+- follow-a-route story: "every change of at least one minute shows its reason on the card until you've seen it" →
+  section 9.
+
+### Order of building (from #57)
+Engine safety first (C1, then C2, then C3 with C4): a saved pick or route-driven live data must not ship before the
+wrong-train check. Then this amendment's card, tube guidance and progress (E1 before or with removing the bar). The
+walking rule (F1 with F2) before the station arrival in section 1 moves on live figures.
+
+## Display mode — 10 November 2026 (Sam)
+
+`?display` in the address shows a read-only board for a wall screen or a frame in another page (Home Assistant):
+the status line, travel alerts, the Leave now recommendation from home to the office, the list of next trains and
+when it was updated. Every control and entry point is hidden; "Journey steps" and a notice's "Full details" remain
+because they only unfold information. It is the same view and the same styles as the app, not a second design: a
+change to the planning card changes the display. A setup link is confirmed with a panel on the page, not a browser
+dialog. Behaviour and tests: [`stories/display-mode.md`](stories/display-mode.md).
+
 ## Approved journey and leg UI — 2 November 2026
 
 Sam approved the rendered review, its subsequent refinements, and implementation/release across Commute,

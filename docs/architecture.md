@@ -369,6 +369,19 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **10 Nov, trip debrief and journey card amendment (Sam).** First full commute with a followed route: the plan was
+  right to the minute; 29 findings in presentation, the followed card going stale, a wrong train followed with no
+  warning and state lost on a reload (#57: severity, root cause, fix and clashes for each). Sam accepted the
+  recommendations. Decisions: one journey card while following; the onward tube shown from the start as line
+  lozenges in TfL colours; the station line replaces the progress bar and TfL's location text counts as evidence for
+  a tube; urgency without status colours; one row of controls once under way. Order: wrong-train check before
+  anything that makes a pick stickier. Agreed, not yet built. → [design-system](design-system.md), #57
+- **10 Nov, display mode (Sam).** "Hide all the toggles and just show the next journeys in the Leave now mode from
+  Letchworth … a frame for the Home App that will live in HA." Decisions: turned on by `?display` in the address (a
+  frame can only be given an address); it is the app's own Leave now view from home to the office with every
+  control hidden, not a second renderer; no location; it reads only the saved live-data source and walking pace and
+  writes nothing back except a source accepted from a setup link, asked on the page because browsers block dialogs
+  from framed pages. → [display-mode](stories/display-mode.md)
 - **4 Nov, every key in the proxy (Sam).** "I would like all the API keys moved so that deployment to other devices is
   easier." Decisions: My proxy as the National Rail source means every feed goes through it (TfL and Google too); one
   choice, not three. TfL is forwarded only for the paths the app uses, the key added and scrubbed by the Worker.

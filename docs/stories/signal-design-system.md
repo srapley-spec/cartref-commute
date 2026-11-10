@@ -190,6 +190,9 @@ each service's facts, alternatives, flags and actions independently of sentence 
 - Preserve current departure columns, effort levels, train status, corrections, Aldgate platform planning,
   interchange timings and simulator behavior. The complete prior Panda implementation is on the archive branch.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one row of controls once a journey is under way (A5) and the location line (C8, E4). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 Production-browser geometry/source checks: [browser-signal-journey-clarity.py](../../tests/browser-signal-journey-clarity.py).
 These include semantic time-column anchors at phone widths, enlarged text, serious-versus-background disruption,

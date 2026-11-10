@@ -112,6 +112,9 @@ not a claim that every criterion has already passed release verification. See [S
 - Built in the engine (`src/core`) from route segments and live data, not around Aldgate or King's Cross: the same
   following works for any journey the app can plan (future: any start and end point).
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 - tests/leave-by.test.mjs: "Leave by: following a route keeps the current access deadline exposed before boarding"
 - Every scenario in tests/follow-main-regression.test.mjs runs against the production Signal presentation.

@@ -32,6 +32,9 @@ shouldn't turn round the moment GPS puts you near it. 30 Oct 10:16: at his desk 
   choice does not conceal this diagnostic or make it claim that location established the direction. This is
   presentation of existing evidence; it must not restart location, request new permission or alter inference.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the walk from the tube keeps the exit allowance and measured walk until you're clear of the station, then counts down by the measured walk (F1, F2), and an empty "Nearly there" heading isn't shown (F3). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 - tests/signal-journey-clarity-review.test.mjs: "independent Signal clarity: manual direction keeps location diagnostics visible without restarting location"
 - tests/core/situation.test.mjs: "inferDirection: setting off, arriving home, after the office, mid-journey, and remembering the trip"

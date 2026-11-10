@@ -148,6 +148,9 @@ its blocks; it hides nothing. Checked 31 Oct: line colours measured in Chromium 
 (Circle #FFD329, Met #9B0058, H&C #F4A9BE with dark ink, on lozenges and on the chips in pick buttons); the tests
 below run each feature in both.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the onward tube shown from the start with line lozenges (A2, C7), one tube list at the station (D2, D3), and the arrival using the plan's exit allowance and measured walk (F1). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 - tests/rules.test.mjs: "Signal (light): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"
 - tests/rules.test.mjs: "Signal (dark): King's Cross card — walk from the train stopping, the line's colour, board-style buttons"

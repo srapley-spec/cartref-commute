@@ -180,6 +180,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 #followPanel .follow-actions{display:flex;gap:8px;flex-wrap:wrap}
 #signalStatus{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent)}
 #signalStatus.bad{border-color:var(--bad)} #signalStatus.warn{border-color:var(--warn)} #signalStatus.note{border-color:var(--note)}
+/* Display mode (?display): a read-only board. Only the status line, travel alerts, the recommendation, the list of
+   next trains and when it was last updated are shown; every control, panel and dialog entry point is hidden. */
+html.display-mode .wrap > :not(#displaySetup):not(#signalStatus):not(#signalDisruptions):not(#hero):not(#signalBoardHeading):not(#list):not(footer),
+html.display-mode #simDock, html.display-mode #refreshBtn, html.display-mode #build, html.display-mode .build-sep,
+html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [data-follow], html.display-mode .follow-actions{display:none!important}
+#displaySetup{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent);display:grid;gap:8px}
+#displaySetup .row-actions{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 
 <div class="wrap">
@@ -262,7 +269,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span> · <span id="build">build __BUILD__</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build __BUILD__</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -480,6 +487,14 @@ const DEFAULTS = {
 const FACTOR_KEYS = ["fastFactor","leisureFactor","runFactor","runM"];
 const TIME_KEYS = Object.keys(DEFAULTS).filter(k => typeof DEFAULTS[k]==="number" && !FACTOR_KEYS.includes(k));
 const LS = "cartrefCommute.v1";
+// Display mode (?display in the address): a read-only board for a wall screen or a frame in another page, such as a
+// Home Assistant dashboard. No controls and no location: the next journeys from home to the office in Leave now.
+// It starts from the defaults (not this browser's saved journey state) and saves nothing except the live-data source.
+const DISPLAY = new URLSearchParams(location.search).has("display");
+if(DISPLAY) document.documentElement.classList.add("display-mode");
+const displaySaved = saved => DISPLAY ? { mode:"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
+// Display mode never follows a route, opens Along the line or runs the simulator, whatever Settings say.
+const DISPLAY_OFF = { followRoute:false, alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
 
 function load(){
   try{
@@ -491,8 +506,11 @@ function load(){
   }catch(e){return {};}
 }
 let simulationSnapshot=null,simulationInputSnapshot=null;
-function save(){if(simulationSnapshot || (typeof sim!=="undefined" && sim.active))return;try{const saved={...state.saved,settings:{...state.saved.settings}};delete saved.settings.simulatorEnabled;delete saved.settings.simulatedFeeds;localStorage.setItem(LS,JSON.stringify(saved));}catch(e){}}
-const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load()),
+function save(){if(simulationSnapshot || (typeof sim!=="undefined" && sim.active))return;try{const saved={...state.saved,settings:{...state.saved.settings}};delete saved.settings.simulatorEnabled;delete saved.settings.simulatedFeeds;
+  // Display mode: only the settings (the live-data source) are written; the rest of what's stored is left as it was.
+  if(DISPLAY){const stored=load();stored.settings=saved.settings;localStorage.setItem(LS,JSON.stringify(stored));return;}
+  localStorage.setItem(LS,JSON.stringify(saved));}catch(e){}}
+const state = { saved:displaySaved(Object.assign({mode:"commute",dirMode:"auto",pace:"avg",settings:{}}, load())),
   lastHub:null, diag:{},
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
   here:null, origin:"", london:null, londonErr:"" };
@@ -500,7 +518,7 @@ const state = { saved:Object.assign({mode:"commute",dirMode:"auto",pace:"avg",se
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
 // Preserve the Follow switch shipped on main. An explicit new choice always wins.
 if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&typeof state.saved.settings.follow==='boolean')state.saved.settings.followRoute=state.saved.settings.follow;
-const S = () => Object.assign({}, DEFAULTS, state.saved.settings);
+const S = () => Object.assign({}, DEFAULTS, state.saved.settings, DISPLAY ? DISPLAY_OFF : null);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
  simulationInputSnapshot={origin:state.origin,fields:Object.fromEntries(["byDate","byTime","originInput","destInput"].map(id=>[id,document.getElementById(id)?.value||""]))};
@@ -2274,6 +2292,8 @@ function receiveRealPosition(position){
  }else onPosition(position);
 }
 function locate(){
+  // Display mode plans from home and never asks for this device's location (a frame often can't, and a wall screen is at home).
+  if(DISPLAY){ state.locStatus="off"; state.autoSrc="display mode: planning from home"; return; }
   if(sim.active && S().simulatorEnabled)return;
   if(!("geolocation" in navigator)){ state.locStatus="unsupported"; state.autoSrc="this browser can't share location"; return; }
   if(!state.locStatus || state.locStatus!=="ok") state.locStatus = state.locStatus==="denied" ? "denied" : "pending";
@@ -2403,11 +2423,23 @@ function acceptSetupLink(){
   const origin=proxyOrigin(raw);
   if(!origin){ clear(); return false; }
   if(S().provider==="proxy"&&proxyBaseUrl()===origin) return false;
+  // Display mode asks on the page: a page framed by another site (a Home Assistant dashboard) can't show a browser dialog.
+  if(DISPLAY){ askDisplaySetup(origin, clear); return false; }
   let ok=false;
   try{ ok=window.confirm(`Use ${new URL(origin).host} for all live data on this device?\n\nOnly say yes if you set this proxy up or trust whoever sent the link: every train, TfL and Google request goes through it (including the places you plan between), and it decides the times you see.`); }catch(e){ ok=false; }
   if(!ok){ clear(); return false; }
   state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:origin}; save();
   return true;
+}
+// The same question as the dialog, as a panel at the top of the display, answered with a tap.
+function askDisplaySetup(origin, clear){
+  let box=$("#displaySetup"); if(!box){ box=document.createElement("section"); box.id="displaySetup"; box.setAttribute("aria-label","Live data setup"); $(".wrap").prepend(box); }
+  box.innerHTML=`<b>Use ${esc(new URL(origin).host)} for all live data on this display?</b><span class="note">Only say yes if you set this proxy up or trust whoever gave you the link: every train and TfL request goes through it, and it decides the times you see.</span><div class="row-actions"><button type="button" class="primary" data-display-setup="yes">Yes, use it</button><button type="button" class="ghost" data-display-setup="no">No</button></div>`;
+  box.onclick=e=>{ const b=e.target.closest&&e.target.closest("[data-display-setup]"); if(!b) return;
+    box.remove();
+    if(b.dataset.displaySetup!=="yes"){ clear(); return; }
+    state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:origin}; save();
+    refreshProxyStatus(); invalidateSources(); refresh({force:true}); };
 }
 window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxyStatus(); refresh({force:true}); } });
 

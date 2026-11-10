@@ -84,6 +84,7 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 - [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
 
 ### Design and presentation
+- [Display mode: a read-only board for a wall screen or a Home Assistant frame](display-mode.md) · Done (10 Nov)
 - [Journey facts across planning and live views](journey-facts.md) · Implemented; two-design parity rule retired 1 Nov
 - [Every live train says how late it is, in colour](train-status.md) · Done
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Default and sole design; Panda archived 1 Nov

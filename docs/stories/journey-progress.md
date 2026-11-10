@@ -58,6 +58,9 @@ status-colour rule; Signal uses its own tokens and blue identity/accent.
 - Signal progress is always available in applicable live views; Follow and Along the line remain independent.
   Independent engine/integration review is required because the progress model is more than a CSS change.
 
+## Agreed 10 Nov 2026, not yet built
+From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the station line replaces the progress bar (C9), TfL's location text counts as a report for your tube (E1), and the copy (C13). The criteria above describe the app as built; update them, with tests, as each item ships.
+
 ## Tests
 Pure-model, adapter and independent counterexample tests are linked below. Real-page and browser checks
 exercise the same generated application; the final committed-head review/release record supplies executed results.

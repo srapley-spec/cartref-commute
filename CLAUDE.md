@@ -10,6 +10,13 @@ fixed Scheduled / Expected / alighting-station arrival columns. Keep compact mod
 all existing effort/arrival-first rules, optional Follow, inference/correction and independent planning.
 The review prototype is a visual reference, never a substitute for production state, clocks or ranking.
 
+**Amendment agreed 10 Nov (Sam), not yet built:** `docs/design-system.md` → "Journey card amendment — 10 November
+2026" (one journey card while following, onward tube lozenges from the start, station-line progress, urgency, one
+row of controls under way). It comes from the trip debrief in issue #57, which also orders the work: the engine
+safety items (wrong train, "I'm on it", state lost on reload) come before the card. Until an item ships, the app
+follows the 2 Nov contract; build each item with its tests and update the amendment's status as you go.
+`?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
+
 ## Where the context is
 0. `docs/your-setup-steps.md`: what Sam still has to do himself (Cloudflare Worker, keys, phone). Keep it current: a
    change that needs a step from Sam adds it there in the same commit; tick a step when Sam says it's done.
