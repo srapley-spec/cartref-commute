@@ -20,7 +20,8 @@ test('live block rendering consumes the engine order and retains every real trai
  canonical(a,'on-train');
  assert.equal(hero.textContent.replace(/\s+/g,' ').trim(),content.replace(/\s+/g,' ').trim());
  assert.ok(before.every(n=>n.parentNode===hero),'reordering retains every node');
- assert.match(hero.textContent,/Your selected train does not match/,'identity conflict warning survives');
+ assert.match(hero.textContent,/doesn't match where you are\. Which train are you on\?/,'identity conflict question survives');
+ assert.match(hero.textContent,/Keep the /,'with the choice to keep the selected train');
  // A deliberate model-order change must change the real DOM, not just pass a second copy of its specification.
  const model=a.w.CommuteCore.BLOCKS['on-train'];
  const which=model.indexOf('which'),progress=model.indexOf('progress');

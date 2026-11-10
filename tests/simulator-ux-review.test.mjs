@@ -92,7 +92,7 @@ async function independentBuiltApp(mutate){
  const {readFileSync}=await import('node:fs'),{JSDOM}=await import('jsdom');
  let html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  if(mutate){
-  const needle='function whichTrain(boards, here, dir, now, lock, progress, p, fixAt) {';
+  const needle='function whichTrain(boards, here, dir, now, lock, progress, p, fixAt, accM) {';
   assert.ok(html.includes(needle),'independent production-inference mutation target exists');
   html=html.replace(needle,needle+'\n return {result:{none:true,others:[]},lock:null}; // deliberate production train-identification defect');
  }
