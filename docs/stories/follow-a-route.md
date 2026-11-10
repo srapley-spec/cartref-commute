@@ -140,8 +140,8 @@ train was kept on the boards, and its reports fetched, only while the phone was 
 - **The platform time** (`platformBy`) is the train's expected departure less the route's own catch margin (1 min
   by default; its last segment before the train); inside that last minute it is the departure itself. It is never
   the leave-from-here time of a fresh plan, which at the station has already passed (the first build showed "10:17"
-  at 10:19 for the 10:20, beside "On track"). **To confirm with Sam:** the amendment says "the same canonical time";
-  at the station that time is in the past, so this is the reading built.
+  at 10:19 for the 10:20, beside "On track"). The amendment says "the same canonical time"; at the station that
+  time is in the past, so this is the reading built. Sam, 10 Nov 21:51, told of it: "That's ok for now".
 - **After the departure, at the station:** "Departure just passed · confirm if you are on it" with "I'm on it", for
   2 minutes (`FOLLOW_STATION_GONE_MS`); only then, still placed at the station by a fresh fix, "You can no longer
   make your …".
@@ -169,8 +169,8 @@ train was kept on the boards, and its reports fetched, only while the phone was 
   passed (or you're past the train), the list of other trains folds into a closed "Other trains" and its heading is
   not shown; stop following and everything is as before.
 
-**Not in this step:** tube lozenges on the followed card (H1), the single card proper, "On track" beside a late
-arrival (H24), the notices (H16), the walking estimate (H27), the list's own rows (H22). The followed card moving to
+**Not in this step:** the single card proper and the list's own rows (H22). (Tube lozenges, "On track" beside a
+late arrival, the notices and the walking estimate followed the same evening: next section.) The followed card moving to
 "on the train" on an unsure best fit is unchanged.
 
 **Tests**
@@ -194,6 +194,75 @@ arrival (H24), the notices (H16), the walking estimate (H27), the list's own row
 - Independent review (10 Nov, 30 deliberate breakages on the first build): found the past platform time, the
   151–250 m gap and the unbounded look-back, and the missing homeward, boundary and request tests; all fixed above.
 - Checked in a real browser (Chromium, phone width, 10 Nov): aboard while following, the lower card shows no journey times, train panel or steps; "Other trains" is folded.
+
+## The tube named, one leave time, and a card that agrees with itself (10 Nov 2026 evening, #57): built 10 Nov
+Sam, 20:57, chose three sets from the day's findings to build together, with these answers: homeward tube wording
+"Tube: [Circle] [Met] Aldgate → Farringdon · 7 min"; late status "6 min later than planned" ("On track" kept for
+arriving at or before plan); one release. What was built, and what was left out, is below.
+
+**The tube line on the followed card (A2, C7, H1).** Lines are lozenges in TfL's colours (identity, not status).
+- Going out, before boarding and on the train, directly under the train panel: "Then [Circle] [Met] to Aldgate ·
+  eastbound · about 7 min", and under it "or [H&C] to Aldgate East · if it comes first" (words confirmed by Sam,
+  10 Nov). The ride is the route's own (about 10 min via King's Cross). It goes once you're off the train.
+- Coming home, under the header and above the train: "Tube: [Circle] [Met] Aldgate → Farringdon · 7 min", from
+  following until you're placed at a London station (it stays while you ride the tube: with the tube card's own
+  "Get off at …" not drawn, this is where the card says which way you're going).
+- The data is the route's own (`tubeLine`, engine; lines, stops, direction and the second route in the profile). A
+  journey with no such tube (followed from the London station, leisure, a trip elsewhere) has no line.
+- Not built: the Then line turning into live tube rows 15 minutes before the change station; the single list at
+  the change station (amendment §2). H18 (a plan from Farringdon via the tube to King's Cross worded as a walk):
+  the app holds no line data for that hop.
+
+**One leave time (H2).** The steps before the train move with the train's departure (they were left at the time
+saved when you followed, so the header said 15:36 and "Next: 15:34 · Leave office"). While the header shows Leave by,
+the first step ("Leave Cartref", "Leave office") carries that same time, in "Next:" and in the step list. The
+tube rows' own "leave the office by" under the card are unchanged: each is for the tube it names.
+H3 (Leave by moving 15:36 → 15:43 in three minutes) was read from the code as correct: by 15:34 the phone was at
+Aldgate, and the plan from Aldgate has no walk from the office (confidence: medium–high; not replayed). The tube
+line now says which tube the card means.
+
+**Notices (E2, H16, H25; words confirmed by Sam).** A change to the arrival is a notice only when it leaves the
+arrival 3 minutes or more (as shown) from the original plan and 3 minutes or more from the time you were last told
+(`FOLLOW_NOTICE_MIN`). It reads "**Arriving 08:28** (was 08:24): your train is 4 min late." ("your train is running
+later / earlier"; after the train, "the rest of your journey is taking longer / is quicker") and closes with ✕,
+not "Seen". Back within 3 minutes of the plan, a notice still showing is withdrawn. A smaller move while a notice
+is showing re-words it where it stands (it must not contradict the card) without raising it again; once dismissed,
+nothing returns until a further 3 minutes. The card's own times always move. Saved with the route: `toldArrival`
+and, on an arrival notice, `was` (both optional; a route saved before them restores).
+- Not built: the reason naming the tube you took ("you took the 08:12 Met, not the 08:08").
+
+**"N min later than planned" (H24).** "On track" is kept for arriving when planned or sooner. Later than planned by
+a minute or more as shown, the same line reads "6 min later than planned" (with what followed, e.g. "· train departs
+in 15 min") in amber; the status itself is unchanged (nothing is at risk). Train lozenges ("4 min late") keep the
+shared 5/15-minute colour rule.
+
+**Off the train (H26).** The finished train leaves the followed card (no train lozenge, no "46 min train"), and once
+the only step left is arriving the header reads "Now → At home" (or "At office"), not the arrival on both sides.
+
+**"Arrives first" once (H6).** The followed card no longer repeats "Arrives first" after the train time (it stood
+after a stray "·"); the effort line says it while the way to the station is still ahead.
+
+The walk left after the train is in [nearly-home](nearly-home.md); where your tube is, in
+[journey-progress](journey-progress.md).
+
+**Tests**
+- tests/core/journey-card-batch.test.mjs: "The tube line going out: the lines, where to, which way, the typical ride, and a second route that may come first"
+- tests/core/journey-card-batch.test.mjs: "The tube line coming home: the tube comes first, from the office's stop to the station your train leaves from; no direction, no second route"
+- tests/core/journey-card-batch.test.mjs: "No tube line when the journey has no such tube: already at the station, no tube data, no ride time, or the tube on the other side of the train"
+- tests/core/journey-card-batch.test.mjs: "'On track' is kept for arriving when planned or sooner; later than planned it says by how much, in amber"
+- tests/core/journey-card-batch.test.mjs: "A saved route with the new fields restores; one saved before them restores too; a bad value is refused"
+- tests/core/follow.test.mjs: "follow: newer arrival reasons replace obsolete ETA wording and returning to an earlier ETA is announced"
+- tests/core/follow.test.mjs: "follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements"
+- tests/core/follow.test.mjs: "follow: real train delays change arrival with a retained reason until acknowledged"
+- tests/core/follow-main-regression.test.mjs: "released-main follow arrival boundary:59 seconds stays stable,60 changes with reason; canonical5/15 status bands replace legacy5-red4-amber"
+- tests/journey-card-batch.test.mjs: "Going out, the followed card names the onward tube with its lines in their colours, before you leave and on the train"
+- tests/journey-card-batch.test.mjs: "One leave time: when the train is late, the header's Leave by and the first step move together; 'Arrives first' is said once"
+- tests/journey-card-batch.test.mjs: "Notices: nothing for a two-minute wobble; three minutes says what changed and why, and closes with ✕; back at the plan it goes"
+- tests/journey-card-batch.test.mjs: "'On track' only when arriving as planned or sooner: at the station with the train six minutes late it says so, in amber"
+- tests/journey-card-batch.test.mjs: "Coming home, the followed card names the tube first: 'Tube: Circle Met Aldgate → Farringdon · 7 min', until you're at a London station"
+- tests/follow-journey-review.test.mjs: "journey review: the home walk updates the followed ETA with a reason even when rail boards are old"
+- tests/follow-journey-review.test.mjs: "journey review: final-walk following cannot offer original-origin trains or revive a completed rail cancellation"
+- Checked in a real browser (Chromium, phone width, 10 Nov): the outbound card with the train 4 minutes late shows the lozenges in colour, one leave time, and the notice with ✕.
 
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.

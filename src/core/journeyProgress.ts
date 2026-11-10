@@ -4,6 +4,7 @@ import type { DisruptionConfig, Option, Train } from './types';
 import type { Leg, Route, Segment } from './journey';
 import { delayLevel } from './rules';
 import { FOLLOW_TUBE_FRESH_MS } from './followTube';
+import { hhmm } from './time';
 
 export type ProgressKind = 'walk' | 'rail' | 'tube' | 'connection';
 export interface JourneyProgressLeg {
@@ -21,6 +22,8 @@ export interface JourneyProgressEvidence {
   expectedAt?: number | null; scheduledAt?: number | null;
   /** Prediction is usable only for the selected vehicle/service and target. */
   identityMatched?: boolean;
+  /** The provider's own words for where the matched vehicle is ("At Moorgate"), with a live prediction only. */
+  where?: string | null;
 }
 export interface JourneyProgressInput {
   now: number; legs: readonly JourneyProgressLeg[]; activeLeg: string;
@@ -99,6 +102,7 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
   const progressLabel=source==='reported'?'Calling-point progress':source==='stale'?'Last known progress':
     source==='unknown'?'Progress unavailable':'Estimated time progress';
   const evidenceLabel=source==='reported'?`Last reported at ${reportedCall?.name||'a calling point'}; no passing-point position is claimed.`:
+    source==='prediction'&&e.where&&e.source==='prediction'?`${e.where} · TfL${finite(e.observedAt)?`, ${hhmm(e.observedAt)}`:''}.`:
     source==='prediction'?'Live arrival; position is a time-based estimate.':
     source==='stale'?'Stale feed · last known reports; progress is frozen.':
     source==='modelled'?'Modelled timing · live position and timing comparison unavailable.':

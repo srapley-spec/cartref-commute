@@ -35,6 +35,10 @@ Rules and tests: [`stories/follow-a-route.md`](stories/follow-a-route.md). The s
   something real changed. Until F1 ships, the followed arrival moves only when you board a tube (as now).
 
 ### 2. The onward tube, from the start (A2, C7, D2, D3) — Sam, 10 Nov
+**Built 10 Nov (first bullet only, on the followed card), plus the homeward line the amendment lacked (H1):** "Tube:
+**[Circle] [Met]** Aldgate → Farringdon · 7 min", wording chosen by Sam, 10 Nov 20:57, shown from following until
+you're at a London station. The live rows and the single list at the change station are not built. Detail and tests:
+`docs/stories/follow-a-route.md`, "The tube named, one leave time, and a card that agrees with itself".
 "The tube guidance earlier on the journey needs to show the best tube route or routes and the line using the standard
 line colours in lozenges."
 - Before boarding and on the train, directly under the train (or the next step): a **Then** line with the best onward
@@ -66,7 +70,8 @@ line colours in lozenges."
 - **At the station** the deadline stays (protected answer) and is worded for where you are: label "Be on the
   platform by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text.
   (Built 10 Nov while following: the time is the train's expected departure less the route's catch margin, 1 min
-  by default, because the leave-from-here time has already passed once you're at the station; to confirm with Sam.)
+  by default, because the leave-from-here time has already passed once you're at the station. Sam, told of it
+  10 Nov: "That's ok for now".)
   **Words confirmed by Sam, 10 Nov** (he changed "On the platform by" to "Be on the platform by").
 - **Urgency:** with under 2 minutes to the leave deadline, the countdown becomes the most prominent line on the card:
   "Leave now · 45 s", in the headline's weight and ink on an accent-tinted band. It does not use a status colour:
@@ -84,6 +89,9 @@ line colours in lozenges."
   at Stevenage 07:30." beneath, the next step above, and "Not your train?".
 
 ### 5. Progress along a leg (C9, C13, E1)
+**Built 10 Nov (first step only):** TfL's location text for the matched tube is shown as one line under the tube leg
+("At Barbican · TfL, 08:16."). The stations are not yet marked from it and the bar remains:
+`docs/stories/journey-progress.md`, "Where your tube is, in TfL's words".
 - The continuous bar above the stations is removed. The **station line is the progress display**: a station is
   filled in when there is a report for it, and a "you are here" marker ("At Moorgate", "Between Hitchin and
   Stevenage") is drawn only when there is evidence. With no evidence the line shows the stations and times and says
@@ -136,6 +144,11 @@ wrong train". Not yet: the correction control always reachable after a reload (C
   tapped.
 
 ### 9. Notices and small things (E2, E3, F2, F3)
+**Built 10 Nov:** the notice rule and wording with ✕ (first bullet; the reason is the train's lateness or "the rest
+of your journey", not yet the tube you took), and the walk left set against the measured walk (F2). Also from the
+homeward findings: "N min later than planned" in place of "On track" when later than plan (H24, wording chosen by
+Sam), and the finished train leaving the followed card (H26). Not built: the status line after the train, the
+walking card's wording, the empty heading.
 - A change to the followed arrival says what changed and why: "**Arriving 08:28** (was 08:24): you took the 08:12
   Met, not the 08:08." No notice when the arrival is back at the original plan, and none for a change under
   3 minutes on the final walk. It is dismissed with a plain close control (✕), not "Seen". **Words confirmed by Sam,

@@ -125,7 +125,9 @@ function renderJourneyProgress(){
     // followTubeArrival already checks provider timestamps (including its small
     // allowed clock offset); freshness here uses our validated capture time.
     evidence={source:live?'prediction':'modelled',observedAt:live?(context.homeward?state.followTransport?.at:state.ald?.at):null,expectedAt:live?.arrival??null,
-      scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle};
+      scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle,
+      // Where TfL says your tube is, in its own words (10 Nov, #57 E1, H11), from the predictions the arrival came from.
+      where:live&&ride.vehicle?C.followTubeWhere(context.homeward?state.followTransport?.predictions:state.ald?.arrivals,String(ride.vehicle),lineIdOf(ride.line)):null};
     uncertain=!(ride.picked||ride.confirmed);
   }
   const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};

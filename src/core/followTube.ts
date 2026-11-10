@@ -53,3 +53,27 @@ export function followTubeArrival(predictions: unknown, i: FollowTubeRequest): F
   }
   return null;
 }
+
+/** TfL's own words for where a tube is ("At Barbican Platform 1", "Between Liverpool Street and Aldgate",
+ *  "Approaching Moorgate", "Left Farringdon"), tidied for one line on the card: the platform number goes, "Departed"
+ *  reads "Left". Null for anything empty, over-long or not in one of the forms recorded from TfL (30–31 Oct 2026
+ *  fixtures: At, Between, Approaching, Left, Departed, Leaving, Departing, Around), so nothing unexpected is shown
+ *  as a position. (10 Nov 2026, #57 E1, H11: the tube leg said only "position is a time-based estimate".) */
+export function tubeWhere(text: unknown): string | null {
+  if (typeof text !== 'string') return null;
+  const s = text.replace(/\s+/g, ' ').trim().replace(/\s+Platform\s+\w+$/i, '').replace(/\.$/, '');
+  if (!s || s.length > 80 || !/^(At|Between|Approaching|Left|Departed|Leaving|Departing|Around)\s+\S/i.test(s)) return null;
+  return s.replace(/^Departed\b/i, 'Left').replace(/^[a-z]/, c => c.toUpperCase());
+}
+/** The location text TfL gives for the tube you're matched to, from the same predictions its arrival came from. */
+export function followTubeWhere(predictions: unknown, vehicle: string, lineId?: string): string | null {
+  if (!Array.isArray(predictions) || !vehicle) return null;
+  for (const p of predictions) {
+    if (!record(p)) continue;
+    const v = p.vehicle ?? p.vehicleId;
+    if (v == null || String(v) !== String(vehicle) || (lineId && p.lineId != null && p.lineId !== lineId)) continue;
+    const where = tubeWhere(p.where ?? p.currentLocation);
+    if (where) return where;
+  }
+  return null;
+}

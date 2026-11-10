@@ -17,7 +17,11 @@ safety items (wrong train, "I'm on it", state lost on reload) come before the ca
 follows the 2 Nov contract; build each item with its tests and update the amendment's status as you go. Built so
 far: the wrong-train check and "I'm on it" (C1, C2: `docs/stories/which-train.md`, "The wrong train"); one source of
 truth while following, live times kept after the train leaves, and the live card no longer repeating the journey
-(`docs/stories/follow-a-route.md`, "One source of truth…"). Issue #57 also holds the homeward findings (H1–H28).
+(`docs/stories/follow-a-route.md`, "One source of truth…"); the tube named on the followed card in both directions,
+one leave time, notices only for a 3-minute change ("Arriving … (was …)", ✕), "N min later than planned", the walk
+left set against the measured walk, and TfL's location text for your tube (same story, "The tube named…";
+`nearly-home.md`; `journey-progress.md`). Each of those lists what it left unbuilt. Issue #57 also holds the
+homeward findings (H1–H28).
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
 
 ## Where the context is

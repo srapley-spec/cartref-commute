@@ -843,7 +843,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 21:59 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 22:20 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1226,6 +1226,7 @@ var CommuteCore = (() => {
     followMatchesService: () => followMatchesService,
     followServiceKey: () => followServiceKey,
     followTubeArrival: () => followTubeArrival,
+    followTubeWhere: () => followTubeWhere,
     followedLegs: () => followedLegs,
     followedTripPhase: () => followedTripPhase,
     googleGaps: () => googleGaps,
@@ -1377,6 +1378,7 @@ var CommuteCore = (() => {
     tubeLine: () => tubeLine,
     tubeName: () => tubeName,
     tubeStationBoard: () => tubeStationBoard,
+    tubeWhere: () => tubeWhere,
     updateFollowRoute: () => updateFollowRoute,
     updateFollowTrip: () => updateFollowTrip,
     visibleDisruptions: () => visibleDisruptions,
@@ -3809,6 +3811,24 @@ var CommuteCore = (() => {
     }
     return null;
   }
+  function tubeWhere(text2) {
+    if (typeof text2 !== "string") return null;
+    const s = text2.replace(/\s+/g, " ").trim().replace(/\s+Platform\s+\w+$/i, "").replace(/\.$/, "");
+    if (!s || s.length > 80 || !/^(At|Between|Approaching|Left|Departed|Leaving|Departing|Around)\s+\S/i.test(s)) return null;
+    return s.replace(/^Departed\b/i, "Left").replace(/^[a-z]/, (c) => c.toUpperCase());
+  }
+  function followTubeWhere(predictions, vehicle, lineId) {
+    var _a, _b;
+    if (!Array.isArray(predictions) || !vehicle) return null;
+    for (const p of predictions) {
+      if (!record2(p)) continue;
+      const v = (_a = p.vehicle) != null ? _a : p.vehicleId;
+      if (v == null || String(v) !== String(vehicle) || lineId && p.lineId != null && p.lineId !== lineId) continue;
+      const where = tubeWhere((_b = p.where) != null ? _b : p.currentLocation);
+      if (where) return where;
+    }
+    return null;
+  }
 
   // src/core/followMigration.ts
   var MIN2 = 6e4;
@@ -3969,7 +3989,7 @@ var CommuteCore = (() => {
     if (i.noEstimate) status = { text: "No live arrival estimate", level: "bad", deltaMin: null };
     if (i.cancelled) status = { text: "Service cancelled \xB7 check your next step", level: "bad", deltaMin: null };
     const progressLabel = source === "reported" ? "Calling-point progress" : source === "stale" ? "Last known progress" : source === "unknown" ? "Progress unavailable" : "Estimated time progress";
-    const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}; no passing-point position is claimed.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
+    const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}; no passing-point position is claimed.` : source === "prediction" && e.where && e.source === "prediction" ? `${e.where} \xB7 TfL${finite5(e.observedAt) ? `, ${hhmm(e.observedAt)}` : ""}.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
     const stages = (f) => i.legs.map((l, index) => ({
       ...l,
       state: index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming",
@@ -5968,7 +5988,7 @@ async function fetchTubeArrivals(hub,direction="eastbound"){
   return (await r.json())
     .filter(a=>/^(circle|metropolitan|hammersmith-city)$/.test(a.lineId) && String(a.platformName||"").toLowerCase().includes(direction))
     .map(a=>({ vehicle:a.vehicleId||"", line:{circle:"Circle",metropolitan:"Met","hammersmith-city":"H&C"}[a.lineId], lineId:a.lineId, dest:String(a.destinationName||"").replace(/ Underground Station/i,""),
-      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : Number.isFinite(a.timeToStation)&&a.timeToStation>=0?now+a.timeToStation*1000:NaN, platform:a.platformName||"", observedAt:a.timestamp?new Date(a.timestamp).getTime():null,stopId:a.naptanId||null }))
+      t: a.expectedArrival ? new Date(a.expectedArrival).getTime() : Number.isFinite(a.timeToStation)&&a.timeToStation>=0?now+a.timeToStation*1000:NaN, platform:a.platformName||"", observedAt:a.timestamp?new Date(a.timestamp).getTime():null,stopId:a.naptanId||null, where:a.currentLocation||"" }))
     .filter(a=>isFinite(a.t))
     .sort((a,b)=>a.t-b.t);
 }
@@ -6003,7 +6023,7 @@ async function fetchAldgateArrivals(){
   return (await r.json()).filter(a=>/^(circle|metropolitan)$/.test(a.lineId))
     .map(a=>({ vehicle:a.vehicleId||"", lineId:a.lineId,
       t:a.expectedArrival?new Date(a.expectedArrival).getTime():Number.isFinite(a.timeToStation)&&a.timeToStation>=0?Date.now()+a.timeToStation*1000:NaN,
-      platform:a.platformName||'',stopId:a.naptanId||null,observedAt:a.timestamp?Date.parse(a.timestamp):null }))
+      platform:a.platformName||'',stopId:a.naptanId||null,observedAt:a.timestamp?Date.parse(a.timestamp):null,where:a.currentLocation||'' }))
     .filter(a=>Number.isFinite(a.t));
 }
 async function fetchTfl(){
@@ -8787,7 +8807,9 @@ function renderJourneyProgress(){
     // followTubeArrival already checks provider timestamps (including its small
     // allowed clock offset); freshness here uses our validated capture time.
     evidence={source:live?'prediction':'modelled',observedAt:live?(context.homeward?state.followTransport?.at:state.ald?.at):null,expectedAt:live?.arrival??null,
-      scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle};
+      scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle,
+      // Where TfL says your tube is, in its own words (10 Nov, #57 E1, H11), from the predictions the arrival came from.
+      where:live&&ride.vehicle?C.followTubeWhere(context.homeward?state.followTransport?.predictions:state.ald?.arrivals,String(ride.vehicle),lineIdOf(ride.line)):null};
     uncertain=!(ride.picked||ride.confirmed);
   }
   const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};

@@ -69,3 +69,34 @@ test("A saved route with the new fields restores; one saved before them restores
   const badNotice = JSON.parse(JSON.stringify(told)); badNotice.notices[0].was = "then";
   assert.equal(core.restoreFollowRoute(badNotice), null);
 });
+
+test("Where your tube is: TfL's own words, tidied; nothing for an empty, odd or over-long value", () => {
+  assert.equal(core.tubeWhere("At Barbican Platform 1"), "At Barbican");
+  assert.equal(core.tubeWhere("At Aldgate Platform 3"), "At Aldgate");
+  assert.equal(core.tubeWhere("Between Liverpool Street and Aldgate"), "Between Liverpool Street and Aldgate");
+  assert.equal(core.tubeWhere("Approaching Moorgate"), "Approaching Moorgate");
+  assert.equal(core.tubeWhere("Left Farringdon"), "Left Farringdon");
+  assert.equal(core.tubeWhere("Departed King's Cross St. Pancras"), "Left King's Cross St. Pancras");
+  assert.equal(core.tubeWhere("  at  Moorgate  platform 2 "), "At Moorgate");
+  for (const bad of ["", "  ", "At", "Platform 2", "Unknown", "Check front of train", null, undefined, 7, "At " + "x".repeat(90)]) assert.equal(core.tubeWhere(bad), null, String(bad));
+});
+
+test("Where your tube is: read from the prediction for your vehicle (and line), from raw TfL records or the page's own", () => {
+  const list = [{ vehicleId: "201", lineId: "circle", currentLocation: "At Farringdon Platform 2" }, { vehicle: "305", lineId: "metropolitan", where: "Between Moorgate and Liverpool Street" },
+    { vehicle: "305", lineId: "circle", where: "At Barbican" }, { vehicle: "410", lineId: "metropolitan", where: "" }];
+  assert.equal(core.followTubeWhere(list, "305", "metropolitan"), "Between Moorgate and Liverpool Street");
+  assert.equal(core.followTubeWhere(list, "305", "circle"), "At Barbican");
+  assert.equal(core.followTubeWhere(list, "201"), "At Farringdon");
+  assert.equal(core.followTubeWhere(list, "410", "metropolitan"), null, "TfL gave no location");
+  assert.equal(core.followTubeWhere(list, "999"), null); assert.equal(core.followTubeWhere(list, ""), null); assert.equal(core.followTubeWhere(null, "305"), null);
+});
+
+test("Leg progress: with a live prediction for your tube and TfL's location, the evidence line is that location and when TfL said it", () => {
+  const now = at("2026-11-03", "08:16"), legs = [{ id: "tube", kind: "tube", label: "Tube", start: now - 4 * MIN, end: now + 5 * MIN }];
+  const model = (evidence) => core.journeyProgress({ now, legs, activeLeg: "tube", calls: [], evidence });
+  const live = { source: "prediction", observedAt: now, expectedAt: now + 5 * MIN, identityMatched: true };
+  assert.equal(model({ ...live, where: "At Moorgate" }).evidenceLabel, "At Moorgate · TfL, 08:16.");
+  assert.equal(model(live).evidenceLabel, "Live arrival; position is a time-based estimate.");
+  assert.doesNotMatch(model({ ...live, where: "At Moorgate", identityMatched: false }).evidenceLabel, /At Moorgate/, "not your tube: no position");
+  assert.doesNotMatch(model({ source: "modelled", where: "At Moorgate" }).evidenceLabel, /At Moorgate/);
+});

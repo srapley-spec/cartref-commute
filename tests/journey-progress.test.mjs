@@ -134,3 +134,23 @@ test('Signal progress: an exact fresh Tube destination prediction estimates posi
  }
  assert.deepEqual(a.errors,[]);a.close();
 });
+
+test('Signal progress: where TfL says your tube is, in its own words, when the matched prediction carries it (10 Nov 2026, #57 E1, H11)',async()=>{
+ const a=await createApp({now:NOW,settings:{provider:'demo',followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
+ Object.assign(s,{here:[51.5201,-.0973],locAcc:30,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false});
+ s.saved.tubeRide={hub:'KGX',from:'KGX',t:NOW-3*60000,line:'Met',vehicle:'tube-progress',rideMs:10*60000,
+  stop:'Aldgate',stopGeo:[51.5142,-.0755],picked:true};
+ const prediction={vehicle:'tube-progress',lineId:'metropolitan',stopId:'940GZZLUALD',platform:'Northbound - Platform 2',observedAt:NOW,t:T('09:22'),where:'At Barbican Platform 1'};
+ s.ald={at:NOW,arrivals:[{vehicle:'another',lineId:'metropolitan',stopId:'940GZZLUALD',platform:'Northbound - Platform 2',observedAt:NOW,t:T('09:25'),where:'At Farringdon Platform 2'},prediction]};a.c.render();
+ assert.match(a.text('.journey-progress'),/At Barbican · TfL, 09:16\./);
+ assert.doesNotMatch(a.text('.journey-progress'),/position is a time-based estimate|Platform 1|At Farringdon/,'your tube, not another; no platform number');
+ assert.equal(a.d.querySelectorAll('.jp-stop[data-state="reported"]').length,0,'the stations themselves are not marked from it (not built)');
+ s.ald={at:NOW,arrivals:[{...prediction,where:'Between Moorgate and Liverpool Street'}]};a.c.render();
+ assert.match(a.text('.journey-progress'),/Between Moorgate and Liverpool Street · TfL, 09:16\./);
+ // Nothing usable from TfL: the old sentence. No live prediction for your tube: no location either.
+ s.ald={at:NOW,arrivals:[{...prediction,where:''}]};a.c.render();
+ assert.match(a.text('.journey-progress'),/Live arrival; position is a time-based estimate/);
+ s.ald={at:NOW,arrivals:[{...prediction,observedAt:NOW-3*60000}]};a.c.render();
+ assert.doesNotMatch(a.text('.journey-progress'),/At Barbican/,'a stale prediction says nothing about where the tube is');
+ assert.deepEqual(a.errors,[]);a.close();
+});
