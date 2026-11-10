@@ -306,8 +306,10 @@ test('journey facts review: onward Tube waiting and final walking retain final-d
   assert.ok(pill.previousElementSibling.matches('.journey-times'),'the same arrow and centred duration survive every onward stage');
   const settings=a.c.S(),profile=a.w.CommuteCore.profiles.samCommute;
   const expected=stage==='at-hub'?2*MIN+(settings.rideKxAld+settings.aldPlatform+settings.aldWalk)*1000:
-   a.w.CommuteCore.walkSecs(here,profile.places.office,'avg',profile)*1000;
-  assert.ok(Math.abs(Number(pill.querySelector('[data-fact="remaining-duration"]').dataset.ms)-expected)<.001,'remaining includes the Tube wait/ride/final access or the actual final walk (within floating-point timestamp precision)');
+   // Standing at Aldgate: your measured walk from it plus getting off its platform, as the plan has them (10 Nov
+   // 2026, #57 F1, F2), not the bare straight line.
+   (settings.aldWalk+settings.aldPlatform)*1000;
+  assert.ok(profile.places.office&&Math.abs(Number(pill.querySelector('[data-fact="remaining-duration"]').dataset.ms)-expected)<1,'remaining includes the Tube wait/ride/final access or the actual final walk (within floating-point timestamp precision)');
   assert.equal(heading.hasAttribute('data-fact'),false,'an onward leg never reintroduces the origin deadline');
   if(stage==='at-hub')assert.ok(a.d.querySelector('#hero [data-tubepick]'),'boarding choice remains available');
   else assert.equal(s.trainLock||null,null,'the final walk does not invent a train');
