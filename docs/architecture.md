@@ -381,7 +381,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   frame can only be given an address); it is the app's own Leave now view from home to the office with every
   control hidden, not a second renderer; no location; it reads only the saved live-data source and walking pace and
   writes nothing back except a source accepted from a setup link, asked on the page because browsers block dialogs
-  from framed pages. → [display-mode](stories/display-mode.md)
+  from framed pages. It refreshes every minute all day, as the app does (Sam: "Ideally, yes. But make sure we don't
+  consume all our API calls / use of Cloudflare"): measured at about 5,300 requests a day through the proxy for a
+  screen on 24 hours (about 5% of Cloudflare's free 100,000; TfL under 1 a minute of 500; Rail Data Marketplace's
+  limit not verified), and held there by a test. → [display-mode](stories/display-mode.md)
 - **4 Nov, every key in the proxy (Sam).** "I would like all the API keys moved so that deployment to other devices is
   easier." Decisions: My proxy as the National Rail source means every feed goes through it (TfL and Google too); one
   choice, not three. TfL is forwarded only for the paths the app uses, the key added and scrubbed by the Worker.

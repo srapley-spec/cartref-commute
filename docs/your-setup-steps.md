@@ -53,6 +53,9 @@ Last updated: 10 Nov 2026 (display mode for Home Assistant).
       `https://srapley-spec.github.io/cartref-commute/?display#setup=…`. The card then asks once, on the page, whether
       to use your proxy; tap **Yes, use it**. Without this the card shows timetable times, marked "not live"
 - [ ] Tell Claude how it looks at the card's size, and whether it asks again after Home Assistant restarts
+- [ ] Check the usage limit on your Rail Data Marketplace subscription (raildata.org.uk → your Live Departure Board
+      subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
+      day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
 
 ## After a change to `proxy/` or `src/core/`
 - [ ] Redeploy: `npm run build && npx wrangler deploy --config proxy/wrangler.toml` (Claude says in the report when

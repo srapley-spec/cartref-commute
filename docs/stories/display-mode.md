@@ -38,6 +38,20 @@ for the Home App that will live in HA."
   No), not a browser dialog, because browsers block dialogs from framed pages. Yes saves My proxy for that browser
   and reloads the data; No clears the link and changes nothing; an address that isn't a valid proxy address isn't
   offered; a display already using that proxy isn't asked again (so the link can stay in the frame's address).
+- **Refresh and the feeds' allowances (Sam, 10 Nov: "Ideally [every minute, all day]. But make sure we don't
+  consume all our API calls / use of Cloudflare"):** the display refreshes every minute for as long as it is on
+  screen, the same as the app. Measured over a simulated hour with My proxy (10 Nov, morning and overnight with no
+  trains: the same): 3 train boards a minute, Tube status every 2 minutes, National Rail status every 5 — 222 requests
+  an hour, about 5,300 a day for a screen that is on 24 hours. Against the allowances:
+  - Cloudflare Workers free plan: 100,000 requests a day → about 5% of it. (Each visit to the Worker is one request;
+    the phone's own use comes on top and is small by comparison.)
+  - TfL with a key: 500 requests a minute → under 1 a minute.
+  - Rail Data Marketplace boards: about 4,400 a day. **Not verified:** no published limit was found (a third-party
+    guide says "no usage limit", another "fair usage"); the figure for Sam's subscription is on the product's
+    Specification tab (setup steps §5).
+  - Without a proxy (timetable times): about 1,600 TfL requests a day.
+  The budget is held by a test: at most 4 requests a minute on average and never more than 3 boards a minute. A
+  change that raises it fails the test and is a decision for Sam.
 - **The normal app is unchanged** without `?display`.
 
 ## Tests
@@ -47,6 +61,7 @@ for the Home App that will live in HA."
 - tests/display.test.mjs: "Display mode: nothing this browser has saved is changed"
 - tests/display.test.mjs: "Display mode: a setup link asks on the page (a framed page can't show a browser dialog); Yes saves only the live-data source"
 - tests/display.test.mjs: "Display mode: saying No to a setup link changes nothing; a look-alike address isn't offered; already set up isn't asked again"
+- tests/display.test.mjs: "Display mode: an always-on screen stays inside its request budget: three boards a minute and under four requests a minute through the proxy"
 - Checked in a real browser (Chromium, 420 px and 800 px wide, light and dark) with example trains: no control is
   visible; only "Journey steps" and "Full details" can be tapped.
 
@@ -54,9 +69,8 @@ for the Home App that will live in HA."
 - Not tried inside Home Assistant itself (Sam to add the card: [your-setup-steps.md](../your-setup-steps.md) §5).
   Unknowns there: whether the dashboard's frame keeps its storage between restarts of the HA app (if not, the setup
   question is asked again), and how the page looks at the card's size.
-- An always-on screen refreshes every minute for as long as the dashboard is showing (the phone only does while the
-  app is open). Not measured against the feeds' daily allowances or the Worker's free tier; if it matters, the fix is
-  a slower refresh in display mode or only refreshing in the morning (a decision for Sam).
+- The Rail Data Marketplace allowance for Sam's subscription isn't confirmed (above). If it turns out to be tight,
+  the options are a slower refresh in display mode outside the morning, or a longer cache for boards in the Worker.
 - Only this one board (home → office, Leave now). Going home, another person's commute, or a compact one-line
   layout for a small card would each need a decision.
 - Until the Cloudflare Worker is deployed (setup steps §1–2) the frame can only show timetable times: keys typed into

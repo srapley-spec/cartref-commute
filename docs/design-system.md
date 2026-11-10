@@ -136,7 +136,8 @@ the status line, travel alerts, the Leave now recommendation from home to the of
 when it was updated. Every control and entry point is hidden; "Journey steps" and a notice's "Full details" remain
 because they only unfold information. It is the same view and the same styles as the app, not a second design: a
 change to the planning card changes the display. A setup link is confirmed with a panel on the page, not a browser
-dialog. Behaviour and tests: [`stories/display-mode.md`](stories/display-mode.md).
+dialog. It refreshes every minute all day (Sam, 10 Nov) inside a tested request budget. Behaviour, the measured
+figures and tests: [`stories/display-mode.md`](stories/display-mode.md).
 
 ## Approved journey and leg UI — 2 November 2026
 

@@ -3,7 +3,7 @@
 // home to the office in Leave now. It changes nothing this browser has saved except the live-data source.
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, sleep, json, closeAll } from "./harness.mjs";
+import { createApp, sleep, json, closeAll, hm, at } from "./harness.mjs";
 after(closeAll);
 
 const BASE = "https://srapley-spec.github.io/cartref-commute/";
@@ -114,4 +114,32 @@ test("Display mode: saying No to a setup link changes nothing; a look-alike addr
     route: (u) => (u.startsWith(PROXY) ? json(u.endsWith("/status") ? { v: 1, rail: true } : { trainServices: [], nrccMessages: [] }) : undefined) });
   assert.equal(done.d.querySelector("#displaySetup"), null);
   done.close();
+});
+
+test("Display mode: an always-on screen stays inside its request budget: three boards a minute and under four requests a minute through the proxy", async () => {
+  // Sam, 10 Nov: refresh every minute all day, without using up the feeds' allowances (Cloudflare's free 100,000 a
+  // day; docs/stories/display-mode.md has the measured figures). A change that raises this is a decision for Sam.
+  const m = 60e3, start = at("2026-11-03", "06:30");
+  let clock = start;
+  const board = (to) => ({ locationName: "Letchworth", trainServices: [15, 30, 45, 60, 75].map((d, i) => ({ serviceID: `S${i}${to}`, std: hm(start + d * m), etd: "On time",
+    operator: "Thameslink", platform: "1", subsequentCallingPoints: [{ callingPoint: [{ crs: to, locationName: to, st: hm(start + (d + 45) * m), et: "On time" }] }] })), nrccMessages: [] });
+  const app = await createApp({ url: BASE + "?display", settings: { provider: "proxy", proxyBase: PROXY }, now: start,
+    route: (u) => { if (!u.startsWith(PROXY)) return undefined; const b = u.match(/\/board\/[A-Z]{3}\/([A-Z]{3})/);
+      return b ? json(board(b[1])) : u.endsWith("/status") ? json({ v: 1, rail: true, serviceDetails: true, tflKey: true }) : json([]); } });
+  assert.match(app.text("#hero"), /Leave by/, "live trains are on the board");
+  const atLoad = app.calls.length, perMinute = [];
+  for (let i = 1; i <= 10; i++) {
+    clock = start + i * m; app.setNow(clock);
+    const before = app.calls.length;
+    await app.c.refresh(); await sleep(30);                    // the page's own once-a-minute refresh
+    const made = app.calls.slice(before);
+    assert.ok(made.filter((u) => /\/board\//.test(u)).length <= 3, `minute ${i}: at most the three boards from home\n${made.join("\n")}`);
+    perMinute.push(made.length);
+  }
+  assert.ok(app.calls.every((u) => u.startsWith(PROXY)), "everything goes through the proxy");
+  assert.ok(atLoad <= 8, `at load: ${atLoad}`);
+  const total = perMinute.reduce((a, b) => a + b, 0);
+  assert.ok(total >= 30, `it does refresh every minute: ${perMinute.join(",")}`);
+  assert.ok(total <= 40, `under four requests a minute on average (≈5,300 a day): ${perMinute.join(",")}`);
+  app.close();
 });
