@@ -15,14 +15,17 @@ const FAST = "Thameslink|10:20|LET|FAST", SLOW = "Great Northern|10:15|LET|SLOW"
 // 10:00 at home: the 10:15 stopper and the 10:20 fast train; you follow the fast one. Then 10:34, on the line,
 // 1.5 km short of Knebworth with a good fix.
 // `where`: how far along the line you are (default: 1.5 km short of Knebworth, where the fast train fits best).
-async function aboard({ follow = true, where = null } = {}) {
-  const app = await createApp({ settings: { provider: "demo", followRoute: follow }, saved: { dirMode: "office" }, geo: null, now: T0 });
+// `third`: add a 10:17 stopper to Moorgate; `saved`: what this phone had saved; `tap`: follow the fast train.
+async function aboard({ follow = true, where = null, third = false, saved = {}, tap = follow } = {}) {
+  const app = await createApp({ settings: { provider: "demo", followRoute: follow }, saved: { dirMode: "office", ...saved }, geo: null, now: T0 });
   const c = app.c, K = app.w.CommuteCore, P = K.profiles.samCommute, line = P.lines.KGX;
   const fast = svc({ from: "LET", to: "KGX", dep: T0 + 20 * m, arr: T0 + 55 * m, operator: "Thameslink", serviceId: "FAST", destination: "Brighton" });
   const slow = svc({ from: "LET", to: "KGX", dep: T0 + 15 * m, arr: T0 + 70 * m, operator: "Great Northern", serviceId: "SLOW", destination: "King's Cross" });
-  c.state.boards = { "LET-KGX": { msgs: [], services: [slow, fast] }, "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
+  const moorgate = svc({ from: "LET", to: "KGX", dep: T0 + 17 * m, arr: T0 + 72 * m, operator: "Great Northern", serviceId: "THIRD", destination: "Moorgate" });
+  c.state.boards = { "LET-KGX": { msgs: [], services: [slow, ...(third ? [moorgate] : []), fast] }, "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
   c.state.status = []; c.state.nrStatus = []; c.render();
-  if (follow) [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();
+  const followFast = () => [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();
+  if (tap) followFast();
   const seg = line.slice(1).map((p, i) => K.km(line[i], p)), total = seg.reduce((a, b) => a + b, 0);
   const pointOn = (f) => { let d = f * total; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const k = Math.max(0, Math.min(1, d / seg[i]));
     return [line[i][0] + (line[i + 1][0] - line[i][0]) * k, line[i][1] + (line[i + 1][1] - line[i][1]) * k]; } d -= seg[i]; } };
@@ -31,18 +34,19 @@ async function aboard({ follow = true, where = null } = {}) {
   Object.assign(c.state, { here: pointOn(where ?? frac("KBW") - 1.5 / total), locAcc: 20, lastFixAt: now, onLine: true, atHub: null, locStatus: "ok", trainLock: null });
   c.render();
   // What National Rail reports for the stopper: stations it has left, with the time.
-  const report = (leftCode, leftName, leftAt) => {
+  const report = (leftCode, leftName, leftAt, expected = {}) => {
     const stops = [["LET", "Letchworth", 15], ["HIT", "Hitchin", 20], ["SVG", "Stevenage", 25], ["KBW", "Knebworth", 32], ["WLW", "Welwyn North", 36], ["WGC", "Welwyn Garden City", 40], ["KGX", "King's Cross", 70]]
       .map(([code, name, min]) => ({ code, name, scheduledAt: T0 + min * m }));
+    const due = (s) => expected[s.code] ?? s.scheduledAt;
     const upTo = stops.findIndex((s) => s.code === leftCode);
-    const calls = stops.map((s, i) => ({ ...s, actualAt: i < upTo ? s.scheduledAt : i === upTo ? leftAt : null, expectedAt: i > upTo ? s.scheduledAt : null, cancelled: false, noEstimate: false }));
+    const calls = stops.map((s, i) => ({ ...s, actualAt: i < upTo ? s.scheduledAt : i === upTo ? leftAt : null, expectedAt: i > upTo ? due(s) : null, cancelled: false, noEstimate: false }));
     const next = calls[upTo + 1];
     c.state.progressById = { SLOW: { id: "SLOW", at: c.state.lastFixAt, err: null, data: { last: { name: leftName, code: leftCode, t: leftAt, late: 0 }, next: { name: next.name, code: next.code, t: next.expectedAt },
       at: (code) => { const x = calls.find((k) => k.code === code); return x ? x.actualAt ?? x.expectedAt : null; }, calls, cancelled: false, reason: "" } } };
   };
   const hero = () => app.text("#hero");
   const click = (sel) => { const b = app.d.querySelector(sel); assert.ok(b, `${sel} is on screen`); b.click(); };
-  return { app, c, now, report, hero, click, pointOn, frac, total };
+  return { app, c, now, report, hero, click, pointOn, frac, total, followFast };
 }
 
 test("Wrong train: selecting a train other than the one you're following asks first; Stay changes nothing, Switch selects it", async () => {
@@ -109,7 +113,7 @@ test("Wrong train: 'Keep' answers that evidence only: not asked again for it, as
   click(`[data-pick="${SLOW}"]`); click("[data-pick-confirmed]");
   report("KBW", "Knebworth", T0 + 32 * m); c.render();
   click("[data-wrong-train] [data-keep]");
-  assert.equal(c.state.trainLock.serviceId, "SLOW"); assert.equal(c.state.trainLock.kept, `left-before-you|KBW|${T0 + 32 * m}`);
+  assert.equal(c.state.trainLock.serviceId, "SLOW"); assert.equal(c.state.trainLock.kept, "left-before-you|KBW");
   assert.equal(app.d.querySelector("[data-wrong-train]"), null, "not asked again");
   assert.equal(app.d.querySelector("[data-pending-pick]"), null, "keeping the train already selected isn't a switch");
   assert.match(hero(), /You're on the 10:15 Great Northern to King's Cross.*you picked this/);
@@ -172,4 +176,77 @@ test("I'm on it: answering with the other train selects it without a second ques
   assert.equal(b.app.d.querySelector("[data-boarding-ask]"), null);
   assert.equal(b.c.state.trainLock.serviceId, "FAST"); assert.equal(b.c.state.saved.followRoute.phase, "on-train");
   b.app.close();
+});
+
+test("Wrong train: with several trains about, the one you're following is offered first; answering with another train isn't questioned a second time", async () => {
+  const { app, c, report, click } = await aboard({ third: true, where: 19 / 55 });
+  click(`[data-pick="${SLOW}"]`); click("[data-pick-confirmed]");
+  report("WGC", "Welwyn Garden City", T0 + 32 * m); c.render();     // it has left a station well ahead of you
+  const panel = app.d.querySelector("[data-wrong-train]");
+  assert.match(panel.textContent, /stopped at Welwyn Garden City at 10:32; you didn't\. Which train are you on\?/);
+  assert.deepEqual([...panel.querySelectorAll("button")].map((b) => b.textContent),
+    ["10:20 Thameslink to Brighton · the train you're following", "10:17 Great Northern to Moorgate", "Keep the 10:15 Great Northern to King's Cross"]);
+  click('[data-wrong-train] [data-pick="Great Northern|10:17|LET|THIRD"]');
+  assert.equal(c.state.trainLock.serviceId, "THIRD", "your answer is taken");
+  assert.equal(app.d.querySelector("[data-pending-pick]"), null, "without asking whether to switch");
+  app.close();
+});
+
+test("Wrong train: you've passed a station the selected train isn't due at yet → the card says so; 'Keep' holds while its estimate moves", async () => {
+  const { app, c, report, click, pointOn, frac, total, now } = await aboard();
+  click(`[data-pick="${SLOW}"]`); click("[data-pick-confirmed]");
+  Object.assign(c.state, { here: pointOn(frac("KBW") + 1.5 / total), lastFixAt: now });
+  report("SVG", "Stevenage", T0 + 25 * m, { KBW: T0 + 40 * m }); c.render();      // running late: Knebworth expected 10:40
+  assert.match(app.text("[data-wrong-train]"), /^You've passed Knebworth; the 10:15 Great Northern to King's Cross isn't due there until 10:40\. Which train are you on\?/);
+  click("[data-wrong-train] [data-keep]");
+  assert.equal(c.state.trainLock.kept, "behind-you|KBW");
+  assert.equal(app.d.querySelector("[data-wrong-train]"), null);
+  report("SVG", "Stevenage", T0 + 25 * m, { KBW: T0 + 41 * m }); c.render();      // the estimate slips a minute
+  assert.equal(app.d.querySelector("[data-wrong-train]"), null, "the same station doesn't ask again");
+  app.close();
+});
+
+test("Wrong train: a far-away selected train with no station report asks in the same way, and 'Keep' answers it", async () => {
+  const { app, c, click, pointOn, frac, now } = await aboard();
+  click(`[data-pick="${SLOW}"]`); click("[data-pick-confirmed]");
+  Object.assign(c.state, { here: pointOn(frac("FPK")), lastFixAt: now }); c.render();   // at Finsbury Park at 10:34: nowhere near it
+  const panel = app.d.querySelector("[data-wrong-train]");
+  assert.match(panel.textContent, /^The 10:15 Great Northern to King's Cross doesn't match where you are\. Which train are you on\?/);
+  assert.equal(panel.querySelector("[data-keep]").dataset.keep, "far");
+  click("[data-wrong-train] [data-keep]");
+  assert.equal(app.d.querySelector("[data-wrong-train]"), null);
+  assert.equal(c.state.trainLock.serviceId, "SLOW");
+  app.close();
+});
+
+test("Wrong train: an open 'Switch to…?' question goes when you stop following, and doesn't come back with the next route", async () => {
+  const { app, c, click, followFast } = await aboard();
+  click(`[data-pick="${SLOW}"]`);
+  assert.ok(app.d.querySelector("[data-pending-pick]"));
+  click('#followPanel [data-follow-action="stop"]');
+  assert.equal(app.d.querySelector("[data-pending-pick]"), null);
+  assert.equal(c.state.pendingPick, null, "the question is dropped, not just hidden");
+  // Selecting now doesn't ask (nothing is followed).
+  click(`[data-pick="${SLOW}"]`);
+  assert.equal(c.state.trainLock.serviceId, "SLOW"); assert.equal(app.d.querySelector("[data-pending-pick]"), null);
+  app.close();
+  // "I'm on it"'s question also belongs to its route: stop, and the next route starts with the plain button.
+  const b = await aboard({ where: 19 / 55 });
+  b.click('#followPanel [data-follow-action="boarded"]');
+  assert.ok(b.app.d.querySelector("[data-boarding-ask]"));
+  b.click('#followPanel [data-follow-action="stop"]');
+  assert.equal(b.c.state.boardingAsk, false);
+  b.app.close();
+});
+
+test("Wrong train: a route saved by an older version (no train to compare) never breaks selecting a train or the question", async () => {
+  const old = { dir: "office", train: { operator: "Thameslink", std: "08:00", from: "LET" }, calls: [{ operator: "Thameslink", std: "08:00", from: "LET" }], hub: "KGX",
+    lastDep: T0 - 120 * m, afterMs: 25 * m, planned: T0 - 60 * m, arrive: T0 - 60 * m, lateMin: 0, followedAt: T0 - 150 * m, reason: null, dismissed: null, declined: [] };
+  const { app, c, report, click } = await aboard({ saved: { follow: old }, tap: false });
+  click(`[data-pick="${SLOW}"]`);
+  assert.equal(c.state.trainLock.serviceId, "SLOW", "selected, with no question (nothing to compare with)");
+  report("KBW", "Knebworth", T0 + 32 * m); c.render();
+  assert.match(app.text("[data-wrong-train]"), /stopped at Knebworth at 10:32; you didn't/);
+  assert.deepEqual(app.errors, []);
+  app.close();
 });

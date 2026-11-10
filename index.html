@@ -834,7 +834,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 12:06 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 15:31 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2653,7 +2653,7 @@ var CommuteCore = (() => {
   var STATION_REPORT_SLACK_MS = 6e4;
   var STATION_EXPECTED_SLACK_MS = 12e4;
   var STATION_MAX_ACC_M = 250;
-  var contradictionKey = (c) => c ? `${c.kind}|${c.code}|${c.t}` : "far";
+  var contradictionKey = (c) => c ? `${c.kind}|${c.code}` : "far";
   function stationContradiction(pg, toLondon, mine, at, line, geo, accM) {
     var _a, _b;
     if (!pg || typeof accM !== "number" || !isFinite(accM) || accM < 0 || accM > STATION_MAX_ACC_M) return null;
@@ -2675,7 +2675,7 @@ var CommuteCore = (() => {
       pg.calls.forEach((c2, i) => {
         if (c2.actualAt != null) reported = i;
       });
-      const c = pg.calls.slice(reported + 1).find((x) => along(x.code) != null);
+      const c = pg.calls.slice(reported + 1).find((x) => !x.cancelled && along(x.code) != null);
       if (c) next = { code: c.code, name: c.name, t: (_a = c.expectedAt) != null ? _a : pg.at(c.code) };
     } else if (pg.next && pg.next.code) {
       const n2 = along(pg.next.code);
@@ -2734,12 +2734,7 @@ var CommuteCore = (() => {
       const kept = against && !!lock.kept && lock.kept === contradictionKey(locked.contradiction);
       const conflict = against && !kept;
       Object.assign(locked, { sure: !conflict, conflict, ...kept ? { kept } : {}, other: null, locked: true, picked: true, others: others(locked), confidence: stale2 || against ? "low" : "high", ...age });
-      const keep = withId(lock, locked.t);
-      if (!stale2 && !against && keep.kept) {
-        const { kept: _answered, ...rest } = keep;
-        return { result: locked, lock: rest };
-      }
-      return { result: locked, lock: keep };
+      return { result: locked, lock: withId(lock, locked.t) };
     }
     const keeps = locked && !locked.ruledOut && (stale2 || locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6));
     if (locked && keeps) {
@@ -3385,6 +3380,7 @@ var CommuteCore = (() => {
   }
   function followIsTrain(route, train) {
     const same = (t2) => !!t2 && (t2.serviceId && train.serviceId ? t2.serviceId === train.serviceId : t2.operator === train.operator && t2.std === train.std && t2.from === train.from);
+    if (!record(route) || !record(route.option)) return false;
     return same(route.option.train) || same(route.lastTrain) || (Array.isArray(route.option.alts) ? route.option.alts : []).some((alt) => record(alt) && validTrain(alt.train) && same(alt.train));
   }
   function boardingCheck(route, fit) {
@@ -6388,8 +6384,14 @@ function optionBlock(j,opt){
 const pickData = t => `${esc(t.operator)}|${esc(t.std)}|${esc(t.from)}|${esc(t.serviceId||"")}`;
 const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn" data-pick="${pickData(c.t)}"${extra}>${esc(label||C.trainName(c.t))}</button>`;
 // Asked before a train other than the one you're following is accepted (Sam, 10 Nov; engine words the question).
+// The route you're following, when it is one the questions can compare a train with (a saved route in the old
+// format has no train to compare).
+const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
 function pendingPickMarkup(){
-  const p=state.pendingPick, route=p&&activeFollow(); if(!p||!route) return "";
+  // The question belongs to the route it was asked about: stop following, follow something else or change
+  // direction and it is gone.
+  const p=state.pendingPick, route=p&&followedRoute();
+  if(!p||!route||route.id!==p.routeId){ state.pendingPick=null; return ""; }
   const following=C.trainName(route.lastTrain||route.option.train);
   return `<div class="pick doubt" data-block="which" data-pending-pick><b>${esc(C.switchTrainQuestion(following,p.name))}</b>
     <button type="button" class="pickbtn" data-pick="${esc(p.data)}" data-pick-confirmed>Switch to the ${esc(p.name)}</button>
@@ -6398,10 +6400,11 @@ function pendingPickMarkup(){
 // The evidence contradicts the train you selected: say what it is and ask (engine words it). The train you're
 // following is offered first; "Keep" answers this evidence only.
 function wrongTrainMarkup(m){
-  const route=activeFollow(), mine=c=>!!route&&C.followIsTrain(route,c.t);
+  const route=followedRoute(), mine=c=>!!route&&C.followIsTrain(route,c.t);
   const others=[...(m.others||[])].sort((a,b)=>mine(b)-mine(a));
+  // An answer here is an answer: selecting another train isn't questioned a second time.
   return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m))}</b>
-    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":""))).join("")}
+    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":"")," data-pick-confirmed")).join("")}
     ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
 }
 function renderOnTrain(now, m){
@@ -7145,9 +7148,9 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   if(b.dataset.keep!=null) lock.kept=b.dataset.keep;
   // Selecting a train other than the one you're following asks first (Sam, 10 Nov: the late 07:15 was selected while
   // following and riding the 07:20). Re-selecting the train already selected, or answering the question, doesn't.
-  const route=activeFollow(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
+  const route=followedRoute(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
   if(route && !already && b.dataset.pickConfirmed==null && !C.followIsTrain(route,lock)){
-    state.pendingPick={data:b.dataset.pick,name:b.textContent.replace(/ · the train you're following$/,"").replace(/^(Keep the|Switch to the) /,"").trim()}; render(); return; }
+    state.pendingPick={data:b.dataset.pick,name:b.textContent.trim(),routeId:route.id}; render(); return; }
   state.pendingPick=null; state.boardingAsk=false; state.trainLock=lock; render(); });
 function renderInner(){
  state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};
@@ -8900,7 +8903,8 @@ function followButton(option){
 // "I'm on it", or (after it was tapped while the evidence is unsure) the trains that could be yours, the one you
 // follow first. Selecting another train here is an answer to the question, so it isn't asked a second time.
 function boardingMarkup(route,now){
-  const check=state.boardingAsk?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
+  // (The question belongs to the route it was asked about.)
+  const check=state.boardingAsk===route.id?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
   if(!check.ask){state.boardingAsk=false;return '<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>';}
   return `<div class="pick doubt" data-boarding-ask><b>Which train are you on?</b>${check.candidates.map(t=>C.followIsTrain(route,t)
     ?`<button type="button" class="pickbtn" data-follow-action="boarded" data-sure>${esc(C.trainName(t))} · the train you're following</button>`
@@ -8918,7 +8922,7 @@ document.addEventListener('click',e=>{
   if(action==='boarded'&&state.followUpdate){
     // "I'm on it" looks at the evidence first (#57 C2): unsure between trains, or the working-out says another
     // train, and it asks which. The answer (data-sure: "the train you're following") is then taken at its word.
-    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=true;render();return;}
+    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=state.followUpdate.route.id;render();return;}
     state.boardingAsk=false;state.pendingPick=null;
     const route=C.confirmFollowBoarding(state.followUpdate.route,Date.now());
     state.saved.followRoute=route;state.saved.viewOverride=null;

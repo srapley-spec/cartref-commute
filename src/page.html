@@ -1302,8 +1302,14 @@ function optionBlock(j,opt){
 const pickData = t => `${esc(t.operator)}|${esc(t.std)}|${esc(t.from)}|${esc(t.serviceId||"")}`;
 const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn" data-pick="${pickData(c.t)}"${extra}>${esc(label||C.trainName(c.t))}</button>`;
 // Asked before a train other than the one you're following is accepted (Sam, 10 Nov; engine words the question).
+// The route you're following, when it is one the questions can compare a train with (a saved route in the old
+// format has no train to compare).
+const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
 function pendingPickMarkup(){
-  const p=state.pendingPick, route=p&&activeFollow(); if(!p||!route) return "";
+  // The question belongs to the route it was asked about: stop following, follow something else or change
+  // direction and it is gone.
+  const p=state.pendingPick, route=p&&followedRoute();
+  if(!p||!route||route.id!==p.routeId){ state.pendingPick=null; return ""; }
   const following=C.trainName(route.lastTrain||route.option.train);
   return `<div class="pick doubt" data-block="which" data-pending-pick><b>${esc(C.switchTrainQuestion(following,p.name))}</b>
     <button type="button" class="pickbtn" data-pick="${esc(p.data)}" data-pick-confirmed>Switch to the ${esc(p.name)}</button>
@@ -1312,10 +1318,11 @@ function pendingPickMarkup(){
 // The evidence contradicts the train you selected: say what it is and ask (engine words it). The train you're
 // following is offered first; "Keep" answers this evidence only.
 function wrongTrainMarkup(m){
-  const route=activeFollow(), mine=c=>!!route&&C.followIsTrain(route,c.t);
+  const route=followedRoute(), mine=c=>!!route&&C.followIsTrain(route,c.t);
   const others=[...(m.others||[])].sort((a,b)=>mine(b)-mine(a));
+  // An answer here is an answer: selecting another train isn't questioned a second time.
   return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m))}</b>
-    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":""))).join("")}
+    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":"")," data-pick-confirmed")).join("")}
     ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
 }
 function renderOnTrain(now, m){
@@ -2059,9 +2066,9 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   if(b.dataset.keep!=null) lock.kept=b.dataset.keep;
   // Selecting a train other than the one you're following asks first (Sam, 10 Nov: the late 07:15 was selected while
   // following and riding the 07:20). Re-selecting the train already selected, or answering the question, doesn't.
-  const route=activeFollow(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
+  const route=followedRoute(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
   if(route && !already && b.dataset.pickConfirmed==null && !C.followIsTrain(route,lock)){
-    state.pendingPick={data:b.dataset.pick,name:b.textContent.replace(/ · the train you're following$/,"").replace(/^(Keep the|Switch to the) /,"").trim()}; render(); return; }
+    state.pendingPick={data:b.dataset.pick,name:b.textContent.trim(),routeId:route.id}; render(); return; }
   state.pendingPick=null; state.boardingAsk=false; state.trainLock=lock; render(); });
 function renderInner(){
  state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};

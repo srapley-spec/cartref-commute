@@ -13,6 +13,7 @@ const pointAt = (frac) => [50.1 - 0.1 * frac, -1.1 + 0.1 * frac];
 const kmShortOfMid = (k) => pointAt(0.5 - k / KM), kmPastMid = (k) => pointAt(0.5 + k / KM);
 const toCity = (std, dep, len, extra = {}) => train({ from: "RVS", to: "CEN", std, dep, arr: dep + len * MIN, operator: "Express Rail", ...extra });
 const PICK = { operator: "Express Rail", std: "07:40", from: "RVS", serviceId: "S1", picked: true };
+const PICK_FAR = { operator: "Express Rail", std: "07:30", from: "RVS", serviceId: "S1", picked: true };
 
 test("lineLengthKm: the made-up line is about 13 km, and Midway is halfway", () => {
   assert.ok(KM > 12.5 && KM < 14, String(KM));
@@ -61,6 +62,13 @@ test("Station check: you're past a station the train isn't due at for two minute
   const skipped = { last: { code: "QRY", t: now - 30e3 }, next: { code: "MID", t: now + 5 * MIN }, at: () => null, calls: stops(now - 30e3) };
   assert.equal(core.stationContradiction(skipped, true, pastQuarry, now, LINE, geo, 20), null);
   assert.equal(core.stationContradiction({ ...skipped, last: { code: "RVS", t: now - 20 * MIN }, calls: stops(null) }, true, pastQuarry, now, LINE, geo, 20).code, "MID", "with no later report, Midway is next");
+  // In the ordered stops: a station the profile doesn't know is passed over, a cancelled stop is never evidence,
+  // and a stop with no estimate of its own falls back to the feed's time for it.
+  const order = (extra) => ({ last: { code: "RVS", t: now - 12 * MIN }, next: null, at: (c) => (c === "MID" ? now + 5 * MIN : null),
+    calls: [{ code: "RVS", actualAt: now - 12 * MIN, expectedAt: null }, ...extra, { code: "CEN", name: "Central", actualAt: null, expectedAt: now + 20 * MIN }] });
+  assert.equal(core.stationContradiction(order([{ code: "ZZZ", actualAt: null, expectedAt: now + 3 * MIN }, { code: "MID", name: "Midway", actualAt: null, expectedAt: now + 5 * MIN }]), true, mine, now, LINE, GEO, 20).code, "MID");
+  assert.equal(core.stationContradiction(order([{ code: "MID", name: "Midway", actualAt: null, expectedAt: null }]), true, mine, now, LINE, GEO, 20).kind, "behind-you", "the feed's time for the stop is used");
+  assert.equal(core.stationContradiction(order([{ code: "MID", name: "Midway", actualAt: null, expectedAt: now + 5 * MIN, cancelled: true }]), true, mine, now, LINE, GEO, 20), null, "a cancelled stop isn't somewhere it is due");
   // Without the ordered stops, the feed's "next" counts only when it lies beyond the last report.
   const plain = { last: { code: "RVS", t: now - 12 * MIN }, next: { code: "MID", name: "Midway", t: now + 5 * MIN }, at: () => null };
   assert.equal(core.stationContradiction(plain, true, mine, now, LINE, GEO, 20).kind, "behind-you");
@@ -96,27 +104,59 @@ test("whichTrain: a selected train contradicted by a station asks, though it is 
   assert.equal(old.conflict, false); assert.equal(old.stale, true); assert.equal(old.contradiction, undefined);
 });
 
-test("whichTrain: 'Keep' answers the evidence it was asked about; new evidence asks again; no evidence forgets the answer", () => {
+test("whichTrain: 'Keep' answers the evidence it was asked about (that station); another station asks again; the answer stays with the selection", () => {
   const now = T("08:00"), here = kmShortOfMid(1.5);
   const picked = toCity("07:40", now - 20 * MIN, 40, { serviceId: "S1" });
   const boards = { "RVS-CEN": { msgs: [], services: [picked, toCity("07:43", now - 17 * MIN, 40, { serviceId: "S2" })] } };
-  const report = (t) => ({ S1: { last: { code: "MID", name: "Midway", t }, next: { code: "CEN", t: now + 18 * MIN }, at: () => null } });
-  const ask = core.whichTrain(boards, here, "office", now, PICK, (id) => report(now - 2 * MIN)[id] || null, testville, now, 20);
+  const report = (t, code = "MID") => ({ S1: { last: { code, name: code, t }, next: { code: "CEN", t: now + 18 * MIN }, at: () => null } });
+  const run = (lock, rep, where = here, at = now, fix = at) => core.whichTrain(boards, where, "office", at, lock, (id) => rep[id] || null, testville, fix, 20);
+  const ask = run(PICK, report(now - 2 * MIN));
   const key = core.contradictionKey(ask.result.contradiction);
-  assert.equal(key, `left-before-you|MID|${now - 2 * MIN}`);
-  const kept = core.whichTrain(boards, here, "office", now, { ...PICK, kept: key }, (id) => report(now - 2 * MIN)[id] || null, testville, now, 20);
+  assert.equal(key, "left-before-you|MID", "the kind and the station, not the minute");
+  const kept = run({ ...PICK, kept: key }, report(now - 2 * MIN));
   assert.equal(kept.result.conflict, false, "not asked again for the same evidence");
   assert.equal(kept.result.kept, true); assert.equal(kept.result.sure, true);
   assert.equal(kept.result.confidence, "low", "but the evidence still stands");
   assert.equal(kept.lock.kept, key);
-  // A different report (the feed corrects the time) is new evidence.
-  const again = core.whichTrain(boards, here, "office", now, { ...PICK, kept: key }, (id) => report(now - 3 * MIN)[id] || null, testville, now, 20);
-  assert.equal(again.result.conflict, true);
-  // Nothing against the pick any more: the answer is forgotten, so later evidence asks afresh.
-  const fine = core.whichTrain(boards, kmPastMid(0.3), "office", now, { ...PICK, kept: key }, (id) => report(now - MIN)[id] || null, testville, now, 20);
-  assert.equal(fine.result.conflict, false); assert.equal(fine.result.confidence, "high"); assert.equal(fine.lock.kept, undefined);
-  // "Keep" on distance evidence (no station): key "far".
-  assert.equal(core.contradictionKey(null), "far");
+  // The feed correcting the minute is the same evidence: still quiet.
+  assert.equal(run({ ...PICK, kept: key }, report(now - 3 * MIN)).result.conflict, false);
+  // The answer survives a fix that has gone stale, and a position wobbling back inside the 1 km margin…
+  const stale = run({ ...PICK, kept: key }, report(now - 2 * MIN), here, now + 3 * MIN, now);
+  assert.equal(stale.result.stale, true); assert.equal(stale.lock.kept, key);
+  const inside = run({ ...PICK, kept: key }, report(now - 2 * MIN), kmShortOfMid(0.95));
+  assert.equal(inside.result.conflict, false); assert.equal(inside.result.confidence, "high"); assert.equal(inside.lock.kept, key);
+  assert.equal(run(inside.lock, report(now - 2 * MIN), kmShortOfMid(1.05)).result.conflict, false, "…so the same station can't ask twice");
+  // …and the lock learning the train's service ID.
+  const { serviceId: _id, ...noId } = PICK;
+  const learnt = run({ ...noId, kept: key }, report(now - 2 * MIN));
+  assert.equal(learnt.lock.serviceId, "S1"); assert.equal(learnt.lock.kept, key); assert.equal(learnt.result.conflict, false);
+  // Another station is new evidence (Quarry, a made-up station 70% of the way along).
+  const withQuarry = { ...testville, stationGeo: { ...GEO, QRY: pointAt(0.7) } };
+  const next = core.whichTrain(boards, here, "office", now, { ...PICK, kept: key }, (id) => report(now - 90e3, "QRY")[id] || null, withQuarry, now, 20);
+  assert.equal(next.result.conflict, true); assert.equal(core.contradictionKey(next.result.contradiction), "left-before-you|QRY");
+});
+
+test("whichTrain: 'Keep' answers distance evidence too (no station report): key \"far\"", () => {
+  const now = T("08:00");
+  assert.equal(core.contradictionKey(null), "far"); assert.equal(core.contradictionKey(undefined), "far");
+  // Selected: a train that left 30 min ago and is nearly there; you are near the start of the line. No reports.
+  const picked = toCity("07:30", now - 30 * MIN, 40, { serviceId: "S1" });
+  const boards = { "RVS-CEN": { msgs: [], services: [picked] } };
+  const run = (lock) => core.whichTrain(boards, pointAt(0.1), "office", now, lock, () => null, testville, now, 20);
+  const far = run(PICK_FAR);
+  assert.ok(far.result.offMin > 12, String(far.result.offMin));
+  assert.equal(far.result.conflict, true); assert.equal(far.result.contradiction, undefined);
+  const kept = run({ ...PICK_FAR, kept: "far" });
+  assert.equal(kept.result.conflict, false); assert.equal(kept.result.kept, true); assert.equal(kept.result.confidence, "low");
+});
+
+test("whichTrain: the station check uses when the fix was taken, not when the card is drawn", () => {
+  // The train left Midway 30 s before the fix; the card is drawn a minute later. Still under a minute at fix time.
+  const now = T("08:00"), here = kmShortOfMid(1.2);
+  const picked = toCity("07:40", now - 20 * MIN, 30, { serviceId: "S1" });
+  const boards = { "RVS-CEN": { msgs: [], services: [picked] } };
+  const prog = { S1: { last: { code: "MID", name: "Midway", t: now - 30e3 }, next: { code: "CEN", t: now + 10 * MIN }, at: () => null } };
+  assert.equal(core.whichTrain(boards, here, "office", now + 60e3, PICK, (id) => prog[id] || null, testville, now, 20).result.conflict, false);
 });
 
 test("whichTrain: with nothing selected, a train contradicted by a station is ruled out, so the other is yours", () => {
@@ -208,6 +248,11 @@ test("followIsTrain: the train you follow by service ID when both have one, else
   assert.equal(core.followIsTrain(route, { operator: "Express Rail", std: "07:20", from: "RVS", serviceId: "OTHER" }), false, "same time and operator, another service");
   assert.equal(core.followIsTrain(route, { operator: "Express Rail", std: "07:20", from: "RVS" }), true, "no ID on the selection: operator, time and station");
   assert.equal(core.followIsTrain(route, { operator: "Metro Rail", std: "07:15", from: "RVS" }), false);
+  assert.equal(core.followIsTrain(route, { operator: "Express Rail", std: "07:15", from: "RVS" }), false, "another time");
+  assert.equal(core.followIsTrain(route, { operator: "Metro Rail", std: "07:20", from: "RVS" }), false, "another operator");
+  // A saved route in the old format has no train to compare: never a match, never a crash.
+  assert.equal(core.followIsTrain({ id: "old", dir: "office", train: { std: "08:00" } }, { operator: "Express Rail", std: "07:20", from: "RVS" }), false);
+  assert.equal(core.followIsTrain(null, { operator: "Express Rail", std: "07:20", from: "RVS" }), false);
   assert.equal(core.followIsTrain(route, { operator: "Express Rail", std: "07:20", from: "MKT" }), false);
 });
 
@@ -230,6 +275,8 @@ test("boardingCheck: 'I'm on it' is taken at its word only when nothing says oth
   assert.equal(different.ask, true); assert.deepEqual(different.candidates.map((x) => x.serviceId), ["F1", "M1"]);
   // A report has ruled the followed train out: ask, even though it is the selected one.
   assert.equal(core.boardingCheck(route, { t, sure: true, ruledOut: true, others: [{ t: other }] }).ask, true);
+  // The runner-up counts as a candidate even when the list of others is empty.
+  assert.deepEqual(core.boardingCheck(route, { t, sure: false, other: { t: other }, others: [] }).candidates.map((x) => x.serviceId), ["F1", "M1"]);
   // The followed train isn't among the trains near you at all: it is still offered, first.
   assert.deepEqual(core.boardingCheck(route, { t: other, sure: true, others: [{ t: third }] }).candidates.map((x) => x.serviceId), ["F1", "M1", "E3"]);
 });

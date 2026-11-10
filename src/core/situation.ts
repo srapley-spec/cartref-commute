@@ -23,7 +23,7 @@ export interface Progress {
   next: { code: string | null; t: number | null; name?: string } | null;
   at(code: string): number | null;
   /** The train's stops in order, when the feed gives them: reported (`actualAt`) and expected times kept apart. */
-  calls?: { code: string; name?: string; actualAt: number | null; expectedAt: number | null }[];
+  calls?: { code: string; name?: string; actualAt: number | null; expectedAt: number | null; cancelled?: boolean }[];
 }
 
 /** Your position from the phone. `acc` in metres. */
@@ -249,8 +249,9 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
  */
 export interface StationContradiction { kind: "left-before-you" | "behind-you"; code: string; name: string; t: number; }
 export const STATION_MARGIN_KM = 1, STATION_REPORT_SLACK_MS = 60e3, STATION_EXPECTED_SLACK_MS = 120e3, STATION_MAX_ACC_M = 250;
-/** Identifies one piece of evidence against a selected train, so a "keep" answers that evidence only. */
-export const contradictionKey = (c: StationContradiction | null | undefined): string => (c ? `${c.kind}|${c.code}|${c.t}` : "far");
+/** Identifies one piece of evidence against a selected train, so a "keep" answers that evidence only: the kind and
+ *  the station, not the minute (a late train's estimate moves most minutes; the same station must not ask twice). */
+export const contradictionKey = (c: StationContradiction | null | undefined): string => (c ? `${c.kind}|${c.code}` : "far");
 
 /**
  * `mine`: how far along the train's line you are (0 at its origin, 1 at its destination) when the fix was taken
@@ -275,7 +276,8 @@ export function stationContradiction(pg: Progress | null, toLondon: boolean, min
   let next: { code: string; name?: string; t: number | null } | null = null;
   if (pg.calls && pg.calls.length) {
     let reported = -1; pg.calls.forEach((c, i) => { if (c.actualAt != null) reported = i; });
-    const c = pg.calls.slice(reported + 1).find(x => along(x.code) != null);
+    // (A cancelled stop is not somewhere the train is due: never evidence.)
+    const c = pg.calls.slice(reported + 1).find(x => !x.cancelled && along(x.code) != null);
     if (c) next = { code: c.code, name: c.name, t: c.expectedAt ?? pg.at(c.code) };
   } else if (pg.next && pg.next.code) {
     const n = along(pg.next.code);
@@ -365,14 +367,13 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
     // A choice remains the person's choice. Fresh contradictory evidence changes the confidence,
     // rather than silently choosing a different train or presenting the selection as certain.
     // "Keep" answers the evidence it was asked about: the same evidence stays quiet (low confidence), new evidence
-    // asks again. Once nothing contradicts the pick, the answer is forgotten.
+    // (another station, or another kind) asks again. The answer stays with the selection, so a position wobbling
+    // across the 1 km line can't ask the same thing twice.
     const against = !stale && (locked.ruledOut || locked.offMin > 12);
     const kept = against && !!lock!.kept && lock!.kept === contradictionKey(locked.contradiction);
     const conflict = against && !kept;
     Object.assign(locked, { sure: !conflict, conflict, ...(kept ? { kept } : {}), other: null, locked: true, picked: true, others: others(locked), confidence: stale || against ? "low" : "high", ...age });
-    const keep = withId(lock!, locked.t);
-    if (!stale && !against && keep.kept) { const { kept: _answered, ...rest } = keep; return { result: locked, lock: rest }; }
-    return { result: locked, lock: keep };
+    return { result: locked, lock: withId(lock!, locked.t) };
   }
   const keeps = locked && !locked.ruledOut && (stale || (locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)));
   if (locked && keeps) {

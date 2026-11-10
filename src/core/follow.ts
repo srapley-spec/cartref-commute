@@ -92,6 +92,7 @@ export function followMatchesObservedTrain(route: FollowRoute, observed: Option)
 export function followIsTrain(route: FollowRoute, train: { operator: string; std: string; from: string; serviceId?: string | null }): boolean {
   const same = (t: Train | null | undefined) => !!t && (t.serviceId && train.serviceId ? t.serviceId === train.serviceId
     : t.operator === train.operator && t.std === train.std && t.from === train.from);
+  if (!record(route) || !record(route.option)) return false;       // a saved route in the old format: nothing to compare
   return same(route.option.train) || same(route.lastTrain)
     || (Array.isArray(route.option.alts) ? route.option.alts : []).some(alt => record(alt) && validTrain(alt.train) && same(alt.train));
 }

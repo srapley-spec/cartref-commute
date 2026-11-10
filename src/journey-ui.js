@@ -197,7 +197,8 @@ function followButton(option){
 // "I'm on it", or (after it was tapped while the evidence is unsure) the trains that could be yours, the one you
 // follow first. Selecting another train here is an answer to the question, so it isn't asked a second time.
 function boardingMarkup(route,now){
-  const check=state.boardingAsk?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
+  // (The question belongs to the route it was asked about.)
+  const check=state.boardingAsk===route.id?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
   if(!check.ask){state.boardingAsk=false;return '<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>';}
   return `<div class="pick doubt" data-boarding-ask><b>Which train are you on?</b>${check.candidates.map(t=>C.followIsTrain(route,t)
     ?`<button type="button" class="pickbtn" data-follow-action="boarded" data-sure>${esc(C.trainName(t))} · the train you're following</button>`
@@ -215,7 +216,7 @@ document.addEventListener('click',e=>{
   if(action==='boarded'&&state.followUpdate){
     // "I'm on it" looks at the evidence first (#57 C2): unsure between trains, or the working-out says another
     // train, and it asks which. The answer (data-sure: "the train you're following") is then taken at its word.
-    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=true;render();return;}
+    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=state.followUpdate.route.id;render();return;}
     state.boardingAsk=false;state.pendingPick=null;
     const route=C.confirmFollowBoarding(state.followUpdate.route,Date.now());
     state.saved.followRoute=route;state.saved.viewOverride=null;
