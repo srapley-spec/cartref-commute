@@ -85,7 +85,7 @@ old for much of the journey, which switches the warning off.
   trains that could be yours (the one you're following first, labelled "· the train you're following") and "Keep the
   …". Words (confirmed by Sam, 10 Nov): "The 07:15 Great Northern to King's Cross stopped at Knebworth at 07:33; you
   didn't. Which train are you on?" For the second kind: "You've passed Welwyn Garden City; the 07:15 Great Northern
-  isn't due there until 07:45. Which train are you on?" *(this variant is Claude's wording; Sam to confirm)*. For the
+  isn't due there until 07:45. Which train are you on?" (confirmed by Sam, 10 Nov). For the
   older distance evidence: "The … doesn't match where you are or where it was last reported. Which train are you on?"
 - **"Keep"** answers the evidence it was shown with: the same evidence doesn't ask again (the train stays selected, at
   low confidence); new evidence (the next station) asks again; once nothing contradicts the selection the answer is
