@@ -38,7 +38,9 @@ line colours in lozenges."
   tube route or routes from your stop. Each line is a lozenge in TfL's colour with its name (`--circle`, `--met`,
   `--hc`: identity, not status), then destination, direction and typical ride:
   "Then **[Circle] [Met]** to Aldgate · eastbound · about 7 min". A second route is listed when it gets you there no
-  later: "or **[H&C]** to Aldgate East".
+  later: "or **[H&C]** to Aldgate East · if it comes first". **Words confirmed by Sam, 10 Nov.** ("If it comes
+  first" is the plain-words version of the rule; the live rows nearer the change station carry each tube's arrival
+  at your destination, which is what decides.)
 - From about 15 minutes before you reach the change station, the Then line becomes the next tubes with live times
   (up to three rows: lozenge, destination, time, arrival at your destination). Until then it says nothing about
   particular trains.
