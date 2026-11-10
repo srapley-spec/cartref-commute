@@ -213,9 +213,12 @@ arriving at or before plan); one release. What was built, and what was left out,
   the change station (amendment §2). H18 (a plan from Farringdon via the tube to King's Cross worded as a walk):
   the app holds no line data for that hop.
 
-**One leave time (H2).** The steps before the train move with the train's departure (they were left at the time
-saved when you followed, so the header said 15:36 and "Next: 15:34 · Leave office"). While the header shows Leave by,
-the first step ("Leave Cartref", "Leave office") carries that same time, in "Next:" and in the step list. The
+**One leave time (H2).** The steps before the train that are still ahead move with the train's departure (they were
+left at the time saved when you followed, so the header said 15:36 and "Next: 15:34 · Leave office"). A step whose
+own saved time has come is taken as done and left where it was: a late train doesn't bring it back as the next
+thing to do (found by the independent review: at the London station with the train 15 minutes late, "Next:" named
+the tube). At the station the train leaves from, "Next:" is the train. While the header shows Leave by, the first
+step ("Leave Cartref", "Leave office") carries that same time, in "Next:" and in the step list. The
 tube rows' own "leave the office by" under the card are unchanged: each is for the tube it names.
 H3 (Leave by moving 15:36 → 15:43 in three minutes) was read from the code as correct: by 15:34 the phone was at
 Aldgate, and the plan from Aldgate has no walk from the office (confidence: medium–high; not replayed). The tube
@@ -225,9 +228,11 @@ line now says which tube the card means.
 arrival 3 minutes or more (as shown) from the original plan and 3 minutes or more from the time you were last told
 (`FOLLOW_NOTICE_MIN`). It reads "**Arriving 08:28** (was 08:24): your train is 4 min late." ("your train is running
 later / earlier"; after the train, "the rest of your journey is taking longer / is quicker") and closes with ✕,
-not "Seen". Back within 3 minutes of the plan, a notice still showing is withdrawn. A smaller move while a notice
-is showing re-words it where it stands (it must not contradict the card) without raising it again; once dismissed,
-nothing returns until a further 3 minutes. The card's own times always move. Saved with the route: `toldArrival`
+not "Seen". Back within 3 minutes of the plan, a notice still showing is withdrawn, and what you were last told
+becomes the time the card settled at (so an arrival flapping across the 3-minute line doesn't raise a dismissed
+notice again, and the next notice's "was" is that time). A smaller move while a notice is showing re-words it where
+it stands (it must not contradict the card) without raising it again; once dismissed, nothing returns until a
+further 3 minutes. Minutes are counted as shown (2 min 59 s later is two minutes). The card's own times always move. Saved with the route: `toldArrival`
 and, on an arrival notice, `was` (both optional; a route saved before them restores).
 - Not built: the reason naming the tube you took ("you took the 08:12 Met, not the 08:08").
 
@@ -251,6 +256,9 @@ The walk left after the train is in [nearly-home](nearly-home.md); where your tu
 - tests/core/journey-card-batch.test.mjs: "No tube line when the journey has no such tube: already at the station, no tube data, no ride time, or the tube on the other side of the train"
 - tests/core/journey-card-batch.test.mjs: "'On track' is kept for arriving when planned or sooner; later than planned it says by how much, in amber"
 - tests/core/journey-card-batch.test.mjs: "A saved route with the new fields restores; one saved before them restores too; a bad value is refused"
+- tests/core/journey-card-batch.test.mjs: "Notices count minutes as shown: seconds don't make a 3-minute change of a 2-minute one, and a dismissed notice doesn't return on a flap"
+- tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
+- tests/journey-card-batch.test.mjs: "One leave time holds after the saved leave time has passed: a much later train moves the header and the first step together, and no step already due comes back as 'Next'"
 - tests/core/follow.test.mjs: "follow: newer arrival reasons replace obsolete ETA wording and returning to an earlier ETA is announced"
 - tests/core/follow.test.mjs: "follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements"
 - tests/core/follow.test.mjs: "follow: real train delays change arrival with a retained reason until acknowledged"
@@ -262,6 +270,9 @@ The walk left after the train is in [nearly-home](nearly-home.md); where your tu
 - tests/journey-card-batch.test.mjs: "Coming home, the followed card names the tube first: 'Tube: Circle Met Aldgate → Farringdon · 7 min', until you're at a London station"
 - tests/follow-journey-review.test.mjs: "journey review: the home walk updates the followed ETA with a reason even when rail boards are old"
 - tests/follow-journey-review.test.mjs: "journey review: final-walk following cannot offer original-origin trains or revive a completed rail cancellation"
+- Independent review (10 Nov, 40 deliberate breakages): found a step already done returning as "Next:" with a late
+  train, a dismissed notice returning on a one-minute flap, and the un-recorded golden; all fixed above, with tests
+  for the breakages that had survived.
 - Checked in a real browser (Chromium, phone width, 10 Nov): the outbound card with the train 4 minutes late shows the lozenges in colour, one leave time, and the notice with ✕.
 
 ## Agreed 10 Nov 2026, not yet built

@@ -843,7 +843,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 22:20 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 23:09 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2829,7 +2829,7 @@ var CommuteCore = (() => {
   function walkFromStopSecs(here, to, stop, measuredSecs, exitSecs, pace, p) {
     const fromStop = walkSecs(stop, to, pace, p);
     const scale = fromStop > 0 && measuredSecs > 0 ? Math.min(2, Math.max(0.5, measuredSecs / fromStop)) : 1;
-    return walkSecs(here, to, pace, p) * scale + Math.max(0, exitSecs) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
+    return walkSecs(here, to, pace, p) * scale + (Number.isFinite(exitSecs) ? Math.max(0, exitSecs) : 0) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
   }
   function nearlyHomeEta(now, here, stationAt, home, exitMs, walkMs, pace, p) {
     const atHome = !!home && km(here, home) < 0.1;
@@ -3517,7 +3517,7 @@ var CommuteCore = (() => {
     const key = followServiceKey(option);
     return { ...route, dismissedAlternatives: [...route.dismissedAlternatives.filter((k) => k !== key), key].slice(-100) };
   }
-  function legsFor(route) {
+  function legsFor(route, now) {
     const before = route.option.train, after = route.lastTrain;
     const departureShift = after.dep - before.dep;
     const railShift = finite2(after.arr) ? after.arr - before.arr : route.expectedArrival - route.plannedArrival;
@@ -3531,7 +3531,7 @@ var CommuteCore = (() => {
         if (base.startsWith(before.std)) l.d = `${before.std}${hhmm(after.dep) !== before.std ? ` (exp ${hhmm(after.dep)})` : ""}${base.slice(before.std.length)}`;
         const platform = after.platform ? `platform ${after.platform}` : "platform unannounced";
         l.note = /\bplatform\s+[^,·]+/i.test(l.note || "") ? (l.note || "").replace(/\bplatform\s+[^,·]+/i, platform) : [l.note, platform].filter(Boolean).join(", ");
-      } else if (l.t != null && l.t < before.dep) {
+      } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now)) {
         l.t = l.t + departureShift;
       } else if (l.t != null && l.t >= before.arr) {
         l.t = index === lastTimed && l.t > before.arr ? route.expectedArrival : l.t + railShift;
@@ -3539,7 +3539,7 @@ var CommuteCore = (() => {
       return l;
     });
   }
-  var followedLegs = (route) => legsFor(route);
+  var followedLegs = (route, now) => legsFor(route, now);
   function updateFollowRoute(previous, input) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const route = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
@@ -3586,11 +3586,11 @@ var CommuteCore = (() => {
       };
       if (shownMin(arrival, route.plannedArrival) < FOLLOW_NOTICE_MIN) {
         withdraw();
-        route.toldArrival = null;
+        if (finite2(route.toldArrival)) route.toldArrival = arrival;
       } else if (shownMin(arrival, told) >= FOLLOW_NOTICE_MIN) {
         addNotice("arrival", String(arrival), words(told), Math.round((arrival - told) / MIN), told);
         route.toldArrival = arrival;
-      } else route.notices = route.notices.flatMap((n2) => n2.kind !== "arrival" || !finite2(n2.was) ? [n2] : shownMin(arrival, n2.was) < 1 ? [] : [{ ...n2, text: words(n2.was) }]);
+      } else route.notices = route.notices.map((n2) => n2.kind === "arrival" && finite2(n2.was) ? { ...n2, text: words(n2.was) } : n2);
     };
     if (onward) {
       if (((_b = input.onwardFresh) != null ? _b : fresh) && finite2(suppliedArrival) && Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
@@ -3758,7 +3758,7 @@ var CommuteCore = (() => {
         railStatus = arrivalStatus(expected, route.option.train.arr - route.option.train.arrLate * MIN, input.policy);
       }
     }
-    const legs = legsFor(route).filter((l) => l.t != null && !l.calls);
+    const legs = legsFor(route, input.now).filter((l) => l.t != null && !l.calls);
     if (status === "on-track" && level === "ok" && text2.startsWith("On track")) {
       const later = Math.floor(route.expectedArrival / MIN) - Math.floor(route.plannedArrival / MIN);
       if (later >= 1) {
@@ -3766,7 +3766,7 @@ var CommuteCore = (() => {
         text2 = `${later} min later than planned${text2.slice("On track".length)}`;
       }
     }
-    const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
+    const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection || input.boarding ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
     return {
       route,
       status,
@@ -3813,7 +3813,7 @@ var CommuteCore = (() => {
   }
   function tubeWhere(text2) {
     if (typeof text2 !== "string") return null;
-    const s = text2.replace(/\s+/g, " ").trim().replace(/\s+Platform\s+\w+$/i, "").replace(/\.$/, "");
+    const s = text2.replace(/\s+/g, " ").trim().replace(/\.$/, "").replace(/\s+Platform\s+\w+$/i, "");
     if (!s || s.length > 80 || !/^(At|Between|Approaching|Left|Departed|Leaving|Departing|Around)\s+\S/i.test(s)) return null;
     return s.replace(/^Departed\b/i, "Left").replace(/^[a-z]/, (c) => c.toUpperCase());
   }
@@ -8758,7 +8758,7 @@ function renderJourneyProgress(){
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);
     const currentTrain={...train,arr:context.expectedArrival??train.arr};
     legs=option?C.progressLegsFromSteps({option,train:currentTrain,route:followed?undefined:progressRoute(option),
-      steps:followed?C.followedLegs(followed):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
+      steps:followed?C.followedLegs(followed,Date.now()):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
       [{id:'rail',kind:'rail',label:'Train',start:train.dep,end:context.expectedArrival??train.arr,from:progressName(train.from),to:progressName(train.to),fromCode:train.from,toCode:train.to}];
     active='rail';calls=ordered;
     evidence={source:details?.data?'reported':context.arrivalLive?'prediction':'modelled',observedAt,
@@ -8772,7 +8772,7 @@ function renderJourneyProgress(){
     const sameHub=memory&&(memory.hub===ride.hub||(PROFILE.sharesTubeWith?.[memory.hub]||memory.hub)===(PROFILE.sharesTubeWith?.[ride.hub]||ride.hub));
     const remembered=!context.homeward&&sameHub&&C.progressContextCurrent(memory.legs,memory.observedAt,context.departure)?memory:null;
     const chosen=option||remembered?.option;
-    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
+    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now()),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
     else legs=[];
     const railIndex=legs.findIndex(leg=>leg.kind==='rail');
     const tubeIndex=legs.findIndex((leg,index)=>leg.kind==='tube'&&(context.homeward?index<railIndex:index>railIndex));
@@ -9231,7 +9231,7 @@ function renderFollowPanel(){
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
-  const legs=C.followedLegs(r), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
   const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
   // Off the train (10 Nov, #57 H26): the finished train leaves the card, and once the only step left is arriving
   // the header reads "Now → At home", not the arrival time on both sides.
@@ -10567,7 +10567,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

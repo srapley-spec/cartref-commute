@@ -215,7 +215,7 @@ export function dismissFollowAlternative(route: FollowRoute, option: Option): Fo
   const key = followServiceKey(option);
   return { ...route, dismissedAlternatives: [...route.dismissedAlternatives.filter(k => k !== key), key].slice(-100) };
 }
-function legsFor(route: FollowRoute): Leg[] {
+function legsFor(route: FollowRoute, now?: number): Leg[] {
   const before = route.option.train, after = route.lastTrain;
   const departureShift = after.dep - before.dep;
   const railShift = finite(after.arr) ? after.arr - (before.arr as number) : route.expectedArrival - route.plannedArrival;
@@ -231,9 +231,11 @@ function legsFor(route: FollowRoute): Leg[] {
       const platform = after.platform ? `platform ${after.platform}` : 'platform unannounced';
       l.note = /\bplatform\s+[^,·]+/i.test(l.note || '') ? (l.note || '').replace(/\bplatform\s+[^,·]+/i, platform)
         : [l.note, platform].filter(Boolean).join(', ');
-    } else if (l.t != null && l.t < before.dep) {
-      // The steps before the train move with its departure, as the card's own Leave by does (10 Nov, #57 H2: the
-      // header said 15:36 and "Next: 15:34 · Leave office", the step still timed for the train's old departure).
+    } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now)) {
+      // The steps before the train that are still ahead move with its departure, as the card's own Leave by does
+      // (10 Nov, #57 H2: the header said 15:36 and "Next: 15:34 · Leave office", the step still timed for the
+      // train's old departure). A step whose own time has come is left where it was: it is taken as done, and a
+      // late train must not bring it back as the next thing to do.
       l.t = l.t + departureShift;
     } else if (l.t != null && l.t >= (before.arr as number)) {
       // A slower final walk changes its arrival, never the completed rail arrival/interchange history.
@@ -243,7 +245,7 @@ function legsFor(route: FollowRoute): Leg[] {
   });
 }
 /** The full saved itinerary, with observed rail changes reflected without replanning its walks/tube. */
-export const followedLegs = (route: FollowRoute): Leg[] => legsFor(route);
+export const followedLegs = (route: FollowRoute, now?: number): Leg[] => legsFor(route, now);
 export function updateFollowRoute(previous: FollowRoute, input: FollowInput): FollowUpdate {
   const route: FollowRoute = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
   const phase = input.phase || route.phase;
@@ -288,9 +290,12 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     const told = finite(route.toldArrival) ? route.toldArrival : route.plannedArrival;
     const words = (was: number) => `Arriving ${hhmm(arrival)} (was ${hhmm(was)}): ${why}.`;
     const withdraw = () => { route.notices = route.notices.filter(n => n.kind !== 'arrival'); route.seenEvents = route.seenEvents.filter(key => !key.includes('|arrival|')); };
-    if (shownMin(arrival, route.plannedArrival) < FOLLOW_NOTICE_MIN) { withdraw(); route.toldArrival = null; }
+    // Back within 3 minutes of the plan: any notice goes. If you had been told of a change, what you now know is
+    // this arrival (the card shows it), so a dismissed notice doesn't come back as the arrival flaps across the
+    // 3-minute line, and the next notice's "was" is the time the card last settled at.
+    if (shownMin(arrival, route.plannedArrival) < FOLLOW_NOTICE_MIN) { withdraw(); if (finite(route.toldArrival)) route.toldArrival = arrival; }
     else if (shownMin(arrival, told) >= FOLLOW_NOTICE_MIN) { addNotice('arrival', String(arrival), words(told), Math.round((arrival - told) / MIN), told); route.toldArrival = arrival; }
-    else route.notices = route.notices.flatMap(n => n.kind !== 'arrival' || !finite(n.was) ? [n] : shownMin(arrival, n.was) < 1 ? [] : [{ ...n, text: words(n.was) }]);
+    else route.notices = route.notices.map(n => n.kind === 'arrival' && finite(n.was) ? { ...n, text: words(n.was) } : n);
   };
   if (onward) {
     // Completed rail is history. Only current onward observations may change the final walk/tube ETA.
@@ -426,7 +431,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
       railStatus = arrivalStatus(expected, (route.option.train.arr as number) - route.option.train.arrLate * MIN, input.policy);
     }
   }
-  const legs = legsFor(route).filter(l => l.t != null && !l.calls);
+  const legs = legsFor(route, input.now).filter(l => l.t != null && !l.calls);
   // "On track" is kept for arriving when planned or sooner (Sam, 10 Nov; #57 H24: green "On track" beside an arrival
   // four minutes past the plan read as "on time"). Later than planned, by the minutes shown, it says so.
   if (status === 'on-track' && level === 'ok' && text.startsWith('On track')) {
@@ -434,7 +439,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     if (later >= 1) { level = 'warn'; text = `${later} min later than planned${text.slice('On track'.length)}`; }
   }
   const nextStep = boardingRecovery ? ((alternative?.legs as Leg[] | undefined)?.find(l => l.train) || null) : route.phase === 'arrived' ? null : route.phase === 'before-train'
-    ? (input.activeConnection ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
+    ? (input.activeConnection || input.boarding ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null
     : legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null;
   return { route, status, level, text, nextStep, trainStatus: railStatus, notice: route.notices[0] || null, alternative,

@@ -61,7 +61,7 @@ export function followTubeArrival(predictions: unknown, i: FollowTubeRequest): F
  *  as a position. (10 Nov 2026, #57 E1, H11: the tube leg said only "position is a time-based estimate".) */
 export function tubeWhere(text: unknown): string | null {
   if (typeof text !== 'string') return null;
-  const s = text.replace(/\s+/g, ' ').trim().replace(/\s+Platform\s+\w+$/i, '').replace(/\.$/, '');
+  const s = text.replace(/\s+/g, ' ').trim().replace(/\.$/, '').replace(/\s+Platform\s+\w+$/i, '');
   if (!s || s.length > 80 || !/^(At|Between|Approaching|Left|Departed|Leaving|Departing|Around)\s+\S/i.test(s)) return null;
   return s.replace(/^Departed\b/i, 'Left').replace(/^[a-z]/, c => c.toUpperCase());
 }

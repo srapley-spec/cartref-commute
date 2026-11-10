@@ -382,7 +382,7 @@ function renderFollowPanel(){
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
-  const legs=C.followedLegs(r), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
   const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
   // Off the train (10 Nov, #57 H26): the finished train leaves the card, and once the only step left is arriving
   // the header reads "Now → At home", not the arrival time on both sides.

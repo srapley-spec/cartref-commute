@@ -76,7 +76,7 @@ function renderJourneyProgress(){
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);
     const currentTrain={...train,arr:context.expectedArrival??train.arr};
     legs=option?C.progressLegsFromSteps({option,train:currentTrain,route:followed?undefined:progressRoute(option),
-      steps:followed?C.followedLegs(followed):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
+      steps:followed?C.followedLegs(followed,Date.now()):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
       [{id:'rail',kind:'rail',label:'Train',start:train.dep,end:context.expectedArrival??train.arr,from:progressName(train.from),to:progressName(train.to),fromCode:train.from,toCode:train.to}];
     active='rail';calls=ordered;
     evidence={source:details?.data?'reported':context.arrivalLive?'prediction':'modelled',observedAt,
@@ -90,7 +90,7 @@ function renderJourneyProgress(){
     const sameHub=memory&&(memory.hub===ride.hub||(PROFILE.sharesTubeWith?.[memory.hub]||memory.hub)===(PROFILE.sharesTubeWith?.[ride.hub]||ride.hub));
     const remembered=!context.homeward&&sameHub&&C.progressContextCurrent(memory.legs,memory.observedAt,context.departure)?memory:null;
     const chosen=option||remembered?.option;
-    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
+    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now()),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
     else legs=[];
     const railIndex=legs.findIndex(leg=>leg.kind==='rail');
     const tubeIndex=legs.findIndex((leg,index)=>leg.kind==='tube'&&(context.homeward?index<railIndex:index>railIndex));

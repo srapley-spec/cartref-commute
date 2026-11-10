@@ -333,7 +333,7 @@ test('follow: newer arrival reasons replace obsolete ETA wording and returning t
  const worse=update(again.route,[option({}, {arr:t+68*MIN,arrLate:8})]);assert.equal(worse.notice.text,'Arriving 19:18 (was 19:15): your train is 8 min late.');assert.equal(worse.route.notices.filter(n=>n.kind==='arrival').length,1);
  // Back within three minutes of the plan: the notice is withdrawn, not replaced (10 Nov, #57 H16, H25).
  const back=update(worse.route,[option({}, {arr:t+62*MIN,arrLate:2})]);assert.equal(back.notice,null);assert.equal(back.route.expectedArrival,r.expectedArrival+2*MIN);
- const lateAgain=update(back.route,[late]);assert.equal(lateAgain.notice.text,'Arriving 19:15 (was 19:10): your train is 5 min late.');
+ const lateAgain=update(back.route,[late]);assert.equal(lateAgain.notice.text,'Arriving 19:15 (was 19:12): your train is 5 min late.','"was" is the time the card last settled at');
  const platform=update(r,[option({}, {platform:'12'})]);const delayed=update(platform.route,[option({}, {platform:'12',arr:t+65*MIN,arrLate:5})]);assert.ok(delayed.route.notices.some(n=>n.kind==='platform'));
 });
 

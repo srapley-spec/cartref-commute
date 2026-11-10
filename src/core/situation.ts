@@ -488,7 +488,7 @@ export const STOP_EXIT_KM = 0.15;
 export function walkFromStopSecs(here: LatLon, to: LatLon, stop: LatLon, measuredSecs: number, exitSecs: number, pace: Pace | "leisure", p: Profile): number {
   const fromStop = walkSecs(stop, to, pace, p);
   const scale = fromStop > 0 && measuredSecs > 0 ? Math.min(2, Math.max(0.5, measuredSecs / fromStop)) : 1;
-  return walkSecs(here, to, pace, p) * scale + Math.max(0, exitSecs) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
+  return walkSecs(here, to, pace, p) * scale + (Number.isFinite(exitSecs) ? Math.max(0, exitSecs) : 0) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
 }
 
 /** Nearly home: when you'll be home.

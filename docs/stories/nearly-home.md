@@ -19,7 +19,9 @@ when I'll be in.
   allowance (Settings) is added, tapering to nothing at 150 m (`walkFromStopSecs`, `STOP_EXIT_KM`). The walk to the
   office after the tube is worked out the same way from the nearer office tube stop (Aldgate or Aldgate East), its
   measured walk and platform allowance. Without a measured walk it is the straight line as before.
-  Limits: this is arithmetic from the day's figures, not a replay of the recorded positions; a late or coarse fix
+  Limits: right at a stop the whole exit allowance is added, because position can't say whether you are still on
+  the platform or already outside (at Aldgate East the walk to the office reads 6 min, not 4, until you've moved
+  about 150 m; golden `office-walking.json`). This is arithmetic from the day's figures, not a replay of the recorded positions; a late or coarse fix
   still makes the first minute or two read high (confidence that it removes most of the 3-minute slide: medium).
 - Works from the train, walking, at the station, and says when it doesn't know.
 

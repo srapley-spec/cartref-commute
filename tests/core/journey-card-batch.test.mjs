@@ -78,6 +78,8 @@ test("Where your tube is: TfL's own words, tidied; nothing for an empty, odd or 
   assert.equal(core.tubeWhere("Left Farringdon"), "Left Farringdon");
   assert.equal(core.tubeWhere("Departed King's Cross St. Pancras"), "Left King's Cross St. Pancras");
   assert.equal(core.tubeWhere("  at  Moorgate  platform 2 "), "At Moorgate");
+  assert.equal(core.tubeWhere("At Barbican Platform 1."), "At Barbican", "a full stop doesn't keep the platform");
+  for (const [raw, shown] of [["Leaving Baker Street", "Leaving Baker Street"], ["Departing Vauxhall", "Departing Vauxhall"], ["Around Euston Square", "Around Euston Square"]]) assert.equal(core.tubeWhere(raw), shown);
   for (const bad of ["", "  ", "At", "Platform 2", "Unknown", "Check front of train", null, undefined, 7, "At " + "x".repeat(90)]) assert.equal(core.tubeWhere(bad), null, String(bad));
 });
 
@@ -99,4 +101,42 @@ test("Leg progress: with a live prediction for your tube and TfL's location, the
   assert.equal(model(live).evidenceLabel, "Live arrival; position is a time-based estimate.");
   assert.doesNotMatch(model({ ...live, where: "At Moorgate", identityMatched: false }).evidenceLabel, /At Moorgate/, "not your tube: no position");
   assert.doesNotMatch(model({ source: "modelled", where: "At Moorgate" }).evidenceLabel, /At Moorgate/);
+});
+
+test("Notices count minutes as shown: seconds don't make a 3-minute change of a 2-minute one, and a dismissed notice doesn't return on a flap", () => {
+  const r = start(), P = r.plannedArrival;                      // the plan arrives on the minute
+  const to = (route, ms) => core.updateFollowRoute(route, { now: t + 30 * MIN, phase: "after-train", dataFresh: true, onwardFresh: true, options: [], currentArrival: P + ms });
+  assert.equal(to(r, 2 * MIN + 59e3).notice, null, "2 min 59 s later reads two minutes later: no notice");
+  assert.ok(to(r, 3 * MIN).notice, "three minutes as shown: a notice");
+  const later = to(r, 90e3);
+  assert.equal(later.text, "1 min later than planned", "a minute and a half reads one minute later, as the times on the card do");
+  // Told at +3 and dismissed; +2 withdraws nothing new; +3 again does not raise it again; a real move to +6 does.
+  let u = to(r, 3 * MIN); const seen = core.acknowledgeFollowNotice(u.route, u.notice.id);
+  u = to(seen, 2 * MIN); assert.equal(u.notice, null);
+  u = to(u.route, 3 * MIN); assert.equal(u.notice, null, "the flap doesn't bring the dismissed notice back");
+  u = to(u.route, 6 * MIN); assert.match(u.notice.text, /^Arriving .* \(was .*\): the rest of your journey is taking longer\.$/);
+  // Right back at the plan (within a minute), what you were told is forgotten: a later 3-minute change is news again.
+  u = to(u.route, 0); assert.equal(u.notice, null);
+  u = to(u.route, 3 * MIN); assert.ok(u.notice);
+  // An exit allowance that isn't a number adds nothing (no NaN on the card).
+  const sam = core.profiles.samCommute, st = sam.places.homeStation;
+  assert.ok(Number.isFinite(core.walkFromStopSecs(st, [51.9752, -0.2402], st, 1140, NaN, "avg", sam)));
+});
+
+test("A step whose own time has come is taken as done: a late train doesn't bring it back as the next thing, and at the station the next thing is the train", () => {
+  const r = core.startFollowRoute({ ...option(), legs: homeLegs.map((l) => ({ ...l })), train: train({ from: "CEN", to: "RVS", std: "08:26", dep: t + 26 * MIN, arr: t + 60 * MIN, serviceId: "chosen" }) }, { now: t, direction: "home", mode: "commute" });
+  const lateTrain = { ...r.option, train: { ...r.option.train, dep: t + 41 * MIN, depLate: 15, arr: t + 75 * MIN, arrLate: 15 } };
+  const upd = (now, extra = {}) => core.updateFollowRoute(r, { now, phase: "before-train", dataFresh: true, options: [lateTrain], hasReliableLocation: true, ...extra });
+  // Before you've left (08:00 step still ahead... at 07:59): both early steps move with the train.
+  assert.equal(upd(t - MIN).nextStep.d, "Leave office"); assert.equal(upd(t - MIN).nextStep.t, t + 15 * MIN);
+  // 08:15, on the way (the leave and tube steps' own times have come): next is the train, as before.
+  assert.equal(upd(t + 15 * MIN).nextStep.train, true);
+  // 08:05: the leave step is done, the tube step (08:12) is still ahead and moves with the train.
+  assert.equal(upd(t + 5 * MIN).nextStep.d, "Circle or Met to Central"); assert.equal(upd(t + 5 * MIN).nextStep.t, t + 27 * MIN);
+  // At the station the train leaves from, whatever the times say: the train.
+  assert.equal(upd(t + 5 * MIN, { boarding: "at" }).nextStep.train, true);
+  assert.equal(upd(t + 5 * MIN, { boarding: "was", hasReliableLocation: false }).nextStep.train, true);
+  // The list without a time (other callers) still moves every early step.
+  assert.equal(core.followedLegs(upd(t + 15 * MIN).route)[0].t, t + 15 * MIN);
+  assert.equal(core.followedLegs(upd(t + 15 * MIN).route, t + 15 * MIN)[0].t, t);
 });

@@ -3,7 +3,7 @@
 // real change, "N min later than planned".
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { createApp, hm, at, closeAll } from "./harness.mjs";
+import { createApp, hm, at, json, closeAll } from "./harness.mjs";
 after(closeAll);
 
 const T0 = at("2026-11-03", "10:00"), m = 60e3;
@@ -115,5 +115,34 @@ test("Coming home, the followed card names the tube first: 'Tube: Circle Met Ald
   assert.equal(line(), null);
   place(22, P.stationGeo.KGX, { atHub: "KGX" });
   assert.equal(line(), null);
+  assert.deepEqual(app.errors, []);
+});
+
+test("One leave time holds after the saved leave time has passed: a much later train moves the header and the first step together, and no step already due comes back as 'Next'", async () => {
+  const { app, c, P, late, panel } = await outbound();
+  // 10:26, two minutes after the saved Leave by (10:24), still at home; the train is now 15 minutes late.
+  late(15, T0 + 26 * m);
+  assert.match(panel(), /Leave by ?10:39/);
+  const steps = squash(app.text("#followPanel .steps"));
+  assert.match(steps, /10:39 ?Leave Cartref/, "the first step carries the header's time");
+  assert.doesNotMatch(steps, /10:24/, "not the time saved when you followed");
+  // At the station as the (late) train is awaited: what's next is the train, not a step already done.
+  const now = T0 + 55 * m; app.setNow(now); c.state.boardsAt = now;
+  Object.assign(c.state, { here: P.stationGeo.LET, locAcc: 20, lastFixAt: now, locStatus: "ok", onLine: false, atHub: null }); c.render();
+  assert.match(panel(), /Next: 11:05 · 10:50 \(exp 11:05\) Thameslink from Letchworth/);
+  assert.doesNotMatch(panel(), /Next: [^·]*· Leave Cartref/);
+  assert.deepEqual(app.errors, []);
+});
+
+test("TfL's location text is kept from the live feeds (it is what 'where your tube is' is drawn from)", async () => {
+  const raw = (extra) => ({ vehicleId: "217", lineId: "circle", platformName: "Eastbound - Platform 1", destinationName: "Edgware Road (Circle Line) Underground Station",
+    expectedArrival: new Date(T0 + 4 * m).toISOString(), timestamp: new Date(T0).toISOString(), naptanId: "940GZZLUALD", currentLocation: "Between Liverpool Street and Aldgate", ...extra });
+  const app = await createApp({ settings: { provider: "demo", tflKey: "" }, saved: { dirMode: "office" }, geo: null, now: T0,
+    route: (u) => /StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? json([raw({})]) : /StopPoint\/[^/]+\/Arrivals/.test(u) ? json([raw({ platformName: "Westbound - Platform 2", naptanId: "940GZZLUFCN", currentLocation: "At Barbican Platform 1" })]) : undefined });
+  const office = await app.c.fetchAldgateArrivals();
+  assert.equal(office[0].where, "Between Liverpool Street and Aldgate");
+  const home = await app.c.fetchTubeArrivals("ZFD", "westbound");
+  assert.equal(home[0].where, "At Barbican Platform 1");
+  assert.equal(app.w.CommuteCore.followTubeWhere(home, "217", "circle"), "At Barbican");
   assert.deepEqual(app.errors, []);
 });

@@ -67,8 +67,8 @@ train you're on.", status "Train not confirmed". Journey stages stay.
 ## Where your tube is, in TfL's words (built 10 Nov 2026, #57 E1, H11; first step only)
 On both journeys on 10 Nov the tube leg showed no position ("Live arrival; position is a time-based estimate").
 With a live prediction for the tube you're matched to (same vehicle, line, stop and direction, under 3 minutes old),
-the line under the leg is TfL's own location text for that vehicle and when TfL said it: "At Barbican · TfL,
-08:16.", "Between Moorgate and Liverpool Street · TfL, 08:16." The platform number is dropped and "Departed" reads
+the line under the leg is TfL's own location text for that vehicle and the time the app read it from TfL (not
+TfL's own timestamp): "At Barbican · TfL, 08:16.", "Between Moorgate and Liverpool Street · TfL, 08:16." The platform number is dropped and "Departed" reads
 "Left" (`tubeWhere`). Only the forms recorded from TfL are shown (At, Between, Approaching, Left, Departed, Leaving,
 Departing, Around); anything else, or no text, leaves the old sentence. The text comes with the arrivals already
 fetched: no extra requests.
@@ -81,6 +81,7 @@ fetched: no extra requests.
 - tests/core/journey-card-batch.test.mjs: "Where your tube is: read from the prediction for your vehicle (and line), from raw TfL records or the page's own"
 - tests/core/journey-card-batch.test.mjs: "Leg progress: with a live prediction for your tube and TfL's location, the evidence line is that location and when TfL said it"
 - tests/journey-progress.test.mjs: "Signal progress: where TfL says your tube is, in its own words, when the matched prediction carries it (10 Nov 2026, #57 E1, H11)"
+- tests/journey-card-batch.test.mjs: "TfL's location text is kept from the live feeds (it is what 'where your tube is' is drawn from)"
 
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the station line replaces the progress bar (C9), TfL's location text counts as a report for your tube (E1), and the copy (C13). The criteria above describe the app as built; update them, with tests, as each item ships.
