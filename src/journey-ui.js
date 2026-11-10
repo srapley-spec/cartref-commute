@@ -34,6 +34,7 @@ function applySignalLayout(){
     notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
     network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
     other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
+    later:make('details','signalLaterTrains','<summary>Other trains</summary>'),
     boardHeading:make('div','signalBoardHeading',''),
     disruptions:make('section','signalDisruptions',''),
     connections:make('div','signalConnections',''),
@@ -59,7 +60,7 @@ function applySignalLayout(){
   p.network.append(statusTitle,$('#status'),$('#modelNote'),root.querySelector('footer > span'));
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.hidden=true;
-  for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,p.later,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
 }
 function setJourneyContext(label,modes='',detail=''){
   const summary=$('#signalContextSummary');
@@ -122,6 +123,19 @@ function renderSignalCompact(){
   if(secondary){p.connections.append(...$('#hero').querySelectorAll('.tubes'));if($('#hero').parentElement!==p.other)p.other.append($('#hero'));}
   else rootSignalHeroHome();
   p.connections.hidden=!p.connections.childNodes.length;
+  // One journey, no repeats (Sam, 10 Nov): while you follow a route and the live card is about that same journey,
+  // the followed card alone states it; the live card keeps what you tap or look at. A live card about a different
+  // train (one you selected instead) is shown in full.
+  const followed=following?activeFollow():null, shown=state.rendered?.train?.t;
+  const shares=!!followed&&!!followed.option&&!secondary&&!$('#hero .opt')&&(!shown||C.followIsTrain(followed,shown));
+  $('#hero').classList.toggle('shares-follow',shares);
+  // (Marked on the blocks too, so the rule doesn't depend on which stylesheet is read last.)
+  for(const n of $('#hero').querySelectorAll(':scope > [data-block="headline"]:not(.empty), :scope > .journey-connection, :scope > [data-block="then"], :scope > .meta[data-block="which"]'))n.hidden=shares;
+  // Once you've set off, the list of other trains folds away (no stale "Can't make it" cards beside your journey).
+  const setOff=!!followed&&!!followed.option&&(followed.phase!=='before-train'||Date.now()>=followed.option.leave);
+  p.later.hidden=!setOff;$('#listTitle').hidden=setOff;
+  if(setOff){if($('#list').parentElement!==p.later)p.later.append($('#list'));}
+  else if($('#list').parentElement===p.later)p.later.after($('#list'));
   restoreOpen();
 }
 function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalParts.other.parentElement)signalParts.other.before($('#hero'));}
@@ -246,6 +260,22 @@ function followedObservation(route,now){
     currentTrainArrival=reported||(sameTarget?(fit.projected||fit.t.arr):chosenTrain?.arr)||null;
     trainArrivalLive=!!reported||!!(observedTrain&&!observedTrain.timetable&&freshBoard&&Number.isFinite(currentTrainArrival));
   }
+  // Aboard by your own word or an earlier working-out, but the phone isn't placed on the line (underground, a
+  // reload): the train's own reports and its board still say when it arrives.
+  if(!fit&&route.phase==='on-train'){
+    const train=route.lastTrain||route.option.train, pg=progressFor(train.serviceId), reported=pg?.data?.at(route.option.train.to);
+    const boardKey=`${route.option.train.from}-${route.option.train.to}`;
+    const freshBoard=!!state.boardsAt&&now-state.boardsAt<3*60e3&&!(state.followFailedBoards||[]).includes(boardKey)&&!state.routeFailed?.[boardKey];
+    const chosenTrain=state.boards?.[boardKey]?.services?.find(t=>C.followMatchesService(route,{...route.option,train:t}));
+    currentTrainArrival=reported||chosenTrain?.arr||null;
+    trainArrivalLive=!!reported||!!(chosenTrain&&!chosenTrain.timetable&&freshBoard&&Number.isFinite(currentTrainArrival));
+  }
+  // Are you at the station the followed train leaves from? (The page's usual test for a station: a fix good to
+  // 250 m.) 'at' with a fresh fix; 'was' when that was the last fix and nothing fresher has arrived.
+  const from=route.option.train.from, placed=!!state.here&&state.locAcc<=250&&
+    (route.direction==='home'?!!state.atHub&&state.atHub===from:from===HOME&&km(state.here,GEO.HOME)<0.25);
+  const fixFresh=state.locStatus==='ok'&&!!state.lastFixAt&&now-state.lastFixAt<=90e3;
+  const boarding=phase==='before-train'&&placed?(fixFresh?'at':'was'):null;
   if(reliable){
     if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
     else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
@@ -290,7 +320,7 @@ function followedObservation(route,now){
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
-  return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,
+  return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,boarding:activeConnection?null:boarding,
     hasReliableLocation:reliable&&(!state.onLine||phase==='on-train')};
 }
 function renderFollowPanel(){
@@ -333,12 +363,19 @@ function renderFollowPanel(){
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   const panelLayout=r.phase==='before-train';
-  const access=panelLayout&&!unknown&&!observation.activeConnection?comparison:null;
+  // How hard you'd have to walk is a question only while the way to the station is still ahead of you: not on the
+  // tube you're riding to it, and not once you're at it (10 Nov, #57 H15/H20: the label came from a fresh plan made
+  // from the phone's position and contradicted the status line beneath it).
+  const wayAhead=!observation.activeConnection&&!observation.boarding;
+  const access=panelLayout&&!unknown&&wayAhead?comparison:null;
+  const departs=t.dep, platformBy=comparison&&Number.isFinite(comparison.leave)?Math.min(comparison.leave,departs):departs;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home'):journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
+    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
     ${panelLayout?nextServiceMarkup(t):''}
-    ${comparison?journeyAccessMarkup(comparison):''}
+    ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
     ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
     <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
     ${r.phase==='after-train'?'':trainConnectionMarkup(t)}

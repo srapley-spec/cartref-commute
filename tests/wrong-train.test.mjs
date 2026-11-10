@@ -21,7 +21,7 @@ async function aboard({ follow = true, where = null, third = false, saved = {}, 
   const c = app.c, K = app.w.CommuteCore, P = K.profiles.samCommute, line = P.lines.KGX;
   const fast = svc({ from: "LET", to: "KGX", dep: T0 + 20 * m, arr: T0 + 55 * m, operator: "Thameslink", serviceId: "FAST", destination: "Brighton" });
   const slow = svc({ from: "LET", to: "KGX", dep: T0 + 15 * m, arr: T0 + 70 * m, operator: "Great Northern", serviceId: "SLOW", destination: "King's Cross" });
-  const moorgate = svc({ from: "LET", to: "KGX", dep: T0 + 17 * m, arr: T0 + 72 * m, operator: "Great Northern", serviceId: "THIRD", destination: "Moorgate" });
+  const moorgate = svc({ from: "LET", to: "KGX", dep: T0 + 17 * m, arr: T0 + 66 * m, operator: "Great Northern", serviceId: "THIRD", destination: "Moorgate" });
   c.state.boards = { "LET-KGX": { msgs: [], services: [slow, ...(third ? [moorgate] : []), fast] }, "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
   c.state.status = []; c.state.nrStatus = []; c.render();
   const followFast = () => [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();

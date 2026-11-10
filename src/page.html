@@ -43,6 +43,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 /* A question about your train: a caution panel (note yellow is not a status colour). */
 .pick.doubt{border-left:4px solid var(--note);background:var(--note-bg);border-radius:10px;padding:10px 12px}
 .pick.doubt b{width:100%}
+/* One journey, no repeats (Sam, 10 Nov): while you follow a route, the followed card alone states the journey. The
+   live card under it keeps what you tap or look at (which train or tube, got off already, the stations). */
+#hero.shares-follow > [data-block="headline"]:not(.empty), #hero.shares-follow > .journey-connection, #hero.shares-follow > [data-block="then"],
+#hero.shares-follow > .meta[data-block="which"], #hero > [hidden]{display:none!important}
+#signalLaterTrains > summary{color:var(--accent);font-weight:650;padding:10px 0;cursor:pointer}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -739,9 +744,10 @@ const progressFor = (id, maxAge=3*60e3) => { const p=state.progressById && id &&
 async function refreshTrainProgress(){
  const epoch=sourceEpoch;
   if(state.railSource!=="darwin" || (!S().simulatedFeeds && !liveDarwin())) return;
-  if(!state.onLine && !(nearlyHome() && state.trainLock)) return;
+  const followed=followedDeparted(Date.now()), followedId=followed&&(followed.lastTrain||followed.option.train).serviceId;
+  if(!state.onLine && !(nearlyHome() && state.trainLock) && !followedId) return;
   const m=state.onLine ? whichTrain(Date.now()) : null, lt=state.onLine ? null : lockedTrain();
-  const ids = m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])].filter(Boolean) : lt && lt.serviceId ? [lt.serviceId] : [];
+  const ids = [...new Set([...(m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])] : lt && lt.serviceId ? [lt.serviceId] : []), followedId].filter(Boolean))];
   state.progressById=state.progressById||{};
   for(const id of ids){
     try{ const data=await fetchServiceDetails(id);if(epoch!==sourceEpoch)return;state.progressById[id]={id,at:Date.now(),data,err:null}; }
@@ -1305,6 +1311,10 @@ const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn
 // The route you're following, when it is one the questions can compare a train with (a saved route in the old
 // format has no train to compare).
 const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
+// The followed route once its train has left and you haven't got off it yet (aboard, or boarding not yet confirmed):
+// its train is kept on the boards and its station reports fetched whether or not the phone is placed on the line.
+const followedDeparted = now => { const r=followedRoute(), t=r&&(r.lastTrain||r.option.train);
+  return r && t && (r.phase==="on-train" || (r.phase==="before-train" && Number.isFinite(t.dep) && now>=t.dep)) ? r : null; };
 function pendingPickMarkup(){
   // The question belongs to the route it was asked about: stop following, follow something else or change
   // direction and it is gone.
@@ -2188,7 +2198,7 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now),
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },

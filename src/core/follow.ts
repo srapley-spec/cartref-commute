@@ -10,6 +10,8 @@ const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
 export const FOLLOW_CHANGE_MS = 60e3;
 const FOLLOW_GONE_GRACE_MS = 30e3;
+/** At the boarding station, the train is only "missed" once it has been gone this long and you are still there. */
+export const FOLLOW_STATION_GONE_MS = 120e3;
 export type FollowPhase = 'before-train' | 'on-train' | 'after-train' | 'arrived';
 export interface FollowNotice {
   id: string; kind: 'cancelled' | 'unknown' | 'missed' | 'arrival' | 'platform' | 'recovered' | 'boarding';
@@ -43,6 +45,14 @@ export interface FollowInput {
   connectionSteps?: Record<string, Leg[]>;
   /** A missing/rough location must not turn a vanished departure into a missed connection. */
   hasReliableLocation?: boolean;
+  /**
+   * Where you are against the station the followed train leaves from (10 Nov 2026, #57 H15/H20: on the platform at
+   * Farringdon the card said "You can no longer make your 15:56" as the train drew in, because a fresh plan from the
+   * phone's position still allowed a walk to the platform). 'at': a fresh, good fix places you at that station.
+   * 'was': the last fix did, and there is no fresh one (underground, say). At the station, how hard you would have
+   * to walk is no longer a question: only the train's own departure decides.
+   */
+  boarding?: 'at' | 'was' | null;
 }
 export interface FollowUpdate {
   route: FollowRoute; status: 'on-track' | 'hurry' | 'missed' | 'cancelled' | 'unknown' | 'arrived';
@@ -259,11 +269,18 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   if (route.phase === 'arrived') { status = 'arrived'; level = 'ok'; text = 'Arrived'; }
   else if (route.phase === 'before-train' && status === 'on-track' && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
     const departure = selected?.train.dep ?? route.lastTrain.dep;
+    // At the station the train leaves from: missed only once it has gone and you're still standing there.
+    const atStation = input.boarding === 'at' && !input.activeConnection;
     const missed = input.activeConnection ? connectionKnown && (connectionReady! > departure || departure < input.now - FOLLOW_GONE_GRACE_MS)
+      : atStation ? departure < input.now - FOLLOW_STATION_GONE_MS
       : selected ? (selected.effort === 'none' || (!selected.effort && selected.missed)) || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
     if (missed) {
       status = 'missed'; level = 'bad'; text = `You can no longer make your ${route.option.train.std}`;
       addNotice('missed', 'missed', text);
+    } else if (atStation) {
+      const mins = Math.floor((departure - input.now) / MIN);
+      if (departure < input.now) { status = 'hurry'; level = 'info'; text = 'Departure just passed · confirm if you are on it'; }
+      else text = mins > 0 ? `On track · train departs in ${mins} min` : 'On track · train departing';
     } else if (connectionKnown) {
       const spare = Math.floor(((selected?.train.dep ?? route.lastTrain.dep) - connectionReady!) / MIN);
       text = spare > 0 ? `On track · ${spare} min at your connection` : 'On track · connection is tight';
@@ -275,6 +292,13 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   }
   if (route.phase === 'before-train' && input.activeConnection && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Checking your connection · keeping your chosen journey'; }
   if (route.phase === 'before-train' && input.hasReliableLocation === false && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Location unavailable · keeping your chosen journey'; }
+  // Last placed at the boarding station with no fresh fix since (you may well be aboard, underground): never
+  // "missed" on that evidence; once the departure has passed, ask.
+  if (route.phase === 'before-train' && input.boarding === 'was' && !input.activeConnection && fresh && !selected?.train.cancelled
+      && (status === 'on-track' || (status === 'unknown' && level === 'info'))) {
+    const departure = selected?.train.dep ?? route.lastTrain.dep;
+    if (departure < input.now) { status = 'hurry'; level = 'info'; text = 'Departure passed · confirm if you are on it'; }
+  }
   let boardingRecovery: Option | null = null;
   if (route.phase === 'before-train' && fresh && status === 'missed') {
     const knownCalls = (Array.isArray(route.option.alts) ? route.option.alts : []).filter(alt => record(alt) && validTrain(alt.train) && typeof alt.hub === 'string');

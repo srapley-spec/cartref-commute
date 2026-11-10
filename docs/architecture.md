@@ -376,6 +376,13 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   lozenges in TfL colours; the station line replaces the progress bar and TfL's location text counts as evidence for
   a tube; urgency without status colours; one row of controls once under way. Order: wrong-train check before
   anything that makes a pick stickier. Agreed, not yet built. → [design-system](design-system.md), #57
+- **10 Nov, following: one source of truth (Sam; #57 H15, H20, H23).** The followed card's label and the engine's
+  "missed" rule no longer come from a fresh plan made from the phone's position once you're riding to the station or
+  standing at it: at the boarding station only the train's own departure decides (missed two minutes after it has
+  gone, if you're still there). A followed train that has left stays on the boards and has its reports fetched
+  whether or not the phone is placed on the line (it had shown "On time" for 18 minutes after Sam boarded
+  underground). And, as the first step toward the single card, the live card under the followed one stops repeating
+  the journey. → [follow-a-route](stories/follow-a-route.md)
 - **10 Nov, the wrong train (Sam; #57 C1, C2).** A station report settles that a train isn't yours however close
   the trains are (it left a station before you got there; you've passed one it hasn't reached), from a fix good to
   250 m: the 6-minute distance rule could not have warned on 10 Nov until after Sam had noticed. A selected train is

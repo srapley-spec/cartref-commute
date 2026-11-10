@@ -15,6 +15,9 @@ export interface RefreshSituation {
   view: "now" | "by" | "at"; awaitingLocation: boolean;
   /** Current journey tracking/restoration continues independently of a pinned planning question. */
   following?: boolean;
+  /** Following a route whose train has left (aboard, or not yet confirmed): keep that train on the boards whether or
+   *  not the phone is placed on the line (10 Nov 2026, #57 H23: boarded underground, "On time" for 18 minutes). */
+  followingDeparted?: boolean;
   inLondonToOffice: boolean; onTube: boolean; atHubToOffice: boolean; onTheLine: boolean; nearOffice: boolean;
   /** The timetable trains on screen: when loaded, from where, and whether they cover the routes needed. */
   boards: { at: number | null; source: RailSource | null; fit: boolean };
@@ -46,7 +49,7 @@ export function refreshPlan(s: RefreshSituation): RefreshPlan {
   return {
     rail, toOfficeNeeded,
     // On a train the live board must include trains that have already left (the one you're on): start 40 min back.
-    liveBack: s.onTheLine ? -40 : 0,
+    liveBack: s.onTheLine || s.followingDeparted ? -40 : 0,
     // Going home near the office: the next tubes from the office's tube station.
     officeTubeDeps: s.dir === "home" && s.mode !== "leisure" && s.nearOffice && !s.onTheLine,
     lineStatus: s.manual || !s.statusAt || s.now - s.statusAt >= REUSE.lineStatus,

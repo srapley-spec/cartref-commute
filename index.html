@@ -56,6 +56,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 /* A question about your train: a caution panel (note yellow is not a status colour). */
 .pick.doubt{border-left:4px solid var(--note);background:var(--note-bg);border-radius:10px;padding:10px 12px}
 .pick.doubt b{width:100%}
+/* One journey, no repeats (Sam, 10 Nov): while you follow a route, the followed card alone states the journey. The
+   live card under it keeps what you tap or look at (which train or tube, got off already, the stations). */
+#hero.shares-follow > [data-block="headline"]:not(.empty), #hero.shares-follow > .journey-connection, #hero.shares-follow > [data-block="then"],
+#hero.shares-follow > .meta[data-block="which"], #hero > [hidden]{display:none!important}
+#signalLaterTrains > summary{color:var(--accent);font-weight:650;padding:10px 0;cursor:pointer}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -834,7 +839,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 15:31 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 20:48 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -2319,7 +2324,7 @@ var CommuteCore = (() => {
       rail,
       toOfficeNeeded,
       // On a train the live board must include trains that have already left (the one you're on): start 40 min back.
-      liveBack: s.onTheLine ? -40 : 0,
+      liveBack: s.onTheLine || s.followingDeparted ? -40 : 0,
       // Going home near the office: the next tubes from the office's tube station.
       officeTubeDeps: s.dir === "home" && s.mode !== "leisure" && s.nearOffice && !s.onTheLine,
       lineStatus: s.manual || !s.statusAt || s.now - s.statusAt >= REUSE.lineStatus,
@@ -3342,6 +3347,7 @@ var CommuteCore = (() => {
   var FOLLOW_BETTER_MIN = 5;
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_GONE_GRACE_MS = 3e4;
+  var FOLLOW_STATION_GONE_MS = 12e4;
   var finite2 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
   var record = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   function readyAtFromConnection(reach, ready) {
@@ -3466,7 +3472,7 @@ var CommuteCore = (() => {
   }
   var followedLegs = (route) => legsFor(route);
   function updateFollowRoute(previous, input) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const route = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
     const phase = input.phase || route.phase;
     const order = ["before-train", "on-train", "after-train", "arrived"];
@@ -3546,12 +3552,20 @@ var CommuteCore = (() => {
       text2 = "Arrived";
     } else if (route.phase === "before-train" && status === "on-track" && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
       const departure = (_c = selected == null ? void 0 : selected.train.dep) != null ? _c : route.lastTrain.dep;
-      const missed = input.activeConnection ? connectionKnown && (connectionReady > departure || departure < input.now - FOLLOW_GONE_GRACE_MS) : selected ? selected.effort === "none" || !selected.effort && selected.missed || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
+      const atStation = input.boarding === "at" && !input.activeConnection;
+      const missed = input.activeConnection ? connectionKnown && (connectionReady > departure || departure < input.now - FOLLOW_GONE_GRACE_MS) : atStation ? departure < input.now - FOLLOW_STATION_GONE_MS : selected ? selected.effort === "none" || !selected.effort && selected.missed || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
       if (missed) {
         status = "missed";
         level = "bad";
         text2 = `You can no longer make your ${route.option.train.std}`;
         addNotice("missed", "missed", text2);
+      } else if (atStation) {
+        const mins2 = Math.floor((departure - input.now) / MIN);
+        if (departure < input.now) {
+          status = "hurry";
+          level = "info";
+          text2 = "Departure just passed \xB7 confirm if you are on it";
+        } else text2 = mins2 > 0 ? `On track \xB7 train departs in ${mins2} min` : "On track \xB7 train departing";
       } else if (connectionKnown) {
         const spare = Math.floor((((_d = selected == null ? void 0 : selected.train.dep) != null ? _d : route.lastTrain.dep) - connectionReady) / MIN);
         text2 = spare > 0 ? `On track \xB7 ${spare} min at your connection` : "On track \xB7 connection is tight";
@@ -3575,6 +3589,14 @@ var CommuteCore = (() => {
       level = "info";
       text2 = "Location unavailable \xB7 keeping your chosen journey";
     }
+    if (route.phase === "before-train" && input.boarding === "was" && !input.activeConnection && fresh && !(selected == null ? void 0 : selected.train.cancelled) && (status === "on-track" || status === "unknown" && level === "info")) {
+      const departure = (_e = selected == null ? void 0 : selected.train.dep) != null ? _e : route.lastTrain.dep;
+      if (departure < input.now) {
+        status = "hurry";
+        level = "info";
+        text2 = "Departure passed \xB7 confirm if you are on it";
+      }
+    }
     let boardingRecovery = null;
     if (route.phase === "before-train" && fresh && status === "missed") {
       const knownCalls = (Array.isArray(route.option.alts) ? route.option.alts : []).filter((alt) => record(alt) && validTrain(alt.train) && typeof alt.hub === "string");
@@ -3592,7 +3614,7 @@ var CommuteCore = (() => {
       }
     }
     if (route.phase === "before-train" && status === "on-track") {
-      const departure = (_e = selected == null ? void 0 : selected.train.dep) != null ? _e : route.lastTrain.dep;
+      const departure = (_f = selected == null ? void 0 : selected.train.dep) != null ? _f : route.lastTrain.dep;
       if (departure < input.now && departure >= input.now - FOLLOW_GONE_GRACE_MS) {
         status = "hurry";
         level = "info";
@@ -3600,7 +3622,7 @@ var CommuteCore = (() => {
       }
     }
     const incident = boardingRecovery ? "boarding" : status === "cancelled" ? "cancelled" : status === "missed" ? "missed" : status === "unknown" && level === "bad" ? "unknown" : null;
-    const oldIncident = previous.incident !== void 0 ? previous.incident : (_g = previous.lastTrain.cancelled ? "cancelled" : previous.lastTrain.depUnknown || previous.lastTrain.arrUnknown ? "unknown" : (_f = previous.notices.find((n2) => ["cancelled", "unknown", "missed", "boarding"].includes(n2.kind))) == null ? void 0 : _f.kind) != null ? _g : null;
+    const oldIncident = previous.incident !== void 0 ? previous.incident : (_h = previous.lastTrain.cancelled ? "cancelled" : previous.lastTrain.depUnknown || previous.lastTrain.arrUnknown ? "unknown" : (_g = previous.notices.find((n2) => ["cancelled", "unknown", "missed", "boarding"].includes(n2.kind))) == null ? void 0 : _g.kind) != null ? _h : null;
     const canResolve = onward || liveRailReport || !!selected && fresh && (oldIncident !== "missed" || input.hasReliableLocation !== false || connectionKnown || route.phase === "on-train");
     if (incident) {
       route.notices = route.notices.filter((n2) => !["cancelled", "unknown", "missed", "boarding", "recovered"].includes(n2.kind) || n2.kind === incident);
@@ -3628,7 +3650,7 @@ var CommuteCore = (() => {
       const sourceLegs = candidate.legs;
       const railIndex = sourceLegs.findIndex((l) => l.train);
       const onwardLegs = railIndex >= 0 ? sourceLegs.slice(railIndex) : sourceLegs.filter((l) => l.t != null && l.t >= candidate.train.dep);
-      const approach = ((_h = input.connectionSteps) == null ? void 0 : _h[candidate.hub]) || [{ t: ready, d: "Ready at the rail platform", note: "From your current connection" }];
+      const approach = ((_i = input.connectionSteps) == null ? void 0 : _i[candidate.hub]) || [{ t: ready, d: "Ready at the rail platform", note: "From your current connection" }];
       alternative = {
         ...candidate,
         leave: input.now,
@@ -3654,7 +3676,7 @@ var CommuteCore = (() => {
       }
     }
     const legs = legsFor(route).filter((l) => l.t != null && !l.calls);
-    const nextStep = boardingRecovery ? ((_i = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _i.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
+    const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
     return {
       route,
       status,
@@ -5821,9 +5843,10 @@ const progressFor = (id, maxAge=3*60e3) => { const p=state.progressById && id &&
 async function refreshTrainProgress(){
  const epoch=sourceEpoch;
   if(state.railSource!=="darwin" || (!S().simulatedFeeds && !liveDarwin())) return;
-  if(!state.onLine && !(nearlyHome() && state.trainLock)) return;
+  const followed=followedDeparted(Date.now()), followedId=followed&&(followed.lastTrain||followed.option.train).serviceId;
+  if(!state.onLine && !(nearlyHome() && state.trainLock) && !followedId) return;
   const m=state.onLine ? whichTrain(Date.now()) : null, lt=state.onLine ? null : lockedTrain();
-  const ids = m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])].filter(Boolean) : lt && lt.serviceId ? [lt.serviceId] : [];
+  const ids = [...new Set([...(m && !m.none ? [m.t.serviceId, ...(!m.sure && m.other ? [m.other.t.serviceId] : [])] : lt && lt.serviceId ? [lt.serviceId] : []), followedId].filter(Boolean))];
   state.progressById=state.progressById||{};
   for(const id of ids){
     try{ const data=await fetchServiceDetails(id);if(epoch!==sourceEpoch)return;state.progressById[id]={id,at:Date.now(),data,err:null}; }
@@ -6387,6 +6410,10 @@ const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn
 // The route you're following, when it is one the questions can compare a train with (a saved route in the old
 // format has no train to compare).
 const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
+// The followed route once its train has left and you haven't got off it yet (aboard, or boarding not yet confirmed):
+// its train is kept on the boards and its station reports fetched whether or not the phone is placed on the line.
+const followedDeparted = now => { const r=followedRoute(), t=r&&(r.lastTrain||r.option.train);
+  return r && t && (r.phase==="on-train" || (r.phase==="before-train" && Number.isFinite(t.dep) && now>=t.dep)) ? r : null; };
 function pendingPickMarkup(){
   // The question belongs to the route it was asked about: stop following, follow something else or change
   // direction and it is gone.
@@ -7270,7 +7297,7 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now),
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },
@@ -8740,6 +8767,7 @@ function applySignalLayout(){
     notices:make('details','signalNotices','<summary>Travel alerts <span id="signalNoticeCount"></span></summary>'),
     network:make('details','signalNetwork','<summary>Lines &amp; data</summary><div id="signalCurrentLines"></div>'),
     other:make('details','signalOtherJourneys','<summary>Other recommendations</summary>'),
+    later:make('details','signalLaterTrains','<summary>Other trains</summary>'),
     boardHeading:make('div','signalBoardHeading',''),
     disruptions:make('section','signalDisruptions',''),
     connections:make('div','signalConnections',''),
@@ -8765,7 +8793,7 @@ function applySignalLayout(){
   p.network.append(statusTitle,$('#status'),$('#modelNote'),root.querySelector('footer > span'));
   root.querySelector('footer').prepend(p.freshness);
   const header=root.querySelector('header');header.hidden=true;
-  for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
+  for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,p.later,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
 }
 function setJourneyContext(label,modes='',detail=''){
   const summary=$('#signalContextSummary');
@@ -8828,6 +8856,19 @@ function renderSignalCompact(){
   if(secondary){p.connections.append(...$('#hero').querySelectorAll('.tubes'));if($('#hero').parentElement!==p.other)p.other.append($('#hero'));}
   else rootSignalHeroHome();
   p.connections.hidden=!p.connections.childNodes.length;
+  // One journey, no repeats (Sam, 10 Nov): while you follow a route and the live card is about that same journey,
+  // the followed card alone states it; the live card keeps what you tap or look at. A live card about a different
+  // train (one you selected instead) is shown in full.
+  const followed=following?activeFollow():null, shown=state.rendered?.train?.t;
+  const shares=!!followed&&!!followed.option&&!secondary&&!$('#hero .opt')&&(!shown||C.followIsTrain(followed,shown));
+  $('#hero').classList.toggle('shares-follow',shares);
+  // (Marked on the blocks too, so the rule doesn't depend on which stylesheet is read last.)
+  for(const n of $('#hero').querySelectorAll(':scope > [data-block="headline"]:not(.empty), :scope > .journey-connection, :scope > [data-block="then"], :scope > .meta[data-block="which"]'))n.hidden=shares;
+  // Once you've set off, the list of other trains folds away (no stale "Can't make it" cards beside your journey).
+  const setOff=!!followed&&!!followed.option&&(followed.phase!=='before-train'||Date.now()>=followed.option.leave);
+  p.later.hidden=!setOff;$('#listTitle').hidden=setOff;
+  if(setOff){if($('#list').parentElement!==p.later)p.later.append($('#list'));}
+  else if($('#list').parentElement===p.later)p.later.after($('#list'));
   restoreOpen();
 }
 function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalParts.other.parentElement)signalParts.other.before($('#hero'));}
@@ -8952,6 +8993,22 @@ function followedObservation(route,now){
     currentTrainArrival=reported||(sameTarget?(fit.projected||fit.t.arr):chosenTrain?.arr)||null;
     trainArrivalLive=!!reported||!!(observedTrain&&!observedTrain.timetable&&freshBoard&&Number.isFinite(currentTrainArrival));
   }
+  // Aboard by your own word or an earlier working-out, but the phone isn't placed on the line (underground, a
+  // reload): the train's own reports and its board still say when it arrives.
+  if(!fit&&route.phase==='on-train'){
+    const train=route.lastTrain||route.option.train, pg=progressFor(train.serviceId), reported=pg?.data?.at(route.option.train.to);
+    const boardKey=`${route.option.train.from}-${route.option.train.to}`;
+    const freshBoard=!!state.boardsAt&&now-state.boardsAt<3*60e3&&!(state.followFailedBoards||[]).includes(boardKey)&&!state.routeFailed?.[boardKey];
+    const chosenTrain=state.boards?.[boardKey]?.services?.find(t=>C.followMatchesService(route,{...route.option,train:t}));
+    currentTrainArrival=reported||chosenTrain?.arr||null;
+    trainArrivalLive=!!reported||!!(chosenTrain&&!chosenTrain.timetable&&freshBoard&&Number.isFinite(currentTrainArrival));
+  }
+  // Are you at the station the followed train leaves from? (The page's usual test for a station: a fix good to
+  // 250 m.) 'at' with a fresh fix; 'was' when that was the last fix and nothing fresher has arrived.
+  const from=route.option.train.from, placed=!!state.here&&state.locAcc<=250&&
+    (route.direction==='home'?!!state.atHub&&state.atHub===from:from===HOME&&km(state.here,GEO.HOME)<0.25);
+  const fixFresh=state.locStatus==='ok'&&!!state.lastFixAt&&now-state.lastFixAt<=90e3;
+  const boarding=phase==='before-train'&&placed?(fixFresh?'at':'was'):null;
   if(reliable){
     if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
     else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
@@ -8996,7 +9053,7 @@ function followedObservation(route,now){
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
-  return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,
+  return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,boarding:activeConnection?null:boarding,
     hasReliableLocation:reliable&&(!state.onLine||phase==='on-train')};
 }
 function renderFollowPanel(){
@@ -9039,12 +9096,19 @@ function renderFollowPanel(){
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
   const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   const panelLayout=r.phase==='before-train';
-  const access=panelLayout&&!unknown&&!observation.activeConnection?comparison:null;
+  // How hard you'd have to walk is a question only while the way to the station is still ahead of you: not on the
+  // tube you're riding to it, and not once you're at it (10 Nov, #57 H15/H20: the label came from a fresh plan made
+  // from the phone's position and contradicted the status line beneath it).
+  const wayAhead=!observation.activeConnection&&!observation.boarding;
+  const access=panelLayout&&!unknown&&wayAhead?comparison:null;
+  const departs=t.dep, platformBy=comparison&&Number.isFinite(comparison.leave)?Math.min(comparison.leave,departs):departs;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home'):journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
+    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
     ${panelLayout?nextServiceMarkup(t):''}
-    ${comparison?journeyAccessMarkup(comparison):''}
+    ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
     ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
     <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
     ${r.phase==='after-train'?'':trainConnectionMarkup(t)}

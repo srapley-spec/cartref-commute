@@ -12,6 +12,9 @@ This amendment changes the 2 November design only where it says so; everything e
 contradicts an earlier line, this section wins, and the line is listed under "Rules this supersedes".
 
 ### 1. One journey card while you follow a route (C5, C6, D1)
+**First step built 10 Nov** ("one journey, no repeats", the cut-down version Sam chose that evening): the live card
+under the followed card no longer repeats the journey, and the list of other trains folds away once you've set off.
+Rules and tests: [`stories/follow-a-route.md`](stories/follow-a-route.md). The single card proper is still to build.
 - While a route is followed and the journey is under way (on the train, at the change station, on the tube, on the
   final walk), the screen has **one** journey card. The separate live card ("On the train", "You're at Farringdon",
   "On the tube", "Walking to the office") is not drawn beside it; its content moves into the one card.
