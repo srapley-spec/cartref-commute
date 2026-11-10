@@ -73,7 +73,8 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - Every time on screen comes from a route's segments; don't write timing arithmetic elsewhere.
 
 ## Build and test
-- `npm ci` once. `npm test` builds and runs everything (≈2–3 min). `npm run typecheck` for the engine.
+- `npm ci` once. `npm test` builds and runs everything (slow: 10–30 min on
+  GitHub in Nov 2026, longer in a cloud session; run it in the background). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
 - `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
   committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
@@ -127,7 +128,7 @@ tests are good enough); this decides when to merge. The fast path is accepted te
 (Known risks and technical debt), issue #30.
 
 ### After every push to `main`
-1. Check GitHub's Tests run for that exact commit (≈2–3 min) before telling Sam the change is done.
+1. Check GitHub's Tests run for that exact commit (10–30 min) before telling Sam the change is done.
 2. Never merge on top of red: before each merge, confirm the latest `main` run passed. If it failed, or wasn't
    seen, fixing it comes first.
 3. A failure is investigated to its cause, never waved off as a flake; fix forward through the same steps. If it's

@@ -2,11 +2,11 @@
 
 ## Journey card amendment — 10 November 2026 (Sam, from the trip debrief #57)
 
-**Status: agreed by Sam on 10 Nov; not yet built.** The production app still follows the 2 November contract below
+**Status: agreed by Sam on 10 Nov, and the wording confirmed with him screen by screen the same day; not yet built.** The production app still follows the 2 November contract below
 until each item ships. Review mockups, drawn with the app's own Signal styles:
 [`design/journey-amendment-2026-11-10.html`](design/journey-amendment-2026-11-10.html). Finding IDs (A1 … F3) are
-those in issue #57, which holds the evidence, root causes and the clashes between fixes. Wording marked *(words to
-confirm)* is Claude's proposal for Sam to confirm on the mockups.
+those in issue #57, which holds the evidence, root causes and the clashes between fixes. Lines marked
+"Words confirmed by Sam" were read to him one screen at a time; changing them is a UI change that needs his say.
 
 This amendment changes the 2 November design only where it says so; everything else below stands. Where it
 contradicts an earlier line, this section wins, and the line is listed under "Rules this supersedes".
@@ -132,7 +132,9 @@ line colours in lozenges."
   3 minutes on the final walk. It is dismissed with a plain close control (✕), not "Seen". **Words confirmed by Sam,
   10 Nov.**
 - After the train, the status line shows line status (or nothing), not "Journey data not available yet".
-- The walking card leads with minutes ("about 4 min walk"); a distance, if shown, is labelled "as the crow flies".
+- The walking card reads "Now · walking 08:20 → At office 08:24", then "**About 4 min walk** from Aldgate to the
+  office"; a distance, if shown, is labelled "as the crow flies". The location line, when shown, reads "Position as
+  of 08:17 (at Aldgate) · Update location". **Words confirmed by Sam, 10 Nov.**
 - A section heading with nothing under it ("Nearly there") is not shown.
 
 ### Rules this supersedes
