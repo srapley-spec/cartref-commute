@@ -40,6 +40,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
 .pick small{width:100%;opacity:.8}
 .pickbtn{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+/* A question about your train: a caution panel (note yellow is not a status colour). */
+.pick.doubt{border-left:4px solid var(--note);background:var(--note-bg);border-radius:10px;padding:10px 12px}
+.pick.doubt b{width:100%}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -463,7 +466,7 @@ const progressData = id => { const p=progressFor(id); return p && p.data || null
 // Which train you're probably on; remembers it once sure (state.trainLock).
 function whichTrain(now,remember=true){
   if(!state.onLine || !state.boards) return null;
-  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null);
+  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null, state.locAcc);
   if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
@@ -1295,12 +1298,32 @@ function optionBlock(j,opt){
     flags:j.flags.filter(f=>!f.status&&!isEffortFlag(f)).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status&&!isEffortFlag(f)),false)}</div>`:'',
     steps:journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')}),follow:followButton(j)});
 }
+// A train you can select: its lock fields travel on the button.
+const pickData = t => `${esc(t.operator)}|${esc(t.std)}|${esc(t.from)}|${esc(t.serviceId||"")}`;
+const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn" data-pick="${pickData(c.t)}"${extra}>${esc(label||C.trainName(c.t))}</button>`;
+// Asked before a train other than the one you're following is accepted (Sam, 10 Nov; engine words the question).
+function pendingPickMarkup(){
+  const p=state.pendingPick, route=p&&activeFollow(); if(!p||!route) return "";
+  const following=C.trainName(route.lastTrain||route.option.train);
+  return `<div class="pick doubt" data-block="which" data-pending-pick><b>${esc(C.switchTrainQuestion(following,p.name))}</b>
+    <button type="button" class="pickbtn" data-pick="${esc(p.data)}" data-pick-confirmed>Switch to the ${esc(p.name)}</button>
+    <button type="button" class="pickbtn" data-pick-cancel>Stay on the ${esc(following)}</button></div>`;
+}
+// The evidence contradicts the train you selected: say what it is and ask (engine words it). The train you're
+// following is offered first; "Keep" answers this evidence only.
+function wrongTrainMarkup(m){
+  const route=activeFollow(), mine=c=>!!route&&C.followIsTrain(route,c.t);
+  const others=[...(m.others||[])].sort((a,b)=>mine(b)-mine(a));
+  return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m))}</b>
+    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":""))).join("")}
+    ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
+}
 function renderOnTrain(now, m){
  state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
   const head=`<div class="lbl" data-block="label">On the train · ${hhmm(now)} · worked out from your location${m && m.stale ? ` · <b>location last updated ${m.fixAgeMin} min ago</b>` : ""}</div>`;
   if(!m || m.none){
-    const pick = m && m.others && m.others.length ? `<div class="pick" data-block="which"><small>Which train are you on?</small>${m.others.map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>` : "";
+    const pick = pendingPickMarkup() || (m && m.others && m.others.length ? `<div class="pick" data-block="which"><small>Which train are you on?</small>${m.others.map(c=>pickButton(c)).join("")}</div>` : "");
     $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">You're on the line between ${esc(HOME_NAME)} and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>${pick}`;
     return null;
   }
@@ -1311,7 +1334,8 @@ function renderOnTrain(now, m){
   if(pgAt) { m.projected = pgAt; m.live = true; }
   // No status for a timetable train without a live report: never claimed on time without live data.
   const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched,PROFILE.disruption);
-  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+  // A train the evidence contradicts doesn't show its station reports until you've said which train you're on.
+  const lastLine = m.conflict ? "" : pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note" data-block="progress">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
@@ -1319,15 +1343,15 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict,contradictedIdentity:!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:where,stationArrival:m.projected,arrival:j?arrive:null,dest})}</div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${trainConnectionMarkup({...t,arr:m.projected},STATIONS[t.from]||t.from,{arrival:m.projected,to:where,arrivalSource:m.live?'Live':'Estimated'})}
-    ${m.conflict?`<div class="note" data-block="which"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
-    ${(m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
+    ${pendingPickMarkup() || (m.conflict ? wrongTrainMarkup(m)
+      : (m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>pickButton(c)).join("")}</div>`:"")}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
     ${legs.length?`<ol class="legs" data-block="then">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
@@ -2028,8 +2052,17 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
     state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
   save(); render(); });
-document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
-  const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick],[data-pick-cancel]"); if(!b) return;
+  if(b.dataset.pickCancel!=null){ state.pendingPick=null; render(); return; }
+  const [operator,std,from,serviceId]=b.dataset.pick.split("|"), lock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})};
+  // "Keep the …" answers the evidence it was shown with; the same evidence doesn't ask again.
+  if(b.dataset.keep!=null) lock.kept=b.dataset.keep;
+  // Selecting a train other than the one you're following asks first (Sam, 10 Nov: the late 07:15 was selected while
+  // following and riding the 07:20). Re-selecting the train already selected, or answering the question, doesn't.
+  const route=activeFollow(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
+  if(route && !already && b.dataset.pickConfirmed==null && !C.followIsTrain(route,lock)){
+    state.pendingPick={data:b.dataset.pick,name:b.textContent.replace(/ · the train you're following$/,"").replace(/^(Keep the|Switch to the) /,"").trim()}; render(); return; }
+  state.pendingPick=null; state.boardingAsk=false; state.trainLock=lock; render(); });
 function renderInner(){
  state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
@@ -2266,6 +2299,7 @@ function onPosition(p){
   const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked),railContext.continuing);
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
+  if(!state.onLine){ state.pendingPick=null; state.boardingAsk=false; }
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? `you're near ${HOME_NAME}` : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?HOME_NAME:"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;

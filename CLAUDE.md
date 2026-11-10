@@ -14,7 +14,8 @@ The review prototype is a visual reference, never a substitute for production st
 2026" (one journey card while following, onward tube lozenges from the start, station-line progress, urgency, one
 row of controls under way). It comes from the trip debrief in issue #57, which also orders the work: the engine
 safety items (wrong train, "I'm on it", state lost on reload) come before the card. Until an item ships, the app
-follows the 2 Nov contract; build each item with its tests and update the amendment's status as you go.
+follows the 2 Nov contract; build each item with its tests and update the amendment's status as you go. Built so
+far: the wrong-train check and "I'm on it" (C1, C2: `docs/stories/which-train.md`, "The wrong train").
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
 
 ## Where the context is

@@ -1,7 +1,7 @@
 // Cartref Commute planning engine. Pure functions: no screen, no network, no hard-coded places.
 export * from "./types";
 export { pad, hhmm, mins, isoDay, dur, countdown, clock, resolve } from "./time";
-export { km, lineProgress, reportedFrac } from "./geo";
+export { km, lineLengthKm, lineProgress, reportedFrac } from "./geo";
 export { parseServiceDetails } from "./adapters/darwin";
 export { parseDarwinBoard } from "./adapters/darwin";
 export { stationOf, stationLabel, trainFromTflJourney, tflDropReason, tflPickPlaces, terminusDepartures } from "./adapters/tfl";
@@ -25,9 +25,9 @@ export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRound
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
-export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, inferDirection, whichTrain, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
-export type { Fix, StopWatch, RailTrackingInput, RailTrackingContext, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
-export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, chooseTripView, TRIP_VIEWS } from "./present";
+export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, inferDirection, whichTrain, stationContradiction, contradictionKey, STATION_MARGIN_KM, STATION_REPORT_SLACK_MS, STATION_EXPECTED_SLACK_MS, STATION_MAX_ACC_M, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
+export type { Fix, StopWatch, RailTrackingInput, RailTrackingContext, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, StationContradiction, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
+export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, wrongTrainQuestion, switchTrainQuestion, chooseTripView, TRIP_VIEWS } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel, TripSituation } from "./present";
 export { segmentArrival, compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";
@@ -40,7 +40,7 @@ export { nextStops, railStationBoard, tubeStationBoard, reachFlag } from "./stat
 export type { BoardStop, Reach, BoardRow, StationBoardGroup, TubeBoardRow } from "./stationBoard";
 export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewControl } from './viewControl';
 export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
-export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, confirmFollowBoarding, followMatchesObservedTrain, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
+export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, confirmFollowBoarding, followMatchesObservedTrain, followIsTrain, boardingCheck, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
 export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';
 export { FOLLOW_TUBE_FRESH_MS, followTubeArrival } from './followTube';
 export type { FollowTubeRequest, FollowTubeArrival } from './followTube';

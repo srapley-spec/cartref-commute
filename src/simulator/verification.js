@@ -133,7 +133,7 @@ function evaluateSimulationCheckpoint(context={}) {
    add('competing-services','Retain at least two distinct services in the actual departure data',`${competitors.size} distinct service(s) observed`,competitors.size>=2,{serviceCount:competitors.size});
   }
   if(train?.picked&&train.conflict){
-   screen('selection-conflict','Explain fresh evidence conflicting with the selected train',/does not match|doesn't match|conflict|contradict/i);
+   screen('selection-conflict','Explain fresh evidence conflicting with the selected train',/does not match|doesn't match|conflict|contradict|which train are you on/i);
   }
   if(config.scenario==='delay'){
    const t=boards.find(t=>id(t)===expectedId);

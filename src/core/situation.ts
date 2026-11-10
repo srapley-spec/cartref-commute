@@ -2,7 +2,7 @@
 // which way you're heading, at a London station, on the train (and which one), on a tube, nearly home.
 // Pure functions: the screen passes in what it knows and stores what comes back.
 import type { Board, Direction, LatLon, Profile, StationCode, Train } from "./types";
-import { km, lineProgress, reportedFrac } from "./geo";
+import { km, lineLengthKm, lineProgress, reportedFrac } from "./geo";
 
 export type Mode = "commute" | "leisure";
 export type Pace = "avg" | "fast";
@@ -13,12 +13,17 @@ export interface HubVisit { hub: StationCode; seen: number; arrivals: TubeDep[] 
 /** The last time you were seen at the office's tube station going home, and the tubes due then. */
 export interface TubeStopVisit { seen: number; deps: TubeDep[]; }
 /** The train you're on, once sure (or picked). */
-export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; serviceId?: string; }
+export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; serviceId?: string;
+  /** The evidence against this pick that the person has already answered "keep" to (`contradictionKey`): the same
+   *  evidence doesn't ask again; new evidence does. */
+  kept?: string; }
 /** Where National Rail last reported a train (Service Details, parsed). */
 export interface Progress {
-  last: { code: string | null; t: number } | null;
-  next: { code: string | null; t: number | null } | null;
+  last: { code: string | null; t: number; name?: string } | null;
+  next: { code: string | null; t: number | null; name?: string } | null;
   at(code: string): number | null;
+  /** The train's stops in order, when the feed gives them: reported (`actualAt`) and expected times kept apart. */
+  calls?: { code: string; name?: string; actualAt: number | null; expectedAt: number | null }[];
 }
 
 /** Your position from the phone. `acc` in metres. */
@@ -231,9 +236,64 @@ export function inferDirection(here: LatLon, now: number, today: string, mem: Di
   return { dir, mem: out };
 }
 
+/**
+ * A station report the train can't share with you (10 Nov 2026, #57 C1: Sam had selected the late 07:15 stopper while
+ * riding the 07:20 fast train; they were never more than a few minutes of travel apart until well after the fast
+ * train overtook, so the distance rule stayed quiet). Stations are facts, so this needs no long gap:
+ * - `left-before-you`: the train was reported at a station (an actual time) and, a minute or more later, you still
+ *   hadn't reached that station. `t` is the reported time.
+ * - `behind-you`: you are past a station the train hasn't been reported at and isn't expected at for two minutes
+ *   yet. `t` is its expected time there.
+ * "Short of" and "past" mean by more than 1 km, from a fix good to 250 m (the engine's usual bar for a position that
+ * can place you; a Wi-Fi or mast position can't raise this). A wrong answer here costs a question, never a switch.
+ */
+export interface StationContradiction { kind: "left-before-you" | "behind-you"; code: string; name: string; t: number; }
+export const STATION_MARGIN_KM = 1, STATION_REPORT_SLACK_MS = 60e3, STATION_EXPECTED_SLACK_MS = 120e3, STATION_MAX_ACC_M = 250;
+/** Identifies one piece of evidence against a selected train, so a "keep" answers that evidence only. */
+export const contradictionKey = (c: StationContradiction | null | undefined): string => (c ? `${c.kind}|${c.code}|${c.t}` : "far");
+
+/**
+ * `mine`: how far along the train's line you are (0 at its origin, 1 at its destination) when the fix was taken
+ * (`at`); `toLondon`: whether the line's own direction is the train's. Needs a fix with a known accuracy within
+ * 250 m; stations the profile doesn't know, or that aren't on this line, are never evidence.
+ */
+export function stationContradiction(pg: Progress | null, toLondon: boolean, mine: number, at: number, line: LatLon[],
+    geo: Record<string, LatLon>, accM: number | null | undefined): StationContradiction | null {
+  if (!pg || typeof accM !== "number" || !isFinite(accM) || accM < 0 || accM > STATION_MAX_ACC_M) return null;
+  const lineKm = lineLengthKm(line); if (!(lineKm > 0)) return null;
+  const margin = STATION_MARGIN_KM / lineKm;
+  const along = (code: string | null | undefined): number | null => {
+    if (!code || !geo[code]) return null;
+    const pr = lineProgress(geo[code], line); if (pr.offKm > 1) return null;
+    return toLondon ? pr.frac : 1 - pr.frac;
+  };
+  const last = pg.last, lastAt = last ? along(last.code) : null;
+  if (last && lastAt != null && at >= last.t + STATION_REPORT_SLACK_MS && lastAt - mine > margin)
+    return { kind: "left-before-you", code: last.code as string, name: last.name || (last.code as string), t: last.t };
+  // The next stop after its last report, in calling order (a station whose report never arrived is skipped once a
+  // later one has reported). Without the ordered stops, the feed's "next" counts only when it lies beyond the last.
+  let next: { code: string; name?: string; t: number | null } | null = null;
+  if (pg.calls && pg.calls.length) {
+    let reported = -1; pg.calls.forEach((c, i) => { if (c.actualAt != null) reported = i; });
+    const c = pg.calls.slice(reported + 1).find(x => along(x.code) != null);
+    if (c) next = { code: c.code, name: c.name, t: c.expectedAt ?? pg.at(c.code) };
+  } else if (pg.next && pg.next.code) {
+    const n = along(pg.next.code);
+    if (n != null && (lastAt == null || n > lastAt)) next = { code: pg.next.code, name: pg.next.name, t: pg.next.t ?? pg.at(pg.next.code) };
+  }
+  const nextAt = next ? along(next.code) : null;
+  if (next && nextAt != null && next.t != null && next.t > at + STATION_EXPECTED_SLACK_MS && mine - nextAt > margin)
+    return { kind: "behind-you", code: next.code, name: next.name || next.code, t: next.t };
+  return null;
+}
+
 /** A candidate train you might be on. */
 export interface TrainFit {
   t: Train; hub: StationCode; mine: number; offMin: number; projected: number; live: boolean; reported: boolean; ruledOut: boolean;
+  /** The station report that rules this train out, when there is one (it stays pickable). */
+  contradiction?: StationContradiction;
+  /** The person answered "keep" to the current evidence against their pick: not asked again for the same evidence. */
+  kept?: boolean;
   sure?: boolean; other?: TrainFit | null; others?: TrainFit[]; locked?: boolean; picked?: boolean;
   /** A fresh location contradicts the selected service; retain the choice and ask again. */
   conflict?: boolean;
@@ -264,7 +324,7 @@ export { lockOf };
  * and the lock to keep.
  */
 export function whichTrain(boards: Record<string, Board | null | undefined>, here: LatLon, dir: Direction, now: number,
-    lock: TrainLock | null, progress: (serviceId?: string) => Progress | null, p: Profile, fixAt?: number | null): { result: WhichTrain; lock: TrainLock | null } {
+    lock: TrainLock | null, progress: (serviceId?: string) => Progress | null, p: Profile, fixAt?: number | null, accM?: number | null): { result: WhichTrain; lock: TrainLock | null } {
   // Trains are compared with where you were when the phone took the fix, not now: an old position compared with
   // the current time makes every train look further ahead than you. Over 2 minutes old the position is stale:
   // it can't switch or settle which train you're on, only keep the one remembered.
@@ -288,7 +348,9 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
       const projected = t.timetable ? at + (1 - mine) * len : t.arr;
       const offMin = Math.abs(expected - mine) * len / 60e3;
       // A reported position is good to a few minutes: more than 6 min from you rules the train out (still pickable).
-      cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: reported && offMin > 6 });
+      // So does a station report it can't share with you, however close the two trains are (fresh fix only).
+      const contradiction = stale ? null : stationContradiction(pg, toLondon, mine, at, p.lines[hub], p.stationGeo || {}, accM);
+      cands.push({ t, hub, mine, offMin, projected, live: !t.timetable, reported, ruledOut: (reported && offMin > 6) || !!contradiction, ...(contradiction ? { contradiction } : {}) });
     }
   }
   cands.sort((a, b) => a.offMin - b.offMin);
@@ -302,9 +364,15 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   if (locked && lock!.picked) {
     // A choice remains the person's choice. Fresh contradictory evidence changes the confidence,
     // rather than silently choosing a different train or presenting the selection as certain.
-    const conflict = !stale && (locked.ruledOut || locked.offMin > 12);
-    Object.assign(locked, { sure: !conflict, conflict, other: null, locked: true, picked: true, others: others(locked), confidence: stale || conflict ? "low" : "high", ...age });
-    return { result: locked, lock: withId(lock!, locked.t) };
+    // "Keep" answers the evidence it was asked about: the same evidence stays quiet (low confidence), new evidence
+    // asks again. Once nothing contradicts the pick, the answer is forgotten.
+    const against = !stale && (locked.ruledOut || locked.offMin > 12);
+    const kept = against && !!lock!.kept && lock!.kept === contradictionKey(locked.contradiction);
+    const conflict = against && !kept;
+    Object.assign(locked, { sure: !conflict, conflict, ...(kept ? { kept } : {}), other: null, locked: true, picked: true, others: others(locked), confidence: stale || against ? "low" : "high", ...age });
+    const keep = withId(lock!, locked.t);
+    if (!stale && !against && keep.kept) { const { kept: _answered, ...rest } = keep; return { result: locked, lock: rest }; }
+    return { result: locked, lock: keep };
   }
   const keeps = locked && !locked.ruledOut && (stale || (locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6)));
   if (locked && keeps) {

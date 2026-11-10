@@ -58,6 +58,12 @@ status-colour rule; Signal uses its own tokens and blue identity/accent.
 - Signal progress is always available in applicable live views; Follow and Along the line remain independent.
   Independent engine/integration review is required because the progress model is more than a CSS change.
 
+## A doubted train's reports (built 10 Nov 2026)
+While the evidence contradicts the train you selected and you haven't answered ([which-train](which-train.md), "The
+wrong train"), the diagram shows no stations and no report for it: "Station reports are hidden until you say which
+train you're on.", status "Train not confirmed". Journey stages stay.
+- tests/core/wrong-train.test.mjs: "Journey progress: a train the evidence contradicts shows no station reports until you've answered; the stages stay"
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the station line replaces the progress bar (C9), TfL's location text counts as a report for your tube (E1), and the copy (C13). The criteria above describe the app as built; update them, with tests, as each item ships.
 

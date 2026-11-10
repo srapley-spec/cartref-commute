@@ -376,6 +376,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   lozenges in TfL colours; the station line replaces the progress bar and TfL's location text counts as evidence for
   a tube; urgency without status colours; one row of controls once under way. Order: wrong-train check before
   anything that makes a pick stickier. Agreed, not yet built. → [design-system](design-system.md), #57
+- **10 Nov, the wrong train (Sam; #57 C1, C2).** A station report settles that a train isn't yours however close
+  the trains are (it left a station before you got there; you've passed one it hasn't reached), from a fix good to
+  250 m: the 6-minute distance rule could not have warned on 10 Nov until after Sam had noticed. A selected train is
+  kept and the card asks; "Keep" answers that evidence only. Selecting a train other than the followed one asks
+  first, "I'm on it" asks when the evidence is unsure, and a doubted train's station reports are hidden until you
+  answer (the last two rules agreed by Sam the same day). → [which-train](stories/which-train.md)
 - **10 Nov, display mode (Sam).** "Hide all the toggles and just show the next journeys in the Leave now mode from
   Letchworth … a frame for the Home App that will live in HA." Decisions: turned on by `?display` in the address (a
   frame can only be given an address); it is the app's own Leave now view from home to the office with every

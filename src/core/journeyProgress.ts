@@ -26,6 +26,9 @@ export interface JourneyProgressInput {
   now: number; legs: readonly JourneyProgressLeg[]; activeLeg: string;
   calls?: readonly JourneyProgressCall[]; evidence: JourneyProgressEvidence;
   uncertainIdentity?: boolean; cancelled?: boolean; noEstimate?: boolean;
+  /** The evidence contradicts the selected train and the person hasn't answered yet: its station reports are not
+   *  shown (Sam, 10 Nov 2026). Journey stages stay. */
+  contradictedIdentity?: boolean;
   policy?: DisruptionConfig;
 }
 export interface JourneyProgressModel {
@@ -100,10 +103,14 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
     source==='stale'?'Stale feed · last known reports; progress is frozen.':
     source==='modelled'?'Modelled timing · live position and timing comparison unavailable.':
     'Live progress is unavailable; the selected journey is kept.';
+  const stages=(f:number|null)=>i.legs.map((l,index)=>({...l,state:index<currentIndex?'complete' as const:index===currentIndex?'current' as const:'upcoming' as const,
+      fraction:index<currentIndex?1:index===currentIndex?(f??0):0}));
+  if(i.contradictedIdentity)return {current,currentIndex,fraction:null,source:'unknown',progressLabel:'Progress unavailable',
+    evidenceLabel:'Station reports are hidden until you say which train you’re on.',identityLabel:'',
+    status:{text:'Train not confirmed',level:'info',deltaMin:null},calls:[],legs:stages(null)};
   return {current,currentIndex,fraction,source,progressLabel,evidenceLabel,
     identityLabel:i.uncertainIdentity?'Likely service · identity not confirmed':'',status,calls,
-    legs:i.legs.map((l,index)=>({...l,state:index<currentIndex?'complete':index===currentIndex?'current':'upcoming',
-      fraction:index<currentIndex?1:index===currentIndex?(fraction??0):0}))};
+    legs:stages(fraction)};
 }
 
 const kindLabel=(kind:ProgressKind)=>({walk:'Walk',rail:'Train',tube:'Tube',connection:'Connection'})[kind];

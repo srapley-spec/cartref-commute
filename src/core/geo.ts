@@ -8,6 +8,12 @@ export function km(a: LatLon, b: LatLon): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+/** Length of a line in km. */
+export function lineLengthKm(line: LatLon[]): number {
+  let total = 0; for (let i = 0; i < line.length - 1; i++) total += km(line[i], line[i + 1]);
+  return total;
+}
+
 /** How far along a line (0 = first point, 1 = last) a point is, and how far off the line (km). */
 export function lineProgress(pt: LatLon, line: LatLon[]): { frac: number; offKm: number } {
   const c = Math.cos(pt[0] * Math.PI / 180), xy = (q: LatLon): [number, number] => [q[1] * 111.32 * c, q[0] * 110.57];

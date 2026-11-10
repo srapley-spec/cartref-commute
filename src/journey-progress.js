@@ -128,7 +128,7 @@ function renderJourneyProgress(){
       scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle};
     uncertain=!(ride.picked||ride.confirmed);
   }
-  const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,cancelled,noEstimate,policy:PROFILE.disruption};
+  const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};
   let model=C.journeyProgress(input);
   if(!model)return;
   if(railFacts){

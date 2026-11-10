@@ -79,7 +79,11 @@ not a claim that every criterion has already passed release verification. See [S
 - **Recovery is explicit.** A new cancellation, no-estimate or missed incident supersedes obsolete reasons. If
   the service runs again, receives an estimate, or becomes catchable again, show its recovery even if the old
   incident was already acknowledged. Do not leave an obsolete cancellation on a recovered route.
-- **Boarding correction.** “I’m on it” explicitly confirms the selected train when inference is uncertain.
+- **Boarding correction.** “I’m on it” confirms the selected train when nothing says otherwise; when the working-out
+  can't tell two trains apart, fits a different train best, or a report has ruled the followed train out, it asks
+  which train you're on first, the followed train offered first (10 Nov 2026, #57 C2:
+  [which-train](which-train.md), "The wrong train"). Selecting a train other than the followed one in the on-train
+  list asks before it is accepted; the followed route is not changed by that selection.
   Known same-train calls at alternative stations may provide boarding/progress evidence, with shared or
   separate provider IDs, without silently changing the chosen boarding station or replacing its itinerary.
 
@@ -116,6 +120,9 @@ not a claim that every criterion has already passed release verification. See [S
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
 ## Tests
+- tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"
+- tests/wrong-train.test.mjs: "I'm on it: answering with the other train selects it without a second question; with nothing to doubt it confirms at once"
+- tests/wrong-train.test.mjs: "Wrong train: selecting a train other than the one you're following asks first; Stay changes nothing, Switch selects it"
 - tests/leave-by.test.mjs: "Leave by: following a route keeps the current access deadline exposed before boarding"
 - Every scenario in tests/follow-main-regression.test.mjs runs against the production Signal presentation.
   With Follow off, Arrive by still saves the planning override. View pins do not enable Follow, reset the selected

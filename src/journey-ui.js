@@ -194,6 +194,15 @@ function followButton(option){
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow':'Unavailable'}</button>`;
 }
+// "I'm on it", or (after it was tapped while the evidence is unsure) the trains that could be yours, the one you
+// follow first. Selecting another train here is an answer to the question, so it isn't asked a second time.
+function boardingMarkup(route,now){
+  const check=state.boardingAsk?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
+  if(!check.ask){state.boardingAsk=false;return '<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>';}
+  return `<div class="pick doubt" data-boarding-ask><b>Which train are you on?</b>${check.candidates.map(t=>C.followIsTrain(route,t)
+    ?`<button type="button" class="pickbtn" data-follow-action="boarded" data-sure>${esc(C.trainName(t))} · the train you're following</button>`
+    :`<button type="button" class="pickbtn" data-pick="${pickData(t)}" data-pick-confirmed>${esc(C.trainName(t))}</button>`).join('')}</div>`;
+}
 function selectFollowRoute(option){
   const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   if(!chosen)return;
@@ -204,12 +213,16 @@ document.addEventListener('click',e=>{
   if(b.dataset.follow){const option=followChoices.get(b.dataset.follow);if(option)selectFollowRoute(option);return;}
   const action=b.dataset.followAction;
   if(action==='boarded'&&state.followUpdate){
+    // "I'm on it" looks at the evidence first (#57 C2): unsure between trains, or the working-out says another
+    // train, and it asks which. The answer (data-sure: "the train you're following") is then taken at its word.
+    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=true;render();return;}
+    state.boardingAsk=false;state.pendingPick=null;
     const route=C.confirmFollowBoarding(state.followUpdate.route,Date.now());
     state.saved.followRoute=route;state.saved.viewOverride=null;
     const train=route.lastTrain;
     state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})};
   }
-  else if(action==='stop'){state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
+  else if(action==='stop'){state.boardingAsk=false;state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
   else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
   else if(action==='switch'&&state.followUpdate?.alternative){selectFollowRoute(state.followUpdate.alternative);return;}
   else if(action==='dismiss'&&state.followUpdate?.alternative)state.saved.followRoute=C.dismissFollowAlternative(state.followUpdate.route,state.followUpdate.alternative);
@@ -338,7 +351,7 @@ function renderFollowPanel(){
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
-    ${r.phase==='before-train'&&now>=r.option.train.dep?'<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>':''}
+    ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}
     <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();

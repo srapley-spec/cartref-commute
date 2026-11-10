@@ -86,6 +86,34 @@ export function followMatchesObservedTrain(route: FollowRoute, observed: Option)
   if (sameService(route.option, observed)) return true;
   return (Array.isArray(route.option.alts) ? route.option.alts : []).some(alt => record(alt) && validTrain(alt.train) && typeof alt.hub === 'string' && sameService(alt as Option, observed));
 }
+/** Is this the physical train the route follows, whichever London station it is listed for? By National Rail
+ *  service ID when both have one, else by operator, scheduled time and boarding station. Used to ask before a
+ *  different train is selected while a route is followed (10 Nov 2026, #57 C1). */
+export function followIsTrain(route: FollowRoute, train: { operator: string; std: string; from: string; serviceId?: string | null }): boolean {
+  const same = (t: Train | null | undefined) => !!t && (t.serviceId && train.serviceId ? t.serviceId === train.serviceId
+    : t.operator === train.operator && t.std === train.std && t.from === train.from);
+  return same(route.option.train) || same(route.lastTrain)
+    || (Array.isArray(route.option.alts) ? route.option.alts : []).some(alt => record(alt) && validTrain(alt.train) && same(alt.train));
+}
+/** A train as the "which train" working-out sees it: enough to decide whether "I'm on it" can be taken at its word. */
+export interface BoardingCandidate { t: Train; sure?: boolean; ruledOut?: boolean; none?: undefined; other?: BoardingCandidate | null; others?: BoardingCandidate[] }
+/**
+ * "I'm on it" (10 Nov 2026, #57 C2: it used to confirm the followed train without looking at the evidence). Takes
+ * your word when nothing says otherwise: no working-out to compare with (not on the line, no trains loaded, nothing
+ * fits), or the working-out is sure it's the train you follow. Otherwise it asks, offering the trains that could be
+ * yours with the one you follow first: when the working-out can't tell two trains apart, when its best fit is a
+ * different train, or when a report has ruled the followed train out.
+ */
+export function boardingCheck(route: FollowRoute, fit: BoardingCandidate | { none: true; others?: BoardingCandidate[] } | null): { ask: false } | { ask: true; candidates: Train[] } {
+  if (!fit || fit.none) return { ask: false };
+  const all = [fit, ...(fit.other ? [fit.other] : []), ...(fit.others || [])];
+  const mine = all.find(c => followIsTrain(route, c.t));
+  if (followIsTrain(route, fit.t) && fit.sure && !fit.ruledOut) return { ask: false };
+  const seen = new Set<string>(), key = (t: Train) => (t.serviceId ? `id:${t.serviceId}` : `${t.operator}|${t.std}|${t.from}`);
+  const candidates = [...(mine ? [mine.t] : [route.lastTrain || route.option.train]), ...all.map(c => c.t)]
+    .filter(t => !seen.has(key(t)) && !!seen.add(key(t))).slice(0, 4);
+  return { ask: true, candidates };
+}
 /** Explicit user correction; no GPS inference or silent service substitution. */
 export function confirmFollowBoarding(route: FollowRoute, now: number): FollowRoute {
   const notice: FollowNotice = { id: `${route.id}|recovered|boarding`, kind: 'recovered', text: 'You confirmed you are on your selected train', at: now };

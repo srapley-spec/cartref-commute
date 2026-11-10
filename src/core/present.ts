@@ -7,6 +7,7 @@
 import type { RailWarnings } from "./warnings";
 import { lineLevel, worstStatus, type LineStatus } from "./warnings";
 import type { Effort } from "./types";
+import { hhmm } from "./time";
 import { resolveDisruptionPolicy, type DisruptionConfig } from './disruption';
 
 /** The screens. One of these is chosen from the situation; no shell has a view the model doesn't name. */
@@ -217,6 +218,21 @@ export function statusLine(i: StatusInput): StatusLine {
 export function trainName(t: { std: string; operator: string; destination?: string }): string {
   return `${t.std} ${t.operator}${t.destination ? ` to ${t.destination}` : ""}`.trim();
 }
+/**
+ * The question asked when the evidence contradicts the train you selected (10 Nov 2026, #57 C1). It states the
+ * evidence, then asks; the app never switches for you. Wording for a station the train left before you reached it
+ * confirmed by Sam, 10 Nov ("stopped at Knebworth at 07:33; you didn't": true of that minute whether or not your own
+ * train calls there later).
+ */
+export function wrongTrainQuestion(name: string, fit: { contradiction?: { kind: string; name: string; t: number } | null; reported?: boolean }): string {
+  const c = fit.contradiction;
+  const evidence = c && c.kind === "left-before-you" ? `The ${name} stopped at ${c.name} at ${hhmm(c.t)}; you didn't.`
+    : c && c.kind === "behind-you" ? `You've passed ${c.name}; the ${name} isn't due there until ${hhmm(c.t)}.`
+    : `The ${name} doesn't match where you are${fit.reported ? " or where it was last reported" : ""}.`;
+  return `${evidence} Which train are you on?`;
+}
+/** Asked before a train other than the one you're following is accepted (Sam, 10 Nov 2026). */
+export const switchTrainQuestion = (following: string, selected: string): string => `You're following the ${following}. Switch to the ${selected}?`;
 /** A tube as its front and the platform board name it: "10:03 Met to Aldgate". Line and destination as given. */
 export function tubeName(timeHHMM: string, line: string | undefined, dest: string | undefined): string {
   const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();

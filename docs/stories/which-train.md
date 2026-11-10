@@ -22,8 +22,9 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 - Once sure it stays with your train, but lets go when you're more than 12 min from it.
 - When unsure it asks "Which train are you on?"; your pick is kept until you're off the line; if nothing fits you
   can still pick. A fresh fix contradicting a pick (reported position more than6minutes away,
-  or timing fit more than12minutes away) retains the choice but marks low confidence, warns that the selected
-  train does not match current location and asks again. A fix older than2minutes cannot create a conflict.
+  timing fit more than12minutes away, or a station report it can't share with you: "The wrong train" below)
+  retains the choice but marks low confidence, says what the evidence is and asks again. A fix older
+  than2minutes cannot create a conflict.
 - On the line counts only when moving along it; near home (just past Letchworth to just past Hitchin) only when by
   the track at train speed; stays on while stopped at a station.
 - Trains are compared with where you were when the phone took the fix (the phone's own timestamp); "departed" means
@@ -56,19 +57,77 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 
 - Going home, the short final3% corridor just outside a recently observed departure hub can establish rail movement before identity is settled: a fresh fix good to250m, measured speed12m/s or more, within300m of that hub's profile line, outside every hub radius including uncertainty, and a plausible noncancelled departure towards home in the previous10minutes. The visit must be within10minutes and a known or selected Underground ride vetoes this inference. This supplies movement geometry only; normal train comparison still determines identity and confidence. An unknown service cannot use this rule to force passage inside another hub.
 
-## Agreed 10 Nov 2026, not yet built
-From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): a stops check for a picked train (C1), "I'm on it" asking when there's more than one candidate (C2), the pick saved across a reload (C3) and the picker limited to trains that could be yours (C12). The criteria above describe the app as built; update them, with tests, as each item ships.
+## The wrong train (10 Nov 2026, #57 C1 and C2): built 10 Nov
+**What happened:** Sam was following, and riding, the 07:20 Thameslink to Brighton. In the "which train" list he had
+selected the 07:15 Great Northern slow train to King's Cross, which was running late. The app listed that train's
+stops; his train overtook it at 07:39; nothing warned him, and nothing compared the selection with the route he was
+following. (#57 C1's first version had this the wrong way round; corrected there.)
 
-**What happened on 10 Nov (Sam, settled):** he was following, and riding, the 07:20 Thameslink to Brighton. In the
-"which train" list he had selected the 07:15 Great Northern slow train to King's Cross, which was running late. The
-app listed that train's stops; his train overtook it at 07:39; nothing warned him, and nothing compared the selection
-with the route he was following. #57 C1 is corrected to say this (its first version had it the wrong way round).
-Still to do before C1 is built: replay the existing distance rule with this pairing (the gap grows after the
-overtake). Agreed by Sam the same day, to build with C1: selecting a train other than the followed one asks first,
-and a doubted train's station reports aren't shown until you say which train you're on (design-system, amendment
-section 6).
+**Why the existing rule stayed quiet:** it needs the selected train to be more than 6 minutes of travel from you.
+Replayed as a model (the stopper's real times weren't recorded; perfect phone position every minute): the two trains
+are under 6 minutes apart until about 5–7 minutes after the overtake, so the earliest warning was around 07:45, after
+Sam had noticed. A reload had also wiped the selection (C3, not yet built), and the phone's position was coarse or
+old for much of the journey, which switches the warning off.
+
+**Rules (engine: `stationContradiction`, `whichTrain`, `boardingCheck`, `followIsTrain`):**
+- **Station check.** A train is not yours when a station report says so, however close the two trains are:
+  - *It left a station before you got there:* the train has an actual time at a station, the phone's fix was taken
+    60 s or more after that reported minute (reports are whole minutes), and you were still more than 1 km short of
+    that station.
+  - *You've passed a station it hasn't reached:* you are more than 1 km past the train's next stop after its last
+    report (in calling order; a station whose report never arrived is skipped once a later one has reported), it has
+    no actual time there, and its expected time there is more than 2 minutes after your fix.
+  - Only a fix good to 250 m and no more than 2 minutes old counts (a Wi-Fi or mast position never does). Stations
+    the profile doesn't know, or more than 1 km off the line, are never evidence.
+  - A train ruled out this way is no longer chosen for you, and a train that was yours by inference is let go. A
+    train **you selected** is kept: the card asks.
+- **The question** is a caution panel on the on-train card: the evidence, then "Which train are you on?", then the
+  trains that could be yours (the one you're following first, labelled "· the train you're following") and "Keep the
+  …". Words (confirmed by Sam, 10 Nov): "The 07:15 Great Northern to King's Cross stopped at Knebworth at 07:33; you
+  didn't. Which train are you on?" For the second kind: "You've passed Welwyn Garden City; the 07:15 Great Northern
+  isn't due there until 07:45. Which train are you on?" *(this variant is Claude's wording; Sam to confirm)*. For the
+  older distance evidence: "The … doesn't match where you are or where it was last reported. Which train are you on?"
+- **"Keep"** answers the evidence it was shown with: the same evidence doesn't ask again (the train stays selected, at
+  low confidence); new evidence (the next station) asks again; once nothing contradicts the selection the answer is
+  forgotten.
+- **While the question is open, the doubted train's station reports are not shown** (no "Last reported", no stations
+  on the station line: "Station reports are hidden until you say which train you're on."); Journey stages stay and
+  the status reads "Train not confirmed". The trains themselves stay listed (never hide a train).
+- **Selecting a train other than the one you're following asks first:** "You're following the 07:20 Thameslink to
+  Brighton. Switch to the 07:15 Great Northern to King's Cross?" · Switch to the … · Stay on the …. Stay changes
+  nothing. Switch selects that train for the on-train card; the route you follow is not changed by it (Follow's own
+  rules decide what happens to the route). Selecting the followed train, re-selecting the train already selected, or
+  selecting when nothing is followed doesn't ask.
+- **"I'm on it"** (followed card) is taken at its word only when nothing says otherwise: you're not on the line or no
+  train fits where you are (nothing to compare with), or the working-out is sure it is the followed train. When the
+  working-out can't tell two trains apart, when its best fit is a different train, or when a report has ruled the
+  followed train out, it asks "Which train are you on?" on the followed card, the followed train first. Your answer is
+  then taken at its word (the followed train: boarding confirmed; another train: selected without a second question).
+
+**Known limits:** a confident but wrong phone position (good accuracy, fresh timestamp, wrong place) would raise the
+question wrongly; it costs a question, never a switch. Not seen in tests; 10 Nov's bad positions were coarse (±167 m
+to ±1.4 km) and so can't raise it. The selection is still lost on a reload (C3). The list still offers up to three
+nearest trains whether or not they could be yours (C12).
 
 ## Tests
+- tests/core/wrong-train.test.mjs: "Station check: the train left a station a minute or more ago and you still hadn't reached it → not your train"
+- tests/core/wrong-train.test.mjs: "Station check: you're past a station the train isn't due at for two minutes yet → not your train"
+- tests/core/wrong-train.test.mjs: "Station check: going home it reads the line the other way"
+- tests/core/wrong-train.test.mjs: "whichTrain: a selected train contradicted by a station asks, though it is under 6 minutes away; a stale fix never does"
+- tests/core/wrong-train.test.mjs: "whichTrain: 'Keep' answers the evidence it was asked about; new evidence asks again; no evidence forgets the answer"
+- tests/core/wrong-train.test.mjs: "whichTrain: with nothing selected, a train contradicted by a station is ruled out, so the other is yours"
+- tests/core/wrong-train.test.mjs: "10 Nov replay (model): the late 07:15 stopper selected, the 07:20 fast train ridden: asked at the first station it leaves ahead of you, minutes before the distance rule"
+- tests/core/wrong-train.test.mjs: "The questions' words: the evidence, then the question (wording confirmed by Sam, 10 Nov)"
+- tests/core/wrong-train.test.mjs: "Journey progress: a train the evidence contradicts shows no station reports until you've answered; the stages stay"
+- tests/core/wrong-train.test.mjs: "followIsTrain: the train you follow by service ID when both have one, else by operator, time and station; whichever city station it's listed for"
+- tests/core/wrong-train.test.mjs: "boardingCheck: 'I'm on it' is taken at its word only when nothing says otherwise"
+- tests/wrong-train.test.mjs: "Wrong train: selecting a train other than the one you're following asks first; Stay changes nothing, Switch selects it"
+- tests/wrong-train.test.mjs: "Wrong train: selecting the train you're following, or any train when you follow nothing, doesn't ask"
+- tests/wrong-train.test.mjs: "Wrong train: the selected train left Knebworth before you got there → the card says so and asks; the train you're following is offered first; its station reports are hidden"
+- tests/wrong-train.test.mjs: "Wrong train: 'Keep' answers that evidence only: not asked again for it, asked again when the next station contradicts it"
+- tests/wrong-train.test.mjs: "Wrong train: a rough or old position can't raise the question"
+- tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"
+- tests/wrong-train.test.mjs: "I'm on it: answering with the other train selects it without a second question; with nothing to doubt it confirms at once"
 - tests/core/situation.test.mjs: "railTrackingContext: a provisional observed train preserves movement without resolving its identity"
 - tests/core/situation.test.mjs: "railTrackingContext: a recent departure can establish rail movement in the end-corridor gap without choosing a train"
 - tests/core/situation.test.mjs: "railTrackingContext: departure gap inference is generic and cannot override a known tube"

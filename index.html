@@ -53,6 +53,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
 .pick small{width:100%;opacity:.8}
 .pickbtn{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+/* A question about your train: a caution panel (note yellow is not a status colour). */
+.pick.doubt{border-left:4px solid var(--note);background:var(--note-bg);border-radius:10px;padding:10px 12px}
+.pick.doubt b{width:100%}
 .banner.note{background:var(--note-bg);color:var(--ink);border-left:4px solid var(--note)}
 .banner.info{background:var(--card);border:1px dashed var(--line)}
 .banner b{font-weight:800}
@@ -831,7 +834,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 10:29 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 12:06 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1129,6 +1132,10 @@ var CommuteCore = (() => {
     PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
     SERVICE: () => SERVICE,
+    STATION_EXPECTED_SLACK_MS: () => STATION_EXPECTED_SLACK_MS,
+    STATION_MARGIN_KM: () => STATION_MARGIN_KM,
+    STATION_MAX_ACC_M: () => STATION_MAX_ACC_M,
+    STATION_REPORT_SLACK_MS: () => STATION_REPORT_SLACK_MS,
     STOPPED_MPS: () => STOPPED_MPS,
     STOP_WITHIN_MS: () => STOP_WITHIN_MS,
     TFL_TRIP_MODES: () => TFL_TRIP_MODES,
@@ -1161,6 +1168,7 @@ var CommuteCore = (() => {
     betterOption: () => betterOption,
     boardMins: () => boardMins,
     boardSpot: () => boardSpot,
+    boardingCheck: () => boardingCheck,
     buildJourney: () => buildJourney,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
@@ -1177,6 +1185,7 @@ var CommuteCore = (() => {
     confirmFollowBoarding: () => confirmFollowBoarding,
     confirmTripRide: () => confirmTripRide,
     connectionJourneyFacts: () => connectionJourneyFacts,
+    contradictionKey: () => contradictionKey,
     countdown: () => countdown,
     createViewOverride: () => createViewOverride,
     delayLevel: () => delayLevel,
@@ -1194,6 +1203,7 @@ var CommuteCore = (() => {
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
     findPlannedTrain: () => findPlannedTrain,
+    followIsTrain: () => followIsTrain,
     followMatchesObservedTrain: () => followMatchesObservedTrain,
     followMatchesService: () => followMatchesService,
     followServiceKey: () => followServiceKey,
@@ -1229,6 +1239,7 @@ var CommuteCore = (() => {
     leaveBy: () => leaveBy,
     leftAgo: () => leftAgo,
     leftHome: () => leftHome,
+    lineLengthKm: () => lineLengthKm,
     lineLevel: () => lineLevel,
     lineOk: () => lineOk,
     lineProgress: () => lineProgress,
@@ -1311,12 +1322,14 @@ var CommuteCore = (() => {
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
     startFollowTrip: () => startFollowTrip,
+    stationContradiction: () => stationContradiction,
     stationIndex: () => stationIndex,
     stationKey: () => stationKey,
     stationLabel: () => stationLabel,
     stationOf: () => stationOf,
     statusLine: () => statusLine,
     stopsRequests: () => stopsRequests,
+    switchTrainQuestion: () => switchTrainQuestion,
     taxiWorthIt: () => taxiWorthIt,
     terminusDepartures: () => terminusDepartures,
     tflDropReason: () => tflDropReason,
@@ -1355,7 +1368,8 @@ var CommuteCore = (() => {
     whichTube: () => whichTube,
     whichTubeHome: () => whichTubeHome,
     worstDisruptionStatus: () => worstDisruptionStatus,
-    worstStatus: () => worstStatus
+    worstStatus: () => worstStatus,
+    wrongTrainQuestion: () => wrongTrainQuestion
   });
 
   // src/core/time.ts
@@ -1405,6 +1419,11 @@ var CommuteCore = (() => {
     const dl = r(b[0] - a[0]), dn = r(b[1] - a[1]);
     const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dn / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function lineLengthKm(line) {
+    let total2 = 0;
+    for (let i = 0; i < line.length - 1; i++) total2 += km(line[i], line[i + 1]);
+    return total2;
   }
   function lineProgress(pt, line) {
     const c = Math.cos(pt[0] * Math.PI / 180), xy = (q) => [q[1] * 111.32 * c, q[0] * 110.57];
@@ -2630,6 +2649,43 @@ var CommuteCore = (() => {
     if (dir === "home" && dHome - uncertainty >= 3) out.trip = { dir: "home", at: now };
     return { dir, mem: out };
   }
+  var STATION_MARGIN_KM = 1;
+  var STATION_REPORT_SLACK_MS = 6e4;
+  var STATION_EXPECTED_SLACK_MS = 12e4;
+  var STATION_MAX_ACC_M = 250;
+  var contradictionKey = (c) => c ? `${c.kind}|${c.code}|${c.t}` : "far";
+  function stationContradiction(pg, toLondon, mine, at, line, geo, accM) {
+    var _a, _b;
+    if (!pg || typeof accM !== "number" || !isFinite(accM) || accM < 0 || accM > STATION_MAX_ACC_M) return null;
+    const lineKm2 = lineLengthKm(line);
+    if (!(lineKm2 > 0)) return null;
+    const margin = STATION_MARGIN_KM / lineKm2;
+    const along = (code) => {
+      if (!code || !geo[code]) return null;
+      const pr = lineProgress(geo[code], line);
+      if (pr.offKm > 1) return null;
+      return toLondon ? pr.frac : 1 - pr.frac;
+    };
+    const last = pg.last, lastAt = last ? along(last.code) : null;
+    if (last && lastAt != null && at >= last.t + STATION_REPORT_SLACK_MS && lastAt - mine > margin)
+      return { kind: "left-before-you", code: last.code, name: last.name || last.code, t: last.t };
+    let next = null;
+    if (pg.calls && pg.calls.length) {
+      let reported = -1;
+      pg.calls.forEach((c2, i) => {
+        if (c2.actualAt != null) reported = i;
+      });
+      const c = pg.calls.slice(reported + 1).find((x) => along(x.code) != null);
+      if (c) next = { code: c.code, name: c.name, t: (_a = c.expectedAt) != null ? _a : pg.at(c.code) };
+    } else if (pg.next && pg.next.code) {
+      const n2 = along(pg.next.code);
+      if (n2 != null && (lastAt == null || n2 > lastAt)) next = { code: pg.next.code, name: pg.next.name, t: (_b = pg.next.t) != null ? _b : pg.at(pg.next.code) };
+    }
+    const nextAt = next ? along(next.code) : null;
+    if (next && nextAt != null && next.t != null && next.t > at + STATION_EXPECTED_SLACK_MS && mine - nextAt > margin)
+      return { kind: "behind-you", code: next.code, name: next.name || next.code, t: next.t };
+    return null;
+  }
   function findLocked(items, train, lock) {
     const byFields = (t2) => t2.operator === lock.operator && t2.std === lock.std && t2.from === lock.from;
     if (lock.serviceId) {
@@ -2640,7 +2696,7 @@ var CommuteCore = (() => {
     return items.find((x) => byFields(train(x)));
   }
   var lockOf = (t2, picked) => ({ operator: t2.operator, std: t2.std, from: t2.from, ...t2.serviceId ? { serviceId: t2.serviceId } : {}, ...picked ? { picked } : {} });
-  function whichTrain(boards, here, dir, now, lock, progress, p, fixAt) {
+  function whichTrain(boards, here, dir, now, lock, progress, p, fixAt, accM) {
     const at = fixAt != null && fixAt <= now ? fixAt : now, ageMin = (now - at) / 6e4, stale2 = ageMin > 2;
     const cands = [];
     for (const B of Object.values(boards)) {
@@ -2663,7 +2719,8 @@ var CommuteCore = (() => {
         }
         const projected = t2.timetable ? at + (1 - mine) * len : t2.arr;
         const offMin = Math.abs(expected - mine) * len / 6e4;
-        cands.push({ t: t2, hub, mine, offMin, projected, live: !t2.timetable, reported, ruledOut: reported && offMin > 6 });
+        const contradiction = stale2 ? null : stationContradiction(pg, toLondon, mine, at, p.lines[hub], p.stationGeo || {}, accM);
+        cands.push({ t: t2, hub, mine, offMin, projected, live: !t2.timetable, reported, ruledOut: reported && offMin > 6 || !!contradiction, ...contradiction ? { contradiction } : {} });
       }
     }
     cands.sort((a, b) => a.offMin - b.offMin);
@@ -2673,9 +2730,16 @@ var CommuteCore = (() => {
     const age = { stale: stale2, fixAgeMin: Math.round(ageMin) };
     const withId = (l, t2) => !l.serviceId && t2.serviceId ? { ...l, serviceId: t2.serviceId } : l;
     if (locked && lock.picked) {
-      const conflict = !stale2 && (locked.ruledOut || locked.offMin > 12);
-      Object.assign(locked, { sure: !conflict, conflict, other: null, locked: true, picked: true, others: others(locked), confidence: stale2 || conflict ? "low" : "high", ...age });
-      return { result: locked, lock: withId(lock, locked.t) };
+      const against = !stale2 && (locked.ruledOut || locked.offMin > 12);
+      const kept = against && !!lock.kept && lock.kept === contradictionKey(locked.contradiction);
+      const conflict = against && !kept;
+      Object.assign(locked, { sure: !conflict, conflict, ...kept ? { kept } : {}, other: null, locked: true, picked: true, others: others(locked), confidence: stale2 || against ? "low" : "high", ...age });
+      const keep = withId(lock, locked.t);
+      if (!stale2 && !against && keep.kept) {
+        const { kept: _answered, ...rest } = keep;
+        return { result: locked, lock: rest };
+      }
+      return { result: locked, lock: keep };
     }
     const keeps = locked && !locked.ruledOut && (stale2 || locked.offMin <= 12 && !(cands[0] !== locked && !same(cands[0], locked) && locked.offMin - cands[0].offMin >= 6));
     if (locked && keeps) {
@@ -2848,6 +2912,12 @@ var CommuteCore = (() => {
   function trainName(t2) {
     return `${t2.std} ${t2.operator}${t2.destination ? ` to ${t2.destination}` : ""}`.trim();
   }
+  function wrongTrainQuestion(name, fit) {
+    const c = fit.contradiction;
+    const evidence = c && c.kind === "left-before-you" ? `The ${name} stopped at ${c.name} at ${hhmm(c.t)}; you didn't.` : c && c.kind === "behind-you" ? `You've passed ${c.name}; the ${name} isn't due there until ${hhmm(c.t)}.` : `The ${name} doesn't match where you are${fit.reported ? " or where it was last reported" : ""}.`;
+    return `${evidence} Which train are you on?`;
+  }
+  var switchTrainQuestion = (following, selected) => `You're following the ${following}. Switch to the ${selected}?`;
   function tubeName(timeHHMM, line, dest) {
     const d = String(dest || "").replace(/ \([^)]*Line\)/i, "").trim();
     return `${timeHHMM} ${line || "tube"}${d ? ` to ${d}` : ""}`;
@@ -3312,6 +3382,19 @@ var CommuteCore = (() => {
   function followMatchesObservedTrain(route, observed) {
     if (sameService(route.option, observed)) return true;
     return (Array.isArray(route.option.alts) ? route.option.alts : []).some((alt) => record(alt) && validTrain(alt.train) && typeof alt.hub === "string" && sameService(alt, observed));
+  }
+  function followIsTrain(route, train) {
+    const same = (t2) => !!t2 && (t2.serviceId && train.serviceId ? t2.serviceId === train.serviceId : t2.operator === train.operator && t2.std === train.std && t2.from === train.from);
+    return same(route.option.train) || same(route.lastTrain) || (Array.isArray(route.option.alts) ? route.option.alts : []).some((alt) => record(alt) && validTrain(alt.train) && same(alt.train));
+  }
+  function boardingCheck(route, fit) {
+    if (!fit || fit.none) return { ask: false };
+    const all2 = [fit, ...fit.other ? [fit.other] : [], ...fit.others || []];
+    const mine = all2.find((c) => followIsTrain(route, c.t));
+    if (followIsTrain(route, fit.t) && fit.sure && !fit.ruledOut) return { ask: false };
+    const seen = /* @__PURE__ */ new Set(), key = (t2) => t2.serviceId ? `id:${t2.serviceId}` : `${t2.operator}|${t2.std}|${t2.from}`;
+    const candidates2 = [...mine ? [mine.t] : [route.lastTrain || route.option.train], ...all2.map((c) => c.t)].filter((t2) => !seen.has(key(t2)) && !!seen.add(key(t2))).slice(0, 4);
+    return { ask: true, candidates: candidates2 };
   }
   function confirmFollowBoarding(route, now) {
     const notice = { id: `${route.id}|recovered|boarding`, kind: "recovered", text: "You confirmed you are on your selected train", at: now };
@@ -3781,6 +3864,23 @@ var CommuteCore = (() => {
     if (i.cancelled) status = { text: "Service cancelled \xB7 check your next step", level: "bad", deltaMin: null };
     const progressLabel = source === "reported" ? "Calling-point progress" : source === "stale" ? "Last known progress" : source === "unknown" ? "Progress unavailable" : "Estimated time progress";
     const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}; no passing-point position is claimed.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
+    const stages = (f) => i.legs.map((l, index) => ({
+      ...l,
+      state: index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming",
+      fraction: index < currentIndex ? 1 : index === currentIndex ? f != null ? f : 0 : 0
+    }));
+    if (i.contradictedIdentity) return {
+      current,
+      currentIndex,
+      fraction: null,
+      source: "unknown",
+      progressLabel: "Progress unavailable",
+      evidenceLabel: "Station reports are hidden until you say which train you\u2019re on.",
+      identityLabel: "",
+      status: { text: "Train not confirmed", level: "info", deltaMin: null },
+      calls: [],
+      legs: stages(null)
+    };
     return {
       current,
       currentIndex,
@@ -3791,11 +3891,7 @@ var CommuteCore = (() => {
       identityLabel: i.uncertainIdentity ? "Likely service \xB7 identity not confirmed" : "",
       status,
       calls,
-      legs: i.legs.map((l, index) => ({
-        ...l,
-        state: index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming",
-        fraction: index < currentIndex ? 1 : index === currentIndex ? fraction != null ? fraction : 0 : 0
-      }))
+      legs: stages(fraction)
     };
   }
   var kindLabel = (kind) => ({ walk: "Walk", rail: "Train", tube: "Tube", connection: "Connection" })[kind];
@@ -5456,7 +5552,7 @@ const progressData = id => { const p=progressFor(id); return p && p.data || null
 // Which train you're probably on; remembers it once sure (state.trainLock).
 function whichTrain(now,remember=true){
   if(!state.onLine || !state.boards) return null;
-  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null);
+  const r=C.whichTrain(state.boards, state.here, direction(), now, state.trainLock||null, progressData, PROFILE, state.lastFixAt||null, state.locAcc);
   if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
@@ -6288,12 +6384,32 @@ function optionBlock(j,opt){
     flags:j.flags.filter(f=>!f.status&&!isEffortFlag(f)).length?`<div class="flags">${pills(j.flags.filter(f=>!f.status&&!isEffortFlag(f)),false)}</div>`:'',
     steps:journeyStepsMarkup(j.legs,{key:['steps',j.hub,j.train.std,j.train.operator].join('|')}),follow:followButton(j)});
 }
+// A train you can select: its lock fields travel on the button.
+const pickData = t => `${esc(t.operator)}|${esc(t.std)}|${esc(t.from)}|${esc(t.serviceId||"")}`;
+const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn" data-pick="${pickData(c.t)}"${extra}>${esc(label||C.trainName(c.t))}</button>`;
+// Asked before a train other than the one you're following is accepted (Sam, 10 Nov; engine words the question).
+function pendingPickMarkup(){
+  const p=state.pendingPick, route=p&&activeFollow(); if(!p||!route) return "";
+  const following=C.trainName(route.lastTrain||route.option.train);
+  return `<div class="pick doubt" data-block="which" data-pending-pick><b>${esc(C.switchTrainQuestion(following,p.name))}</b>
+    <button type="button" class="pickbtn" data-pick="${esc(p.data)}" data-pick-confirmed>Switch to the ${esc(p.name)}</button>
+    <button type="button" class="pickbtn" data-pick-cancel>Stay on the ${esc(following)}</button></div>`;
+}
+// The evidence contradicts the train you selected: say what it is and ask (engine words it). The train you're
+// following is offered first; "Keep" answers this evidence only.
+function wrongTrainMarkup(m){
+  const route=activeFollow(), mine=c=>!!route&&C.followIsTrain(route,c.t);
+  const others=[...(m.others||[])].sort((a,b)=>mine(b)-mine(a));
+  return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m))}</b>
+    ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":""))).join("")}
+    ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
+}
 function renderOnTrain(now, m){
  state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
   const head=`<div class="lbl" data-block="label">On the train · ${hhmm(now)} · worked out from your location${m && m.stale ? ` · <b>location last updated ${m.fixAgeMin} min ago</b>` : ""}</div>`;
   if(!m || m.none){
-    const pick = m && m.others && m.others.length ? `<div class="pick" data-block="which"><small>Which train are you on?</small>${m.others.map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>` : "";
+    const pick = pendingPickMarkup() || (m && m.others && m.others.length ? `<div class="pick" data-block="which"><small>Which train are you on?</small>${m.others.map(c=>pickButton(c)).join("")}</div>` : "");
     $("#hero").innerHTML=`${head}<div class="empty" data-block="headline">You're on the line between ${esc(HOME_NAME)} and London, but no ${state.railSource==="tfl"?"timetabled ":""}train matches where you are right now. ${state.boards?"":"Train times are still loading."}</div>${pick}`;
     return null;
   }
@@ -6304,7 +6420,8 @@ function renderOnTrain(now, m){
   if(pgAt) { m.projected = pgAt; m.live = true; }
   // No status for a timetable train without a live report: never claimed on time without live data.
   const st=t.timetable&&!(pg&&pg.data) ? null : C.arrivalStatus(m.projected, sched,PROFILE.disruption);
-  const lastLine = pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
+  // A train the evidence contradicts doesn't show its station reports until you've said which train you're on.
+  const lastLine = m.conflict ? "" : pg && pg.data && pg.data.last ? `<div data-block="progress" style="font-size:14px">Last reported: <b>${esc(pg.data.last.name)}</b> <span class="t">${hhmm(pg.data.last.t)}</span><span class="stat ${C.delayLevel(pg.data.last.late||0,PROFILE.disruption)}">${pg.data.last.late>=1?` · ${pg.data.last.late} min late`:" · on time"}</span>${pg.data.next?` · next ${esc(pg.data.next.name)}${pg.data.next.t?` <span class="t">${hhmm(pg.data.next.t)}</span>`:""}`:""}</div>`
     : pg && pg.err ? `<div class="note" data-block="progress">${esc(pg.err)}</div>` : "";
   // Onward journey: the same plan as for this train, shifted by how early or late it is running.
   const keep=state.boards, js=(state.saved.mode==="leisure"?buildLeisure:buildJourneys)(dir, now);
@@ -6312,15 +6429,15 @@ function renderOnTrain(now, m){
   const arrive = j ? j.arrive+shift : m.projected;
   const where = dir==="office" ? STATIONS[m.hub] : HOME_NAME;
   const legs = j ? j.legs.filter(l=>l.t>=t.arr).map(l=>({...l, t:l.t+shift})) : [];
-  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict};
+  state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict,contradictedIdentity:!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:where,stationArrival:m.projected,arrival:j?arrive:null,dest})}</div>
     <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
       <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${trainConnectionMarkup({...t,arr:m.projected},STATIONS[t.from]||t.from,{arrival:m.projected,to:where,arrivalSource:m.live?'Live':'Estimated'})}
-    ${m.conflict?`<div class="note" data-block="which"><b>Your selected train does not match your current location${m.reported?" and its reported position":""}.</b> Your selection is kept; check which train you are on.</div>`:""}
-    ${(m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>`<button type="button" class="pickbtn" data-pick="${esc(c.t.operator)}|${esc(c.t.std)}|${esc(c.t.from)}|${esc(c.t.serviceId||"")}">${esc(C.trainName(c.t))}</button>`).join("")}</div>`:""}
+    ${pendingPickMarkup() || (m.conflict ? wrongTrainMarkup(m)
+      : (m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>pickButton(c)).join("")}</div>`:"")}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
     ${legs.length?`<ol class="legs" data-block="then">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
@@ -7021,8 +7138,17 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
     // Still at the station, probably on or near the platform: the next tube you can make is about a minute away.
     state.hubSince={hub:r.hub, at:Date.now()-onwardParts(r.hub).ic, still:true}; state.saved.hubSince=state.hubSince; state.atHub=hubHere()||r.hub; }
   save(); render(); });
-document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick]"); if(!b) return;
-  const [operator,std,from,serviceId]=b.dataset.pick.split("|"); state.trainLock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})}; render(); });
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick],[data-pick-cancel]"); if(!b) return;
+  if(b.dataset.pickCancel!=null){ state.pendingPick=null; render(); return; }
+  const [operator,std,from,serviceId]=b.dataset.pick.split("|"), lock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})};
+  // "Keep the …" answers the evidence it was shown with; the same evidence doesn't ask again.
+  if(b.dataset.keep!=null) lock.kept=b.dataset.keep;
+  // Selecting a train other than the one you're following asks first (Sam, 10 Nov: the late 07:15 was selected while
+  // following and riding the 07:20). Re-selecting the train already selected, or answering the question, doesn't.
+  const route=activeFollow(), cur=state.trainLock, already=!!cur&&cur.picked&&(cur.serviceId&&lock.serviceId?cur.serviceId===lock.serviceId:cur.operator===operator&&cur.std===std&&cur.from===from);
+  if(route && !already && b.dataset.pickConfirmed==null && !C.followIsTrain(route,lock)){
+    state.pendingPick={data:b.dataset.pick,name:b.textContent.replace(/ · the train you're following$/,"").replace(/^(Keep the|Switch to the) /,"").trim()}; render(); return; }
+  state.pendingPick=null; state.boardingAsk=false; state.trainLock=lock; render(); });
 function renderInner(){
  state.rendered={train:null,ride:null,follow:null,progress:null,options:{count:0,usableCount:0}};
   // The timetable source only loads the routes on screen. If the direction changed since (e.g. location
@@ -7259,6 +7385,7 @@ function onPosition(p){
   const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked),railContext.continuing);
   state.lineTrack=tr.track;
   const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
+  if(!state.onLine){ state.pendingPick=null; state.boardingAsk=false; }
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? `you're near ${HOME_NAME}` : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?HOME_NAME:"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
@@ -7625,7 +7752,7 @@ function evaluateSimulationCheckpoint(context={}) {
    add('competing-services','Retain at least two distinct services in the actual departure data',`${competitors.size} distinct service(s) observed`,competitors.size>=2,{serviceCount:competitors.size});
   }
   if(train?.picked&&train.conflict){
-   screen('selection-conflict','Explain fresh evidence conflicting with the selected train',/does not match|doesn't match|conflict|contradict/i);
+   screen('selection-conflict','Explain fresh evidence conflicting with the selected train',/does not match|doesn't match|conflict|contradict|which train are you on/i);
   }
   if(config.scenario==='delay'){
    const t=boards.find(t=>id(t)===expectedId);
@@ -8539,7 +8666,7 @@ function renderJourneyProgress(){
       scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle};
     uncertain=!(ride.picked||ride.confirmed);
   }
-  const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,cancelled,noEstimate,policy:PROFILE.disruption};
+  const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};
   let model=C.journeyProgress(input);
   if(!model)return;
   if(railFacts){
@@ -8770,6 +8897,15 @@ function followButton(option){
   const possible=!!C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   return `<button type="button" class="follow-btn" data-follow="${esc(key)}"${possible?'':' disabled'} aria-label="Follow the ${esc(option.train.std)} ${esc(option.train.operator)} via ${esc(HUB_NAME[option.hub]||option.hub)}">${possible?'Follow':'Unavailable'}</button>`;
 }
+// "I'm on it", or (after it was tapped while the evidence is unsure) the trains that could be yours, the one you
+// follow first. Selecting another train here is an answer to the question, so it isn't asked a second time.
+function boardingMarkup(route,now){
+  const check=state.boardingAsk?C.boardingCheck(route,state.onLine?whichTrain(now,false):null):{ask:false};
+  if(!check.ask){state.boardingAsk=false;return '<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>';}
+  return `<div class="pick doubt" data-boarding-ask><b>Which train are you on?</b>${check.candidates.map(t=>C.followIsTrain(route,t)
+    ?`<button type="button" class="pickbtn" data-follow-action="boarded" data-sure>${esc(C.trainName(t))} · the train you're following</button>`
+    :`<button type="button" class="pickbtn" data-pick="${pickData(t)}" data-pick-confirmed>${esc(C.trainName(t))}</button>`).join('')}</div>`;
+}
 function selectFollowRoute(option){
   const chosen=C.startFollowRoute(option,{now:Date.now(),direction:direction(),mode:currentMode()});
   if(!chosen)return;
@@ -8780,12 +8916,16 @@ document.addEventListener('click',e=>{
   if(b.dataset.follow){const option=followChoices.get(b.dataset.follow);if(option)selectFollowRoute(option);return;}
   const action=b.dataset.followAction;
   if(action==='boarded'&&state.followUpdate){
+    // "I'm on it" looks at the evidence first (#57 C2): unsure between trains, or the working-out says another
+    // train, and it asks which. The answer (data-sure: "the train you're following") is then taken at its word.
+    if(b.dataset.sure==null&&C.boardingCheck(state.followUpdate.route,state.onLine?whichTrain(Date.now(),false):null).ask){state.boardingAsk=true;render();return;}
+    state.boardingAsk=false;state.pendingPick=null;
     const route=C.confirmFollowBoarding(state.followUpdate.route,Date.now());
     state.saved.followRoute=route;state.saved.viewOverride=null;
     const train=route.lastTrain;
     state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})};
   }
-  else if(action==='stop'){state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
+  else if(action==='stop'){state.boardingAsk=false;state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
   else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
   else if(action==='switch'&&state.followUpdate?.alternative){selectFollowRoute(state.followUpdate.alternative);return;}
   else if(action==='dismiss'&&state.followUpdate?.alternative)state.saved.followRoute=C.dismissFollowAlternative(state.followUpdate.route,state.followUpdate.alternative);
@@ -8914,7 +9054,7 @@ function renderFollowPanel(){
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
-    ${r.phase==='before-train'&&now>=r.option.train.dep?'<button type="button" class="follow-action" data-follow-action="boarded">I’m on it</button>':''}
+    ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}
     <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}
   restoreOpen();
