@@ -57,8 +57,8 @@ line colours in lozenges."
   by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text. *(words to confirm)*
 - **Urgency:** with under 2 minutes to the leave deadline, the countdown becomes the most prominent line on the card:
   "Leave now · 45 s", in the headline's weight and ink on an accent-tinted band. It does not use a status colour:
-  red, amber and green keep their one meaning. Once the deadline passes, the existing effort wording takes over.
-  *(words to confirm)*
+  red, amber and green keep their one meaning. Beneath it, in small type: "to walk to Letchworth at your usual
+  pace". Once the deadline passes, the existing effort wording takes over. **Words confirmed by Sam, 10 Nov.**
 
 ### 4. On the train (C10, C11)
 - The card leads with arrival at your stop → final arrival, and one line: "You're on the 07:20 Thameslink to
