@@ -59,11 +59,12 @@ them apart by where each was going (the 18:57 to Cambridge), which the train's s
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): a stops check for a picked train (C1), "I'm on it" asking when there's more than one candidate (C2), the pick saved across a reload (C3) and the picker limited to trains that could be yours (C12). The criteria above describe the app as built; update them, with tests, as each item ships.
 
-**To settle before C1 is built (10 Nov):** Sam says he was on the 07:20 to Brighton. The debrief records the app
-following "the 07:20 Thameslink" and Sam on a different train. If those are the same train, he was on the train he
-followed, and the wrong choice was somewhere else (for instance the live card's "which train" pick, where the 07:15
-Great Northern was offered). Not verified either way: ask Sam which train he had selected by mistake, then correct
-C1 in #57 and replay that case.
+**What happened on 10 Nov (Sam, settled):** he was following, and riding, the 07:20 Thameslink to Brighton. In the
+"which train" list he had selected the 07:15 Great Northern slow train to King's Cross, which was running late. The
+app listed that train's stops; his train overtook it at 07:39; nothing warned him, and nothing compared the selection
+with the route he was following. #57 C1 is corrected to say this (its first version had it the wrong way round).
+Still to do before C1 is built: replay the existing distance rule with this pairing (the gap grows after the
+overtake), and Sam's answer on the proposed rule that selecting a train other than the followed one asks first.
 
 ## Tests
 - tests/core/situation.test.mjs: "railTrackingContext: a provisional observed train preserves movement without resolving its identity"

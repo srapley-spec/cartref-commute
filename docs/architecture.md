@@ -370,7 +370,7 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 ## Decisions log
 
 - **10 Nov, trip debrief and journey card amendment (Sam).** First full commute with a followed route: the plan was
-  right to the minute; 29 findings in presentation, the followed card going stale, a wrong train followed with no
+  right to the minute; 29 findings in presentation, the followed card going stale, the wrong train selected in the "which train" list with no
   warning and state lost on a reload (#57: severity, root cause, fix and clashes for each). Sam accepted the
   recommendations. Decisions: one journey card while following; the onward tube shown from the start as line
   lozenges in TfL colours; the station line replaces the progress bar and TfL's location text counts as evidence for

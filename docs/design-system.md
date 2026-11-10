@@ -85,9 +85,14 @@ line colours in lozenges."
 - Copy: "Last reported at Stevenage 07:30." (no "passing-point position" wording).
 
 ### 6. When the app doubts your train (C1, C2, C4, C12)
-- The question appears inside the one card as a caution panel (yellow `note`, not a status colour): "The 07:20
-  stopped at Hitchin at 07:25; you didn't. Which train are you on?" with the candidates as buttons and "Keep the
-  07:20". *(words to confirm)*
+- The question appears inside the one card as a caution panel (yellow `note`, not a status colour). It states the
+  evidence, then asks, and never switches for you: "The 07:15 Great Northern stopped at Knebworth; you didn't. Which
+  train are you on?" with the candidates as buttons (the train you're following first), "Keep the 07:15 Great
+  Northern", and "More trains". **Words confirmed by Sam, 10 Nov.** That is the morning's real case: Sam was
+  following and riding the 07:20 Thameslink to Brighton and had selected the late 07:15 Great Northern slow train to
+  King's Cross in the list (#57 C1, corrected).
+- *Proposed, to confirm:* selecting a train other than the one you're following asks before it is accepted ("You're
+  following the 07:20 Thameslink. Switch to the 07:15 Great Northern?").
 - "I'm on it" confirms only when the app has one candidate; when it has more than one it shows them and asks.
 - The correction control is always reachable from the followed card (folded when certain). It lists trains that
   could be yours; every other train stays reachable under "More trains".
