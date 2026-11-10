@@ -64,7 +64,9 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 app listed that train's stops; his train overtook it at 07:39; nothing warned him, and nothing compared the selection
 with the route he was following. #57 C1 is corrected to say this (its first version had it the wrong way round).
 Still to do before C1 is built: replay the existing distance rule with this pairing (the gap grows after the
-overtake), and Sam's answer on the proposed rule that selecting a train other than the followed one asks first.
+overtake). Agreed by Sam the same day, to build with C1: selecting a train other than the followed one asks first,
+and a doubted train's station reports aren't shown until you say which train you're on (design-system, amendment
+section 6).
 
 ## Tests
 - tests/core/situation.test.mjs: "railTrackingContext: a provisional observed train preserves movement without resolving its identity"

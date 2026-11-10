@@ -91,8 +91,11 @@ line colours in lozenges."
   Northern", and "More trains". **Words confirmed by Sam, 10 Nov.** That is the morning's real case: Sam was
   following and riding the 07:20 Thameslink to Brighton and had selected the late 07:15 Great Northern slow train to
   King's Cross in the list (#57 C1, corrected).
-- *Proposed, to confirm:* selecting a train other than the one you're following asks before it is accepted ("You're
-  following the 07:20 Thameslink. Switch to the 07:15 Great Northern?").
+- **Selecting a train other than the one you're following asks before it is accepted** ("You're following the 07:20
+  Thameslink. Switch to the 07:15 Great Northern?"). Agreed by Sam, 10 Nov.
+- **While the train is in doubt, its station reports are not shown** on the station line ("Station reports are hidden
+  until you say which train you're on"); Journey stages stay. The trains themselves stay listed as candidates
+  (never hide a train). Agreed by Sam, 10 Nov.
 - "I'm on it" confirms only when the app has one candidate; when it has more than one it shows them and asks.
 - The correction control is always reachable from the followed card (folded when certain). It lists trains that
   could be yours; every other train stays reachable under "More trains".
@@ -115,9 +118,10 @@ line colours in lozenges."
   tapped.
 
 ### 9. Notices and small things (E2, E3, F2, F3)
-- A change to the followed arrival says what changed and why: "Arriving 08:24 (was 08:22): you took the 08:09 Met."
-  No notice when the arrival is back at the original plan, and none for a change under 3 minutes on the final walk.
-  It is dismissed with a plain close control, not "Seen". *(words to confirm)*
+- A change to the followed arrival says what changed and why: "**Arriving 08:28** (was 08:24): you took the 08:12
+  Met, not the 08:08." No notice when the arrival is back at the original plan, and none for a change under
+  3 minutes on the final walk. It is dismissed with a plain close control (✕), not "Seen". **Words confirmed by Sam,
+  10 Nov.**
 - After the train, the status line shows line status (or nothing), not "Journey data not available yet".
 - The walking card leads with minutes ("about 4 min walk"); a distance, if shown, is labelled "as the crow flies".
 - A section heading with nothing under it ("Nearly there") is not shown.
