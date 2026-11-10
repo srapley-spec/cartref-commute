@@ -68,6 +68,10 @@ line colours in lozenges."
   Brighton · On time". The departure platform and the three-column departure panel are not shown once aboard; the
   panel's arrival figure is the card's first clock.
 - "Not your train?" is folded while the train is confirmed or certain, and open when the app is unsure.
+- The next step names the change in plain words: "Next: 08:04 · Arrive Farringdon · 3 min to the tube platform"
+  (not "change 3 min").
+- **Words confirmed by Sam, 10 Nov:** the identity line, "Between Stevenage and Finsbury Park" with "Last reported
+  at Stevenage 07:30." beneath, the next step above, and "Not your train?".
 
 ### 5. Progress along a leg (C9, C13, E1)
 - The continuous bar above the stations is removed. The **station line is the progress display**: a station is
