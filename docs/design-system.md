@@ -88,6 +88,10 @@ line colours in lozenges."
   "Between Liverpool Street and Aldgate") counts as a report. This replaces the rule that a tube is never shown at
   intermediate stations.
 - Copy: "Last reported at Stevenage 07:30." (no "passing-point position" wording).
+- On the tube the card reads: "At Aldgate 08:21 → At office 08:28"; the line's lozenge with "You're on the 08:12 Met
+  to Aldgate"; the marker "At Moorgate" (or "Between Moorgate and Liverpool Street") with "TfL, 08:16." beneath;
+  stations marked "TfL report" once passed and "Expected" ahead; "Next: 08:21 · Aldgate · then about 7 min walk";
+  and "Not your tube?" folded. **Words confirmed by Sam, 10 Nov.**
 
 ### 6. When the app doubts your train (C1, C2, C4, C12)
 - The question appears inside the one card as a caution panel (yellow `note`, not a status colour). It states the
