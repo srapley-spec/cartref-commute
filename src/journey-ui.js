@@ -272,10 +272,11 @@ function followedObservation(route,now){
   }
   // Are you at the station the followed train leaves from? (The page's usual test for a station: a fix good to
   // 250 m.) 'at' with a fresh fix; 'was' when that was the last fix and nothing fresher has arrived.
-  const from=route.option.train.from, placed=!!state.here&&state.locAcc<=250&&
-    (route.direction==='home'?!!state.atHub&&state.atHub===from:from===HOME&&km(state.here,GEO.HOME)<0.25);
-  const fixFresh=state.locStatus==='ok'&&!!state.lastFixAt&&now-state.lastFixAt<=90e3;
-  const boarding=phase==='before-train'&&placed?(fixFresh?'at':'was'):null;
+  const from=route.option.train.from;
+  const boarding=C.boardingPlace({phase,accM:state.here?state.locAcc:null,
+    atHub:route.direction==='home'&&!!state.atHub&&state.atHub===from,
+    kmToStation:route.direction!=='home'&&from===HOME&&state.here?km(state.here,GEO.HOME):null,
+    fixOk:state.locStatus==='ok',fixAgeMs:state.lastFixAt?now-state.lastFixAt:null});
   if(reliable){
     if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
     else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
@@ -368,7 +369,7 @@ function renderFollowPanel(){
   // from the phone's position and contradicted the status line beneath it).
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   const access=panelLayout&&!unknown&&wayAhead?comparison:null;
-  const departs=t.dep, platformBy=comparison&&Number.isFinite(comparison.leave)?Math.min(comparison.leave,departs):departs;
+  const platformBy=C.platformBy(r.option,t.dep,Date.now());
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')

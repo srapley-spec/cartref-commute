@@ -12,6 +12,11 @@ export const FOLLOW_CHANGE_MS = 60e3;
 const FOLLOW_GONE_GRACE_MS = 30e3;
 /** At the boarding station, the train is only "missed" once it has been gone this long and you are still there. */
 export const FOLLOW_STATION_GONE_MS = 120e3;
+/** "At the station the train leaves from": a fix good to this many metres, within this distance of it (or the page's
+ *  own placing at a London station), and no older than this. An older fix there counts as "was". */
+export const FOLLOW_STATION_ACC_M = 250, FOLLOW_STATION_KM = 0.25, FOLLOW_FIX_FRESH_MS = 90e3;
+/** After a followed train's expected arrival, its past times stop being asked for after this long. */
+export const FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS = 30 * 60e3;
 export type FollowPhase = 'before-train' | 'on-train' | 'after-train' | 'arrived';
 export interface FollowNotice {
   id: string; kind: 'cancelled' | 'unknown' | 'missed' | 'arrival' | 'platform' | 'recovered' | 'boarding';
@@ -115,6 +120,32 @@ export interface BoardingCandidate { t: Train; sure?: boolean; ruledOut?: boolea
  * yours with the one you follow first: when the working-out can't tell two trains apart, when its best fit is a
  * different train, or when a report has ruled the followed train out.
  */
+/** Are you at the station the followed train leaves from? 'at' on a fresh fix; 'was' when that was the last fix
+ *  and nothing fresher has arrived (underground, a reload); null anywhere else or once the train is boarded. */
+export function boardingPlace(i: { phase: FollowPhase; accM: number | null | undefined; atHub?: boolean; kmToStation?: number | null;
+  fixOk: boolean; fixAgeMs: number | null | undefined }): 'at' | 'was' | null {
+  const near = !!i.atHub || (i.kmToStation != null && i.kmToStation < FOLLOW_STATION_KM);
+  if (i.phase !== 'before-train' || !near || i.accM == null || !(i.accM <= FOLLOW_STATION_ACC_M)) return null;
+  return i.fixOk && i.fixAgeMs != null && i.fixAgeMs >= 0 && i.fixAgeMs <= FOLLOW_FIX_FRESH_MS ? 'at' : 'was';
+}
+/** At the station, the time to be on the platform: the train's departure less the route's own catch margin (its
+ *  last segment before the train); once that has passed, the departure itself. Never the leave-from-here time of
+ *  a fresh plan, which at the station is already in the past. */
+export function platformBy(option: Option, departure: number, now: number): number {
+  const before = Array.isArray(option.before) ? option.before as { kind?: string; secs?: number }[] : [];
+  const last = before[before.length - 1];
+  const by = departure - (last && last.kind === 'margin' && finite(last.secs) ? last.secs * 1000 : 0);
+  return now > by ? departure : by;
+}
+/** Should the boards look back for the followed train (and its own reports be fetched)? Once it has left and you
+ *  haven't got off it: aboard, or boarding not yet settled. Not once it is missed or cancelled, and not for long
+ *  after it was due to arrive (a route left running doesn't keep asking for the past all day). */
+export function followLooksBack(route: FollowRoute | null | undefined, now: number): boolean {
+  const t = route && (route.lastTrain || route.option?.train);
+  if (!route || !t || !finite(t.dep) || now < t.dep) return false;
+  if (route.phase !== 'on-train' && (route.phase !== 'before-train' || route.incident === 'missed' || route.incident === 'cancelled')) return false;
+  return now <= (finite(t.arr) ? t.arr : t.dep) + FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS;
+}
 export function boardingCheck(route: FollowRoute, fit: BoardingCandidate | { none: true; others?: BoardingCandidate[] } | null): { ask: false } | { ask: true; candidates: Train[] } {
   if (!fit || fit.none) return { ask: false };
   const all = [fit, ...(fit.other ? [fit.other] : []), ...(fit.others || [])];
@@ -267,19 +298,20 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     }
   } else { level = 'info'; text = 'Last known journey · waiting for fresh data'; }
   if (route.phase === 'arrived') { status = 'arrived'; level = 'ok'; text = 'Arrived'; }
-  else if (route.phase === 'before-train' && status === 'on-track' && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
+  else if (route.phase === 'before-train' && status === 'on-track' && (input.hasReliableLocation !== false || connectionKnown || (input.boarding === 'at' && !input.activeConnection)) && fresh) {
     const departure = selected?.train.dep ?? route.lastTrain.dep;
     // At the station the train leaves from: missed only once it has gone and you're still standing there.
-    const atStation = input.boarding === 'at' && !input.activeConnection;
+    // Last seen there with nothing fresher: no evidence either way, so never "missed" (the question comes below).
+    const atStation = !!input.boarding && !input.activeConnection;
     const missed = input.activeConnection ? connectionKnown && (connectionReady! > departure || departure < input.now - FOLLOW_GONE_GRACE_MS)
-      : atStation ? departure < input.now - FOLLOW_STATION_GONE_MS
+      : atStation ? input.boarding === 'at' && departure < input.now - FOLLOW_STATION_GONE_MS
       : selected ? (selected.effort === 'none' || (!selected.effort && selected.missed)) || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
     if (missed) {
       status = 'missed'; level = 'bad'; text = `You can no longer make your ${route.option.train.std}`;
       addNotice('missed', 'missed', text);
     } else if (atStation) {
       const mins = Math.floor((departure - input.now) / MIN);
-      if (departure < input.now) { status = 'hurry'; level = 'info'; text = 'Departure just passed · confirm if you are on it'; }
+      if (departure < input.now) { status = 'hurry'; level = 'info'; text = input.boarding === 'at' ? 'Departure just passed · confirm if you are on it' : 'Departure passed · confirm if you are on it'; }
       else text = mins > 0 ? `On track · train departs in ${mins} min` : 'On track · train departing';
     } else if (connectionKnown) {
       const spare = Math.floor(((selected?.train.dep ?? route.lastTrain.dep) - connectionReady!) / MIN);
@@ -291,7 +323,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     }
   }
   if (route.phase === 'before-train' && input.activeConnection && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Checking your connection · keeping your chosen journey'; }
-  if (route.phase === 'before-train' && input.hasReliableLocation === false && !connectionKnown && status === 'on-track') { status = 'unknown'; level = 'info'; text = 'Location unavailable · keeping your chosen journey'; }
+  if (route.phase === 'before-train' && input.hasReliableLocation === false && !connectionKnown && status === 'on-track' && !(input.boarding === 'at' && !input.activeConnection)) { status = 'unknown'; level = 'info'; text = 'Location unavailable · keeping your chosen journey'; }
   // Last placed at the boarding station with no fresh fix since (you may well be aboard, underground): never
   // "missed" on that evidence; once the departure has passed, ask.
   if (route.phase === 'before-train' && input.boarding === 'was' && !input.activeConnection && fresh && !selected?.train.cancelled

@@ -131,29 +131,41 @@ train was kept on the boards, and its reports fetched, only while the phone was 
 **Rules:**
 - **The effort label and Leave by belong to the way ahead.** The followed card shows them only while you still have
   to get to the station: not while you ride the tube to it, and not once you're at it.
-- **At the station the train leaves from** (a fix good to 250 m, at most 90 s old, at Letchworth station going out or
-  at the London station the train is boarded at coming home): the header reads "Be on the platform by" (wording
-  confirmed by Sam, 10 Nov), with the plan's own time for that, never later than the departure; the status is
-  "On track · train departs in N min" ("train departing" inside the last minute). How hard you'd have to walk decides
-  nothing: no "Can't make it", no "N min behind · run needed".
+- **At the station the train leaves from** (`boardingPlace`: a fix good to 250 m, at most 90 s old, within 250 m of
+  Letchworth station going out, or placed by the page at the London station the train is boarded at coming home;
+  not another London station, and not while riding the tube to it): the header reads "Be on the platform by"
+  (wording confirmed by Sam, 10 Nov); the status is "On track · train departs in N min" ("train departing" inside
+  the last minute). How hard you'd have to walk decides nothing: no "Can't make it", no "N min behind · run needed".
+  A fix good to 151–250 m is enough for this rule (elsewhere the card needs 150 m before it trusts where you are).
+- **The platform time** (`platformBy`) is the train's expected departure less the route's own catch margin (1 min
+  by default; its last segment before the train); inside that last minute it is the departure itself. It is never
+  the leave-from-here time of a fresh plan, which at the station has already passed (the first build showed "10:17"
+  at 10:19 for the 10:20, beside "On track"). **To confirm with Sam:** the amendment says "the same canonical time";
+  at the station that time is in the past, so this is the reading built.
 - **After the departure, at the station:** "Departure just passed · confirm if you are on it" with "I'm on it", for
   2 minutes (`FOLLOW_STATION_GONE_MS`); only then, still placed at the station by a fresh fix, "You can no longer
   make your …".
 - **Last placed at the station, no fresh fix since** (underground, the phone asleep): never "missed" on that
   evidence. Once the departure has passed: "Departure passed · confirm if you are on it". A cancelled train is still
-  reported as cancelled.
+  reported as cancelled. Before the departure it reads "On track · train departs in N min" when the card otherwise
+  trusts the position, else "Location unavailable · keeping your chosen journey".
 - **Riding the tube to the station** is judged, as before, by that tube's arrival against the train's departure.
 - **Live times once the train has left:** while you follow a route whose train has departed (aboard, or boarding not
   yet confirmed), the boards look back 40 minutes so the train stays on them, and its station reports are fetched,
   whether or not the phone is placed on the line. The same three boards are asked for (no extra board requests); one
-  train-report request per refresh is added in that state. Aboard without being placed on the line, the card's
+  train-report request per refresh is added in that state. It ends (`followLooksBack`): not before the train
+  leaves; not once the route is marked missed or cancelled; and not more than 30 minutes after the train's expected
+  arrival, so a route left running doesn't ask for the past all day. Aboard without being placed on the line, the card's
   arrival comes from the train's report at your stop, else its board entry. This also carries the followed card
   through a reload (the route itself was already saved); the on-train card's own selection is still lost (C3/C4).
 - **One journey, no repeats** (Sam, 10 Nov: "fix … the confusion over the cards"; the cut-down step he chose toward
   the single card): while you follow a route and the live card under it is about that same journey, the followed
   card alone states it. The live card keeps its label, which train or tube you're on and the choices you tap, "got off
   already", the stations and the source note; its journey times, train panel, journey facts and step list are not
-  drawn. A live card about a different train (one you selected instead) is shown in full. Once the time to leave has
+  drawn. That includes the tube card's "Get off at … or get off at …", which is worked out afresh and on 10 Nov
+  named King's Cross under a route via Farringdon; where you get off stays on its stations line ("Aldgate →
+  Farringdon") until the tube line is built onto the followed card. A live card about a different train (one you
+  selected instead) is shown in full. Once the time to leave has
   passed (or you're past the train), the list of other trains folds into a closed "Other trains" and its heading is
   not shown; stop following and everything is as before.
 
@@ -167,11 +179,20 @@ arrival (H24), the notices (H16), the walking estimate (H27), the list's own row
 - tests/core/follow-consistency.test.mjs: "Last placed at the boarding station, no fresh fix since (underground): never 'missed' on that evidence; after departure it asks"
 - tests/core/follow-consistency.test.mjs: "Riding the tube to the station is judged by that tube's arrival, as before: being 'at the station' doesn't apply"
 - tests/core/follow-consistency.test.mjs: "Refresh plan: a followed train that has left is kept on the boards whether or not the phone is placed on the line"
+- tests/core/follow-consistency.test.mjs: "A fix good to 151–250 m at the station is enough for the station rule: on track, then the question, then missed (it used to say 'Location unavailable' and never ask)"
+- tests/core/follow-consistency.test.mjs: "Last seen at the station is never 'missed', even when the position is otherwise called reliable; and before departure it doesn't ask"
+- tests/core/follow-consistency.test.mjs: "At the station or not: a fix good to 250 m, within 250 m of it (or placed at that London station), no older than 90 s"
+- tests/core/follow-consistency.test.mjs: "'Be on the platform by' is the train's departure less the route's own margin, then the departure itself: never a leave-from-here time that has passed"
+- tests/core/follow-consistency.test.mjs: "Looking back for a followed train ends: not before it leaves, not once it's missed or cancelled, not more than 30 minutes after it was due in"
+- tests/follow-consistency.test.mjs: "Following, at the station on a fix only good to 200 m: the station rule still applies (it used to say 'Location unavailable' and never ask)"
+- tests/follow-consistency.test.mjs: "Homeward: 'Be on the platform by' only at the station your followed train leaves from: not at another London station, and not on the tube to it"
 - tests/follow-consistency.test.mjs: "Following, at the station before your train: 'Be on the platform by', on track until it goes; never 'Can't make it' from a plan that still has you walking there"
 - tests/follow-consistency.test.mjs: "Following, away from the station with no time left to walk there: the plan's 'Can't make it' still shows (the rule only changes once you're at the station)"
 - tests/follow-consistency.test.mjs: "Following, last seen at the station and then no position (underground): not 'missed'; after departure it asks whether you're on it"
 - tests/follow-consistency.test.mjs: "Following, aboard but the phone isn't placed on the line (a reload, underground): the train is kept on the boards and its lateness reaches the card"
 - tests/follow-consistency.test.mjs: "One journey, no repeats: aboard, the followed card alone states the journey; the card under it keeps the stations and what you tap; other trains fold away"
+- Independent review (10 Nov, 30 deliberate breakages on the first build): found the past platform time, the
+  151–250 m gap and the unbounded look-back, and the missing homeward, boundary and request tests; all fixed above.
 - Checked in a real browser (Chromium, phone width, 10 Nov): aboard while following, the lower card shows no journey times, train panel or steps; "Other trains" is folded.
 
 ## Agreed 10 Nov 2026, not yet built

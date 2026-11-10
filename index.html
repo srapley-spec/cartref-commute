@@ -839,7 +839,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 20:48 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 21:09 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1120,6 +1120,11 @@ var CommuteCore = (() => {
     FACILITY: () => FACILITY,
     FOLLOW_BETTER_MIN: () => FOLLOW_BETTER_MIN,
     FOLLOW_CHANGE_MS: () => FOLLOW_CHANGE_MS,
+    FOLLOW_FIX_FRESH_MS: () => FOLLOW_FIX_FRESH_MS,
+    FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS: () => FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS,
+    FOLLOW_STATION_ACC_M: () => FOLLOW_STATION_ACC_M,
+    FOLLOW_STATION_GONE_MS: () => FOLLOW_STATION_GONE_MS,
+    FOLLOW_STATION_KM: () => FOLLOW_STATION_KM,
     FOLLOW_TUBE_FRESH_MS: () => FOLLOW_TUBE_FRESH_MS,
     LATE_BAD_MIN: () => LATE_BAD_MIN,
     LATE_WARN_MIN: () => LATE_WARN_MIN,
@@ -1174,6 +1179,7 @@ var CommuteCore = (() => {
     boardMins: () => boardMins,
     boardSpot: () => boardSpot,
     boardingCheck: () => boardingCheck,
+    boardingPlace: () => boardingPlace,
     buildJourney: () => buildJourney,
     buildOptions: () => buildOptions,
     busyDay: () => busyDay,
@@ -1209,6 +1215,7 @@ var CommuteCore = (() => {
     fastWalkLegs: () => fastWalkLegs,
     findPlannedTrain: () => findPlannedTrain,
     followIsTrain: () => followIsTrain,
+    followLooksBack: () => followLooksBack,
     followMatchesObservedTrain: () => followMatchesObservedTrain,
     followMatchesService: () => followMatchesService,
     followServiceKey: () => followServiceKey,
@@ -1286,6 +1293,7 @@ var CommuteCore = (() => {
     planTrip: () => planTrip,
     plannable: () => plannable,
     plannerCacheKey: () => plannerCacheKey,
+    platformBy: () => platformBy,
     platformNo: () => platformNo,
     profiles: () => profiles,
     progressContextCurrent: () => progressContextCurrent,
@@ -3348,6 +3356,10 @@ var CommuteCore = (() => {
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_GONE_GRACE_MS = 3e4;
   var FOLLOW_STATION_GONE_MS = 12e4;
+  var FOLLOW_STATION_ACC_M = 250;
+  var FOLLOW_STATION_KM = 0.25;
+  var FOLLOW_FIX_FRESH_MS = 9e4;
+  var FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS = 30 * 6e4;
   var finite2 = (n2) => typeof n2 === "number" && Number.isFinite(n2);
   var record = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   function readyAtFromConnection(reach, ready) {
@@ -3388,6 +3400,24 @@ var CommuteCore = (() => {
     const same = (t2) => !!t2 && (t2.serviceId && train.serviceId ? t2.serviceId === train.serviceId : t2.operator === train.operator && t2.std === train.std && t2.from === train.from);
     if (!record(route) || !record(route.option)) return false;
     return same(route.option.train) || same(route.lastTrain) || (Array.isArray(route.option.alts) ? route.option.alts : []).some((alt) => record(alt) && validTrain(alt.train) && same(alt.train));
+  }
+  function boardingPlace(i) {
+    const near = !!i.atHub || i.kmToStation != null && i.kmToStation < FOLLOW_STATION_KM;
+    if (i.phase !== "before-train" || !near || i.accM == null || !(i.accM <= FOLLOW_STATION_ACC_M)) return null;
+    return i.fixOk && i.fixAgeMs != null && i.fixAgeMs >= 0 && i.fixAgeMs <= FOLLOW_FIX_FRESH_MS ? "at" : "was";
+  }
+  function platformBy(option, departure, now) {
+    const before = Array.isArray(option.before) ? option.before : [];
+    const last = before[before.length - 1];
+    const by = departure - (last && last.kind === "margin" && finite2(last.secs) ? last.secs * 1e3 : 0);
+    return now > by ? departure : by;
+  }
+  function followLooksBack(route, now) {
+    var _a;
+    const t2 = route && (route.lastTrain || ((_a = route.option) == null ? void 0 : _a.train));
+    if (!route || !t2 || !finite2(t2.dep) || now < t2.dep) return false;
+    if (route.phase !== "on-train" && (route.phase !== "before-train" || route.incident === "missed" || route.incident === "cancelled")) return false;
+    return now <= (finite2(t2.arr) ? t2.arr : t2.dep) + FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS;
   }
   function boardingCheck(route, fit) {
     if (!fit || fit.none) return { ask: false };
@@ -3550,10 +3580,10 @@ var CommuteCore = (() => {
       status = "arrived";
       level = "ok";
       text2 = "Arrived";
-    } else if (route.phase === "before-train" && status === "on-track" && (input.hasReliableLocation !== false || connectionKnown) && fresh) {
+    } else if (route.phase === "before-train" && status === "on-track" && (input.hasReliableLocation !== false || connectionKnown || input.boarding === "at" && !input.activeConnection) && fresh) {
       const departure = (_c = selected == null ? void 0 : selected.train.dep) != null ? _c : route.lastTrain.dep;
-      const atStation = input.boarding === "at" && !input.activeConnection;
-      const missed = input.activeConnection ? connectionKnown && (connectionReady > departure || departure < input.now - FOLLOW_GONE_GRACE_MS) : atStation ? departure < input.now - FOLLOW_STATION_GONE_MS : selected ? selected.effort === "none" || !selected.effort && selected.missed || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
+      const atStation = !!input.boarding && !input.activeConnection;
+      const missed = input.activeConnection ? connectionKnown && (connectionReady > departure || departure < input.now - FOLLOW_GONE_GRACE_MS) : atStation ? input.boarding === "at" && departure < input.now - FOLLOW_STATION_GONE_MS : selected ? selected.effort === "none" || !selected.effort && selected.missed || departure < input.now - FOLLOW_GONE_GRACE_MS : departure < input.now - FOLLOW_GONE_GRACE_MS;
       if (missed) {
         status = "missed";
         level = "bad";
@@ -3564,7 +3594,7 @@ var CommuteCore = (() => {
         if (departure < input.now) {
           status = "hurry";
           level = "info";
-          text2 = "Departure just passed \xB7 confirm if you are on it";
+          text2 = input.boarding === "at" ? "Departure just passed \xB7 confirm if you are on it" : "Departure passed \xB7 confirm if you are on it";
         } else text2 = mins2 > 0 ? `On track \xB7 train departs in ${mins2} min` : "On track \xB7 train departing";
       } else if (connectionKnown) {
         const spare = Math.floor((((_d = selected == null ? void 0 : selected.train.dep) != null ? _d : route.lastTrain.dep) - connectionReady) / MIN);
@@ -3584,7 +3614,7 @@ var CommuteCore = (() => {
       level = "info";
       text2 = "Checking your connection \xB7 keeping your chosen journey";
     }
-    if (route.phase === "before-train" && input.hasReliableLocation === false && !connectionKnown && status === "on-track") {
+    if (route.phase === "before-train" && input.hasReliableLocation === false && !connectionKnown && status === "on-track" && !(input.boarding === "at" && !input.activeConnection)) {
       status = "unknown";
       level = "info";
       text2 = "Location unavailable \xB7 keeping your chosen journey";
@@ -6412,8 +6442,8 @@ const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn
 const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
 // The followed route once its train has left and you haven't got off it yet (aboard, or boarding not yet confirmed):
 // its train is kept on the boards and its station reports fetched whether or not the phone is placed on the line.
-const followedDeparted = now => { const r=followedRoute(), t=r&&(r.lastTrain||r.option.train);
-  return r && t && (r.phase==="on-train" || (r.phase==="before-train" && Number.isFinite(t.dep) && now>=t.dep)) ? r : null; };
+// Not once it's missed or cancelled, nor long after it was due in (C.followLooksBack).
+const followedDeparted = now => { const r=followedRoute(); return r && C.followLooksBack(r, now) ? r : null; };
 function pendingPickMarkup(){
   // The question belongs to the route it was asked about: stop following, follow something else or change
   // direction and it is gone.
@@ -9005,10 +9035,11 @@ function followedObservation(route,now){
   }
   // Are you at the station the followed train leaves from? (The page's usual test for a station: a fix good to
   // 250 m.) 'at' with a fresh fix; 'was' when that was the last fix and nothing fresher has arrived.
-  const from=route.option.train.from, placed=!!state.here&&state.locAcc<=250&&
-    (route.direction==='home'?!!state.atHub&&state.atHub===from:from===HOME&&km(state.here,GEO.HOME)<0.25);
-  const fixFresh=state.locStatus==='ok'&&!!state.lastFixAt&&now-state.lastFixAt<=90e3;
-  const boarding=phase==='before-train'&&placed?(fixFresh?'at':'was'):null;
+  const from=route.option.train.from;
+  const boarding=C.boardingPlace({phase,accM:state.here?state.locAcc:null,
+    atHub:route.direction==='home'&&!!state.atHub&&state.atHub===from,
+    kmToStation:route.direction!=='home'&&from===HOME&&state.here?km(state.here,GEO.HOME):null,
+    fixOk:state.locStatus==='ok',fixAgeMs:state.lastFixAt?now-state.lastFixAt:null});
   if(reliable){
     if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
     else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
@@ -9101,7 +9132,7 @@ function renderFollowPanel(){
   // from the phone's position and contradicted the status line beneath it).
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   const access=panelLayout&&!unknown&&wayAhead?comparison:null;
-  const departs=t.dep, platformBy=comparison&&Number.isFinite(comparison.leave)?Math.min(comparison.leave,departs):departs;
+  const platformBy=C.platformBy(r.option,t.dep,Date.now());
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')

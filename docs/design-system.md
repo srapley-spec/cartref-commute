@@ -65,6 +65,8 @@ line colours in lozenges."
   same facts prominently.
 - **At the station** the deadline stays (protected answer) and is worded for where you are: label "Be on the
   platform by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text.
+  (Built 10 Nov while following: the time is the train's expected departure less the route's catch margin, 1 min
+  by default, because the leave-from-here time has already passed once you're at the station; to confirm with Sam.)
   **Words confirmed by Sam, 10 Nov** (he changed "On the platform by" to "Be on the platform by").
 - **Urgency:** with under 2 minutes to the leave deadline, the countdown becomes the most prominent line on the card:
   "Leave now · 45 s", in the headline's weight and ink on an accent-tinted band. It does not use a status colour:

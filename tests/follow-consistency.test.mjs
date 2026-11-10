@@ -33,8 +33,15 @@ async function following(extra = {}, shift = 0) {
 test("Following, at the station before your train: 'Be on the platform by', on track until it goes; never 'Can't make it' from a plan that still has you walking there", async () => {
   const { app, c, place, panel, station } = await following();
   // 10:19, on the platform, a minute before the 10:20.
+  // 10:05, already at the station: the time to be on the platform is a minute before the train, not the time a
+  // fresh plan would have had you leave from here (which has passed, or soon will have).
+  place(5, station);
+  assert.match(panel(), /Be on the platform by\s*10:19/);
+  assert.match(panel(), /On track · train departs in 15 min/);
   place(19, station);
-  assert.match(panel(), /Be on the platform by/);
+  assert.match(panel(), /Be on the platform by\s*10:19/);
+  place(19.5, station);
+  assert.match(panel(), /Be on the platform by\s*10:20/, "inside the last minute: the departure itself, never a time that has passed");
   assert.doesNotMatch(panel(), /Leave by|leave in |Walk at your usual pace|Can't make it|no longer make/);
   assert.match(panel(), /On track · train departs in 1 min|On track · train departing/);
   assert.match(panel(), /At office/, "the arrival is still shown");
@@ -49,6 +56,63 @@ test("Following, at the station before your train: 'Be on the platform by', on t
   assert.match(panel(), /You can no longer make your 10:20/);
   assert.deepEqual(app.errors, []);
   app.close();
+});
+
+test("Following, at the station on a fix only good to 200 m: the station rule still applies (it used to say 'Location unavailable' and never ask)", async () => {
+  const { app, place, panel, station } = await following();
+  place(19, station, { locAcc: 200 });
+  assert.match(panel(), /Be on the platform by\s*10:19/);
+  assert.match(panel(), /On track · train departs in 1 min|On track · train departing/);
+  assert.doesNotMatch(panel(), /Location unavailable/);
+  place(21, station, { locAcc: 200 });
+  assert.match(panel(), /Departure just passed · confirm if you are on it/);
+  place(23, station, { locAcc: 200 });
+  assert.match(panel(), /You can no longer make your 10:20/);
+  // 260 m: too vague to say you're at the station; the card says it doesn't know where you are.
+  const vague = await following();
+  vague.place(19, vague.station, { locAcc: 260 });
+  assert.doesNotMatch(vague.panel(), /Be on the platform by/);
+  assert.match(vague.panel(), /Location unavailable/);
+  assert.deepEqual(app.errors, []);
+});
+
+// Homeward at 10:00 from the office: the 10:30 Thameslink from Farringdon (followed) and the 10:36 from King's Cross.
+async function homeward() {
+  const app = await createApp({ settings: { provider: "demo", followRoute: true }, saved: { dirMode: "home" }, geo: null, now: T0 });
+  const c = app.c, P = app.w.CommuteCore.profiles.samCommute;
+  const far = svc({ from: "ZFD", to: "LET", dep: T0 + 30 * m, arr: T0 + 70 * m, operator: "Thameslink", serviceId: "TL", destination: "Cambridge" });
+  const kx = svc({ from: "KGX", to: "LET", dep: T0 + 36 * m, arr: T0 + 68 * m, serviceId: "GN", destination: "Cambridge" });
+  c.state.boards = { "KGX-LET": { msgs: [], services: [kx] }, "ZFD-LET": { msgs: [], services: [far] }, "STP-LET": { msgs: [], services: [] } };
+  c.state.boardsAt = T0; c.state.status = []; c.state.nrStatus = []; c.render();
+  [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink via Farringdon/.test(b.getAttribute("aria-label"))).click();
+  const place = (min, here, more = {}) => { const now = T0 + min * m; app.setNow(now); c.state.boardsAt = now;
+    Object.assign(c.state, { here, locAcc: 20, lastFixAt: now, locStatus: "ok", onLine: false, atHub: null, ...more }); c.render(); return now; };
+  return { app, c, P, place, panel: () => app.text("#followPanel") };
+}
+
+test("Homeward: 'Be on the platform by' only at the station your followed train leaves from: not at another London station, and not on the tube to it", async () => {
+  const { app, c, P, place, panel } = await homeward();
+  // 10:12, on the Circle line from Aldgate: judged by the tube, as before.
+  c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T0 + 10 * m, line: "Circle", vehicle: "v1", picked: true, rideMs: 8 * m, stop: "Farringdon", stopGeo: P.stationGeo.ZFD };
+  place(12, [51.519, -0.094]);
+  assert.doesNotMatch(panel(), /Be on the platform by/);
+  assert.match(panel(), /On track · \d+ min at your connection/);
+  // The tube card under it doesn't state a different journey (10 Nov 15:39: "get off at King's Cross", following Farringdon).
+  const hero = app.d.querySelector("#hero");
+  assert.ok(hero.classList.contains("shares-follow"));
+  for (const n of hero.querySelectorAll(':scope > [data-block="then"]')) assert.equal(visible(app, n), false, "no 'Get off at King's Cross' under a route via Farringdon");
+  assert.match(app.text("#hero .journey-progress"), /Aldgate → Farringdon/, "where you get off is still on the card");
+  // 10:22, at Farringdon: at the station.
+  c.state.saved.tubeRide = null;
+  place(22, P.stationGeo.ZFD, { atHub: "ZFD" });
+  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.match(panel(), /On track · train departs in 8 min/);
+  assert.doesNotMatch(panel(), /Can't make it|no longer make|Leave by/);
+  // 10:22 at King's Cross instead: a different station, so the plan from there decides.
+  const other = await homeward();
+  other.place(22, other.P.stationGeo.KGX, { atHub: "KGX" });
+  assert.doesNotMatch(other.panel(), /Be on the platform by/);
+  assert.deepEqual(app.errors, []); assert.deepEqual(other.app.errors, []);
 });
 
 test("Following, away from the station with no time left to walk there: the plan's 'Can't make it' still shows (the rule only changes once you're at the station)", async () => {
@@ -74,7 +138,8 @@ test("Following, aboard but the phone isn't placed on the line (a reload, underg
   const board = (to) => ({ locationName: "Letchworth", trainServices: [{ serviceID: "FAST", std: "10:20", etd: late ? hm(T0 + (20 + late) * m) : "On time", operator: "Thameslink", platform: "1",
     destination: [{ locationName: "Brighton" }], subsequentCallingPoints: [{ callingPoint: [{ crs: to, locationName: to, st: "10:55", et: late ? hm(T0 + (55 + late) * m) : "On time" }] }] }], nrccMessages: [] });
   const details = () => ({ locationName: "Letchworth", crs: "LET", std: "10:20", atd: late ? hm(T0 + (20 + late) * m) : "On time", operator: "Thameslink",
-    subsequentCallingPoints: [{ callingPoint: [{ crs: "KGX", locationName: "London Kings Cross", st: "10:55", et: late ? hm(T0 + (55 + late) * m) : "On time" }] }] });
+    subsequentCallingPoints: [{ callingPoint: [{ crs: "KGX", locationName: "London Kings Cross", st: "10:50", et: "On time" },
+      { crs: "ZFD", locationName: "Farringdon", st: "10:55", et: late ? hm(T0 + (56 + late) * m) : "On time" }] }] });
   const route = (u) => { if (!u.startsWith(PROXY)) return undefined; const b = u.match(/\/board\/[A-Z]{3}\/([A-Z]{3})/);
     return b ? json(board(b[1])) : u.endsWith("/status") ? json({ v: 1, rail: true, serviceDetails: true, tflKey: true }) : /\/service\//.test(u) ? json(details()) : json([]); };
   const app = await createApp({ settings: { provider: "proxy", proxyBase: PROXY, followRoute: true }, saved: { dirMode: "office" }, geo: null, now: T0, route });
@@ -83,8 +148,15 @@ test("Following, aboard but the phone isn't placed on the line (a reload, underg
   [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();
   const boards = () => app.calls.filter((u) => /\/board\//.test(u));
   assert.ok(boards().length > 0 && boards().every((u) => !/offset=/.test(u)), "before the train leaves the boards are asked for from now");
-  // 10:26: the train left at 10:20; you say you're on it; the phone has no position (not on the line).
+  // 10:26: the train left at 10:20 and the app doesn't know whether you got on (no position): it already looks back.
   app.setNow(T0 + 26 * m); c.render();
+  let mark = app.calls.length;
+  await c.refresh({ force: true }); await sleep(80);
+  let asked = app.calls.slice(mark);
+  assert.ok(asked.filter((u) => /\/board\//.test(u)).length === 3 && asked.filter((u) => /\/board\//.test(u)).every((u) => /\?offset=-40$/.test(u)), `before you answer, the boards look back: ${asked.join(" ")}`);
+  assert.ok(asked.some((u) => u === `${PROXY}/service/FAST`), "and the train's own reports are fetched before you answer");
+  assert.equal(c.state.trainLock || null, null, "(not because a train was picked)");
+  // You say you're on it; the phone still has no position (not on the line).
   app.d.querySelector('#followPanel [data-follow-action="boarded"]').click();
   assert.equal(c.state.saved.followRoute.phase, "on-train"); assert.ok(!c.state.onLine, "the phone is not placed on the line");
   late = 4; const before = app.calls.length;
@@ -95,17 +167,30 @@ test("Following, aboard but the phone isn't placed on the line (a reload, underg
   assert.equal(made.filter((u) => /\/board\//.test(u)).length, 3, "the same three boards: no extra requests");
   const text = app.text("#followPanel");
   assert.doesNotMatch(text, /waiting for fresh data/);
-  assert.match(text, /At Farringdon\s*10:59/, "the live arrival at your stop, four minutes late");
+  assert.match(text, /At Farringdon\s*11:00/, "the train's own report of when it reaches your stop (the board still says 10:59)");
   assert.match(text, /4 min late/);
+  // 12:10, the route left running long after the train was due in: the look-back and the reports stop.
+  app.setNow(T0 + 130 * m); c.render(); mark = app.calls.length;
+  await c.refresh({ force: true }); await sleep(80);
+  asked = app.calls.slice(mark);
+  assert.ok(asked.filter((u) => /\/board\//.test(u)).every((u) => !/offset=/.test(u)), `no look-back two hours on: ${asked.join(" ")}`);
+  assert.ok(!asked.some((u) => /\/service\//.test(u)), "and no more requests for that train's reports");
   assert.deepEqual(app.errors, []);
   app.close();
 });
 
 test("One journey, no repeats: aboard, the followed card alone states the journey; the card under it keeps the stations and what you tap; other trains fold away", async () => {
-  const { app, c, place, pointOn, click } = await following({}, 30);     // the 10:50 fast train; leave home by 10:28
+  const { app, c, place, pointOn, click } = await following({}, 30);     // the 10:50 fast train; leave home by 10:24
   // 10:00, before you need to leave: nothing is folded.
   assert.equal(app.d.querySelector("#signalLaterTrains").hidden, true);
   assert.ok(visible(app, app.d.querySelector("#listTitle")));
+  // Leave by 10:24. A minute before: still open. A minute after, before boarding: folded.
+  assert.equal(hm(c.state.saved.followRoute.option.leave), "10:24");
+  app.setNow(T0 + 23 * m); c.render();
+  assert.equal(app.d.querySelector("#signalLaterTrains").hidden, true);
+  app.setNow(T0 + 25 * m); c.render();
+  assert.equal(app.d.querySelector("#signalLaterTrains").hidden, false, "set off: other trains fold away before you board");
+  assert.equal(app.d.querySelector("#list").parentElement, app.d.querySelector("#signalLaterTrains"));
   // 11:04, on the line where the fast train should be.
   place(64, pointOn(14 / 35), { onLine: true });
   const hero = app.d.querySelector("#hero");

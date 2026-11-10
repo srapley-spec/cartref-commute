@@ -1313,8 +1313,8 @@ const pickButton = (c, label, extra="") => `<button type="button" class="pickbtn
 const followedRoute = () => { const r=activeFollow(); return r&&r.option&&r.option.train ? r : null; };
 // The followed route once its train has left and you haven't got off it yet (aboard, or boarding not yet confirmed):
 // its train is kept on the boards and its station reports fetched whether or not the phone is placed on the line.
-const followedDeparted = now => { const r=followedRoute(), t=r&&(r.lastTrain||r.option.train);
-  return r && t && (r.phase==="on-train" || (r.phase==="before-train" && Number.isFinite(t.dep) && now>=t.dep)) ? r : null; };
+// Not once it's missed or cancelled, nor long after it was due in (C.followLooksBack).
+const followedDeparted = now => { const r=followedRoute(); return r && C.followLooksBack(r, now) ? r : null; };
 function pendingPickMarkup(){
   // The question belongs to the route it was asked about: stop following, follow something else or change
   // direction and it is gone.
