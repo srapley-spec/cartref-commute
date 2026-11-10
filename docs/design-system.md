@@ -48,6 +48,11 @@ line colours in lozenges."
   this one". Rows are headed "Tube", not "Train". The position number is labelled as what it is ("1st on the
   platform board"). A Circle train that reaches Aldgate the long way round names it: "Circle via Aldgate".
   "If you're near the platform" is said once.
+  The card's journey line is "Next tube 08:08 → At office 08:24"; the instruction is the line's lozenge with the
+  action in it ("**[Get on the Met to Aldgate]** eastbound · Platform 1 · in 4m 47s · about 1 min to spare on the
+  platform"); the list is headed "Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're
+  getting"; rows read "1st · 08:06 · [Met] to Aldgate · Office 08:22", an H&C row "to Barking, for Aldgate East".
+  **Words confirmed by Sam, 10 Nov.**
 
 ### 3. Before the train (A1, A3, A4, B1)
 - **"Arrives first" appears once** on a recommendation.
