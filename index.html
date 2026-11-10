@@ -690,6 +690,10 @@ html[data-trip="on"] #journeyViewControl {display:flex!important}
  html .connection-main.has-arrival>.connection-clock {grid-column:1;grid-row:auto;grid-template-rows:none;text-align:left}
  html .connection-main.has-arrival>.connection-details {grid-row:auto}
 }
+/* The tube that goes with the journey (10 Nov amendment §2): line lozenges in TfL's colours, then where and how long. */
+html #followPanel .tube-line {font-size:14px;line-height:1.5;margin:6px 0}
+html #followPanel .tube-line .chip {font-weight:650}
+html #followPanel .tube-line .tube-alt {color:var(--muted)}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -839,7 +843,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 21:09 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 21:59 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1122,6 +1126,7 @@ var CommuteCore = (() => {
     FOLLOW_CHANGE_MS: () => FOLLOW_CHANGE_MS,
     FOLLOW_FIX_FRESH_MS: () => FOLLOW_FIX_FRESH_MS,
     FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS: () => FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS,
+    FOLLOW_NOTICE_MIN: () => FOLLOW_NOTICE_MIN,
     FOLLOW_STATION_ACC_M: () => FOLLOW_STATION_ACC_M,
     FOLLOW_STATION_GONE_MS: () => FOLLOW_STATION_GONE_MS,
     FOLLOW_STATION_KM: () => FOLLOW_STATION_KM,
@@ -1147,6 +1152,7 @@ var CommuteCore = (() => {
     STATION_MAX_ACC_M: () => STATION_MAX_ACC_M,
     STATION_REPORT_SLACK_MS: () => STATION_REPORT_SLACK_MS,
     STOPPED_MPS: () => STOPPED_MPS,
+    STOP_EXIT_KM: () => STOP_EXIT_KM,
     STOP_WITHIN_MS: () => STOP_WITHIN_MS,
     TFL_TRIP_MODES: () => TFL_TRIP_MODES,
     TRAIN_MOVING_MPS: () => TRAIN_MOVING_MPS,
@@ -1368,11 +1374,13 @@ var CommuteCore = (() => {
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
+    tubeLine: () => tubeLine,
     tubeName: () => tubeName,
     tubeStationBoard: () => tubeStationBoard,
     updateFollowRoute: () => updateFollowRoute,
     updateFollowTrip: () => updateFollowTrip,
     visibleDisruptions: () => visibleDisruptions,
+    walkFromStopSecs: () => walkFromStopSecs,
     walkSecs: () => walkSecs,
     walkSteps: () => walkSteps,
     watchStop: () => watchStop,
@@ -2815,12 +2823,18 @@ var CommuteCore = (() => {
   }
   var nearlyHome = (dir, mode, here, onTheLine, p) => dir === "home" && mode !== "leisure" && !!here && !onTheLine && km(here, p.places.homeStation) < 3;
   var walkSecs = (from, to, pace, p) => km(from, to) * p.walking.streetFactor / p.walking.kmh[pace] * 3600;
+  var STOP_EXIT_KM = 0.15;
+  function walkFromStopSecs(here, to, stop, measuredSecs, exitSecs, pace, p) {
+    const fromStop = walkSecs(stop, to, pace, p);
+    const scale = fromStop > 0 && measuredSecs > 0 ? Math.min(2, Math.max(0.5, measuredSecs / fromStop)) : 1;
+    return walkSecs(here, to, pace, p) * scale + Math.max(0, exitSecs) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
+  }
   function nearlyHomeEta(now, here, stationAt, home, exitMs, walkMs, pace, p) {
     const atHome = !!home && km(here, home) < 0.1;
     if (stationAt && stationAt > now - 6e4 && !atHome) return { kind: "train", at: stationAt + exitMs + walkMs, stationAt };
     if (home) {
       if (atHome) return { kind: "home" };
-      const secs2 = walkSecs(here, home, pace, p);
+      const secs2 = walkFromStopSecs(here, home, p.places.homeStation, walkMs / 1e3, exitMs / 1e3, pace, p);
       return { kind: "walk", at: now + secs2 * 1e3, secs: secs2 };
     }
     return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };
@@ -2919,6 +2933,17 @@ var CommuteCore = (() => {
   }
   function trainName(t2) {
     return `${t2.std} ${t2.operator}${t2.destination ? ` to ${t2.destination}` : ""}`.trim();
+  }
+  function tubeLine(option, direction, names) {
+    var _a;
+    const tube = option.tube;
+    const legs = Array.isArray(option.legs) ? option.legs : [];
+    const train = legs.findIndex((l) => l.train), ride = legs.findIndex((l) => l.tube);
+    if (!tube || !tube.stop || !Array.isArray(tube.lines) || !tube.lines.length || train < 0 || ride < 0) return null;
+    if (direction === "office" ? ride < train : ride > train) return null;
+    const secs2 = (_a = tube.ride) == null ? void 0 : _a[option.hub], hub = names[option.hub] || option.hub;
+    if (typeof secs2 !== "number" || !Number.isFinite(secs2)) return null;
+    return direction === "office" ? { lines: tube.lines, from: hub, to: tube.stop, toward: tube.toward || null, rideMin: Math.round(secs2 / 60), alt: tube.alt ? { lines: tube.alt.lines, to: tube.alt.stop } : null } : { lines: tube.lines, from: tube.stop, to: hub, toward: null, rideMin: Math.round(secs2 / 60), alt: null };
   }
   function wrongTrainQuestion(name, fit) {
     const c = fit.contradiction;
@@ -3088,7 +3113,16 @@ var CommuteCore = (() => {
     const ic = { KGX: s.kxInterchange, STP: s.stpInterchange, ZFD: s.farInterchange };
     const routes = [];
     if (!leisure) {
-      const tube = i.tubeFallback ? { stop: "Aldgate East", lines: ["hc"], ride: { KGX: s.rideKxAde, STP: s.rideKxAde, ZFD: s.rideFarAde }, plat: s.adePlatform, walk: s.adeWalk, fallback: true } : { stop: "Aldgate", lines: ["circle", "met"], ride: { KGX: s.rideKxAld, STP: s.rideKxAld, ZFD: s.rideFarAld }, plat: s.aldPlatform, walk: s.aldWalk, fallback: false };
+      const tube = i.tubeFallback ? { stop: "Aldgate East", lines: ["hc"], ride: { KGX: s.rideKxAde, STP: s.rideKxAde, ZFD: s.rideFarAde }, plat: s.adePlatform, walk: s.adeWalk, fallback: true, toward: "eastbound" } : {
+        stop: "Aldgate",
+        lines: ["circle", "met"],
+        ride: { KGX: s.rideKxAld, STP: s.rideKxAld, ZFD: s.rideFarAld },
+        plat: s.aldPlatform,
+        walk: s.aldWalk,
+        fallback: false,
+        toward: "eastbound",
+        alt: { stop: "Aldgate East", lines: ["hc"] }
+      };
       const tubeName2 = tube.fallback ? "H&C" : "Circle or Met";
       const walkOut = fast ? s.walkHomeStationFast : s.walkHomeStationAvg, walkBack = fast ? s.walkStationHomeFast : s.walkStationHomeAvg;
       for (const hub of ["KGX", "STP", "ZFD"]) {
@@ -3354,6 +3388,7 @@ var CommuteCore = (() => {
   var MIN = 6e4;
   var FOLLOW_BETTER_MIN = 5;
   var FOLLOW_CHANGE_MS = 6e4;
+  var FOLLOW_NOTICE_MIN = 3;
   var FOLLOW_GONE_GRACE_MS = 3e4;
   var FOLLOW_STATION_GONE_MS = 12e4;
   var FOLLOW_STATION_ACC_M = 250;
@@ -3467,7 +3502,7 @@ var CommuteCore = (() => {
   }
   function restoreFollowRoute(value) {
     try {
-      if (!record(value) || value.version !== 1 || !["office", "home"].includes(String(value.direction)) || !["commute", "leisure"].includes(String(value.mode)) || !finite2(value.startedAt) || !finite2(value.plannedArrival) || !finite2(value.expectedArrival) || !validOption(value.option) || !validTrain(value.lastTrain, true) || !sameService({ ...value.option, train: value.lastTrain }, value.option) || typeof value.id !== "string" || value.id !== followServiceKey(value.option) || !["before-train", "on-train", "after-train", "arrived"].includes(String(value.phase)) || value.incident != null && !["cancelled", "unknown", "missed", "boarding"].includes(String(value.incident)) || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every((n2) => record(n2) && typeof n2.id === "string" && typeof n2.text === "string" && finite2(n2.at) && ["cancelled", "unknown", "missed", "arrival", "platform", "recovered", "boarding"].includes(String(n2.kind)) && (n2.deltaMin == null || finite2(n2.deltaMin))) || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every((x) => typeof x === "string") || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every((x) => typeof x === "string")) return null;
+      if (!record(value) || value.version !== 1 || !["office", "home"].includes(String(value.direction)) || !["commute", "leisure"].includes(String(value.mode)) || !finite2(value.startedAt) || !finite2(value.plannedArrival) || !finite2(value.expectedArrival) || !validOption(value.option) || !validTrain(value.lastTrain, true) || !sameService({ ...value.option, train: value.lastTrain }, value.option) || typeof value.id !== "string" || value.id !== followServiceKey(value.option) || !["before-train", "on-train", "after-train", "arrived"].includes(String(value.phase)) || value.incident != null && !["cancelled", "unknown", "missed", "boarding"].includes(String(value.incident)) || value.toldArrival != null && !finite2(value.toldArrival) || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every((n2) => record(n2) && typeof n2.id === "string" && typeof n2.text === "string" && finite2(n2.at) && ["cancelled", "unknown", "missed", "arrival", "platform", "recovered", "boarding"].includes(String(n2.kind)) && (n2.deltaMin == null || finite2(n2.deltaMin)) && (n2.was == null || finite2(n2.was))) || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every((x) => typeof x === "string") || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every((x) => typeof x === "string")) return null;
       return clone(value);
     } catch {
       return null;
@@ -3494,6 +3529,8 @@ var CommuteCore = (() => {
         if (base.startsWith(before.std)) l.d = `${before.std}${hhmm(after.dep) !== before.std ? ` (exp ${hhmm(after.dep)})` : ""}${base.slice(before.std.length)}`;
         const platform = after.platform ? `platform ${after.platform}` : "platform unannounced";
         l.note = /\bplatform\s+[^,·]+/i.test(l.note || "") ? (l.note || "").replace(/\bplatform\s+[^,·]+/i, platform) : [l.note, platform].filter(Boolean).join(", ");
+      } else if (l.t != null && l.t < before.dep) {
+        l.t = l.t + departureShift;
       } else if (l.t != null && l.t >= before.arr) {
         l.t = index === lastTimed && l.t > before.arr ? route.expectedArrival : l.t + railShift;
       }
@@ -3526,7 +3563,7 @@ var CommuteCore = (() => {
     const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : void 0;
     if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
     let status = "on-track", level = "ok", text2 = "On track";
-    const addNotice = (kind, key, message, deltaMin) => {
+    const addNotice = (kind, key, message, deltaMin, was) => {
       const id = `${route.id}|${kind}|${key}`;
       if (kind === "arrival") {
         route.notices = route.notices.filter((n2) => n2.kind !== "arrival");
@@ -3534,13 +3571,29 @@ var CommuteCore = (() => {
       }
       if (!route.seenEvents.includes(id)) {
         route.seenEvents = [...route.seenEvents, id].slice(-100);
-        route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...deltaMin != null ? { deltaMin } : {} }].slice(-100);
+        route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...deltaMin != null ? { deltaMin } : {}, ...was != null ? { was } : {} }].slice(-100);
       }
+    };
+    const shownMin = (a, b) => Math.abs(Math.floor(a / MIN) - Math.floor(b / MIN));
+    const tellArrival = (arrival, why) => {
+      const told = finite2(route.toldArrival) ? route.toldArrival : route.plannedArrival;
+      const words = (was) => `Arriving ${hhmm(arrival)} (was ${hhmm(was)}): ${why}.`;
+      const withdraw = () => {
+        route.notices = route.notices.filter((n2) => n2.kind !== "arrival");
+        route.seenEvents = route.seenEvents.filter((key) => !key.includes("|arrival|"));
+      };
+      if (shownMin(arrival, route.plannedArrival) < FOLLOW_NOTICE_MIN) {
+        withdraw();
+        route.toldArrival = null;
+      } else if (shownMin(arrival, told) >= FOLLOW_NOTICE_MIN) {
+        addNotice("arrival", String(arrival), words(told), Math.round((arrival - told) / MIN), told);
+        route.toldArrival = arrival;
+      } else route.notices = route.notices.flatMap((n2) => n2.kind !== "arrival" || !finite2(n2.was) ? [n2] : shownMin(arrival, n2.was) < 1 ? [] : [{ ...n2, text: words(n2.was) }]);
     };
     if (onward) {
       if (((_b = input.onwardFresh) != null ? _b : fresh) && finite2(suppliedArrival) && Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
         const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
-        if (Math.floor(suppliedArrival / MIN) !== Math.floor(previous.expectedArrival / MIN)) addNotice("arrival", String(suppliedArrival), `Your onward journey has changed; arriving ${hhmm(suppliedArrival)}`, delta);
+        tellArrival(suppliedArrival, delta > 0 ? "the rest of your journey is taking longer" : "the rest of your journey is quicker");
         route.expectedArrival = suppliedArrival;
       }
     } else if (selected) {
@@ -3559,17 +3612,15 @@ var CommuteCore = (() => {
       } else {
         const arrival = finite2(suppliedArrival) ? suppliedArrival : selected.train.arr + (route.plannedArrival - route.option.train.arr);
         if (Math.abs(arrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
-          const delta = Math.round((arrival - previous.expectedArrival) / MIN);
           const late = route.phase === "on-train" ? selected.train.arrLate : Math.max(selected.train.depLate, selected.train.arrLate);
-          const reason = arrival > previous.expectedArrival ? `Your train${late > 0 ? ` is ${late} min late` : " is running later"}; arriving ${hhmm(arrival)}` : `Your train is running earlier; arriving ${hhmm(arrival)}`;
-          if (Math.floor(arrival / MIN) !== Math.floor(previous.expectedArrival / MIN)) addNotice("arrival", String(arrival), reason, delta);
+          tellArrival(arrival, late > 0 ? `your train is ${late} min late` : arrival > previous.expectedArrival ? "your train is running later" : "your train is running earlier");
           route.expectedArrival = arrival;
         }
       }
     } else if (arrivalFresh && finite2(suppliedArrival)) {
       if (Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
         const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
-        if (Math.floor(suppliedArrival / MIN) !== Math.floor(previous.expectedArrival / MIN)) addNotice("arrival", String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
+        tellArrival(suppliedArrival, delta > 0 ? "your train is running later" : "your train is running earlier");
         route.expectedArrival = suppliedArrival;
       }
     } else {
@@ -3706,6 +3757,13 @@ var CommuteCore = (() => {
       }
     }
     const legs = legsFor(route).filter((l) => l.t != null && !l.calls);
+    if (status === "on-track" && level === "ok" && text2.startsWith("On track")) {
+      const later = Math.floor(route.expectedArrival / MIN) - Math.floor(route.plannedArrival / MIN);
+      if (later >= 1) {
+        level = "warn";
+        text2 = `${later} min later than planned${text2.slice("On track".length)}`;
+      }
+    }
     const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
     return {
       route,
@@ -6508,6 +6566,12 @@ function renderOnTrain(now, m){
 // The train you're on (as remembered), from the loaded boards.
 const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
+// The walk to the office from here, set against your measured walk from the nearer office tube stop (Settings) and
+// what's left of getting off its platform (C.walkFromStopSecs).
+const officeWalkSecs = pace => { const k=pace==="fast"?S().fastFactor:1, stops=PROFILE.places.officeStops||[];
+  const stop=stops.slice().sort((a,b)=>km(state.here,a.geo)-km(state.here,b.geo))[0];
+  const set=stop&&({ALD:[S().aldWalk,S().aldPlatform],ADE:[S().adeWalk,S().adePlatform]})[stop.id];
+  return set ? C.walkFromStopSecs(state.here, OFFICE, stop.geo, set[0]*k, set[1]*k, pace, PROFILE) : C.walkSecs(state.here, OFFICE, pace, PROFILE); };
 const nearlyHome = () => C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
@@ -6642,7 +6706,7 @@ function renderInLondon(now){
     $("#listTitle").textContent="Arrived"; $("#list").innerHTML=""; return now;
   }
   if(nearOffice()){
-    const walk=C.walkSecs(state.here, OFFICE, fast?"fast":"avg", PROFILE)*1000, arrive=now+walk;
+    const walk=officeWalkSecs(fast?"fast":"avg")*1000, arrive=now+walk;
     $("#hero").innerHTML=`<div class="lbl" data-block="label">Walking to the office · ${hhmm(now)} · from your location</div>
       <div data-block="headline">${journeyTimesMarkup({leave:now,arrive,dest:'office',leftLabel:'Now · walking',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:arrive,unavailable:false,duration:'remaining'})}
       <div data-block="then" style="font-size:14px">${Math.round(dOff*1000)} m to 20 Mansfield Street in a straight line.</div>`;
@@ -9080,12 +9144,23 @@ function followedObservation(route,now){
         if(leg){currentArrival=C.segmentArrival(live?live.t:ride.t,[...(live?[]:[{kind:'ride',secs:leg.rideMs/1000}]),{kind:'walk',secs:leg.tailMs/1000}]);
           onwardFresh=true;onwardSource=live?'Live Tube arrival and measured onward walk':'Estimated Tube ride and measured onward walk';}
       } else if(reliable&&nearOffice()){
-        currentArrival=C.segmentArrival(now,[{kind:'walk',secs:C.walkSecs(state.here,PROFILE.places.office,pace,PROFILE)}]);onwardFresh=true;onwardSource='Walk from your current location';
+        currentArrival=C.segmentArrival(now,[{kind:'walk',secs:officeWalkSecs(pace)}]);onwardFresh=true;onwardSource='Walk from your current location';
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
   return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,boarding:activeConnection?null:boarding,
     hasReliableLocation:reliable&&(!state.onLine||phase==='on-train')};
+}
+// "Arriving 08:28 (was 08:24): …": the new time carries the weight.
+const noticeMarkup=text=>{const m=/^(Arriving \d\d:\d\d)( \(was .*)$/.exec(text);return m?`<b>${esc(m[1])}</b>${esc(m[2])}`:esc(text);};
+// A tube named with its lines, each in TfL's colour (identity, not status). Words confirmed by Sam, 10 Nov.
+const TUBE_LINE_LABEL={circle:'Circle',met:'Met',hc:'H&C'};
+const tubeLineChips=lines=>lines.map(l=>`<span class="chip ${esc(l)}">${esc(TUBE_LINE_LABEL[l]||l)}</span>`).join(' ');
+function tubeLineMarkup(option,direction){
+  const t=C.tubeLine(option,direction,STATIONS);if(!t)return '';
+  return direction==='office'
+    ?`<div class="tube-line" data-block="tube-line"><div><b>Then</b> ${tubeLineChips(t.lines)} to ${esc(t.to)}${t.toward?` · ${esc(t.toward)}`:''} · about ${t.rideMin} min</div>${t.alt?`<div class="tube-alt">or ${tubeLineChips(t.alt.lines)} to ${esc(t.alt.to)} · if it comes first</div>`:''}</div>`
+    :`<div class="tube-line" data-block="tube-line"><b>Tube:</b> ${tubeLineChips(t.lines)} ${esc(t.from)} → ${esc(t.to)} · ${t.rideMin} min</div>`;
 }
 function renderFollowPanel(){
   const panel=$('#followPanel');
@@ -9125,7 +9200,6 @@ function renderFollowPanel(){
   // Compare only before boarding, using the same current ranked options as the
   // other views. A saved winning label is not evidence that a route still wins.
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
-  const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   const panelLayout=r.phase==='before-train';
   // How hard you'd have to walk is a question only while the way to the station is still ahead of you: not on the
   // tube you're riding to it, and not once you're at it (10 Nov, #57 H15/H20: the label came from a fresh plan made
@@ -9133,26 +9207,42 @@ function renderFollowPanel(){
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   const access=panelLayout&&!unknown&&wayAhead?comparison:null;
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
+  // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
+  // same time, not its own copy.
+  const legs=C.followedLegs(r), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
+  // Off the train (10 Nov, #57 H26): the finished train leaves the card, and once the only step left is arriving
+  // the header reads "Now → At home", not the arrival time on both sides.
+  const offTrain=r.phase==='after-train'||r.phase==='arrived';
+  const tailLeg=legs.filter(l=>l.t!=null&&!l.calls).pop();
+  const lastLeg=r.phase==='after-train'&&!!result.nextStep&&!!tailLeg&&result.nextStep.d===tailLeg.d&&result.nextStep.t===tailLeg.t;
+  // The tube that goes with the journey, named with its lines: coming home it is the first thing you do (until
+  // you're at the station the train leaves from); going out it follows the train (until you're off the train).
+  const tubeLine=r.direction==='home'?(r.phase==='before-train'&&!observation.boarding&&!state.atHub?tubeLineMarkup(r.option,'home'):'')
+    :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
-      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
+    ${r.direction==='home'?tubeLine:''}
     ${panelLayout?nextServiceMarkup(t):''}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
-    ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
-    <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
+    ${r.phase!=='on-train'?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
+    <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
+      :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='after-train'?'':trainConnectionMarkup(t)}
+    ${r.direction==='home'?'':tubeLine}
     <div class="follow-status ${result.level}">${unknown?'Arrival uncertain · ':''}${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
-    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
-    ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
+    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
+    ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
-    <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${legs.map(l=>`<li class="t">${stepTime(l)==null?'':hhmm(stepTime(l))}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}
     <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}

@@ -50,20 +50,24 @@ test('released-main follow arrival boundary:59 seconds stays stable,60 changes w
  const small=run(f,T('18:21'),[changed(T('19:27')+59000)]);
  assert.equal(small.notice,null);assert.equal(small.route.expectedArrival,T('19:52'));
  const sixty=run(f,T('18:21'),[changed(T('19:28'),1)]);
- assert.equal(sixty.route.expectedArrival,T('19:53'));assert.equal(sixty.notice.kind,'arrival');assert.match(sixty.notice.text,/1 min late/);
+ assert.equal(sixty.route.expectedArrival,T('19:53'));assert.equal(sixty.notice,null,'the arrival moves; a notice needs three minutes (10 Nov, #57 E2)');
+ const three=run(f,T('18:21'),[changed(T('19:30'),3)]);assert.equal(three.notice.kind,'arrival');assert.equal(three.notice.text,'Arriving 19:55 (was 19:52): your train is 3 min late.');
  let s=run(f,T('18:22'),[changed(T('19:32'),5)]);
  assert.equal(s.trainStatus.level,'warn','five minutes is amber under the current shared rule');
  assert.equal(run(f,T('18:22'),[changed(T('19:31'),4)]).trainStatus.level,'ok','four minutes is green under the current shared rule');
  assert.equal(run(f,T('18:22'),[changed(T('19:42'),15)]).trainStatus.level,'bad','red starts at fifteen');
  s=run(s.route,T('18:23'),[changed(T('19:30'),3)]);
- assert.match(s.notice.text,/earlier/);assert.equal(s.trainStatus.level,'ok');assert.equal(s.route.expectedArrival,T('19:55'));
+ assert.equal(s.notice.text,'Arriving 19:55 (was 19:52): your train is 3 min late.','the notice still showing is re-worded, not raised again');assert.equal(s.trainStatus.level,'ok');assert.equal(s.route.expectedArrival,T('19:55'));
  s=run(s.route,T('18:25'),[changed(T('19:27'))]);
- assert.match(s.notice.text,/earlier/);assert.equal(s.trainStatus.text,'On time');assert.equal(s.route.expectedArrival,T('19:52'));
- const early=run(f,T('18:25'),[changed(T('19:25'))]);assert.match(early.notice.text,/earlier/);assert.equal(early.route.expectedArrival,T('19:50'));
+ assert.equal(s.notice,null,'back at the plan: the notice is withdrawn');assert.equal(s.trainStatus.text,'On time');assert.equal(s.route.expectedArrival,T('19:52'));
+ const early=run(f,T('18:25'),[changed(T('19:25'))]);assert.equal(early.notice,null,'two minutes early: no notice');assert.equal(early.route.expectedArrival,T('19:50'));
+ const earlier=run(f,T('18:25'),[changed(T('19:23'))]);assert.equal(earlier.notice.text,'Arriving 19:48 (was 19:52): your train is running earlier.');
  const alreadyLate=start(trip('18:54','18:28','18:54','19:30',{t:{arrLate:3}}),T('18:20'));
  assert.equal(alreadyLate.lastTrain.arrLate,3);
  const later=run(alreadyLate,T('18:21'),[changed(T('19:32'),5)]);
- assert.match(later.notice.text,/5 min late/);assert.equal(later.route.expectedArrival,T('19:57'));assert.equal(later.notice.deltaMin,2);
+ assert.equal(later.notice,null,'two minutes past the plan you followed: no notice');assert.equal(later.route.expectedArrival,T('19:57'));
+ const more=run(alreadyLate,T('18:21'),[changed(T('19:33'),6)]);
+ assert.equal(more.notice.text,'Arriving 19:58 (was 19:55): your train is 6 min late.');assert.equal(more.notice.deltaMin,3);
 });
 
 test('released-main follow effort: run-behind is not missed, impossible and departed are missed, recovery ranks by arrival then later leave',()=>{

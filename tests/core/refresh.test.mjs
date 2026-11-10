@@ -49,7 +49,18 @@ test("nearlyHomeEta: from the train, at home, walking, at the station, unknown",
   assert.equal(core.nearlyHomeEta(now, near, now - 2 * MIN, HOME, x, w, "avg", sam).kind, "walk", "train arrived: walk from here");
   assert.equal(core.nearlyHomeEta(now, HOME, now + 5 * MIN, HOME, x, w, "avg", sam).kind, "home");
   const walk = core.nearlyHomeEta(now, near, null, HOME, x, w, "fast", sam);
-  assert.equal(walk.at, now + core.walkSecs(near, HOME, "fast", sam) * 1000);
+  // The walk from here is set against your measured walk from the station (10 Nov, #57 H27): the straight line from
+  // here, scaled by measured ÷ straight line from the station; within 150 m of the station, what's left of the exit.
+  const scale = (19 * 60) / core.walkSecs(LET, HOME, "fast", sam);
+  assert.ok(scale > 0.5 && scale < 2);
+  assert.ok(Math.abs(walk.at - (now + core.walkSecs(near, HOME, "fast", sam) * scale * 1000)) < 1);
+  const stepOff = core.nearlyHomeEta(now, LET, now - 2 * MIN, HOME, x, w, "avg", sam);
+  assert.ok(Math.abs(stepOff.at - (now + x + w)) < 1, "stepping off at the station: the plan's own exit and walk");
+  const out = [51.9790, -0.2305];   // about 140 m on, towards home: nearly all of the exit is behind you
+  const leftExit = core.walkFromStopSecs(out, HOME, LET, 19 * 60, 90, "avg", sam) - core.walkSecs(out, HOME, "avg", sam) * (19 * 60 / core.walkSecs(LET, HOME, "avg", sam));
+  assert.ok(leftExit >= 0 && leftExit < 20, `little of the exit allowance is left 140 m out: ${leftExit}`);
+  assert.equal(core.walkFromStopSecs(near, HOME, LET, 19 * 60, 90, "avg", sam), core.walkSecs(near, HOME, "avg", sam) * (19 * 60 / core.walkSecs(LET, HOME, "avg", sam)), "away from the station: none");
+  assert.equal(core.walkFromStopSecs(near, HOME, LET, 0, 90, "avg", sam), core.walkSecs(near, HOME, "avg", sam), "no measured walk: the straight line as before");
   assert.deepEqual(core.nearlyHomeEta(now, LET, null, null, x, w, "avg", sam), { kind: "station", at: now + x + w });
   assert.deepEqual(core.nearlyHomeEta(now, near, null, null, x, w, "avg", sam), { kind: "unknown" });
   assert.equal(core.nearlyHomeEta(now, [50.1, -1.1], null, null, x, w, "avg", testville).kind, "station");

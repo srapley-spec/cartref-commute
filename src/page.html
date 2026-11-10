@@ -1379,6 +1379,12 @@ function renderOnTrain(now, m){
 // The train you're on (as remembered), from the loaded boards.
 const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
+// The walk to the office from here, set against your measured walk from the nearer office tube stop (Settings) and
+// what's left of getting off its platform (C.walkFromStopSecs).
+const officeWalkSecs = pace => { const k=pace==="fast"?S().fastFactor:1, stops=PROFILE.places.officeStops||[];
+  const stop=stops.slice().sort((a,b)=>km(state.here,a.geo)-km(state.here,b.geo))[0];
+  const set=stop&&({ALD:[S().aldWalk,S().aldPlatform],ADE:[S().adeWalk,S().adePlatform]})[stop.id];
+  return set ? C.walkFromStopSecs(state.here, OFFICE, stop.geo, set[0]*k, set[1]*k, pace, PROFILE) : C.walkSecs(state.here, OFFICE, pace, PROFILE); };
 const nearlyHome = () => C.nearlyHome(direction(), mode(), state.here, !!state.onLine, PROFILE);
 function renderNearlyHome(now){
   const s=S(), fast=state.saved.pace==="fast", walk=(fast?s.walkStationHomeFast:s.walkStationHomeAvg)*1000, exit=(s.letExit||0)*1000;
@@ -1513,7 +1519,7 @@ function renderInLondon(now){
     $("#listTitle").textContent="Arrived"; $("#list").innerHTML=""; return now;
   }
   if(nearOffice()){
-    const walk=C.walkSecs(state.here, OFFICE, fast?"fast":"avg", PROFILE)*1000, arrive=now+walk;
+    const walk=officeWalkSecs(fast?"fast":"avg")*1000, arrive=now+walk;
     $("#hero").innerHTML=`<div class="lbl" data-block="label">Walking to the office · ${hhmm(now)} · from your location</div>
       <div data-block="headline">${journeyTimesMarkup({leave:now,arrive,dest:'office',leftLabel:'Now · walking',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:arrive,unavailable:false,duration:'remaining'})}
       <div data-block="then" style="font-size:14px">${Math.round(dOff*1000)} m to 20 Mansfield Street in a straight line.</div>`;

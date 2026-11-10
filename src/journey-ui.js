@@ -317,12 +317,23 @@ function followedObservation(route,now){
         if(leg){currentArrival=C.segmentArrival(live?live.t:ride.t,[...(live?[]:[{kind:'ride',secs:leg.rideMs/1000}]),{kind:'walk',secs:leg.tailMs/1000}]);
           onwardFresh=true;onwardSource=live?'Live Tube arrival and measured onward walk':'Estimated Tube ride and measured onward walk';}
       } else if(reliable&&nearOffice()){
-        currentArrival=C.segmentArrival(now,[{kind:'walk',secs:C.walkSecs(state.here,PROFILE.places.office,pace,PROFILE)}]);onwardFresh=true;onwardSource='Walk from your current location';
+        currentArrival=C.segmentArrival(now,[{kind:'walk',secs:officeWalkSecs(pace)}]);onwardFresh=true;onwardSource='Walk from your current location';
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
   return {phase,currentTrainArrival,trainArrivalLive,activeConnection,readyAt,currentArrival,onwardFresh,onwardSource,connectionSource,boarding:activeConnection?null:boarding,
     hasReliableLocation:reliable&&(!state.onLine||phase==='on-train')};
+}
+// "Arriving 08:28 (was 08:24): …": the new time carries the weight.
+const noticeMarkup=text=>{const m=/^(Arriving \d\d:\d\d)( \(was .*)$/.exec(text);return m?`<b>${esc(m[1])}</b>${esc(m[2])}`:esc(text);};
+// A tube named with its lines, each in TfL's colour (identity, not status). Words confirmed by Sam, 10 Nov.
+const TUBE_LINE_LABEL={circle:'Circle',met:'Met',hc:'H&C'};
+const tubeLineChips=lines=>lines.map(l=>`<span class="chip ${esc(l)}">${esc(TUBE_LINE_LABEL[l]||l)}</span>`).join(' ');
+function tubeLineMarkup(option,direction){
+  const t=C.tubeLine(option,direction,STATIONS);if(!t)return '';
+  return direction==='office'
+    ?`<div class="tube-line" data-block="tube-line"><div><b>Then</b> ${tubeLineChips(t.lines)} to ${esc(t.to)}${t.toward?` · ${esc(t.toward)}`:''} · about ${t.rideMin} min</div>${t.alt?`<div class="tube-alt">or ${tubeLineChips(t.alt.lines)} to ${esc(t.alt.to)} · if it comes first</div>`:''}</div>`
+    :`<div class="tube-line" data-block="tube-line"><b>Tube:</b> ${tubeLineChips(t.lines)} ${esc(t.from)} → ${esc(t.to)} · ${t.rideMin} min</div>`;
 }
 function renderFollowPanel(){
   const panel=$('#followPanel');
@@ -362,7 +373,6 @@ function renderFollowPanel(){
   // Compare only before boarding, using the same current ranked options as the
   // other views. A saved winning label is not evidence that a route still wins.
   const comparison=r.phase==='before-train'?C.rankNow(availableOptions,r.direction,PROFILE,true).find(option=>C.followMatchesService(r,option)):null;
-  const comparisonFlags=(comparison?.flags||[]).filter(flag=>flag.txt.startsWith('Arrives first'));
   const panelLayout=r.phase==='before-train';
   // How hard you'd have to walk is a question only while the way to the station is still ahead of you: not on the
   // tube you're riding to it, and not once you're at it (10 Nov, #57 H15/H20: the label came from a fresh plan made
@@ -370,26 +380,42 @@ function renderFollowPanel(){
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   const access=panelLayout&&!unknown&&wayAhead?comparison:null;
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
+  // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
+  // same time, not its own copy.
+  const legs=C.followedLegs(r), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
+  // Off the train (10 Nov, #57 H26): the finished train leaves the card, and once the only step left is arriving
+  // the header reads "Now → At home", not the arrival time on both sides.
+  const offTrain=r.phase==='after-train'||r.phase==='arrived';
+  const tailLeg=legs.filter(l=>l.t!=null&&!l.calls).pop();
+  const lastLeg=r.phase==='after-train'&&!!result.nextStep&&!!tailLeg&&result.nextStep.d===tailLeg.d&&result.nextStep.t===tailLeg.t;
+  // The tube that goes with the journey, named with its lines: coming home it is the first thing you do (until
+  // you're at the station the train leaves from); going out it follows the train (until you're off the train).
+  const tubeLine=r.direction==='home'?(r.phase==='before-train'&&!observation.boarding&&!state.atHub?tubeLineMarkup(r.option,'home'):'')
+    :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
-      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):'Next action',isLeave:false})}
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
+    ${r.direction==='home'?tubeLine:''}
     ${panelLayout?nextServiceMarkup(t):''}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
-    ${panelLayout?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
-    <div class="meta">${journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:r.phase==='after-train'?false:undefined})}${comparisonFlags.length?` · ${pills(comparisonFlags,true)}`:''}</div>
+    ${r.phase!=='on-train'?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
+    <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
+      :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='after-train'?'':trainConnectionMarkup(t)}
+    ${r.direction==='home'?'':tubeLine}
     <div class="follow-status ${result.level}">${unknown?'Arrival uncertain · ':''}${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
-    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${result.nextStep.t==null?'':hhmm(result.nextStep.t)+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
-    ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${esc(notice.text)}</span><button type="button" class="follow-action" data-follow-action="seen">Seen</button></div>`:''}
+    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
+    ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
-    <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${C.followedLegs(r).map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
+    <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${legs.map(l=>`<li class="t">${stepTime(l)==null?'':hhmm(stepTime(l))}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}
     <button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
   if(panel._renderedHtml!==html){panel.innerHTML=html;panel._renderedHtml=html;}

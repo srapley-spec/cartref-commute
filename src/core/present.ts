@@ -6,7 +6,7 @@
 // of them re-decides it. A design proposal proposes how to draw these blocks, not which block comes first.
 import type { RailWarnings } from "./warnings";
 import { lineLevel, worstStatus, type LineStatus } from "./warnings";
-import type { Effort } from "./types";
+import type { Direction, Effort, Option } from "./types";
 import { hhmm } from "./time";
 import { resolveDisruptionPolicy, type DisruptionConfig } from './disruption';
 
@@ -218,6 +218,25 @@ export function statusLine(i: StatusInput): StatusLine {
 export function trainName(t: { std: string; operator: string; destination?: string }): string {
   return `${t.std} ${t.operator}${t.destination ? ` to ${t.destination}` : ""}`.trim();
 }
+/** The tube that belongs to a planned journey, for one line on the card (10 Nov 2026, #57 A2, H1): going out it
+ *  follows the train ("Then [Circle] [Met] to Aldgate · eastbound · about 7 min", with a second route that may come
+ *  first); coming home it comes before the train ("Tube: [Circle] [Met] Aldgate → Farringdon · 7 min"). Null when
+ *  the journey has no such tube (already at the London station, a leisure walk, a trip to somewhere else). The
+ *  lines, stops and ride times are the route's own data (profile), nothing is worked out here. */
+export interface TubeLine { lines: string[]; from: string; to: string; toward: string | null; rideMin: number; alt: { lines: string[]; to: string } | null }
+export function tubeLine(option: Option, direction: Direction, names: Record<string, string>): TubeLine | null {
+  const tube = option.tube as { stop?: string; lines?: string[]; ride?: Record<string, number>; toward?: string; alt?: { stop: string; lines: string[] } } | undefined;
+  const legs = Array.isArray(option.legs) ? option.legs as { tube?: boolean; train?: boolean }[] : [];
+  const train = legs.findIndex(l => l.train), ride = legs.findIndex(l => l.tube);
+  if (!tube || !tube.stop || !Array.isArray(tube.lines) || !tube.lines.length || train < 0 || ride < 0) return null;
+  if (direction === "office" ? ride < train : ride > train) return null;
+  const secs = tube.ride?.[option.hub], hub = names[option.hub] || option.hub;
+  if (typeof secs !== "number" || !Number.isFinite(secs)) return null;
+  return direction === "office"
+    ? { lines: tube.lines, from: hub, to: tube.stop, toward: tube.toward || null, rideMin: Math.round(secs / 60), alt: tube.alt ? { lines: tube.alt.lines, to: tube.alt.stop } : null }
+    : { lines: tube.lines, from: tube.stop, to: hub, toward: null, rideMin: Math.round(secs / 60), alt: null };
+}
+
 /**
  * The question asked when the evidence contradicts the train you selected (10 Nov 2026, #57 C1). It states the
  * evidence, then asks; the app never switches for you. Wording for a station the train left before you reached it

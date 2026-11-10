@@ -9,6 +9,9 @@ import { railDelayLevel, type DisruptionConfig } from './disruption';
 const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
 export const FOLLOW_CHANGE_MS = 60e3;
+/** A change to the arrival is worth a notice only when it moves the time you were last told by this many minutes
+ *  (as shown), and leaves it this far from the original plan (10 Nov 2026, #57 E2, H16, H25). */
+export const FOLLOW_NOTICE_MIN = 3;
 const FOLLOW_GONE_GRACE_MS = 30e3;
 /** At the boarding station, the train is only "missed" once it has been gone this long and you are still there. */
 export const FOLLOW_STATION_GONE_MS = 120e3;
@@ -21,6 +24,8 @@ export type FollowPhase = 'before-train' | 'on-train' | 'after-train' | 'arrived
 export interface FollowNotice {
   id: string; kind: 'cancelled' | 'unknown' | 'missed' | 'arrival' | 'platform' | 'recovered' | 'boarding';
   text: string; at: number; deltaMin?: number;
+  /** Arrival notices: the arrival you had been told before this one. */
+  was?: number;
 }
 export interface FollowRoute {
   version: 1; id: string; direction: Direction; mode: 'commute' | 'leisure'; startedAt: number;
@@ -28,6 +33,8 @@ export interface FollowRoute {
   lastTrain: Train; phase: FollowPhase; notices: FollowNotice[];
   dismissedAlternatives: string[]; seenEvents: string[];
   incident?: 'cancelled' | 'unknown' | 'missed' | 'boarding' | null;
+  /** The arrival last put in a notice; absent = the original plan. */
+  toldArrival?: number | null;
 }
 export interface FollowInput {
   policy?: DisruptionConfig;
@@ -192,8 +199,10 @@ export function restoreFollowRoute(value: unknown): FollowRoute | null {
       || !sameService({ ...value.option, train: value.lastTrain }, value.option)
       || typeof value.id !== 'string' || value.id !== followServiceKey(value.option) || !['before-train', 'on-train', 'after-train', 'arrived'].includes(String(value.phase))
       || (value.incident != null && !['cancelled', 'unknown', 'missed', 'boarding'].includes(String(value.incident)))
+      || (value.toldArrival != null && !finite(value.toldArrival))
       || !Array.isArray(value.notices) || value.notices.length > 100 || !value.notices.every(n => record(n) && typeof n.id === 'string' && typeof n.text === 'string' && finite(n.at)
-        && ['cancelled', 'unknown', 'missed', 'arrival', 'platform', 'recovered', 'boarding'].includes(String(n.kind)) && (n.deltaMin == null || finite(n.deltaMin)))
+        && ['cancelled', 'unknown', 'missed', 'arrival', 'platform', 'recovered', 'boarding'].includes(String(n.kind)) && (n.deltaMin == null || finite(n.deltaMin))
+        && (n.was == null || finite(n.was)))
       || !Array.isArray(value.seenEvents) || value.seenEvents.length > 100 || !value.seenEvents.every(x => typeof x === 'string')
       || !Array.isArray(value.dismissedAlternatives) || value.dismissedAlternatives.length > 100 || !value.dismissedAlternatives.every(x => typeof x === 'string')) return null;
     return clone(value) as unknown as FollowRoute;
@@ -222,6 +231,10 @@ function legsFor(route: FollowRoute): Leg[] {
       const platform = after.platform ? `platform ${after.platform}` : 'platform unannounced';
       l.note = /\bplatform\s+[^,·]+/i.test(l.note || '') ? (l.note || '').replace(/\bplatform\s+[^,·]+/i, platform)
         : [l.note, platform].filter(Boolean).join(', ');
+    } else if (l.t != null && l.t < before.dep) {
+      // The steps before the train move with its departure, as the card's own Leave by does (10 Nov, #57 H2: the
+      // header said 15:36 and "Next: 15:34 · Leave office", the step still timed for the train's old departure).
+      l.t = l.t + departureShift;
     } else if (l.t != null && l.t >= (before.arr as number)) {
       // A slower final walk changes its arrival, never the completed rail arrival/interchange history.
       l.t = index === lastTimed && l.t > (before.arr as number) ? route.expectedArrival : l.t + railShift;
@@ -253,7 +266,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : undefined;
   if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
   let status: FollowUpdate['status'] = 'on-track', level: FollowUpdate['level'] = 'ok', text = 'On track';
-  const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number) => {
+  const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number, was?: number) => {
     const id = `${route.id}|${kind}|${key}`;
     if (kind === 'arrival') {
       // A newer ETA supersedes the old ETA explanation. A genuine later return to a prior ETA is still news.
@@ -262,14 +275,28 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     }
     if (!route.seenEvents.includes(id)) {
       route.seenEvents = [...route.seenEvents, id].slice(-100);
-      route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...(deltaMin != null ? { deltaMin } : {}) }].slice(-100);
+      route.notices = [...route.notices, { id, kind, text: message, at: input.now, ...(deltaMin != null ? { deltaMin } : {}), ...(was != null ? { was } : {}) }].slice(-100);
     }
+  };
+  // An arrival change (10 Nov 2026, #57 E2, H16, H25; words confirmed by Sam): says what changed and why,
+  // "Arriving 08:28 (was 08:24): …". None when the arrival is within 3 minutes of the original plan (and a notice
+  // about an earlier change is then withdrawn: it is back at the plan), and none until it has moved 3 minutes
+  // from the time last told. A smaller move while a notice is still showing re-words that notice where it stands
+  // (it must not contradict the card), without raising it again.
+  const shownMin = (a: number, b: number) => Math.abs(Math.floor(a / MIN) - Math.floor(b / MIN));
+  const tellArrival = (arrival: number, why: string) => {
+    const told = finite(route.toldArrival) ? route.toldArrival : route.plannedArrival;
+    const words = (was: number) => `Arriving ${hhmm(arrival)} (was ${hhmm(was)}): ${why}.`;
+    const withdraw = () => { route.notices = route.notices.filter(n => n.kind !== 'arrival'); route.seenEvents = route.seenEvents.filter(key => !key.includes('|arrival|')); };
+    if (shownMin(arrival, route.plannedArrival) < FOLLOW_NOTICE_MIN) { withdraw(); route.toldArrival = null; }
+    else if (shownMin(arrival, told) >= FOLLOW_NOTICE_MIN) { addNotice('arrival', String(arrival), words(told), Math.round((arrival - told) / MIN), told); route.toldArrival = arrival; }
+    else route.notices = route.notices.flatMap(n => n.kind !== 'arrival' || !finite(n.was) ? [n] : shownMin(arrival, n.was) < 1 ? [] : [{ ...n, text: words(n.was) }]);
   };
   if (onward) {
     // Completed rail is history. Only current onward observations may change the final walk/tube ETA.
     if ((input.onwardFresh ?? fresh) && finite(suppliedArrival) && Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
       const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
-      if(Math.floor(suppliedArrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(suppliedArrival), `Your onward journey has changed; arriving ${hhmm(suppliedArrival)}`, delta);
+      tellArrival(suppliedArrival, delta > 0 ? 'the rest of your journey is taking longer' : 'the rest of your journey is quicker');
       route.expectedArrival = suppliedArrival;
     }
   } else if (selected) {
@@ -284,16 +311,15 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
       // Preserve the chosen onward segments; a different best route never changes this arrival.
       const arrival = finite(suppliedArrival) ? suppliedArrival : (selected.train.arr as number) + (route.plannedArrival - (route.option.train.arr as number));
       if (Math.abs(arrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
-        const delta = Math.round((arrival - previous.expectedArrival) / MIN);
         const late = route.phase === 'on-train' ? selected.train.arrLate : Math.max(selected.train.depLate, selected.train.arrLate);
-        const reason = arrival > previous.expectedArrival ? `Your train${late > 0 ? ` is ${late} min late` : ' is running later'}; arriving ${hhmm(arrival)}` : `Your train is running earlier; arriving ${hhmm(arrival)}`;
-        if(Math.floor(arrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(arrival), reason, delta); route.expectedArrival = arrival;
+        tellArrival(arrival, late > 0 ? `your train is ${late} min late` : arrival > previous.expectedArrival ? 'your train is running later' : 'your train is running earlier');
+        route.expectedArrival = arrival;
       }
     }
   } else if (arrivalFresh && finite(suppliedArrival)) {
     if (Math.abs(suppliedArrival - previous.expectedArrival) >= FOLLOW_CHANGE_MS) {
       const delta = Math.round((suppliedArrival - previous.expectedArrival) / MIN);
-      if(Math.floor(suppliedArrival/MIN)!==Math.floor(previous.expectedArrival/MIN))addNotice('arrival', String(suppliedArrival), `Your train's live arrival changed; arriving ${hhmm(suppliedArrival)}`, delta);
+      tellArrival(suppliedArrival, delta > 0 ? 'your train is running later' : 'your train is running earlier');
       route.expectedArrival = suppliedArrival;
     }
   } else { level = 'info'; text = 'Last known journey · waiting for fresh data'; }
@@ -401,6 +427,12 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     }
   }
   const legs = legsFor(route).filter(l => l.t != null && !l.calls);
+  // "On track" is kept for arriving when planned or sooner (Sam, 10 Nov; #57 H24: green "On track" beside an arrival
+  // four minutes past the plan read as "on time"). Later than planned, by the minutes shown, it says so.
+  if (status === 'on-track' && level === 'ok' && text.startsWith('On track')) {
+    const later = Math.floor(route.expectedArrival / MIN) - Math.floor(route.plannedArrival / MIN);
+    if (later >= 1) { level = 'warn'; text = `${later} min later than planned${text.slice('On track'.length)}`; }
+  }
   const nextStep = boardingRecovery ? ((alternative?.legs as Leg[] | undefined)?.find(l => l.train) || null) : route.phase === 'arrived' ? null : route.phase === 'before-train'
     ? (input.activeConnection ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null

@@ -478,6 +478,19 @@ export const nearlyHome = (dir: Direction, mode: Mode, here: LatLon | null, onTh
 export const walkSecs = (from: LatLon, to: LatLon, pace: Pace | "leisure", p: Profile) =>
   km(from, to) * p.walking.streetFactor / p.walking.kmh[pace] * 3600;
 
+/** Within this distance of a station or tube stop, part of its exit allowance is still ahead of you. */
+export const STOP_EXIT_KM = 0.15;
+/** A walk from where you are to a place you usually walk to from a station or tube stop, in seconds: the straight-line
+ *  estimate from here, scaled by your measured walk from that stop over the straight-line estimate from it (so it
+ *  agrees with the plan as you step out), plus what is left of the stop's exit allowance while you're within 150 m
+ *  of it. (10 Nov 2026, #57 F1, F2, H27: with nothing for getting off the platform and out, the first minutes of the
+ *  walk didn't count and the arrival slid three minutes; the plan's own figure was exactly right.) */
+export function walkFromStopSecs(here: LatLon, to: LatLon, stop: LatLon, measuredSecs: number, exitSecs: number, pace: Pace | "leisure", p: Profile): number {
+  const fromStop = walkSecs(stop, to, pace, p);
+  const scale = fromStop > 0 && measuredSecs > 0 ? Math.min(2, Math.max(0.5, measuredSecs / fromStop)) : 1;
+  return walkSecs(here, to, pace, p) * scale + Math.max(0, exitSecs) * Math.max(0, 1 - km(here, stop) / STOP_EXIT_KM);
+}
+
 /** Nearly home: when you'll be home.
  *  train — from the train's expected time at the home station (+ exit + walk), while it hasn't arrived;
  *  home — within 100 m of home; walk — the walk from here to home; station — at the station, the usual walk;
@@ -489,7 +502,7 @@ export function nearlyHomeEta(now: number, here: LatLon, stationAt: number | nul
   if (stationAt && stationAt > now - 60e3 && !atHome) return { kind: "train", at: stationAt + exitMs + walkMs, stationAt };
   if (home) {
     if (atHome) return { kind: "home" };
-    const secs = walkSecs(here, home, pace, p);
+    const secs = walkFromStopSecs(here, home, p.places.homeStation, walkMs / 1000, exitMs / 1000, pace, p);
     return { kind: "walk", at: now + secs * 1000, secs };
   }
   return km(here, p.places.homeStation) < 0.3 ? { kind: "station", at: now + exitMs + walkMs } : { kind: "unknown" };

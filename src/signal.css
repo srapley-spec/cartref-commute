@@ -497,3 +497,7 @@ html[data-trip="on"] #journeyViewControl {display:flex!important}
  html .connection-main.has-arrival>.connection-clock {grid-column:1;grid-row:auto;grid-template-rows:none;text-align:left}
  html .connection-main.has-arrival>.connection-details {grid-row:auto}
 }
+/* The tube that goes with the journey (10 Nov amendment §2): line lozenges in TfL's colours, then where and how long. */
+html #followPanel .tube-line {font-size:14px;line-height:1.5;margin:6px 0}
+html #followPanel .tube-line .chip {font-weight:650}
+html #followPanel .tube-line .tube-alt {color:var(--muted)}

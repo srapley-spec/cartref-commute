@@ -513,7 +513,9 @@ test("Home location: set from where you are; Nearly home counts the walk from th
   const hero = app.text("#hero");
   assert.match(hero, /^Nearly home · 20:25/);
   const m = /About (\d+) min walk from where you are/.exec(hero); assert.ok(m, hero);
-  assert.ok(+m[1] >= 11 && +m[1] <= 16, `walk ${m[1]} min for ~${d} km × 1.3 at 5 km/h`);
+  // At the station the walk is your measured walk from it (Settings: 22 min) plus getting out (90 s), not the
+  // straight line (10 Nov, #57 H27); `d` km × 1.3 at 5 km/h would be about 14.
+  assert.equal(+m[1], 24, `walk ${m[1]} min from the station, ${d} km from home`);
   await app.moveTo(51.9753, -0.2401, 10);
   assert.match(app.text("#hero"), /You're home\./);
   app.close();
@@ -635,8 +637,14 @@ test("On the train card: arrival from Service Details; 'timetable' is the schedu
 test("Nearly home: the walk counts streets (straight line × 1.3)", async () => {
   const now = T("20:25"), app = await open({ now, geo: null, settings: RDM, saved: { dirMode: "home", home: [51.9752, -0.2402] } }), c = app.c;
   await app.moveTo(51.9799, -0.2290, 10);
-  const d = c.km([51.9799, -0.2290], [51.9752, -0.2402]), mins = Math.round(d * 1.3 / 5 * 60);
+  // Streets: the straight line × 1.3 at 5 km/h, then set against your measured walk from the station (10 Nov, #57
+  // H27): standing at the station that is the measured walk itself (Settings: 1332 s) plus getting out (90 s).
+  const d = c.km([51.9799, -0.2290], [51.9752, -0.2402]), line = Math.round(d * 1.3 / 5 * 60), mins = Math.round((1332 + 90) / 60);
+  assert.ok(line >= 11 && line <= 16, `the straight-line figure for this home is ${line} min`);
   assert.match(app.text("#hero"), new RegExp(`About ${mins} min walk from where you are`));
+  // Half-way home, well clear of the station: half the measured walk, nothing for the exit.
+  await app.moveTo((51.9799 + 51.9752) / 2, (-0.2290 - 0.2402) / 2, 10);
+  assert.match(app.text("#hero"), /About 11 min walk from where you are/);
   app.close();
 });
 

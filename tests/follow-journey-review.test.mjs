@@ -47,7 +47,9 @@ test('journey review: final-walk following cannot offer original-origin trains o
  assert.equal(a.c.state.followUpdate.alternative,null);
  assert.notEqual(a.c.state.followUpdate.status,'cancelled');
  assert.notEqual(a.c.state.saved.followRoute.expectedArrival,r.expectedArrival,'a current onward walk can revise arrival');
- assert.match(a.text('#followPanel'),/Your onward journey has changed/);
+ assert.match(a.text('#followPanel'),/Arriving 08:29 \(was 08:40\): the rest of your journey is quicker\./);
+ assert.equal(a.d.querySelector('#followPanel [data-fact="train-duration"]'),null,'off the train: the finished train has left the card (10 Nov, #57 H26)');
+ assert.equal(a.d.querySelector('#followPanel > div > .chip'),null,'no train lozenge either');
  const originalRailArrival=r.option.legs.find(l=>l.t===r.option.train.arr&&!l.train);
  assert.ok(originalRailArrival);
  const completedRail=a.w.CommuteCore.followedLegs(a.c.state.saved.followRoute).find(l=>l.d===originalRailArrival.d);
@@ -138,7 +140,9 @@ test('journey review: the home walk updates the followed ETA with a reason even 
  fresh(a,now,[51.977,-.23]);a.c.state.boardsAt=now-10*MIN;a.c.state.saved.followRoute.phase='after-train';
  a.c.render();
  assert.notEqual(a.c.state.saved.followRoute.expectedArrival,r.expectedArrival);
- assert.match(a.text('#followPanel'),/Your onward journey has changed/);
+ assert.match(a.text('#followPanel'),/Arriving 19:31 \(was 19:43\): the rest of your journey is quicker\./);
+ assert.match(a.text('#followPanel'),/Now\s*19:25 → At home\s*19:31/,'only arriving is left: "Now → At home", not the arrival on both sides (10 Nov, #57 H26)');
+ assert.ok(a.d.querySelector('#followPanel [data-follow-action="seen"]').textContent==='✕','the notice closes with a plain ✕');
  assert.equal(a.c.state.followUpdate.alternative,null);
  assert.equal(a.c.state.saved.followRoute.id,r.id);
  const oldRailStep=r.option.legs.find(l=>l.t===r.option.train.arr&&!l.train);

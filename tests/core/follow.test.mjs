@@ -38,7 +38,7 @@ test('follow: real train delays change arrival with a retained reason until ackn
  const again=update(u.route,[o]);assert.equal(again.route.notices.length,1);
  const acknowledged=core.acknowledgeFollowNotice(again.route,u.notice.id);
  assert.equal(update(acknowledged,[o]).notice,null);
- const legs=core.followedLegs(u.route);assert.equal(legs[1].t,r.option.legs[1].t);assert.equal(legs[2].t,t+36*MIN);assert.equal(legs.at(-1).t,t+76*MIN);
+ const legs=core.followedLegs(u.route);assert.equal(legs[0].t,r.option.legs[0].t+6*MIN,'the steps before the train move with its departure (10 Nov, #57 H2)');assert.equal(legs[1].t,r.option.legs[1].t+6*MIN);assert.equal(legs[2].t,t+36*MIN);assert.equal(legs.at(-1).t,t+76*MIN);
 });
 
 test('follow: platform changes preserve identity and acknowledgements survive refresh',()=>{
@@ -90,7 +90,7 @@ test('follow: boarding and final walk prevent a departed train being declared mi
 
 test('follow: live details update saved arrival without needing the departed board service',()=>{
  const r=start(),u=update(r,[],{phase:'on-train',currentArrival:r.expectedArrival+7*MIN});
- assert.equal(u.route.expectedArrival,r.expectedArrival+7*MIN);assert.match(u.notice.text,/live arrival changed/);
+ assert.equal(u.route.expectedArrival,r.expectedArrival+7*MIN);assert.equal(u.notice.text,'Arriving 19:17 (was 19:10): your train is running later.');
  const stale=update(r,[],{phase:'on-train',currentArrival:r.expectedArrival+7*MIN,dataFresh:false});assert.equal(stale.route.expectedArrival,r.expectedArrival);
 });
 
@@ -166,7 +166,7 @@ test('follow: active connection alternatives can have passed original leave time
 test('follow: once rail is complete its old disruption cannot overwrite onward ETA or offer another train',()=>{
  const r=start(),old=option({}, {cancelled:true,depUnknown:true,arr:null}),faster=option({arrive:r.expectedArrival-10*MIN},{serviceId:'other'});
  const u=update(r,[old,faster],{phase:'after-train',now:t+61*MIN,currentArrival:t+73*MIN,currentTrainArrival:t+95*MIN});
- assert.equal(u.status,'on-track');assert.equal(u.route.expectedArrival,t+73*MIN);assert.equal(u.alternative,null);assert.match(u.notice.text,/onward journey/);assert.doesNotMatch(u.notice.text,/train/);
+ assert.equal(u.status,'on-track');assert.equal(u.route.expectedArrival,t+73*MIN);assert.equal(u.alternative,null);assert.equal(u.notice.text,'Arriving 19:13 (was 19:10): the rest of your journey is taking longer.');assert.doesNotMatch(u.notice.text,/train/);
  const stable=update(u.route,[option({}, {arr:t+100*MIN,arrLate:40})],{phase:'after-train',now:t+62*MIN});assert.equal(stable.route.expectedArrival,t+73*MIN);
  const arrived=update(u.route,[old,faster],{phase:'arrived'});assert.equal(arrived.status,'arrived');assert.equal(arrived.alternative,null);
 });
@@ -195,14 +195,14 @@ test('follow: onward arrival uses measured route segments from the supplied obse
  assert.equal(core.segmentArrival(t,segments),t+(112+283+600+420)*1000);
  assert.equal(core.segmentArrival(t,[]),t);assert.equal(core.segmentArrival(t,[{kind:'walk',secs:0}]),t);
  const r=start(),arrival=core.segmentArrival(t+61*MIN,[{kind:'walk',secs:7*60}]);
- const u=update(r,[],{phase:'after-train',currentArrival:arrival,dataFresh:false,onwardFresh:true});assert.equal(u.route.expectedArrival,arrival);assert.match(u.notice.text,/onward journey/);
+ const u=update(r,[],{phase:'after-train',currentArrival:arrival,dataFresh:false,onwardFresh:true});assert.equal(u.route.expectedArrival,arrival);assert.equal(u.notice,null,'two minutes from the plan: no notice (10 Nov, #57 E2)');
  const stale=update(r,[],{phase:'after-train',currentArrival:arrival,dataFresh:true,onwardFresh:false});assert.equal(stale.route.expectedArrival,r.expectedArrival);
 });
 
 test('follow: fresh Service Details updates ETA and rail status while stale board changes stay ignored',()=>{
  const r=start(),stale=option({}, {cancelled:true,platform:'99',arr:null});
  const u=update(r,[stale],{phase:'on-train',dataFresh:false,trainArrivalLive:true,currentTrainArrival:t+66*MIN});
- assert.equal(u.route.expectedArrival,t+76*MIN);assert.equal(u.route.lastTrain.arr,t+66*MIN);assert.notEqual(u.route.lastTrain.platform,'99');assert.equal(u.status,'on-track');assert.match(u.notice.text,/live arrival changed/);assert.match(u.trainStatus.text,/6 min late/);assert.equal(u.alternative,null);
+ assert.equal(u.route.expectedArrival,t+76*MIN);assert.equal(u.route.lastTrain.arr,t+66*MIN);assert.notEqual(u.route.lastTrain.platform,'99');assert.equal(u.status,'on-track');assert.equal(u.notice.text,'Arriving 19:16 (was 19:10): your train is running later.');assert.match(u.trainStatus.text,/6 min late/);assert.equal(u.alternative,null);
  const unverified=update(r,[],{phase:'on-train',dataFresh:false,currentTrainArrival:t+66*MIN});assert.equal(unverified.route.expectedArrival,r.expectedArrival);assert.equal(unverified.trainStatus,null);
 });
 
@@ -226,7 +226,8 @@ test('follow: sub-minute report changes do not announce an unchanged displayed a
  const r=start(),small=update(r,[option({}, {arr:t+60*MIN+10000})]);
  assert.equal(small.route.expectedArrival,r.expectedArrival);assert.equal(small.notice,null);
  const changed=update(small.route,[option({}, {arr:t+61*MIN})]);
- assert.ok(changed.notice);assert.match(changed.notice.text,/later/);
+ assert.equal(changed.notice,null,'a minute later: the card shows it, no notice');assert.equal(changed.route.expectedArrival,r.expectedArrival+MIN);
+ const more=update(changed.route,[option({}, {arr:t+63*MIN})]);assert.ok(more.notice);assert.match(more.notice.text,/^Arriving 19:13 \(was 19:10\): your train is running later\.$/);
 });
 
 test('follow: an obsolete cancelled, no-estimate or missed reason is replaced by explicit recovery even after Seen',()=>{
@@ -262,7 +263,8 @@ test('follow: explicitly selecting a run or car is allowed but such alternatives
 
 test('follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements',()=>{
  const r=start(),small=option({}, {arr:t+60*MIN+59e3});const unchanged=update(r,[small]);assert.equal(unchanged.route.expectedArrival,r.expectedArrival);assert.equal(unchanged.notice,null);
- const exact=update(r,[option({}, {arr:t+61*MIN,arrLate:1})]);assert.equal(exact.route.expectedArrival,r.expectedArrival+MIN);assert.equal(exact.notice.deltaMin,1);assert.equal(core.FOLLOW_CHANGE_MS,MIN);
+ const exact=update(r,[option({}, {arr:t+61*MIN,arrLate:1})]);assert.equal(exact.route.expectedArrival,r.expectedArrival+MIN);assert.equal(exact.notice,null);assert.equal(core.FOLLOW_CHANGE_MS,MIN);
+ const three=update(r,[option({}, {arr:t+63*MIN,arrLate:3})]);assert.equal(three.notice.deltaMin,3);assert.equal(core.FOLLOW_NOTICE_MIN,3);
  const onward=update(r,[],{phase:'after-train',currentArrival:r.expectedArrival+10e3,onwardFresh:true});assert.equal(onward.route.expectedArrival,r.expectedArrival);assert.equal(onward.notice,null);
 });
 
@@ -273,7 +275,7 @@ test('follow: an elapsed rail departure is missed despite a Tube connection that
 test('follow: current incident takes precedence over an older arrival notice and onboard wording uses arrival delay',()=>{
  const r=start(),delayed=update(r,[option({}, {arr:t+66*MIN,arrLate:6})]);assert.equal(delayed.notice.kind,'arrival');
  const cancelled=update(delayed.route,[option({}, {cancelled:true})]);assert.equal(cancelled.notice.kind,'cancelled');
- const on=update(r,[option({}, {dep:t+45*MIN,depLate:15,arr:t+62*MIN,arrLate:2})],{phase:'on-train'});assert.match(on.notice.text,/2 min late/);assert.doesNotMatch(on.notice.text,/15 min late/);
+ const on=update(r,[option({}, {dep:t+45*MIN,depLate:15,arr:t+64*MIN,arrLate:4})],{phase:'on-train'});assert.match(on.notice.text,/4 min late/);assert.doesNotMatch(on.notice.text,/15 min late/);
 });
 
 test('follow: ordinary better options stay quiet during a Tube approach; only a real recovery is proposed',()=>{
@@ -324,8 +326,14 @@ test('follow: corrupted or recursively nested saved boarding alternatives are re
 test('follow: newer arrival reasons replace obsolete ETA wording and returning to an earlier ETA is announced',()=>{
  const r=start(),late=option({}, {arr:t+65*MIN,arrLate:5}),lessLate=option({}, {arr:t+63*MIN,arrLate:3});
  const five=update(r,[late]);assert.match(five.notice.text,/5 min late/);
- const three=update(five.route,[lessLate]);assert.equal(three.route.notices.filter(n=>n.kind==='arrival').length,1);assert.match(three.notice.text,/earlier/);assert.doesNotMatch(three.notice.text,/5 min late/);
- const seen=core.acknowledgeFollowNotice(three.route),again=update(seen,[late]);assert.match(again.notice.text,/5 min late/);assert.equal(again.route.notices.filter(n=>n.kind==='arrival').length,1);
+ // Two minutes back: not a new notice, but the one still showing is re-worded where it stands (it must not contradict the card).
+ const three=update(five.route,[lessLate]);assert.equal(three.route.notices.filter(n=>n.kind==='arrival').length,1);assert.equal(three.notice.id,five.notice.id);assert.equal(three.notice.text,'Arriving 19:13 (was 19:10): your train is 3 min late.');
+ // Dismissed, then two minutes the other way: nothing comes back. Three minutes from what you were told: a new notice.
+ const seen=core.acknowledgeFollowNotice(three.route),again=update(seen,[late]);assert.equal(again.notice,null);
+ const worse=update(again.route,[option({}, {arr:t+68*MIN,arrLate:8})]);assert.equal(worse.notice.text,'Arriving 19:18 (was 19:15): your train is 8 min late.');assert.equal(worse.route.notices.filter(n=>n.kind==='arrival').length,1);
+ // Back within three minutes of the plan: the notice is withdrawn, not replaced (10 Nov, #57 H16, H25).
+ const back=update(worse.route,[option({}, {arr:t+62*MIN,arrLate:2})]);assert.equal(back.notice,null);assert.equal(back.route.expectedArrival,r.expectedArrival+2*MIN);
+ const lateAgain=update(back.route,[late]);assert.equal(lateAgain.notice.text,'Arriving 19:15 (was 19:10): your train is 5 min late.');
  const platform=update(r,[option({}, {platform:'12'})]);const delayed=update(platform.route,[option({}, {platform:'12',arr:t+65*MIN,arrLate:5})]);assert.ok(delayed.route.notices.some(n=>n.kind==='platform'));
 });
 

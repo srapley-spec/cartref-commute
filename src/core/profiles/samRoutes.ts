@@ -49,8 +49,9 @@ function baseRoutes(i: RouteInput): Route[] {
   const routes: Route[] = [];
   if (!leisure) {
     const tube = i.tubeFallback
-      ? { stop: "Aldgate East", lines: ["hc"], ride: { KGX: s.rideKxAde, STP: s.rideKxAde, ZFD: s.rideFarAde } as Record<string, number>, plat: s.adePlatform, walk: s.adeWalk, fallback: true }
-      : { stop: "Aldgate", lines: ["circle", "met"], ride: { KGX: s.rideKxAld, STP: s.rideKxAld, ZFD: s.rideFarAld } as Record<string, number>, plat: s.aldPlatform, walk: s.aldWalk, fallback: false };
+      ? { stop: "Aldgate East", lines: ["hc"], ride: { KGX: s.rideKxAde, STP: s.rideKxAde, ZFD: s.rideFarAde } as Record<string, number>, plat: s.adePlatform, walk: s.adeWalk, fallback: true, toward: "eastbound" }
+      : { stop: "Aldgate", lines: ["circle", "met"], ride: { KGX: s.rideKxAld, STP: s.rideKxAld, ZFD: s.rideFarAld } as Record<string, number>, plat: s.aldPlatform, walk: s.aldWalk, fallback: false, toward: "eastbound",
+        alt: { stop: "Aldgate East", lines: ["hc"] } };   // a second way to the office that may come first (shown going out)
     const tubeName = tube.fallback ? "H&C" : "Circle or Met";
     const walkOut = fast ? s.walkHomeStationFast : s.walkHomeStationAvg, walkBack = fast ? s.walkStationHomeFast : s.walkStationHomeAvg;
     // St Pancras (Thameslink) uses the same King's Cross St Pancras tube station.
