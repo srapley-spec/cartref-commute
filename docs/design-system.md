@@ -53,8 +53,9 @@ line colours in lozenges."
   destination, platform). The separate "Next train: …" line and, before boarding, the "Next: …" line are removed.
   This touches the protected connection clock: Sam approved it on 10 Nov on the basis that the panel carries the
   same facts prominently.
-- **At the station** the deadline stays (protected answer) and is worded for where you are: label "On the platform
-  by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text. *(words to confirm)*
+- **At the station** the deadline stays (protected answer) and is worded for where you are: label "Be on the
+  platform by" with the same canonical time, then "train departs in N min". No "Leave by", no walking text.
+  **Words confirmed by Sam, 10 Nov** (he changed "On the platform by" to "Be on the platform by").
 - **Urgency:** with under 2 minutes to the leave deadline, the countdown becomes the most prominent line on the card:
   "Leave now · 45 s", in the headline's weight and ink on an accent-tinted band. It does not use a status colour:
   red, amber and green keep their one meaning. Beneath it, in small type: "to walk to Letchworth at your usual
