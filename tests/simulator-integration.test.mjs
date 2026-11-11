@@ -241,6 +241,7 @@ test('simulator app: a confirmed train conflicting with reported position is ret
  assert.equal(a.c.whichTrain(a.c.simClock.now()).t.serviceId,'SIM-GN-LATER-0917');
  const expected=[...a.d.querySelectorAll('[data-pick]')].find(b=>b.dataset.pick.endsWith('|SIM-GN-0905'));assert.ok(expected,'the expected earlier train remains available for explicit selection');expected.click();
  const selected=a.c.whichTrain(a.c.simClock.now());assert.equal(selected.t.serviceId,'SIM-GN-0905','user selection is retained');assert.equal(selected.picked,true);
- assert.equal(selected.conflict,true,'reported position contradicts the confirmed train');assert.match(a.text('#hero'),/does not match|doesn't match|conflict|contradict/i,'actual journey card warns about contradictory evidence');
+ assert.equal(selected.conflict,true,'reported position contradicts the confirmed train');assert.match(a.text('#hero'),/does not match|doesn't match|conflict|contradict|but your position fits/i,'actual journey card warns about contradictory evidence');
+ assert.match(a.text('#hero'),/You picked the 09:05 Great Northern/,'the card says it is your pick, never quietly "Probably" (Sam, 11 Nov 2026)');assert.doesNotMatch(a.text('#hero'),/Probably the 09:05/);
  await sleep(350);a.close();
 });

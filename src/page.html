@@ -1365,8 +1365,8 @@ function renderOnTrain(now, m){
   state.rendered.progress={kind:'rail',option:j,train:t,expectedArrival:m.projected,finalArrival:j?arrive:null,arrivalLive:!!m.live,details:state.progressById?.[t.serviceId]||pg,uncertainIdentity:!m.sure||!!m.conflict,contradictedIdentity:!!m.conflict};
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:where,stationArrival:m.projected,arrival:j?arrive:null,dest})}</div>
-    <div data-block="which"><span class="slack">${m.sure?"You're on":"Probably"} the ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
-      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack">${m.sure?"You're on the":m.picked?"You picked the":"Probably the"} ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
+      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked&&m.sure?" · you picked this":""}</span></div>
     <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${trainConnectionMarkup({...t,arr:m.projected},STATIONS[t.from]||t.from,{arrival:m.projected,to:where,arrivalSource:m.live?'Live':'Estimated'})}
     ${pendingPickMarkup() || (m.conflict ? wrongTrainMarkup(m)

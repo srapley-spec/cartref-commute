@@ -41,7 +41,7 @@ test('actual station, Tube, final-walk and London templates expose semantic bloc
  c.state.atHub=null;c.state.here=null;
  c.state.saved.tubeRide={hub:'KGX',t:NOW-2*MIN,line:'Circle',picked:true,rideMs:10*MIN,stop:'Aldgate',stopGeo:null};
  c.renderOnTube(NOW);canonical(a,'on-tube');
- assert.match(a.text('#hero'),/You're on/);assert.ok(blocks(a).includes('then'));
+ assert.match(a.text('#hero'),/Your tube: /);assert.ok(blocks(a).includes('then'));
  c.state.saved.dirMode='home';
  c.state.saved.tubeRide={hub:'ALD',from:'ALD',t:NOW-2*MIN,line:'Circle',picked:true,rideMs:10*MIN,stop:"King's Cross",stopGeo:null};
  c.renderOnTubeHome(NOW);canonical(a,'on-tube-home');

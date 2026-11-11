@@ -144,6 +144,8 @@ the card either affirms it or questions it openly; it never quietly goes back to
   a route left running until 12:10).
 - The pick survives a reload: saved with when it was made (`saved.trainPick`), restored if under 4 hours old,
   ignored if malformed, cleared when dropped (#57 C3/C4).
+- A pick the app doubts is still named as yours: the line reads "You picked the 09:05 Great Northern …", never
+  "Probably the 09:05 …" (found by the simulator test on GitHub).
 - When your position fits another train better and there's no station to point at, the question reads (Sam's
   words): "You picked the 07:30 Great Northern, but your position fits the 07:38 Great Northern better. Still on the
   07:30 Great Northern?" With a station to point at, Monday's wording stands.
@@ -155,6 +157,7 @@ the card either affirms it or questions it openly; it never quietly goes back to
 - tests/retest-fixes.test.mjs: "The pick survives a reload: kept with when it was made, restored if under 4 hours old, cleared when dropped"
 - tests/core/retest-fixes.test.mjs: "A train you picked that isn't among the departures just now stays picked (no new guess in its place)"
 - tests/core/retest-fixes.test.mjs: "The agreed question when your position fits another train better (Sam, 11 Nov): no station to point at"
+- tests/simulator-integration.test.mjs: "simulator app: a confirmed train conflicting with reported position is retained with an explicit warning"
 - tests/core/wrong-train.test.mjs: "Station check: the train left a station a minute or more ago and you still hadn't reached it → not your train"
 - tests/core/wrong-train.test.mjs: "Station check: you're past a station the train isn't due at for two minutes yet → not your train"
 - tests/core/wrong-train.test.mjs: "Station check: going home it reads the line the other way"
