@@ -138,7 +138,10 @@ the card either affirms it or questions it openly; it never quietly goes back to
   station other than where it left from, unless it's still found on the boards going on further (a Thameslink through
   St Pancras to Farringdon); 30 minutes after its arrival; 4 hours after it was picked; or when you pick another.
 - While a pick holds, the boards keep looking back 40 minutes (as on the line), so the train stays findable. If it's
-  still not among the departures, the pick is kept and nothing else is claimed in its place.
+  still not among the departures, the pick is kept and nothing else is claimed in its place. The look-back ends with
+  the pick: a pick past its limits (30 min after arrival, 4 hours) is dropped on the next refresh as well as on the
+  next fix, so a pick left behind doesn't keep asking for the past all day (caught by the follow-consistency test of
+  a route left running until 12:10).
 - The pick survives a reload: saved with when it was made (`saved.trainPick`), restored if under 4 hours old,
   ignored if malformed, cleared when dropped (#57 C3/C4).
 - When your position fits another train better and there's no station to point at, the question reads (Sam's
