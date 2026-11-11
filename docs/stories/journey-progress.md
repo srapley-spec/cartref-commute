@@ -113,6 +113,16 @@ mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam cho
 - tests/core/clean-baseline.test.mjs: "Station names as TfL and National Rail write them are the same station; TfL's text is read in the forms it uses"
 - tests/clean-baseline.test.mjs: "On the train: the leg is one line and a folded list of every station (option A), no bar, and one 'behind' figure"
 
+- **11 Nov evening fix:** on the phone the opened list broke every name one letter per line: the old sideways stop
+  row's styles (each part in its own grid row, a line drawn to the right) still applied inside the list. The list now
+  resets them; a station with no time shows none (no "—"). Checked in Chromium, dark and light.
+- tests/station-list-style.test.mjs: "The station list resets the old stop-row layout: one line per station, no grid rows, no sideways line"
+- **Known gap (11 Nov evening, "isn't updating"):** on the tube home without Follow, nothing fetches TfL's predictions
+  for your tube at King's Cross/Farringdon, so there is no report and the line stays "No live position yet" (the old
+  bar moved with the clock, which looked like updating). Follow already fetches them. Open for Sam: fetch them while
+  you're on the tube home (one TfL request per refresh, the same one Follow makes), or show a labelled timetable
+  estimate.
+
 The acceptance criteria above (bar and marker wording) predate this; where they differ, this section is the app.
 
 ## Tests

@@ -715,11 +715,16 @@ html .journey-progress .jp-all summary::before {content:'›';margin-right:6px;f
 html .journey-progress .jp-all[open] summary::before {transform:rotate(90deg)}
 html .journey-progress .jp-all summary::-webkit-details-marker {display:none}
 html .journey-progress .jp-vlist {list-style:none;margin:2px 0 0;padding:0}
-html .journey-progress .jp-vlist .jp-stop {display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px;padding:5px 0;position:relative}
+html .journey-progress .jp-vlist .jp-stop {display:grid;grid-row:auto;grid-template-rows:none;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:8px;padding:5px 0;position:relative;font-size:14px}
+/* The old sideways stop row placed each part in its own grid row (and drew a line to the right of each stop); in the
+   list every part sits on one line (#57, 11 Nov evening: names broken one letter per line on the phone). */
+html .journey-progress .jp-vlist .jp-stop > * {grid-row:auto;margin:0}
+html .journey-progress .jp-vlist .jp-stop::after {content:none;display:none}
+html .journey-progress .jp-vlist .jp-stop-name {overflow-wrap:normal;word-break:normal}
 html .journey-progress .jp-vlist .jp-stop::before {content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--line)}
 html .journey-progress .jp-vlist .jp-stop:first-child::before {top:50%}
 html .journey-progress .jp-vlist .jp-stop:last-child::before {bottom:50%}
-html .journey-progress .jp-vlist .jp-stop-dot {display:block;width:12px;height:12px;border-radius:50%;border:2px solid var(--muted);background:var(--surface,#fff);z-index:1;justify-self:center}
+html .journey-progress .jp-vlist .jp-stop-dot {display:block;width:12px;height:12px;margin:0;border-radius:50%;border:2px solid var(--muted);background:var(--card);z-index:1;justify-self:center}
 html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-dot {background:var(--ok);border-color:var(--ok)}
 html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-name {color:var(--muted)}
 html .journey-progress .jp-vlist [data-state="next"] .jp-stop-dot {background:var(--accent);border-color:var(--accent)}
@@ -890,7 +895,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 18:23 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6834,10 +6839,15 @@ function tubesFromAldgate(now){
   const shown=plan.next.slice(0,3);
   for(const special of [plan.fastest,plan.chosen?plan.best:null])if(special&&!shown.includes(special)&&!special.early)shown.push(special);
   const choices=[...(atAld?plan.early:[]),...shown];
-  const rows=choices.map(t=>row(t,plan.chosen&&t===plan.best));
   // Every tube out of Aldgate heads west; a Met without a destination on TfL's board says so (#57 H7: "1 Met · 3 min").
   const btns=boardBtns("ALD",choices.filter(t=>!(plan.chosen&&t===plan.best)),d.list,now,"westbound");
-  return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
+  if(!choices.length) return "";
+  // The buttons answer the question (Sam, 11 Nov homeward: "Having the options … is great … the detail seems
+  // pointless"). The tube you're getting stays in view as the confirmation; where each other tube gets you (its
+  // train, home time, leave time, journey) is folded beneath, kept rather than removed.
+  const mine=plan.chosen&&choices.includes(plan.best)?plan.best:null, others=choices.filter(t=>t!==mine);
+  const detail=others.length?`<details class="tube-detail" data-key="ald-tube-detail"><summary>Where each tube gets you</summary>${others.map(t=>row(t,false)).join("")}</details>`:"";
+  return `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${mine?row(mine,true):""}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}${detail}</div>`;
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
 function renderOnTubeHome(now){
@@ -7563,6 +7573,9 @@ function renderInner(){
   } else if(view==="on-tube-home"){
     renderOnTubeHome(now);
     const list=state.boards?ranked(now):[]; renderList(list, now); $("#listTitle").textContent="Trains home";
+    // On the tube you've already left: the trains below don't count down to leaving (11 Nov 18:21, "I'm on the tube …
+    // why is it telling me that!" under "Leave now · 1m 20s").
+    $("#list").dataset.riding="1";
   } else if(view==="nearly-home"){
     renderNearlyHome(now);
     // "Nearly home" is said once, by the card (#57 H28: three times on a screen that said "You're home").
@@ -7576,6 +7589,7 @@ function renderInner(){
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
   }
+  if(view!=="on-tube-home") delete $("#list").dataset.riding;
   renderStatus(); renderDiag(); tick();
   const rc=requestCounts();
   $("#updated").textContent = (state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet")) + ` · requests in the last minute: TfL ${rc.tfl}${rc.other?`, National Rail ${rc.other}`:""}`;
@@ -7589,7 +7603,8 @@ function tick(){
   });
   // Under 2 minutes to the leave deadline the countdown becomes the card's loudest line: "Leave now · 45 s"
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3;
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, riding=!!e.closest("[data-riding]"), urgent=!riding&&ms>0&&ms<120e3;
+    if(riding){ e.textContent=""; e.closest(".journey-countdown")?.classList.remove("urgent"); return; }
     e.textContent = urgent ? `Leave now · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`leave in ${countdown(ms)}`:"leave time passed";
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
@@ -8938,7 +8953,7 @@ function whereHtml(model){
   const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
   const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`
     :`<p class="jp-where none">No live position yet · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</p>`;
-  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):'—'}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
+  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):''}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
   return `${line}<details class="jp-all"><summary>All ${calls.length} stations</summary><ol class="jp-vlist">${calls.map(row).join('')}</ol></details>${model.sourceLine?`<p class="jp-source">${esc(model.sourceLine)}</p>`:''}`;
 }
 function progressHtml(model){
