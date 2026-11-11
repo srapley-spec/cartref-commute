@@ -890,7 +890,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:15 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:19 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6961,7 +6961,8 @@ function renderAtHub(now){
     const listed = [...early, ...next].sort((a,b)=>a.t-b.t);
     const tubeRow = a => { const sp=C.boardSpot(tube.arrivals||[], a, now), mine=chosen && a.t===n.t && a.line===n.line;
       return tubeBtn(hub, a, `${sp?`${ordinal(sp.pos)} · `:""}<span class="t">${hhmm(a.t)}</span> · ${tubeLineDest(a)} · Office <span class="t">${hhmm(a.office)}</span>${mine?" · ✓ getting this one":""}`); };
-    const earlyRows = listed.filter(a=>a.early), laterRows = listed.filter(a=>!a.early);
+    // Once you've picked one, it's one plain list: "If you're near the platform" is not offered again.
+    const earlyRows = chosen ? [] : listed.filter(a=>a.early), laterRows = chosen ? listed : listed.filter(a=>!a.early);
     const pickBtns = listed.length ? `<div class="pick tube-list" data-block="which"><small>Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting</small>${earlyRows.length?`<div class="tube-sub">If you're near the platform</div>${earlyRows.map(tubeRow).join("")}`:""}${earlyRows.length&&laterRows.length?`<div class="tube-sub">Then</div>`:""}${laterRows.map(tubeRow).join("")}</div>` : "";
     const nearly = "";
     hero=`${head}

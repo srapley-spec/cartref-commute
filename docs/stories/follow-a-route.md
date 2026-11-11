@@ -393,7 +393,7 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   08:06 · [Met] to Aldgate · Office 08:22" (a Circle the long way round "via Aldgate"; an H&C "to Barking, for
   Aldgate East"), "✓ getting this one" on the one you tapped. Tubes you could only catch if already near the platform
   come first under "If you're near the platform" (said once; never hidden, since GPS can't tell the concourse from the
-  platform); then "Then". The instruction reads "Get on the Met to Aldgate · eastbound · Platform 2 · due 08:06
+  platform); then "Then". Once you've tapped one, it's one plain list (no "If you're near the platform"). The instruction reads "Get on the Met to Aldgate · eastbound · Platform 2 · due 08:06
   · in 3 min …". The headline's left side is "Next tube". The trains list under it is not drawn there.
 - **The followed card at the change station uses the same tubes**: its arrival is the listed next tube's office time
   (under 2 minutes old), not TfL's journey planner (11 Nov: 08:44 in the headline while the list said 08:30). Source

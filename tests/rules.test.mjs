@@ -1140,7 +1140,7 @@ test("Met platform at Aldgate (recorded 31 Oct 08:59, Saturday): the Mets standi
     extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json([]) : /940GZZLULVT\/Arrivals/.test(u) ? json(only) : undefined) });
   await app2.fix(...ALD, 10, t0); await app2.c.refresh({ force: true }); await sleep(300);
   assert.deepEqual([...app2.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim()),
-    ["Platform 2: 1 Met Chesham · 4 min", "2 Met · 8 min"]);
+    ["Platform 2: 1 Met Chesham · 4 min", "2 Met westbound · 8 min"]);
   app2.close();
   // Picking the platform 3 Met follows it by its vehicle.
   app.d.querySelector('#hero [data-tubepick*="|431|"]').click();
