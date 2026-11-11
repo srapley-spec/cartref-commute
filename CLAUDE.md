@@ -10,7 +10,7 @@ fixed Scheduled / Expected / alighting-station arrival columns. Keep compact mod
 all existing effort/arrival-first rules, optional Follow, inference/correction and independent planning.
 The review prototype is a visual reference, never a substitute for production state, clocks or ranking.
 
-**Amendment agreed 10 Nov (Sam), not yet built:** `docs/design-system.md` → "Journey card amendment — 10 November
+**Amendment agreed 10 Nov (Sam), partly built:** `docs/design-system.md` → "Journey card amendment — 10 November
 2026" (one journey card while following, onward tube lozenges from the start, station-line progress, urgency, one
 row of controls under way). It comes from the trip debrief in issue #57, which also orders the work: the engine
 safety items (wrong train, "I'm on it", state lost on reload) come before the card. Until an item ships, the app
@@ -20,8 +20,9 @@ truth while following, live times kept after the train leaves, and the live card
 (`docs/stories/follow-a-route.md`, "One source of truth…"); the tube named on the followed card in both directions,
 one leave time, notices only for a 3-minute change ("Arriving … (was …)", ✕), "N min later than planned", the walk
 left set against the measured walk, and TfL's location text for your tube (same story, "The tube named…";
-`nearly-home.md`; `journey-progress.md`). Each of those lists what it left unbuilt. Issue #57 also holds the
-homeward findings (H1–H28).
+`nearly-home.md`; `journey-progress.md`); and (11 Nov) the one journey card itself: under way, the live card is
+drawn inside the followed card (`follow-a-route.md`, "One journey card"). Each of those lists what it left unbuilt.
+Issue #57 also holds the homeward findings (H1–H28).
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
 
 ## Where the context is

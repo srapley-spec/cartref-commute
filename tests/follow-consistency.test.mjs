@@ -101,7 +101,7 @@ test("Homeward: 'Be on the platform by' only at the station your followed train 
   const hero = app.d.querySelector("#hero");
   assert.ok(hero.classList.contains("shares-follow"));
   for (const n of hero.querySelectorAll(':scope > [data-block="then"]')) assert.equal(visible(app, n), false, "no 'Get off at King's Cross' under a route via Farringdon");
-  assert.match(app.text("#hero .journey-progress"), /Aldgate → Farringdon/, "where you get off is still on the card");
+  assert.match(app.text("#followPanel .journey-progress"), /Aldgate → Farringdon/, "where you get off is still on the card");
   // 10:22, at Farringdon: at the station.
   c.state.saved.tubeRide = null;
   place(22, P.stationGeo.ZFD, { atHub: "ZFD" });
@@ -196,7 +196,9 @@ test("One journey, no repeats: aboard, the followed card alone states the journe
   const hero = app.d.querySelector("#hero");
   assert.ok(hero.classList.contains("shares-follow"));
   for (const sel of ['[data-block="headline"]', ".journey-connection", '[data-block="then"]']) assert.equal(visible(app, hero.querySelector(`:scope > ${sel}`)), false, `${sel} isn't repeated under the followed card`);
-  for (const sel of ['[data-block="label"]', ".journey-progress", ".pick"]) assert.ok(visible(app, hero.querySelector(sel)), `${sel} stays`);
+  // What the live card still had to show is in the one journey card now (11 Nov: tests/single-card.test.mjs).
+  assert.equal(hero.hidden, true);
+  for (const sel of ['[data-block="label"]', ".journey-progress", ".pick"]) assert.ok(app.d.querySelector(`#followPanel ${sel}`), `${sel} is in the card`);
   assert.match(app.text("#followPanel"), /At King's Cross\s*11:25.*At office/, "the followed card states the journey");
   // The list of other trains is folded away once you've set off.
   const later = app.d.querySelector("#signalLaterTrains");

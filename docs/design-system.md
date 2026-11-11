@@ -14,7 +14,10 @@ contradicts an earlier line, this section wins, and the line is listed under "Ru
 ### 1. One journey card while you follow a route (C5, C6, D1)
 **First step built 10 Nov** ("one journey, no repeats", the cut-down version Sam chose that evening): the live card
 under the followed card no longer repeats the journey, and the list of other trains folds away once you've set off.
-Rules and tests: [`stories/follow-a-route.md`](stories/follow-a-route.md). The single card proper is still to build.
+Rules and tests: [`stories/follow-a-route.md`](stories/follow-a-route.md).
+**The single card built 11 Nov** (Sam: "Build the single card view as this was confusing"): one card in the order
+below while the live view is about the followed journey; same story, "One journey card". Not yet: the last bullet
+(arrival at the change station), "Another option" for the same train at another station, and section 7's controls.
 - While a route is followed and the journey is under way (on the train, at the change station, on the tube, on the
   final walk), the screen has **one** journey card. The separate live card ("On the train", "You're at Farringdon",
   "On the tube", "Walking to the office") is not drawn beside it; its content moves into the one card.
@@ -79,6 +82,8 @@ line colours in lozenges."
   pace". Once the deadline passes, the existing effort wording takes over. **Words confirmed by Sam, 10 Nov.**
 
 ### 4. On the train (C10, C11)
+**Built 11 Nov with the single card:** the identity line, no departure panel or platform once aboard, and "Not your
+train?" folded when certain and open when unsure. Not yet: "3 min to the tube platform" in the next step.
 - The card leads with arrival at your stop → final arrival, and one line: "You're on the 07:20 Thameslink to
   Brighton · On time". The departure platform and the three-column departure panel are not shown once aboard; the
   panel's arrival figure is the card's first clock.

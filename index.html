@@ -694,6 +694,15 @@ html[data-trip="on"] #journeyViewControl {display:flex!important}
 html #followPanel .tube-line {font-size:14px;line-height:1.5;margin:6px 0}
 html #followPanel .tube-line .chip {font-weight:650}
 html #followPanel .tube-line .tube-alt {color:var(--muted)}
+/* One journey card (10 Nov amendment §1): the live card's parts inside the followed card keep their own styles
+   (the box carries the live card's class) but none of its card chrome; folds match "Your journey steps". */
+html #hero[hidden] {display:none}
+html #followPanel .hero.merged {background:none;border:0;border-radius:0;padding:0;box-shadow:none;margin:0;gap:8px;color:inherit}
+html #followPanel .follow-service {font-size:14px;line-height:1.5}
+html #followPanel .fold summary {display:flex;align-items:center;min-height:44px;padding:7px 0;font-size:13px;font-weight:650;color:var(--accent);cursor:pointer;list-style:none}
+html #followPanel .fold summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
+html #followPanel .fold[open]>summary::before {transform:rotate(90deg)}
+html #followPanel .fold summary::-webkit-details-marker {display:none}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -843,7 +852,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 10 Nov 23:09 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 01:47 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -8985,7 +8994,78 @@ function renderSignalCompact(){
   p.later.hidden=!setOff;$('#listTitle').hidden=setOff;
   if(setOff){if($('#list').parentElement!==p.later)p.later.append($('#list'));}
   else if($('#list').parentElement===p.later)p.later.after($('#list'));
+  // (Only a live view is the journey under way; a plan under the followed card, or the wait for a position, is not.)
+  const view=state.presentation?.view||'', liveView=!!view&&!view.startsWith('plan-')&&view!=='following'&&view!=='awaiting-location';
+  singleCard(shares&&liveView?followed:null);
   restoreOpen();
+}
+// One journey card (10 Nov amendment §1; Sam, 11 Nov: "Build the single card view as this was confusing"). While you
+// follow a route and the live card is about that same journey, the live card is not drawn beside the followed card:
+// what it still shows moves into the one card, in this order: the journey (clocks, the service you're on, status,
+// anything the app is asking you); the legs; what's next; then, folded, "Not your train?", "Report details", your
+// journey steps and Stop following. The parts keep their own handlers (clicks are handled at the document) and their
+// own styles (each group sits in a box that carries the live card's class).
+function singleCard(route){
+  const panel=$('#followPanel'), hero=$('#hero');
+  const drawn=panel.querySelector(':scope > .journey-progress');   // put there this pass by renderJourneyProgress
+  const reportIn=n=>[...n.querySelectorAll('details')].find(d=>/Report details/.test(d.querySelector('summary')?.textContent||''));
+  // Nothing changed since the card was last built: keep its parts as they are (a tap under way still lands on its
+  // button) and take in only the legs, which are drawn afresh on every pass.
+  const sig=(panel._renderedHtml||'')+'\u0000'+hero.innerHTML+'\u0000'+(drawn?drawn.outerHTML:'');
+  if(route&&panel.dataset.single&&panel._singleSig===sig){
+    const fresh=drawn||hero.querySelector(':scope > .journey-progress'), slot=panel.querySelector(':scope > [data-slot="legs"]'), kept=panel._singleReport;   // (it went out with the old legs)
+    const start=panel.querySelector(':scope > .follow-next')||panel.querySelector(':scope > .steps')||panel.querySelector(':scope > [data-follow-action="stop"]');
+    if(fresh){
+      if(slot&&!drawn)slot.replaceChildren(fresh);else if(start)start.before(fresh);
+      const details=reportIn(fresh);if(kept&&details)details.append(kept);
+    }
+    hero.hidden=true;return;
+  }
+  delete panel._singleSig;delete panel._singleReport;
+  if(panel.dataset.single){                                        // back to the card as drawn, then build afresh
+    drawn?.remove();panel.innerHTML=panel._renderedHtml||'';delete panel.dataset.single;arrangeJourneySummaries(panel);
+    if(drawn){const before=panel.querySelector(':scope > .steps');if(before)before.before(drawn);else panel.append(drawn);}
+  }
+  hero.hidden=false;
+  if(!route)return;
+  const own=sel=>panel.querySelector(`:scope > ${sel}`);
+  const box=(slot,nodes)=>{const d=document.createElement('div');d.className='hero merged';d.dataset.slot=slot;d.append(...nodes);return d;};
+  const fold=(key,label,open,inner)=>{const d=document.createElement('details');d.className='fold';d.dataset.key=`${key}|${route.id}`;d.open=!!open;
+    const s=document.createElement('summary');s.textContent=label;d.append(s,inner);return d;};
+  // What the live card still shows: not what "one journey, no repeats" already hides, and not empty leftovers.
+  const live=[...hero.children].filter(n=>!n.hidden&&(n.textContent.trim()||n.querySelector('button,a,input,select,svg,img')));
+  const take=test=>{const out=[];for(let i=0;i<live.length;)if(test(live[i]))out.push(...live.splice(i,1));else i++;return out;};
+  const legs=take(n=>n.classList.contains('journey-progress'));
+  const report=take(n=>n.dataset.block==='label'||n.dataset.block==='source');
+  // A question the app is asking (the wrong-train check, "Switch to …?") is never folded away.
+  const asking=take(n=>n.classList.contains('pick')&&(n.classList.contains('doubt')||!!n.querySelector('[data-pick-cancel]')));
+  // On a train, the other candidates are the correction ("Not your train?"), folded unless the app is unsure. Other
+  // choices the live card offers (which tube, "Got off already?") are things to do next and stay in view.
+  const correct=state.rendered?.train?take(n=>n.classList.contains('pick')):[];
+  // Which train you're on is said once: the live card's line when it has one ("You're on …", or "Probably … or …"
+  // while it is unsure, which is also when "Not your train?" stands open), else the followed card's own.
+  let found=false;const identity=take(n=>!found&&n.dataset.block==='which'&&(found=true));
+  if(identity.length){const mine=own('.follow-service'),b=box('service',identity);b.classList.add('follow-service');
+    if(mine)mine.replaceWith(b);else (own('.meta')||own('.follow-status'))?.before(b);}
+  const next=own('.follow-next'), steps=own('.steps'), stop=own('[data-follow-action="stop"]'), start=next||steps||stop;
+  if(!start)return;
+  // 1. The journey: notices, questions and the other option sit with the status, above the legs.
+  for(const n of [own('.banner'),own('[data-boarding-ask]'),own('[data-follow-action="boarded"]'),asking.length?box('asking',asking):null,own('.follow-alternative')])if(n)start.before(n);
+  // 2. The legs.
+  if(legs.length)start.before(box('legs',legs));else if(own('.journey-progress'))start.before(own('.journey-progress'));
+  // 3. What's next: the next step, the onward tube, then whatever else the live card has to say or offer.
+  let after=next;
+  const place=n=>{if(after){after.after(n);after=n;}else (steps||stop).before(n);};
+  if(route.direction!=='home'&&own('.tube-line'))place(own('.tube-line'));
+  if(live.length)place(box('next',live));
+  // 4. Folded away. "Not your train?" opens by itself only while the app is unsure which train you're on.
+  const unsure=!!state.rendered?.train&&!state.rendered.train.sure;
+  // (Its own key while it stands open by itself, so that isn't remembered as your choice once the train is settled.)
+  if(correct.length)(steps||stop).before(fold(unsure?'follow-correct-unsure':'follow-correct','Not your train?',unsure,box('correct',correct)));
+  // Where the figures come from joins the legs' own "Report details" when there is one (one fold, not two).
+  const legsNow=panel.querySelector('.journey-progress'), details=legsNow?reportIn(legsNow):null;
+  if(report.length){if(details)details.append(panel._singleReport=box('report',report));else (steps||stop).before(fold('follow-report','Report details',false,box('report',report)));}
+  panel.dataset.single='1';panel._singleSig=sig;hero.hidden=true;
 }
 function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalParts.other.parentElement)signalParts.other.before($('#hero'));}
 function journeyInteracting(){
@@ -9250,10 +9330,10 @@ function renderFollowPanel(){
     ${r.direction==='home'?tubeLine:''}
     ${panelLayout?nextServiceMarkup(t):''}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
-    ${r.phase!=='on-train'?'':`<div><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}${platTag(t)}</div>`}
+    ${r.phase!=='on-train'?'':`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
     <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
       :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
-    ${r.phase==='after-train'?'':trainConnectionMarkup(t)}
+    ${r.phase==='before-train'?trainConnectionMarkup(t):''}
     ${r.direction==='home'?'':tubeLine}
     <div class="follow-status ${result.level}">${unknown?'Arrival uncertain · ':''}${esc(result.text)}</div>
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}

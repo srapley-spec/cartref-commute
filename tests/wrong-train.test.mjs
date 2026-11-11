@@ -44,7 +44,8 @@ async function aboard({ follow = true, where = null, third = false, saved = {}, 
     c.state.progressById = { SLOW: { id: "SLOW", at: c.state.lastFixAt, err: null, data: { last: { name: leftName, code: leftCode, t: leftAt, late: 0 }, next: { name: next.name, code: next.code, t: next.expectedAt },
       at: (code) => { const x = calls.find((k) => k.code === code); return x ? x.actualAt ?? x.expectedAt : null; }, calls, cancelled: false, reason: "" } } };
   };
-  const hero = () => app.text("#hero");
+  // The live card, or (while you follow a route about the same journey) the one journey card it is drawn into.
+  const hero = () => app.d.querySelector("#hero").hidden ? app.text("#followPanel") : app.text("#hero");
   const click = (sel) => { const b = app.d.querySelector(sel); assert.ok(b, `${sel} is on screen`); b.click(); };
   return { app, c, now, report, hero, click, pointOn, frac, total, followFast };
 }
@@ -56,7 +57,7 @@ test("Wrong train: selecting a train other than the one you're following asks fi
   assert.equal(c.state.trainLock, null, "not selected yet");
   assert.match(app.text("[data-pending-pick]"), /^You're following the 10:20 Thameslink to Brighton\. Switch to the 10:15 Great Northern to King's Cross\?/);
   assert.deepEqual([...app.d.querySelectorAll("[data-pending-pick] button")].map((b) => b.textContent), ["Switch to the 10:15 Great Northern to King's Cross", "Stay on the 10:20 Thameslink to Brighton"]);
-  assert.equal(app.d.querySelectorAll("#hero .pick").length, 1, "the question replaces the list while it's open");
+  assert.equal(app.d.querySelectorAll("#hero:not([hidden]) .pick, #followPanel .pick").length, 1, "the question replaces the list while it's open");
   click("[data-pick-cancel]");
   assert.equal(c.state.trainLock, null); assert.equal(app.d.querySelector("[data-pending-pick]"), null);
   assert.match(hero(), /Which train are you on\?/, "back to the list");

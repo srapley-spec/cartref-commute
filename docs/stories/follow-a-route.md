@@ -275,6 +275,53 @@ The walk left after the train is in [nearly-home](nearly-home.md); where your tu
   for the breakages that had survived.
 - Checked in a real browser (Chromium, phone width, 10 Nov): the outbound card with the train 4 minutes late shows the lozenges in colour, one leave time, and the notice with ✕.
 
+## One journey card (11 Nov 2026; amendment §1, #57 C5, C6, D1): built 11 Nov
+Sam, 11 Nov 01:30, after two days of two cards saying different things: "Build the single card view as this was
+confusing". The design is amendment §1 (agreed and worded with him on 10 Nov); the evening before he had chosen
+the cut-down "one journey, no repeats" as a first step.
+
+**When.** While a route is followed and the live card under it is about that same journey and is a live view (on
+the train, at the change station, on the tube, on the final walk, nearly home), the live card is not drawn: what it
+still showed is inside the followed card. Not merged, and unchanged: a plan under the followed card (before you
+set off, and the departures shown at the station your train leaves from); the wait for a position; a live card
+about a different train (one you selected instead), which is shown in full; and everything without Follow.
+
+**Order inside the card.**
+1. The journey: the two clocks with Journey remaining; one line saying what you're on ("You're on the 07:20
+   Thameslink to Brighton · On time", or "Probably … or …" while the app is unsure; on the tube "You're on the 11:37
+   Circle"; at the change station the instruction, "Get on the next Circle or Met eastbound to Aldgate"); the status
+   line; any notice; anything the app is asking you (the wrong-train question, "Switch to …?", "I'm on it").
+2. The legs: Journey stages and the current leg, with their own "Report details", which now also holds where the
+   figures come from ("On the train · 10:34 · worked out from your location" and the source note).
+3. What's next: the next step, the onward tube line, then whatever else the live card offers to do next (the tubes
+   you can board at the change station, "Got off already?" on the tube).
+4. Folded: "Not your train?" (the other candidates; it stands open by itself only while the app is unsure which
+   train you're on, and that is not remembered as your choice), Your journey steps, Stop following.
+- Once aboard, the three-column departure panel and the departure platform are not drawn (amendment §4); before the
+  train, including on the tube to it coming home, the panel with the scheduled departure stays.
+- Which train you're on is said once. The live card's own headline, train panel, steps and "Get off at …" stay
+  undrawn as before (one journey, no repeats).
+- How it's put together (`singleCard`, `src/journey-ui.js`): the live card is still worked out and drawn as before
+  (so every view, handler and test of it without Follow is untouched); its parts are then moved into the followed
+  card, each group in a box that carries the live card's class so its styles apply. When nothing has changed since
+  the last redraw the card's parts are left as they are (a tap that began before a redraw still lands on its
+  button); only the legs, which are redrawn on every pass, are taken in afresh.
+
+**Not built (amendment §1, §4, §7):** the change-station arrival taken from the recommended tube (the followed
+arrival still moves only when you board one); "Another option" for the same train calling at another station;
+"3 min to the tube platform" in the next step; the controls collapsing to one row under way; "35 min train" still
+stands on a line of its own. At the station your train leaves from, the departures card under the followed card
+is still drawn (it is a plan, and it repeats your train as its first option): to raise with Sam.
+
+**Tests**
+- tests/single-card.test.mjs: "On the train: one journey card, in order: the journey and the train you're on, the legs, what's next, then the fold-aways"
+- tests/single-card.test.mjs: "On the train and unsure which: the card says 'Probably', and 'Not your train?' stands open; choosing folds it"
+- tests/single-card.test.mjs: "At the change station, on the tube and on the walk to the office: still one card, with the tube choices in view"
+- tests/single-card.test.mjs: "Coming home on the tube: one card, 'Got off already?' in view; at the station your train leaves from the plan card is still its own; walking home, one card"
+- tests/single-card.test.mjs: "Not one card when the live card is about something else: a different train selected, or no route followed"
+- tests/single-card.test.mjs: "A doubt about the train you're following is asked inside the one card, in view, never folded"
+- Checked in a real browser (Chromium, phone width, 11 Nov): aboard while following, one card in the order above.
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
