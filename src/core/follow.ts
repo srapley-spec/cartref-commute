@@ -69,6 +69,8 @@ export interface FollowInput {
 export interface FollowUpdate {
   route: FollowRoute; status: 'on-track' | 'hurry' | 'missed' | 'cancelled' | 'unknown' | 'arrived';
   level: 'ok' | 'warn' | 'bad' | 'info'; text: string; nextStep: Leg | null;
+  /** The next step is the journey's last (the arrival itself): "Journey remaining" already says it. */
+  nextIsLast?: boolean;
   notice: FollowNotice | null; alternative: Option | null; deltaMin: number | null; trainStatus: TrainStatus | null;
   /** "Very tight · run": the next train you could take instead, and when it gets you there. */
   ifMissed?: { std: string; arrive: number } | null;
@@ -457,6 +459,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     ? (input.activeConnection || input.boarding ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null
     : legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null;
-  return { route, status, level, text, nextStep, trainStatus: railStatus, notice: route.notices[0] || null, alternative,
+  const nextIsLast = !!nextStep && nextStep === legs[legs.length - 1];
+  return { route, status, level, text, nextStep, nextIsLast, trainStatus: railStatus, notice: route.notices[0] || null, alternative,
     deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null, ifMissed };
 }

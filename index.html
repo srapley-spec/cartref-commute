@@ -705,6 +705,41 @@ html #followPanel .fold[open]>summary::before {transform:rotate(90deg)}
 html #followPanel .fold summary::-webkit-details-marker {display:none}
 html #followPanel .follow-ifmissed {font-size:14px;color:var(--muted);margin:2px 0 6px}
 html .tl-note {font-size:13px;color:var(--muted);margin:4px 0 0}
+/* Where you are on the leg (option A, 11 Nov 2026): one line, then every station folded top to bottom. */
+html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px}
+html .journey-progress .jp-where.none {color:var(--muted)}
+html .journey-progress .jp-tick {color:var(--ok);font-weight:700}
+html .journey-progress .jp-next {color:var(--accent);font-weight:650}
+html .journey-progress .jp-all summary {color:var(--accent);font-weight:650;font-size:13px;min-height:40px;display:flex;align-items:center;cursor:pointer;list-style:none}
+html .journey-progress .jp-all summary::before {content:'›';margin-right:6px;font-size:18px}
+html .journey-progress .jp-all[open] summary::before {transform:rotate(90deg)}
+html .journey-progress .jp-all summary::-webkit-details-marker {display:none}
+html .journey-progress .jp-vlist {list-style:none;margin:2px 0 0;padding:0}
+html .journey-progress .jp-vlist .jp-stop {display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px;padding:5px 0;position:relative}
+html .journey-progress .jp-vlist .jp-stop::before {content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--line)}
+html .journey-progress .jp-vlist .jp-stop:first-child::before {top:50%}
+html .journey-progress .jp-vlist .jp-stop:last-child::before {bottom:50%}
+html .journey-progress .jp-vlist .jp-stop-dot {display:block;width:12px;height:12px;border-radius:50%;border:2px solid var(--muted);background:var(--surface,#fff);z-index:1;justify-self:center}
+html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-dot {background:var(--ok);border-color:var(--ok)}
+html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-name {color:var(--muted)}
+html .journey-progress .jp-vlist [data-state="next"] .jp-stop-dot {background:var(--accent);border-color:var(--accent)}
+html .journey-progress .jp-vlist [data-state="yours"] .jp-stop-dot {border-width:3px;border-color:var(--ink)}
+html .journey-progress .jp-vlist .jp-stop-time {font-variant-numeric:tabular-nums;font-size:14px}
+html .journey-progress .jp-source {font-size:13px;color:var(--muted);margin:2px 0 0}
+html .tube-list .pickbtn {display:block;width:100%;text-align:left;margin:6px 0}
+html .tube-list .tube-sub {font-size:12px;color:var(--muted);margin:8px 0 0;text-transform:none}
+/* "Leave now · 45 s" (amendment §3): the headline's weight and ink on an accent-tinted band. */
+html .journey-countdown.urgent {font-size:22px;font-weight:750;color:var(--ink);background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:10px;padding:6px 10px;margin:6px 0}
+html .journey-countdown.urgent [data-cd] {font-variant-numeric:tabular-nums}
+html #followPanel .follow-instead {font-size:14px;font-weight:650;color:var(--ink);margin:2px 0}
+
+/* Under way: the controls fold into one row (amendment §7, #57 A5). */
+html .signal-underway-summary {flex:1;min-width:0;min-height:40px;text-align:left;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:6px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html .signal-underway-summary::after {content:' ▾';color:var(--muted)}
+html body[data-controls-open] .signal-underway-summary::after {content:' ▴'}
+html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#signalToolbar,#signalPlanningControls,#byForm) {display:none}
+html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
+html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -854,7 +889,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 10:30 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 13:45 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1347,6 +1382,7 @@ var CommuteCore = (() => {
     samAlongLine: () => samAlongLine,
     samAlongStations: () => samAlongStations,
     samRoutes: () => samRoutes,
+    sameStation: () => sameStation,
     sameStationName: () => sameStationName,
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
@@ -1391,6 +1427,7 @@ var CommuteCore = (() => {
     tubeHomeConnections: () => tubeHomeConnections,
     tubeLine: () => tubeLine,
     tubeName: () => tubeName,
+    tubePlace: () => tubePlace,
     tubeStationBoard: () => tubeStationBoard,
     tubeWhere: () => tubeWhere,
     updateFollowRoute: () => updateFollowRoute,
@@ -2827,8 +2864,10 @@ var CommuteCore = (() => {
     const best = gone[0], other = gone.find((a) => a !== best && off(a) - off(best) < 3 * 6e4);
     return { best, other };
   }
+  var OTHER_TUBE_OFFER_MS = 5 * 6e4;
   function otherTubes(deps, on, now, max = 3) {
-    return (deps || []).filter((a) => a.t <= now + 3e4 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 6e4).sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
+    if (now - on.t > OTHER_TUBE_OFFER_MS) return [];
+    return (deps || []).filter((a) => a.t <= now + 3e4 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 6e4 && !(a.vehicle && on.vehicle && a.vehicle === on.vehicle)).sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
   }
   function inLondonToOffice(dir, f, atHub, onTheLine, onATube, p) {
     const here = pos(f, 300);
@@ -3800,12 +3839,14 @@ var CommuteCore = (() => {
       }
     }
     const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection || input.boarding ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
+    const nextIsLast = !!nextStep && nextStep === legs[legs.length - 1];
     return {
       route,
       status,
       level,
       text: text2,
       nextStep,
+      nextIsLast,
       trainStatus: railStatus,
       notice: route.notices[0] || null,
       alternative,
@@ -3964,6 +4005,34 @@ var CommuteCore = (() => {
   }
 
   // src/core/journeyProgress.ts
+  var sameStation = (a, b) => {
+    const n2 = (x2) => String(x2 || "").toLowerCase().replace(/\b(underground|station|rail|london)\b/g, "").replace(/[^a-z]/g, "");
+    const x = n2(a), y = n2(b);
+    return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x));
+  };
+  function tubePlace(where, names) {
+    const w = String(where || "").trim();
+    if (!w) return null;
+    const find = (name) => names.findIndex((n2) => sameStation(n2, name));
+    let m = /^(?:At|Left|Leaving|Departed|Departing)\s+(.+)$/i.exec(w);
+    if (m) {
+      const i = find(m[1]);
+      return i < 0 ? null : { last: i, next: i + 1 < names.length ? i + 1 : null, approaching: false };
+    }
+    m = /^Between\s+(.+?)\s+and\s+(.+)$/i.exec(w);
+    if (m) {
+      const a = find(m[1]), b = find(m[2]);
+      if (a < 0 && b < 0) return null;
+      const last = a >= 0 ? a : b - 1;
+      return { last: last >= 0 ? last : null, next: b >= 0 ? b : a + 1 < names.length ? a + 1 : null, approaching: false };
+    }
+    m = /^Approaching\s+(.+)$/i.exec(w);
+    if (m) {
+      const i = find(m[1]);
+      return i < 0 ? null : { last: i > 0 ? i - 1 : null, next: i, approaching: true };
+    }
+    return null;
+  }
   var finite5 = (v) => typeof v === "number" && Number.isFinite(v);
   var clamp = (v) => Math.max(0, Math.min(1, v));
   var fractionAt = (at, start, end) => finite5(start) && finite5(end) && end > start ? clamp((at - start) / (end - start)) : null;
@@ -4023,7 +4092,7 @@ var CommuteCore = (() => {
     if (i.noEstimate) status = { text: "No live arrival estimate", level: "bad", deltaMin: null };
     if (i.cancelled) status = { text: "Service cancelled \xB7 check your next step", level: "bad", deltaMin: null };
     const progressLabel = source === "reported" ? "Calling-point progress" : source === "stale" ? "Last known progress" : source === "unknown" ? "Progress unavailable" : "Estimated time progress";
-    const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}; no passing-point position is claimed.` : source === "prediction" && e.where && e.source === "prediction" ? `${e.where} \xB7 TfL${finite5(e.observedAt) ? `, ${hhmm(e.observedAt)}` : ""}.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
+    const evidenceLabel = source === "reported" ? `Last reported at ${(reportedCall == null ? void 0 : reportedCall.name) || "a calling point"}.` : source === "prediction" && e.where && e.source === "prediction" ? `${e.where} \xB7 TfL${finite5(e.observedAt) ? `, ${hhmm(e.observedAt)}` : ""}.` : source === "prediction" ? "Live arrival; position is a time-based estimate." : source === "stale" ? "Stale feed \xB7 last known reports; progress is frozen." : source === "modelled" ? "Modelled timing \xB7 live position and timing comparison unavailable." : "Live progress is unavailable; the selected journey is kept.";
     const stages = (f) => i.legs.map((l, index) => ({
       ...l,
       state: index < currentIndex ? "complete" : index === currentIndex ? "current" : "upcoming",
@@ -4039,8 +4108,26 @@ var CommuteCore = (() => {
       identityLabel: "",
       status: { text: "Train not confirmed", level: "info", deltaMin: null },
       calls: [],
-      legs: stages(null)
+      legs: stages(null),
+      where: null,
+      sourceLine: ""
     };
+    let where = null;
+    const yours = calls.length - 1;
+    if (yours >= 1) {
+      if (lastReported >= 0 && e.source === "reported" && e.identityMatched === true) {
+        const next = lastReported < yours ? lastReported + 1 : null;
+        where = { last: lastReported, next, yours, stopsToGo: yours - lastReported, approaching: false };
+      } else if (current.kind === "tube" && accepted && e.where) {
+        const p = tubePlace(e.where, calls.map((c) => c.name));
+        if (p) where = { last: p.last, next: p.next, yours, stopsToGo: p.next === null ? 0 : yours - p.next + 1, approaching: p.approaching };
+      }
+    }
+    const graded = calls;
+    if (where) graded.forEach((c, index) => {
+      c.passed = where.last !== null && index <= where.last;
+    });
+    const sourceLine = !where ? "" : current.kind === "tube" ? `TfL${finite5(e.observedAt) ? `, ${hhmm(e.observedAt)}` : ""}` : `National Rail report${finite5(e.observedAt) ? `, ${hhmm(e.observedAt)}` : ""}`;
     return {
       current,
       currentIndex,
@@ -4050,8 +4137,10 @@ var CommuteCore = (() => {
       evidenceLabel,
       identityLabel: i.uncertainIdentity ? "Likely service \xB7 identity not confirmed" : "",
       status,
-      calls,
-      legs: stages(fraction)
+      legs: stages(fraction),
+      where,
+      sourceLine,
+      calls: graded
     };
   }
   var kindLabel = (kind) => ({ walk: "Walk", rail: "Train", tube: "Tube", connection: "Connection" })[kind];
@@ -6232,6 +6321,12 @@ function officeLeg(hub, lineId){
 const lineChip = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"met";
 const boardDest = d => String(d||"").replace(/ \([^)]*Line\)/i,"");
 const tubeBtn = (hub, a, inner) => `<button type="button" class="pickbtn" data-tubepick="${hub}|${a.t}|${esc(a.line)}|${esc(a.vehicle||"")}|${esc(boardDest(a.dest))}">${inner}</button>`;
+const ordinal = n => `${n}${n%100>=11&&n%100<=13?"th":({1:"st",2:"nd",3:"rd"})[n%10]||"th"}`;
+// How a tube to the office is named (amendment §2): a Circle reaching Aldgate the long way round "via Aldgate"; an
+// H&C "to Barking, for Aldgate East".
+const tubeDestWords = a => { const d=boardDest(a.dest), id=a.lineId||({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[a.line];
+  return id==="circle"&&/edgware/i.test(d) ? "via Aldgate" : id==="hammersmith-city" ? `to ${d||"Barking"}, for Aldgate East` : `to ${d||"Aldgate"}`; };
+const tubeLineDest = a => `<span class="chip ${lineChip(a.line)}">${esc(a.line)}</span> ${esc(tubeDestWords(a))}`;
 const lineDest = (a, dflt) => `<span class="chip ${lineChip(a.line)}">${esc(a.line)}</span> ${esc(boardDest(a.dest)||dflt)}`;
 // Platform pick buttons: board order, up to 4; the platform number when they're on more than one board (Aldgate).
 function boardBtns(hub, list, all, now, dflt){
@@ -6426,11 +6521,18 @@ function nextServiceMarkup(t,from=STATIONS[t.from]||t.from){
   return `<div class="journey-next-service"><b>${label}:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
 }
 const isEffortFlag=f=>/^(Arrives first|Latest for|Least late|Fast walk$|Run$|Car needed$|Can't make it$)/.test(f.txt);
+// The nearest station on the line within 3 km, by name (amendment §8; #57 C8: "near Letchworth" at Hitchin).
+function nearestStation(here){
+  if(!here) return null; let best=null, d=3;
+  for(const [code,g] of Object.entries(PROFILE.stationGeo||{})){ const k=km(here,g); if(k<d){ d=k; best=STATIONS[code]||code; } }
+  return best;
+}
 function journeyAccessMarkup(j){
   if(!j||!plannable(j.train)||j.uncertain)return '';
   const flags=(j.flags||[]).filter(isEffortFlag);
   const walk=!j.effort||j.effort==='walk';
-  return `<div class="journey-reach" data-effort="${esc(j.effort||'walk')}">${pills(flags,false)}${walk?`<span>${state.saved.view==='now'?'Walk at your usual pace':'Walk planned'}</span>`:''}</div>`;
+  const tubeFirst=Array.isArray(j.legs)&&(()=>{const i=j.legs.findIndex(l=>l.train);return i>0&&j.legs.slice(0,i).some(l=>l.tube);})();
+  return `<div class="journey-reach" data-effort="${esc(j.effort||'walk')}">${pills(flags,false)}${walk?`<span>${state.saved.view==='now'?(tubeFirst?'Tube and walk at your usual pace':'Walk at your usual pace'):'Walk planned'}</span>`:''}</div>`;   // #57 H18
 }
 // A train you could still make if you hurry.
 // At the station (a London station going home, or Letchworth station going to work), Leave now is a departure
@@ -6527,7 +6629,7 @@ function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraCl
 function journeyOverviewMarkup(j,opt={}){
   const dest=j.dest||(direction()==='office'?'office':'home');
   return `${journeyHeadlineMarkup(j,dest,opt.timing?`<span class="${opt.late?'latetxt':''}">${esc(opt.timing)}</span>`:'')}
-    ${journeyAccessMarkup(j)}${nextServiceMarkup(j.train,depStation(j))}${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
+    ${journeyAccessMarkup(j)}${journeyFactsMarkup(j)}${trainConnectionMarkup(j.train,depStation(j))}
     <div class="optroute route">${chips(j)}</div>
     ${plannable(j.train)&&Number.isFinite(j.train.dep)&&(j.missed||opt.board)?`<div class="connection-countdown"><span data-dep="${j.train.dep}"></span></div>`:''}`;
 }
@@ -6578,6 +6680,13 @@ function wrongTrainMarkup(m){
     ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":"")," data-pick-confirmed")).join("")}
     ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
 }
+// The other trains offered as a correction are ones you could be on (#57 C12: the list offered the three nearest,
+// however far off): not ruled out by a station report and within 12 min of where you are (the same 12 min that
+// questions a pick). The train you're following always stays offered; with a stale position nothing is filtered.
+function couldBe(m){
+  const route=followedRoute();
+  return (m.others||[]).filter(c=>m.stale||(route&&C.followIsTrain(route,c.t))||(!c.ruledOut&&c.offMin<=12));
+}
 function renderOnTrain(now, m){
  state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
@@ -6607,11 +6716,11 @@ function renderOnTrain(now, m){
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:where,stationArrival:m.projected,arrival:j?arrive:null,dest})}</div>
     <div data-block="which"><span class="slack">${m.sure?"You're on the":m.picked?"You picked the":"Probably the"} ${esc(C.trainName(t))} ${st?`<span class="slackst ${st.level}">${esc(st.text)}</span>`:""}</span>
-      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked&&m.sure?" · you picked this":""}</span></div>
+      <span style="opacity:.85;font-size:13px">${m.other?` or the ${esc(C.trainName(m.other.t))}`:""}${m.picked&&m.sure?' <span class="picked-note">you picked this</span>':""}</span></div>
     <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${trainConnectionMarkup({...t,arr:m.projected},STATIONS[t.from]||t.from,{arrival:m.projected,to:where,arrivalSource:m.live?'Live':'Estimated'})}
     ${pendingPickMarkup() || (m.conflict ? wrongTrainMarkup(m)
-      : (m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...m.others].map(c=>pickButton(c)).join("")}</div>`:"")}
+      : couldBe(m).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...couldBe(m)].map(c=>pickButton(c)).join("")}</div>`:"")}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
     ${legs.length?`<ol class="legs" data-block="then">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}
@@ -6696,7 +6805,8 @@ function tubesFromAldgate(now){
   for(const special of [plan.fastest,plan.chosen?plan.best:null])if(special&&!shown.includes(special)&&!special.early)shown.push(special);
   const choices=[...(atAld?plan.early:[]),...shown];
   const rows=choices.map(t=>row(t,plan.chosen&&t===plan.best));
-  const btns=boardBtns("ALD",choices.filter(t=>!(plan.chosen&&t===plan.best)),d.list,now,"");
+  // Every tube out of Aldgate heads west; a Met without a destination on TfL's board says so (#57 H7: "1 Met · 3 min").
+  const btns=boardBtns("ALD",choices.filter(t=>!(plan.chosen&&t===plan.best)),d.list,now,"westbound");
   return rows.length ? `<div class="alt tubes"><small>Tubes from Aldgate (live)</small>${rows.join("")}${btns?`<div class="pick"><small>${plan.chosen?"Getting a different one?":"Which one are you getting?"}</small>${btns}</div>`:""}</div>` : "";
 }
 // On the tube going home: which tube, and where to get off (Farringdon or King's Cross) for the earliest home time.
@@ -6788,7 +6898,7 @@ function renderInLondon(now){
     $("#hero").innerHTML=`<div class="lbl" data-block="label">Walking to the office · ${hhmm(now)} · from your location</div>
       <div data-block="headline">${journeyTimesMarkup({leave:now,arrive,dest:'office',leftLabel:'Now · walking',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:arrive,unavailable:false,duration:'remaining'})}
       <div data-block="then" style="font-size:14px">${Math.round(dOff*1000)} m to 20 Mansfield Street in a straight line.</div>`;
-    $("#listTitle").textContent="Nearly there"; $("#list").innerHTML=""; return arrive;
+    $("#listTitle").textContent=""; $("#list").innerHTML=""; return arrive;   // no heading over nothing (#57 F3)
   }
   const p=state.toOffice;
   const head=`<div class="lbl" data-block="label">In London · ${hhmm(now)} · from your location</div>`;
@@ -6820,11 +6930,19 @@ function renderAtHub(now){
     if(chosen && pk && (pk.t!==n.t || pk.vehicle!==n.vehicle)){ state.saved.tubePick={...pk, t:n.t, ...(n.vehicle?{vehicle:n.vehicle}:{}), ...(n.dest?{dest:boardDest(n.dest)}:{})}; save(); }
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" data-block="which" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
-    const pickBtns = `<div class="pick" data-block="which"><small>${chosen?"Getting a different one?":"Which one are you getting?"}</small>${boardBtns(hub, [...early, ...next].filter(a=>!(chosen && a.t===n.t && a.line===n.line)), tube.arrivals, now, "Aldgate")}</div>`;
-    const nearly = early.length ? `<div class="alt" data-block="which">Near the platform already? The ${early.map(e=>`<span class="t">${hhmm(e.t)}</span> ${esc(e.line)} (office <span class="t">${hhmm(e.office)}</span>)`).join(" or the ")}.</div>` : "";
+    // One list of tubes (amendment §2, words confirmed by Sam 10 Nov): "1st · 08:06 · [Met] to Aldgate · Office 08:22",
+    // tapped to say "I'm getting this one". Tubes you could only catch if already near the platform come first,
+    // under that heading once, and only once you're clearly off the train (11 Nov: offered while still pulling in).
+    const offTrain = stopped || (since!=null && now-since>=60e3);
+    const listed = [...(offTrain?early:[]), ...next].sort((a,b)=>a.t-b.t);
+    const tubeRow = a => { const sp=C.boardSpot(tube.arrivals||[], a, now), mine=chosen && a.t===n.t && a.line===n.line;
+      return tubeBtn(hub, a, `${sp?`${ordinal(sp.pos)} · `:""}<span class="t">${hhmm(a.t)}</span> · ${tubeLineDest(a)} · Office <span class="t">${hhmm(a.office)}</span>${mine?" · ✓ getting this one":""}`); };
+    const earlyRows = listed.filter(a=>a.early), laterRows = listed.filter(a=>!a.early);
+    const pickBtns = listed.length ? `<div class="pick tube-list" data-block="which"><small>Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting</small>${earlyRows.length?`<div class="tube-sub">If you're near the platform</div>${earlyRows.map(tubeRow).join("")}`:""}${earlyRows.length&&laterRows.length?`<div class="tube-sub">Then</div>`:""}${laterRows.map(tubeRow).join("")}</div>` : "";
+    const nearly = "";
     hero=`${head}
-      <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next Tube',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
-      <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} to ${esc(n.dest||"Aldgate")}</span> <span style="opacity:.85;font-size:13px">eastbound, due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
+      <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next tube',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
+      <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px">eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs" data-block="then">
         <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
@@ -6841,6 +6959,10 @@ function renderAtHub(now){
       <div class="note" data-block="source" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
   }
   $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan","hammersmith-city"]);
+  // What the followed card should say you'll arrive at, from the same tubes (not TfL's journey planner: 11 Nov,
+  // 08:44 in the headline while the tube list gave 08:30).
+  state.hubOffice = officeAt!=null ? { hub, at: now, arrive: officeAt } : null;
+  if(plan.best){ $("#listTitle").textContent=""; $("#list").innerHTML=""; return; }   // the tubes are one list, in the card
   $("#listTitle").textContent="Next tubes to Aldgate and Aldgate East";
   $("#list").innerHTML = rows.length ? rows.map((a,i)=>`
     <div class="row${`${a.t}|${a.line}`===bestKey?" best":""}">
@@ -7413,8 +7535,9 @@ function renderInner(){
     const list=state.boards?ranked(now):[]; renderList(list, now); $("#listTitle").textContent="Trains home";
   } else if(view==="nearly-home"){
     renderNearlyHome(now);
-    $("#listTitle").textContent="Nearly home";
-    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Heading home. Tomorrow's trains appear once you set off for work.</div><div></div></div>`;
+    // "Nearly home" is said once, by the card (#57 H28: three times on a screen that said "You're home").
+    $("#listTitle").textContent="";
+    $("#list").innerHTML=`<div class="row"><div></div><div class="mid meta">Tomorrow's trains appear once you set off for work.</div><div></div></div>`;
   } else if(view==="on-train"){
     const m=whichTrain(now); renderOnTrain(now, m);
     $("#listTitle").textContent="On the train";
@@ -7434,7 +7557,11 @@ function tick(){
     if(ms==null){e.textContent='unavailable';e.removeAttribute('data-ms');}
     else {e.textContent=dur(ms);e.dataset.ms=String(ms);}
   });
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now; e.textContent = ms>0?`leave in ${countdown(ms)}`:"leave time passed"; });
+  // Under 2 minutes to the leave deadline the countdown becomes the card's loudest line: "Leave now · 45 s"
+  // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3;
+    e.textContent = urgent ? `Leave now · ${ms<60e3?`${Math.ceil(ms/1000)} s`:countdown(ms)}` : ms>0?`leave in ${countdown(ms)}`:"leave time passed";
+    e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
   document.querySelectorAll("[data-leftago]").forEach(e=>{ e.textContent=C.leftAgo(now-e.dataset.leftago); });
   document.querySelectorAll("[data-tube]").forEach(e=>{ const ms=+e.dataset.tube-now; e.textContent = ms>30e3?`in ${countdown(ms)}`:"due now"; });
@@ -7599,7 +7726,8 @@ function onPosition(p){
   if(!state.onLine && !(direction()==="home" && dLet<3) && !pickHolds(Date.now())) state.trainLock=null;
   if(!state.onLine){ state.pendingPick=null; state.boardingAsk=false; }
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
-  const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? `you're near ${HOME_NAME}` : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?HOME_NAME:"Aldgate"}`;
+  const nearSt=nearestStation(state.here);
+  const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : nearSt&&dLet>0.6 ? `you're near ${nearSt}` : dLet<15 ? `you're near ${HOME_NAME}` : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?HOME_NAME:"Aldgate"}`;
   state.autoSrc = `${where} (±${acc>=1000?(acc/1000).toFixed(1)+" km":acc+" m"})`;
   // Replan the London leg when you have moved, at most once a minute.
   if(moved && state.saved.mode==="leisure" && !state.origin && (!state.londonAt || Date.now()-state.londonAt>60e3)){ state.londonAt=Date.now(); refreshLondon().then(render); }
@@ -8772,18 +8900,28 @@ function progressTubeCalls(ride,from,to,arrival,fromName,toName){
   return stops.map((stop,index)=>({code:stop.id,name:stop.name,scheduledAt:null,
     expectedAt:index===stops.length-1?arrival:null,actualAt:null}));
 }
+// Where you are on the leg (option A, chosen by Sam 11 Nov 2026): one line, from reports only, then every station
+// folded as a list top to bottom (it never runs off the page). No bar: it looked like a position and wasn't.
+function whereHtml(model){
+  const calls=model.calls, w=model.where;
+  if(calls.length<2)return '';
+  const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
+  const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`
+    :`<p class="jp-where none">No live position yet · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</p>`;
+  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):'—'}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
+  return `${line}<details class="jp-all"><summary>All ${calls.length} stations</summary><ol class="jp-vlist">${calls.map(row).join('')}</ol></details>${model.sourceLine?`<p class="jp-source">${esc(model.sourceLine)}</p>`:''}`;
+}
 function progressHtml(model){
   const percentage=value=>`${Math.round(value*100)}%`;
   const current=model.current;
   const unknownPast=current.id==='tube-current';
   return `<div class="jp-heading"><b>Journey stages</b><span class="jp-status ${model.status.level}">${esc(model.status.text)}</span></div>
-    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
+    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${leg.state==='current'?'0%':percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
-      <div class="jp-current-track" role="progressbar" aria-label="${esc(model.progressLabel)}" aria-valuemin="0" aria-valuemax="100"${model.fraction===null?'':` aria-valuenow="${Math.round(model.fraction*100)}"`} aria-valuetext="${esc(model.progressLabel)}"><i style="--complete:${percentage(model.fraction??0)}"></i></div>
-      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-code="${esc(call.code||'')}" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
-      <p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>
+      ${whereHtml(model)}
+      ${model.where?'':`<p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>`}
     </div>`;
 }
 function renderJourneyProgress(){
@@ -8979,6 +9117,26 @@ function applySignalLayout(){
   const header=root.querySelector('header');header.hidden=true;
   for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,p.later,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
 }
+// Under way (a route followed, or a live view showing) the controls fold into one row (amendment §7, #57 A5): a
+// summary ("Commute · To office · Leave now") that opens them, beside Settings and Refresh. Planning keeps every
+// control in view. Only the drawing changes: the controls themselves, and their handlers, are the same.
+function underWayControls(context){
+  const p=signalParts;if(!p)return;
+  const view=state.rendered?.view||state.presentation?.view||'';
+  const under=state.saved.mode!=='trip'&&(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
+  let btn=$('#signalUnderwaySummary');
+  if(!btn){btn=document.createElement('button');btn.type='button';btn.id='signalUnderwaySummary';btn.className='signal-underway-summary';
+    btn.addEventListener('click',()=>{const open=document.body.toggleAttribute('data-controls-open');btn.setAttribute('aria-expanded',String(open));});
+    p.modebar.insertBefore(btn,p.modebar.querySelector('.signal-utility'));}
+  const modeName={commute:'Commute',leisure:'Leisure',trip:'Trip'}[state.saved.mode]||'Commute';
+  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[state.saved.view]||'Leave now';
+  btn.textContent=`${modeName} · ${context} · ${viewName}`;
+  btn.setAttribute('aria-label',`Journey controls: ${modeName}, ${context}, ${viewName}`);
+  btn.hidden=!under;
+  if(!under)document.body.removeAttribute('data-controls-open');
+  btn.setAttribute('aria-expanded',String(document.body.hasAttribute('data-controls-open')));
+  document.body.toggleAttribute('data-underway',under);
+}
 function setJourneyContext(label,modes='',detail=''){
   const summary=$('#signalContextSummary');
   summary.innerHTML=`<span class="signal-context-copy"><span>${esc(label)}</span>${modes?`<small>${esc(modes)}</small>`:''}</span>`;
@@ -8993,6 +9151,7 @@ function renderSignalCompact(){
   const p=signalParts;
   const context=state.saved.mode==='leisure'?(direction()==='home'?'To home':outTo(direction(),'leisure')?.name||'To London'):direction()==='home'?'To home':'To office';
   setJourneyContext(context,'',$('#routeLabel').textContent);
+  underWayControls(context);
   arrangeJourneySummaries($('#hero'));arrangeJourneySummaries($('#list'));arrangeJourneySummaries($('#followPanel'));
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
   p.notices.hidden=!$('#banners').children.length;
@@ -9064,6 +9223,9 @@ function renderSignalCompact(){
 // anything the app is asking you); the legs; what's next; then, folded, "Not your train?", "Report details", your
 // journey steps and Stop following. The parts keep their own handlers (clicks are handled at the document) and their
 // own styles (each group sits in a box that carries the live card's class).
+// One "behind" figure on the card (#57 H10): the followed card's status says how the journey stands, so the legs'
+// own status ("3 min behind") goes from the one journey card.
+function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
   const drawn=panel.querySelector(':scope > .journey-progress');   // put there this pass by renderJourneyProgress
@@ -9075,6 +9237,7 @@ function singleCard(route){
     const fresh=drawn||hero.querySelector(':scope > .journey-progress'), slot=panel.querySelector(':scope > [data-slot="legs"]'), kept=panel._singleReport;   // (it went out with the old legs)
     const start=panel.querySelector(':scope > .follow-next')||panel.querySelector(':scope > .steps')||panel.querySelector(':scope > [data-follow-action="stop"]');
     if(fresh){
+      oneStatus(fresh);
       if(slot&&!drawn)slot.replaceChildren(fresh);else if(start)start.before(fresh);
       const details=reportIn(fresh);if(kept&&details)details.append(kept);
     }
@@ -9095,6 +9258,7 @@ function singleCard(route){
   const live=[...hero.children].filter(n=>!n.hidden&&(n.textContent.trim()||n.querySelector('button,a,input,select,svg,img')));
   const take=test=>{const out=[];for(let i=0;i<live.length;)if(test(live[i]))out.push(...live.splice(i,1));else i++;return out;};
   const legs=take(n=>n.classList.contains('journey-progress'));
+  legs.forEach(oneStatus);if(drawn)oneStatus(drawn);
   // Where the figures come from goes with the legs' own "Report details". With no legs drawn (at the change
   // station), only the live card's title folds away; its notes ("Loading live tube times…", the allowances) stay in view.
   const legsFold=!!(drawn||legs[0])&&!!reportIn(drawn||legs[0]);
@@ -9111,6 +9275,9 @@ function singleCard(route){
   let found=false;const identity=take(n=>!found&&n.dataset.block==='which'&&(found=true));
   if(identity.length){const mine=own('.follow-service'),b=box('service',identity);b.classList.add('follow-service');
     if(mine)mine.replaceWith(b);else (own('.meta')||own('.follow-status'))?.before(b);}
+  // At the change station the live instruction ("Get on the Met to Aldgate …") is the next step: the saved "Next:
+  // Circle or Met to Aldgate" isn't said beside it (11 Nov 2026: "Get on the H&C" above "Next: Circle or Met").
+  if(state.presentation?.view==='at-hub'&&live.some(n=>n.dataset.block==='which'&&n.querySelector('.slack')))own('.follow-next')?.remove();
   const next=own('.follow-next'), steps=own('.steps'), stop=own('[data-follow-action="stop"]'), start=next||steps||stop;
   if(!start)return;
   // 1. The journey: notices, questions and the other option sit with the status, above the legs.
@@ -9317,6 +9484,9 @@ function followedObservation(route,now){
           onwardFresh=true;onwardSource=live?'Live Tube arrival and measured onward walk':'Estimated Tube ride and measured onward walk';}
       } else if(reliable&&nearOffice()){
         currentArrival=C.segmentArrival(now,[{kind:'walk',secs:officeWalkSecs(pace)}]);onwardFresh=true;onwardSource='Walk from your current location';
+      } else if(state.atHub&&state.hubOffice&&state.hubOffice.hub===state.atHub&&now-state.hubOffice.at<120e3){
+        // At the change station: the same tubes the card lists, not TfL's journey planner (11 Nov 2026, #57 retest).
+        currentArrival=state.hubOffice.arrive;onwardFresh=true;onwardSource='Next tube and measured onward walk';
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
@@ -9395,13 +9565,20 @@ function renderFollowPanel(){
   // you're at the station the train leaves from); going out it follows the train (until you're off the train).
   const tubeLine=r.direction==='home'?(r.phase==='before-train'&&!observation.boarding&&!state.atHub?tubeLineMarkup(r.option,'home'):'')
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
+  // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
+  const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
+  // Once you've set off (more than 200 m from where the journey starts) the deadline is the platform, not leaving:
+  // no "Leave by · leave in 57 s" while halfway to the station (11 Nov, 07:21; homeward at Aldgate, #57 H4).
+  const origin=r.direction==='office'?GEO.HOME:PROFILE.places.office;
+  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&!!origin&&km(state.here,origin)>0.2&&state.locAcc<=150;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+    ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
+      :access&&!setOff?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
     ${r.direction==='home'?tubeLine:''}
-    ${panelLayout?nextServiceMarkup(t):''}
+    ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
     ${r.phase!=='on-train'?'':otherShown
       ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
@@ -9417,7 +9594,7 @@ function renderFollowPanel(){
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
-    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
+    ${result.nextStep&&!(r.phase==='before-train'&&result.nextStep.train)&&!(r.phase==='after-train'&&result.nextIsLast)?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
@@ -9513,6 +9690,13 @@ function renderSignalStatus(){
     const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
+  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card under it): when
+  // a disruption card already carries the strip's words, the strip keeps only what it adds, or goes.
+  const same=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
+  if(items.some(item=>same(item.title)===same(result.text))){
+    const extra=[...el.querySelectorAll('span')].map(n=>n.textContent.replace(/^\s*·\s*/,'')).join(' · ');
+    if(extra){el.textContent=extra;el.dataset.trimmed='1';}else{el.hidden=true;el.textContent='';}
+  }
 }
 function renderSignalLocation(){
   const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
@@ -9524,8 +9708,17 @@ function renderSignalLocation(){
   const reportText=report?` · last ${progress.source==='stale'?'known ':''}report ${report.name}${report.time==null?'':' '+hhmm(report.time)}`:'';
   const fallback=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
   const phone=phase?` · phone: ${fallback.replace(/^you're /,'')}`:fallback;
-  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · as of ${hhmm(state.lastFixAt)}`:'';   // amendment §8 (was "stale fix")
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
+  // Under way the line stays out of the folded controls only when it says something you need (amendment §7).
+  const needed=!!old||(!!state.locStatus&&!['ok','pending','off','unsupported'].includes(state.locStatus));
+  $('#dirNote').classList.toggle('needed',needed);
+  // "Update location" asks the phone again without reloading the page; it runs only when tapped (amendment §8, E4).
+  if(needed&&state.locStatus!=='denied'&&!(typeof sim!=='undefined'&&sim.active&&S().simulatorEnabled)){
+    const b=document.createElement('button');b.type='button';b.className='linkbtn';b.dataset.updateLocation='';b.textContent='Update location';
+    b.addEventListener('click',()=>{locate();render();});
+    $('#dirNote').append(' · ',b);
+  }
 }
 function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();if(state.presentation?.mode!=='live')tick();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.

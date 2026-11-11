@@ -62,6 +62,26 @@ function applySignalLayout(){
   const header=root.querySelector('header');header.hidden=true;
   for(const node of [header,p.modebar,$('#alongNavigation'),p.toolbar,$('#dirNote'),p.planning,$('#originRow'),$('#destRow'),$('#signalStatus'),p.disruptions,$('#followPanel'),p.connections,$('#hero'),p.other,p.boardHeading,p.later,$('#list'),$('#diag'),p.network,root.querySelector('footer')])root.append(node);
 }
+// Under way (a route followed, or a live view showing) the controls fold into one row (amendment §7, #57 A5): a
+// summary ("Commute · To office · Leave now") that opens them, beside Settings and Refresh. Planning keeps every
+// control in view. Only the drawing changes: the controls themselves, and their handlers, are the same.
+function underWayControls(context){
+  const p=signalParts;if(!p)return;
+  const view=state.rendered?.view||state.presentation?.view||'';
+  const under=state.saved.mode!=='trip'&&(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
+  let btn=$('#signalUnderwaySummary');
+  if(!btn){btn=document.createElement('button');btn.type='button';btn.id='signalUnderwaySummary';btn.className='signal-underway-summary';
+    btn.addEventListener('click',()=>{const open=document.body.toggleAttribute('data-controls-open');btn.setAttribute('aria-expanded',String(open));});
+    p.modebar.insertBefore(btn,p.modebar.querySelector('.signal-utility'));}
+  const modeName={commute:'Commute',leisure:'Leisure',trip:'Trip'}[state.saved.mode]||'Commute';
+  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[state.saved.view]||'Leave now';
+  btn.textContent=`${modeName} · ${context} · ${viewName}`;
+  btn.setAttribute('aria-label',`Journey controls: ${modeName}, ${context}, ${viewName}`);
+  btn.hidden=!under;
+  if(!under)document.body.removeAttribute('data-controls-open');
+  btn.setAttribute('aria-expanded',String(document.body.hasAttribute('data-controls-open')));
+  document.body.toggleAttribute('data-underway',under);
+}
 function setJourneyContext(label,modes='',detail=''){
   const summary=$('#signalContextSummary');
   summary.innerHTML=`<span class="signal-context-copy"><span>${esc(label)}</span>${modes?`<small>${esc(modes)}</small>`:''}</span>`;
@@ -76,6 +96,7 @@ function renderSignalCompact(){
   const p=signalParts;
   const context=state.saved.mode==='leisure'?(direction()==='home'?'To home':outTo(direction(),'leisure')?.name||'To London'):direction()==='home'?'To home':'To office';
   setJourneyContext(context,'',$('#routeLabel').textContent);
+  underWayControls(context);
   arrangeJourneySummaries($('#hero'));arrangeJourneySummaries($('#list'));arrangeJourneySummaries($('#followPanel'));
   if(state.presentation?.mode==='auto'&&!state.pendingView)$('#journeyViewNote').textContent='';
   p.notices.hidden=!$('#banners').children.length;
@@ -147,6 +168,9 @@ function renderSignalCompact(){
 // anything the app is asking you); the legs; what's next; then, folded, "Not your train?", "Report details", your
 // journey steps and Stop following. The parts keep their own handlers (clicks are handled at the document) and their
 // own styles (each group sits in a box that carries the live card's class).
+// One "behind" figure on the card (#57 H10): the followed card's status says how the journey stands, so the legs'
+// own status ("3 min behind") goes from the one journey card.
+function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
   const drawn=panel.querySelector(':scope > .journey-progress');   // put there this pass by renderJourneyProgress
@@ -158,6 +182,7 @@ function singleCard(route){
     const fresh=drawn||hero.querySelector(':scope > .journey-progress'), slot=panel.querySelector(':scope > [data-slot="legs"]'), kept=panel._singleReport;   // (it went out with the old legs)
     const start=panel.querySelector(':scope > .follow-next')||panel.querySelector(':scope > .steps')||panel.querySelector(':scope > [data-follow-action="stop"]');
     if(fresh){
+      oneStatus(fresh);
       if(slot&&!drawn)slot.replaceChildren(fresh);else if(start)start.before(fresh);
       const details=reportIn(fresh);if(kept&&details)details.append(kept);
     }
@@ -178,6 +203,7 @@ function singleCard(route){
   const live=[...hero.children].filter(n=>!n.hidden&&(n.textContent.trim()||n.querySelector('button,a,input,select,svg,img')));
   const take=test=>{const out=[];for(let i=0;i<live.length;)if(test(live[i]))out.push(...live.splice(i,1));else i++;return out;};
   const legs=take(n=>n.classList.contains('journey-progress'));
+  legs.forEach(oneStatus);if(drawn)oneStatus(drawn);
   // Where the figures come from goes with the legs' own "Report details". With no legs drawn (at the change
   // station), only the live card's title folds away; its notes ("Loading live tube times…", the allowances) stay in view.
   const legsFold=!!(drawn||legs[0])&&!!reportIn(drawn||legs[0]);
@@ -194,6 +220,9 @@ function singleCard(route){
   let found=false;const identity=take(n=>!found&&n.dataset.block==='which'&&(found=true));
   if(identity.length){const mine=own('.follow-service'),b=box('service',identity);b.classList.add('follow-service');
     if(mine)mine.replaceWith(b);else (own('.meta')||own('.follow-status'))?.before(b);}
+  // At the change station the live instruction ("Get on the Met to Aldgate …") is the next step: the saved "Next:
+  // Circle or Met to Aldgate" isn't said beside it (11 Nov 2026: "Get on the H&C" above "Next: Circle or Met").
+  if(state.presentation?.view==='at-hub'&&live.some(n=>n.dataset.block==='which'&&n.querySelector('.slack')))own('.follow-next')?.remove();
   const next=own('.follow-next'), steps=own('.steps'), stop=own('[data-follow-action="stop"]'), start=next||steps||stop;
   if(!start)return;
   // 1. The journey: notices, questions and the other option sit with the status, above the legs.
@@ -400,6 +429,9 @@ function followedObservation(route,now){
           onwardFresh=true;onwardSource=live?'Live Tube arrival and measured onward walk':'Estimated Tube ride and measured onward walk';}
       } else if(reliable&&nearOffice()){
         currentArrival=C.segmentArrival(now,[{kind:'walk',secs:officeWalkSecs(pace)}]);onwardFresh=true;onwardSource='Walk from your current location';
+      } else if(state.atHub&&state.hubOffice&&state.hubOffice.hub===state.atHub&&now-state.hubOffice.at<120e3){
+        // At the change station: the same tubes the card lists, not TfL's journey planner (11 Nov 2026, #57 retest).
+        currentArrival=state.hubOffice.arrive;onwardFresh=true;onwardSource='Next tube and measured onward walk';
       } else if(state.toOffice&&now-state.toOffice.at<120e3){currentArrival=state.toOffice.arrive;onwardFresh=true;onwardSource='TfL journey from your current location';}
     }
   }
@@ -478,13 +510,20 @@ function renderFollowPanel(){
   // you're at the station the train leaves from); going out it follows the train (until you're off the train).
   const tubeLine=r.direction==='home'?(r.phase==='before-train'&&!observation.boarding&&!state.atHub?tubeLineMarkup(r.option,'home'):'')
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
+  // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
+  const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
+  // Once you've set off (more than 200 m from where the journey starts) the deadline is the platform, not leaving:
+  // no "Leave by · leave in 57 s" while halfway to the station (11 Nov, 07:21; homeward at Aldgate, #57 H4).
+  const origin=r.direction==='office'?GEO.HOME:PROFILE.places.office;
+  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&!!origin&&km(state.here,origin)>0.2&&state.locAcc<=150;
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+    ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
+      :access&&!setOff?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
     ${r.direction==='home'?tubeLine:''}
-    ${panelLayout?nextServiceMarkup(t):''}
+    ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
     ${r.phase!=='on-train'?'':otherShown
       ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
@@ -500,7 +539,7 @@ function renderFollowPanel(){
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
-    ${result.nextStep?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
+    ${result.nextStep&&!(r.phase==='before-train'&&result.nextStep.train)&&!(r.phase==='after-train'&&result.nextIsLast)?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
     ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
@@ -596,6 +635,13 @@ function renderSignalStatus(){
     const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
+  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card under it): when
+  // a disruption card already carries the strip's words, the strip keeps only what it adds, or goes.
+  const same=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
+  if(items.some(item=>same(item.title)===same(result.text))){
+    const extra=[...el.querySelectorAll('span')].map(n=>n.textContent.replace(/^\s*·\s*/,'')).join(' · ');
+    if(extra){el.textContent=extra;el.dataset.trimmed='1';}else{el.hidden=true;el.textContent='';}
+  }
 }
 function renderSignalLocation(){
   const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
@@ -607,8 +653,17 @@ function renderSignalLocation(){
   const reportText=report?` · last ${progress.source==='stale'?'known ':''}report ${report.name}${report.time==null?'':' '+hhmm(report.time)}`:'';
   const fallback=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
   const phone=phase?` · phone: ${fallback.replace(/^you're /,'')}`:fallback;
-  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
+  const old=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · as of ${hhmm(state.lastFixAt)}`:'';   // amendment §8 (was "stale fix")
   $('#dirNote').textContent=`Location: ${phase}${reportText}${phone}${old}${state.locAcc>150?' · approximate position':''}`;
+  // Under way the line stays out of the folded controls only when it says something you need (amendment §7).
+  const needed=!!old||(!!state.locStatus&&!['ok','pending','off','unsupported'].includes(state.locStatus));
+  $('#dirNote').classList.toggle('needed',needed);
+  // "Update location" asks the phone again without reloading the page; it runs only when tapped (amendment §8, E4).
+  if(needed&&state.locStatus!=='denied'&&!(typeof sim!=='undefined'&&sim.active&&S().simulatorEnabled)){
+    const b=document.createElement('button');b.type='button';b.className='linkbtn';b.dataset.updateLocation='';b.textContent='Update location';
+    b.addEventListener('click',()=>{locate();render();});
+    $('#dirNote').append(' · ',b);
+  }
 }
 function renderJourneyExtras(){renderFollowPanel();renderJourneyProgress();renderSignalLocation();renderSignalStatus();renderSignalCompact();renderAlongLine();if(state.presentation?.mode!=='live')tick();}
 // DOM refreshes retain keyboard focus and the reading position. Stable data keys survive reordering.

@@ -49,7 +49,7 @@ export type { LegacyFollowRoute } from './followMigration';
 export { DEFAULT_DISRUPTION_POLICY, resolveDisruptionPolicy, railDelayLevel, worstDisruptionStatus, disruptionLineLevel, significantLineDisruption, visibleDisruptions, disruptionTrainObservation } from './disruption';
 export type { DisruptionPolicy, DisruptionLevel, VisibleDisruption, VisibleDisruptionInput, DisruptionTrainObservation } from './disruption';
 export type { RailWarningContext } from './warnings';
-export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent } from './journeyProgress';
+export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent, sameStation, tubePlace } from './journeyProgress';
 export type { ProgressKind, JourneyProgressLeg, JourneyProgressCall, JourneyProgressEvidence, JourneyProgressInput, JourneyProgressModel, ProgressItineraryInput, JourneyTimingShiftInput } from './journeyProgress';
 export type { ServiceCall, ServiceProgress } from './adapters/darwin';
 // Trip mode (leisure journeys): docs/leisure-architecture.md. Shared round runner first.
