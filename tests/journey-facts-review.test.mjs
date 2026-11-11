@@ -175,6 +175,8 @@ for(const appearance of ['light','dark'])test(`journey facts review: ${appearanc
  const requests=a.calls.slice();
  const check=mode=>{
   pin(a,mode);
+  // Where each tube gets you is folded beneath the buttons (Sam, 11 Nov homeward): open it to read the connections.
+  a.d.querySelectorAll('.tube-detail').forEach(d=>{d.open=true;});
   for(const timed of plan.next){
    const hhmm=new Date(timed.t).toISOString().slice(11,16);
    const container=mode==='live'?[...a.d.querySelectorAll('#list .row.board')].find(node=>node.querySelector('.leave .t')?.textContent===hhmm):

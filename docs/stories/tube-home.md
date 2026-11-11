@@ -143,6 +143,22 @@ the Met going home. TfL's Met timetable from Aldgate has them (Fridays 18:23, 18
 - tests/core/situation.test.mjs: "Going home by tube: noted at Aldgate; on a tube once one has left and you've gone; which one"
 - tests/core/refresh.test.mjs: "tubeHomeConnections: arrival at each London station and the time needed there, at your pace"
 
+## The buttons answer it; the detail folds (11 Nov 2026, evening trip)
+Sam, 18:15, at Aldgate: "Having the options for which train to take (ie the buttons) is great and worked well … Knew
+which platform to get. Elected the train. Love it. But the detail seems pointless. Could be hidden … So perhaps don't
+get rid immediately." His screenshot: three rows each saying the same thing ("… 18:48 Great Northern, home 19:34 · leave
+for the platform by …", "Total journey 1h 17m", "27 min train") above the buttons.
+- Under "Tubes from Aldgate (live)" the buttons ("Which one are you getting?") come first. Where each tube gets you
+  (its train, home time, leave time, journey figures, "Arrives first") is folded under **"Where each tube gets you"**,
+  kept rather than removed. Once you've picked one, its row is the confirmation, in view above "Getting a different
+  one?"; the others stay folded.
+- **On the tube, the trains home below don't count down to leaving** (18:21, on the tube, under "Leave now · 1m 20s":
+  "I'm on the tube, and I've told it I'm on the tube - why is it telling me that!"). The rows keep their times; the
+  countdown line is empty while you ride. *Their "Leave by" heading still shows (from where you are); what those rows
+  should lead with on the tube is open for Sam.*
+- tests/rules.test.mjs: "Going home at the office: the buttons say which tube; where each one gets you is folded under 'Where each tube gets you'"
+- tests/rules.test.mjs: "Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it"
+
 ## Not yet / open questions
 - Met departures: to confirm against the board on the platform, and at a weekday peak (the 90 s was measured on a
   Saturday morning, 5 departures, 20 s polls; TfL's responses can lag by up to ~30 s). A late-running Met already at

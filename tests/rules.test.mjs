@@ -530,7 +530,10 @@ test("Tube going home: at Aldgate the next tube is noted; underground the card s
   const app = await open({ now: t0, geo: OFFICE, settings: RDM, extra: (u, now) => (/StopPoint\/940GZZLUALD\/Arrivals/.test(u) ? json(deps(now)) : undefined) });
   assert.equal(app.c.direction(), "home");
   // 16:36 at the office: the 16:41 Met needs leaving by 16:32, too late; the 16:46 Circle is the next you can make.
-  assert.match(app.text("#hero"), /Tubes from Aldgate \(live\)Circle 16:46 → King's Cross 16:56: 17:18 Great Northern, home \d\d:\d\d · leave the office by 16:37/);
+  // The buttons answer which tube; where each one gets you is folded beneath them (Sam, 11 Nov homeward).
+  assert.match(app.text("#hero"), /Tubes from Aldgate \(live\)Which one are you getting\?/);
+  assert.match(app.text("#hero .tube-detail"), /^Where each tube gets youCircle 16:46 → King's Cross 16:56: 17:18 Great Northern, home \d\d:\d\d · leave the office by 16:37/);
+  assert.equal(app.d.querySelector("#hero .tube-detail").open, false, "folded");
   assert.doesNotMatch(app.text("#hero"), /Met 16:41 →/);
   assert.doesNotMatch(app.text("#hero"), /Tower Hill|16:40/, "eastbound tubes ignored");
   app.at(T("16:39")); await app.moveTo(51.5142, -0.0755, 10);        // at Aldgate
@@ -1259,20 +1262,46 @@ test("Review 30 Oct: underground, a refresh doesn't re-note Aldgate from the old
   }
 });
 
+test("Going home at the office: the buttons say which tube; where each one gets you is folded under 'Where each tube gets you'", async () => {
+  // Sam, 11 Nov 18:15: "Having the options for which train to take (ie the buttons) is great … But the detail seems pointless."
+  const { app } = await homeApp(T("16:30"));
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  const box = app.d.querySelector("#hero .alt.tubes"), kids = [...box.children];
+  assert.equal(kids[0].textContent, "Tubes from Aldgate (live)");
+  assert.ok(kids[1].classList.contains("pick"), "the buttons come straight after the heading");
+  const fold = box.querySelector(":scope > details.tube-detail");
+  assert.ok(fold && !fold.open, "the per-tube detail is folded"); assert.equal(fold.querySelector("summary").textContent, "Where each tube gets you");
+  assert.equal(box.querySelectorAll(":scope > .tuberow").length, 0, "no connection rows in view before you pick");
+  assert.equal(fold.querySelectorAll(".tuberow").length, box.querySelectorAll(".pick [data-tubepick]").length, "kept, not removed: one per tube offered");
+  // Once you've picked, that tube's row is the confirmation, in view; the others stay folded.
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  const after = app.d.querySelector("#hero .alt.tubes");
+  assert.equal(after.querySelectorAll(":scope > .tuberow").length, 1);
+  assert.match(after.querySelector(":scope > .tuberow").textContent, /Circle 16:46.*you're getting this one/);
+  app.close();
+});
+
 test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
   const { app, c } = await homeApp(T("16:30"));
   await app.fix(...OFFICE_PT, 15, T("16:30"));
   let hero = app.text("#hero");
-  assert.match(hero, /Tubes from Aldgate \(live\)Met 16:41 → Farringdon 16:48: 16:56 Thameslink/);
-  assert.match(hero, /Which one are you getting\?/);
+  assert.match(hero, /Tubes from Aldgate \(live\)Which one are you getting\?/);
+  assert.match(app.text("#hero .tube-detail"), /Met 16:41 → Farringdon 16:48: 16:56 Thameslink/, "where each gets you: folded beneath the buttons");
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
-  assert.match(app.text("#hero"), /Circle 16:46 → King's Cross 16:56.*you're getting this one/);
+  // The one you're getting is confirmed in view, above the buttons; the others' detail stays folded.
+  assert.match(app.text("#hero"), /Tubes from Aldgate \(live\)Circle 16:46 → King's Cross 16:56.*you're getting this one.*Getting a different one\?/);
+  assert.doesNotMatch(app.text("#hero .tube-detail"), /Circle 16:46/);
   // At Aldgate, then the tube leaves and you're gone (no fix underground for 2+ min).
   await app.fix(...ALD, 15, T("16:44"));
   app.at(T("16:49")); c.render();
   hero = app.text("#hero");
   assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
   assert.match(hero, /Your tube: the Circle to Edgware Road that left Aldgate at 16:46 · you picked this/);
+  // On the tube you've left already: the trains home below don't count down to leaving (Sam, 11 Nov 18:21).
+  const cds = [...app.d.querySelectorAll("#list [data-cd]")];
+  assert.ok(cds.length > 0, "(the trains home are listed)");
+  assert.deepEqual(cds.map((e) => e.textContent), cds.map(() => ""), "no 'Leave now' / 'leave in' while riding");
+  assert.equal(app.d.querySelectorAll("#list .journey-countdown.urgent").length, 0);
   assert.match(hero, /Get off at King's Cross 16:56/);
   app.close();
 });
