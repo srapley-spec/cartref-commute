@@ -99,7 +99,7 @@ test("The location line names the nearest station out of London, says 'as of' an
   assert.deepEqual(app.errors, []);
 });
 
-test("Delays are said once: when a disruption card carries the status strip's words, the strip doesn't repeat them", async () => {
+test("Delays are said once: the status strip says it, and the disruption card under it keeps its details without repeating the heading", async () => {
   const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office" }, geo: null, now: T0 });
   const c = app.c;
   c.state.boards = { "LET-KGX": { msgs: [], services: [
@@ -107,16 +107,16 @@ test("Delays are said once: when a disruption card carries the status strip's wo
     svc({ from: "LET", to: "KGX", dep: T0 + 25 * m, arr: T0 + 80 * m, depLate: 12, arrLate: 12, serviceId: "L2", destination: "King's Cross" })] },
     "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
   c.state.boardsAt = T0; c.state.status = []; c.state.nrStatus = []; c.render();
-  const cards = [...app.d.querySelectorAll("#signalDisruptions .signal-disruption-title")].map((n) => squash(n.textContent));
   const strip = app.d.querySelector("#signalStatus");
-  const said = [...cards, strip.hidden ? "" : squash(strip.textContent)].filter((t) => /Delays up to/.test(t));
-  assert.deepEqual(said, ["Delays up to 12 min on your route"], "said once, by the disruption card");
-  assert.equal(strip.hidden, false, "the strip keeps what it adds (here: that these are example trains)");
-  assert.match(squash(strip.textContent), /^Example trains$/);
+  assert.equal(strip.hidden, false); assert.match(squash(strip.textContent), /^Delays up to 12 min on your route/);
+  const shownTitles = [...app.d.querySelectorAll("#signalDisruptions .signal-disruption-title")].filter((h) => !h.hidden).map((h) => squash(h.textContent));
+  assert.ok(!shownTitles.some((t) => /Delays up to/.test(t)), `the card doesn't repeat it: ${JSON.stringify(shownTitles)}`);
+  const card = app.d.querySelector("#signalDisruptions .signal-disruption");
+  assert.ok(card && card.hasAttribute("data-titled-by-status")); assert.match(squash(card.textContent), /12 min late: 10:15 Great Northern/, "its details stay");
   assert.deepEqual(app.errors, []);
 });
 
-test("Once you've set off the deadline is the platform ('Be on the platform by'), and a train you can't make shows the way on ('Instead: …')", async () => {
+test("Leave by holds until the station, even once you've set off (protected); a train you can't make shows the way on ('Instead: …')", async () => {
   const app = await createApp({ settings: { provider: "demo", followRoute: true }, saved: { dirMode: "office" }, geo: null, now: T0 });
   const c = app.c, P = app.w.CommuteCore.profiles.samCommute;
   c.state.boards = { "LET-KGX": { msgs: [], services: [
@@ -133,9 +133,10 @@ test("Once you've set off the deadline is the platform ('Be on the platform by')
   c.state.saved.home = home;
   fixAt(2, home);
   assert.match(panel(), /Next action ?10:14/); assert.doesNotMatch(panel(), /Be on the platform by/);
-  // 10:12, halfway between home and the station (left home, not at the station yet).
+  // 10:12, halfway between home and the station: the leave time stays (the protected answer; replacing it before the
+  // station is Sam's decision, not made here).
   fixAt(12, mid);
-  assert.match(panel(), /Be on the platform by/); assert.doesNotMatch(panel(), /Next action|Leave by/, "no leave time once you've left");
+  assert.doesNotMatch(panel(), /Be on the platform by/);
   // 10:41, never seen at the station: the 10:40 has gone; the header shows the way on.
   fixAt(41, [st[0] - 0.02, st[1] - 0.02]);
   assert.match(panel(), /You can no longer make your 10:40/);

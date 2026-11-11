@@ -168,7 +168,7 @@ test("Following, aboard but the phone isn't placed on the line (a reload, underg
   const text = app.text("#followPanel");
   assert.doesNotMatch(text, /waiting for fresh data/);
   assert.match(text, /At Farringdon\s*11:00/, "the train's own report of when it reaches your stop (the board still says 10:59)");
-  assert.match(text, /4 min late/);
+  assert.match(text, /About 5 min late/, "the lateness reaches the card: its arrival at your stop, 11:00 against 10:55 (11 Nov: the legs' own '4 min behind' is no longer repeated in the one card, #57 H10)");
   // 12:10, the route left running long after the train was due in: the look-back and the reports stop.
   app.setNow(T0 + 130 * m); c.render(); mark = app.calls.length;
   await c.refresh({ force: true }); await sleep(80);

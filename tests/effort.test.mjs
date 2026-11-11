@@ -28,7 +28,8 @@ async function app(settings, saved = {}) {
   a.c.state.status = []; a.c.state.nrStatus = []; a.c.render();
   return a;
 }
-const row = (a, std) => [...a.d.querySelectorAll("#list .row")].find((r) => r.textContent.includes(`${std} Great Northern`));
+// A train is found by its panel's scheduled time (there's no "Next train:" line: amendment §3, 11 Nov).
+const row = (a, std) => [...a.d.querySelectorAll("#list .row")].find((r) => r.querySelector('[data-connection-time="scheduled"]')?.textContent.includes(std) && /Great Northern/.test(r.textContent));
 
 test("Effort levels always on: no toggle, and a phone that saved the toggle off still gets them", async () => {
   const a = await app({ effort: false });
@@ -183,9 +184,12 @@ async function assertDepartureCountdown(signal) {
     const counter = option.querySelector('[data-cd]');
     assert.ok(counter, 'a pre-journey option exposes its leave countdown');
     assert.equal(Number(counter.dataset.cd), pick.leave, 'removing wording cannot change the canonical leave time');
-    assert.equal(counter.textContent, `leave in ${a.w.CommuteCore.countdown(seconds * S)}`);
+    // Under 2 minutes the countdown itself says so: "Leave now · 1m 31s", "Leave now · 59 s" (amendment §3, words
+    // confirmed by Sam 10 Nov), on an accent band. It is still the one departure instruction.
+    assert.equal(counter.textContent, `Leave now · ${seconds < 60 ? `${seconds} s` : a.w.CommuteCore.countdown(seconds * S)}`);
     assert.equal(option.querySelector('.journey-countdown').textContent, counter.textContent, 'the countdown is the only departure instruction');
-    assert.doesNotMatch(option.textContent, /\bleave now\b/i, `${seconds} seconds remain`);
+    assert.equal(option.querySelector('.journey-countdown').classList.contains('urgent'), true);
+    assert.equal((option.textContent.match(/\bleave now\b/gi) || []).length, 1, `${seconds} seconds remain: said once`);
     assert.match(option.textContent, /Arrives first · fast walk/, 'the effort qualification remains visible');
   }
   assert.deepEqual(a.errors, []);

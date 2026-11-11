@@ -129,8 +129,9 @@ test("One leave time holds after the saved leave time has passed: a much later t
   // At the station as the (late) train is awaited: what's next is the train, not a step already done.
   const now = T0 + 55 * m; app.setNow(now); c.state.boardsAt = now;
   Object.assign(c.state, { here: P.stationGeo.LET, locAcc: 20, lastFixAt: now, locStatus: "ok", onLine: false, atHub: null }); c.render();
-  assert.match(panel(), /Next: 11:05 · 10:50 \(exp 11:05\) Thameslink from Letchworth/);
-  assert.doesNotMatch(panel(), /Next: [^·]*· Leave Cartref/);
+  // Before boarding the train panel states the train (amendment §3, 11 Nov): no "Next:" line repeating it.
+  assert.doesNotMatch(panel(), /Next: /, "no 'Next:' for the train, nor for a step already done");
+  assert.match(panel(), /Timetable departure ?10:50 ?Expected departure ?11:05/);
   assert.deepEqual(app.errors, []);
 });
 

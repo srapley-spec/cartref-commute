@@ -382,12 +382,9 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   "Leave now · 45 s" (seconds under a minute, "1m 31s" above) on an accent band (`.journey-countdown.urgent`), not a
   status colour. Still the one departure instruction. The small "to walk to Letchworth at your usual pace" beneath
   it is not built.
-- **Once you've set off** (11 Nov 07:21: "Leave by · leave in 57 s" halfway to the station; homeward H4), the
-  followed card's deadline is "Be on the platform by" (the same canonical time used at the station) instead of the
-  leave time. Set off: outbound, the app's own left-home rule (over 100 m from the saved home, or without one, 3
-  minutes nearer the station than home is); homeward, over 200 m from the office; position good to 150 m. At home
-  the leave time is shown as before. *This changes where the protected Leave by appears: flagged to Sam with the
-  release.*
+- **Leave by halfway to the station is unchanged** (11 Nov 07:21: "Leave by" while already halfway there; homeward at
+  Aldgate, #57 H4). Replacing the protected leave time before the station is a material change for Sam to decide
+  (CLAUDE.md); it is not made here. At the station, "Be on the platform by" as before.
 - **When it can no longer be made** (07:16, the header went to "Unavailable"): the header shows the way on: "Instead:
   the 07:45 Great Northern", its own Leave by → arrival, and its own journey figures, under "You can no longer make
   your 07:30".
@@ -395,8 +392,8 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   headed "Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting"; each row "1st ·
   08:06 · [Met] to Aldgate · Office 08:22" (a Circle the long way round "via Aldgate"; an H&C "to Barking, for
   Aldgate East"), "✓ getting this one" on the one you tapped. Tubes you could only catch if already near the platform
-  come first under "If you're near the platform", and only once you're clearly off the train (stopped, or a minute
-  at the station); then "Then". The instruction reads "Get on the Met to Aldgate · eastbound · Platform 2 · due 08:06
+  come first under "If you're near the platform" (said once; never hidden, since GPS can't tell the concourse from the
+  platform); then "Then". The instruction reads "Get on the Met to Aldgate · eastbound · Platform 2 · due 08:06
   · in 3 min …". The headline's left side is "Next tube". The trains list under it is not drawn there.
 - **The followed card at the change station uses the same tubes**: its arrival is the listed next tube's office time
   (under 2 minutes old), not TfL's journey planner (11 Nov: 08:44 in the headline while the list said 08:30). Source
@@ -407,8 +404,8 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   5 min": the next step is the arrival itself (`nextIsLast` from the engine).
 - **"On a different tube?"** offers each other tube for 5 minutes after the later of it and yours left (it was still
   offered a quarter of an hour into the ride), and never your own tube under another time (H9).
-- **Delays said once**: when a disruption card carries the status strip's words ("Delays up to 9 min on your route"),
-  the strip keeps only what it adds (e.g. "Example trains") or isn't drawn.
+- **Delays said once**: when the disruption card right under the status strip has the strip's words as its heading
+  ("Delays up to 9 min on your route"), the strip says it and the card keeps its details without the heading.
 - **Controls under way** (amendment §7, A5): while a route is followed or a live view is showing, the mode, direction,
   pace, Auto/Plan/Live and Leave now/Arrive by/Leave around controls fold behind one row, "Commute · To office ·
   Leave now", beside Settings and Refresh; tapping it opens them. Planning keeps every control in view. The controls
@@ -424,13 +421,13 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   a rule); a wrong pick not flagged when the phone's position was stale (no fresh evidence to question it with).
 
 **Tests**
-- tests/clean-baseline.test.mjs: "Once you've set off the deadline is the platform ('Be on the platform by'), and a train you can't make shows the way on ('Instead: …')"
+- tests/clean-baseline.test.mjs: "Leave by holds until the station, even once you've set off (protected); a train you can't make shows the way on ('Instead: …')"
 - tests/clean-baseline.test.mjs: "Under way the controls fold into one row: 'Commute · To office · Leave now', which opens them; planning keeps them all"
 - tests/clean-baseline.test.mjs: "The location line names the nearest station out of London, says 'as of' an old position, and offers 'Update location' only then"
-- tests/clean-baseline.test.mjs: "Delays are said once: when a disruption card carries the status strip's words, the strip doesn't repeat them"
+- tests/clean-baseline.test.mjs: "Delays are said once: the status strip says it, and the disruption card under it keeps its details without repeating the heading"
 - tests/core/clean-baseline.test.mjs: "'On a different tube?' offers each other tube for 5 minutes after the later of it and yours left, and never lists your own tube again"
 - tests/core/clean-baseline.test.mjs: "On the last walk the followed card's 'Next' step is the arrival itself: flagged, so the card doesn't repeat the plan's whole walk"
-- tests/app.test.mjs: "At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes"
+- tests/app.test.mjs: "At King's Cross: one list of tubes, as on the platform board: place, time, line and where it goes, office time"
 - tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"
 
 ## Agreed 10 Nov 2026, not yet built

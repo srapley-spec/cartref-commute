@@ -547,3 +547,4 @@ html body[data-controls-open] .signal-underway-summary::after {content:' ▴'}
 html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#signalToolbar,#signalPlanningControls,#byForm) {display:none}
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
+html .signal-disruption-title[hidden] {display:none}

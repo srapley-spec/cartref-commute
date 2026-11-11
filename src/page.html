@@ -1602,10 +1602,9 @@ function renderAtHub(now){
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" data-block="which" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
     // One list of tubes (amendment §2, words confirmed by Sam 10 Nov): "1st · 08:06 · [Met] to Aldgate · Office 08:22",
-    // tapped to say "I'm getting this one". Tubes you could only catch if already near the platform come first,
-    // under that heading once, and only once you're clearly off the train (11 Nov: offered while still pulling in).
-    const offTrain = stopped || (since!=null && now-since>=60e3);
-    const listed = [...(offTrain?early:[]), ...next].sort((a,b)=>a.t-b.t);
+    // tapped to say "I'm getting this one". Tubes you could only catch if already near the platform come first, under
+    // that heading, said once (never hide a train: GPS can't tell the concourse from the platform).
+    const listed = [...early, ...next].sort((a,b)=>a.t-b.t);
     const tubeRow = a => { const sp=C.boardSpot(tube.arrivals||[], a, now), mine=chosen && a.t===n.t && a.line===n.line;
       return tubeBtn(hub, a, `${sp?`${ordinal(sp.pos)} · `:""}<span class="t">${hhmm(a.t)}</span> · ${tubeLineDest(a)} · Office <span class="t">${hhmm(a.office)}</span>${mine?" · ✓ getting this one":""}`); };
     const earlyRows = listed.filter(a=>a.early), laterRows = listed.filter(a=>!a.early);
@@ -2456,7 +2455,7 @@ function readSimulationActual(){
  const railProgress={enabled:true,diagram:true,kind:progress?.current.kind||null,
   reported:(progress?.calls||[]).filter(call=>call.state==='reported').map(call=>call.code),
   stages:progressSection?[...progressSection.querySelectorAll('.jp-leg')].map(leg=>({kind:leg.dataset.kind,state:leg.dataset.state,label:leg.querySelector('.jp-leg-state')?.textContent||''})):[],
-  displayedReports:progressSection?[...progressSection.querySelectorAll('.jp-stop[data-state="reported"]')].map(call=>call.dataset.code):[],
+  displayedReports:progressSection?[...progressSection.querySelectorAll('.jp-stop[data-state="reported"],.jp-stop[data-state="passed"]')].map(call=>call.dataset.code):[],   // passed: from a report (11 Nov, option A)
   report:report?.data?{serviceId:report.id,observedAt:report.at,calls:progressRailCalls(model.progress.train,report.data).filter(call=>!call.cancelled&&Number.isFinite(call.actualAt)).map(call=>({code:call.code,at:call.actualAt}))}:null};
  const journeyMemory={origin:!!state.origin,directionPin:state.saved.dirMode!=='auto',planningView:(state.saved.view||'now')!=='now',trainLock:!!state.trainLock,aldgateVisit:!!state.saved.aldHome,followChoices:followChoices.size>0,pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!(state.saved.viewOverride||state.saved.viewAt||state.saved.viewKey||state.saved.planInputs)};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;

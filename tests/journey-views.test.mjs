@@ -30,8 +30,13 @@ function assertHealthy(a,surface){
  const answer=a.d.querySelector(surface.id==='following'?'#followPanel':'#hero');
  assert.ok(visible(a,answer),'the active answer is exposed');
  assert.ok(visible(a,a.d.querySelector('#settingsBtn')),'settings stay reachable');
- assert.ok(visible(a,a.d.querySelector('#journeyViewControl')),'Auto, Plan and Live are available throughout the app');
+ // Under way (followed or a live view) the controls fold behind one row that opens them (amendment §7, 11 Nov):
+ // still one tap away; while planning they are in view.
+ const folded=a.d.body.hasAttribute('data-underway')&&!a.d.body.hasAttribute('data-controls-open');
+ assert.ok(folded?visible(a,a.d.querySelector('#signalUnderwaySummary'))&&!!a.d.querySelector('#journeyViewControl'):visible(a,a.d.querySelector('#journeyViewControl')),'Auto, Plan and Live are available throughout the app');
+ if(folded)a.d.querySelector('#signalUnderwaySummary').click();   // one tap opens them
  for(const mode of ['auto','plan','live'])assert.ok(shown(a,`[data-journey-view="${mode}"]`).length,mode+' remains reachable');
+ if(folded)a.d.querySelector('#signalUnderwaySummary').click();
  for(const row of shown(a,'#list .row[data-journey-service]')){
   const flags=[...row.querySelectorAll('.pill')].filter(node=>visible(a,node)).map(node=>norm(node.textContent));
   if(flags.some(text=>/Cancelled|no estimate/i.test(text))){

@@ -740,6 +740,7 @@ html body[data-controls-open] .signal-underway-summary::after {content:' ▴'}
 html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#signalToolbar,#signalPlanningControls,#byForm) {display:none}
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
+html .signal-disruption-title[hidden] {display:none}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -889,7 +890,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 13:55 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:13 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6955,10 +6956,9 @@ function renderAtHub(now){
     // Your pick and the estimate disagree: say so, don't overrule you.
     const tight = plan.tight ? `<div class="note" data-block="which" style="color:inherit;opacity:.85">That's earlier than we'd expect you can reach the platform (about ${hhmm(ready)}). Fine if you're nearly there.</div>` : "";
     // One list of tubes (amendment §2, words confirmed by Sam 10 Nov): "1st · 08:06 · [Met] to Aldgate · Office 08:22",
-    // tapped to say "I'm getting this one". Tubes you could only catch if already near the platform come first,
-    // under that heading once, and only once you're clearly off the train (11 Nov: offered while still pulling in).
-    const offTrain = stopped || (since!=null && now-since>=60e3);
-    const listed = [...(offTrain?early:[]), ...next].sort((a,b)=>a.t-b.t);
+    // tapped to say "I'm getting this one". Tubes you could only catch if already near the platform come first, under
+    // that heading, said once (never hide a train: GPS can't tell the concourse from the platform).
+    const listed = [...early, ...next].sort((a,b)=>a.t-b.t);
     const tubeRow = a => { const sp=C.boardSpot(tube.arrivals||[], a, now), mine=chosen && a.t===n.t && a.line===n.line;
       return tubeBtn(hub, a, `${sp?`${ordinal(sp.pos)} · `:""}<span class="t">${hhmm(a.t)}</span> · ${tubeLineDest(a)} · Office <span class="t">${hhmm(a.office)}</span>${mine?" · ✓ getting this one":""}`); };
     const earlyRows = listed.filter(a=>a.early), laterRows = listed.filter(a=>!a.early);
@@ -8764,7 +8764,7 @@ function readSimulationActual(){
  const railProgress={enabled:true,diagram:true,kind:progress?.current.kind||null,
   reported:(progress?.calls||[]).filter(call=>call.state==='reported').map(call=>call.code),
   stages:progressSection?[...progressSection.querySelectorAll('.jp-leg')].map(leg=>({kind:leg.dataset.kind,state:leg.dataset.state,label:leg.querySelector('.jp-leg-state')?.textContent||''})):[],
-  displayedReports:progressSection?[...progressSection.querySelectorAll('.jp-stop[data-state="reported"]')].map(call=>call.dataset.code):[],
+  displayedReports:progressSection?[...progressSection.querySelectorAll('.jp-stop[data-state="reported"],.jp-stop[data-state="passed"]')].map(call=>call.dataset.code):[],   // passed: from a report (11 Nov, option A)
   report:report?.data?{serviceId:report.id,observedAt:report.at,calls:progressRailCalls(model.progress.train,report.data).filter(call=>!call.cancelled&&Number.isFinite(call.actualAt)).map(call=>({code:call.code,at:call.actualAt}))}:null};
  const journeyMemory={origin:!!state.origin,directionPin:state.saved.dirMode!=='auto',planningView:(state.saved.view||'now')!=='now',trainLock:!!state.trainLock,aldgateVisit:!!state.saved.aldHome,followChoices:followChoices.size>0,pickedTrain:!!state.trainLock?.picked,tubeRide:!!state.saved.tubeRide,tubePick:!!state.saved.tubePick,follow:!!state.saved.followRoute,trip:!!state.saved.trip,officeVisit:!!(state.saved.officeVisit||state.saved.officeSince||state.saved.officeNearSince),stationVisit:!!(state.hubSince||state.saved.hubSince||state.lastHub||state.saved.lastHub),movement:!!(state.lineTrack||state.stopWatch||state.lastAwayAt),rendered:!!state.rendered,presentation:!!(state.presentation||state.pendingView||state.journeyLivePresentation||signalProgressMemory),direction:!!state.autoDir,pin:!!(state.saved.viewOverride||state.saved.viewAt||state.saved.viewKey||state.saved.planInputs)};
  const train=m?{none:!!m.none,serviceId:m.t?.serviceId||null,sure:!!m.sure,picked:!!m.picked,conflict:!!m.conflict,confidence:m.confidence||null,others:(m.others||[]).map(other=>({serviceId:other.t?.serviceId||null}))}:null;
@@ -9591,16 +9591,11 @@ function renderFollowPanel(){
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
-  // Once you've set off the deadline is the platform, not leaving: no "Leave by · leave in 57 s" while halfway to
-  // the station (11 Nov, 07:21; homeward at Aldgate, #57 H4). Set off: to the office, the app's own "left home" rule
-  // (over 100 m from your saved home, or 3 minutes nearer the station than home is); homeward, over 200 m from the office.
-  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2);
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
-      :access&&!setOff?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+      :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
@@ -9716,13 +9711,10 @@ function renderSignalStatus(){
     const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
-  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card under it): when
-  // a disruption card already carries the strip's words, the strip keeps only what it adds, or goes.
+  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card right under it):
+  // the strip says it, and the card under it keeps its details without repeating the heading.
   const same=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
-  if(items.some(item=>same(item.title)===same(result.text))){
-    const extra=[...el.querySelectorAll('span')].map(n=>n.textContent.replace(/^\s*·\s*/,'')).join(' · ');
-    if(extra){el.textContent=extra;el.dataset.trimmed='1';}else{el.hidden=true;el.textContent='';}
-  }
+  region.querySelectorAll('.signal-disruption-title').forEach(h=>{const dup=same(h.textContent)===same(result.text);h.hidden=dup;h.closest('.signal-disruption')?.toggleAttribute('data-titled-by-status',dup);});
 }
 function renderSignalLocation(){
   const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;

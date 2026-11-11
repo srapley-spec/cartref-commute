@@ -69,8 +69,8 @@ line colours in lozenges."
 
 ### 3. Before the train (A1, A3, A4, B1)
 **Built 11 Nov** ("Clean baseline"): no "Next train:" line, no "Next:" naming the train before boarding, "Leave now ·
-45 s" urgency, and "Be on the platform by" also once you've set off (not only at the station; flagged to Sam). Not yet:
-the small "to walk to Letchworth at your usual pace" under the urgency line. ("Arrives first" once: built 10 Nov.)
+45 s" urgency. Not yet: the small "to walk to Letchworth at your usual pace" under the urgency line. Open for Sam:
+whether the deadline should read "Be on the platform by" once you've set off (11 Nov 07:21), not only at the station. ("Arrives first" once: built 10 Nov.)
 - **"Arrives first" appears once** on a recommendation.
 - **The train is stated once, by the train panel** (scheduled time, expected time, arrival at your stop, operator,
   destination, platform). The separate "Next train: …" line and, before boarding, the "Next: …" line are removed.

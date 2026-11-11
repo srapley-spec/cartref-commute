@@ -165,7 +165,7 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 - tests/rules.test.mjs: "Aldgate East only when Circle and Met are both closed; severe delays on both are a 'bad' flag"
 - tests/app.test.mjs: "Morning at King's Cross: which tube to get on and when you'll be at the office"
 - tests/app.test.mjs: "At King's Cross: the lozenge naming your tube is that line's colour (H&C pink, Circle yellow, Met magenta)"
-- tests/app.test.mjs: "At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes"
+- tests/app.test.mjs: "At King's Cross: one list of tubes, as on the platform board: place, time, line and where it goes, office time"
 - tests/core/connections.test.mjs: "The platform board: a tube's place (1 = next) among those still shown, and its minutes rounded down; under 1 is 'due'"
 - tests/core/connections.test.mjs: "On the tube the board is gone: a tube that left is told by how long ago (rounded down); platform numbers from TfL's names"
 - tests/app.test.mjs: "At King's Cross without live tube times: says so and estimates"

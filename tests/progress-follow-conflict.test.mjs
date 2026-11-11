@@ -36,7 +36,7 @@ for(const signal of [false,true])for(const route of ['kgx','far']){
     assert.equal(a.text('.jp-leg[data-state="complete"] .jp-leg-state'),'Done');
     assert.equal(a.text('.jp-leg[aria-current="step"] .jp-leg-state'),'Now');
     assert.equal(a.text('.jp-leg[aria-current="step"] .jp-leg-name'),'Train');
-    assert.match(a.text('.jp-stop[data-code="HIT"]'),/Reported/);
+    assert.equal(a.d.querySelector('.jp-stop[data-code="HIT"]')?.dataset.state,'passed','marked passed from its report (11 Nov, option A)');
    }
   }
   a.d.getElementById('alongEntry').click();

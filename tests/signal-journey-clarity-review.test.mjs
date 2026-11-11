@@ -105,7 +105,7 @@ test('independent Signal clarity: manual direction keeps location diagnostics vi
  a.c.render();
  const note=a.d.querySelector('#dirNote');assert.equal(visible(a,note),true);
  assert.equal(a.d.querySelector('#signalAdjustments').open,false);
- assert.match(note.textContent,/near Letchworth/);assert.match(note.textContent,/(stale|last) fix/);assert.match(note.textContent,/approximate/);
+ assert.match(note.textContent,/near Letchworth/);assert.match(note.textContent,/as of \d\d:\d\d/,'an old position says when it is from (amendment §8, was "stale fix")');assert.ok(note.querySelector('[data-update-location]'),'and offers Update location (only runs when tapped)');assert.match(note.textContent,/approximate/);
  s.locStatus='denied';s.autoSrc='location is off for this app';a.c.render();
  assert.match(visibleText(a,'#dirNote'),/location is off/);assert.doesNotMatch(note.textContent,/near Letchworth/);
  assert.equal(watches,0,'drawing diagnostics cannot create a permission/watch restart');

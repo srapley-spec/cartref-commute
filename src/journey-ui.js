@@ -512,16 +512,11 @@ function renderFollowPanel(){
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
-  // Once you've set off the deadline is the platform, not leaving: no "Leave by · leave in 57 s" while halfway to
-  // the station (11 Nov, 07:21; homeward at Aldgate, #57 H4). Set off: to the office, the app's own "left home" rule
-  // (over 100 m from your saved home, or 3 minutes nearer the station than home is); homeward, over 200 m from the office.
-  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2);
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
-      :access&&!setOff?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
+      :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
+      :panelLayout&&observation.boarding&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
@@ -637,13 +632,10 @@ function renderSignalStatus(){
     const source=C.statusLine({...input,errors:[],notLoaded:[],stale:false,tiers:null,tubeFallback:false,tubeLines:[],operators:[]});
     if(source.text!==result.text){const note=document.createElement('span');note.className='signal-source-note';note.textContent=' · '+source.text;el.append(note);}
   }
-  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card under it): when
-  // a disruption card already carries the strip's words, the strip keeps only what it adds, or goes.
+  // Said once (#57: "Delays up to 9 min on your route" twice, in the strip and the disruption card right under it):
+  // the strip says it, and the card under it keeps its details without repeating the heading.
   const same=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
-  if(items.some(item=>same(item.title)===same(result.text))){
-    const extra=[...el.querySelectorAll('span')].map(n=>n.textContent.replace(/^\s*·\s*/,'')).join(' · ');
-    if(extra){el.textContent=extra;el.dataset.trimmed='1';}else{el.hidden=true;el.textContent='';}
-  }
+  region.querySelectorAll('.signal-disruption-title').forEach(h=>{const dup=same(h.textContent)===same(result.text);h.hidden=dup;h.closest('.signal-disruption')?.toggleAttribute('data-titled-by-status',dup);});
 }
 function renderSignalLocation(){
   const view=state.journeyLivePresentation?.view||state.rendered?.view,progress=state.rendered?.progressModel;
