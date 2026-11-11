@@ -209,11 +209,13 @@ test("Leave around: listed from 15 min before; recommended only from 10 min befo
   const now = T("15:00"), app = await open({ now });
   await app.plan("at", DAY, "17:44");
   const rows = app.rows();
-  const tl = rows.find((r) => /17:56 Thameslink/.test(r));
+  // A train is named by its panel (departure time, operator): no "Next train:" line since 11 Nov (amendment §3).
+  const named = (std, op) => new RegExp(`departure ?${std}[\\s\\S]*${op}`);
+  const tl = rows.find((r) => named("17:56", "Thameslink").test(r));
   assert.ok(tl, rows.join("\n"));
   assert.match(tl, /Leave 1[12] min before 17:44/);
-  assert.ok(!rows.some((r) => /17:48 Great Northern/.test(r)), "leaving 25 min before: not listed");
-  assert.doesNotMatch(app.text("#hero"), /17:56 Thameslink/, "12 min before: listed but not on the card");
+  assert.ok(!rows.some((r) => named("17:48", "Great Northern").test(r)), "leaving 25 min before: not listed");
+  assert.doesNotMatch(app.text("#hero"), named("17:56", "Thameslink"), "12 min before: listed but not on the card");
   app.close();
 });
 
@@ -725,10 +727,11 @@ test("At King's Cross: the walk to the tube counts from when you arrived; tubes 
   const hero = app.text("#hero");
   assert.match(hero, /Get on the Met/);
   assert.match(hero, /about 2 min to spare on the platform/);
-  assert.match(hero, /Near the platform already\? The 07:45 Met \(office 08:01\) or the 07:46 Circle/);
+  // One list of tubes (amendment §2, 11 Nov): the ones you might just make first, under "If you're near the platform".
+  const list = app.text("#hero .tube-list");
+  assert.match(list, /If you're near the platform.*07:45 · Met to Aldgate · Office 08:01.*07:46 · Circle to Aldgate.*Then.*07:50 · Met/);
   assert.match(hero, /Walk to the eastbound platform · about \d min, from when you arrived \(07:42\)/);
-  assert.match(app.text("#list"), /07:46.*If you're near the platform/);
-  assert.doesNotMatch(app.text("#list"), /07:44/, "a tube leaving within 30 s isn't listed");
+  assert.doesNotMatch(list, /07:44/, "a tube leaving within 30 s isn't listed");
   app.close();
 });
 
@@ -738,10 +741,10 @@ test("Tube ride: pick your tube at King's Cross; once it leaves you're on it, pa
   const tube = (min, line, v) => ({ t: now + min * m, line, lineId: line === "Circle" ? "circle" : "metropolitan", dest: "Aldgate", platform: "Eastbound - Platform 2", vehicle: v });
   c.state.tube = { hub: "KGX", at: now, arrivals: [tube(6, "Circle", "c6"), tube(12, "Met", "m12")], err: null };
   c.render();
-  assert.match(app.text("#hero"), /Which one are you getting\?/);
+  assert.match(app.text("#hero"), /tap the one you're getting/);
   app.d.querySelector('[data-tubepick^="KGX|' + (now + 12 * m) + '|Met"]').click();
   assert.match(app.text("#hero"), /You're getting the Met to Aldgate/);
-  assert.match(app.text("#hero"), /Getting a different one\?/);
+  assert.match(app.text("#hero"), /07:56 · Met to Aldgate · Office \d\d:\d\d · ✓ getting this one/, "the one you're getting is marked in the list");
   // The Met leaves at 07:56: on the tube from then.
   app.at(now + 12.5 * m); c.state.lastFixAt = now + 12.5 * m; c.render();
   assert.match(app.text("#hero"), /^On the tube · 07:56 · the tube you picked/);
@@ -793,7 +796,7 @@ test("At King's Cross: an H&C to Aldgate East is the pick when it gets you to th
   const hero = app.text("#hero");
   assert.match(hero, /Get on the H&C to Barking/);
   assert.match(hero, /Aldgate East · about 11 min ride/);
-  assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
+  assert.match(app.text("#hero .tube-list small"), /^Tubes to Aldgate and Aldgate East/);
   app.close();
 });
 
@@ -835,9 +838,9 @@ test("Review: at Farringdon with live tubes, office times use Farringdon's rides
   c.state.tube = { hub: "ZFD", at: t0, arrivals: [tubeAt(t0, 8, "Circle"), tubeAt(t0, 15, "H&C")], err: null };
   c.render();
   // Circle 08:08 + 7 min ride + (90 + 420) s → 08:23:30; H&C 08:15 + 8 min + (112 + 283) s → 08:29:35.
-  const list = app.text("#list");
-  assert.match(list, /08:08.*Aldgate 08:15.*Office ?08:23/);
-  assert.match(list, /08:15.*Aldgate East 08:23.*Office ?08:29/);
+  const list = app.text("#hero .tube-list");
+  assert.match(list, /08:08 · Circle [^·]*· Office ?08:23/);
+  assert.match(list, /08:15 · H&C [^·]*for Aldgate East · Office ?08:29/);
   app.close();
 });
 
@@ -893,14 +896,13 @@ test("Review: at King's Cross the list's best row is the tube on the card; after
   c.render();
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Circle"]').click();
   assert.match(app.text("#hero"), /You're getting the Circle/);
-  assert.doesNotMatch(app.text("#hero"), /Near the platform already/);
-  let best = app.d.querySelector("#list .row.best");
-  assert.equal(best && best.querySelector(".leave .t").textContent, "07:46", "the picked 07:46 Circle is the highlighted row");
-  // Pick a later one (not the first row): that row is the highlighted one.
+  assert.doesNotMatch(app.text("#hero"), /If you're near the platform/);
+  // The list is in the card (11 Nov): the tube you picked is the one marked "✓ getting this one", and only it.
+  const marked = () => [...app.d.querySelectorAll("#hero .tube-list [data-tubepick]")].filter((b) => /✓ getting this one/.test(b.textContent)).map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  assert.equal(marked().length, 1); assert.match(marked()[0], /07:46 · Circle/, "the picked 07:46 Circle is marked");
+  // Pick a later one (not the first row): that row is the marked one.
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 12 * MIN) + '|Met"]').click();
-  best = app.d.querySelector("#list .row.best");
-  assert.equal(best && best.querySelector(".leave .t").textContent, "07:56", "the picked 07:56 Met (third row) is highlighted");
-  assert.equal(app.d.querySelectorAll("#list .row.best").length, 1);
+  assert.equal(marked().length, 1); assert.match(marked()[0], /07:56 · Met/, "the picked 07:56 Met (third row) is marked");
   app.close();
 });
 
@@ -1129,7 +1131,7 @@ test("Met platform at Aldgate (recorded 31 Oct 08:59, Saturday): the Mets standi
   const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim());
   assert.ok(btns.includes("Platform 3: 2 Met Uxbridge · 1 min"), btns.join(" | "));
   assert.ok(btns.includes("Platform 2: 3 Met Chesham · 4 min"), btns.join(" | "));
-  assert.ok(btns.includes("4 Met · 8 min"), `a Met still arriving: no platform, no destination yet (${btns.join(" | ")})`);
+  assert.ok(btns.includes("4 Met westbound · 8 min"), `a Met still arriving: no platform, no destination yet, so "westbound" (#57 H7) (${btns.join(" | ")})`);
   assert.equal(btns.length, 3, "the Circle at the platform 10 s ago has gone from the buttons");
   // Review 31 Oct: when the only buttons are a Met at platform 2 and a Met still arriving, the platform still shows:
   // the arriving one could use either bay, so an unknown platform counts as another board.
@@ -1138,7 +1140,7 @@ test("Met platform at Aldgate (recorded 31 Oct 08:59, Saturday): the Mets standi
     extra: (u) => (/940GZZLUALD\/Arrivals/.test(u) ? json([]) : /940GZZLULVT\/Arrivals/.test(u) ? json(only) : undefined) });
   await app2.fix(...ALD, 10, t0); await app2.c.refresh({ force: true }); await sleep(300);
   assert.deepEqual([...app2.d.querySelectorAll("#hero [data-tubepick]")].map(b => b.textContent.replace(/\s+/g, " ").trim()),
-    ["Platform 2: 1 Met Chesham · 4 min", "2 Met · 8 min"]);
+    ["Platform 2: 1 Met Chesham · 4 min", "2 Met westbound · 8 min"]);
   app2.close();
   // Picking the platform 3 Met follows it by its vehicle.
   app.d.querySelector('#hero [data-tubepick*="|431|"]').click();
@@ -1540,7 +1542,7 @@ test("Train stop: the walk to the tube counts from when your train stopped (GPS 
   assert.match(hero, /Walk to the eastbound platform · about \d min, from when your train stopped \(08:40\)/);
   // Fast pace: 400 s × 0.82 = 328 s from 08:40:30 → 08:45:58: the 08:45 H&C is "near the platform", the 08:46:30 Met the pick.
   assert.match(hero, /Get on the Met/);
-  assert.match(hero, /Near the platform already\? The 08:45 H&C/);
+  assert.match(app.text("#hero .tube-list"), /If you're near the platform.*08:45 · H&C/, "the 08:45 H&C, under 'If you're near the platform'");
   app.close();
 });
 
@@ -1681,7 +1683,7 @@ async function kingsCrossCardScenario(design) {
     assert.match(hero, /from when your train stopped \(08:40\)/);
     const lozenge = app.d.querySelector("#hero .slack");
     assert.match(lozenge.textContent, /^Get on the Met/); assert.equal(lozenge.className, "slack met");
-    assert.deepEqual(btnText(app), ["1 H&C Barking · 3 min", "2 Met Aldgate · 4 min"]);
+    assert.deepEqual(btnText(app), ["1st · 08:45 · H&C to Barking, for Aldgate East · Office 09:01", "2nd · 08:46 · Met to Aldgate · Office 09:03"]);
     assert.equal(app.d.querySelector("#hero [data-tubepick] .chip").className, "chip hc");
     app.close();
   }

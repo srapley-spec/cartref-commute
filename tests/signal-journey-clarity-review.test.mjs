@@ -77,7 +77,8 @@ test('independent Signal clarity: feed priority cannot hide separate serious tra
  s.status=[tube('circle','Circle',20,'Circle is closed because of a track failure.'),tube('metropolitan','Metropolitan',6,'Metropolitan is severely delayed by a signal failure.'),tube('hammersmith-city','Hammersmith & City')];
  a.c.render();
  assert.equal(a.d.querySelector('#signalNotices').open,false);
- const text=visibleText(a,'#signalDisruptions');
+ // The status strip and the disruption cards under it are read together: a card doesn't repeat the strip's heading (11 Nov, said once).
+ const text=visibleText(a,'#signalStatus')+' '+visibleText(a,'#signalDisruptions');
  for(const pattern of [/rail provider is unavailable/,/crew shortage/,/Circle is closed/,/Metropolitan is severely delayed/])assert.match(text,pattern);
  assert.equal(a.d.querySelectorAll('#signalDisruptions [data-scope="tube"]').length,2);
  assert.deepEqual(a.errors,[]);a.close();
@@ -105,7 +106,7 @@ test('independent Signal clarity: manual direction keeps location diagnostics vi
  a.c.render();
  const note=a.d.querySelector('#dirNote');assert.equal(visible(a,note),true);
  assert.equal(a.d.querySelector('#signalAdjustments').open,false);
- assert.match(note.textContent,/near Letchworth/);assert.match(note.textContent,/(stale|last) fix/);assert.match(note.textContent,/approximate/);
+ assert.match(note.textContent,/near Letchworth/);assert.match(note.textContent,/as of \d\d:\d\d/,'an old position says when it is from (amendment §8, was "stale fix")');assert.ok(note.querySelector('[data-update-location]'),'and offers Update location (only runs when tapped)');assert.match(note.textContent,/approximate/);
  s.locStatus='denied';s.autoSrc='location is off for this app';a.c.render();
  assert.match(visibleText(a,'#dirNote'),/location is off/);assert.doesNotMatch(note.textContent,/near Letchworth/);
  assert.equal(watches,0,'drawing diagnostics cannot create a permission/watch restart');
@@ -186,7 +187,7 @@ test('independent Signal clarity: Tube headline and progress share vehicle, targ
  hs.saved.tubeRide={hub:'ALD',from:'ALD',t:NOW-2*MIN,line:'Met',picked:true,rideMs:10*MIN,stop:"King's Cross",stopGeo:null};
  home.c.render();
  assert.equal(hs.rendered.progress.homeward,true,'the return Tube still has an onward rail leg');
- assert.match(visibleText(home,'#signalDisruptions'),/Train times may be out of date/,'onward rail freshness remains important on the homeward Tube');
+ assert.match(visibleText(home,'#signalStatus')+' '+visibleText(home,'#signalDisruptions'),/Train times may be out of date/,'onward rail freshness remains important on the homeward Tube');
  assert.deepEqual(home.errors,[]);home.close();
 });
 

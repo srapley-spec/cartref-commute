@@ -25,7 +25,7 @@ export { hubOfKey, addJourneys, searchRoutes, routeCount, nowRounds, aroundRound
 export type { SearchDiag, Diag, SearchFn, Converter, Round, SearchError, RoundOpts } from "./search";
 export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearches } from "./live";
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
-export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, walkFromStopSecs, STOP_EXIT_KM, inferDirection, whichTrain, stationContradiction, contradictionKey, STATION_MARGIN_KM, STATION_REPORT_SLACK_MS, STATION_EXPECTED_SLACK_MS, STATION_MAX_ACC_M, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
+export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, walkFromStopSecs, STOP_EXIT_KM, inferDirection, whichTrain, stationContradiction, contradictionKey, STATION_MARGIN_KM, STATION_REPORT_SLACK_MS, STATION_EXPECTED_SLACK_MS, STATION_MAX_ACC_M, lockedTrain, onTube, whichTube, otherTubes, OTHER_TUBE_OFFER_MS, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, StopWatch, RailTrackingInput, RailTrackingContext, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, StationContradiction, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
 export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, wrongTrainQuestion, switchTrainQuestion, tubeLine, thameslinkNote, chooseTripView, TRIP_VIEWS } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel, TripSituation } from "./present";
@@ -49,7 +49,7 @@ export type { LegacyFollowRoute } from './followMigration';
 export { DEFAULT_DISRUPTION_POLICY, resolveDisruptionPolicy, railDelayLevel, worstDisruptionStatus, disruptionLineLevel, significantLineDisruption, visibleDisruptions, disruptionTrainObservation } from './disruption';
 export type { DisruptionPolicy, DisruptionLevel, VisibleDisruption, VisibleDisruptionInput, DisruptionTrainObservation } from './disruption';
 export type { RailWarningContext } from './warnings';
-export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent } from './journeyProgress';
+export { journeyProgress, progressLegsFromSteps, retimeProgressLeg, progressContextCurrent, sameStation, tubePlace } from './journeyProgress';
 export type { ProgressKind, JourneyProgressLeg, JourneyProgressCall, JourneyProgressEvidence, JourneyProgressInput, JourneyProgressModel, ProgressItineraryInput, JourneyTimingShiftInput } from './journeyProgress';
 export type { ServiceCall, ServiceProgress } from './adapters/darwin';
 // Trip mode (leisure journeys): docs/leisure-architecture.md. Shared round runner first.

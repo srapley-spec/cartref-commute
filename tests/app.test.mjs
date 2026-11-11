@@ -158,7 +158,8 @@ test("Arrive by finds the latest train, flags stopping trains and tight arrivals
   const stopping=rowFor(app,/07:00 Great Northern/);
   assertTrainFacts(stopping,/07:00 Great Northern/,52);
   assert.match(stopping.textContent,/Stopping train/,'stopping train offered and labelled');
-  assert.ok(rows.some((r) => /07:30 Great Northern.*Late by 6 min/.test(r)), "07:30 stopper arrives 08:22: shown as late");
+  // The train is named by its panel (scheduled time, operator), not a "Next train:" line (amendment §3, 11 Nov).
+  assert.match(rowFor(app, /07:30 Great Northern/)?.textContent || "", /Late by 6 min/, "07:30 stopper arrives 08:22: shown as late");
   app.close();
 });
 
@@ -321,12 +322,14 @@ test("Arrive by lists trains either side of the recommended one, including late 
   await arriveBy(app, "08:30");
   const rows = app.rows();
   assert.doesNotMatch(rows.join(" "), /Journeys appear here/, "list isn't left blank");
-  const at = (re) => rows.findIndex((r) => re.test(r));
+  // Trains are found by their panel (scheduled time, operator): there's no "Next train:" line (amendment §3, 11 Nov).
+  const nodes = [...app.d.querySelectorAll("#list .row")];
+  const at = (re, late) => nodes.findIndex((n) => re.test(serviceText(n)) && (!late || /Late by/.test(n.textContent)));
   const kx708 = at(/07:08 Great Northern/), tl720 = at(/07:20 Thameslink/), kx730 = at(/07:30 Great Northern/);
-  const kx738 = at(/07:38 Great Northern.*Late by/), tl750 = at(/07:50 Thameslink.*Late by/);
+  const kx738 = at(/07:38 Great Northern/, true), tl750 = at(/07:50 Thameslink/, true);
   assert.ok(kx708 >= 0 && tl720 > kx708 && kx730 > tl720, "earlier options in leaving order:\n" + rows.join("\n"));
   assert.ok(kx738 > kx730 && tl750 > kx738, "late options after, labelled:\n" + rows.join("\n"));
-  const best = [...app.d.querySelectorAll("#list .row.best")].map((r) => r.textContent.replace(/\s+/g, " "));
+  const best = [...app.d.querySelectorAll("#list .row.best")].map(serviceText);
   assert.equal(best.length, 2, "the best and the next best");
   assert.ok(best.some((r) => /07:20 Thameslink/.test(r)) && best.some((r) => /07:30 Great Northern/.test(r)), best.join("\n"));
   const opts = [...app.d.querySelectorAll("#hero .opt")].map((o) => o.textContent.replace(/\s+/g, " "));
@@ -377,14 +380,17 @@ test("Morning at King's Cross: which tube to get on and when you'll be at the of
   const hero = app.text("#hero");
   assert.match(hero, /You're at King's Cross · \d\d:\d\d · live tube times/);
   // Default 6 min to the platform: the Circle in 2 min is too soon, so the Met in 8 min is the one.
-  assert.match(hero, /Get on the Met to Aldgate eastbound, due \d\d:\d\d/);
+  assert.match(hero, /Get on the Met to Aldgate eastbound · Platform 2 · due \d\d:\d\d/);
   const due = feedAt + 8 * 60e3, office = due + 600e3 + (90 + 420) * 1000;
   assert.match(hero, new RegExp(`At office${hm(office)}`));
-  const rows = app.rows();
-  assert.equal(rows.length, 4, "Met in 8 and Circle in 12, plus the Circle in 2 and the H&C in 3 if you're near the platform; not westbound");
-  assert.match(rows[0], /If you're near the platform/);
-  assert.match(rows[1], /H&C.*to Barking.*Aldgate East/, "the H&C goes to Aldgate East, also by the office");
-  assert.match(app.text("#listTitle"), /Next tubes to Aldgate and Aldgate East/);
+  // One list of tubes, in the card (amendment §2): the Circle in 2 and the H&C in 3 if you're near the platform, then the
+  // Met in 8 and the Circle in 12; not westbound.
+  const tubes = () => [...app.d.querySelectorAll("#hero .tube-list [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  assert.match(app.text("#hero .tube-list small"), /^Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting$/);
+  assert.equal(app.text("#listTitle"), "", "no second list under the card"); assert.equal(app.rows().length, 0);
+  assert.equal(tubes().length, 4, JSON.stringify(tubes()));
+  assert.match(app.text("#hero .tube-list"), /If you're near the platform.*Then/);
+  assert.match(tubes()[1], /H&C to Barking, for Aldgate East/, "the H&C goes to Aldgate East, also by the office");
   assert.ok(!app.calls.some((u, i) => parseJourneyUrl(u) && i > app.calls.findIndex((x) => /Arrivals/.test(x))), "no Letchworth train searches while at King's Cross");
   app.close();
 });
@@ -426,23 +432,26 @@ test("At King's Cross: the lozenge naming your tube is that line's colour (H&C p
   app.close();
 });
 
-test("At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes", async () => {
+test("At King's Cross: one list of tubes, as on the platform board: place, time, line and where it goes, office time", async () => {
   const t0 = Date.now(), at = (lineId, dest, mins, v) => ({ vehicleId: v, lineId, platformName: "Eastbound - Platform 2", destinationName: dest + " Underground Station",
     expectedArrival: new Date(t0 + mins * 60e3).toISOString(), timeToStation: Math.round(mins * 60) });
   const arrivals = [at("metropolitan", "Aldgate", 8.5, "m8"), at("circle", "Edgware Road (Circle Line)", 2.5, "c2"), at("hammersmith-city", "Barking", 3.5, "h3"),
     { ...at("metropolitan", "Uxbridge", 4.5, "w4"), platformName: "Westbound - Platform 1" }, at("circle", "Edgware Road (Circle Line)", 12.5, "c12")];
   const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json(arrivals) : undefined) });
   await moveTo(app, AT_KINGS_CROSS);
-  const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")];
-  assert.deepEqual(btns.map((b) => b.textContent.replace(/\s+/g, " ").trim()),
-    ["1 Circle Edgware Road · 2 min", "2 H&C Barking · 3 min", "3 Met Aldgate · 8 min", "4 Circle Edgware Road · 12 min"],
-    "in board order, eastbound only (the westbound Met isn't on this platform's board)");
+  const btns = [...app.d.querySelectorAll("#hero [data-tubepick]")], words = (b) => b.textContent.replace(/\s+/g, " ").trim();
+  // Amendment §2 (words confirmed by Sam, 10 Nov): place on the board, time, line and where it takes you, office time.
+  const due = (mins) => hm(t0 + mins * 60e3);
+  const expect = [`1st · ${due(2.5)} · Circle via Aldgate`, `2nd · ${due(3.5)} · H&C to Barking, for Aldgate East`, `3rd · ${due(8.5)} · Met to Aldgate`, `4th · ${due(12.5)} · Circle via Aldgate`]
+    .map((x) => new RegExp(`^${x} · Office \\d\\d:\\d\\d$`));
+  assert.equal(btns.length, 4, "eastbound only (the westbound Met isn't on this platform's board)");
+  btns.forEach((b, i) => assert.match(words(b), expect[i]));
   assert.equal(btns[1].querySelector(".chip").className, "chip hc", "the line in its colour");
-  assert.equal(btns[1].querySelector("[data-boardmin]").dataset.boardmin, String(t0 + 3.5 * 60e3), "the minutes tick down");
   btns[1].click();
-  assert.match(app.text("#hero"), /You're getting the H&C to Barking/, "the tap still picks that tube");
-  const after = [...app.d.querySelectorAll("#hero [data-tubepick]")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
-  assert.deepEqual(after, ["1 Circle Edgware Road · 2 min", "3 Met Aldgate · 8 min", "4 Circle Edgware Road · 12 min"], "places stay as on the board");
+  assert.match(app.text("#hero"), /You're getting the H&C to Barking, for Aldgate East/, "the tap still picks that tube");
+  const after = [...app.d.querySelectorAll("#hero [data-tubepick]")].map(words);
+  assert.match(after[1], /H&C .* · ✓ getting this one$/, "the one you're getting is marked, in its place on the board");
+  assert.equal(after.length, 4);
   app.close();
 });
 

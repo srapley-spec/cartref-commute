@@ -22,18 +22,28 @@ function progressTubeCalls(ride,from,to,arrival,fromName,toName){
   return stops.map((stop,index)=>({code:stop.id,name:stop.name,scheduledAt:null,
     expectedAt:index===stops.length-1?arrival:null,actualAt:null}));
 }
+// Where you are on the leg (option A, chosen by Sam 11 Nov 2026): one line, from reports only, then every station
+// folded as a list top to bottom (it never runs off the page). No bar: it looked like a position and wasn't.
+function whereHtml(model){
+  const calls=model.calls, w=model.where;
+  if(calls.length<2)return '';
+  const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
+  const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`
+    :`<p class="jp-where none">No live position yet · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</p>`;
+  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):'—'}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
+  return `${line}<details class="jp-all"><summary>All ${calls.length} stations</summary><ol class="jp-vlist">${calls.map(row).join('')}</ol></details>${model.sourceLine?`<p class="jp-source">${esc(model.sourceLine)}</p>`:''}`;
+}
 function progressHtml(model){
   const percentage=value=>`${Math.round(value*100)}%`;
   const current=model.current;
   const unknownPast=current.id==='tube-current';
   return `<div class="jp-heading"><b>Journey stages</b><span class="jp-status ${model.status.level}">${esc(model.status.text)}</span></div>
-    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
+    <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${leg.state==='current'?'0%':percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
-      <div class="jp-current-track" role="progressbar" aria-label="${esc(model.progressLabel)}" aria-valuemin="0" aria-valuemax="100"${model.fraction===null?'':` aria-valuenow="${Math.round(model.fraction*100)}"`} aria-valuetext="${esc(model.progressLabel)}"><i style="--complete:${percentage(model.fraction??0)}"></i></div>
-      ${model.calls.length?`<ol class="jp-stops" tabindex="0" aria-label="Calling points in route order; scroll for more">${model.calls.map(call=>`<li class="jp-stop" data-code="${esc(call.code||'')}" data-state="${call.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(call.name)}</span><time class="jp-stop-time t">${call.time===null?'—':hhmm(call.time)}</time>${call.scheduledAt!=null&&call.scheduledAt!==call.time?`<span class="jp-stop-plan">Timetable ${hhmm(call.scheduledAt)}</span>`:''}<small class="jp-stop-status ${call.level}">${call.cancelled?'Cancelled':call.state==='reported'?(model.source==='stale'?'Last known report':'Reported'):call.state==='expected'?'Expected':call.scheduledAt!=null?'Timetable · no live report':'No live report'}${call.deltaMin===null?'':call.deltaMin<0?` · ${-call.deltaMin} min early`:call.deltaMin>0?` · ${call.deltaMin} min late`:' · on time'}</small></li>`).join('')}</ol>`:''}
-      <p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>
+      ${whereHtml(model)}
+      ${model.where?'':`<p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>`}
     </div>`;
 }
 function renderJourneyProgress(){

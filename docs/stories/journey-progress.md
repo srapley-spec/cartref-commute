@@ -72,9 +72,7 @@ TfL's own timestamp): "At Barbican · TfL, 08:16.", "Between Moorgate and Liverp
 "Left" (`tubeWhere`). Only the forms recorded from TfL are shown (At, Between, Approaching, Left, Departed, Leaving,
 Departing, Around); anything else, or no text, leaves the old sentence. The text comes with the arrivals already
 fetched: no extra requests.
-- **Not built:** marking the stations themselves from it (filled in once passed, "TfL report" / "Expected"), the
-  "you are here" marker on the station line, and removing the bar. Those need TfL's station names matched to the
-  line's stops and should be checked against live data first.
+- Marking the stations from it and removing the bar: built 11 Nov, below ("Where you are on the leg").
 - **Unverified against live TfL:** built from the recorded fixtures (30–31 Oct); the live keys aren't set in the
   cloud session.
 - tests/core/journey-card-batch.test.mjs: "Where your tube is: TfL's own words, tidied; nothing for an empty, odd or over-long value"
@@ -83,8 +81,39 @@ fetched: no extra requests.
 - tests/journey-progress.test.mjs: "Signal progress: where TfL says your tube is, in its own words, when the matched prediction carries it (10 Nov 2026, #57 E1, H11)"
 - tests/journey-card-batch.test.mjs: "TfL's location text is kept from the live feeds (it is what 'where your tube is' is drawn from)"
 
-## Agreed 10 Nov 2026, not yet built
-From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): the station line replaces the progress bar (C9), TfL's location text counts as a report for your tube (E1), and the copy (C13). The criteria above describe the app as built; update them, with tests, as each item ships.
+## Where you are on the leg: one line and a folded list (built 11 Nov 2026, #57 C9, C13, E1; Sam chose option A)
+**Why.** Sam, 11 Nov, 08:27: "The bar makes it look like it's showing which station you're at. But it's just showing
+roughly how far through the journey you are … the stops run off the right of the page and you have to scroll." Three
+mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam chose **A · One line + folded list**.
+
+**What the current leg shows now** (the bar above the stations and the sideways row of stops are gone):
+- One line: "✓ **Last:** Welwyn North 07:50 · Next: Finsbury Park 08:03 · **Your stop:** King's Cross 08:08, 2 stops"
+  (on the tube: "Next: Liverpool Street, approaching"). Then "All N stations", folded: every station top to bottom
+  (passed, next, your stop marked; "· your stop" on the last; "N late" where known), so a long leg never runs off the
+  page. Then where the position comes from: "National Rail report, 07:51" or "TfL, 08:26".
+- **A station counts as passed only from a report**: National Rail's actual time for the train (identity matched),
+  or TfL's location text for the tube you're matched to ("At X", "Left/Leaving/Departed/Departing X", "Between X and
+  Y", "Approaching Y"; prediction under 3 minutes old, same vehicle). Nothing is placed from elapsed time. With no
+  report the line reads "No live position yet · your stop: King's Cross 08:08" and the old evidence sentence stays.
+- TfL's names are matched to the leg's own stops loosely ("Kings Cross St. Pancras" = "King's Cross St Pancras"; the
+  words underground/station/rail/london and punctuation are ignored; a prefix matches). A text naming no stop on
+  the leg gives no position.
+- A doubted train (the evidence contradicts it) still shows no position (section above).
+- Journey stages keep Done / Now / Next; the current stage is outlined with no partial fill.
+- Copy: "Last reported at Welwyn North." (no "no passing-point position is claimed").
+- In the one journey card the legs' own status ("3 min behind") is not drawn: the card's status line says how the
+  journey stands, once (#57 H10).
+- Model: `journeyProgress` returns `where` {last, next, yours, stopsToGo, approaching} and `sourceLine`; calls carry
+  `passed`. `tubePlace` and `sameStation` do the TfL matching (`src/core/journeyProgress.ts`); `whereHtml` draws it
+  (`src/journey-progress.js`).
+- **Unverified against live data:** National Rail calling points as recorded; TfL text forms from the 30–31 Oct
+  fixtures. Sam checks on the 11 Nov evening and 12 Nov morning trips.
+- tests/core/clean-baseline.test.mjs: "Where you are on a train leg comes from National Rail's reports: last station passed, the next, your stop and the stops to go"
+- tests/core/clean-baseline.test.mjs: "Where you are on a tube leg comes from TfL's location text for your tube, matched to the leg's stations"
+- tests/core/clean-baseline.test.mjs: "Station names as TfL and National Rail write them are the same station; TfL's text is read in the forms it uses"
+- tests/clean-baseline.test.mjs: "On the train: the leg is one line and a folded list of every station (option A), no bar, and one 'behind' figure"
+
+The acceptance criteria above (bar and marker wording) predate this; where they differ, this section is the app.
 
 ## Tests
 Pure-model, adapter and independent counterexample tests are linked below. Real-page and browser checks

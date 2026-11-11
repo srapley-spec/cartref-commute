@@ -521,7 +521,7 @@ test("On the train: when unsure it asks which train you're on; your pick is kept
     app.d.querySelector('[data-pick="Thameslink|B2|LET|SID-B2"]').click();
     assert.equal(c.state.trainLock.serviceId, "SID-B2", "your pick is remembered by service ID");
     hero = app.text("#hero");
-    assert.match(hero, /You're on the B2 Thameslink On time · you picked this/);
+    assert.match(hero, /You're on the B2 Thameslink On time ?you picked this/, "no stray '·' before 'you picked this' (#57 H12)");
     assert.match(hero, /On a different train\?A1 Great Northern/);
     const w = c.whichTrain(now + 8 * m);
     assert.equal(w.t, b, "kept even when the position fits less well");

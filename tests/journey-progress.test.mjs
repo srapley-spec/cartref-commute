@@ -27,8 +27,11 @@ test('Signal progress: an inferred train without Follow shows complete stages, f
  assert.equal(section.dataset.source,'reported');
  assert.deepEqual([...section.querySelectorAll('.jp-leg-name')].map(n=>n.textContent),['Walk','Train','Tube','Walk']);
  assert.match(section.textContent,/Stevenage/);assert.match(section.textContent,/Finsbury Park/);
- assert.equal(section.querySelectorAll('.jp-current-track[role="progressbar"]').length,1);
- assert.equal(section.querySelectorAll('.jp-stop[data-state="reported"]').length,2);
+ // 11 Nov (Sam chose option A): no bar; one line from the reports, every station folded beneath it.
+ assert.equal(section.querySelectorAll('.jp-current-track').length,0);
+ assert.match(section.querySelector('.jp-where').textContent.replace(/\s+/g,' '),/Last: Stevenage 09:16 · Next: Finsbury Park/);
+ assert.equal(section.querySelectorAll('.jp-all .jp-stop[data-state="passed"]').length,2);
+ assert.match(section.querySelector('.jp-source').textContent,/^National Rail report, \d\d:\d\d$/);
  const before=a.calls.slice();a.c.render();assert.deepEqual(a.calls,before);
  assert.equal(a.c.state.saved.followRoute??null,null);assert.deepEqual(a.errors,[]);a.close();
 });
@@ -38,7 +41,7 @@ test('Signal progress: live expected arrival changes show behind and ahead again
  assert.equal(a.d.querySelector('.journey-progress .jp-status').classList.contains('warn'),true);
  a.c.state.progressById['progress-train'].data=a.w.CommuteCore.parseServiceDetails(raw('09:38'),NOW);a.c.render();
  assert.match(a.text('.journey-progress .jp-status'),/3 min ahead/);
- assert.match(a.text('.journey-progress'),/Timetable 09:41/);
+ assert.match(a.text('.journey-progress .jp-where'),/Your stop: London Kings Cross 09:38, 2 stops/);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
@@ -142,11 +145,13 @@ test('Signal progress: where TfL says your tube is, in its own words, when the m
   stop:'Aldgate',stopGeo:[51.5142,-.0755],picked:true};
  const prediction={vehicle:'tube-progress',lineId:'metropolitan',stopId:'940GZZLUALD',platform:'Northbound - Platform 2',observedAt:NOW,t:T('09:22'),where:'At Barbican Platform 1'};
  s.ald={at:NOW,arrivals:[{vehicle:'another',lineId:'metropolitan',stopId:'940GZZLUALD',platform:'Northbound - Platform 2',observedAt:NOW,t:T('09:25'),where:'At Farringdon Platform 2'},prediction]};a.c.render();
- assert.match(a.text('.journey-progress'),/At Barbican · TfL, 09:16\./);
- assert.doesNotMatch(a.text('.journey-progress'),/position is a time-based estimate|Platform 1|At Farringdon/,'your tube, not another; no platform number');
- assert.equal(a.d.querySelectorAll('.jp-stop[data-state="reported"]').length,0,'the stations themselves are not marked from it (not built)');
+ // 11 Nov (option A): TfL's words place your tube among the leg's stations; where it comes from beneath.
+ assert.match(a.text('.journey-progress .jp-where'),/Last: Barbican · Next: Moorgate · Your stop: Aldgate 09:22, 3 stops/);
+ assert.match(a.text('.journey-progress .jp-source'),/^TfL, 09:16$/);
+ assert.doesNotMatch(a.text('.journey-progress'),/position is a time-based estimate|Platform 1|Farringdon Platform/,'your tube, not another; no platform number');
+ assert.equal(a.d.querySelectorAll('.jp-all .jp-stop[data-state="passed"]').length,3,"King's Cross, Farringdon, Barbican: passed, from TfL's words");
  s.ald={at:NOW,arrivals:[{...prediction,where:'Between Moorgate and Liverpool Street'}]};a.c.render();
- assert.match(a.text('.journey-progress'),/Between Moorgate and Liverpool Street · TfL, 09:16\./);
+ assert.match(a.text('.journey-progress .jp-where'),/Last: Moorgate · Next: Liverpool Street/);
  // Nothing usable from TfL: the old sentence. No live prediction for your tube: no location either.
  s.ald={at:NOW,arrivals:[{...prediction,where:''}]};a.c.render();
  assert.match(a.text('.journey-progress'),/Live arrival; position is a time-based estimate/);

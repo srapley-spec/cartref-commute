@@ -445,9 +445,15 @@ export function whichTube(lastHub: HubVisit, now: number, ready?: number | null)
 
 /** "On a different tube?": the others that have left (or are leaving), within 6 min of the one you're on, nearest
  *  first, at most `max`. Earlier ones you'd have needed to be quick for are kept: never hide a train. */
+/** "On a different tube?" is offered for this long after yours left; after that you'd know (11 Nov 2026). */
+export const OTHER_TUBE_OFFER_MS = 5 * 60e3;
 export function otherTubes(deps: TubeDep[] | null | undefined, on: TubeDep, now: number, max = 3): TubeDep[] {
+  // Never the tube you're on, listed again under another time (#57 H9); and each other tube only for 5 minutes after
+  // the later of it and yours has gone (#57: still offered a quarter of an hour into the ride). A wrong guess stays
+  // correctable while the tube you're really on has only just left.
   return (deps || [])
-    .filter(a => a.t <= now + 30e3 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 60e3)
+    .filter(a => a.t <= now + 30e3 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 60e3 && !(a.vehicle && on.vehicle && a.vehicle === on.vehicle)
+      && now - Math.max(a.t, on.t) <= OTHER_TUBE_OFFER_MS)
     .sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
 }
 

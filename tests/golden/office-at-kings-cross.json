@@ -6,12 +6,8 @@
   "statusSummary": "Journey data not available yet",
   "significantDisruptions": "",
   "banners": [],
-  "hero": "You're at King's Cross · 08:05 · live tube times Next Tube08:13 → At office08:31 Journey remaining 27 min Get on the Met to Aldgate eastbound, due 08:13 · in 8m 00s · about 1 min to spare on the platform Near the platform already? The 08:07 Circle (office 08:25).Which one are you getting?1 Circle Edgware Road · 2 min2 Met Aldgate · 8 min3 Circle Edgware Road · 12 min 08:05Walk to the eastbound platform · about 7 min 08:13Met towards Aldgate · Eastbound - Platform 2 08:23Aldgate · about 10 min ride 08:31Arrive office · walk 9 min",
-  "rows": [
-   "Train08:07 Circle to Edgware Road (Circle Line) If you're near the platform Aldgate 08:17 · in 2m 00s Office08:25",
-   "Train08:13 Met to Aldgate Aldgate 08:23 · in 8m 00s Office08:31",
-   "Train08:17 Circle to Edgware Road (Circle Line) Aldgate 08:27 · in 12m 00s Office08:35"
-  ],
+  "hero": "You're at King's Cross · 08:05 · live tube times Next tube08:13 → At office08:31 Journey remaining 27 min Get on the Met to Aldgate eastbound · Platform 2 · due 08:13 · in 8m 00s · about 1 min to spare on the platform Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're gettingIf you're near the platform1st · 08:07 · Circle via Aldgate · Office 08:25Then2nd · 08:13 · Met to Aldgate · Office 08:313rd · 08:17 · Circle via Aldgate · Office 08:35 08:05Walk to the eastbound platform · about 7 min 08:13Met towards Aldgate · Eastbound - Platform 2 08:23Aldgate · about 10 min ride 08:31Arrive office · walk 9 min",
+  "rows": [],
   "diag": null
  },
  "options": [],

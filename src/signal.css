@@ -512,3 +512,39 @@ html #followPanel .fold[open]>summary::before {transform:rotate(90deg)}
 html #followPanel .fold summary::-webkit-details-marker {display:none}
 html #followPanel .follow-ifmissed {font-size:14px;color:var(--muted);margin:2px 0 6px}
 html .tl-note {font-size:13px;color:var(--muted);margin:4px 0 0}
+/* Where you are on the leg (option A, 11 Nov 2026): one line, then every station folded top to bottom. */
+html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px}
+html .journey-progress .jp-where.none {color:var(--muted)}
+html .journey-progress .jp-tick {color:var(--ok);font-weight:700}
+html .journey-progress .jp-next {color:var(--accent);font-weight:650}
+html .journey-progress .jp-all summary {color:var(--accent);font-weight:650;font-size:13px;min-height:40px;display:flex;align-items:center;cursor:pointer;list-style:none}
+html .journey-progress .jp-all summary::before {content:'›';margin-right:6px;font-size:18px}
+html .journey-progress .jp-all[open] summary::before {transform:rotate(90deg)}
+html .journey-progress .jp-all summary::-webkit-details-marker {display:none}
+html .journey-progress .jp-vlist {list-style:none;margin:2px 0 0;padding:0}
+html .journey-progress .jp-vlist .jp-stop {display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:8px;padding:5px 0;position:relative}
+html .journey-progress .jp-vlist .jp-stop::before {content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--line)}
+html .journey-progress .jp-vlist .jp-stop:first-child::before {top:50%}
+html .journey-progress .jp-vlist .jp-stop:last-child::before {bottom:50%}
+html .journey-progress .jp-vlist .jp-stop-dot {display:block;width:12px;height:12px;border-radius:50%;border:2px solid var(--muted);background:var(--surface,#fff);z-index:1;justify-self:center}
+html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-dot {background:var(--ok);border-color:var(--ok)}
+html .journey-progress .jp-vlist [data-state="passed"] .jp-stop-name {color:var(--muted)}
+html .journey-progress .jp-vlist [data-state="next"] .jp-stop-dot {background:var(--accent);border-color:var(--accent)}
+html .journey-progress .jp-vlist [data-state="yours"] .jp-stop-dot {border-width:3px;border-color:var(--ink)}
+html .journey-progress .jp-vlist .jp-stop-time {font-variant-numeric:tabular-nums;font-size:14px}
+html .journey-progress .jp-source {font-size:13px;color:var(--muted);margin:2px 0 0}
+html .tube-list .pickbtn {display:block;width:100%;text-align:left;margin:6px 0}
+html .tube-list .tube-sub {font-size:12px;color:var(--muted);margin:8px 0 0;text-transform:none}
+/* "Leave now · 45 s" (amendment §3): the headline's weight and ink on an accent-tinted band. */
+html .journey-countdown.urgent {font-size:22px;font-weight:750;color:var(--ink);background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:10px;padding:6px 10px;margin:6px 0}
+html .journey-countdown.urgent [data-cd] {font-variant-numeric:tabular-nums}
+html #followPanel .follow-instead {font-size:14px;font-weight:650;color:var(--ink);margin:2px 0}
+
+/* Under way: the controls fold into one row (amendment §7, #57 A5). */
+html .signal-underway-summary {flex:1;min-width:0;min-height:40px;text-align:left;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:6px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html .signal-underway-summary::after {content:' ▾';color:var(--muted)}
+html body[data-controls-open] .signal-underway-summary::after {content:' ▴'}
+html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#signalToolbar,#signalPlanningControls,#byForm) {display:none}
+html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
+html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
+html .signal-disruption-title[hidden] {display:none}

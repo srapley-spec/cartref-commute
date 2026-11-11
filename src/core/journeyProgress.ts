@@ -40,7 +40,30 @@ export interface JourneyProgressModel {
   source: 'reported'|'prediction'|'modelled'|'stale'|'unknown';
   progressLabel: string; evidenceLabel: string; identityLabel: string;
   status: {text:string;level:'ok'|'warn'|'bad'|'info';deltaMin:number|null};
-  calls: (JourneyProgressCall & {state:'reported'|'expected'|'unknown';time:number|null;deltaMin:number|null;level:'ok'|'warn'|'bad'|'info'})[];
+  calls: (JourneyProgressCall & {state:'reported'|'expected'|'unknown';time:number|null;deltaMin:number|null;level:'ok'|'warn'|'bad'|'info';passed?:boolean})[];
+  /** Where you are on this leg, from reports only (Sam chose option A, 11 Nov 2026): the last station passed, the
+   *  next one, and your stop. Null when nothing reports a position (then the leg says "No live position yet"). */
+  where: { last: number | null; next: number | null; yours: number; stopsToGo: number; approaching: boolean } | null;
+  /** Where the position comes from, in a few words: "National Rail report, 07:51" or "TfL, 08:26". */
+  sourceLine: string;
+}
+/** Station names as two feeds write them ("Kings Cross St. Pancras", "King's Cross St Pancras"): compared loosely. */
+export const sameStation = (a: string | null | undefined, b: string | null | undefined): boolean => {
+  const n = (x: string | null | undefined) => String(x || '').toLowerCase().replace(/\b(underground|station|rail|london)\b/g, '').replace(/[^a-z]/g, '');
+  const x = n(a), y = n(b); return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x));
+};
+/** TfL's location text read against the leg's stations: "At X", "Left X", "Between X and Y", "Approaching Y". */
+export function tubePlace(where: string | null | undefined, names: readonly string[]): { last: number | null; next: number | null; approaching: boolean } | null {
+  const w = String(where || '').trim(); if (!w) return null;
+  const find = (name: string) => names.findIndex(n => sameStation(n, name));
+  let m = /^(?:At|Left|Leaving|Departed|Departing)\s+(.+)$/i.exec(w);
+  if (m) { const i = find(m[1]); return i < 0 ? null : { last: i, next: i + 1 < names.length ? i + 1 : null, approaching: false }; }
+  m = /^Between\s+(.+?)\s+and\s+(.+)$/i.exec(w);
+  if (m) { const a = find(m[1]), b = find(m[2]); if (a < 0 && b < 0) return null;
+    const last = a >= 0 ? a : b - 1; return { last: last >= 0 ? last : null, next: b >= 0 ? b : a + 1 < names.length ? a + 1 : null, approaching: false }; }
+  m = /^Approaching\s+(.+)$/i.exec(w);
+  if (m) { const i = find(m[1]); return i < 0 ? null : { last: i > 0 ? i - 1 : null, next: i, approaching: true }; }
+  return null;
 }
 const finite=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v);
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
@@ -101,7 +124,7 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
   if(i.cancelled)status={text:'Service cancelled · check your next step',level:'bad',deltaMin:null};
   const progressLabel=source==='reported'?'Calling-point progress':source==='stale'?'Last known progress':
     source==='unknown'?'Progress unavailable':'Estimated time progress';
-  const evidenceLabel=source==='reported'?`Last reported at ${reportedCall?.name||'a calling point'}; no passing-point position is claimed.`:
+  const evidenceLabel=source==='reported'?`Last reported at ${reportedCall?.name||'a calling point'}.`:
     source==='prediction'&&e.where&&e.source==='prediction'?`${e.where} · TfL${finite(e.observedAt)?`, ${hhmm(e.observedAt)}`:''}.`:
     source==='prediction'?'Live arrival; position is a time-based estimate.':
     source==='stale'?'Stale feed · last known reports; progress is frozen.':
@@ -111,10 +134,27 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
       fraction:index<currentIndex?1:index===currentIndex?(f??0):0}));
   if(i.contradictedIdentity)return {current,currentIndex,fraction:null,source:'unknown',progressLabel:'Progress unavailable',
     evidenceLabel:'Station reports are hidden until you say which train you’re on.',identityLabel:'',
-    status:{text:'Train not confirmed',level:'info',deltaMin:null},calls:[],legs:stages(null)};
+    status:{text:'Train not confirmed',level:'info',deltaMin:null},calls:[],legs:stages(null),where:null,sourceLine:''};
+  // Where you are (option A): a station counts as passed only from a report: National Rail's actual time, or TfL's
+  // "At", "Left" or "Between" text for the tube you're matched to. Nothing is placed from elapsed time.
+  let where:JourneyProgressModel['where']=null;
+  const yours=calls.length-1;
+  if(yours>=1){
+    if(lastReported>=0&&e.source==='reported'&&e.identityMatched===true){
+      const next=lastReported<yours?lastReported+1:null;
+      where={last:lastReported,next,yours,stopsToGo:yours-lastReported,approaching:false};
+    }else if(current.kind==='tube'&&accepted&&e.where){
+      const p=tubePlace(e.where,calls.map(c=>c.name));
+      if(p)where={last:p.last,next:p.next,yours,stopsToGo:p.next===null?0:yours-p.next+1,approaching:p.approaching};
+    }
+  }
+  const graded:JourneyProgressModel['calls']=calls;
+  if(where)graded.forEach((c,index)=>{c.passed=where!.last!==null&&index<=where!.last;});
+  const sourceLine=!where?'':current.kind==='tube'?`TfL${finite(e.observedAt)?`, ${hhmm(e.observedAt)}`:''}`
+    :`National Rail report${finite(e.observedAt)?`, ${hhmm(e.observedAt)}`:''}`;
   return {current,currentIndex,fraction,source,progressLabel,evidenceLabel,
-    identityLabel:i.uncertainIdentity?'Likely service · identity not confirmed':'',status,calls,
-    legs:stages(fraction)};
+    identityLabel:i.uncertainIdentity?'Likely service · identity not confirmed':'',status,
+    legs:stages(fraction),where,sourceLine,calls:graded};
 }
 
 const kindLabel=(kind:ProgressKind)=>({walk:'Walk',rail:'Train',tube:'Tube',connection:'Connection'})[kind];

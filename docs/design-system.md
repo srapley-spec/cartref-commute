@@ -2,8 +2,9 @@
 
 ## Journey card amendment — 10 November 2026 (Sam, from the trip debrief #57)
 
-**Status: agreed by Sam on 10 Nov, and the wording confirmed with him screen by screen the same day; not yet built.** The production app still follows the 2 November contract below
-until each item ships. Review mockups, drawn with the app's own Signal styles:
+**Status: agreed by Sam on 10 Nov, and the wording confirmed with him screen by screen the same day; built 10–11 Nov
+except where a section says "Not yet"** (the 11 Nov "clean baseline": `stories/follow-a-route.md`, "Clean baseline").
+Where an item isn't built, the production app follows the 2 November contract below. Review mockups, drawn with the app's own Signal styles:
 [`design/journey-amendment-2026-11-10.html`](design/journey-amendment-2026-11-10.html). Finding IDs (A1 … F3) are
 those in issue #57, which holds the evidence, root causes and the clashes between fixes. Lines marked
 "Words confirmed by Sam" were read to him one screen at a time; changing them is a UI change that needs his say.
@@ -16,8 +17,9 @@ contradicts an earlier line, this section wins, and the line is listed under "Ru
 under the followed card no longer repeats the journey, and the list of other trains folds away once you've set off.
 Rules and tests: [`stories/follow-a-route.md`](stories/follow-a-route.md).
 **The single card built 11 Nov** (Sam: "Build the single card view as this was confusing"): one card in the order
-below while the live view is about the followed journey; same story, "One journey card". Not yet: the last bullet
-(arrival at the change station), "Another option" for the same train at another station, and section 7's controls.
+below while the live view is about the followed journey; same story, "One journey card". **Arrival at the change
+station built 11 Nov** (the listed next tube's office time). Not yet: "Another option" for the same train at another
+station.
 - While a route is followed and the journey is under way (on the train, at the change station, on the tube, on the
   final walk), the screen has **one** journey card. The separate live card ("On the train", "You're at Farringdon",
   "On the tube", "Walking to the office") is not drawn beside it; its content moves into the one card.
@@ -40,7 +42,8 @@ below while the live view is about the followed journey; same story, "One journe
 ### 2. The onward tube, from the start (A2, C7, D2, D3) — Sam, 10 Nov
 **Built 10 Nov (first bullet only, on the followed card), plus the homeward line the amendment lacked (H1):** "Tube:
 **[Circle] [Met]** Aldgate → Farringdon · 7 min", wording chosen by Sam, 10 Nov 20:57, shown from following until
-you're at a London station. The live rows and the single list at the change station are not built. Detail and tests:
+you're at a London station. **The single list at the change station built 11 Nov** in the words below ("Clean
+baseline"). Not yet: the live rows from 15 minutes before the change station, and the "or [H&C] … if it comes first" line. Detail and tests:
 `docs/stories/follow-a-route.md`, "The tube named, one leave time, and a card that agrees with itself".
 "The tube guidance earlier on the journey needs to show the best tube route or routes and the line using the standard
 line colours in lozenges."
@@ -65,6 +68,9 @@ line colours in lozenges."
   **Words confirmed by Sam, 10 Nov.**
 
 ### 3. Before the train (A1, A3, A4, B1)
+**Built 11 Nov** ("Clean baseline"): no "Next train:" line, no "Next:" naming the train before boarding, "Leave now ·
+45 s" urgency. Not yet: the small "to walk to Letchworth at your usual pace" under the urgency line. Open for Sam:
+whether the deadline should read "Be on the platform by" once you've set off (11 Nov 07:21), not only at the station. ("Arrives first" once: built 10 Nov.)
 - **"Arrives first" appears once** on a recommendation.
 - **The train is stated once, by the train panel** (scheduled time, expected time, arrival at your stop, operator,
   destination, platform). The separate "Next train: …" line and, before boarding, the "Next: …" line are removed.
@@ -95,7 +101,9 @@ train?" folded when certain and open when unsure. Not yet: "3 min to the tube pl
 
 ### 5. Progress along a leg (C9, C13, E1)
 **11 Nov retest (Sam):** the bar reads as a station position but is time elapsed, and the station row runs off the
-right; three replacement options are mocked up for Sam to choose (`design/leg-progress-options-2026-11-11.html`).
+right; three replacement options were mocked up (`design/leg-progress-options-2026-11-11.html`) and **Sam chose A,
+"One line + folded list". Built 11 Nov:** `stories/journey-progress.md`, "Where you are on the leg". It supersedes the
+station-line bullets below where they differ (no "you are here" marker drawn on a line; the one line says it).
 **Built 10 Nov (first step only):** TfL's location text for the matched tube is shown as one line under the tube leg
 ("At Barbican · TfL, 08:16."). The stations are not yet marked from it and the bar remains:
 `docs/stories/journey-progress.md`, "Where your tube is, in TfL's words".
@@ -120,7 +128,8 @@ quietly goes back to "Probably …". `stories/which-train.md`, "The train you sa
 **Built 10 Nov (C1, C2)** on the existing on-train and followed cards, ahead of the single card: the question, the
 station check behind it, "Keep", asking before a different train is selected, "I'm on it" asking when unsure, and
 hiding a doubted train's reports. Exact rules and tests: [`stories/which-train.md`](stories/which-train.md), "The
-wrong train". Not yet: the correction control always reachable after a reload (C4) and "More trains" (C12).
+wrong train". **Built 11 Nov:** the correction lists trains that could be yours, the rest under "More trains" (C12,
+`stories/which-train.md`). Not yet: the correction control always reachable after a reload (C4).
 - The question appears inside the one card as a caution panel (yellow `note`, not a status colour). It states the
   evidence, then asks, and never switches for you: "The 07:15 Great Northern stopped at Knebworth; you didn't. Which
   train are you on?" with the candidates as buttons (the train you're following first), "Keep the 07:15 Great
@@ -137,6 +146,7 @@ wrong train". Not yet: the correction control always reachable after a reload (C
   could be yours; every other train stays reachable under "More trains".
 
 ### 7. Controls once a journey is under way (A5)
+**Built 11 Nov** (first and third bullets; "Clean baseline"). Not yet: "Along the line" moved into the row.
 - While a route is followed, or Auto is showing a live view, the mode bar, Auto / Plan / Live, the location line and
   Leave now / Arrive by / Leave around collapse into **one row**: a summary ("Commute · To office · Leave now") that
   opens the full controls, with Settings and Refresh. Planning (nothing followed, not live) keeps every control
@@ -147,6 +157,8 @@ wrong train". Not yet: the correction control always reachable after a reload (C
   old or unavailable (section 8).
 
 ### 8. Location (C8, E4)
+**Built 11 Nov:** the nearest station by name (3 km out of London, 1 km in it), "as of 08:08", and "Update location".
+Not yet: the train's newer report leading the line.
 - The line names the nearest known place or station ("at Aldgate", "near Stevenage"), not "near Letchworth" or "in
   London" for anywhere within 15 km. An old position says when it's from ("at Farringdon as of 08:08"). When the
   train's last report is newer than the phone's position, the report leads.
@@ -157,8 +169,8 @@ wrong train". Not yet: the correction control always reachable after a reload (C
 **Built 10 Nov:** the notice rule and wording with ✕ (first bullet; the reason is the train's lateness or "the rest
 of your journey", not yet the tube you took), and the walk left set against the measured walk (F2). Also from the
 homeward findings: "N min later than planned" in place of "On track" when later than plan (H24, wording chosen by
-Sam), and the finished train leaving the followed card (H26). Not built: the status line after the train, the
-walking card's wording, the empty heading.
+Sam), and the finished train leaving the followed card (H26). Built 11 Nov: the status line after the train (empty
+when nothing to say), the empty heading. Not yet: the walking card's wording ("About 4 min walk from Aldgate").
 - A change to the followed arrival says what changed and why: "**Arriving 08:28** (was 08:24): you took the 08:12
   Met, not the 08:08." No notice when the arrival is back at the original plan, and none for a change under
   3 minutes on the final walk. It is dismissed with a plain close control (✕), not "Seen". **Words confirmed by Sam,
