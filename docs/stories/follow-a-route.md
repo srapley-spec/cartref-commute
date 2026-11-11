@@ -486,7 +486,7 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 - tests/core/followTube.test.mjs: "follow Tube: malformed, missing and already passed predictions fall back without invented ETAs"
 - tests/core/followTube.test.mjs: "follow Tube: normalized guarded adapter records retain provider timestamp and exact prediction"
 - tests/core/followTube.test.mjs: "follow Tube: a timestamp-less prediction uses guarded endpoint provenance and never another explicit stop"
-- tests/follow-transport.test.mjs: "follow transport: only an enabled followed homeward Tube requests the existing target-stop feed"
+- tests/follow-transport.test.mjs: "follow transport: a followed homeward Tube, or a tube home under way without Follow, requests the target-stop feed; nothing else does"
 - tests/follow-transport.test.mjs: "follow transport: stale predictions and a different vehicle never replace the route-duration fallback"
 - tests/follow-transport.test.mjs: "follow transport: concurrent refreshes share one request and a source switch discards its delayed body"
 

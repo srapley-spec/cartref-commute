@@ -2,10 +2,9 @@
 // chosen route/vehicle/station are checked again after every await before any cache can be reused.
 let followTransportPending = null;
 function followTransportContext(now) {
-  if (!S().followRoute) return null;
-  const route = C.restoreFollowRoute(state.saved.followRoute);
+  const route = S().followRoute ? C.restoreFollowRoute(state.saved.followRoute) : null;
   if (!route || route.direction !== 'home' || route.mode !== 'commute' || route.phase !== 'before-train' ||
-    direction() !== 'home' || currentMode() !== 'commute') return null;
+    direction() !== 'home' || currentMode() !== 'commute') return rideTransportContext(now);
   const ride = homeRide(now);
   if (!ride || !ride.vehicle) return null;
   const hub = route.option.hub === 'STP' ? 'KGX' : route.option.hub;
@@ -13,6 +12,27 @@ function followTransportContext(now) {
   const connection = C.tubeHomeConnections(ride.t, S(), state.saved.pace === 'fast' ? 'fast' : 'avg');
   return { routeId: route.id, vehicle: String(ride.vehicle), hub, stopId: TUBE_STOP[hub],
     lineId: lineIdOf(ride.line), direction: 'westbound', readyMs: connection.ready[route.option.hub] ?? 0 };
+}
+// Not following: on the tube home, the same request for your tube at the station you'll get off at, so the leg
+// can say where your tube is (Sam, 11 Nov evening: "Fetch it while you're on the tube home: one TfL request per
+// refresh, the same one Follow already makes"). Only while a ride is under way with a known vehicle.
+function rideTransportContext(now) {
+  if (direction() !== 'home' || currentMode() !== 'commute') return null;
+  const ride = homeRide(now);
+  if (!ride || !ride.vehicle) return null;
+  const stop = rideStopHub(ride, now);
+  const hub = stop === 'STP' ? 'KGX' : stop;
+  if (!hub || !TUBE_STOP[hub]) return null;
+  const connection = C.tubeHomeConnections(ride.t, S(), state.saved.pace === 'fast' ? 'fast' : 'avg');
+  return { routeId: rideTransportId(ride), vehicle: String(ride.vehicle), hub, stopId: TUBE_STOP[hub],
+    lineId: lineIdOf(ride.line), direction: 'westbound', readyMs: connection.ready[stop] ?? 0 };
+}
+const rideTransportId = ride => `ride:${ride.t}`;
+// Where the on-tube card says to get off: the earliest home, ties to the earlier stop (as renderOnTubeHome).
+function rideStopHub(ride, now) {
+  const legs = homeLegs(ride.t, now).map(l => ({ ...l, stopAt: ride.t + l.rideMs, arrive: ride.t + l.rideMs + l.tailMs }))
+    .sort((a, b) => a.arrive - b.arrive || a.stopAt - b.stopAt);
+  return legs[0]?.o?.hub || null;
 }
 const sameFollowTransport = (a, b) => !!a && !!b && a.routeId === b.routeId && a.vehicle === b.vehicle &&
   a.hub === b.hub && a.lineId === b.lineId && a.direction === b.direction;

@@ -369,6 +369,14 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **11 Nov evening, your tube's position on the way home without Follow (Sam).** With the bar gone (leg progress
+  option A), the tube home without Follow showed "No live position yet" for the whole ride: nothing fetched TfL's
+  predictions for your tube. Sam chose to fetch them: while a tube home is under way with a known vehicle, the page
+  requests TfL's arrivals at the stop the card says to get off (King's Cross or Farringdon), one request per refresh,
+  the same request Follow makes. No request at the office, before the tube leaves, or once the ride is over. Feed
+  change: merged only after GitHub's run on the branch. Story: `stories/tube-home.md` ("Where your tube is, on the
+  way home").
+
 - **10 Nov, trip debrief and journey card amendment (Sam).** First full commute with a followed route: the plan was
   right to the minute; 29 findings in presentation, the followed card going stale, the wrong train selected in the "which train" list with no
   warning and state lost on a reload (#57: severity, root cause, fix and clashes for each). Sam accepted the

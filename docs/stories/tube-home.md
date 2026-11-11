@@ -3,6 +3,18 @@ Status: Done · Since: 28 Oct 2026 (evening trip); on the generic connection mod
 picks only 30 Oct 15:48, reverted 30 Oct evening (worked out again); at Aldgate plans from the platform, 30 Oct evening;
 Met platform and measured run, 31 Oct morning
 
+## Where your tube is, on the way home (11 Nov 2026, evening; Sam's decision)
+Sam, 18:17 on the tube: the leg "isn't updating" ("No live position yet" all the way). Without Follow nothing asked TfL
+where his tube was; the old bar had moved with the clock. 18:36: "Fetch it while you're on the tube home: one TfL
+request per refresh, the same one Follow already makes."
+- While a tube home is under way with a known vehicle (picked, or worked out), each refresh requests TfL's arrivals
+  at the stop the card says to get off (the earliest home; King's Cross or Farringdon): one request. Not at the office,
+  not before the tube leaves, not once the ride has ended. With Follow on, Follow's own request is used, as before.
+- The prediction is used only under the existing checks (same vehicle, line, direction and stop; under 3 minutes old).
+  The leg then says where your tube is from TfL's own words ("Last: Barbican · Next: Farringdon", "TfL, 16:52").
+- tests/rules.test.mjs: "On the tube home without Follow, your tube's TfL prediction at the stop you get off is fetched, so the leg says where it is"
+- tests/follow-transport.test.mjs: "follow transport: a followed homeward Tube, or a tube home under way without Follow, requests the target-stop feed; nothing else does"
+
 ## Story
 As a commuter leaving the office, I want the next tubes from Aldgate and, once underground, where to get off for
 the earliest home time, so that the tube I catch decides the train rather than the other way round.
