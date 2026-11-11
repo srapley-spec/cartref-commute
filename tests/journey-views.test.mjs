@@ -203,6 +203,11 @@ const factories={
   assert.equal(a.d.querySelector('#alongEntry').hidden,true,'off by default before boarding');
   s.saved.settings.alongLine=true;a.c.render();
   const nav=a.d.querySelector('#alongNavigation');
+  // Under way it folds behind the one-row controls (Sam, 11 Nov 18:46); one tap opens them.
+  if(a.d.body.hasAttribute('data-underway')&&!a.d.body.hasAttribute('data-controls-open')){
+   assert.equal(visible(a,a.d.querySelector('#alongEntry')),false,'folded under the controls while under way');
+   a.d.querySelector('#signalUnderwaySummary').click();
+  }
   assert.ok(visible(a,a.d.querySelector('#alongEntry')),'enabled access is visible before boarding');
   assert.equal(nav.previousElementSibling.id,'signalModebar');
   a.d.querySelector('#alongEntry').click();
@@ -218,6 +223,7 @@ const factories={
   s.saved.settings.alongLine=false;a.c.render();
   assert.equal(a.d.querySelector('#alongEntry').hidden,true,'default-off access is equivalent');
   s.saved.settings.alongLine=true;a.c.render();
+  if(a.d.body.hasAttribute('data-underway')&&!a.d.body.hasAttribute('data-controls-open'))a.d.querySelector('#signalUnderwaySummary').click();   // on the train: one tap opens the controls
   assert.ok(visible(a,a.d.querySelector('#alongEntry')));a.d.querySelector('#alongEntry').click();
   const dialog=a.d.querySelector('#alongLine'),progress=s.rendered.progress;
   assert.ok(dialog.open&&visible(a,dialog),'the journey companion stays available');

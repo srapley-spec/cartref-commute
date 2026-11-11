@@ -146,7 +146,8 @@ wrong train". **Built 11 Nov:** the correction lists trains that could be yours,
   could be yours; every other train stays reachable under "More trains".
 
 ### 7. Controls once a journey is under way (A5)
-**Built 11 Nov** (first and third bullets; "Clean baseline"). Not yet: "Along the line" moved into the row.
+**Built 11 Nov** (first and third bullets; "Clean baseline"). "Along the line" folds behind the row with the other
+controls rather than sitting in it (Sam, 11 Nov evening).
 - While a route is followed, or Auto is showing a live view, the mode bar, Auto / Plan / Live, the location line and
   Leave now / Arrive by / Leave around collapse into **one row**: a summary ("Commute · To office · Leave now") that
   opens the full controls, with Settings and Refresh. Planning (nothing followed, not live) keeps every control

@@ -410,7 +410,8 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   pace, Auto/Plan/Live and Leave now/Arrive by/Leave around controls fold behind one row, "Commute · To office ·
   Leave now", beside Settings and Refresh; tapping it opens them. Planning keeps every control in view. The controls
   and their handlers are unchanged (only hidden by style). The location line stays out of the fold only when it
-  needs you: an old position or no location. "Along the line" is not yet moved into that row.
+  needs you: an old position or no location. "Along the line" folds with them, behind the same row (Sam, 11 Nov 18:46:
+  "hide the along the line button under the drop down at the top").
 - **Location line** (amendment §8, C8, E4): names the nearest station on the line, by name ("near Hitchin"), within
   3 km out of London and 1 km in London (else "in London"); an old position reads "as of 08:08" (was "stale fix");
   then "Update location", which restarts the phone's location watch and runs only when tapped.
@@ -423,6 +424,7 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
 **Tests**
 - tests/clean-baseline.test.mjs: "Leave by holds until the station, even once you've set off (protected); a train you can't make shows the way on ('Instead: …')"
 - tests/clean-baseline.test.mjs: "Under way the controls fold into one row: 'Commute · To office · Leave now', which opens them; planning keeps them all"
+- tests/clean-baseline.test.mjs: "Under way, 'Along the line' folds under the one-row controls with everything else; open them and it's there"
 - tests/clean-baseline.test.mjs: "The location line names the nearest station out of London, says 'as of' an old position, and offers 'Update location' only then"
 - tests/clean-baseline.test.mjs: "Delays are said once: the status strip says it, and the disruption card under it keeps its details without repeating the heading"
 - tests/core/clean-baseline.test.mjs: "'On a different tube?' offers each other tube for 5 minutes after the later of it and yours left, and never lists your own tube again"
