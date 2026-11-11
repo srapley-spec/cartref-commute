@@ -95,7 +95,8 @@ test("Wrong train: the selected train left Knebworth before you got there → th
   assert.match(panel.textContent, /^The 10:15 Great Northern to King's Cross stopped at Knebworth at 10:32; you didn't\. Which train are you on\?/);
   assert.deepEqual([...panel.querySelectorAll("button")].map((b) => b.textContent), ["10:20 Thameslink to Brighton · the train you're following", "Keep the 10:15 Great Northern to King's Cross"]);
   assert.equal(c.state.trainLock.serviceId, "SLOW", "the app never switches for you");
-  assert.match(hero(), /Probably the 10:15 Great Northern/, "and no longer says you're on it");
+  assert.match(hero(), /You picked the 10:15 Great Northern/, "named as your pick (Sam, 11 Nov 2026), and no longer \"You're on\"");
+  assert.doesNotMatch(hero(), /You're on the 10:15|Probably the 10:15/);
   assert.doesNotMatch(hero(), /Last reported: Knebworth/, "the doubted train's report isn't shown");
   assert.equal(app.d.querySelectorAll(".journey-progress .jp-stop").length, 0, "nor its stations");
   assert.match(app.text(".journey-progress"), /Train not confirmed/);
