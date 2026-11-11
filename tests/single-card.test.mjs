@@ -21,7 +21,7 @@ async function journey(dir = "office", hub = "KGX") {
     ? { "KGX-LET": [], "ZFD-LET": [svc({ from: "ZFD", to: "LET", dep: T0 + 30 * m, arr: T0 + 70 * m, operator: "Thameslink", serviceId: "TL", destination: "Cambridge" })], "STP-LET": [] }
     : hub === "ZFD" ? { "LET-KGX": [], "LET-ZFD": [svc({ from: "LET", to: "ZFD", dep: T0 + 50 * m, arr: T0 + 92 * m, operator: "Thameslink", serviceId: "TR", destination: "Brighton" })], "LET-STP": [] }
     : { "LET-KGX": [svc({ from: "LET", to: "KGX", dep: T0 + 15 * m, arr: T0 + 70 * m, serviceId: "SLOW", destination: "King's Cross" }),
-        svc({ from: "LET", to: "KGX", dep: T0 + 20 * m, arr: T0 + 55 * m, operator: "Thameslink", serviceId: "FAST", destination: "Brighton" })], "LET-ZFD": [], "LET-STP": [] };
+        svc({ from: "LET", to: "KGX", dep: T0 + 20 * m, arr: T0 + 55 * m, operator: "Thameslink", serviceId: "FAST", destination: "Brighton", platform: "4" })], "LET-ZFD": [], "LET-STP": [] };
   c.state.boards = Object.fromEntries(Object.entries(boards).map(([k, services]) => [k, { msgs: [], services }]));
   c.state.boardsAt = T0; c.state.status = []; c.state.nrStatus = []; c.render();
   [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();
@@ -35,7 +35,8 @@ async function journey(dir = "office", hub = "KGX") {
   // Exactly one journey card on screen: the live card is not drawn, and nothing in the card is there twice.
   const single = () => { assert.equal(hero.hidden, true, "the live card is not drawn beside the followed card"); assert.equal(panel.hidden, false); assert.equal(panel.dataset.single, "1");
     for (const sel of [".journey-heading", ".follow-status", ".steps", '[data-follow-action="stop"]']) one(sel);
-    assert.ok(panel.querySelectorAll(".journey-progress").length <= 1); assert.ok(panel.querySelectorAll(".fold").length <= 2); };
+    assert.ok(panel.querySelectorAll(".journey-progress").length <= 1); assert.ok(panel.querySelectorAll(".fold").length <= 2);
+    for (const b of panel.querySelectorAll(".hero.merged")) assert.ok(b.textContent.trim() || b.querySelector("button,svg"), `no empty leftovers (${b.dataset.slot})`); };
   return { app, c, K, P, pointOn, place, panel, hero, one, single, text: () => squash(panel.textContent) };
 }
 
@@ -55,6 +56,7 @@ test("On the train: one journey card, in order: the journey and the train you're
     [legs, next, "then what's next"], [next, tube, "then the onward tube"], [tube, steps, "then the fold-aways"], [steps, stop, "Stop following last"]]) assert.ok(before(a, b), why);
   assert.match(squash(heading.textContent), /At King's Cross ?10:55 → At office/);
   assert.match(squash(service.textContent), /^You're on the 10:20 Thameslink to Brighton/);
+  assert.doesNotMatch(squash(service.textContent) + squash(heading.textContent), /platform/i, "the departure platform is not shown once aboard");
   assert.equal(panel.querySelector(".journey-connection"), null, "the three-column departure panel is not shown once aboard");
   assert.doesNotMatch(text(), /Timetable departure|Expected departure/);
   assert.match(squash(legs.textContent), /Journey stages.*Current leg · Train/);
@@ -77,6 +79,13 @@ test("On the train: one journey card, in order: the journey and the train you're
   // A minute on, the card is rebuilt with the new times and is still one card.
   place(35, pointOn(15 / 35), { onLine: true }); single();
   assert.match(squash(one(".journey-progress").parentElement.closest("#followPanel") ? text() : ""), /On the train · 10:35/);
+  // Pinned to Plan while aboard: the plan is its own card again, and the followed card keeps its legs (once).
+  app.d.querySelector('[data-journey-view="plan"]').click();
+  assert.equal(panel.dataset.single, undefined); assert.equal(hero.hidden, false); assert.equal(panel.querySelector(".hero.merged"), null);
+  assert.equal(panel.querySelectorAll(".journey-progress").length, 1, "the legs stay on the followed card");
+  assert.doesNotMatch(squash(one(".follow-service").textContent), /platform/i);
+  app.d.querySelector('[data-journey-view="auto"]').click();
+  single(); one(".journey-progress");
   // Stop following: the live card is back on its own.
   one('[data-follow-action="stop"]').click();
   assert.equal(panel.hidden, true); assert.equal(hero.hidden, false);
@@ -90,16 +99,25 @@ test("On the train and unsure which: the card says 'Probably', and 'Not your tra
   place(22, pointOn(2 / 35), { onLine: true });
   c.state.saved.followRoute.phase = "on-train"; c.render();
   single();
-  if (c.state.rendered.train.sure) return;   // the staging didn't produce a doubt: nothing to check here
+  assert.equal(c.state.rendered.train.sure, false, "the staging leaves the app unsure");
   assert.match(squash(one(".follow-service").textContent), /^Probably the /);
   const correct = [...panel.querySelectorAll(".fold")].find((f) => f.querySelector("summary").textContent === "Not your train?");
   assert.ok(correct && correct.open, "open while the app is unsure");
+
   [...correct.querySelectorAll("[data-pick]")].find((b) => /10:20 Thameslink/.test(b.textContent)).click();
   single();
   assert.match(squash(one(".follow-service").textContent), /^You're on the 10:20 Thameslink to Brighton.*you picked this/);
   const after = [...panel.querySelectorAll(".fold")].find((f) => f.querySelector("summary").textContent === "Not your train?");
   assert.ok(!after || !after.open, "folded once you've said");
   assert.deepEqual(app.errors, []);
+  // Standing open by itself is not you reading it: arriving at King's Cross while still unsure changes the view at once.
+  const b = await journey();
+  b.place(22, b.pointOn(2 / 35), { onLine: true }); b.c.state.saved.followRoute.phase = "on-train"; b.c.render();
+  assert.ok([...b.panel.querySelectorAll(".fold")].some((f) => f.open && f.querySelector("summary").textContent === "Not your train?"));
+  b.place(57, b.P.stationGeo.KGX, { atHub: "KGX" });
+  assert.equal(b.c.state.presentation.view, "at-hub");
+  assert.equal(b.c.state.presentation.pending, false); assert.equal(b.app.d.querySelector("#journeyViewNote").textContent, "", 'no "Journey update ready · finish what you’re reading"');
+  assert.deepEqual(b.app.errors, []);
 });
 
 test("At the change station, on the tube and on the walk to the office: still one card, with the tube choices in view", async () => {
@@ -114,6 +132,11 @@ test("At the change station, on the tube and on the walk to the office: still on
   assert.ok(pick, "the tubes you can board are in the card"); assert.equal(folded(pick), false, "and not folded away");
   assert.ok(before(one(".follow-next"), pick), "after the next step");
   assert.equal(panel.querySelector('[data-fact="train-duration"]'), null, "the finished train is not on the card");
+  // No live tubes yet: what the card says about that stays in view, not in a fold.
+  c.state.tube = { hub: "ZFD", at: T0 + 95 * m, arrivals: [] }; c.render(); single();
+  const note = [...panel.querySelectorAll('[data-block="source"]')].find((n) => /Allowing/.test(n.textContent));
+  assert.ok(note, "the allowances note is in the card"); assert.equal(folded(note), false);
+  c.state.tube = { hub: "ZFD", at: T0 + 95 * m, arrivals: [{ t: T0 + 102 * m, line: "Circle", lineId: "circle", platform: "Eastbound - Platform 1", dest: "Aldgate", vehicle: "v9" }] }; c.render();
   // 11:40 on the tube.
   c.state.saved.tubeRide = { hub: "ZFD", from: "ZFD", t: T0 + 97 * m, line: "Circle", vehicle: "v9", picked: true, rideMs: 7 * m, stop: "Aldgate", stopGeo: [51.5142, -0.0755] };
   place(100, [51.519, -0.094]);
@@ -139,6 +162,7 @@ test("Coming home on the tube: one card, 'Got off already?' in view; at the stat
   assert.ok(gotOff, "'Got off already?' is in the card"); assert.equal(folded(gotOff), false);
   assert.doesNotMatch(text(), /Get off at King's Cross/, "the tube card's own journey is not repeated");
   assert.ok(one('.journey-connection'), "before the train, its panel (and scheduled departure) stays");
+  assert.ok(before(one('[data-block="tube-line"]'), one(".journey-connection")) && before(one(".journey-connection"), one(".journey-progress")), "coming home the tube is named first, above the train, then the legs");
   // At Farringdon: the departures are a plan, not the journey; they stay a separate card (unchanged).
   c.state.saved.tubeRide = null; place(22, P.stationGeo.ZFD, { atHub: "ZFD" });
   assert.equal(hero.hidden, false); assert.equal(panel.dataset.single, undefined);
@@ -152,12 +176,18 @@ test("Coming home on the tube: one card, 'Got off already?' in view; at the stat
 
 test("Not one card when the live card is about something else: a different train selected, or no route followed", async () => {
   const { app, c, pointOn, place, panel, hero } = await journey();
-  // 10:34 where the fast train should be, but you've said you're on the stopper: the live card shows that train in full.
-  c.state.trainLock = { serviceId: "SLOW", std: "10:15", from: "LET", to: "KGX", at: T0 + 30 * m, picked: true };
+  // 10:34 where the fast train should be (so Follow has you aboard it), then you say you're on the stopper and confirm
+  // the switch: the live card shows that train in full.
   place(34, pointOn(14 / 35), { onLine: true });
-  if (c.state.rendered.train && c.state.rendered.train.t.serviceId === "SLOW") {
-    assert.equal(hero.hidden, false, "a card about a different train is shown in full"); assert.equal(panel.dataset.single, undefined);
-  }
+  assert.equal(c.state.saved.followRoute.phase, "on-train");
+  [...panel.querySelectorAll("[data-pick]")].find((b) => /10:15 Great Northern/.test(b.textContent)).click();
+  app.d.querySelector("[data-pick-confirmed]").click();
+  assert.equal(c.state.rendered.train.t.serviceId, "SLOW", "the staging shows the stopper on the live card");
+  assert.equal(hero.hidden, false, "a card about a different train is shown in full"); assert.equal(panel.dataset.single, undefined);
+  // Never two cards claiming two trains: the live card says which train you're on; the followed card names its own.
+  assert.match(squash(hero.textContent), /You're on the 10:15 Great Northern/);
+  const mine = squash(panel.querySelector(".follow-service").textContent);
+  assert.match(mine, /^10:20 Thameslink to Brighton/); assert.doesNotMatch(mine, /You.re on|platform/i);
   panel.querySelector('[data-follow-action="stop"]').click();
   assert.equal(hero.hidden, false); assert.equal(panel.hidden, true);
   assert.equal(app.d.querySelector(".hero.merged"), null);

@@ -292,11 +292,19 @@ about a different train (one you selected instead), which is shown in full; and 
    Circle"; at the change station the instruction, "Get on the next Circle or Met eastbound to Aldgate"); the status
    line; any notice; anything the app is asking you (the wrong-train question, "Switch to …?", "I'm on it").
 2. The legs: Journey stages and the current leg, with their own "Report details", which now also holds where the
-   figures come from ("On the train · 10:34 · worked out from your location" and the source note).
+   figures come from ("On the train · 10:34 · worked out from your location" and the source note). Where no legs
+   are drawn (at the change station) only the live card's title goes into a "Report details" fold of its own; its
+   notes ("Loading live tube times…", the allowances) stay in view under what's next.
 3. What's next: the next step, the onward tube line, then whatever else the live card offers to do next (the tubes
    you can board at the change station, "Got off already?" on the tube).
 4. Folded: "Not your train?" (the other candidates; it stands open by itself only while the app is unsure which
-   train you're on, and that is not remembered as your choice), Your journey steps, Stop following.
+   train you're on; that is not remembered as your choice, and it doesn't count as you reading something, so it
+   never holds back a change of view), Your journey steps, Stop following.
+- An arrive-by verdict ("On time for 09:00 · 6 min to spare") sits with the status (placed from the code; not
+  staged in a test).
+- **Never two cards claiming two trains.** When the live card is about a different train (you selected it and
+  confirmed the switch), it is shown in full and says "You're on the 10:15 Great Northern"; the followed card then
+  names the train it follows as a lozenge with its status, without "You're on".
 - Once aboard, the three-column departure panel and the departure platform are not drawn (amendment §4); before the
   train, including on the tube to it coming home, the panel with the scheduled departure stays.
 - Which train you're on is said once. The live card's own headline, train panel, steps and "Get off at …" stay
@@ -320,6 +328,11 @@ is still drawn (it is a plan, and it repeats your train as its first option): to
 - tests/single-card.test.mjs: "Coming home on the tube: one card, 'Got off already?' in view; at the station your train leaves from the plan card is still its own; walking home, one card"
 - tests/single-card.test.mjs: "Not one card when the live card is about something else: a different train selected, or no route followed"
 - tests/single-card.test.mjs: "A doubt about the train you're following is asked inside the one card, in view, never folded"
+- Independent review (11 Nov, 30 deliberate breakages, 6 probes): nothing the live card showed is lost in any
+  under-way view, the card is restored on every way out, no duplicate keys. It found the followed card saying
+  "You're on" beside a live card naming a different train, the self-opened fold delaying a view change, and the
+  notes folded at the change station; fixed above, with tests for those and for the breakages that had survived
+  (the platform once aboard, the legs kept when pinned to Plan, the homeward order, empty leftovers).
 - Checked in a real browser (Chromium, phone width, 11 Nov): aboard while following, one card in the order above.
 
 ## Agreed 10 Nov 2026, not yet built

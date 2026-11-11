@@ -178,7 +178,12 @@ function singleCard(route){
   const live=[...hero.children].filter(n=>!n.hidden&&(n.textContent.trim()||n.querySelector('button,a,input,select,svg,img')));
   const take=test=>{const out=[];for(let i=0;i<live.length;)if(test(live[i]))out.push(...live.splice(i,1));else i++;return out;};
   const legs=take(n=>n.classList.contains('journey-progress'));
-  const report=take(n=>n.dataset.block==='label'||n.dataset.block==='source');
+  // Where the figures come from goes with the legs' own "Report details". With no legs drawn (at the change
+  // station), only the live card's title folds away; its notes ("Loading live tube times…", the allowances) stay in view.
+  const legsFold=!!(drawn||legs[0])&&!!reportIn(drawn||legs[0]);
+  const report=take(n=>n.dataset.block==='label'||(legsFold&&n.dataset.block==='source'));
+  // An arrive-by verdict ("On time for 09:00 · 6 min to spare") belongs with the status.
+  const verdict=take(n=>n.dataset.block==='verdict');
   // A question the app is asking (the wrong-train check, "Switch to …?") is never folded away.
   const asking=take(n=>n.classList.contains('pick')&&(n.classList.contains('doubt')||!!n.querySelector('[data-pick-cancel]')));
   // On a train, the other candidates are the correction ("Not your train?"), folded unless the app is unsure. Other
@@ -192,7 +197,7 @@ function singleCard(route){
   const next=own('.follow-next'), steps=own('.steps'), stop=own('[data-follow-action="stop"]'), start=next||steps||stop;
   if(!start)return;
   // 1. The journey: notices, questions and the other option sit with the status, above the legs.
-  for(const n of [own('.banner'),own('[data-boarding-ask]'),own('[data-follow-action="boarded"]'),asking.length?box('asking',asking):null,own('.follow-alternative')])if(n)start.before(n);
+  for(const n of [verdict.length?box('verdict',verdict):null,own('.banner'),own('[data-boarding-ask]'),own('[data-follow-action="boarded"]'),asking.length?box('asking',asking):null,own('.follow-alternative')])if(n)start.before(n);
   // 2. The legs.
   if(legs.length)start.before(box('legs',legs));else if(own('.journey-progress'))start.before(own('.journey-progress'));
   // 3. What's next: the next step, the onward tube, then whatever else the live card has to say or offer.
@@ -203,7 +208,8 @@ function singleCard(route){
   // 4. Folded away. "Not your train?" opens by itself only while the app is unsure which train you're on.
   const unsure=!!state.rendered?.train&&!state.rendered.train.sure;
   // (Its own key while it stands open by itself, so that isn't remembered as your choice once the train is settled.)
-  if(correct.length)(steps||stop).before(fold(unsure?'follow-correct-unsure':'follow-correct','Not your train?',unsure,box('correct',correct)));
+  // Standing open by itself is not you reading it: it doesn't hold back a change of view.
+  if(correct.length){const f=fold(unsure?'follow-correct-unsure':'follow-correct','Not your train?',unsure,box('correct',correct));if(unsure)f.dataset.auto='1';(steps||stop).before(f);}
   // Where the figures come from joins the legs' own "Report details" when there is one (one fold, not two).
   const legsNow=panel.querySelector('.journey-progress'), details=legsNow?reportIn(legsNow):null;
   if(report.length){if(details)details.append(panel._singleReport=box('report',report));else (steps||stop).before(fold('follow-report','Report details',false,box('report',report)));}
@@ -213,7 +219,7 @@ function rootSignalHeroHome(){if(signalParts&&$('#hero').parentElement!==signalP
 function journeyInteracting(){
   const a=document.activeElement;
   return !!($('#settings').open || (a&&!a.closest('#simDock')&&a.matches('input,select,textarea,[data-pick],[data-tubepick]')) ||
-    [...document.querySelectorAll('#banners details[open],#signalDisruptions details[open],#hero details[open],#followPanel details[open],#signalNotices[open]')].some(signalReadingVisible));
+    [...document.querySelectorAll('#banners details[open],#signalDisruptions details[open],#hero details[open],#followPanel details[open]:not([data-auto]),#signalNotices[open]')].some(signalReadingVisible));
 }
 function journeySituation(now,s){
   const live=C.chooseView({...s,plan:'now'});
@@ -455,6 +461,9 @@ function renderFollowPanel(){
   // same time, not its own copy.
   const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
   const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
+  // The live card names a different train (one you selected instead): this card names the train it follows, and
+  // leaves "You're on …" to the card that is working out where you are (never two cards claiming two trains).
+  const otherShown=!!state.rendered?.train?.t&&!C.followIsTrain(r,state.rendered.train.t);
   // Off the train (10 Nov, #57 H26): the finished train leaves the card, and once the only step left is arriving
   // the header reads "Now → At home", not the arrival time on both sides.
   const offTrain=r.phase==='after-train'||r.phase==='arrived';
@@ -472,7 +481,9 @@ function renderFollowPanel(){
     ${r.direction==='home'?tubeLine:''}
     ${panelLayout?nextServiceMarkup(t):''}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
-    ${r.phase!=='on-train'?'':`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
+    ${r.phase!=='on-train'?'':otherShown
+      ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
+      :`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
     <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
       :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='before-train'?trainConnectionMarkup(t):''}
