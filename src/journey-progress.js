@@ -24,8 +24,12 @@ function progressTubeCalls(ride,from,to,arrival,fromName,toName){
 }
 // Where you are on the leg (option A, chosen by Sam 11 Nov 2026): one line, from reports only, then every station
 // folded as a list top to bottom (it never runs off the page). No bar: it looked like a position and wasn't.
+// The app's own name for a station it knows (Sam, 11 Nov: "It should be King's Cross. The London is redundant for London
+// stations"): National Rail writes "London Kings Cross", "Letchworth Garden City"; the leg heading says "King's Cross",
+// "Letchworth". Stations the app doesn't know keep the feed's name.
+const shownStation=c=>(c?.code&&((PROFILE.stationNames||{})[c.code]||(PROFILE.stationGeoNames||{})[c.code]))||c?.name||'';
 function whereHtml(model){
-  const calls=model.calls, w=model.where;
+  const calls=model.calls.map(c=>({...c,name:shownStation(c)})), w=model.where;
   if(calls.length<2)return '';
   const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
   const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`

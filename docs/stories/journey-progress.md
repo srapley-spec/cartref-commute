@@ -117,6 +117,10 @@ mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam cho
   row's styles (each part in its own grid row, a line drawn to the right) still applied inside the list. The list now
   resets them; a station with no time shows none (no "—"). Checked in Chromium, dark and light.
 - tests/station-list-style.test.mjs: "The station list resets the old stop-row layout: one line per station, no grid rows, no sideways line"
+- **Station names (11 Nov evening, Sam: "It should be King's Cross. The London is redundant for London stations"):** the
+  line and the list use the app's own name for a station it knows ("King's Cross", "Letchworth", the corridor's
+  stations), matching the leg heading; a station the app doesn't know keeps the feed's name.
+- tests/journey-progress.test.mjs: "Signal progress: live expected arrival changes show behind and ahead against the original timetable"
 - **Known gap (11 Nov evening, "isn't updating"):** on the tube home without Follow, nothing fetches TfL's predictions
   for your tube at King's Cross/Farringdon, so there is no report and the line stays "No live position yet" (the old
   bar moved with the clock, which looked like updating). Follow already fetches them. Open for Sam: fetch them while

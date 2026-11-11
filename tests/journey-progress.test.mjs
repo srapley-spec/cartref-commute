@@ -41,7 +41,9 @@ test('Signal progress: live expected arrival changes show behind and ahead again
  assert.equal(a.d.querySelector('.journey-progress .jp-status').classList.contains('warn'),true);
  a.c.state.progressById['progress-train'].data=a.w.CommuteCore.parseServiceDetails(raw('09:38'),NOW);a.c.render();
  assert.match(a.text('.journey-progress .jp-status'),/3 min ahead/);
- assert.match(a.text('.journey-progress .jp-where'),/Your stop: London Kings Cross 09:38, 2 stops/);
+ // The app's own station names, not National Rail's "London Kings Cross" (Sam, 11 Nov evening).
+ assert.match(a.text('.journey-progress .jp-where'),/Your stop: King's Cross 09:38, 2 stops/);
+ assert.doesNotMatch(a.text('.journey-progress'),/London Kings Cross/);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
