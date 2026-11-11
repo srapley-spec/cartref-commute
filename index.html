@@ -889,7 +889,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 13:45 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 13:55 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1189,6 +1189,7 @@ var CommuteCore = (() => {
     MORNING_WINDOW_MIN: () => MORNING_WINDOW_MIN,
     NETWORK_WIDE: () => NETWORK_WIDE,
     OFFICE_DWELL_MS: () => OFFICE_DWELL_MS,
+    OTHER_TUBE_OFFER_MS: () => OTHER_TUBE_OFFER_MS,
     OUTSIDE_REGION: () => OUTSIDE_REGION,
     PROJECTION_ON_TIME_MIN: () => PROJECTION_ON_TIME_MIN,
     REUSE: () => REUSE,
@@ -2866,8 +2867,7 @@ var CommuteCore = (() => {
   }
   var OTHER_TUBE_OFFER_MS = 5 * 6e4;
   function otherTubes(deps, on, now, max = 3) {
-    if (now - on.t > OTHER_TUBE_OFFER_MS) return [];
-    return (deps || []).filter((a) => a.t <= now + 3e4 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 6e4 && !(a.vehicle && on.vehicle && a.vehicle === on.vehicle)).sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
+    return (deps || []).filter((a) => a.t <= now + 3e4 && a.t !== on.t && Math.abs(a.t - on.t) < 6 * 6e4 && !(a.vehicle && on.vehicle && a.vehicle === on.vehicle) && now - Math.max(a.t, on.t) <= OTHER_TUBE_OFFER_MS).sort((a, b) => Math.abs(a.t - on.t) - Math.abs(b.t - on.t) || a.t - b.t).slice(0, max);
   }
   function inLondonToOffice(dir, f, atHub, onTheLine, onATube, p) {
     const here = pos(f, 300);
@@ -3102,6 +3102,29 @@ var CommuteCore = (() => {
       KGX: [51.5308, -0.1238],
       STP: [51.5307, -0.1257],
       ZFD: [51.5203, -0.1053]
+    },
+    stationGeoNames: {
+      LET: "Letchworth",
+      HIT: "Hitchin",
+      SVG: "Stevenage",
+      KBW: "Knebworth",
+      WLW: "Welwyn North",
+      WGC: "Welwyn Garden City",
+      HAT: "Hatfield",
+      WMG: "Welham Green",
+      BPK: "Brookmans Park",
+      PBR: "Potters Bar",
+      HDW: "Hadley Wood",
+      NBA: "New Barnet",
+      OKL: "Oakleigh Park",
+      NSG: "New Southgate",
+      AAP: "Alexandra Palace",
+      HGY: "Hornsey",
+      HRY: "Harringay",
+      FPK: "Finsbury Park",
+      KGX: "King's Cross",
+      STP: "St Pancras",
+      ZFD: "Farringdon"
     },
     corridorPattern: "baldock|letchworth|hitchin|stevenage|knebworth|welwyn|hatfield|welham green|brookmans park|potters bar|hadley wood|new barnet|oakleigh park|new southgate|alexandra palace|hornsey|harringay|finsbury park|king'?s cross|st\\.? pancras|farringdon",
     places: {
@@ -6521,10 +6544,11 @@ function nextServiceMarkup(t,from=STATIONS[t.from]||t.from){
   return `<div class="journey-next-service"><b>${label}:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
 }
 const isEffortFlag=f=>/^(Arrives first|Latest for|Least late|Fast walk$|Run$|Car needed$|Can't make it$)/.test(f.txt);
-// The nearest station on the line within 3 km, by name (amendment §8; #57 C8: "near Letchworth" at Hitchin).
+// The nearest station on the line, by name (amendment §8; #57 C8: "near Letchworth" at Hitchin): within 3 km out of
+// London, where stations are miles apart, and within 1 km in London (beyond that it's "in London", not "near Farringdon").
 function nearestStation(here){
-  if(!here) return null; let best=null, d=3;
-  for(const [code,g] of Object.entries(PROFILE.stationGeo||{})){ const k=km(here,g); if(k<d){ d=k; best=STATIONS[code]||code; } }
+  if(!here) return null; let best=null, d=km(here,PROFILE.places.officeTube)<15?1:3;
+  for(const [code,g] of Object.entries(PROFILE.stationGeo||{})){ const k=km(here,g); if(k<d){ d=k; best=(PROFILE.stationGeoNames||{})[code]||STATIONS[code]||null; } }
   return best;
 }
 function journeyAccessMarkup(j){
@@ -9567,10 +9591,11 @@ function renderFollowPanel(){
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
-  // Once you've set off (more than 200 m from where the journey starts) the deadline is the platform, not leaving:
-  // no "Leave by · leave in 57 s" while halfway to the station (11 Nov, 07:21; homeward at Aldgate, #57 H4).
-  const origin=r.direction==='office'?GEO.HOME:PROFILE.places.office;
-  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&!!origin&&km(state.here,origin)>0.2&&state.locAcc<=150;
+  // Once you've set off the deadline is the platform, not leaving: no "Leave by · leave in 57 s" while halfway to
+  // the station (11 Nov, 07:21; homeward at Aldgate, #57 H4). Set off: to the office, the app's own "left home" rule
+  // (over 100 m from your saved home, or 3 minutes nearer the station than home is); homeward, over 200 m from the office.
+  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&state.locAcc<=150
+    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2);
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
@@ -9584,7 +9609,8 @@ function renderFollowPanel(){
       ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
       :`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
     ${r.phase==='on-train'&&C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:''}
-    <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
+    <div class="meta">${giveUpWay?journeyFactsMarkup(giveUpWay,{train:giveUpWay.train,arrival:giveUpWay.arrive,duration:'remaining'})   /* the way on's own figures, not "unavailable" */
+      :offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
       :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='before-train'?trainConnectionMarkup(t):''}
     ${r.direction==='home'?'':tubeLine}

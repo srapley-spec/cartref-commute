@@ -124,8 +124,8 @@ on the selected train raised no false question):
   question is reached). For Sam to decide with the single-card work.
 - A train name or service ID containing "|" breaks selecting it (the selection format is older than this change; not
   seen in real data).
-- The selection is still lost on a reload (C3). The list still offers up to three nearest trains whether or not
-  they could be yours (C12).
+- The selection is still lost on a reload (C3; since fixed, "The train you said you're on holds"). The list offered up
+  to three nearest trains whether or not they could be yours (C12; since fixed, below).
 
 ## The train you said you're on holds (11 Nov 2026, #57 retest R1): built 11 Nov
 On the 11 Nov retest Sam said which train he was on three times (once "I'm on it", twice by picking the 07:30) and
@@ -224,6 +224,15 @@ the card either affirms it or questions it openly; it never quietly goes back to
 - tests/core/calls.test.mjs: "Destination: from Darwin (a dividing train names both parts) and TfL's summary; a train is named with it"
 - tests/logic.test.mjs: "On the train: each train is named with where it's going, as its own screens say, to tell close trains apart"
 - tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
+
+## Only trains you could be on are offered as a correction (11 Nov 2026, #57 C12): built 11 Nov
+On the train, "On a different train?" / "Which train are you on?" listed the three nearest trains however far off.
+It now lists only trains that could be yours: not ruled out by a station report and within 12 minutes of where you
+are (the same 12 minutes that questions a pick). The train you're following is always offered; with a stale position
+nothing is filtered (there's nothing to judge by). When no train fits at all ("no train matches where you are"), the
+nearest are still offered so you can say. The wrong-train question keeps all its candidates. Other trains are still
+known to the engine (never hide a train); "More trains" to reach the rest is not built.
+- tests/clean-baseline.test.mjs: "The correction list offers only trains you could be on (C12); the train you're following is always among them"
 
 ## Not yet / open questions
 - #23: passing points (Darwin real-time) for non-stop runs; needs a server.

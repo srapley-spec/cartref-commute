@@ -21,7 +21,7 @@ truth while following, live times kept after the train leaves, and the live card
 one leave time, notices only for a 3-minute change ("Arriving … (was …)", ✕), "N min later than planned", the walk
 left set against the measured walk, and TfL's location text for your tube (same story, "The tube named…";
 `nearly-home.md`; `journey-progress.md`); and (11 Nov) the one journey card itself: under way, the live card is
-drawn inside the followed card (`follow-a-route.md`, "One journey card"). From the 11 Nov retest: the train you said you're on holds (`which-train.md`), the warning ladder ("Can't make it" only when it is: `effort-levels.md`), and the moment the train leaves (`follow-a-route.md`). Each of those lists what it left unbuilt.
+drawn inside the followed card (`follow-a-route.md`, "One journey card"). From the 11 Nov retest: the train you said you're on holds (`which-train.md`), the warning ladder ("Can't make it" only when it is: `effort-levels.md`), and the moment the train leaves (`follow-a-route.md`). Then (11 Nov afternoon, Sam: "fix all of them … a clean baseline") everything else found 10–11 Nov: leg progress as one line + folded station list (`journey-progress.md`, Sam chose option A), the change-station tube list, urgency, "Be on the platform by" once set off, the way on when missed, controls folded under way, location by station name, C12 and the small things (`follow-a-route.md`, "Clean baseline"). Independent review of dca196d and that batch: due 12 Nov after Sam's trips. Each story lists what is still unbuilt.
 Issue #57 also holds the homeward findings (H1–H28).
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
 

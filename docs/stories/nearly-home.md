@@ -24,9 +24,13 @@ when I'll be in.
   about 150 m; golden `office-walking.json`). This is arithmetic from the day's figures, not a replay of the recorded positions; a late or coarse fix
   still makes the first minute or two read high (confidence that it removes most of the 3-minute slide: medium).
 - Works from the train, walking, at the station, and says when it doesn't know.
+- **"Nearly home" is said once (11 Nov 2026, #57 H28).** Homeward on 10 Nov the screen said "Nearly home" three times
+  (card, heading, a "Heading home" line) while the card said "You're home". The card says it; the list under it has
+  no heading, only "Tomorrow's trains appear once you set off for work."
 
 ## Tests
 - tests/core/refresh.test.mjs: "nearlyHomeEta: from the train, at home, walking, at the station, unknown"
+- tests/clean-baseline.test.mjs: "Nearly home and the walk to the office: no heading over nothing, and 'Nearly home' said once"
 - tests/rules.test.mjs: "Nearly home on your train: home time = the train's expected Letchworth time + exit + walk"
 - tests/rules.test.mjs: "Home location: set from where you are; Nearly home counts the walk from there, and says when you're home"
 - tests/rules.test.mjs: "Nearly home: the walk counts streets (straight line × 1.3)"

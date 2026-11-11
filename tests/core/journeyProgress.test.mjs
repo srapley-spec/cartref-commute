@@ -16,7 +16,7 @@ test('journey progress shows the complete itinerary and only the last reported c
  assert.deepEqual(p.legs.map(l=>l.state),['complete','current','upcoming','upcoming']);
  assert.equal(p.fraction,.5,'report milestone is not an invented moving position');
  assert.equal(p.source,'reported');assert.equal(p.calls[2].state,'expected');
- assert.match(p.evidenceLabel,/no passing-point position/);
+ assert.equal(p.evidenceLabel,'Last reported at Middle.','11 Nov 2026: no "passing-point position" wording (amendment §5)');
 });
 
 test('journey progress uses signed live baselines and the shared configurable rail delay colours',()=>{

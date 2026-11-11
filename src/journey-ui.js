@@ -512,10 +512,11 @@ function renderFollowPanel(){
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
-  // Once you've set off (more than 200 m from where the journey starts) the deadline is the platform, not leaving:
-  // no "Leave by · leave in 57 s" while halfway to the station (11 Nov, 07:21; homeward at Aldgate, #57 H4).
-  const origin=r.direction==='office'?GEO.HOME:PROFILE.places.office;
-  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&!!origin&&km(state.here,origin)>0.2&&state.locAcc<=150;
+  // Once you've set off the deadline is the platform, not leaving: no "Leave by · leave in 57 s" while halfway to
+  // the station (11 Nov, 07:21; homeward at Aldgate, #57 H4). Set off: to the office, the app's own "left home" rule
+  // (over 100 m from your saved home, or 3 minutes nearer the station than home is); homeward, over 200 m from the office.
+  const setOff=r.phase==='before-train'&&!observation.activeConnection&&!!state.here&&state.locAcc<=150
+    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2);
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
@@ -529,7 +530,8 @@ function renderFollowPanel(){
       ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
       :`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
     ${r.phase==='on-train'&&C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:''}
-    <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
+    <div class="meta">${giveUpWay?journeyFactsMarkup(giveUpWay,{train:giveUpWay.train,arrival:giveUpWay.arrive,duration:'remaining'})   /* the way on's own figures, not "unavailable" */
+      :offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
       :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='before-train'?trainConnectionMarkup(t):''}
     ${r.direction==='home'?'':tubeLine}

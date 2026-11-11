@@ -1191,10 +1191,11 @@ function nextServiceMarkup(t,from=STATIONS[t.from]||t.from){
   return `<div class="journey-next-service"><b>${label}:</b> <strong class="t">${esc(t.std)} ${esc(t.operator||'Train')}</strong> from ${esc(from)}${d.showTime?` <span>· expected <span class="t">${hhmm(t.dep)}</span></span>`:''}</div>`;
 }
 const isEffortFlag=f=>/^(Arrives first|Latest for|Least late|Fast walk$|Run$|Car needed$|Can't make it$)/.test(f.txt);
-// The nearest station on the line within 3 km, by name (amendment §8; #57 C8: "near Letchworth" at Hitchin).
+// The nearest station on the line, by name (amendment §8; #57 C8: "near Letchworth" at Hitchin): within 3 km out of
+// London, where stations are miles apart, and within 1 km in London (beyond that it's "in London", not "near Farringdon").
 function nearestStation(here){
-  if(!here) return null; let best=null, d=3;
-  for(const [code,g] of Object.entries(PROFILE.stationGeo||{})){ const k=km(here,g); if(k<d){ d=k; best=STATIONS[code]||code; } }
+  if(!here) return null; let best=null, d=km(here,PROFILE.places.officeTube)<15?1:3;
+  for(const [code,g] of Object.entries(PROFILE.stationGeo||{})){ const k=km(here,g); if(k<d){ d=k; best=(PROFILE.stationGeoNames||{})[code]||STATIONS[code]||null; } }
   return best;
 }
 function journeyAccessMarkup(j){

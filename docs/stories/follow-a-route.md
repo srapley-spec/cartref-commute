@@ -358,10 +358,9 @@ homeward test, at his direction ("We can relax the rules on the independent revi
 - Under way on a followed route (after the train), the empty status strip ("Journey data not available yet",
   "Loading journey data…") is not drawn (#57 E3).
 - Journey stages: "N min behind" is never green (amber at least).
-- **Not built from the retest:** the leg progress redesign (Sam chose to see mockups first:
-  `docs/design/leg-progress-options-2026-11-11.html`); the header going blank when it gives up; the 08:44 headline
-  from TfL's journey planner at King's Cross; two "behind" figures on one card (H10); tubes that left listed as
-  "On a different tube?" (H9); "Next:" naming a step already in hand.
+- **Not built from the retest** at the time: the leg progress redesign, the header going blank when it gives up,
+  the 08:44 headline at King's Cross, two "behind" figures (H10), tubes that left offered (H9), "Next:" naming a step
+  in hand. All built the same afternoon: "Clean baseline" below.
 
 **Tests**
 - tests/core/retest-fixes.test.mjs: "The ladder on the followed card: 'Tight · walk fast', 'Very tight · run' with the next train, 'Can't make it' only from 'none'"
@@ -370,6 +369,69 @@ homeward test, at his direction ("We can relax the rules on the independent revi
 - tests/core/retest-fixes.test.mjs: "A known train is picked up on the first stretch from Letchworth: from 300 m out and within 600 m of the track"
 - tests/retest-fixes.test.mjs: "Seen at the station, then the train pulls out and the phone is neither at the station nor placed on the line: never 'missed', it asks"
 - tests/retest-fixes.test.mjs: "Thameslink trains carry the note in the train panel; others don't"
+
+## Clean baseline: everything found 10–11 Nov (built 11 Nov 2026)
+Sam, 11 Nov 12:10: "Why don't you fix all of them and then we have a clean baseline against which to test tonight and
+tomorrow?" Independent review deferred to 12 Nov, after his homeward and morning trips (his direction). The leg
+progress redesign is in [journey-progress](journey-progress.md) ("Where you are on the leg"); the correction list in
+[which-train](which-train.md) (C12); the nearly-home screen in [nearly-home](nearly-home.md) (H28).
+- **Before the train.** No "Next train: …" line, on a recommendation or on the followed card: the train panel states
+  the train once (amendment §3, approved by Sam 10 Nov). Before boarding, "Next:" is not shown when the next step is
+  the train itself.
+- **Urgency** (amendment §3, words confirmed 10 Nov): with under 2 minutes to the leave deadline the countdown reads
+  "Leave now · 45 s" (seconds under a minute, "1m 31s" above) on an accent band (`.journey-countdown.urgent`), not a
+  status colour. Still the one departure instruction. The small "to walk to Letchworth at your usual pace" beneath
+  it is not built.
+- **Once you've set off** (11 Nov 07:21: "Leave by · leave in 57 s" halfway to the station; homeward H4), the
+  followed card's deadline is "Be on the platform by" (the same canonical time used at the station) instead of the
+  leave time. Set off: outbound, the app's own left-home rule (over 100 m from the saved home, or without one, 3
+  minutes nearer the station than home is); homeward, over 200 m from the office; position good to 150 m. At home
+  the leave time is shown as before. *This changes where the protected Leave by appears: flagged to Sam with the
+  release.*
+- **When it can no longer be made** (07:16, the header went to "Unavailable"): the header shows the way on: "Instead:
+  the 07:45 Great Northern", its own Leave by → arrival, and its own journey figures, under "You can no longer make
+  your 07:30".
+- **At the change station** (amendment §2, words confirmed 10 Nov; 11 Nov at King's Cross): one list of tubes,
+  headed "Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting"; each row "1st ·
+  08:06 · [Met] to Aldgate · Office 08:22" (a Circle the long way round "via Aldgate"; an H&C "to Barking, for
+  Aldgate East"), "✓ getting this one" on the one you tapped. Tubes you could only catch if already near the platform
+  come first under "If you're near the platform", and only once you're clearly off the train (stopped, or a minute
+  at the station); then "Then". The instruction reads "Get on the Met to Aldgate · eastbound · Platform 2 · due 08:06
+  · in 3 min …". The headline's left side is "Next tube". The trains list under it is not drawn there.
+- **The followed card at the change station uses the same tubes**: its arrival is the listed next tube's office time
+  (under 2 minutes old), not TfL's journey planner (11 Nov: 08:44 in the headline while the list said 08:30). Source
+  line "Next tube and measured onward walk". The saved "Next: Circle or Met to Aldgate" is not shown beside the live
+  "Get on the H&C …".
+- **One "behind" figure** (H10): the legs' own status is not drawn inside the one journey card.
+- **On the last walk** the plan's "Next: 08:38 · Arrive office · walk 6 min" is not shown beside "Journey remaining
+  5 min": the next step is the arrival itself (`nextIsLast` from the engine).
+- **"On a different tube?"** offers each other tube for 5 minutes after the later of it and yours left (it was still
+  offered a quarter of an hour into the ride), and never your own tube under another time (H9).
+- **Delays said once**: when a disruption card carries the status strip's words ("Delays up to 9 min on your route"),
+  the strip keeps only what it adds (e.g. "Example trains") or isn't drawn.
+- **Controls under way** (amendment §7, A5): while a route is followed or a live view is showing, the mode, direction,
+  pace, Auto/Plan/Live and Leave now/Arrive by/Leave around controls fold behind one row, "Commute · To office ·
+  Leave now", beside Settings and Refresh; tapping it opens them. Planning keeps every control in view. The controls
+  and their handlers are unchanged (only hidden by style). The location line stays out of the fold only when it
+  needs you: an old position or no location. "Along the line" is not yet moved into that row.
+- **Location line** (amendment §8, C8, E4): names the nearest station on the line, by name ("near Hitchin"), within
+  3 km out of London and 1 km in London (else "in London"); an old position reads "as of 08:08" (was "stale fix");
+  then "Update location", which restarts the phone's location watch and runs only when tapped.
+- **Small things:** "you picked this" without a stray "·" at the start of a line (H12); a route that takes the tube
+  before the train says "Tube and walk at your usual pace", not "Walk at your usual pace" (H18); a Met with no
+  destination on Aldgate's homeward board reads "westbound" (H7); no "Nearly there" heading over nothing (F3).
+- **Not fixed, explained to Sam:** the tube's timing offset at King's Cross (D4, one observation, not enough to set
+  a rule); a wrong pick not flagged when the phone's position was stale (no fresh evidence to question it with).
+
+**Tests**
+- tests/clean-baseline.test.mjs: "Once you've set off the deadline is the platform ('Be on the platform by'), and a train you can't make shows the way on ('Instead: …')"
+- tests/clean-baseline.test.mjs: "Under way the controls fold into one row: 'Commute · To office · Leave now', which opens them; planning keeps them all"
+- tests/clean-baseline.test.mjs: "The location line names the nearest station out of London, says 'as of' an old position, and offers 'Update location' only then"
+- tests/clean-baseline.test.mjs: "Delays are said once: when a disruption card carries the status strip's words, the strip doesn't repeat them"
+- tests/core/clean-baseline.test.mjs: "'On a different tube?' offers each other tube for 5 minutes after the later of it and yours left, and never lists your own tube again"
+- tests/core/clean-baseline.test.mjs: "On the last walk the followed card's 'Next' step is the arrival itself: flagged, so the card doesn't repeat the plan's whole walk"
+- tests/app.test.mjs: "At King's Cross: 'Which one are you getting?' reads like the platform board: place, line, destination, minutes"
+- tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"
 
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
