@@ -14,6 +14,10 @@ request per refresh, the same one Follow already makes."
   The leg then says where your tube is from TfL's own words ("Last: Barbican · Next: Farringdon", "TfL, 16:52").
 - tests/rules.test.mjs: "On the tube home without Follow, your tube's TfL prediction at the stop you get off is fetched, so the leg says where it is"
 - tests/follow-transport.test.mjs: "follow transport: a followed homeward Tube, or a tube home under way without Follow, requests the target-stop feed; nothing else does"
+- tests/follow-main-regression.test.mjs: "main Follow preservation: confirmed boarding prevents better offers, while feature off ignores saved follow, makes only one Tube request for the ride and no view writes"
+- 11 Nov, 18:44: merged to `main` before the full check finished (Sam: "Push the lot"); GitHub's run then failed this
+  older test, which still said Follow off makes no tube request. Updated to the decision (one request for the ride,
+  never for an ignored saved follow).
 
 ## Story
 As a commuter leaving the office, I want the next tubes from Aldgate and, once underground, where to get off for
