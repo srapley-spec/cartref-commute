@@ -1281,6 +1281,30 @@ test("Going home at the office: the buttons say which tube; where each one gets 
   app.close();
 });
 
+test("On the tube home without Follow, your tube's TfL prediction at the stop you get off is fetched, so the leg says where it is", async () => {
+  // Sam, 11 Nov 18:17: the leg on the tube home "isn't updating"; 18:36: "Fetch it while you're on the tube home: one TfL
+  // request per refresh, the same one Follow already makes."
+  const ksx = (now) => [{ vehicleId: "c46", lineId: "circle", platformName: "Westbound - Platform 2", naptanId: "940GZZLUKSX",
+    destinationName: "Edgware Road (Circle Line) Underground Station", expectedArrival: new Date(T("16:56")).toISOString(),
+    timeToStation: Math.round((T("16:56") - now) / 1000), timestamp: new Date(now).toISOString(), currentLocation: "Between Barbican and Farringdon" }];
+  const app = await open({ now: T("16:30"), geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u, now) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed()) : /940GZZLUKSX\/Arrivals/.test(u) ? json(ksx(now)) : undefined) }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  const ksxCalls = () => app.calls.filter((u) => /940GZZLUKSX\/Arrivals/.test(String(u.url || u))).length;
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  assert.equal(ksxCalls(), 0, "at the office, not on a tube: no request");
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  await app.fix(...ALD, 15, T("16:44"));
+  app.at(T("16:52")); c.render();
+  assert.match(app.text("#hero"), /^On the tube/);
+  const before = ksxCalls();
+  await c.refresh({ force: true }); await sleep(300); c.render();
+  assert.equal(ksxCalls() - before, 1, "one request for your tube at King's Cross per refresh");
+  assert.match(app.text(".journey-progress .jp-where"), /Last: Barbican · Next: Farringdon/);
+  assert.match(app.text(".journey-progress .jp-source"), /^TfL, 16:52$/);
+  app.close();
+});
+
 test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
   const { app, c } = await homeApp(T("16:30"));
   await app.fix(...OFFICE_PT, 15, T("16:30"));

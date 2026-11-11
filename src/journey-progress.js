@@ -118,6 +118,14 @@ function renderJourneyProgress(){
       if(live)arrival=live.arrival;
       else arrival=C.tubeHomeConnections(ride.t,S(),state.saved.pace==='fast'?'fast':'avg').reach[chosen.hub]??null;
     }
+    else if(context.homeward&&ride.vehicle&&toCode){
+      // Not following: the prediction fetched for your tube while you ride home (rideTransportContext), same checks.
+      const cached=state.followTransport,expected={routeId:rideTransportId(ride),vehicle:String(ride.vehicle),hub:toCode,
+        lineId:lineIdOf(ride.line),direction:'westbound'};
+      if(cached?.epoch===sourceEpoch&&cached.stopId===TUBE_STOP[toCode]&&sameFollowTransport(cached,expected))live=C.followTubeArrival(cached.predictions,
+        {...expected,stopId:TUBE_STOP[toCode],now,fetchedAt:cached.at,readyMs:cached.readyMs});
+      if(live)arrival=live.arrival;
+    }
     else if(!context.homeward&&ride.vehicle&&context.liveStopId&&state.ald){
       live=C.followTubeArrival(state.ald.arrivals,{vehicle:String(ride.vehicle),hub:toCode,stopId:context.liveStopId,
         lineId:lineIdOf(ride.line),direction:context.liveDirection,now,fetchedAt:state.ald.at,readyMs:0});

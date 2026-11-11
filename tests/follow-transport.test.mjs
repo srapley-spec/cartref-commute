@@ -17,7 +17,7 @@ function chosenRide(a){
 }
 const isTarget=u=>/940GZZLUKSX\/Arrivals/.test(u);
 
-test('follow transport: only an enabled followed homeward Tube requests the existing target-stop feed',async()=>{
+test('follow transport: a followed homeward Tube, or a tube home under way without Follow, requests the target-stop feed; nothing else does',async()=>{
  const a=await app(u=>isTarget(u)?{ok:true,status:200,json:async()=>recorded}:undefined);
  const start=a.calls.length;await a.c.refreshFollowTransport(NOW);assert.equal(a.calls.length,start,'no selected route makes no extra request');
  const route=chosenRide(a);await a.c.refreshFollowTransport(NOW);
@@ -27,8 +27,14 @@ test('follow transport: only an enabled followed homeward Tube requests the exis
  const allowance=a.w.CommuteCore.tubeHomeConnections(NOW-2*MIN,a.c.S(),'avg').ready.KGX;
  assert.equal(observation.readyAt,observation.arrival+allowance,'existing route profile supplies the interchange allowance');
  assert.equal(a.c.state.saved.followRoute.id,route.id,'fetching predictions does not change the chosen service');
+ // Follow off, the tube home still under way: the same one request, for the ride (Sam, 11 Nov 18:36).
  a.c.state.saved.settings.followRoute=false;
- const count=a.calls.length;await a.c.refreshFollowTransport(NOW);assert.equal(a.calls.length,count);assert.equal(a.c.state.followTransport,null);
+ const stopFeed=u=>/940GZZLU(KSX|FCN)\/Arrivals/.test(u),before=a.calls.filter(stopFeed).length;
+ let count=a.calls.length;await a.c.refreshFollowTransport(NOW);
+ assert.equal(a.calls.filter(stopFeed).length-before,1,'one more request, for the ride, at the stop its card says to get off');
+ // No ride either: no request, nothing kept.
+ a.c.state.saved.tubeRide=null;a.c.state.saved.tubePick=null;
+ count=a.calls.length;await a.c.refreshFollowTransport(NOW);assert.equal(a.calls.length,count);assert.equal(a.c.state.followTransport,null);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
