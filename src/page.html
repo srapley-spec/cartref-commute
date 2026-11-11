@@ -2230,7 +2230,7 @@ function tick(){
   // Under 2 minutes to the leave deadline the countdown becomes the card's loudest line: "Leave now · 45 s"
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
   document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3;
-    e.textContent = urgent ? `Leave now · ${ms<60e3?`${Math.ceil(ms/1000)} s`:countdown(ms)}` : ms>0?`leave in ${countdown(ms)}`:"leave time passed";
+    e.textContent = urgent ? `Leave now · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`leave in ${countdown(ms)}`:"leave time passed";
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
   document.querySelectorAll("[data-leftago]").forEach(e=>{ e.textContent=C.leftAgo(now-e.dataset.leftago); });
