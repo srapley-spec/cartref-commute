@@ -335,6 +335,42 @@ is still drawn (it is a plan, and it repeats your train as its first option): to
   (the platform once aboard, the legs kept when pinned to Plan, the homeward order, empty leftovers).
 - Checked in a real browser (Chromium, phone width, 11 Nov): aboard while following, one card in the order above.
 
+## From the 11 Nov retest: the warning ladder, the moment the train leaves, small fixes (built 11 Nov)
+Sam's retest to work on 11 Nov (#57 comment "Retest, 11 Nov morning"). Independent review deferred to after his
+homeward test, at his direction ("We can relax the rules on the independent reviewer for this round").
+- **The warning ladder** (wording agreed by Sam, 11 Nov): on the way to the station the followed card says
+  "Tight · walk fast", then "Very tight · run" with a line under it, "If you miss it: 07:45, office 08:54" (the next
+  train you could take, at walking pace), then "You can no longer make your 07:30" only when no level makes it, even
+  eating into the station allowances (effort-levels.md). No more "N min behind · run needed" beside a Leave by that
+  said otherwise. (A car at home: "Very tight · car needed".)
+- **As the train pulls out:** seen at the station the train leaves from (fix good to 250 m) in the last 10 minutes,
+  then neither at the station nor placed on the line: "last seen there" (`boarding: 'was'`), so never "missed": after
+  departure it asks "Departure passed · confirm if you are on it". (11 Nov, 07:34: declared missed while aboard.)
+  The same evidence counts as a known train for picking you up on the line, and with a known train the first stretch
+  from Letchworth counts from 300 m out and within 600 m of the track (it used to need 300 m and train speed, and
+  nothing looked for the train until past Stevenage).
+- "You confirmed you are on your selected train" goes after 2 minutes and once off the train (it was still showing on
+  the walk to the office).
+- On the tube, a tube you picked reads "Your tube: 08:15 Met to Aldgate" (Sam: whether you're on it or waiting for it
+  can't be told so soon); unpicked guesses still say "Probably …".
+- Thameslink trains carry "Thameslink: first class at the rear is open to standard tickets." under the train panel
+  and on the on-train line (#57 H19; words chosen by Sam, 11 Nov).
+- Under way on a followed route (after the train), the empty status strip ("Journey data not available yet",
+  "Loading journey data…") is not drawn (#57 E3).
+- Journey stages: "N min behind" is never green (amber at least).
+- **Not built from the retest:** the leg progress redesign (Sam chose to see mockups first:
+  `docs/design/leg-progress-options-2026-11-11.html`); the header going blank when it gives up; the 08:44 headline
+  from TfL's journey planner at King's Cross; two "behind" figures on one card (H10); tubes that left listed as
+  "On a different tube?" (H9); "Next:" naming a step already in hand.
+
+**Tests**
+- tests/core/retest-fixes.test.mjs: "The ladder on the followed card: 'Tight · walk fast', 'Very tight · run' with the next train, 'Can't make it' only from 'none'"
+- tests/core/retest-fixes.test.mjs: "The 'you confirmed' acknowledgement goes after 2 minutes, and once off the train"
+- tests/core/retest-fixes.test.mjs: "Thameslink trains only: 'Thameslink: first class at the rear is open to standard tickets.'"
+- tests/core/retest-fixes.test.mjs: "A known train is picked up on the first stretch from Letchworth: from 300 m out and within 600 m of the track"
+- tests/retest-fixes.test.mjs: "Seen at the station, then the train pulls out and the phone is neither at the station nor placed on the line: never 'missed', it asks"
+- tests/retest-fixes.test.mjs: "Thameslink trains carry the note in the train panel; others don't"
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 

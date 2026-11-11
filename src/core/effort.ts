@@ -48,6 +48,18 @@ export function effortFor(o: Option, now: number, ep: EffortProfile, atItsStatio
   return "none";
 }
 
+/** Up to this much of a route's fixed station allowances (getting into the station, the catch margin) is slack you
+ *  can eat into when running for a train. 11 Nov 2026 (#57 retest): through Letchworth's doors at 07:27 and on the
+ *  platform at 07:28:14, against 2 min to get in plus a 1 min margin; the app had said "Can't make it" at 07:16 for a
+ *  train he would have caught on time. */
+export const RUN_SLACK_MS = 120e3;
+/** Could you still make it running, eating into that slack? (Sam, 11 Nov: say "impossible" only when it is.) */
+export function runWithoutSlack(o: Option, now: number, ep: EffortProfile): boolean {
+  const a = o.access; if (!a) return false;
+  const need = effortNeeds(a, ep).run;
+  return isFinite(need) && need - Math.min(RUN_SLACK_MS, Math.max(0, a.fixed) * 1000) <= o.train.dep - (now + 30e3);
+}
+
 /** The latest time you can set off at a level (ms), for "Leave by". Only for walk and fast. */
 export function leaveBy(o: Option, e: Effort, ep: EffortProfile): number {
   if (e !== "fast" || !o.access) return o.leave;
@@ -73,7 +85,11 @@ export function gradeEffort<T extends Option>(opts: T[], now: number, ep: Effort
   const keep = opts.filter(j => j.train.dep >= now);
   for (const j of keep) {
     j.uncertain = !plannable(j);
-    const e = effortFor(j, now, ep, !!atStation && depStation(j) === atStation, prev[effortKey(j)]);
+    let e = effortFor(j, now, ep, !!atStation && depStation(j) === atStation, prev[effortKey(j)]);
+    // Away from home (a car isn't yours to take) or past every level: if running still makes it by eating into the
+    // station allowances, it's "Very tight · run", not "Can't make it" (Sam, 11 Nov 2026).
+    j.tight = false;
+    if ((e === "none" || (e === "car" && !j.access?.home)) && !(atStation && depStation(j) === atStation) && runWithoutSlack(j, now, ep)) { e = "run"; j.tight = true; }
     j.effort = e; j.missed = rank(e) > rank("fast"); j.leaveBy = leaveBy(j, e, ep);
     // A fast walk is the plan for this train: leave, total time and the steps are all at a fast walk.
     if (e === "fast" && j.leaveBy !== j.leave) { (j as Option).legs = fastWalkLegs(j, j.leaveBy); j.leave = j.leaveBy; }

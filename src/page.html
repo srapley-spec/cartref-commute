@@ -1259,7 +1259,8 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
     expected:departure.showTime?hhmm(t.dep):departure.text,level:departure.level,status,
     operator:t.operator||'Train',platform:t.platform,destination:t.destination||'',
     arrival:known?hhmm(at):null,departureSource:source,arrivalSource:context.arrivalSource||source,
-    arrivalLabel:(context.arrivalSource||source)==='Timetable'?'Timetable':(context.arrivalSource||source)==='Last known'?'Last known':'Expected'});
+    arrivalLabel:(context.arrivalSource||source)==='Timetable'?'Timetable':(context.arrivalSource||source)==='Last known'?'Last known':'Expected'})
+    +(C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:'');
 }
 function journeyHeadlineMarkup(j,dest,timing=''){
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
@@ -1331,7 +1332,8 @@ function wrongTrainMarkup(m){
   const route=followedRoute(), mine=c=>!!route&&C.followIsTrain(route,c.t);
   const others=[...(m.others||[])].sort((a,b)=>mine(b)-mine(a));
   // An answer here is an answer: selecting another train isn't questioned a second time.
-  return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m))}</b>
+  const better=!m.contradiction&&m.others&&m.others[0]&&!m.others[0].ruledOut?C.trainName(m.others[0].t):null;
+  return `<div class="pick doubt" data-block="which" data-wrong-train><b>${esc(C.wrongTrainQuestion(C.trainName(m.t),m,better))}</b>
     ${others.map(c=>pickButton(c,C.trainName(c.t)+(mine(c)?" · the train you're following":"")," data-pick-confirmed")).join("")}
     ${pickButton(m,"Keep the "+C.trainName(m.t),` data-keep="${esc(C.contradictionKey(m.contradiction))}"`)}</div>`;
 }
@@ -1378,6 +1380,28 @@ function renderOnTrain(now, m){
 }
 // The train you're on (as remembered), from the loaded boards.
 const lockedTrain = () => C.lockedTrain(state.boards, state.trainLock||null);
+const PICK_HOLD_MS=4*3600e3;
+// The pick survives a reload (11 Nov 2026, #57 C3/C4): kept in saved state with when it was made, restored if under
+// 4 hours old, cleared when it is dropped.
+function syncPick(){
+  const l=state.trainLock&&state.trainLock.picked?state.trainLock:null, cur=state.saved.trainPick||null;
+  if(JSON.stringify(l)===JSON.stringify(cur)) return;
+  if(l) state.saved.trainPick={...l}; else delete state.saved.trainPick;
+  save();
+}
+function pickHolds(now){
+  const l=state.trainLock; if(!l||!l.picked) return false;
+  if(Number.isFinite(l.at)&&now-l.at>PICK_HOLD_MS) return false;
+  // At a London station other than where it left from: done there, unless it's a train you're still on that goes on
+  // further (a Thameslink through St Pancras to Farringdon).
+  const t=lockedTrain();
+  if(state.atHub&&state.atHub!==l.from&&(!t||t.to===state.atHub)) return false;
+  if(!t) return true;
+  return !(Number.isFinite(t.arr)&&now>t.arr+30*60e3);
+}
+{ const l=state.saved.trainPick;
+  if(l&&l.picked&&typeof l.operator==='string'&&typeof l.std==='string'&&typeof l.from==='string'&&Number.isFinite(l.at)&&Date.now()-l.at>=0&&Date.now()-l.at<PICK_HOLD_MS)state.trainLock={...l};
+  else if(l!==undefined) delete state.saved.trainPick; }
 // Nearly home: heading home and within 3 km of Letchworth (the last stretch of the train, or the walk).
 // The walk to the office from here, set against your measured walk from the nearer office tube stop (Settings) and
 // what's left of getting off its platform (C.walkFromStopSecs).
@@ -1454,7 +1478,7 @@ function renderOnTubeHome(now){
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:best.stop,stationArrival:best.stopAt,arrival:best.arrive,dest:'home'})}</div>
-    <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which">${journeyFactsMarkup(best.o,{arrival:best.arrive,duration:'remaining'})}<span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -1491,7 +1515,7 @@ function renderOnTube(now){
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:leg.stop,stationArrival:aldT,arrival:office,dest:live?'office':'office · estimate'})}</div>
     ${journeyFactsMarkup(null,{arrival:office,unavailable:false,duration:'remaining'})}
-    <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?"You're on":"Probably"} the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?`Your tube: ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`:`Probably the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
     <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${ride}">~${dur(ride)} Tube</span></div>
     ${ask}
     <ol class="legs" data-block="then">
@@ -2043,6 +2067,7 @@ document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTM
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
   try{ leaveAlerts.sync(); }catch(e){}
+  try{ syncPick(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
   const focus=journeyFocus();
@@ -2077,7 +2102,7 @@ document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.close
   save(); render(); });
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pick],[data-pick-cancel]"); if(!b) return;
   if(b.dataset.pickCancel!=null){ state.pendingPick=null; render(); return; }
-  const [operator,std,from,serviceId]=b.dataset.pick.split("|"), lock={operator,std,from,picked:true,...(serviceId?{serviceId}:{})};
+  const [operator,std,from,serviceId]=b.dataset.pick.split("|"), lock={operator,std,from,picked:true,at:Date.now(),...(serviceId?{serviceId}:{})};
   // "Keep the …" answers the evidence it was shown with; the same evidence doesn't ask again.
   if(b.dataset.keep!=null) lock.kept=b.dataset.keep;
   // Selecting a train other than the one you're following asks first (Sam, 10 Nov: the late 07:15 was selected while
@@ -2204,7 +2229,7 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now),
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now)||!!state.trainLock?.picked,
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },
@@ -2319,9 +2344,16 @@ function onPosition(p){
   else if(state.atHub && state.tube && state.tube.hub===state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:state.tube.arrivals});
   else if(state.atHub) setLastHub({hub:state.atHub, seen:Date.now(), arrivals:(state.lastHub&&state.lastHub.hub===state.atHub)?state.lastHub.arrivals:null});
   // On a train: on the line and seen moving along it (engine); a train you picked counts as moving.
-  const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked),railContext.continuing);
+  // A known train counts as moving: one you picked, or the one you're following once it has left and you were seen
+  // at its station in the 10 minutes before (so it picks you up as the train pulls out).
+  const seenBoarding=!!state.seenAtStation&&Date.now()-state.seenAtStation.at<=15*60e3&&!!followedDeparted(Date.now());
+  const tr=C.trackLine(state.lineTrack||null,fix(),speed,state.atHub,railContext.line||LINE.KGX,!!(state.trainLock&&state.trainLock.picked)||seenBoarding,railContext.continuing);
   state.lineTrack=tr.track;
-  const wasOnLine=state.onLine; state.onLine=tr.onLine; if(!state.onLine && !(direction()==="home" && dLet<3)) state.trainLock=null;
+  const wasOnLine=state.onLine; state.onLine=tr.onLine;
+  // A train you picked (or said you're on) stays yours while the phone isn't placed on the line (tunnels, a coarse
+  // fix, the first stretch near home: 11 Nov 2026, it was dropped three times between Hitchin and Welwyn North). It
+  // goes once you're at the station it takes you to, once it's 30 min past its arrival, or after 4 hours.
+  if(!state.onLine && !(direction()==="home" && dLet<3) && !pickHolds(Date.now())) state.trainLock=null;
   if(!state.onLine){ state.pendingPick=null; state.boardingAsk=false; }
   const wasInLondon=state.inLondon; state.inLondon=inLondonToOffice(Date.now());
   const where = !state.atHub && C.atOffice(fix(),PROFILE) ? "you're at the office" : state.atHub ? `you're at ${HUB_NAME[state.atHub]}` : C.atOfficeTube(direction(), fix(), PROFILE) ? "you're at Aldgate" : dLet<15 ? `you're near ${HOME_NAME}` : dAld<15 ? "you're in London" : `you're ${Math.round(Math.min(dLet,dAld))} km from ${dLet<=dAld?HOME_NAME:"Aldgate"}`;

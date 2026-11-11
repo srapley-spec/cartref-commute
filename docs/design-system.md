@@ -94,6 +94,8 @@ train?" folded when certain and open when unsure. Not yet: "3 min to the tube pl
   at Stevenage 07:30." beneath, the next step above, and "Not your train?".
 
 ### 5. Progress along a leg (C9, C13, E1)
+**11 Nov retest (Sam):** the bar reads as a station position but is time elapsed, and the station row runs off the
+right; three replacement options are mocked up for Sam to choose (`design/leg-progress-options-2026-11-11.html`).
 **Built 10 Nov (first step only):** TfL's location text for the matched tube is shown as one line under the tube leg
 ("At Barbican · TfL, 08:16."). The stations are not yet marked from it and the bar remains:
 `docs/stories/journey-progress.md`, "Where your tube is, in TfL's words".
@@ -112,6 +114,9 @@ train?" folded when certain and open when unsure. Not yet: "3 min to the tube pl
   and "Not your tube?" folded. **Words confirmed by Sam, 10 Nov.**
 
 ### 6. When the app doubts your train (C1, C2, C4, C12)
+**Agreed 11 Nov (Sam), built 11 Nov:** once you've said which train you're on, the card either affirms it or questions
+it openly ("You picked the 07:30 …, but your position fits the 07:38 … better. Still on the 07:30 …?"); it never
+quietly goes back to "Probably …". `stories/which-train.md`, "The train you said you're on holds".
 **Built 10 Nov (C1, C2)** on the existing on-train and followed cards, ahead of the single card: the question, the
 station check behind it, "Keep", asking before a different train is selected, "I'm on it" asking when unsure, and
 hiding a doubted train's reports. Exact rules and tests: [`stories/which-train.md`](stories/which-train.md), "The

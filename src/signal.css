@@ -510,3 +510,5 @@ html #followPanel .fold summary {display:flex;align-items:center;min-height:44px
 html #followPanel .fold summary::before {content:'›';display:inline-block;margin-right:6px;font-size:20px;line-height:1}
 html #followPanel .fold[open]>summary::before {transform:rotate(90deg)}
 html #followPanel .fold summary::-webkit-details-marker {display:none}
+html #followPanel .follow-ifmissed {font-size:14px;color:var(--muted);margin:2px 0 6px}
+html .tl-note {font-size:13px;color:var(--muted);margin:4px 0 0}

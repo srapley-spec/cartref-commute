@@ -312,7 +312,7 @@ document.addEventListener('click',e=>{
     const route=C.confirmFollowBoarding(state.followUpdate.route,Date.now());
     state.saved.followRoute=route;state.saved.viewOverride=null;
     const train=route.lastTrain;
-    state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,...(train.serviceId?{serviceId:train.serviceId}:{})};
+    state.trainLock={operator:train.operator,std:train.std,from:train.from,picked:true,at:Date.now(),...(train.serviceId?{serviceId:train.serviceId}:{})};
   }
   else if(action==='stop'){state.boardingAsk=false;state.saved.followRoute=null;if(Object.prototype.hasOwnProperty.call(state.saved,'follow'))state.saved.follow=null;state.followUpdate=null;}
   else if(action==='seen'&&state.followUpdate)state.saved.followRoute=C.acknowledgeFollowNotice(state.followUpdate.route,state.followUpdate.notice?.id);
@@ -350,10 +350,15 @@ function followedObservation(route,now){
   // Are you at the station the followed train leaves from? (The page's usual test for a station: a fix good to
   // 250 m.) 'at' with a fresh fix; 'was' when that was the last fix and nothing fresher has arrived.
   const from=route.option.train.from;
-  const boarding=C.boardingPlace({phase,accM:state.here?state.locAcc:null,
+  let boarding=C.boardingPlace({phase,accM:state.here?state.locAcc:null,
     atHub:route.direction==='home'&&!!state.atHub&&state.atHub===from,
     kmToStation:route.direction!=='home'&&from===HOME&&state.here?km(state.here,GEO.HOME):null,
     fixOk:state.locStatus==='ok',fixAgeMs:state.lastFixAt?now-state.lastFixAt:null});
+  // Seen at the station within the last 10 minutes and not seen anywhere that rules out boarding since: last seen
+  // there, so never "missed" as the train pulls away and the phone is neither at the station nor yet placed on the
+  // line (11 Nov 2026, 07:34: declared missed while aboard).
+  if(boarding==='at')state.seenAtStation={route:route.id,at:now};
+  else if(!boarding&&phase==='before-train'&&state.seenAtStation?.route===route.id&&now-state.seenAtStation.at<=10*60e3&&!state.atHub)boarding='was';
   if(reliable){
     if(route.phase!=='before-train'&&route.mode==='commute'&&route.direction==='office'&&C.atOffice(fix(),PROFILE))phase='arrived';
     else if(route.phase!=='before-train'&&route.direction==='home'&&state.saved.home&&km(state.here,state.saved.home)<=0.1)phase='arrived';
@@ -484,11 +489,13 @@ function renderFollowPanel(){
     ${r.phase!=='on-train'?'':otherShown
       ?`<div class="follow-service"><span class="chip">${esc(C.trainName(t))}</span>${st?` <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`
       :`<div class="follow-service">You’re on the <b>${esc(C.trainName(t))}</b>${st?` · <span class="pill ${st.level}">${esc(st.text)}</span>`:''}</div>`}
+    ${r.phase==='on-train'&&C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:''}
     <div class="meta">${offTrain?journeyFactsContentMarkup(C.journeyFacts(r.option,{train:t,duration:'remaining'}),{arrival:unknown?null:r.expectedArrival,showTrain:false})
       :journeyFactsMarkup(r.option,{train:t,arrival:unknown?null:r.expectedArrival,duration:'remaining',unavailable:unknown?true:undefined})}</div>
     ${r.phase==='before-train'?trainConnectionMarkup(t):''}
     ${r.direction==='home'?'':tubeLine}
     <div class="follow-status ${result.level}">${unknown?'Arrival uncertain · ':''}${esc(result.text)}</div>
+    ${result.ifMissed?`<div class="follow-ifmissed" data-block="if-missed">If you miss it: ${esc(result.ifMissed.std)}, ${r.direction==='office'?'office':'home'} ${hhmm(result.ifMissed.arrive)}</div>`:''}
     ${unknown||r.expectedArrival!==r.plannedArrival?`<div class="note">Original plan: arrive ${hhmm(r.plannedArrival)}</div>`:''}
     ${observation.connectionSource?`<div class="note">${esc(observation.connectionSource)}</div>`:''}
     ${!dataFresh&&!observation.onwardFresh&&!observation.trainArrivalLive?'<div class="note">Last known times · waiting for fresh journey data.</div>':''}
@@ -572,7 +579,11 @@ function renderSignalStatus(){
   }).join('');
   const result=C.statusLine(input);
   const planBoards=state.saved.view==='by'?state.by?.boards:state.saved.view==='at'?state.at?.boards:null;
-  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length&&!items.length){el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
+  el.hidden=false;
+  if(!state.boards&&!planBoards&&!failed.length&&!state.errors?.length&&!items.length){
+    // Under way on a followed route the trains aren't needed (on the tube, on the walk): nothing is missing (#57 E3).
+    if(state.saved.followRoute&&state.saved.followRoute.phase!=='before-train'){el.hidden=true;el.textContent='';return;}
+    el.className="info";el.textContent=state.loading?"Loading journey data…":"Journey data not available yet";return;}
   el.className=result.level;
   el.textContent=result.text;
   // Consolidated network flags must remain visible even when a train cancellation

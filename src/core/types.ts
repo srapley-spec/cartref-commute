@@ -46,6 +46,8 @@ export interface Option {
   flags: Flag[];
   late?: boolean;
   missed?: boolean;
+  /** Run needed, and only by eating into the station allowances (RUN_SLACK_MS): "Very tight · run". */
+  tight?: boolean;
   uncertain?: boolean;
   alts?: Option[];         // same train at other stations
   /** Effort levels: what it takes to catch it, and "Arrives first" per level. */

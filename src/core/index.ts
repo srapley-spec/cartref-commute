@@ -14,7 +14,7 @@ export { addCallingAlternatives } from "./alternatives";
 export { FACILITY, SERVICE, NETWORK_WIDE, facilityOnly, railWarnings, noticeTitle, BAD_SEV, worstStatus, lineOk, lineLevel, tubeFallbackNeeded, tubeFlags } from "./warnings";
 export type { RailWarnings, ImpactLevel, LineStatus } from "./warnings";
 export { liveAdjust, rankNow } from "./plan";
-export { effortNeeds, effortFor, leaveBy, gradeEffort, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
+export { effortNeeds, effortFor, leaveBy, gradeEffort, runWithoutSlack, RUN_SLACK_MS, markArrivesFirst, markLatestFor, effortOffers, effortKey, EFFORTS } from "./effort";
 export type { EffortProfile } from "./effort";
 export { accessOf, fastWalkLegs } from "./journey";
 export { planConnection, rideActive, rideEnded, rideDoubtful, boardSpot, boardMins, leftAgo, platformNo } from "./connections";
@@ -27,7 +27,7 @@ export { liveHorizon, mergeBeyond, markTimetable, clampOffset, missingPairSearch
 export { AT_OFFICE_KM, OFFICE_DWELL_MS } from "./situation";
 export { hubHere, awayFromHubs, watchStop, TRAIN_MOVING_MPS, STOPPED_MPS, STOP_WITHIN_MS, onLine, trackLine, railTrackingContext, lockOf, nearOffice, atOffice, walkFromStopSecs, STOP_EXIT_KM, inferDirection, whichTrain, stationContradiction, contradictionKey, STATION_MARGIN_KM, STATION_REPORT_SLACK_MS, STATION_EXPECTED_SLACK_MS, STATION_MAX_ACC_M, lockedTrain, onTube, whichTube, otherTubes, TUBE_REACH_SLACK_MS, inLondonToOffice, atOfficeTube, onTubeHome, whichTubeHome, nearlyHome, walkSecs, nearlyHomeEta, leftHome } from "./situation";
 export type { Fix, StopWatch, RailTrackingInput, RailTrackingContext, HubVisit, TubeStopVisit, TrainLock, Progress, TrainFit, WhichTrain, StationContradiction, DirectionMemory, Mode, Pace, TubeDep, HomeEta, LineTrack } from "./situation";
-export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, wrongTrainQuestion, switchTrainQuestion, tubeLine, chooseTripView, TRIP_VIEWS } from "./present";
+export { chooseView, headlineKind, statusLine, BLOCKS, wayLevel, WAY_COMFORT_MIN, trainName, tubeName, wrongTrainQuestion, switchTrainQuestion, tubeLine, thameslinkNote, chooseTripView, TRIP_VIEWS } from "./present";
 export type { View, Situation, HeadlineKind, Block, Presentation, StatusInput, StatusLine, StatusLevel, TripSituation } from "./present";
 export { segmentArrival, compareWithBest, bestConnections, buildOptions, trainFlags, timeToTrain, timeFromTrain, minTimeToTrain, callsText } from "./journey";
 export type { Route, Segment, Step, Leg, SegmentKind } from "./journey";

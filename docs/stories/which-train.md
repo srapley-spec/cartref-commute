@@ -127,7 +127,31 @@ on the selected train raised no false question):
 - The selection is still lost on a reload (C3). The list still offers up to three nearest trains whether or not
   they could be yours (C12).
 
+## The train you said you're on holds (11 Nov 2026, #57 retest R1): built 11 Nov
+On the 11 Nov retest Sam said which train he was on three times (once "I'm on it", twice by picking the 07:30) and
+each time, within minutes, the card went back to "Probably the 07:38 … or the 07:30". Cause (traced from the code):
+the page dropped any picked train whenever the phone wasn't placed on the line (`state.onLine` false: the first
+stretch near home, a tunnel, a coarse fix), and the boards only looked back for departed trains while on the line,
+so the picked train could also fall off them. Rule agreed by Sam, 07:54: **once you've said which train you're on,
+the card either affirms it or questions it openly; it never quietly goes back to "Probably …".**
+- A picked train (from "I'm on it" or the list) stays picked while the phone isn't on the line. It goes: at a London
+  station other than where it left from, unless it's still found on the boards going on further (a Thameslink through
+  St Pancras to Farringdon); 30 minutes after its arrival; 4 hours after it was picked; or when you pick another.
+- While a pick holds, the boards keep looking back 40 minutes (as on the line), so the train stays findable. If it's
+  still not among the departures, the pick is kept and nothing else is claimed in its place.
+- The pick survives a reload: saved with when it was made (`saved.trainPick`), restored if under 4 hours old,
+  ignored if malformed, cleared when dropped (#57 C3/C4).
+- When your position fits another train better and there's no station to point at, the question reads (Sam's
+  words): "You picked the 07:30 Great Northern, but your position fits the 07:38 Great Northern better. Still on the
+  07:30 Great Northern?" With a station to point at, Monday's wording stands.
+- Not built: Follow boarding itself on an unsure fit; the review of these rules is deferred to after Sam's homeward
+  test (Sam, 11 Nov: "We can relax the rules on the independent reviewer for this round").
+
 ## Tests
+- tests/retest-fixes.test.mjs: "A train you picked stays picked while the phone isn't placed on the line; it goes at the station it takes you to, or 30 min after its arrival"
+- tests/retest-fixes.test.mjs: "The pick survives a reload: kept with when it was made, restored if under 4 hours old, cleared when dropped"
+- tests/core/retest-fixes.test.mjs: "A train you picked that isn't among the departures just now stays picked (no new guess in its place)"
+- tests/core/retest-fixes.test.mjs: "The agreed question when your position fits another train better (Sam, 11 Nov): no station to point at"
 - tests/core/wrong-train.test.mjs: "Station check: the train left a station a minute or more ago and you still hadn't reached it → not your train"
 - tests/core/wrong-train.test.mjs: "Station check: you're past a station the train isn't due at for two minutes yet → not your train"
 - tests/core/wrong-train.test.mjs: "Station check: going home it reads the line the other way"

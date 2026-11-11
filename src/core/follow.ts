@@ -70,6 +70,8 @@ export interface FollowUpdate {
   route: FollowRoute; status: 'on-track' | 'hurry' | 'missed' | 'cancelled' | 'unknown' | 'arrived';
   level: 'ok' | 'warn' | 'bad' | 'info'; text: string; nextStep: Leg | null;
   notice: FollowNotice | null; alternative: Option | null; deltaMin: number | null; trainStatus: TrainStatus | null;
+  /** "Very tight · run": the next train you could take instead, and when it gets you there. */
+  ifMissed?: { std: string; arrive: number } | null;
 }
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const record = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -267,7 +269,11 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
   // A fresh cancellation is authoritative; only an obsolete board may yield to a fresh report.
   const selected = sourceSelected ? { ...sourceSelected, train: sourceSelected.train.cancelled ? sourceSelected.train : reportedTrain(sourceSelected.train) } : undefined;
   if (!selected && liveRailReport) route.lastTrain = reportedTrain(route.lastTrain);
+  // "You confirmed you are on your selected train" is an acknowledgement: it goes after 2 minutes (11 Nov 2026: it was
+  // still showing on the walk to the office).
+  route.notices = route.notices.filter(n => !(n.id === `${route.id}|recovered|boarding` && (input.now - n.at > 120e3 || route.phase === 'after-train' || route.phase === 'arrived')));
   let status: FollowUpdate['status'] = 'on-track', level: FollowUpdate['level'] = 'ok', text = 'On track';
+  let ifMissed: { std: string; arrive: number } | null = null;
   const addNotice = (kind: FollowNotice['kind'], key: string, message: string, deltaMin?: number, was?: number) => {
     const id = `${route.id}|${kind}|${key}`;
     if (kind === 'arrival') {
@@ -347,7 +353,16 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     } else if (connectionKnown) {
       const spare = Math.floor(((selected?.train.dep ?? route.lastTrain.dep) - connectionReady!) / MIN);
       text = spare > 0 ? `On track · ${spare} min at your connection` : 'On track · connection is tight';
-    } else if (!input.activeConnection && selected && ['fast', 'run', 'car'].includes(selected.effort || '')) { status = 'hurry'; level = 'warn'; const behind = Math.max(1, Math.ceil((input.now - selected.leave) / MIN)); text = `${behind} min behind · ${selected.effort === 'fast' ? 'fast walk' : selected.effort} needed`; }
+    } else if (!input.activeConnection && selected && ['fast', 'run', 'car'].includes(selected.effort || '')) {
+      // The warning ladder (Sam, 11 Nov 2026): "Tight · walk fast", "Very tight · run" (with the next train, below),
+      // "Can't make it" only when it is. No "N min behind" beside a Leave by that says otherwise (07:21 that day).
+      status = 'hurry'; level = 'warn';
+      text = selected.effort === 'fast' ? 'Tight · walk fast' : selected.effort === 'run' ? 'Very tight · run' : 'Very tight · car needed';
+      const next = (input.availableOptions || input.options).filter(o => !sameService(o, route.option) && !o.train.cancelled && !o.train.depUnknown
+        && !o.uncertain && o.train.dep > (selected.train.dep) && (o.effort ? ['walk', 'fast'].includes(o.effort) : o.leave >= input.now))
+        .sort((x, y) => x.arrive - y.arrive || x.train.dep - y.train.dep)[0];
+      if (selected.effort !== 'fast' && next) ifMissed = { std: next.train.std, arrive: next.arrive };
+    }
     else if (selected) {
       const spare = Math.floor((selected.leave - input.now) / MIN);
       text = spare > 0 ? `On track · ${spare} min to spare` : 'On track';
@@ -443,5 +458,5 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null
     : legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null;
   return { route, status, level, text, nextStep, trainStatus: railStatus, notice: route.notices[0] || null, alternative,
-    deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null };
+    deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null, ifMissed };
 }

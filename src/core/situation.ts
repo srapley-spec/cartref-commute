@@ -16,7 +16,9 @@ export interface TubeStopVisit { seen: number; deps: TubeDep[]; }
 export interface TrainLock { operator: string; std: string; from: StationCode; picked?: boolean; serviceId?: string;
   /** The evidence against this pick that the person has already answered "keep" to (`contradictionKey`): the same
    *  evidence doesn't ask again; new evidence does. */
-  kept?: string; }
+  kept?: string;
+  /** When it was picked (ms): a pick holds for at most 4 hours. */
+  at?: number; }
 /** Where National Rail last reported a train (Service Details, parsed). */
 export interface Progress {
   last: { code: string | null; t: number; name?: string } | null;
@@ -173,7 +175,10 @@ export function trackLine(prev: LineTrack | null, f: Fix, speed: number | null, 
   const pr = lineProgress(here, line);
   // The first tenth of the line (Letchworth to just past Hitchin, where home is) counts only right by the track
   // (300 m) and at train speed (12 m/s, about 43 km/h); beyond it, within 1 km at walking-plus speed.
-  const nearHome = pr.frac > 0.01 && pr.frac <= 0.1 && pr.offKm < 0.3;
+  // With `keep` (a train you picked, or the train you're following, seen leaving its station) the first stretch counts
+  // from 300 m out and within 600 m of the track: on 11 Nov the phone was "near Letchworth" at Hitchin and nothing
+  // looked for the train until past Stevenage.
+  const nearHome = (keep ? pr.frac > 0.005 : pr.frac > 0.01) && pr.frac <= 0.1 && pr.offKm < (keep ? 0.6 : 0.3);
   if (!nearHome && !(pr.offKm < 1.0 && pr.frac > 0.1 && (pr.frac < 0.97 || continuing))) return { onLine: false, track: null };
   const along = pr.frac * lineKm(line);
   const ref = prev && !prev.moving && prev.at != null && f.at != null && f.at > prev.at && f.at - prev.at <= 180e3 ? prev : null;
@@ -363,6 +368,10 @@ export function whichTrain(boards: Record<string, Board | null | undefined>, her
   const age = { stale, fixAgeMin: Math.round(ageMin) };
   // Remembering the service ID once it's known (a train remembered before live data arrived).
   const withId = (l: TrainLock, t: Train): TrainLock => (!l.serviceId && t.serviceId ? { ...l, serviceId: t.serviceId } : l);
+  // A train you picked that isn't among the departures just now (boards looked at without the look-back, a gap in
+  // the feed) is still your choice: keep it rather than replacing it with a guess (11 Nov 2026: picked the 07:30,
+  // then shown "Probably the 07:38").
+  if (lock && lock.picked && !locked) return { result: { none: true, others: [] }, lock };
   if (locked && lock!.picked) {
     // A choice remains the person's choice. Fresh contradictory evidence changes the confidence,
     // rather than silently choosing a different train or presenting the selection as certain.

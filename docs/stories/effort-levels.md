@@ -76,7 +76,16 @@ near now with the toggle off, Arrive by's own grades). Two numerical boundaries 
 (sub-millisecond rounding, exactly 100 m from home). The old 'leave now' rounding boundary was superseded on
 1 Nov: the pre-journey option uses only its exact countdown. See [top-card wording](top-card.md).
 
+## "Can't make it" only when it is (11 Nov 2026, #57 retest R2): built 11 Nov
+At 07:16 on 11 Nov, a third of the way to the station, the app said "Can't make it" for the 07:30; Sam was through
+the doors at 07:27 and on the platform at 07:28:14. The levels counted the station allowances (2 min to get in, a
+1 min catch margin) as if they couldn't be shortened. Now, when no level makes it (or only a cab, away from home),
+it checks running with up to 2 minutes of those allowances used up (`RUN_SLACK_MS`, `runWithoutSlack`): if that
+makes it, the level is "run" with `tight` set (lozenge "Run", followed card "Very tight · run"); only otherwise is it
+"none" ("Can't make it"). At home your own car stays "car". At the station the train leaves from, unchanged.
+
 ## Tests
+- tests/core/retest-fixes.test.mjs: "'Can't make it' only when even running, eating into 2 minutes of the station allowances, misses: otherwise 'Very tight · run'"
 - tests/core/effort.test.mjs: "effortNeeds: walk, fast walk, run (400 m at 1.8×, the rest fast), own car from home, a cab elsewhere"
 - tests/core/effort.test.mjs: "effortNeeds: fixed parts are never shortened; a short walk is all run; running never slower than a fast walk"
 - tests/core/effort.test.mjs: "effortFor: Sam's examples on a 10-minute walk — 1 min short fast walk, 5 min car, 9 min can't make it"

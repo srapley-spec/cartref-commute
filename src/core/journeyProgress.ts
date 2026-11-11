@@ -93,7 +93,7 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
   const delta=targetExpected!==null&&targetScheduled!==null?Math.round((targetExpected-targetScheduled)/60000):lastDelta;
   let status:JourneyProgressModel['status']={text:'Timing estimate · live comparison unavailable',level:'info',deltaMin:null};
   if(accepted&&delta!==null){
-    status={text:delta<0?`${-delta} min ahead`:delta>0?`${delta} min behind`:'On time',level:current.kind==='tube'?'info':delayLevel(delta,i.policy),deltaMin:delta};
+    status={text:delta<0?`${-delta} min ahead`:delta>0?`${delta} min behind`:'On time',level:current.kind==='tube'?'info':delta>0&&delayLevel(delta,i.policy)==='ok'?'warn':delayLevel(delta,i.policy),deltaMin:delta};   // behind is never green (11 Nov 2026)
     status.text+=' · '+(targetExpected!==null&&targetScheduled!==null?'live expected':'at last report');
   }
   if(source==='stale')status={text:'Last known progress · waiting for fresh data',level:'info',deltaMin:null};

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leg progress options</title>
+<style>
+:root{--ink:#14213d;--muted:#5b6475;--line:#d6dce6;--accent:#1f4fb5;--ok:#1f6b3a;--warn:#8a5a00;--bg:#f1f4f8;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink)}
+.wrap{max-width:1240px;margin:0 auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px}
+h1{font-size:18px;margin:16px 16px 0}p.intro{margin:4px 16px 0;color:var(--muted);max-width:900px}
+.opt h2{font-size:15px;margin:0 0 4px}.opt .why{color:var(--muted);font-size:13px;margin:0 0 10px}
+.card{background:var(--card);border:1.5px solid var(--accent);border-radius:18px;padding:14px 16px;margin-bottom:12px}
+.leg{font-weight:700;font-size:15px}.leg span{font-weight:400;color:var(--muted)}
+.src{font-size:13px;color:var(--muted);margin-top:6px}
+/* A: one line */
+.oneline{margin-top:8px;font-size:15px;line-height:1.6}.oneline b{font-weight:650}.tick{color:var(--ok);font-weight:700}
+.next{color:var(--accent);font-weight:650}
+details{margin-top:6px}summary{color:var(--accent);font-weight:650;font-size:13px;cursor:pointer;list-style:none;min-height:36px;display:flex;align-items:center}
+summary::before{content:'›';margin-right:6px;font-size:18px}details[open] summary::before{transform:rotate(90deg)}
+/* vertical list */
+.vlist{list-style:none;margin:8px 0 0;padding:0;position:relative}
+.vlist li{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:8px;padding:5px 0;position:relative}
+.vlist li::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--line)}
+.vlist li:first-child::before{top:50%}.vlist li:last-child::before{bottom:50%}
+.dot{display:block;flex:none;width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);background:#fff;z-index:1;justify-self:center}
+.done .dot{background:var(--ok);border-color:var(--ok)}.here .dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px #d8e3fb}
+.yours .dot{border-color:var(--ink);border-width:3px}
+.vlist .nm{font-weight:600}.done .nm{color:var(--muted);font-weight:500}.vlist .t{font-variant-numeric:tabular-nums;font-size:14px}
+.vlist .t small{display:block;color:var(--muted);font-size:12px;text-align:right}
+.youarehere{font-size:12px;color:var(--accent);font-weight:650;padding-left:30px;margin:-2px 0}
+.gap{color:var(--muted);font-size:13px;padding-left:30px}
+/* C: three-stop window */
+.win{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;position:relative}
+.win::before{content:'';position:absolute;top:8px;left:16%;right:16%;height:2px;background:var(--line)}
+.w{text-align:center;position:relative}.w .dot{margin:0 auto 6px}.w .nm{font-weight:600;font-size:14px}.w .t{font-size:13px;color:var(--muted)}
+.w.done .nm{color:var(--muted);font-weight:500}.w .lab{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.count{text-align:center;font-size:13px;color:var(--muted);margin-top:6px}
+.note{font-size:12.5px;color:var(--muted);background:#fff;border-radius:12px;padding:10px 12px}
+</style></head><body>
+<h1>Progress along a leg: three options (for Sam, 11 Nov)</h1>
+<p class="intro">Today's bar looked like a station position but showed time elapsed, and the station row ran off the right. Each option drops the bar and is built from live reports (National Rail for trains, TfL's location text for tubes). Shown on this morning's journey: the 07:30 at Welwyn North, and the 08:15 Met approaching Liverpool Street. Mockups only: nothing is built.</p>
+<div class="wrap">
+
+<section class="opt"><h2>A · One line, stations folded</h2><p class="why">The answer in one line; the full list is a tap away, top to bottom so it never runs off the page.</p>
+<div class="card"><div class="leg">Current leg · Train <span>Letchworth → King's Cross</span></div>
+<div class="oneline"><span class="tick">✓</span> <b>Last:</b> Welwyn North 07:50 · <span class="next">Next: Finsbury Park 08:03</span> · <b>Your stop:</b> King's Cross 08:08, 2 stops</div>
+<details><summary>All 6 stations</summary></details>
+<div class="src">National Rail report, 07:51 · 6 min late</div></div>
+<div class="card"><div class="leg">Current leg · Tube <span>King's Cross → Aldgate</span></div>
+<div class="oneline"><span class="tick">✓</span> <b>Last:</b> Moorgate · <span class="next">Next: Liverpool Street, approaching</span> · <b>Your stop:</b> Aldgate, 2 stops</div>
+<details open><summary>All 6 stations</summary>
+<ul class="vlist"><li class="done"><span class="dot"></span><span class="nm">King's Cross St Pancras</span><span class="t">08:15</span></li>
+<li class="done"><span class="dot"></span><span class="nm">Farringdon</span><span class="t">08:20</span></li>
+<li class="done"><span class="dot"></span><span class="nm">Barbican</span><span class="t">08:22</span></li>
+<li class="done"><span class="dot"></span><span class="nm">Moorgate</span><span class="t">08:24</span></li>
+<li class="here"><span class="dot"></span><span class="nm">Liverpool Street</span><span class="t">08:26</span></li>
+<li class="yours"><span class="dot"></span><span class="nm">Aldgate · your stop</span><span class="t">08:28</span></li></ul></details>
+<div class="src">TfL: "Approaching Liverpool Street", 08:26</div></div></section>
+
+<section class="opt"><h2>B · Vertical list, always shown</h2><p class="why">Everything at once, top to bottom. Clearest picture; long legs are shortened to the stops around you.</p>
+<div class="card"><div class="leg">Current leg · Train <span>Letchworth → King's Cross</span></div>
+<ul class="vlist"><li class="done"><span class="dot"></span><span class="nm">Letchworth Garden City</span><span class="t">07:34<small>4 late</small></span></li>
+<li class="done"><span class="dot"></span><span class="nm">Hitchin</span><span class="t">07:37<small>2 late</small></span></li>
+<li class="done"><span class="dot"></span><span class="nm">Welwyn North</span><span class="t">07:50<small>6 late</small></span></li></ul>
+<div class="youarehere">● You're about here</div>
+<ul class="vlist"><li><span class="dot"></span><span class="nm">Finsbury Park</span><span class="t">08:03<small>expected</small></span></li>
+<li class="yours"><span class="dot"></span><span class="nm">King's Cross · your stop</span><span class="t">08:08<small>5 late</small></span></li></ul>
+<div class="src">National Rail report, 07:51</div></div>
+<div class="card"><div class="leg">Current leg · Tube <span>King's Cross → Aldgate</span></div>
+<div class="gap">✓ King's Cross, Farringdon, Barbican</div>
+<ul class="vlist"><li class="done"><span class="dot"></span><span class="nm">Moorgate</span><span class="t">08:24</span></li>
+<li class="here"><span class="dot"></span><span class="nm">Liverpool Street · approaching</span><span class="t">08:26</span></li>
+<li class="yours"><span class="dot"></span><span class="nm">Aldgate · your stop</span><span class="t">08:28</span></li></ul>
+<div class="src">TfL: "Approaching Liverpool Street", 08:26</div></div></section>
+
+<section class="opt"><h2>C · Three stops across</h2><p class="why">Keeps today's sideways look, but only last, next and yours: never runs off the page.</p>
+<div class="card"><div class="leg">Current leg · Train <span>Letchworth → King's Cross</span></div>
+<div class="win"><div class="w done"><span class="dot" style="background:#1f6b3a;border-color:#1f6b3a"></span><div class="lab">Last</div><div class="nm">Welwyn North</div><div class="t">07:50 · 6 late</div></div>
+<div class="w here"><span class="dot" style="background:#1f4fb5;border-color:#1f4fb5"></span><div class="lab">Next</div><div class="nm">Finsbury Park</div><div class="t">08:03</div></div>
+<div class="w yours"><span class="dot" style="border-width:3px;border-color:#14213d"></span><div class="lab">Your stop</div><div class="nm">King's Cross</div><div class="t">08:08</div></div></div>
+<div class="count">2 stops to go · <span style="color:#1f4fb5;font-weight:650">All 6 stations ›</span></div>
+<div class="src">National Rail report, 07:51</div></div>
+<div class="card"><div class="leg">Current leg · Tube <span>King's Cross → Aldgate</span></div>
+<div class="win"><div class="w done"><span class="dot" style="background:#1f6b3a;border-color:#1f6b3a"></span><div class="lab">Last</div><div class="nm">Moorgate</div><div class="t">08:24</div></div>
+<div class="w here"><span class="dot" style="background:#1f4fb5;border-color:#1f4fb5"></span><div class="lab">Next</div><div class="nm">Liverpool Street</div><div class="t">approaching</div></div>
+<div class="w yours"><span class="dot" style="border-width:3px;border-color:#14213d"></span><div class="lab">Your stop</div><div class="nm">Aldgate</div><div class="t">08:28</div></div></div>
+<div class="count">2 stops to go · <span style="color:#1f4fb5;font-weight:650">All 6 stations ›</span></div>
+<div class="src">TfL: "Approaching Liverpool Street", 08:26</div></div></section>
+
+</div>
+<div class="wrap"><div class="note">All three: no bar; a station counts as passed only from a report (National Rail's actual time, or TfL's "At", "Left" or "Between" text), otherwise it's "expected"; times are the reports' own. Without any report the leg says so ("No live position yet") instead of guessing. Station names: TfL writes "Kings Cross St. Pancras", matched to the app's own.</div></div>
+</body></html>

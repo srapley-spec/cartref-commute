@@ -243,13 +243,18 @@ export function tubeLine(option: Option, direction: Direction, names: Record<str
  * confirmed by Sam, 10 Nov ("stopped at Knebworth at 07:33; you didn't": true of that minute whether or not your own
  * train calls there later).
  */
-export function wrongTrainQuestion(name: string, fit: { contradiction?: { kind: string; name: string; t: number } | null; reported?: boolean }): string {
+export function wrongTrainQuestion(name: string, fit: { contradiction?: { kind: string; name: string; t: number } | null; reported?: boolean }, better?: string | null): string {
   const c = fit.contradiction;
+  // Without a station to point at, and with a train that fits better: Sam's words, 11 Nov 2026.
+  if (!c && better) return `You picked the ${name}, but your position fits the ${better} better. Still on the ${name}?`;
   const evidence = c && c.kind === "left-before-you" ? `The ${name} stopped at ${c.name} at ${hhmm(c.t)}; you didn't.`
     : c && c.kind === "behind-you" ? `You've passed ${c.name}; the ${name} isn't due there until ${hhmm(c.t)}.`
     : `The ${name} doesn't match where you are${fit.reported ? " or where it was last reported" : ""}.`;
   return `${evidence} Which train are you on?`;
 }
+/** Thameslink trains only (#57 H19; words chosen by Sam, 11 Nov 2026). */
+export const thameslinkNote = (operator: string | undefined | null): string | null =>
+  /thameslink/i.test(String(operator || "")) ? "Thameslink: first class at the rear is open to standard tickets." : null;
 /** Asked before a train other than the one you're following is accepted (Sam, 10 Nov 2026). */
 export const switchTrainQuestion = (following: string, selected: string): string => `You're following the ${following}. Switch to the ${selected}?`;
 /** A tube as its front and the platform board name it: "10:03 Met to Aldgate". Line and destination as given. */
