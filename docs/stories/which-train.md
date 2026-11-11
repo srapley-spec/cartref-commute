@@ -225,14 +225,14 @@ the card either affirms it or questions it openly; it never quietly goes back to
 - tests/logic.test.mjs: "On the train: each train is named with where it's going, as its own screens say, to tell close trains apart"
 - tests/rules.test.mjs: "Review 2: the page uses the phone's own fix time; a picked train counts as moving; riding doesn't move your station; a ride clears the pick"
 
-## Only trains you could be on are offered as a correction (11 Nov 2026, #57 C12): built 11 Nov
+## Trains you could be on are offered as a correction, the rest under "More trains" (11 Nov 2026, #57 C12): built 11 Nov
 On the train, "On a different train?" / "Which train are you on?" listed the three nearest trains however far off.
 It now lists only trains that could be yours: not ruled out by a station report and within 12 minutes of where you
 are (the same 12 minutes that questions a pick). The train you're following is always offered; with a stale position
 nothing is filtered (there's nothing to judge by). When no train fits at all ("no train matches where you are"), the
 nearest are still offered so you can say. The wrong-train question keeps all its candidates. Other trains are still
-known to the engine (never hide a train); "More trains" to reach the rest is not built.
-- tests/clean-baseline.test.mjs: "The correction list offers only trains you could be on (C12); the train you're following is always among them"
+still offered, folded under "More trains" (never hide a train; amendment §6).
+- tests/clean-baseline.test.mjs: "The correction list offers trains you could be on (C12), the rest folded under 'More trains'; the train you're following is always among them"
 
 ## Not yet / open questions
 - #23: passing points (Darwin real-time) for non-stop runs; needs a server.

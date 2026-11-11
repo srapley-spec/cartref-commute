@@ -128,8 +128,8 @@ quietly goes back to "Probably …". `stories/which-train.md`, "The train you sa
 **Built 10 Nov (C1, C2)** on the existing on-train and followed cards, ahead of the single card: the question, the
 station check behind it, "Keep", asking before a different train is selected, "I'm on it" asking when unsure, and
 hiding a doubted train's reports. Exact rules and tests: [`stories/which-train.md`](stories/which-train.md), "The
-wrong train". **Built 11 Nov:** the correction lists only trains that could be yours (C12, `stories/which-train.md`).
-Not yet: the correction control always reachable after a reload (C4) and "More trains" (C12).
+wrong train". **Built 11 Nov:** the correction lists trains that could be yours, the rest under "More trains" (C12,
+`stories/which-train.md`). Not yet: the correction control always reachable after a reload (C4).
 - The question appears inside the one card as a caution panel (yellow `note`, not a status colour). It states the
   evidence, then asks, and never switches for you: "The 07:15 Great Northern stopped at Knebworth; you didn't. Which
   train are you on?" with the candidates as buttons (the train you're following first), "Keep the 07:15 Great

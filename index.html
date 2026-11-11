@@ -890,7 +890,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:19 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 14:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6712,6 +6712,11 @@ function couldBe(m){
   const route=followedRoute();
   return (m.others||[]).filter(c=>m.stale||(route&&C.followIsTrain(route,c.t))||(!c.ruledOut&&c.offMin<=12));
 }
+// The rest stay reachable, folded (amendment §6: "every other train stays reachable under More trains"; never hide a train).
+function moreTrains(m){
+  const shown=new Set(couldBe(m)), rest=(m.others||[]).filter(c=>!shown.has(c));
+  return rest.length?`<details class="more-trains" data-key="more-trains"><summary>More trains</summary>${rest.map(c=>pickButton(c)).join("")}</details>`:"";
+}
 function renderOnTrain(now, m){
  state.rendered=state.rendered||{};state.rendered.train=m;
   const dir=direction(), s=S(), dest=dir==="office"?"office":"home";
@@ -6745,7 +6750,7 @@ function renderOnTrain(now, m){
     <div class="meta" data-block="which" data-journey-service="${esc(journeyServiceKey(t))}">${journeyFactsMarkup(j,{train:{...t,arr:m.projected},arrival:j?arrive:null})}</div>
     ${trainConnectionMarkup({...t,arr:m.projected},STATIONS[t.from]||t.from,{arrival:m.projected,to:where,arrivalSource:m.live?'Live':'Estimated'})}
     ${pendingPickMarkup() || (m.conflict ? wrongTrainMarkup(m)
-      : couldBe(m).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...couldBe(m)].map(c=>pickButton(c)).join("")}</div>`:"")}
+      : (m.others||[]).length?`<div class="pick" data-block="which"><small>${m.sure?"On a different train?":"Which train are you on?"}</small>${[...(m.sure?[]:[m]), ...couldBe(m)].map(c=>pickButton(c)).join("")}${moreTrains(m)}</div>`:"")}
     <div data-block="progress" style="font-size:14px">${esc(where)} <span class="t">${hhmm(m.projected)}</span> ${m.live?"expected (live)":"projected"} · timetable <span class="t">${hhmm(sched)}</span></div>
     ${lastLine}
     ${legs.length?`<ol class="legs" data-block="then">${legs.map(l=>`<li class="t">${l.t==null?"":hhmm(l.t)}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:""}</li>`).join("")}</ol>`:""}

@@ -49,12 +49,15 @@ test("On the train: the leg is one line and a folded list of every station (opti
   assert.deepEqual(app.errors, []);
 });
 
-test("The correction list offers only trains you could be on (C12); the train you're following is always among them", async () => {
+test("The correction list offers trains you could be on (C12), the rest folded under 'More trains'; the train you're following is always among them", async () => {
   const { app, c, pointOn, place, panel } = await journey();
   place(34, pointOn(14 / 35), { onLine: true });
-  const offered = () => [...panel.querySelectorAll("[data-pick]")].map((b) => squash(b.textContent));
+  const offered = () => [...panel.querySelectorAll("[data-pick]")].filter((b) => !b.closest(".more-trains")).map((b) => squash(b.textContent));
   assert.ok(offered().some((t) => /10:15 Great Northern/.test(t)), JSON.stringify(offered()));
-  assert.ok(!offered().some((t) => /09:40/.test(t)), "the 09:40, half an hour further down the line, isn't offered");
+  assert.ok(!offered().some((t) => /09:40/.test(t)), "the 09:40, half an hour further down the line, isn't offered among them");
+  const more = panel.querySelector(".more-trains");
+  assert.ok(more && !more.open, "the rest are folded under 'More trains'"); assert.equal(squash(more.querySelector("summary").textContent), "More trains");
+  assert.ok([...more.querySelectorAll("[data-pick]")].some((b) => /09:40/.test(b.textContent)), "never hidden: the 09:40 is there to pick");
   assert.ok(c.state.rendered.train.others.some((o) => o.t.serviceId === "EARLY"), "(it is still a candidate the engine knows about)");
   assert.deepEqual(app.errors, []);
 });
