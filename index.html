@@ -793,6 +793,9 @@ html[data-theme="dark"] #alongLine.along-dialog{--paper:#090f16;--card:#121c28;-
 
 /* Keep explicit access available while scrolling the journey or simulator checkpoints. */
 #alongNavigation{position:sticky;top:env(safe-area-inset-top,0px);z-index:4;display:flex;align-items:center;min-height:44px;padding-block:4px;background:var(--paper);border-bottom:1px solid var(--line)}
+/* Under way it folds with the other controls behind the one-row summary (Sam, 11 Nov 18:46: "hide the along the line
+   button under the drop down at the top"); signal.css folds the rest. Kept here, after the bar's own display. */
+body[data-underway]:not([data-controls-open]) #alongNavigation{display:none}
 #alongNavigation button{min-height:44px;padding:8px 12px;font:inherit;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:9px;white-space:normal}
 
 /* Follow controls; status colours retain their usual meaning. */
@@ -895,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 18:43 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 11 Nov 18:48 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>

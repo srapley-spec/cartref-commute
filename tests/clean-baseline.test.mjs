@@ -169,3 +169,20 @@ test("Nearly home and the walk to the office: no heading over nothing, and 'Near
   await sleep(300);
   assert.deepEqual(app.errors, []); assert.deepEqual(off.errors, []);
 });
+
+test("Under way, 'Along the line' folds under the one-row controls with everything else; open them and it's there", async () => {
+  // Sam, 11 Nov 18:46: "Can you hide the along the line button under the drop down at the top".
+  const app = await createApp({ settings: { provider: "demo", followRoute: true, alongLine: true }, saved: { dirMode: "office" }, geo: null, now: T0 });
+  const shown = (node) => { for (let n = node; n; n = n.parentElement) { if (n.hidden || app.w.getComputedStyle(n).display === "none") return false; } return true; };
+  const nav = app.d.querySelector("#alongNavigation");
+  assert.ok(nav && !nav.hidden, "(Along the line is switched on)");
+  assert.equal(app.d.body.hasAttribute("data-underway"), false); assert.equal(shown(nav), true, "planning: in view");
+  [...app.d.querySelectorAll("[data-follow]")][0].click();
+  assert.equal(app.d.body.hasAttribute("data-underway"), true);
+  assert.equal(shown(nav), false, "under way: folded");
+  app.d.querySelector("#signalUnderwaySummary").click();
+  assert.equal(shown(nav), true, "opened: there, with its handler");
+  app.d.querySelector("#signalUnderwaySummary").click();
+  assert.equal(shown(nav), false);
+  assert.deepEqual(app.errors, []);
+});
