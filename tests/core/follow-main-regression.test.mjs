@@ -75,7 +75,7 @@ test('released-main follow effort: run-behind is not missed, impossible and depa
  const o54=trip('18:54','18:28','18:54','19:27'),o56=trip('18:56','18:34','18:56','19:34');
  assert.match(run(f,T('18:15'),[o,o54]).text,/7 min to spare/);
  const running=trip('18:48','18:22','18:48','19:09',{effort:'run'});
- const behind=run(f,T('18:24'),[running,o54]);assert.equal(behind.status,'hurry');assert.match(behind.text,/2 min behind.*run needed/);
+ const behind=run(f,T('18:24'),[running,o54]);assert.equal(behind.status,'hurry');assert.equal(behind.text,'Very tight · run','the ladder (11 Nov 2026)');
  const passed=run(f,T('18:24'),[{...running,missed:true},o54]);assert.equal(passed.status,'hurry','walking leave time passed, but explicit run remains possible');
  const none=run(f,T('18:30'),[trip('18:48','18:22','18:48','19:09',{effort:'none'}),o54,o56]);
  assert.equal(none.status,'missed');assert.match(none.notice.text,/no longer make.*18:48/);assert.equal(none.alternative.train.std,'18:54');assert.equal(same(f,none.alternative),false);

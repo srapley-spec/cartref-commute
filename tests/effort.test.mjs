@@ -96,7 +96,9 @@ test("Effort levels on: your car is only at home; on your way it's a cab (10 min
   assert.equal(b.c.atHome(), false);
   const onWay = b.c.ranked(now).find((o) => o.train.std === q.std);
   assert.equal(onWay.access.home, false);
-  assert.equal(onWay.effort, "none", "a cab takes 10 min: can't make it");
+  // A cab takes 10 min, so no level makes it as planned; running while using up to 2 min of the station allowances
+  // does (11 Nov 2026: "Can't make it" only when it is), so it's a very tight run.
+  assert.equal(onWay.effort, "run", "very tight: a run, eating into the station allowances"); assert.equal(onWay.tight, true);
   a.close(); b.close();
 });
 
@@ -122,7 +124,9 @@ test("Effort levels: the engine gets your settings (running speed and distance, 
   assert.deepEqual([ep.runFactor, ep.runKm, ep.carFromHomeSecs, ep.cabWaitSecs, ep.cabKmh, ep.walkKmh, ep.stickMs], [3, 1, 800, 300, 20, 5, 30e3]);
   // The 07:15 leaves 917 s in hand. Car: 180 + 800 = 980 s, too slow. Running 1 km (720 s of walking) at 3×:
   // 180 + 1086 − 720 × 1086/1337 + 240 ≈ 921 s, just too slow; at 3.1×, ≈ 913 s: a run.
-  assert.equal(a.c.ranked(now).find((o) => o.train.std === T.Z.std).effort, "none");
+  // …but using up to 2 min of the station allowances (11 Nov 2026), 921 − 120 = 801 s fits: a very tight run.
+  const z = a.c.ranked(now).find((o) => o.train.std === T.Z.std);
+  assert.equal(z.effort, "run"); assert.equal(z.tight, true);
   a.close();
   const b = await app({ effort: true, runFactor: 3.1, runM: 1000, carFromHome: 800 });
   assert.equal(b.c.ranked(now).find((o) => o.train.std === T.Z.std).effort, "run");

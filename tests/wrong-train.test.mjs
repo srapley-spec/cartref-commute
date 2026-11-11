@@ -212,7 +212,8 @@ test("Wrong train: a far-away selected train with no station report asks in the 
   click(`[data-pick="${SLOW}"]`); click("[data-pick-confirmed]");
   Object.assign(c.state, { here: pointOn(frac("FPK")), lastFixAt: now }); c.render();   // at Finsbury Park at 10:34: nowhere near it
   const panel = app.d.querySelector("[data-wrong-train]");
-  assert.match(panel.textContent, /^The 10:15 Great Northern to King's Cross doesn't match where you are\. Which train are you on\?/);
+  // No station to point at, and another train fits better: Sam's words (11 Nov 2026).
+  assert.match(panel.textContent, /^You picked the 10:15 Great Northern to King's Cross, but your position fits the .+ better\. Still on the 10:15 Great Northern to King's Cross\?/);
   assert.equal(panel.querySelector("[data-keep]").dataset.keep, "far");
   click("[data-wrong-train] [data-keep]");
   assert.equal(app.d.querySelector("[data-wrong-train]"), null);

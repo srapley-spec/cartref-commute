@@ -2229,7 +2229,9 @@ async function refresh(opts){
     const now=Date.now();
     state.railSource=source(); state.darwinFailed=false;
     // What to load for where you are (engine); the fetching is here.
-    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now)||!!state.trainLock?.picked,
+    // A pick that has run its course (30 min past the train's arrival, 4 hours old) goes here too, not only on a new fix.
+    if(state.trainLock?.picked&&!pickHolds(now))state.trainLock=null;
+    const plan=C.refreshPlan({ now, force, manual, source:state.railSource, dir:direction(), mode:mode(), view:state.saved.view||"now",following:!!activeFollow(),followingDeparted:!!followedDeparted(now)||pickHolds(now),
       awaitingLocation:awaitingLocation(), inLondonToOffice:inLondonToOffice(now), onTube:onTube(now), atHubToOffice:atHubToOffice(),
       onTheLine:!!state.onLine, nearOffice:nearOffice(),
       boards:{ at:state.boardsAt||null, source:state.boardsSource||null, fit:boardsFit(prev) },

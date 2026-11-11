@@ -80,7 +80,7 @@ scenario('main Follow preservation: a slow 19:06 route offers only five minute g
  const a=await open(),r=choose(a,'19:06');const better=a.c.state.followUpdate.alternative;assert.ok(better);assert.ok(r.expectedArrival-better.arrive>=5*MIN);
  const declined=a.w.CommuteCore.followServiceKey(better);a.d.querySelector('[data-follow-action="dismiss"]').click();a.c.render();
  assert.ok(a.c.state.saved.followRoute.dismissedAlternatives.includes(declined));assert.notEqual(a.c.state.followUpdate.alternative&&a.w.CommuteCore.followServiceKey(a.c.state.followUpdate.alternative),declined);
- freshRender(a,r.option.leave+MIN);assert.equal(a.c.state.followUpdate.status,'hurry','behind but still makeable at extra effort is not missed');assert.match(a.c.state.followUpdate.text,/behind/i);
+ freshRender(a,r.option.leave+MIN);assert.equal(a.c.state.followUpdate.status,'hurry','behind but still makeable at extra effort is not missed');assert.match(a.c.state.followUpdate.text,/^(Tight · walk fast|Very tight · (run|car needed))$/,'the ladder (11 Nov 2026)');
  freshRender(a,T('19:30'));assert.equal(a.c.state.followUpdate.status,'missed');assert.match(a.text('#followPanel'),/no longer make/);assert.ok(a.c.state.followUpdate.alternative);
  a.d.querySelector('[data-follow-action="boarded"]').click();assert.equal(a.c.state.trainLock.std,'19:06');assert.equal(a.c.state.trainLock.picked,true);assert.equal(a.c.state.saved.followRoute.phase,'on-train');assert.notEqual(a.c.state.followUpdate.status,'missed');
  assert.deepEqual(a.errors,[]);a.close();

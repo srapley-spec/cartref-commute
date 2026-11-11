@@ -141,7 +141,7 @@ test("At the change station, on the tube and on the walk to the office: still on
   c.state.saved.tubeRide = { hub: "ZFD", from: "ZFD", t: T0 + 97 * m, line: "Circle", vehicle: "v9", picked: true, rideMs: 7 * m, stop: "Aldgate", stopGeo: [51.5142, -0.0755] };
   place(100, [51.519, -0.094]);
   single();
-  assert.match(squash(one(".follow-service").textContent), /^You're on the 11:37 Circle/);
+  assert.match(squash(one(".follow-service").textContent), /^Your tube: 11:37 Circle/);
   assert.match(squash(one(".journey-progress").textContent), /Current leg · Tube/);
   // 11:46 at Aldgate, walking.
   c.state.saved.tubeRide = null; place(106, [51.5142, -0.0755]);
@@ -157,7 +157,7 @@ test("Coming home on the tube: one card, 'Got off already?' in view; at the stat
   place(12, [51.519, -0.094]);
   single();
   assert.match(text(), /Tube: Circle Met Aldgate → Farringdon · 7 min/);
-  assert.match(squash(one(".follow-service").textContent), /^You're on the Circle that left Aldgate at 10:10/);
+  assert.match(squash(one(".follow-service").textContent), /^Your tube: the Circle that left Aldgate at 10:10/);
   const gotOff = [...panel.querySelectorAll("button")].find((b) => /At Farringdon/.test(b.textContent));
   assert.ok(gotOff, "'Got off already?' is in the card"); assert.equal(folded(gotOff), false);
   assert.doesNotMatch(text(), /Get off at King's Cross/, "the tube card's own journey is not repeated");

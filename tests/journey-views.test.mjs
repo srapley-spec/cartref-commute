@@ -168,7 +168,7 @@ const factories={
  'on-tube':async a=>{
   const s=a.c.state;locate(s,[51.5201,-.0973]);
   s.saved.tubeRide={hub:'KGX',from:'KGX',t:NOW-2*MIN,line:'Met',vehicle:'parity-met',picked:true,rideMs:10*MIN,stop:'Aldgate',stopGeo:[51.5142,-.0755]};
-  a.c.render();assert.match(a.text('#hero'),/You're on.*Met/);assert.match(a.text('#hero'),/Aldgate/);
+  a.c.render();assert.match(a.text('#hero'),/Your tube: .*Met/);assert.match(a.text('#hero'),/Aldgate/);
   assert.ok(shown(a,'#hero [data-block="headline"]').length);
   assert.equal(s.saved.tubeRide.vehicle,'parity-met','drawing keeps the selected vehicle');
  },

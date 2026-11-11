@@ -745,7 +745,7 @@ test("Tube ride: pick your tube at King's Cross; once it leaves you're on it, pa
   // The Met leaves at 07:56: on the tube from then.
   app.at(now + 12.5 * m); c.state.lastFixAt = now + 12.5 * m; c.render();
   assert.match(app.text("#hero"), /^On the tube · 07:56 · the tube you picked/);
-  assert.match(app.text("#hero"), /You're on the 07:56 Met to Aldgate · you picked this/);
+  assert.match(app.text("#hero"), /Your tube: 07:56 Met to Aldgate · you picked this/);
   // A fix at Farringdon on the way: still on the tube, not "you're at Farringdon".
   app.at(now + 15 * m); await app.moveTo(51.5203, -0.1053, 20);
   assert.match(app.text("#hero"), /^On the tube/);
@@ -874,7 +874,7 @@ test("Review: tapping a tube that's leaving now makes it your ride; picks expire
   c.render();
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 2 * MIN) + '|Met"]').click();
   await app.fix(51.5260, -0.1110, 30, t0 + 3 * MIN);                // between stations
-  assert.match(app.text("#hero"), /You're on the 07:52 Met to Aldgate · you picked this/);
+  assert.match(app.text("#hero"), /Your tube: 07:52 Met to Aldgate · you picked this/);
   assert.match(app.text("#hero"), /On a different tube\?\s*Circle Aldgate · left 2 min ago/, "the board is gone: told by how long ago it left");
   // Tapping a tube that has already left: it's your ride, confirmed.
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 0.4 * MIN) + '|Circle"]').click();
@@ -1072,7 +1072,7 @@ test("Review 3: on an H&C ride, 'Your lines' is the H&C", async () => {
   app.d.querySelector('[data-tubepick^="KGX|' + (t0 + 7 * MIN) + '|H&C"]').click();
   await app.fix(51.5260, -0.1110, 30, t0 + 8 * MIN);
   const hero = app.text("#hero");
-  assert.match(hero, /You're on the 07:51 H&C/);
+  assert.match(hero, /Your tube: 07:51 H&C/);
   assert.match(hero, /Aldgate East/);
   app.d.querySelector('#signalNetwork').open=true;
   const lines=app.text('#signalCurrentLines');
@@ -1232,7 +1232,7 @@ test("Review 30 Oct: an old finished ride doesn't stop tonight's tube being work
   assert.equal(c.homeRide(T("16:48")), null); assert.equal(c.state.saved.tubePick.t, T("16:52"));
   assert.doesNotMatch(app.text("#hero"), /^On the tube/);
   app.at(T("16:53")); c.render();
-  assert.match(app.text("#hero"), /You're on the Met to Edgware Road that left Aldgate at 16:52 · you picked this/);
+  assert.match(app.text("#hero"), /Your tube: the Met to Edgware Road that left Aldgate at 16:52 · you picked this/);
   app.close();
 });
 
@@ -1270,7 +1270,7 @@ test("Going home: tubes from Aldgate get off where you're home soonest; pick one
   app.at(T("16:49")); c.render();
   hero = app.text("#hero");
   assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
-  assert.match(hero, /You're on the Circle to Edgware Road that left Aldgate at 16:46 · you picked this/);
+  assert.match(hero, /Your tube: the Circle to Edgware Road that left Aldgate at 16:46 · you picked this/);
   assert.match(hero, /Get off at King's Cross 16:56/);
   app.close();
 });
@@ -1342,7 +1342,7 @@ test("Going home 2: 'On a different tube?' switches you to one that has left; af
   assert.equal(app.d.querySelector("#hero [data-leftago]").dataset.leftago, String(T("16:41")), "ticks");
   app.d.querySelector('[data-tubepick^="ALD|' + T("16:41") + '|Met"]').click();   // actually on the 16:41 Met
   assert.equal(c.state.saved.tubeRide.from, "ALD");
-  assert.match(app.text("#hero"), /You're on the Met to Edgware Road that left Aldgate at 16:41/);
+  assert.match(app.text("#hero"), /Your tube: the Met to Edgware Road that left Aldgate at 16:41/);
   app.close();
   // Picked the 16:41, still at Aldgate at 16:45 (good fix): asked; say no; then underground as the 16:46 leaves.
   const h = await homeApp(T("16:30"));
@@ -1719,7 +1719,7 @@ async function aldgateHomeScenario(design) {
     app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
     await app.fix(...ALD, 15, T("16:44"));
     app.at(T("16:48")); c.render();
-    assert.match(app.text("#hero"), /You're on the Circle to Hammersmith that left Aldgate at 16:46/);
+    assert.match(app.text("#hero"), /Your tube: the Circle to Hammersmith that left Aldgate at 16:46/);
     assert.equal(app.d.querySelector("#hero .slack").className, "slack circle");
     assert.match(app.text("#hero"), /On a different tube\?\s*Met Amersham · left 7 min ago/);
     app.close();

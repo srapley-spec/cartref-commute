@@ -309,7 +309,7 @@ test('follow: departure grace is uncertain rather than catchable and behind prog
  const r=start(),grace=update(r,[option()],{now:t+30*MIN+25e3});assert.equal(grace.status,'hurry');assert.equal(grace.level,'info');assert.match(grace.text,/Departure just passed.*confirm/);assert.doesNotMatch(grace.text,/On track/);
  assert.equal(update(r,[option()],{now:t+30*MIN+31e3}).status,'missed');
  assert.equal(update(r,[option({effort:'none'})],{now:t+30*MIN+25e3}).status,'missed','an actual unreachable access rule is stronger than departure grace');
- for(const effort of ['run','car'])assert.match(update(r,[option({effort,missed:true})],{now:t+12*MIN}).text,new RegExp(`2 min behind.*${effort} needed`));
+ assert.equal(update(r,[option({effort:'run',missed:true})],{now:t+12*MIN}).text,'Very tight · run');assert.equal(update(r,[option({effort:'car',missed:true})],{now:t+12*MIN}).text,'Very tight · car needed');assert.equal(update(r,[option({effort:'fast'})],{now:t+12*MIN}).text,'Tight · walk fast');
 });
 
 test('follow: corrupted or recursively nested saved boarding alternatives are rejected before render',()=>{
