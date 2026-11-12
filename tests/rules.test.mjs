@@ -1322,10 +1322,12 @@ test("Going home: tubes from Aldgate get off where you're home soonest; pick one
   assert.match(hero, /^On the tube · 16:49 · the tube you picked/);
   assert.match(hero, /Your tube: the Circle to Edgware Road that left Aldgate at 16:46 · you picked this/);
   // On the tube you've left already: the trains home below don't count down to leaving (Sam, 11 Nov 18:21).
-  const cds = [...app.d.querySelectorAll("#list [data-cd]")];
-  assert.ok(cds.length > 0, "(the trains home are listed)");
-  assert.deepEqual(cds.map((e) => e.textContent), cds.map(() => ""), "no 'Leave now' / 'leave in' while riding");
+  assert.ok(app.d.querySelectorAll("#list .journey-heading").length > 0, "(the trains home are listed)");
+  assert.deepEqual([...app.d.querySelectorAll("#list [data-cd]")].map((e) => e.textContent).filter(Boolean), [], "no 'Leave now' / 'leave in' while riding");
   assert.equal(app.d.querySelectorAll("#list .journey-countdown.urgent").length, 0);
+  // Each train's deadline is its platform (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
+  const heads = [...app.d.querySelectorAll("#list .journey-heading")].map((h) => h.textContent.replace(/\s+/g, " "));
+  assert.ok(heads.length > 0 && heads.every((h) => /Be on the platform by/.test(h) && !/Leave by/.test(h)), JSON.stringify(heads));
   assert.match(hero, /Get off at King's Cross 16:56/);
   app.close();
 });

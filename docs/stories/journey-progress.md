@@ -121,11 +121,9 @@ mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam cho
   line and the list use the app's own name for a station it knows ("King's Cross", "Letchworth", the corridor's
   stations), matching the leg heading; a station the app doesn't know keeps the feed's name.
 - tests/journey-progress.test.mjs: "Signal progress: live expected arrival changes show behind and ahead against the original timetable"
-- **Known gap (11 Nov evening, "isn't updating"):** on the tube home without Follow, nothing fetches TfL's predictions
-  for your tube at King's Cross/Farringdon, so there is no report and the line stays "No live position yet" (the old
-  bar moved with the clock, which looked like updating). Follow already fetches them. Open for Sam: fetch them while
-  you're on the tube home (one TfL request per refresh, the same one Follow makes), or show a labelled timetable
-  estimate.
+- **11 Nov evening, "isn't updating":** on the tube home without Follow nothing fetched TfL's predictions for your tube,
+  so the line stayed "No live position yet". Sam chose to fetch them while riding home (built 11 Nov:
+  `tube-home.md`, "Where your tube is, on the way home").
 
 The acceptance criteria above (bar and marker wording) predate this; where they differ, this section is the app.
 

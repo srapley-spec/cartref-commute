@@ -1277,6 +1277,10 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
     +(C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:'');
 }
 function journeyHeadlineMarkup(j,dest,timing=''){
+  // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
+  // its platform, with no countdown to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
+  if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
+    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
@@ -2213,7 +2217,9 @@ function renderInner(){
     renderAtHub(now);
   } else if(view==="on-tube-home"){
     renderOnTubeHome(now);
-    const list=state.boards?ranked(now):[]; renderList(list, now); $("#listTitle").textContent="Trains home";
+    const list=state.boards?ranked(now):[];
+    state.rowsUnderWay=true; try{ renderList(list, now); } finally { state.rowsUnderWay=false; }
+    $("#listTitle").textContent="Trains home";
     // On the tube you've already left: the trains below don't count down to leaving (11 Nov 18:21, "I'm on the tube …
     // why is it telling me that!" under "Leave now · 1m 20s").
     $("#list").dataset.riding="1";

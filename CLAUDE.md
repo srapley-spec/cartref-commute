@@ -54,7 +54,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   leave clock and countdown in both complete recommendations and planning rows, including walking
   layouts. Train departure time, spare minutes and hidden Journey steps cannot substitute for it. Removing,
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
-  approval. The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit
+  approval. **Once you've set off (Sam, 12 Nov)** the followed card, and the trains listed under the tube you're on,
+  show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); planning rows and
+  recommendations keep Leave by. The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit
   Live's timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
 - **The key connection clock is protected too (Sam, 1 Nov).** Auto/Plan expose the scheduled train departure
   prominently in the approved journey + train panel. Concealing it or demoting it to small service metadata is

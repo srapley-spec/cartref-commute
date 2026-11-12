@@ -369,6 +369,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **12 Nov, "Be on the platform by" once you've set off (Sam).** The protected Leave by (1 Nov) gives way to the
+  platform deadline once you've left: on the followed card (on the tube to the station, over 100 m from the saved home
+  or 3 minutes nearer the station outbound, over 200 m from the office homeward) and on the trains listed under the
+  tube you're on. Planning rows and recommendations keep Leave by. From 11 Nov 07:21 ("Leave by" halfway to the
+  station) and #57 H4. Story: `stories/follow-a-route.md`, `stories/tube-home.md`.
+
 - **11 Nov evening, your tube's position on the way home without Follow (Sam).** With the bar gone (leg progress
   option A), the tube home without Follow showed "No live position yet" for the whole ride: nothing fetched TfL's
   predictions for your tube. Sam chose to fetch them: while a tube home is under way with a known vehicle, the page

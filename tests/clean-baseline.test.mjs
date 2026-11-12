@@ -119,7 +119,7 @@ test("Delays are said once: the status strip says it, and the disruption card un
   assert.deepEqual(app.errors, []);
 });
 
-test("Leave by holds until the station, even once you've set off (protected); a train you can't make shows the way on ('Instead: …')", async () => {
+test("Once you've set off the deadline is the platform ('Be on the platform by'); at home Leave by; a train you can't make shows the way on ('Instead: …')", async () => {
   const app = await createApp({ settings: { provider: "demo", followRoute: true }, saved: { dirMode: "office" }, geo: null, now: T0 });
   const c = app.c, P = app.w.CommuteCore.profiles.samCommute;
   c.state.boards = { "LET-KGX": { msgs: [], services: [
@@ -136,10 +136,9 @@ test("Leave by holds until the station, even once you've set off (protected); a 
   c.state.saved.home = home;
   fixAt(2, home);
   assert.match(panel(), /Next action ?10:14/); assert.doesNotMatch(panel(), /Be on the platform by/);
-  // 10:12, halfway between home and the station: the leave time stays (the protected answer; replacing it before the
-  // station is Sam's decision, not made here).
+  // 10:12, halfway between home and the station: the deadline is the platform (Sam, 12 Nov: "yes. Be on the platform by").
   fixAt(12, mid);
-  assert.doesNotMatch(panel(), /Be on the platform by/);
+  assert.match(panel(), /Be on the platform by/); assert.doesNotMatch(panel(), /Next action|Leave by/, "no leave time once you've left");
   // 10:41, never seen at the station: the 10:40 has gone; the header shows the way on.
   fixAt(41, [st[0] - 0.02, st[1] - 0.02]);
   assert.match(panel(), /You can no longer make your 10:40/);

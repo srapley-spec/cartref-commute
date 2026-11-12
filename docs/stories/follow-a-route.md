@@ -315,9 +315,9 @@ about a different train (one you selected instead), which is shown in full; and 
   the last redraw the card's parts are left as they are (a tap that began before a redraw still lands on its
   button); only the legs, which are redrawn on every pass, are taken in afresh.
 
-**Not built (amendment §1, §4, §7):** the change-station arrival taken from the recommended tube (the followed
-arrival still moves only when you board one); "Another option" for the same train calling at another station;
-"3 min to the tube platform" in the next step; the controls collapsing to one row under way; "35 min train" still
+**Not built (amendment §1, §4, §7) at the time** (the change-station arrival and the one-row controls were built
+11 Nov, "Clean baseline"): "Another option" for the same train calling at another station;
+"3 min to the tube platform" in the next step; "35 min train" still
 stands on a line of its own. At the station your train leaves from, the departures card under the followed card
 is still drawn (it is a plan, and it repeats your train as its first option): to raise with Sam.
 
@@ -382,9 +382,13 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   "Leave now · 45 s" (seconds under a minute, "1m 31s" above) on an accent band (`.journey-countdown.urgent`), not a
   status colour. Still the one departure instruction. The small "to walk to Letchworth at your usual pace" beneath
   it is not built.
-- **Leave by halfway to the station is unchanged** (11 Nov 07:21: "Leave by" while already halfway there; homeward at
-  Aldgate, #57 H4). Replacing the protected leave time before the station is a material change for Sam to decide
-  (CLAUDE.md); it is not made here. At the station, "Be on the platform by" as before.
+- **Once you've set off, "Be on the platform by"** (Sam, 12 Nov: "yes. Be on the platform by"; from 11 Nov 07:21,
+  "Leave by" while already halfway there, and #57 H4 homeward). The followed card's deadline is the platform time (the
+  same one used at the station), with no countdown to leaving. Set off: on the tube to the station; or outbound, the
+  app's left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home is); homeward, over
+  200 m from the office; position good to 150 m. At home or at the office it is Leave by, as before.
+- **The trains home under the tube you're on** lead with "Be on the platform by" too, with no countdown (Sam, 12 Nov:
+  "why wouldn't this also be 'be on the platform by'?").
 - **When it can no longer be made** (07:16, the header went to "Unavailable"): the header shows the way on: "Instead:
   the 07:45 Great Northern", its own Leave by → arrival, and its own journey figures, under "You can no longer make
   your 07:30".
@@ -422,7 +426,7 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   a rule); a wrong pick not flagged when the phone's position was stale (no fresh evidence to question it with).
 
 **Tests**
-- tests/clean-baseline.test.mjs: "Leave by holds until the station, even once you've set off (protected); a train you can't make shows the way on ('Instead: …')"
+- tests/clean-baseline.test.mjs: "Once you've set off the deadline is the platform ('Be on the platform by'); at home Leave by; a train you can't make shows the way on ('Instead: …')"
 - tests/clean-baseline.test.mjs: "Under way the controls fold into one row: 'Commute · To office · Leave now', which opens them; planning keeps them all"
 - tests/clean-baseline.test.mjs: "Under way, 'Along the line' folds under the one-row controls with everything else; open them and it's there"
 - tests/clean-baseline.test.mjs: "The location line names the nearest station out of London, says 'as of' an old position, and offers 'Update location' only then"
@@ -439,7 +443,7 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"
 - tests/wrong-train.test.mjs: "I'm on it: answering with the other train selects it without a second question; with nothing to doubt it confirms at once"
 - tests/wrong-train.test.mjs: "Wrong train: selecting a train other than the one you're following asks first; Stay changes nothing, Switch selects it"
-- tests/leave-by.test.mjs: "Leave by: following a route keeps the current access deadline exposed before boarding"
+- tests/leave-by.test.mjs: "Leave by: following a route keeps the access deadline exposed until you set off, then the platform (Sam, 12 Nov)"
 - Every scenario in tests/follow-main-regression.test.mjs runs against the production Signal presentation.
   With Follow off, Arrive by still saves the planning override. View pins do not enable Follow, reset the selected
   train, change direction or pause tracking. The old cross-design parity rule is retired.

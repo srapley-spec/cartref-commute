@@ -120,13 +120,24 @@ test('Leave by: reaching the station retains the train panel and choosing Live r
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-test('Leave by: following a route keeps the current access deadline exposed before boarding',async()=>{
- const a=await fixture(),best=a.c.ranked(NOW).find(o=>o.recommended===1);
+test('Leave by: following a route keeps the access deadline exposed until you set off, then the platform (Sam, 12 Nov)',async()=>{
+ // At home (the saved home is where you are): the followed card keeps the canonical leave clock.
+ const a=await fixture({home:HERE}),best=a.c.ranked(NOW).find(o=>o.recommended===1);
  a.d.querySelector('#hero>.opt [data-follow]').click();
  assert.equal(a.d.querySelector('#followPanel').hidden,false);
  deadline(a,a.d.querySelector('#followPanel'),best);
  pin(a,'plan');deadline(a,a.d.querySelector('#hero>.opt'),a.c.ranked(NOW).find(o=>o.recommended===1));
  assert.deepEqual(a.errors,[]);a.close();
+ // A kilometre from home, on the way: the followed card's deadline is the platform (Sam, 12 Nov: "yes. Be on the
+ // platform by"), with no countdown to leaving; the recommendation in Plan keeps its leave clock.
+ const b=await fixture(),opt=b.c.ranked(NOW).find(o=>o.recommended===1);
+ b.d.querySelector('#hero>.opt [data-follow]').click();
+ const panel=b.d.querySelector('#followPanel'),head=panel.querySelector('.journey-heading');
+ assert.match(head.textContent,/Be on the platform by/);assert.doesNotMatch(head.textContent,/Leave by/);
+ assert.match(head.textContent,new RegExp(hm(b.w.CommuteCore.platformBy(opt,opt.train.dep,NOW))));
+ assert.equal(head.querySelector('[data-cd]'),null,'no countdown to leaving');
+ pin(b,'plan');deadline(b,b.d.querySelector('#hero>.opt'),b.c.ranked(NOW).find(o=>o.recommended===1));
+ assert.deepEqual(b.errors,[]);b.close();
 });
 
 test('Leave by: a running alternative qualifies its passed walking deadline instead of inventing a new leave time',async()=>{
