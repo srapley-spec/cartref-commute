@@ -242,6 +242,30 @@ Minutes are whole minutes, rounded down.
 | Service Details | ≤ 1 per minute for the ride you're on |
 | TfL station lookups | 0 (bundled) |
 
+## When Google fails (12 Nov 2026)
+Sam, 14:13, Trip to NE38 8SA with "Drive from": the screen showed only "Times from the stations: Couldn't reach Google
+for travel times." and no trains.
+- **Cause (from Google's documentation, high confidence it is a bug; not yet seen on the phone):** driving times were
+  asked "with traffic, departing now", the departure taken when the request was built. Google refuses a past departure
+  time for driving ("You can only specify a departureTime in the past when RouteTravelMode is set to TRANSIT"), and by
+  the time Google reads it, it is past. Walking times send no departure, which is why the other end worked. Now a
+  driving departure within the next minute is left out (Google then uses the time of the request); a later one is sent.
+  Both Google adapters (key in the browser, and the proxy).
+- **Google's own error is kept** in the message, short and with anything key-like removed: "Couldn't reach Google for
+  travel times (INVALID_ARGUMENT: …)"; through the proxy, Google's status and message after the HTTP status.
+  "Couldn't reach" was the wording for any error that wasn't quota, refusal or timeout, so it named no cause.
+- **The trains are shown when station times fail** (never hide a train): the stations are kept, untimed, and each
+  journey says "No driving time from Newcastle (Google: …): door-to-door times unknown". Google answering "no route"
+  to every station (not an error) still ends the plan with that reason, as before.
+- tests/core/trip.test.mjs: "planTrip: Google failing for the times from the stations keeps the trains, untimed and flagged with Google's error (12 Nov, NE38 8SA)"
+- tests/trip-google.test.mjs: "Google's own error is kept in the message, short and with nothing key-like (12 Nov: 'Couldn't reach Google for travel times' named no cause)"
+- tests/trip-google.test.mjs: "Driving times: a departure that's now or past is left out (Google refuses a past one for driving); a later one is sent"
+- tests/trip-google.test.mjs: "googleDetail: a bare key anywhere is masked, the error's own name is kept, and the detail is capped at 140 characters"
+- tests/trip-google.test.mjs: "Driving times: a departure less than a minute ahead is left out too (Google may read it as past)"
+- tests/core/trip.test.mjs: "planTrip: Google failing for the times TO the stations keeps the trains too, flagged 'No driving time to …'"
+- Independent review (12 Nov): 12 deliberate breakages, 5 caught at first; the three tests above catch the rest (the
+  key masking, the minute's margin, the "to" side's flag).
+
 ## Tests
 How the engine works and how it was tested, end to end: `docs/trip-engine.md`. Live comparison runs: `docs/reviews/trip-20-journeys-2026-11-03.md`, `docs/reviews/trip-complex-journeys-2026-11-03.md`; re-run with `tools/trip-compare.mjs`.
 Built so far (the build log in the architecture says what is and isn't on screen):

@@ -8,17 +8,29 @@ const tripAdapters = (() => {
   "use strict";
   const err = (message, flags) => Object.assign(new Error(message), flags);
   /** Shared error mapping: quota → rateLimited; refused key / API not enabled → refused; abort → timeout; else network. */
+  // What Google actually said, kept short and stripped of anything key-like, so a failure on the phone names its cause
+  // (12 Nov: "Couldn't reach Google for travel times" told us nothing; the error itself was thrown away).
+  function googleDetail(e) {
+    const parts = [e && e.code, e && e.status, e && e.name !== "Error" ? e.name : "", e && e.message].map(x => String(x || "").trim()).filter(Boolean);
+    const text = [...new Set(parts)].join(": ").replace(/AIza[0-9A-Za-z_-]{10,}/g, "[key]").replace(/([?&]key=)[^&\s]+/gi, "$1[key]").replace(/\s+/g, " ");
+    return text.length > 140 ? text.slice(0, 137) + "…" : text;
+  }
   function googleError(e, what) {
-    const s = String((e && (e.code || e.status || e.name || e.message)) || e);
+    const s = String((e && (e.code || e.status || e.name || e.message)) || e), detail = googleDetail(e);
     if (/RESOURCE_EXHAUSTED|OVER_QUERY_LIMIT|429/i.test(s)) return err(`Google ${what}: too many requests for now.`, { rateLimited: true });
     if (/REQUEST_DENIED|PERMISSION_DENIED|403|API_KEY|ApiNotActivated|InvalidKey|RefererNotAllowed/i.test(s)) return err(`Google refused the ${what} request: check the key and that its APIs are enabled.`, { refused: true });
     if (/abort|timeout/i.test(s)) return err(`Google ${what} didn't respond in time.`, { timeout: true });
-    return err(`Couldn't reach Google for ${what}.`, { network: true });
+    return err(`Couldn't reach Google for ${what}${detail ? ` (${detail})` : ""}.`, { network: true, detail });
   }
   const httpError = (status, what) => status === 429 ? err(`${what}: too many requests for now.`, { rateLimited: true })
     : status === 401 || status === 403 ? err(`${what} refused the request (HTTP ${status}).`, { refused: true })
     : err(`${what} error (HTTP ${status}).`, { network: true });
   const MODE_JS = { walk: "WALKING", cycle: "BICYCLING", drive: "DRIVING" };
+  // Driving times with traffic: Google refuses a departure time in the past ("You can only specify a departureTime in
+  // the past when RouteTravelMode is set to TRANSIT"), and "now" taken here is already past when Google reads it. So a
+  // departure within the next minute is left out (Google then uses the time of the request); a later one is sent.
+  // 12 Nov: every "Drive from" plan failed this way ("Couldn't reach Google for travel times").
+  const driveDeparture = at => (Number.isFinite(at) && at > Date.now() + 60e3 ? at : null);
   /** A Google transit route → GapRoute (src/core/trip/gaps.ts): rides and walks over a minute, times as epoch ms. From the
    *  Routes API REST shape (steps with transitDetails) and the Maps JS DirectionsService shape (steps with `transit`). */
   const GAP_KIND = v => /SUBWAY|METRO_RAIL|TRAM|LIGHT_RAIL/.test(v) ? "tube" : /BUS|COACH|TROLLEY/.test(v) ? "bus" : /RAIL|TRAIN/.test(v) ? "rail" : "other";
@@ -106,7 +118,7 @@ const tripAdapters = (() => {
           const a = [pt(place)], b = stations.map(pt);
           const { matrix } = await RouteMatrix.computeRouteMatrix({ origins: dir === "to" ? a : b, destinations: dir === "to" ? b : a,
             travelMode: MODE_JS[mode], fields: ["durationMillis", "distanceMeters", "condition"],
-            ...(mode === "drive" ? { departureTime: new Date(Math.max(at, Date.now())), routingPreference: "TRAFFIC_AWARE" } : {}) });
+            ...(mode === "drive" ? { routingPreference: "TRAFFIC_AWARE", ...(driveDeparture(at) ? { departureTime: new Date(driveDeparture(at)) } : {}) } : {}) });
           return stations.map((_, i) => { const item = dir === "to" ? matrix.rows[0].items[i] : matrix.rows[i].items[0];
             if (!item || item.condition === "ROUTE_NOT_FOUND" || item.error) return null;
             return { metres: Math.round(item.distanceMeters), secs: Math.floor(item.durationMillis / 1000) }; });
@@ -134,7 +146,11 @@ const tripAdapters = (() => {
       const epoch = net.epoch(); let r;
       try { r = await net.fetchT(`${base()}/google/${path}`, init); } catch (e) { if (e && (e.staleSource || e.sourceChanged)) throw e; throw googleError(e, what); }
       net.assertEpoch(epoch);
-      if (!r.ok) throw httpError(r.status, `Google ${what}`);
+      if (!r.ok) {
+        // Google's own error (e.g. INVALID_ARGUMENT and its message) comes back through the proxy: keep it.
+        let said = ""; try { const j = await r.json(); said = googleDetail({ status: j && j.error && j.error.status, message: j && j.error && j.error.message }).replace(/\.+$/, ""); } catch (_) { /* not JSON */ }
+        const e = httpError(r.status, `Google ${what}`); if (said) { e.message = e.message.replace(/\.$/, ` · ${said}.`); e.detail = said; } throw e;
+      }
       return r.json();
     }
     const post = body => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -161,7 +177,7 @@ const tripAdapters = (() => {
       async matrix(place, stations, mode, at, dir) {
         const a = [ll(place)], b = stations.map(ll);
         const j = await call("travel times", "routes/distanceMatrix/v2:computeRouteMatrix", post({ origins: dir === "to" ? a : b, destinations: dir === "to" ? b : a,
-          travelMode: MODE_REST[mode], ...(mode === "drive" ? { routingPreference: "TRAFFIC_AWARE", departureTime: new Date(Math.max(at, Date.now())).toISOString() } : {}) }));
+          travelMode: MODE_REST[mode], ...(mode === "drive" ? { routingPreference: "TRAFFIC_AWARE", ...(driveDeparture(at) ? { departureTime: new Date(driveDeparture(at)).toISOString() } : {}) } : {}) }));
         const out = stations.map(() => null);
         (Array.isArray(j) ? j : []).forEach(e => { const i = dir === "to" ? e.destinationIndex : e.originIndex;
           if (i == null || i >= out.length || (e.condition && e.condition !== "ROUTE_EXISTS") || (e.status && e.status.code)) return;

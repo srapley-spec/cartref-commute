@@ -102,3 +102,65 @@ test("TfL planner adapter: a station TfL doesn't know is never asked about", asy
   const r = await x.ad.plan(stn("DPD", {}), stn("B", { tflIcs: ["2"] }), Date.now(), "Departing");
   assert.equal(x.urls.length, 0); assert.match(r.refused[0], /TfL doesn't know DPD/);
 });
+
+test("Google's own error is kept in the message, short and with nothing key-like (12 Nov: 'Couldn't reach Google for travel times' named no cause)", async () => {
+  // Maps JS: an error the library throws that isn't quota, refusal or timeout.
+  globalThis.google = { maps: { importLibrary: async () => ({ RouteMatrix: { computeRouteMatrix: async () => {
+    throw Object.assign(new Error(`RouteMatrix.computeRouteMatrix: INVALID_ARGUMENT: departureTime must be in the future https://maps.googleapis.com/x?key=${KEY}`), { code: "INVALID_ARGUMENT" }); } } }) } };
+  const js = A.googleMapsJs({ getKey: () => KEY, net: net(), loadScript: async () => {} });
+  await assert.rejects(js.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", Date.now(), "from"), (e) => {
+    assert.match(e.message, /^Couldn't reach Google for travel times \(INVALID_ARGUMENT: RouteMatrix\.computeRouteMatrix: INVALID_ARGUMENT: departureTime must be in the future/);
+    assert.ok(!e.message.includes(KEY) && !/AIza/.test(e.message), "no key in the message");
+    assert.ok(e.message.length < 200); return true; });
+  // Through the proxy: Google's error body (status and message) is kept after the HTTP status.
+  const px = A.googleProxy({ getBase: () => "https://proxy.example/", net: net(async () => ({ ok: false, status: 400,
+    json: async () => ({ error: { code: 400, status: "INVALID_ARGUMENT", message: "Invalid routing preference for this travel mode." } }) })) });
+  await assert.rejects(px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", Date.now(), "from"),
+    (e) => /^Google travel times error \(HTTP 400\) · INVALID_ARGUMENT: Invalid routing preference for this travel mode\.\.?$/.test(e.message) || assert.fail(e.message));
+  // No detail at all: the plain wording, as before.
+  globalThis.google = { maps: { importLibrary: async () => { throw new TypeError(""); } } };
+  const bare = A.googleMapsJs({ getKey: () => KEY, net: net(), loadScript: async () => {} });
+  await assert.rejects(bare.matrix([54.9, -1.5], [[54.97, -1.61]], "walk", Date.now(), "from"), (e) => /^Couldn't reach Google for travel times( \(TypeError\))?\.$/.test(e.message) || assert.fail(e.message));
+});
+
+test("Driving times: a departure that's now or past is left out (Google refuses a past one for driving); a later one is sent", async () => {
+  const bodies = [];
+  const px = A.googleProxy({ getBase: () => "https://proxy.example/", net: net(async (url, init) => { bodies.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => [] }; }) });
+  const now = Date.now();
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now, "from");
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now - 5 * 60e3, "from");
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 30 * 60e3, "from");
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "walk", now + 30 * 60e3, "from");
+  assert.deepEqual(bodies.map((b) => [b.travelMode, b.routingPreference ?? null, b.departureTime ?? null]), [
+    ["DRIVE", "TRAFFIC_AWARE", null], ["DRIVE", "TRAFFIC_AWARE", null], ["DRIVE", "TRAFFIC_AWARE", new Date(now + 30 * 60e3).toISOString()], ["WALK", null, null]]);
+  // The Maps JS library: the same rule.
+  const reqs = [];
+  globalThis.google = { maps: { importLibrary: async () => ({ RouteMatrix: { computeRouteMatrix: async (req) => { reqs.push(req); return { matrix: { rows: [{ items: [{ condition: "ROUTE_EXISTS", distanceMeters: 1, durationMillis: 1000 }] }] } }; } } }) } };
+  const js = A.googleMapsJs({ getKey: () => KEY, net: net(), loadScript: async () => {} });
+  await js.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now, "to");
+  await js.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 30 * 60e3, "to");
+  assert.equal("departureTime" in reqs[0], false); assert.equal(reqs[1].departureTime.getTime(), now + 30 * 60e3);
+});
+
+test("googleDetail: a bare key anywhere is masked, the error's own name is kept, and the detail is capped at 140 characters", async () => {
+  const bare = `AIza${"Q".repeat(30)}`;
+  globalThis.google = { maps: { importLibrary: async () => ({ RouteMatrix: { computeRouteMatrix: async () => {
+    throw Object.assign(new RangeError(`bad request for ${bare} https://h/x?key=s3cretNotAIza&v=1 ` + "x".repeat(300)), { code: "INVALID_ARGUMENT" }); } } }) } };
+  const js = A.googleMapsJs({ getKey: () => KEY, net: net(), loadScript: async () => {} });
+  await assert.rejects(js.matrix([54.9, -1.5], [[54.97, -1.61]], "walk", Date.now(), "from"), (e) => {
+    assert.ok(!e.message.includes(bare), "a key outside a ?key= parameter is masked");
+    assert.ok(!e.message.includes("s3cretNotAIza") && /key=\[key\]/.test(e.message), "any ?key= value is masked, whatever it looks like");
+    assert.match(e.message, /\(INVALID_ARGUMENT: RangeError: bad request for \[key\]/, "the error's name is kept");
+    assert.ok(e.detail.length <= 140 && e.detail.endsWith("…"), `capped: ${e.detail.length}`);
+    return true; });
+});
+
+test("Driving times: a departure less than a minute ahead is left out too (Google may read it as past)", async () => {
+  const bodies = [];
+  const px = A.googleProxy({ getBase: () => "https://proxy.example/", net: net(async (url, init) => { bodies.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => [] }; }) });
+  const now = Date.now();
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 30e3, "from");
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 90e3, "from");
+  assert.equal(bodies[0].departureTime, undefined, "30 s ahead: left out");
+  assert.equal(bodies[1].departureTime, new Date(now + 90e3).toISOString(), "90 s ahead: sent");
+});
