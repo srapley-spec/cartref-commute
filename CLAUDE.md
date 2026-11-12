@@ -56,8 +56,11 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
   approval. **Once you've set off (Sam, 12 Nov)** the followed card, and the trains listed under the tube you're on,
   show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); planning rows and
-  recommendations keep Leave by. The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit
-  Live's timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
+  recommendations keep Leave by. Every left time counts down to the start of the next step, in that step's words.
+  The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit Live's
+  timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
+- **All modes (Sam, 12 Nov).** A change applies to Commute, Leisure and Trip unless there is a reason not to; each story
+  says which modes it covers and why any is left out. Trip has its own following engine and card: not yet on this card.
 - **The key connection clock is protected too (Sam, 1 Nov).** Auto/Plan expose the scheduled train departure
   prominently in the approved journey + train panel. Concealing it or demoting it to small service metadata is
   a material change to flag before shipping; preserve separately labelled expected times and both recommendations.

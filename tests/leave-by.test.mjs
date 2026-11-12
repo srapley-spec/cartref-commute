@@ -129,13 +129,15 @@ test('Leave by: following a route keeps the access deadline exposed until you se
  pin(a,'plan');deadline(a,a.d.querySelector('#hero>.opt'),a.c.ranked(NOW).find(o=>o.recommended===1));
  assert.deepEqual(a.errors,[]);a.close();
  // A kilometre from home, on the way: the followed card's deadline is the platform (Sam, 12 Nov: "yes. Be on the
- // platform by"), with no countdown to leaving; the recommendation in Plan keeps its leave clock.
+ // platform by"), counting down to the platform time; the recommendation in Plan keeps its leave clock.
  const b=await fixture(),opt=b.c.ranked(NOW).find(o=>o.recommended===1);
  b.d.querySelector('#hero>.opt [data-follow]').click();
  const panel=b.d.querySelector('#followPanel'),head=panel.querySelector('.journey-heading');
  assert.match(head.textContent,/Be on the platform by/);assert.doesNotMatch(head.textContent,/Leave by/);
  assert.match(head.textContent,new RegExp(hm(b.w.CommuteCore.platformBy(opt,opt.train.dep,NOW))));
- assert.equal(head.querySelector('[data-cd]'),null,'no countdown to leaving');
+ // It counts down to the platform time, in its own words (Sam, 12 Nov: countdown to the start of the next step).
+ const cd=head.querySelector('[data-cd]');assert.equal(cd?.dataset.step,'platform');b.c.render();
+ assert.match(cd.textContent,/^(on the platform in \d+m \d\ds|Head for the platform now · .+|platform time passed)$/);assert.doesNotMatch(head.textContent,/leave in|Leave now/);
  pin(b,'plan');deadline(b,b.d.querySelector('#hero>.opt'),b.c.ranked(NOW).find(o=>o.recommended===1));
  assert.deepEqual(b.errors,[]);b.close();
 });

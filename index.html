@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 12 Nov 13:40 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 12 Nov 13:55 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6642,23 +6642,24 @@ function journeyHeadlineMarkup(j,dest,timing=''){
   // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
   // its platform, with no countdown to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
   if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
-    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,timing});
+    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,step:'platform',timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
-function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing='',countdown='',leftLabel='Leave by',isLeave=true}){
-  const known=available&&Number.isFinite(leave),arrival=available&&Number.isFinite(arrive);
+// `step` names what the left time is the start of (leave, platform, arrive, next): it counts down in that step's words.
+function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing='',countdown='',leftLabel='Leave by',isLeave=true,step=isLeave?'leave':''}){
+  const known=available&&Number.isFinite(leave),arrival=available&&Number.isFinite(arrive),counts=known&&!!step;
   return `<div class="journey-heading"${known&&isLeave?` data-fact="leave-by" data-ms="${leave}"`:''}>
     <div class="optrow journey-times">
       <div><small>${esc(leftLabel)}</small><span class="t optbig${known?'':' word'}">${known?hhmm(leave):'Unavailable'}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
       <div><small>At ${esc(dest)}</small><span class="t optbig${arrival?'':' word'}">${arrival?hhmm(arrive):'Unavailable'}</span></div>
     </div>
-    <div class="journey-countdown">${known&&isLeave?`<span data-cd="${leave}">${esc(countdown)}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${known?' · ':''}${timing}`:''}</div>
+    <div class="journey-countdown">${counts?`<span data-cd="${leave}" data-step="${esc(step)}">${esc(countdown)}</span>${pace?' · '+esc(pace):''}`:''}${timing?`${counts?' · ':''}${timing}`:''}</div>
   </div>`;
 }
 function activeJourneyHeadingMarkup({station,stationArrival,arrival,dest}){
-  return journeyTimesMarkup({leave:stationArrival,arrive:arrival,dest,leftLabel:'At '+station,isLeave:false});
+  return journeyTimesMarkup({leave:stationArrival,arrive:arrival,dest,leftLabel:'At '+station,isLeave:false,step:'arrive'});
 }
 function journeyStepsMarkup(legs,{key,summary='Journey steps',open=false,extraClass='',tubeLegs=false}={}){
   return `<details class="steps${extraClass?' '+esc(extraClass):''}"${key?` data-key="${esc(key)}"`:''}${open?' open':''}><summary>${esc(summary)}</summary><ol class="legs">${legs.map(l=>`<li class="t">${l.t==null?'':hhmm(l.t)}</li><li class="d${tubeLegs&&l.tube?' tube':''}">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>`;
@@ -6988,7 +6989,7 @@ function renderAtHub(now){
     const pickBtns = listed.length ? `<div class="pick tube-list" data-block="which"><small>Tubes to Aldgate and Aldgate East · as on the platform board · tap the one you're getting</small>${earlyRows.length?`<div class="tube-sub">If you're near the platform</div>${earlyRows.map(tubeRow).join("")}`:""}${earlyRows.length&&laterRows.length?`<div class="tube-sub">Then</div>`:""}${laterRows.map(tubeRow).join("")}</div>` : "";
     const nearly = "";
     hero=`${head}
-      <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next tube',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
+      <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next tube',isLeave:false,step:'next'})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
       <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px">eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
       <ol class="legs" data-block="then">
         <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
@@ -7582,9 +7583,6 @@ function renderInner(){
     const list=state.boards?ranked(now):[];
     state.rowsUnderWay=true; try{ renderList(list, now); } finally { state.rowsUnderWay=false; }
     $("#listTitle").textContent="Trains home";
-    // On the tube you've already left: the trains below don't count down to leaving (11 Nov 18:21, "I'm on the tube …
-    // why is it telling me that!" under "Leave now · 1m 20s").
-    $("#list").dataset.riding="1";
   } else if(view==="nearly-home"){
     renderNearlyHome(now);
     // "Nearly home" is said once, by the card (#57 H28: three times on a screen that said "You're home").
@@ -7598,11 +7596,16 @@ function renderInner(){
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
   }
-  if(view!=="on-tube-home") delete $("#list").dataset.riding;
   renderStatus(); renderDiag(); tick();
   const rc=requestCounts();
   $("#updated").textContent = (state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet")) + ` · requests in the last minute: TfL ${rc.tfl}${rc.other?`, National Rail ${rc.other}`:""}`;
 }
+const COUNTDOWN_WORDS={
+  leave:{calm:'leave in',urgent:'Leave now',passed:'leave time passed'},
+  platform:{calm:'on the platform in',urgent:'Head for the platform now',passed:'platform time passed'},
+  arrive:{calm:'arrives in',urgent:'Arriving',passed:''},
+  next:{calm:'in',urgent:'Now',passed:''},
+};
 function tick(){
   const now=Date.now();
   document.querySelectorAll('[data-remaining]').forEach(e=>{
@@ -7612,9 +7615,10 @@ function tick(){
   });
   // Under 2 minutes to the leave deadline the countdown becomes the card's loudest line: "Leave now · 45 s"
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, riding=!!e.closest("[data-riding]"), urgent=!riding&&ms>0&&ms<120e3;
-    if(riding){ e.textContent=""; e.closest(".journey-countdown")?.classList.remove("urgent"); return; }
-    e.textContent = urgent ? `Leave now · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`leave in ${countdown(ms)}`:"leave time passed";
+  // Every left time counts down, in its step's words (Sam, 12 Nov: "the countdown should be to the start of the next
+  // step"; wording reviewed on the countdown journey page): leave, platform, arrival, next step.
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
+    e.textContent = urgent ? `${w.urgent} · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`${w.calm} ${countdown(ms)}`:w.passed;
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
   document.querySelectorAll("[data-leftago]").forEach(e=>{ e.textContent=C.leftAgo(now-e.dataset.leftago); });
@@ -9311,6 +9315,11 @@ function renderSignalCompact(){
 // own styles (each group sits in a box that carries the live card's class).
 // One "behind" figure on the card (#57 H10): the followed card's status says how the journey stands, so the legs'
 // own status ("3 min behind") goes from the one journey card.
+function movedFromStart(route){
+  if(!state.here)return false;
+  if(state.followFrom?.id!==route.id)state.followFrom={id:route.id,here:state.here};
+  return km(state.here,state.followFrom.here)>0.2;
+}
 function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
@@ -9637,8 +9646,10 @@ function renderFollowPanel(){
   // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: on the tube to the station; or,
   // outbound, the app's own left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home
   // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
+  // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
+  // route was first drawn (kept for this page; after a reload, from the first position then).
   const setOff=panelLayout&&!unknown&&!observation.boarding&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2)));
+    &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
@@ -9663,8 +9674,8 @@ function renderFollowPanel(){
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
-      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}

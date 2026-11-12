@@ -170,9 +170,9 @@ for the platform by …", "Total journey 1h 17m", "27 min train") above the butt
   kept rather than removed. Once you've picked one, its row is the confirmation, in view above "Getting a different
   one?"; the others stay folded.
 - **On the tube, the trains home below don't count down to leaving** (18:21, on the tube, under "Leave now · 1m 20s":
-  "I'm on the tube, and I've told it I'm on the tube - why is it telling me that!"). The countdown line is empty while
-  you ride, and each row leads with **"Be on the platform by"** (the train's platform time) instead of "Leave by" (Sam,
-  12 Nov: "why wouldn't this also be 'be on the platform by'?").
+  "I'm on the tube, and I've told it I'm on the tube - why is it telling me that!"). Each row now leads with **"Be on
+  the platform by"** (the train's platform time) and counts down to it ("on the platform in 15m 00s"), its flag saying
+  whether it's realistic (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?"; countdowns to the next step).
 - tests/rules.test.mjs: "Going home at the office: the buttons say which tube; where each one gets you is folded under 'Where each tube gets you'"
 - tests/rules.test.mjs: "Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it"
 

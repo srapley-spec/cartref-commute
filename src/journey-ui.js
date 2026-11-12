@@ -170,6 +170,11 @@ function renderSignalCompact(){
 // own styles (each group sits in a box that carries the live card's class).
 // One "behind" figure on the card (#57 H10): the followed card's status says how the journey stands, so the legs'
 // own status ("3 min behind") goes from the one journey card.
+function movedFromStart(route){
+  if(!state.here)return false;
+  if(state.followFrom?.id!==route.id)state.followFrom={id:route.id,here:state.here};
+  return km(state.here,state.followFrom.here)>0.2;
+}
 function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
@@ -496,8 +501,10 @@ function renderFollowPanel(){
   // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: on the tube to the station; or,
   // outbound, the app's own left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home
   // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
+  // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
+  // route was first drawn (kept for this page; after a reload, from the first position then).
   const setOff=panelLayout&&!unknown&&!observation.boarding&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():km(state.here,PROFILE.places.office)>0.2)));
+    &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
@@ -522,8 +529,8 @@ function renderFollowPanel(){
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false})
-      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false})}
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}

@@ -384,11 +384,27 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   it is not built.
 - **Once you've set off, "Be on the platform by"** (Sam, 12 Nov: "yes. Be on the platform by"; from 11 Nov 07:21,
   "Leave by" while already halfway there, and #57 H4 homeward). The followed card's deadline is the platform time (the
-  same one used at the station), with no countdown to leaving. Set off: on the tube to the station; or outbound, the
+  same one used at the station), counting down to the platform time. Set off: on the tube to the station; or outbound, the
   app's left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home is); homeward, over
   200 m from the office; position good to 150 m. At home or at the office it is Leave by, as before.
-- **The trains home under the tube you're on** lead with "Be on the platform by" too, with no countdown (Sam, 12 Nov:
-  "why wouldn't this also be 'be on the platform by'?").
+- **The trains home under the tube you're on** lead with "Be on the platform by" too (Sam, 12 Nov: "why wouldn't this
+  also be 'be on the platform by'?").
+- **Every left time counts down to the start of your next step, in that step's words** (Sam, 12 Nov: "the countdown
+  should be to the start of the next step. Eg time to Leave, time to platform"; reviewed on the countdown journey design
+  page): Leave by → "leave in 4m 20s" / "Leave now · 45 s" / "leave time passed"; Be on the platform by → "on the
+  platform in 6m 10s" / "Head for the platform now · 45 s" / "platform time passed"; At King's Cross (aboard) → "arrives
+  in 12m 00s" / "Arriving · 1m 30s"; Next tube / Next action → "in 3m 05s" / "Now · 45 s". The band under 2 minutes is
+  the same for all. "Now" headers (already under way, nothing to wait for) have no countdown.
+- **Modes (Sam, 12 Nov: changes apply to all modes unless there's a reason not to):** the followed card, its countdowns
+  and the platform deadline work the same in Commute and Leisure. Leisure going home starts wherever you are in London,
+  so there "set off" is 200 m from where you were when the route was first drawn (kept for the page; after a reload,
+  from the first position then). Not in Leisure, for a reason: the tube lists at Aldgate and King's Cross and the
+  homeward tube position are tied to the office's tube stop. **Trip mode not yet:** it has its own following engine and
+  card; bringing it to this card is the next piece of work.
+- tests/countdown-steps.test.mjs: "The countdown names its step: leave, platform, arrival, next; in the last 2 minutes a band in the same words"
+- tests/countdown-steps.test.mjs: "Commute: at home Leave by counts down to leaving; once set off 'Be on the platform by' counts down to the platform; aboard, to the arrival"
+- tests/countdown-steps.test.mjs: "Leisure outbound: the same platform deadline and countdown once you've left home"
+- tests/countdown-steps.test.mjs: "Leisure going home starts wherever you are in London: set off is 200 m from where you were when the route was drawn"
 - **When it can no longer be made** (07:16, the header went to "Unavailable"): the header shows the way on: "Instead:
   the 07:45 Great Northern", its own Leave by → arrival, and its own journey figures, under "You can no longer make
   your 07:30".
