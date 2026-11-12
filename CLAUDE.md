@@ -60,7 +60,8 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit Live's
   timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
 - **All modes (Sam, 12 Nov).** A change applies to Commute, Leisure and Trip unless there is a reason not to; each story
-  says which modes it covers and why any is left out. Trip has its own following engine and card: not yet on this card.
+  says which modes it covers and why any is left out. Trip has its own following engine; what of the card it has, and
+  why not the rest: `docs/stories/leisure-journeys.md`, "Trip on the journey card".
 - **The key connection clock is protected too (Sam, 1 Nov).** Auto/Plan expose the scheduled train departure
   prominently in the approved journey + train panel. Concealing it or demoting it to small service metadata is
   a material change to flag before shipping; preserve separately labelled expected times and both recommendations.

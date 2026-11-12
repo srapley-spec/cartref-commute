@@ -68,13 +68,16 @@ function applySignalLayout(){
 function underWayControls(context){
   const p=signalParts;if(!p)return;
   const view=state.rendered?.view||state.presentation?.view||'';
-  const under=state.saved.mode!=='trip'&&(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
+  // Trip too (Sam, 12 Nov: all modes): under way once a trip is followed; its from/to and time are in the same fold.
+  const trip=typeof tripActive==='function'&&tripActive(), tm=state.saved.tripMode||{};
+  if(trip)context=`To ${tm.to?.name||'your destination'}`;
+  const under=trip?!!tm.follow:(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
   let btn=$('#signalUnderwaySummary');
   if(!btn){btn=document.createElement('button');btn.type='button';btn.id='signalUnderwaySummary';btn.className='signal-underway-summary';
     btn.addEventListener('click',()=>{const open=document.body.toggleAttribute('data-controls-open');btn.setAttribute('aria-expanded',String(open));});
     p.modebar.insertBefore(btn,p.modebar.querySelector('.signal-utility'));}
-  const modeName={commute:'Commute',leisure:'Leisure',trip:'Trip'}[state.saved.mode]||'Commute';
-  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[state.saved.view]||'Leave now';
+  const modeName=trip?'Trip':{commute:'Commute',leisure:'Leisure'}[state.saved.mode]||'Commute';
+  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[trip?tm.question?.kind:state.saved.view]||'Leave now';
   btn.textContent=`${modeName} · ${context} · ${viewName}`;
   btn.setAttribute('aria-label',`Journey controls: ${modeName}, ${context}, ${viewName}`);
   btn.hidden=!under;

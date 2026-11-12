@@ -9226,13 +9226,16 @@ function applySignalLayout(){
 function underWayControls(context){
   const p=signalParts;if(!p)return;
   const view=state.rendered?.view||state.presentation?.view||'';
-  const under=state.saved.mode!=='trip'&&(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
+  // Trip too (Sam, 12 Nov: all modes): under way once a trip is followed; its from/to and time are in the same fold.
+  const trip=typeof tripActive==='function'&&tripActive(), tm=state.saved.tripMode||{};
+  if(trip)context=`To ${tm.to?.name||'your destination'}`;
+  const under=trip?!!tm.follow:(!!state.saved.followRoute||!['','plan-now','plan-at','plan-by','awaiting-location'].includes(view));
   let btn=$('#signalUnderwaySummary');
   if(!btn){btn=document.createElement('button');btn.type='button';btn.id='signalUnderwaySummary';btn.className='signal-underway-summary';
     btn.addEventListener('click',()=>{const open=document.body.toggleAttribute('data-controls-open');btn.setAttribute('aria-expanded',String(open));});
     p.modebar.insertBefore(btn,p.modebar.querySelector('.signal-utility'));}
-  const modeName={commute:'Commute',leisure:'Leisure',trip:'Trip'}[state.saved.mode]||'Commute';
-  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[state.saved.view]||'Leave now';
+  const modeName=trip?'Trip':{commute:'Commute',leisure:'Leisure'}[state.saved.mode]||'Commute';
+  const viewName={now:'Leave now',by:'Arrive by',at:'Leave around'}[trip?tm.question?.kind:state.saved.view]||'Leave now';
   btn.textContent=`${modeName} · ${context} · ${viewName}`;
   btn.setAttribute('aria-label',`Journey controls: ${modeName}, ${context}, ${viewName}`);
   btn.hidden=!under;
@@ -10609,13 +10612,27 @@ function createTripUi(deps) {
     else if(ride?.train?.depUnknown)label='Selected service · departure estimate unavailable';
     return ride?`<div class="journey-next-service"><b>${label}:</b> <strong class="t">${hhmm(ride.schedDep)} ${esc(ride.operator||ride.label)}</strong> from ${esc(ride.from.name)}${ride.dep!==ride.schedDep?` · expected ${hhmm(ride.dep)}`:''}</div>`:'';
   }
+  // The same card as Commute and Leisure (Sam, 12 Nov: "all the changes we're making apply to all modes"): the left
+  // time is the start of your next step and counts down in that step's words; once you've set off (over 200 m from
+  // where the trip starts) the deadline is the platform, the first train's departure less the time to reach it.
+  function tripPlatformBy(j){
+    const plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
+    return j.rides[0].dep-(plat?plat.secs*1000:0);
+  }
+  function tripSetOff(j){
+    const h=here(),start=j.from?.geo;
+    return !!h&&!!start&&h.acc<=150&&C.km(h.geo,start)>0.2;
+  }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
-    if(fu.phase==='before'||fu.phase==='access')return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null,countdown:j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'});
+    if(fu.phase==='before'||fu.phase==='access'){
+      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:'Be on the platform by',isLeave:false,step:'platform'});
+      return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null});
+    }
     const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;
     const label=fu.phase==='ride'?'At '+ride.to.name:fu.phase==='change'?'Next departure':fu.phase==='arrived'?'Arrived':'Now · final leg';
-    return journeyTimesMarkup({leave:left,arrive:fu.arrival,dest:destination,leftLabel:label,isLeave:false});
+    return journeyTimesMarkup({leave:left,arrive:fu.arrival,dest:destination,leftLabel:label,isLeave:false,step:fu.phase==='ride'?'arrive':fu.phase==='change'?'next':''});
   }
   function tripConfirmation(fu){
     const f=fu.route,phase=C.followedTripPhase(f,now()),ride=f.journey.rides[phase.ride];
@@ -10892,7 +10909,7 @@ function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, tflUrl, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,arrangeJourneySummaries,tick,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     controlsRoot:$("#signalAdjustments .signal-adjustment-body"),dayLabel,
-    renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'},route=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$('#routeLabel').textContent=route;setJourneyContext(route,`${modes[s.modes.from]} to · ${modes[s.modes.to]} from`,route);}},
+    renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'},route=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$('#routeLabel').textContent=route;setJourneyContext(route,`${modes[s.modes.from]} to · ${modes[s.modes.to]} from`,route);underWayControls();}},
     renderView:p=>{if(tripActive()){document.querySelectorAll('[data-journey-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.journeyView===p.mode)));$('#journeyViewNote').textContent=p.pending?'Journey update ready · finish what you’re reading or choose Live':p.mode==='plan'?'Planning pinned · tracking continues':p.mode==='live'?'Live pinned':'';}},
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },

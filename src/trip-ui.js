@@ -355,13 +355,27 @@ function createTripUi(deps) {
     else if(ride?.train?.depUnknown)label='Selected service · departure estimate unavailable';
     return ride?`<div class="journey-next-service"><b>${label}:</b> <strong class="t">${hhmm(ride.schedDep)} ${esc(ride.operator||ride.label)}</strong> from ${esc(ride.from.name)}${ride.dep!==ride.schedDep?` · expected ${hhmm(ride.dep)}`:''}</div>`:'';
   }
+  // The same card as Commute and Leisure (Sam, 12 Nov: "all the changes we're making apply to all modes"): the left
+  // time is the start of your next step and counts down in that step's words; once you've set off (over 200 m from
+  // where the trip starts) the deadline is the platform, the first train's departure less the time to reach it.
+  function tripPlatformBy(j){
+    const plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
+    return j.rides[0].dep-(plat?plat.secs*1000:0);
+  }
+  function tripSetOff(j){
+    const h=here(),start=j.from?.geo;
+    return !!h&&!!start&&h.acc<=150&&C.km(h.geo,start)>0.2;
+  }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
-    if(fu.phase==='before'||fu.phase==='access')return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null,countdown:j.leave>now()?`leave in ${C.countdown(j.leave-now())}`:'leave time passed'});
+    if(fu.phase==='before'||fu.phase==='access'){
+      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:'Be on the platform by',isLeave:false,step:'platform'});
+      return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null});
+    }
     const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;
     const label=fu.phase==='ride'?'At '+ride.to.name:fu.phase==='change'?'Next departure':fu.phase==='arrived'?'Arrived':'Now · final leg';
-    return journeyTimesMarkup({leave:left,arrive:fu.arrival,dest:destination,leftLabel:label,isLeave:false});
+    return journeyTimesMarkup({leave:left,arrive:fu.arrival,dest:destination,leftLabel:label,isLeave:false,step:fu.phase==='ride'?'arrive':fu.phase==='change'?'next':''});
   }
   function tripConfirmation(fu){
     const f=fu.route,phase=C.followedTripPhase(f,now()),ride=f.journey.rides[phase.ride];
