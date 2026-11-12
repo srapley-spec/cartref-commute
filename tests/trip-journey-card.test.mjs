@@ -57,3 +57,36 @@ test("Trip: aboard, the left time is the arrival at the next stop and counts dow
   assert.deepEqual(a.errors, []); a.close();
 });
 void TRIP_PLACES;
+
+test("Trip: set off needs over 200 m (not 150 m) and a position good to 150 m; a coarse fix far away keeps Leave by", async () => {
+  const { a, head } = await followed();
+  const start = a.c.state.saved.tripMode.follow.journey.from.geo;
+  const put = (geo, acc) => { Object.assign(a.c.state, { here: geo, locAcc: acc, lastFixAt: Date.now(), locStatus: "ok" }); a.c.render(); };
+  put([start[0] + 0.0016, start[1]], 15);   // about 180 m
+  assert.match(squash(head().textContent), /^Leave by/, "180 m: not yet set off");
+  put([start[0] + 0.0027, start[1]], 15);   // about 300 m
+  assert.match(squash(head().textContent), /^Be on the platform by/, "300 m: set off (a 0.4 km rule would miss this)");
+  put([start[0] + 0.01, start[1]], 400);    // 1.1 km but only good to 400 m
+  assert.match(squash(head().textContent), /^Leave by/, "a coarse fix doesn't count as setting off");
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+test("Trip: the folded controls name the trip's own question ('Arrive by'), not Commute's saved view", async () => {
+  const { a } = await followed();
+  a.c.state.saved.view = "now"; a.c.state.saved.tripMode.question = { ...a.c.state.saved.tripMode.question, kind: "by" }; a.c.render();
+  assert.match(squash(a.d.querySelector("#signalUnderwaySummary").textContent), /· Arrive by$/);
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+test("Trip: at a change the left time is the next departure and counts down in 'in …' words", async () => {
+  const { a, head } = await followed();
+  const j = a.c.state.saved.tripMode.follow.journey, first = j.rides.findIndex((r) => r.kind !== "walk");
+  const second = j.rides.findIndex((r, i) => i > first && r.kind !== "walk");
+  if (second < 0) return;   // the fixture must have a change (Brighton → Canterbury does)
+  const mid = (j.rides[second - 1].arr + j.rides[second].dep) / 2;   // between arriving and the next train leaving
+  a.setNow(mid); await sleep(50); a.c.render();
+  assert.match(squash(head().querySelector("small").textContent), /^Next departure$/);
+  assert.equal(head().querySelector("[data-cd]")?.dataset.step, "next");
+  assert.match(head().querySelector("[data-cd]").textContent, /^(in \d+m \d\ds|Now · .+)$/);
+  assert.deepEqual(a.errors, []); a.close();
+});

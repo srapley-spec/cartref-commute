@@ -262,6 +262,11 @@ not to." Trip has its own following engine and card; this brings it to the Commu
 - tests/trip-journey-card.test.mjs: "Trip: at the start Leave by counts down to leaving; once 200 m on, 'Be on the platform by' counts down to the platform"
 - tests/trip-journey-card.test.mjs: "Trip: following folds the controls into one row, 'Trip · To Canterbury Cathedral · Leave now'; stopping brings them back"
 - tests/trip-journey-card.test.mjs: "Trip: aboard, the left time is the arrival at the next stop and counts down to it"
+- tests/trip-journey-card.test.mjs: "Trip: set off needs over 200 m (not 150 m) and a position good to 150 m; a coarse fix far away keeps Leave by"
+- tests/trip-journey-card.test.mjs: "Trip: the folded controls name the trip's own question ('Arrive by'), not Commute's saved view"
+- tests/trip-journey-card.test.mjs: "Trip: at a change the left time is the next departure and counts down in 'in …' words"
+- Independent review (12 Nov): 10 deliberate breakages, 5 caught at first; the three tests above catch four more (the
+  fifth makes no difference while a trip has one station segment).
 
 
 ## Tests
