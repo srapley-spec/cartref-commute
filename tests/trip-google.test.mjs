@@ -141,3 +141,26 @@ test("Driving times: a departure that's now or past is left out (Google refuses 
   await js.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 30 * 60e3, "to");
   assert.equal("departureTime" in reqs[0], false); assert.equal(reqs[1].departureTime.getTime(), now + 30 * 60e3);
 });
+
+test("googleDetail: a bare key anywhere is masked, the error's own name is kept, and the detail is capped at 140 characters", async () => {
+  const bare = `AIza${"Q".repeat(30)}`;
+  globalThis.google = { maps: { importLibrary: async () => ({ RouteMatrix: { computeRouteMatrix: async () => {
+    throw Object.assign(new RangeError(`bad request for ${bare} https://h/x?key=s3cretNotAIza&v=1 ` + "x".repeat(300)), { code: "INVALID_ARGUMENT" }); } } }) } };
+  const js = A.googleMapsJs({ getKey: () => KEY, net: net(), loadScript: async () => {} });
+  await assert.rejects(js.matrix([54.9, -1.5], [[54.97, -1.61]], "walk", Date.now(), "from"), (e) => {
+    assert.ok(!e.message.includes(bare), "a key outside a ?key= parameter is masked");
+    assert.ok(!e.message.includes("s3cretNotAIza") && /key=\[key\]/.test(e.message), "any ?key= value is masked, whatever it looks like");
+    assert.match(e.message, /\(INVALID_ARGUMENT: RangeError: bad request for \[key\]/, "the error's name is kept");
+    assert.ok(e.detail.length <= 140 && e.detail.endsWith("…"), `capped: ${e.detail.length}`);
+    return true; });
+});
+
+test("Driving times: a departure less than a minute ahead is left out too (Google may read it as past)", async () => {
+  const bodies = [];
+  const px = A.googleProxy({ getBase: () => "https://proxy.example/", net: net(async (url, init) => { bodies.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => [] }; }) });
+  const now = Date.now();
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 30e3, "from");
+  await px.matrix([54.9, -1.5], [[54.97, -1.61]], "drive", now + 90e3, "from");
+  assert.equal(bodies[0].departureTime, undefined, "30 s ahead: left out");
+  assert.equal(bodies[1].departureTime, new Date(now + 90e3).toISOString(), "90 s ahead: sent");
+});

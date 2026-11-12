@@ -260,6 +260,11 @@ for travel times." and no trains.
 - tests/core/trip.test.mjs: "planTrip: Google failing for the times from the stations keeps the trains, untimed and flagged with Google's error (12 Nov, NE38 8SA)"
 - tests/trip-google.test.mjs: "Google's own error is kept in the message, short and with nothing key-like (12 Nov: 'Couldn't reach Google for travel times' named no cause)"
 - tests/trip-google.test.mjs: "Driving times: a departure that's now or past is left out (Google refuses a past one for driving); a later one is sent"
+- tests/trip-google.test.mjs: "googleDetail: a bare key anywhere is masked, the error's own name is kept, and the detail is capped at 140 characters"
+- tests/trip-google.test.mjs: "Driving times: a departure less than a minute ahead is left out too (Google may read it as past)"
+- tests/core/trip.test.mjs: "planTrip: Google failing for the times TO the stations keeps the trains too, flagged 'No driving time to …'"
+- Independent review (12 Nov): 12 deliberate breakages, 5 caught at first; the three tests above catch the rest (the
+  key masking, the minute's margin, the "to" side's flag).
 
 ## Tests
 How the engine works and how it was tested, end to end: `docs/trip-engine.md`. Live comparison runs: `docs/reviews/trip-20-journeys-2026-11-03.md`, `docs/reviews/trip-complex-journeys-2026-11-03.md`; re-run with `tools/trip-compare.mjs`.

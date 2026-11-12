@@ -455,3 +455,13 @@ test("planTrip: Google failing for the times from the stations keeps the trains,
   q.access.matrix = (place, list, mode, at, dir) => dir === "from" ? Promise.resolve(list.map(() => null)) : ok(place, list, mode, at, dir);
   await assert.rejects(core.planTrip({ from: brighton, to: canterbury, modes: { from: "walk", to: "drive" }, question: { kind: "now", t: now }, now, leisureKmh: 4.5, cfg }, q), (e) => e.code === "no-access");
 });
+
+test("planTrip: Google failing for the times TO the stations keeps the trains too, flagged 'No driving time to …'", async () => {
+  const p = ports();
+  const ok = p.access.matrix;
+  p.access.matrix = (place, list, mode, at, dir) => dir === "to" ? Promise.reject(new Error("Couldn't reach Google for travel times (INVALID_ARGUMENT).")) : ok(place, list, mode, at, dir);
+  const r = await core.planTrip({ from: brighton, to: canterbury, modes: { from: "drive", to: "walk" }, question: { kind: "now", t: now }, now, leisureKmh: 4.5, cfg }, p);
+  assert.ok(r.journeys.length > 0, "the trains are still shown");
+  assert.ok(r.notes.some(n => /^Times to the stations: Couldn't reach Google/.test(n)), JSON.stringify(r.notes));
+  for (const j of r.journeys) assert.ok(j.flags.some(f => /^No driving time to .+ \(Google: Couldn't reach Google for travel times \(INVALID_ARGUMENT\)\.\): door-to-door times unknown$/.test(f.txt)), JSON.stringify(j.flags));
+});
