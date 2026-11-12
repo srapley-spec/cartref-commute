@@ -2615,7 +2615,7 @@ function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, tflUrl, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,arrangeJourneySummaries,tick,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
     controlsRoot:$("#signalAdjustments .signal-adjustment-body"),dayLabel,
-    renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'},route=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$('#routeLabel').textContent=route;setJourneyContext(route,`${modes[s.modes.from]} to · ${modes[s.modes.to]} from`,route);}},
+    renderContext:s=>{if(tripActive()){const modes={walk:'Walk',cycle:'Cycle',drive:'Drive'},route=`${s.from?.name||'Current location'} → ${s.to?.name||'Choose destination'}`;$('#routeLabel').textContent=route;setJourneyContext(route,`${modes[s.modes.from]} to · ${modes[s.modes.to]} from`,route);underWayControls();}},
     renderView:p=>{if(tripActive()){document.querySelectorAll('[data-journey-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.journeyView===p.mode)));$('#journeyViewNote').textContent=p.pending?'Journey update ready · finish what you’re reading or choose Live':p.mode==='plan'?'Planning pinned · tracking continues':p.mode==='live'?'Live pinned':'';}},
     store:{ get:()=>state.saved.tripMode, set:v=>{ state.saved.tripMode=v; save(); } },
     net:{ fetchT, logRequest, epoch:()=>sourceEpoch, assertEpoch:assertSource },

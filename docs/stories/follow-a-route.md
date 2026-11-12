@@ -399,8 +399,9 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   and the platform deadline work the same in Commute and Leisure. Leisure going home starts wherever you are in London,
   so there "set off" is 200 m from where you were when the route was first drawn (kept for the page; after a reload,
   from the first position then). Not in Leisure, for a reason: the tube lists at Aldgate and King's Cross and the
-  homeward tube position are tied to the office's tube stop. **Trip mode not yet:** it has its own following engine and
-  card; bringing it to this card is the next piece of work.
+  homeward tube position are tied to the office's tube stop. **Trip** (its own engine): countdowns, the platform
+  deadline and the folded controls since 12 Nov; what it can't have, and why: `leisure-journeys.md`, "Trip on the
+  journey card".
 - tests/countdown-steps.test.mjs: "The countdown names its step: leave, platform, arrival, next; in the last 2 minutes a band in the same words"
 - tests/countdown-steps.test.mjs: "Commute: at home Leave by counts down to leaving; once set off 'Be on the platform by' counts down to the platform; aboard, to the arrival"
 - tests/countdown-steps.test.mjs: "Leisure outbound: the same platform deadline and countdown once you've left home"
