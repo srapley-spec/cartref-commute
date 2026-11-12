@@ -986,7 +986,10 @@ async function refreshGoogleNear(now){
       ad.matrix(here,[GEO.HOME],"drive",now,"to").catch(()=>[null]),
       home&&googleNear.homeKey!==homeKey ? ad.matrix(home,[GEO.HOME],"walk",now,"to").catch(()=>[null]) : Promise.resolve(null)]);
     Object.assign(googleNear,{here,at:Date.now(),walkM:walk[0]?.metres??null,driveS:drive[0]?.secs??null});
-    if(fromHome){ googleNear.homeKey=homeKey; googleNear.homeM=fromHome[0]?.metres??null; }
+    // Only an answer settles the walk from home; a failure is asked again next time (independent review, 12 Nov:
+    // one failed request used to turn the street walk off for the rest of the session).
+    if(fromHome&&Number.isFinite(fromHome[0]?.metres)){ googleNear.homeKey=homeKey; googleNear.homeM=fromHome[0].metres; }
+    return true;
   } finally { googleNear.pending=false; }
 }
 // Your usual walk from home to Letchworth station at the current pace (seconds).
@@ -2367,7 +2370,8 @@ async function refresh(opts){
       : Promise.resolve();
     await Promise.all([railP,refreshLondon(),aldP]);if(epoch!==sourceEpoch)return;
     await refreshFollowTransport(Date.now());if(epoch!==sourceEpoch)return;
-    await refreshGoogleNear(Date.now());if(epoch!==sourceEpoch)return;
+    // Google's walk and drive don't hold up the train reports: drawn when they arrive (review, 12 Nov).
+    refreshGoogleNear(Date.now()).then(got=>{ if(got&&epoch===sourceEpoch) render(); }).catch(()=>{});
     await refreshTrainProgress();if(epoch!==sourceEpoch)return;
     await Promise.all([statusP(),nrP()]);
   } catch(e){
