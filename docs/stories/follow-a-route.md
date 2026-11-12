@@ -134,7 +134,7 @@ train was kept on the boards, and its reports fetched, only while the phone was 
 - **At the station the train leaves from** (`boardingPlace`: a fix good to 250 m, at most 90 s old, within 250 m of
   Letchworth station going out, or placed by the page at the London station the train is boarded at coming home;
   not another London station, and not while riding the tube to it): the header reads "Be on the platform by"
-  (wording confirmed by Sam, 10 Nov); the status is "On track · train departs in N min" ("train departing" inside
+  (wording confirmed by Sam, 10 Nov; since 12 Nov it also reads that once you've set off, below) and the status is "On track · train departs in N min" ("train departing" inside
   the last minute). How hard you'd have to walk decides nothing: no "Can't make it", no "N min behind · run needed".
   A fix good to 151–250 m is enough for this rule (elsewhere the card needs 150 m before it trusts where you are).
 - **The platform time** (`platformBy`) is the train's expected departure less the route's own catch margin (1 min
@@ -185,7 +185,7 @@ late arrival, the notices and the walking estimate followed the same evening: ne
 - tests/core/follow-consistency.test.mjs: "'Be on the platform by' is the train's departure less the route's own margin, then the departure itself: never a leave-from-here time that has passed"
 - tests/core/follow-consistency.test.mjs: "Looking back for a followed train ends: not before it leaves, not once it's missed or cancelled, not more than 30 minutes after it was due in"
 - tests/follow-consistency.test.mjs: "Following, at the station on a fix only good to 200 m: the station rule still applies (it used to say 'Location unavailable' and never ask)"
-- tests/follow-consistency.test.mjs: "Homeward: 'Be on the platform by' only at the station your followed train leaves from: not at another London station, and not on the tube to it"
+- tests/follow-consistency.test.mjs: "Homeward: the station rule ('train departs in N min') only at the station your followed train leaves from, not at another London station or on the tube to it; once set off the deadline reads 'Be on the platform by' (Sam, 12 Nov)"
 - tests/follow-consistency.test.mjs: "Following, at the station before your train: 'Be on the platform by', on track until it goes; never 'Can't make it' from a plan that still has you walking there"
 - tests/follow-consistency.test.mjs: "Following, away from the station with no time left to walk there: the plan's 'Can't make it' still shows (the rule only changes once you're at the station)"
 - tests/follow-consistency.test.mjs: "Following, last seen at the station and then no position (underground): not 'missed'; after departure it asks whether you're on it"
@@ -389,6 +389,11 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   200 m from the office; position good to 150 m. At home or at the office it is Leave by, as before.
 - **The trains home under the tube you're on** lead with "Be on the platform by" too (Sam, 12 Nov: "why wouldn't this
   also be 'be on the platform by'?").
+- **The way on keeps the rule.** When the followed train can't be made and the header shows "Instead: the …", that
+  train's deadline is its platform time once you've set off or are at the station (found by the full check, 12 Nov:
+  following the Farringdon train, at King's Cross the way on still said "Leave by 10:32 · leave in 10m" for the 10:36
+  from the station you were standing in). Before you've set off it is Leave by, as before. The planning rows below the
+  card are unchanged: they still give Leave by from where you are (protected).
 - **Every left time counts down to the start of your next step, in that step's words** (Sam, 12 Nov: "the countdown
   should be to the start of the next step. Eg time to Leave, time to platform"; reviewed on the countdown journey design
   page): Leave by → "leave in 4m 20s" / "Leave now · 45 s" / "leave time passed"; Be on the platform by → "on the

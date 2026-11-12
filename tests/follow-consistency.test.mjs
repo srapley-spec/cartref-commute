@@ -90,12 +90,14 @@ async function homeward() {
   return { app, c, P, place, panel: () => app.text("#followPanel") };
 }
 
-test("Homeward: 'Be on the platform by' only at the station your followed train leaves from: not at another London station, and not on the tube to it", async () => {
+test("Homeward: the station rule ('train departs in N min') only at the station your followed train leaves from, not at another London station or on the tube to it; once set off the deadline reads 'Be on the platform by' (Sam, 12 Nov)", async () => {
   const { app, c, P, place, panel } = await homeward();
   // 10:12, on the Circle line from Aldgate: judged by the tube, as before.
   c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T0 + 10 * m, line: "Circle", vehicle: "v1", picked: true, rideMs: 8 * m, stop: "Farringdon", stopGeo: P.stationGeo.ZFD };
   place(12, [51.519, -0.094]);
-  assert.doesNotMatch(panel(), /Be on the platform by/);
+  // Set off, so the deadline is the platform (Sam, 12 Nov); the status is still judged by the tube, not the station rule.
+  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.doesNotMatch(panel(), /Leave by|train departs in/);
   assert.match(panel(), /On track · \d+ min at your connection/);
   // The tube card under it doesn't state a different journey (10 Nov 15:39: "get off at King's Cross", following Farringdon).
   const hero = app.d.querySelector("#hero");
@@ -111,7 +113,10 @@ test("Homeward: 'Be on the platform by' only at the station your followed train 
   // 10:22 at King's Cross instead: a different station, so the plan from there decides.
   const other = await homeward();
   other.place(22, other.P.stationGeo.KGX, { atHub: "KGX" });
-  assert.doesNotMatch(other.panel(), /Be on the platform by/);
+  assert.doesNotMatch(other.panel(), /train departs in/);
+  // The 10:30 from Farringdon can't be made from there; the way on keeps the set-off rule: its platform, not Leave by.
+  assert.match(other.panel(), /^Following your route · homeward Instead: the 10:36 Great Northern to Cambridge Be on the platform by\s*10:35/);
+  assert.match(other.panel(), /on the platform in 13m 00s/);
   assert.deepEqual(app.errors, []); assert.deepEqual(other.app.errors, []);
 });
 

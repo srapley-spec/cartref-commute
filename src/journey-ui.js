@@ -503,8 +503,9 @@ function renderFollowPanel(){
   // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
   // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
   // route was first drawn (kept for this page; after a reload, from the first position then).
-  const setOff=panelLayout&&!unknown&&!observation.boarding&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
+  const movedOff=panelLayout&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
     &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
+  const setOff=!unknown&&!observation.boarding&&movedOff;
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
   const platformBy=C.platformBy(r.option,t.dep,Date.now());
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
@@ -525,9 +526,13 @@ function renderFollowPanel(){
     :(r.phase==='before-train'||r.phase==='on-train'?tubeLineMarkup(r.option,'office'):'');
   // When it can no longer be made, the header shows the way on instead of "Unavailable" (11 Nov 2026, 07:16).
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
+  // The way on keeps the same rule: set off (or at the station), its deadline is its platform; otherwise Leave by.
+  const wayOnTimes=!giveUpWay?'':(movedOff||panelLayout&&observation.boarding)&&giveUpWay.train
+    ?journeyTimesMarkup({leave:C.platformBy(giveUpWay,giveUpWay.train.dep,Date.now()),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+    :journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true});
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
-    ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true})}`
+    ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
