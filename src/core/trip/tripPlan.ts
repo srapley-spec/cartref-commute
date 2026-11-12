@@ -72,10 +72,20 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
   // Drive times depend on the time: first timed for a first guess (Leave now / around: then; Arrive by: 2 h before),
   // then re-timed once for the best journey's real set-off / arrival (below).
   const firstGuess = q.kind === "by" ? q.t - 2 * 3600e3 : q.kind === "at" ? q.t : now;
+  // When the times can't be had at all (Google answered with an error, not "no route"), the stations are still kept,
+  // untimed, so their trains are shown flagged "door-to-door times unknown" rather than nothing at all (12 Nov: a Trip
+  // to NE38 8SA showed only "Couldn't reach Google for travel times" and no trains). Never hide a train.
+  const accessError: { to?: string; from?: string } = {};
   const timeAccess = async (place: LatLon, list: Station[], mode: AccessMode, dir: "to" | "from", into: AccessMap, at = firstGuess, again = false) => {
     const todo = list.filter(s => again || !into.has(stationKey(s))); if (!todo.length) return;
     requests.access++;
-    const res = await ports.access.matrix(place, todo.map(s => s.geo), mode, at, dir);
+    let res: (Timing | null)[];
+    try { res = await ports.access.matrix(place, todo.map(s => s.geo), mode, at, dir); }
+    catch (e) {
+      accessError[dir] = (e as Error).message;
+      todo.forEach(s => { if (!into.has(stationKey(s))) into.set(stationKey(s), null); stationsByKey.set(stationKey(s), s); });
+      throw e;
+    }
     todo.forEach((s, i) => { into.set(stationKey(s), res[i] ?? null); stationsByKey.set(stationKey(s), s); });
   };
   // Google Maps' own door-to-door route, once per plan, to show what the rail planner missed (gaps.ts).
@@ -125,7 +135,10 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
     timeAccess(to.geo, stationsOf(ct.list), modes.to, "from", accTo).catch(e => { notes.push(`Times from the stations: ${e.message}`); }),
     runPairs(p1, () => t0, timeIs),
   ]);
-  if (![...accFrom.values()].some(Boolean) || ![...accTo.values()].some(Boolean)) throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
+  // Google found no route to or from any station (not an error): nothing door to door can be said. An error instead
+  // keeps the trains, untimed and flagged (above).
+  if ((!accessError.to && ![...accFrom.values()].some(Boolean)) || (!accessError.from && ![...accTo.values()].some(Boolean)))
+    throw new TripError(notes[0] || "Couldn't time the way to or from the stations.", "no-access");
   const taxis = () => Promise.all([timeTaxis(from.geo, accFrom, taxiFrom, stationsByKey, "to", firstGuess), timeTaxis(to.geo, accTo, taxiTo, stationsByKey, "from", firstGuess)]);
   await taxis();
 
@@ -151,8 +164,10 @@ export async function planTrip(req: TripRequest, ports: TripPorts, onStage?: (r:
       if (!accFrom.has(ka) || !accTo.has(kb)) return;       // a station this plan never timed (not a candidate, or not yet)
       const ta = accFrom.get(ka), tb = accTo.get(kb), noRoute: string[] = [];
       const word = { walk: "walking", cycle: "cycling", drive: "driving" };
-      if (!ta) noRoute.push(`Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
-      if (!tb) noRoute.push(`Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
+      if (!ta) noRoute.push(accessError.to ? `No ${word[modes.from]} time to ${a.name} (Google: ${accessError.to}): door-to-door times unknown`
+        : `Google found no ${word[modes.from]} route to ${a.name}: door-to-door times unknown`);
+      if (!tb) noRoute.push(accessError.from ? `No ${word[modes.to]} time from ${b.name} (Google: ${accessError.from}): door-to-door times unknown`
+        : `Google found no ${word[modes.to]} route from ${b.name}: door-to-door times unknown`);
       const atStation = from.kind === "current" && km(from.geo, a.geo) * 1000 <= cfg.atStationM;
       const taxiA = ta && taxiWorthIt(modes.from, ta, cfg.taxi) && taxiFrom.get(ka) ? { drive: taxiFrom.get(ka)!, rule: cfg.taxi } : undefined;
       const taxiB = tb && taxiWorthIt(modes.to, tb, cfg.taxi) && taxiTo.get(kb) ? { drive: taxiTo.get(kb)!, rule: cfg.taxi } : undefined;
