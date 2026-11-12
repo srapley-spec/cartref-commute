@@ -82,3 +82,15 @@ test("On the last walk the followed card's 'Next' step is the arrival itself: fl
   const before = core.updateFollowRoute(core.startFollowRoute(o, { now: t, direction: "office", mode: "commute" }), { now: t + MIN, options: [o], dataFresh: true, phase: "before-train" });
   assert.equal(before.nextIsLast, false);
 });
+
+test("tubePlace: 'Between X and Y' when only one of the two is on the leg", () => {
+  const names = ["Aldgate", "Liverpool Street", "Moorgate", "Barbican", "Farringdon", "King's Cross St Pancras"];
+  // TfL names a station before your boarding one: last is the one before Y (none), next is Y.
+  assert.deepEqual(core.tubePlace("Between Tower Hill and Aldgate", names), { last: null, next: 0, approaching: false });
+  assert.deepEqual(core.tubePlace("Between Tower Hill and Liverpool Street", names), { last: 0, next: 1, approaching: false });
+  // TfL names a station after your stop: last is X, next is the one after X on the leg.
+  assert.deepEqual(core.tubePlace("Between Moorgate and Euston Square", names), { last: 2, next: 3, approaching: false });
+  assert.deepEqual(core.tubePlace("Between King's Cross St Pancras and Euston Square", names), { last: 5, next: null, approaching: false });
+  // Named the other way round: still between the two, so the earlier on the leg is the one passed, never Moorgate.
+  assert.deepEqual(core.tubePlace("Between Moorgate and Liverpool Street", names), { last: 1, next: 2, approaching: false });
+});

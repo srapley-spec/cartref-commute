@@ -185,3 +185,80 @@ test("Under way, 'Along the line' folds under the one-row controls with everythi
   assert.equal(shown(nav), false);
   assert.deepEqual(app.errors, []);
 });
+
+test("The location line: 3 km out of London names the station; under 1 km in London; no location at all keeps the line out of the fold and offers Update location, which restarts the watch", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office" }, geo: null, now: T0 });
+  const c = app.c, P = app.w.CommuteCore.profiles.samCommute;
+  const fixAt = (here) => c.onPosition({ coords: { latitude: here[0], longitude: here[1], accuracy: 20, speed: null }, timestamp: Date.now() });
+  // 2.5 km from Stevenage station, off the line, out of London: "near Stevenage".
+  fixAt([P.stationGeo.SVG[0], P.stationGeo.SVG[1] + 0.036]);
+  assert.match(app.text("#dirNote"), /near Stevenage/);
+  // 1.5 km from Finsbury Park (in London, over 1 km from every station on the line): not "near Finsbury Park".
+  fixAt([P.stationGeo.FPK[0] - 0.0135, P.stationGeo.FPK[1]]);
+  assert.match(app.text("#dirNote"), /in London/); assert.doesNotMatch(app.text("#dirNote"), /near Finsbury Park/);
+  // The phone gives no location (an error, not a refusal): the line stays out of the fold and asks again when tapped.
+  let watches = 0; app.w.navigator.geolocation.watchPosition = () => ++watches;
+  c.state.locStatus = "error"; c.state.lastFixAt = Date.now(); c.render();
+  const note = app.d.querySelector("#dirNote");
+  assert.equal(note.classList.contains("needed"), true);
+  const upd = note.querySelector("[data-update-location]"); assert.ok(upd, "Update location offered");
+  upd.click(); assert.equal(watches, 1, "the phone's location watch is restarted");
+  // Location refused: the line is shown, but no button (asking again can't help).
+  c.state.locStatus = "denied"; c.render();
+  assert.equal(app.d.querySelector("#dirNote [data-update-location]"), null);
+  assert.deepEqual(app.errors, []);
+});
+
+test("C12 thresholds: within 12 min and not ruled out is offered; 13 min or ruled out goes under 'More trains'; the followed train is always offered; a stale position filters nothing", async () => {
+  const { app, c, pointOn, place } = await journey();
+  const now = place(34, pointOn(14 / 35), { onLine: true });
+  const base = c.state.rendered.train, t = base.t;
+  const tr = (std, id) => ({ ...t, std, serviceId: id, operator: "Great Northern" });
+  const fit = (std, id, offMin, ruledOut = false) => ({ ...base, t: tr(std, id), offMin, ruledOut, others: undefined });
+  const others = [fit("10:01", "A11", 11.9), fit("10:02", "B13", 13), fit("10:03", "C2R", 2, true)];
+  const offered = (m) => { c.renderOnTrain(now, m); const h = app.d.querySelector("#hero");
+    return [...h.querySelectorAll("[data-pick]")].filter((b) => !b.closest(".more-trains")).map((b) => squash(b.textContent)).join(" | "); };
+  let s = offered({ ...base, sure: true, conflict: false, others });
+  assert.match(s, /10:01/); assert.doesNotMatch(s, /10:02|10:03/);
+  // The followed train (the 10:20 Thameslink) is offered however far off, even ruled out.
+  s = offered({ ...base, t: tr("09:50", "X"), sure: true, conflict: false, others: [...others, { ...base, offMin: 40, ruledOut: true, others: undefined }] });
+  assert.match(s, /10:20 Thameslink/);
+  // Stale position: nothing to judge by, so every train is offered.
+  s = offered({ ...base, sure: true, stale: true, conflict: false, others });
+  assert.match(s, /10:01/); assert.match(s, /10:02/); assert.match(s, /10:03/);
+  assert.deepEqual(app.errors, []);
+});
+
+
+test("Followed card: no 'Next:' naming the train before boarding, and none naming the arrival on the last walk", async () => {
+  const { app, c, place, panel, text } = await journey();
+  place(2, c.state.saved.home || app.w.CommuteCore.profiles.samCommute.places.homeStation);
+  assert.doesNotMatch(text(), /Next: \d\d:\d\d · [^·]*Thameslink/, "before boarding the train panel names the train; 'Next:' doesn't repeat it");
+  const r = c.state.saved.followRoute, office = app.w.CommuteCore.profiles.samCommute.places.office;
+  r.phase = "after-train";
+  place(Math.round((r.expectedArrival - T0) / m) - 4, [office[0] + 0.004, office[1]]);
+  assert.doesNotMatch(text(), /Next:[^]*Arrive office/, "the last walk: 'Journey remaining' says it");
+  assert.deepEqual(app.errors, []);
+});
+
+
+test("A route that takes the tube before the train says 'Tube and walk at your usual pace' (H18); one that doesn't says 'Walk at your usual pace'", async () => {
+  const eve = at("2026-11-03", "17:30");
+  const home = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "home", view: "now" }, geo: null, now: eve });
+  const reach = (a) => [...a.d.querySelectorAll("#hero .journey-reach, #list .journey-reach")].map((n) => squash(n.textContent)).join(" | ");
+  assert.match(reach(home), /Tube and walk at your usual pace/);
+  assert.doesNotMatch(reach(home), /(^|\| )Walk at your usual pace/);
+  const out = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office", view: "now" }, geo: null, now: T0 });
+  assert.match(reach(out), /Walk at your usual pace/); assert.doesNotMatch(reach(out), /Tube and walk/);
+  assert.deepEqual(home.errors, []); assert.deepEqual(out.errors, []);
+});
+
+
+test("Waiting for a location in Auto is planning, not under way: every control stays in view", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "auto" }, geo: null, now: T0 });
+  app.c.render();
+  assert.equal(app.c.state.rendered?.view || app.c.state.presentation?.view, "awaiting-location", "(Auto, no location yet)");
+  assert.equal(app.d.body.hasAttribute("data-underway"), false);
+  assert.equal(app.d.querySelector("#signalUnderwaySummary")?.hidden ?? true, true);
+  assert.deepEqual(app.errors, []);
+});

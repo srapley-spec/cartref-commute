@@ -818,3 +818,15 @@ test("Capture Aldgate (Settings): three TfL requests only when tapped, bodies sh
   assert.equal(app.d.querySelector("#captureShareBtn").hidden, false);
   app.close();
 });
+
+
+test("At King's Cross the 'Next tube' headline counts down to the tube in the 'next step' words", async () => {
+  const t0 = Date.now(), at = (lineId, dest, mins, v) => ({ vehicleId: v, lineId, platformName: "Eastbound - Platform 2", destinationName: dest + " Underground Station",
+    expectedArrival: new Date(t0 + mins * 60e3).toISOString(), timeToStation: Math.round(mins * 60) });
+  const app = await createApp({ geo: NEAR_LETCHWORTH, route: (u) => (/StopPoint\/940GZZLUKSX\/Arrivals/.test(u) ? json([at("metropolitan", "Aldgate", 8.5, "m8")]) : undefined) });
+  await moveTo(app, AT_KINGS_CROSS);
+  const cd = app.d.querySelector('#hero [data-block="headline"] [data-cd]');
+  assert.ok(cd, "the Next tube time counts down"); assert.equal(cd.dataset.step, "next");
+  assert.match(cd.textContent, /^(in \d+m \d\ds|Now · .+)$/);
+  app.close();
+});

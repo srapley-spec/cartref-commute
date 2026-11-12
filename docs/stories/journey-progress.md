@@ -111,6 +111,13 @@ mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam cho
 - tests/core/clean-baseline.test.mjs: "Where you are on a train leg comes from National Rail's reports: last station passed, the next, your stop and the stops to go"
 - tests/core/clean-baseline.test.mjs: "Where you are on a tube leg comes from TfL's location text for your tube, matched to the leg's stations"
 - tests/core/clean-baseline.test.mjs: "Station names as TfL and National Rail write them are the same station; TfL's text is read in the forms it uses"
+- tests/core/clean-baseline.test.mjs: "tubePlace: 'Between X and Y' when only one of the two is on the leg"
+- tests/journey-progress.test.mjs: "Signal progress: the leg line at its edges: approaching the next stop, approaching your stop (1 stop), at your stop; no evidence sentence once placed"
+- **"Between" named the other way round** (independent review, 12 Nov): "Between Moorgate and Liverpool Street" on a leg
+  that reaches Liverpool Street first is still between the two: Liverpool Street is the one passed, never Moorgate
+  (it was marked passed before the train reached it). Whether TfL writes it that way is unknown; it is now safe.
+  The tube leg's heading names an office stop by name ("Aldgate → Farringdon", not "ALD → Farringdon", seen once the
+  followed train was missed).
 - tests/clean-baseline.test.mjs: "On the train: the leg is one line and a folded list of every station (option A), no bar, and one 'behind' figure"
 
 - **11 Nov evening fix:** on the phone the opened list broke every name one letter per line: the old sideways stop

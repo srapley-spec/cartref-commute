@@ -1330,6 +1330,15 @@ test("Going home: tubes from Aldgate get off where you're home soonest; pick one
   // Each train's deadline is its platform (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
   const heads = [...app.d.querySelectorAll("#list .journey-heading")].map((h) => h.textContent.replace(/\s+/g, " "));
   assert.ok(heads.length > 0 && heads.every((h) => /Be on the platform by/.test(h) && !/Leave by/.test(h)), JSON.stringify(heads));
+  // …and the time beside it is the platform time (the departure less the route's minute), not the leave time.
+  const mins = (s) => { const [h, mm] = s.split(":").map(Number); return h * 60 + mm; };
+  for (const h of app.d.querySelectorAll("#list .journey-heading")) {
+    const card = h.closest("[data-journey-service]") || h.parentElement;
+    const by = /Be on the platform by\s*(\d\d:\d\d)/.exec(h.textContent.replace(/\s+/g, " "))?.[1];
+    const dep = /Timetable departure\s*(\d\d:\d\d)/.exec(card.textContent.replace(/\s+/g, " "))?.[1];
+    assert.ok(by && dep, `(a platform time and a departure: ${card.textContent.replace(/\s+/g, " ").slice(0, 200)})`);
+    assert.ok([0, 1].includes(mins(dep) - mins(by)), `platform ${by} for the ${dep}`);
+  }
   assert.match(hero, /Get off at King's Cross 16:56/);
   app.close();
 });

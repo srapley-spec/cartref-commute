@@ -130,7 +130,9 @@ test("At the change station, on the tube and on the walk to the office: still on
   assert.equal(c.state.presentation.view, "at-hub");
   const pick = panel.querySelector("[data-tubepick]");
   assert.ok(pick, "the tubes you can board are in the card"); assert.equal(folded(pick), false, "and not folded away");
-  assert.ok(before(one(".follow-next"), pick), "after the next step");
+  // The live "Get on the …" is the next step; the saved "Next: Circle or Met to Aldgate" isn't said beside it
+  // (follow-a-route.md, Clean baseline; this asserted the opposite until the independent review, 12 Nov).
+  assert.equal(panel.querySelector(".follow-next"), null, "no saved 'Next:' beside the live instruction");
   assert.equal(panel.querySelector('[data-fact="train-duration"]'), null, "the finished train is not on the card");
   // No live tubes yet: what the card says about that stays in view, not in a fold.
   c.state.tube = { hub: "ZFD", at: T0 + 95 * m, arrivals: [] }; c.render(); single();
@@ -214,5 +216,23 @@ test("A doubt about the train you're following is asked inside the one card, in 
   assert.ok(before(one(".follow-status"), question) && before(question, one(".follow-next")), "with the status, above what's next");
   assert.equal([...panel.querySelectorAll(".fold")].some((f) => f.querySelector("summary").textContent === "Not your train?"), false, "the question stands in for the folded correction");
   assert.match(squash(panel.textContent), /Station reports are hidden until you say which train you.re on/);
+  assert.deepEqual(app.errors, []);
+});
+
+
+test("At the change station the followed card's arrival is the listed next tube's office time, and the saved 'Next:' isn't said beside 'Get on …'", async () => {
+  const { app, c, P, place, panel, single, text } = await journey("office", "ZFD");
+  c.state.saved.followRoute.phase = "after-train";
+  c.state.tube = { hub: "ZFD", at: T0 + 95 * m, arrivals: [{ t: T0 + 102 * m, line: "Circle", lineId: "circle", platform: "Eastbound - Platform 1", dest: "Aldgate", vehicle: "v9" }] };
+  // TfL's journey planner disagrees (11 Nov: 08:44 in the headline while the list said 08:30).
+  c.state.toOffice = { at: T0 + 95 * m, arrive: T0 + 140 * m };
+  place(95, P.stationGeo.ZFD, { atHub: "ZFD" });
+  single();
+  assert.ok(c.state.hubOffice && c.state.hubOffice.hub === "ZFD", "(the tube list worked out the office time)");
+  const head = panel.querySelector(".journey-heading");
+  assert.match(squash(head.textContent), new RegExp(`At office ?${hm(c.state.hubOffice.arrive)}`), "the headline uses the listed tube");
+  assert.match(text(), /Next tube and measured onward walk/);
+  assert.doesNotMatch(text(), /Next: ?\d\d:\d\d · [^·]*(Circle|Met)[^·]*Aldgate[^]*Get on the/, "no saved 'Next:' beside the live instruction");
+  assert.equal(panel.querySelector(".follow-next"), null);
   assert.deepEqual(app.errors, []);
 });

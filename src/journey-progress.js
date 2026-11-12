@@ -1,7 +1,7 @@
 // Signal's progress view is an adapter over existing selected itineraries/reports.
 // No fetches, service selection, GPS inference or timing arithmetic belong here.
 let signalProgressMemory=null;
-function progressName(code){return STATIONS[code]||HUB_NAME[code]||code||'';}
+function progressName(code){return STATIONS[code]||HUB_NAME[code]||(PROFILE.places.officeStops||[]).find(stop=>stop.id===code)?.name||code||'';}
 function progressRoute(option){return routesFor(direction(),currentMode()).find(route=>route.hub===option.hub);}
 function progressSavedRideSeconds(option){return option?.tube?.ride?.[option.hub]??null;}
 function progressRailCalls(train,details){
@@ -65,7 +65,7 @@ function renderJourneyProgress(){
   }
   if(!context&&state.rendered?.ride){
     const ride=state.rendered.ride;
-    context={kind:'tube',ride,departure:ride.t,arrival:null,finalArrival:null,homeward:dir==='home',from:ride.from||ride.hub,to:ride.stop||'Stop not established'};
+    context={kind:'tube',ride,departure:ride.t,arrival:null,finalArrival:null,homeward:dir==='home',from:progressName(ride.from||ride.hub),to:ride.stop||'Stop not established'};
   }
   if(!context)return;
   // Saved history belongs only to the service displayed on this card. Keep a

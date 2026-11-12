@@ -120,6 +120,47 @@ test("Homeward: the station rule ('train departs in N min') only at the station 
   assert.deepEqual(app.errors, []); assert.deepEqual(other.app.errors, []);
 });
 
+test("On the tube to the station: set off however vague the fix; once the followed train is missed, no countdown to it, and the way on beneath counts down to its platform (review, 12 Nov)", async () => {
+  const { app, c, P, place, panel } = await homeward();
+  c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T0 + 10 * m, line: "Circle", vehicle: "v1", picked: true, rideMs: 8 * m, stop: "Farringdon", stopGeo: P.stationGeo.ZFD };
+  // Underground the fix is poor: the tube is the evidence you've set off, not the position.
+  place(12, [51.519, -0.094], { locAcc: 400 });
+  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.doesNotMatch(panel(), /Leave by/);
+  // A late tube: it left Aldgate at 10:24, so the 10:30 from Farringdon is gone; a 10:50 from there is reachable.
+  c.state.boards["ZFD-LET"].services.push(svc({ from: "ZFD", to: "LET", dep: T0 + 50 * m, arr: T0 + 90 * m, operator: "Thameslink", serviceId: "TL2", destination: "Cambridge" }));
+  c.state.saved.tubeRide = { ...c.state.saved.tubeRide, t: T0 + 24 * m };
+  place(29.5, [51.519, -0.094]);
+  assert.match(panel(), /You can no longer make your 10:30/);
+  assert.doesNotMatch(panel(), /Instead: the/, "on the tube the way on is the tube card's, not the header's");
+  assert.equal(app.d.querySelector("#followPanel > .journey-heading [data-cd], #followPanel > .journey-times [data-cd]"), null, "no 'Now · 30 s' counting down to a train you can't make");
+  assert.doesNotMatch(panel().split("A way on")[0], /Now · \d+ s/);
+  // The way on (the 10:50) is offered beneath, and on the tube its deadline is its platform, not a leave time that has passed.
+  const way = app.text("#followPanel .follow-alternative");
+  assert.match(way, /^A way on · 20 min later Be on the platform by\s*10:(49|50)/);
+  assert.doesNotMatch(way, /Leave by|leave time passed/);
+  assert.match(app.text("#followPanel .journey-progress"), /Aldgate → Farringdon/, "the station's name, not its code");
+  assert.deepEqual(app.errors, []); app.close();
+});
+
+test("At the station on a fix only good to 200 m, after the train has gone: the way on's deadline is its platform (review, 12 Nov)", async () => {
+  const app = await createApp({ settings: { provider: "demo", followRoute: true }, saved: { dirMode: "office" }, geo: null, now: T0 });
+  const c = app.c, P = app.w.CommuteCore.profiles.samCommute;
+  const fast = svc({ from: "LET", to: "KGX", dep: T0 + 20 * m, arr: T0 + 55 * m, operator: "Thameslink", serviceId: "FAST", destination: "Brighton" });
+  const later = svc({ from: "LET", to: "KGX", dep: T0 + 40 * m, arr: T0 + 75 * m, operator: "Thameslink", serviceId: "LATER", destination: "Brighton" });
+  c.state.boards = { "LET-KGX": { msgs: [], services: [fast, later] }, "LET-ZFD": { msgs: [], services: [] }, "LET-STP": { msgs: [], services: [] } };
+  c.state.boardsAt = T0; c.state.status = []; c.state.nrStatus = []; c.render();
+  [...app.d.querySelectorAll("[data-follow]")].find((b) => /10:20 Thameslink/.test(b.getAttribute("aria-label"))).click();
+  const place = (min) => { const now = T0 + min * m; app.setNow(now); c.state.boardsAt = now;
+    Object.assign(c.state, { here: P.stationGeo.LET, locAcc: 200, lastFixAt: now, locStatus: "ok", onLine: false, atHub: null }); c.render(); };
+  place(19); place(21); place(23);
+  const panel = app.text("#followPanel");
+  assert.match(panel, /You can no longer make your 10:20/);
+  assert.match(panel, /Instead: the 10:40 Thameslink to Brighton Be on the platform by\s*10:39/);
+  assert.doesNotMatch(panel.split("Journey remaining")[0], /Leave by/);
+  assert.deepEqual(app.errors, []); app.close();
+});
+
 test("Following, away from the station with no time left to walk there: the plan's 'Can't make it' still shows (the rule only changes once you're at the station)", async () => {
   const { place, panel, pointOn } = await following();
   place(19, [51.99, -0.25]);                      // a couple of km from Letchworth station, a minute before the train

@@ -59,7 +59,10 @@ export function tubePlace(where: string | null | undefined, names: readonly stri
   let m = /^(?:At|Left|Leaving|Departed|Departing)\s+(.+)$/i.exec(w);
   if (m) { const i = find(m[1]); return i < 0 ? null : { last: i, next: i + 1 < names.length ? i + 1 : null, approaching: false }; }
   m = /^Between\s+(.+?)\s+and\s+(.+)$/i.exec(w);
-  if (m) { const a = find(m[1]), b = find(m[2]); if (a < 0 && b < 0) return null;
+  if (m) { let a = find(m[1]), b = find(m[2]); if (a < 0 && b < 0) return null;
+    // Named the other way round ("Between Moorgate and Liverpool Street" on a leg that reaches Liverpool Street first):
+    // the train is still between the two, so the one passed is the earlier on the leg, never the later (review, 12 Nov).
+    if (a >= 0 && b >= 0 && a > b) [a, b] = [b, a];
     const last = a >= 0 ? a : b - 1; return { last: last >= 0 ? last : null, next: b >= 0 ? b : a + 1 < names.length ? a + 1 : null, approaching: false }; }
   m = /^Approaching\s+(.+)$/i.exec(w);
   if (m) { const i = find(m[1]); return i < 0 ? null : { last: i > 0 ? i - 1 : null, next: i, approaching: true }; }

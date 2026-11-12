@@ -410,6 +410,20 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
 - tests/countdown-steps.test.mjs: "Commute: at home Leave by counts down to leaving; once set off 'Be on the platform by' counts down to the platform; aboard, to the arrival"
 - tests/countdown-steps.test.mjs: "Leisure outbound: the same platform deadline and countdown once you've left home"
 - tests/countdown-steps.test.mjs: "Leisure going home starts wherever you are in London: set off is 200 m from where you were when the route was drawn"
+- tests/countdown-steps.test.mjs: "Commute going home: within 200 m of the office Leave by; 300 m away 'Be on the platform by'; a fix worse than 150 m doesn't count"
+- tests/countdown-steps.test.mjs: "Leisure going home: 300 m from where the route was drawn is set off (200 m rule, not 400 m)"
+- tests/countdown-steps.test.mjs: "A left time that isn't the start of a step ('Now' on the last walk) has no countdown at all"
+- tests/countdown-steps.test.mjs: "The band starts at 2 minutes exactly: 1m 59s is urgent, 2m 01s isn't"
+- tests/app.test.mjs: "At King's Cross the 'Next tube' headline counts down to the tube in the 'next step' words"
+- tests/journey-progress.test.mjs: "Live card on the train (not following): the King's Cross arrival counts down in its own words"
+- **Under way, nothing counts down to a train that has gone, and the way on keeps the rule** (independent review,
+  12 Nov): once the followed train can't be made, its "Next action" time has no countdown (it showed "Now · 30 s" for
+  a missed train); the way on beneath the card ("A way on", "Another option") leads with "Be on the platform by" once
+  you're under way (on the tube home it said "Leave by 10:29 · leave time passed"); and the header's "Instead: the …"
+  does the same at the station on a fix good only to 151–250 m. On the tube, set off doesn't depend on the fix: the
+  tube is the evidence.
+- tests/follow-consistency.test.mjs: "On the tube to the station: set off however vague the fix; once the followed train is missed, no countdown to it, and the way on beneath counts down to its platform (review, 12 Nov)"
+- tests/follow-consistency.test.mjs: "At the station on a fix only good to 200 m, after the train has gone: the way on's deadline is its platform (review, 12 Nov)"
 - **When it can no longer be made** (07:16, the header went to "Unavailable"): the header shows the way on: "Instead:
   the 07:45 Great Northern", its own Leave by → arrival, and its own journey figures, under "You can no longer make
   your 07:30".
@@ -423,7 +437,8 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
 - **The followed card at the change station uses the same tubes**: its arrival is the listed next tube's office time
   (under 2 minutes old), not TfL's journey planner (11 Nov: 08:44 in the headline while the list said 08:30). Source
   line "Next tube and measured onward walk". The saved "Next: Circle or Met to Aldgate" is not shown beside the live
-  "Get on the H&C …".
+  "Get on the H&C …". (Independent review, 12 Nov: until then it still was. The removal looked for the "Get on" line
+  after it had already moved into the card, so it never ran, and a test asserted the line was there.)
 - **One "behind" figure** (H10): the legs' own status is not drawn inside the one journey card.
 - **On the last walk** the plan's "Next: 08:38 · Arrive office · walk 6 min" is not shown beside "Journey remaining
   5 min": the next step is the arrival itself (`nextIsLast` from the engine).
@@ -455,6 +470,16 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
 - tests/core/clean-baseline.test.mjs: "'On a different tube?' offers each other tube for 5 minutes after the later of it and yours left, and never lists your own tube again"
 - tests/core/clean-baseline.test.mjs: "On the last walk the followed card's 'Next' step is the arrival itself: flagged, so the card doesn't repeat the plan's whole walk"
 - tests/app.test.mjs: "At King's Cross: one list of tubes, as on the platform board: place, time, line and where it goes, office time"
+- tests/single-card.test.mjs: "At the change station the followed card's arrival is the listed next tube's office time, and the saved 'Next:' isn't said beside 'Get on …'"
+- tests/clean-baseline.test.mjs: "The location line: 3 km out of London names the station; under 1 km in London; no location at all keeps the line out of the fold and offers Update location, which restarts the watch"
+- tests/clean-baseline.test.mjs: "C12 thresholds: within 12 min and not ruled out is offered; 13 min or ruled out goes under 'More trains'; the followed train is always offered; a stale position filters nothing"
+- tests/clean-baseline.test.mjs: "Followed card: no 'Next:' naming the train before boarding, and none naming the arrival on the last walk"
+- tests/clean-baseline.test.mjs: "A route that takes the tube before the train says 'Tube and walk at your usual pace' (H18); one that doesn't says 'Walk at your usual pace'"
+- tests/clean-baseline.test.mjs: "Waiting for a location in Auto is planning, not under way: every control stays in view"
+- Independent review (12 Nov, 110 deliberate breakages across this batch and the four branches after it): 55 caught
+  at first; the tests above catch 41 more (the thresholds 3 km/1 km, 12 min, 200 m, 150 m, 2 minutes, and the "Next:"
+  and location rules); found the change-station "Next:" still shown, the reversed "Between", and the way-on deadlines.
+  The rest were equivalent (no behaviour change).
 - tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"
 
 ## Agreed 10 Nov 2026, not yet built

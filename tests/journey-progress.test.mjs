@@ -161,3 +161,28 @@ test('Signal progress: where TfL says your tube is, in its own words, when the m
  assert.doesNotMatch(a.text('.journey-progress'),/At Barbican/,'a stale prediction says nothing about where the tube is');
  assert.deepEqual(a.errors,[]);a.close();
 });
+
+test('Signal progress: the leg line at its edges: approaching the next stop, approaching your stop (1 stop), at your stop; no evidence sentence once placed',async()=>{
+ const a=await createApp({now:NOW,settings:{provider:'demo',followRoute:false},saved:{dirMode:'office'}}),s=a.c.state;
+ Object.assign(s,{here:[51.5201,-.0973],locAcc:30,locStatus:'ok',lastFixAt:NOW,lastFixRecvAt:NOW,onLine:false,atHub:null,inLondon:false});
+ s.saved.tubeRide={hub:'KGX',from:'KGX',t:NOW-3*60000,line:'Met',vehicle:'tube-progress',rideMs:10*60000,stop:'Aldgate',stopGeo:[51.5142,-.0755],picked:true};
+ const p={vehicle:'tube-progress',lineId:'metropolitan',stopId:'940GZZLUALD',platform:'Northbound - Platform 2',observedAt:NOW,t:T('09:22')};
+ const line=where=>{s.ald={at:NOW,arrivals:[{...p,where}]};a.c.render();return a.text('.journey-progress .jp-where');};
+ assert.match(line('Approaching Liverpool Street'),/Next: Liverpool Street, approaching · Your stop: Aldgate 09:22, 2 stops$/);
+ const last=line('Approaching Aldgate');
+ assert.doesNotMatch(last,/Next:/,'your stop is next: said once, as your stop');
+ assert.match(last,/Your stop: Aldgate, approaching, 1 stop$/,'one stop, singular');
+ assert.doesNotMatch(line('At Aldgate'),/Your stop/,'at your stop: no "Your stop" still to come');
+ assert.equal(a.d.querySelector('.journey-progress .jp-current .jp-evidence'),null,'placed: the evidence sentence goes (the source line says where it is from)');
+ assert.equal(a.d.querySelector('.jp-leg[data-state="current"] .jp-leg-bar i').getAttribute('style'),'--complete:0%','the current stage has no partial fill');
+ assert.deepEqual(a.errors,[]);a.close();
+});
+
+
+test("Live card on the train (not following): the King's Cross arrival counts down in its own words",async()=>{
+ const a=await rail();
+ const cd=a.d.querySelector('#hero [data-block="headline"] [data-cd]');
+ assert.ok(cd,'the arrival time counts down');assert.equal(cd.dataset.step,'arrive');
+ assert.match(cd.textContent,/^(arrives in \d+m \d\ds|Arriving · .+)$/);
+ assert.deepEqual(a.errors,[]);a.close();
+});

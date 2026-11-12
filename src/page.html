@@ -1278,7 +1278,7 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
 }
 function journeyHeadlineMarkup(j,dest,timing=''){
   // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
-  // its platform, with no countdown to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
+  // its platform, counting down to that, never to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
   if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
     return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,step:'platform',timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});

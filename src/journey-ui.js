@@ -227,7 +227,9 @@ function singleCard(route){
     if(mine)mine.replaceWith(b);else (own('.meta')||own('.follow-status'))?.before(b);}
   // At the change station the live instruction ("Get on the Met to Aldgate …") is the next step: the saved "Next:
   // Circle or Met to Aldgate" isn't said beside it (11 Nov 2026: "Get on the H&C" above "Next: Circle or Met").
-  if(state.presentation?.view==='at-hub'&&live.some(n=>n.dataset.block==='which'&&n.querySelector('.slack')))own('.follow-next')?.remove();
+  // (The "Get on" line may already have moved into the card as the one statement of which tube: look there too.
+  // Independent review, 12 Nov: checking only what was left meant this never ran.)
+  if(state.presentation?.view==='at-hub'&&[...live,...identity].some(n=>n.dataset.block==='which'&&n.querySelector('.slack')))own('.follow-next')?.remove();
   const next=own('.follow-next'), steps=own('.steps'), stop=own('[data-follow-action="stop"]'), start=next||steps||stop;
   if(!start)return;
   // 1. The journey: notices, questions and the other option sit with the status, above the legs.
@@ -530,12 +532,16 @@ function renderFollowPanel(){
   const wayOnTimes=!giveUpWay?'':(movedOff||panelLayout&&observation.boarding)&&giveUpWay.train
     ?journeyTimesMarkup({leave:C.platformBy(giveUpWay,giveUpWay.train.dep,Date.now()),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
     :journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true});
+  // The way on offered below the card ("A way on", "Another option") is drawn by the same rule once you're under way:
+  // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
+  const altOverview=!alt?'':(()=>{const was=state.rowsUnderWay;state.rowsUnderWay=was||movedOff||(panelLayout&&!!observation.boarding);
+    try{return journeyOverviewMarkup(alt);}finally{state.rowsUnderWay=was;}})();
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
-      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
+      :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:unknown?'':r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
     ${comparison&&wayAhead?journeyAccessMarkup(comparison):''}
@@ -556,7 +562,7 @@ function renderFollowPanel(){
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep&&!(r.phase==='before-train'&&result.nextStep.train)&&!(r.phase==='after-train'&&result.nextIsLast)?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
-    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${journeyOverviewMarkup(alt)}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
+    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${altOverview}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${legs.map(l=>`<li class="t">${stepTime(l)==null?'':hhmm(stepTime(l))}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}

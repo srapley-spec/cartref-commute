@@ -80,3 +80,51 @@ test("Leisure going home starts wherever you are in London: set off is 200 m fro
   assert.match(squash(head(a).textContent), /Be on the platform by/); assert.equal(cd(a)?.dataset.step, "platform");
   assert.deepEqual(a.errors, []); a.close();
 });
+
+test("Commute going home: within 200 m of the office Leave by; 300 m away 'Be on the platform by'; a fix worse than 150 m doesn't count", async () => {
+  const a = await demo(evening, { dirMode: "home" }, null);
+  const office = a.w.CommuteCore.profiles.samCommute.places.office;
+  at(a, evening, office); follow(a, (o) => o.effort === "walk" || o.recommended === 1);
+  at(a, evening + MIN, [office[0] + 0.0013, office[1]]);   // about 145 m
+  assert.match(squash(head(a).textContent), /Leave by/, "still at the office");
+  at(a, evening + 2 * MIN, [office[0] + 0.0027, office[1]]);   // about 300 m
+  assert.match(squash(head(a).textContent), /Be on the platform by/);
+  a.c.state.locAcc = 400; a.c.render();
+  assert.match(squash(head(a).textContent), /Leave by/, "a coarse position is not evidence you've set off");
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+test("Leisure going home: 300 m from where the route was drawn is set off (200 m rule, not 400 m)", async () => {
+  const start = [IN_LONDON.coords.latitude, IN_LONDON.coords.longitude];
+  const a = await demo(evening, { dirMode: "home", mode: "leisure" }, IN_LONDON);
+  await sleep(200);
+  follow(a, (o) => o.effort === "walk" || o.recommended === 1);
+  at(a, evening + MIN, start);
+  at(a, evening + 3 * MIN, [start[0] + 0.0027, start[1]]);   // about 300 m
+  assert.match(squash(head(a).textContent), /Be on the platform by/);
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+
+test("A left time that isn't the start of a step ('Now' on the last walk) has no countdown at all", async () => {
+  const a = await demo(morning, { dirMode: "office", home: HOME }, null), r = follow(a);
+  const office = a.w.CommuteCore.profiles.samCommute.places.office;
+  a.c.state.saved.followRoute.phase = "after-train";
+  at(a, r.expectedArrival - 4 * MIN, [office[0] + 0.004, office[1]]);
+  const h = head(a); assert.ok(h, "(the followed card's heading)");
+  assert.equal(h.querySelector("[data-cd]"), null, `no countdown under ${squash(h.querySelector("small")?.textContent || "")}`);
+  assert.doesNotMatch(squash(h.textContent), /leave time passed|leave in/);
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+
+test("The band starts at 2 minutes exactly: 1m 59s is urgent, 2m 01s isn't", async () => {
+  const a = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office" }, geo: null, now: morning });
+  const box = a.d.createElement("div"); a.d.body.append(box);
+  box.innerHTML = `<div class="journey-countdown"><span id="u" data-cd="${a.w.Date.now() + 119.5e3}" data-step="platform"></span></div><div class="journey-countdown"><span id="c" data-cd="${a.w.Date.now() + 121e3}" data-step="platform"></span></div>`;
+  a.c.render();
+  assert.equal(a.d.getElementById("u").parentElement.classList.contains("urgent"), true);
+  assert.match(a.d.getElementById("u").textContent, /^Head for the platform now · 1m 59s$/);
+  assert.equal(a.d.getElementById("c").parentElement.classList.contains("urgent"), false);
+  assert.deepEqual(a.errors, []); a.close();
+});
