@@ -87,6 +87,7 @@ export interface Access {
   walkFast: number;        // … and at your fast pace
   fixed: number;           // everything else before the train: allowances, tube rides, waits, the margin
   home: boolean;           // the route starts at your home (your car is there)
+  driveSecs?: number;      // the drive to the station with traffic, from Google, when known (replaces the cab's guess)
 }
 
 /** Standing-room rule: busy trains, on which days, outside which holidays. */

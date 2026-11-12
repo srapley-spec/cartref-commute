@@ -20,7 +20,7 @@ export interface RouteInput {
   dir: Direction; mode: "commute" | "leisure"; pace: "avg" | "fast"; timings: Timings;
   tubeFallback?: boolean;                                   // Circle and Met closed: H&C to Aldgate East
   london?: { KXSP: LondonLeg; FAR: LondonLeg } | null;      // leisure going home
-  here?: { walkToStation: number | null; atHub: StationCode | null; atHome?: boolean; atOfficeTube?: boolean } | null;   // plan from where you are
+  here?: { walkToStation: number | null; atHub: StationCode | null; atHome?: boolean; atOfficeTube?: boolean; driveToStation?: number | null } | null;   // plan from where you are
   /** Any start and end point (feature toggle): going out to a London place — TfL legs from each station group to it. */
   dest?: { name: string; legs: { KXSP: LondonLeg | null; FAR: LondonLeg | null } | null } | null;
   /** The local station trains go from and to (the profile's home station): its code and name. Default Letchworth. */
@@ -114,6 +114,7 @@ function fromHere(routes: Route[], i: RouteInput) {
       r.before[0] = walkSeg(hw, s.walkHomeStationAvg * share, s.walkHomeStationFast * share, { at: "start", d: "Set off from where you are", note: `about ${dur(sec(hw))} walk to ${i.start ? i.start.name : "Letchworth"} station` });
       r.extra = { ...r.extra, fromHere: true };
       r.startsAtHome = !!i.here!.atHome;
+      if (i.here!.driveToStation != null && isFinite(i.here!.driveToStation)) r.driveSecs = i.here!.driveToStation;
     } else if (dir === "home" && at) {
       const same = (at === "KGX" && (r.hub === "KGX" || r.hub === "STP")) || r.hub === at;
       r.before = same

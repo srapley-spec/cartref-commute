@@ -374,6 +374,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   or 3 minutes nearer the station outbound, over 200 m from the office homeward) and on the trains listed under the
   tube you're on. Planning rows and recommendations keep Leave by. From 11 Nov 07:21 ("Leave by" halfway to the
   station) and #57 H4. Story: `stories/follow-a-route.md`, `stories/tube-home.md`.
+- **12 Nov, Google for the walk and the drive in the commute (Sam).** Google's street distances (timed at your own pace)
+  and drive times with traffic, only on the way out and only every 150 m or 3 minutes; train and tube times stay with
+  National Rail and TfL. A new live-feed request from the commute: merged only after GitHub's run on the branch. Story:
+  `stories/google-walk-drive.md`.
 
 - **11 Nov evening, your tube's position on the way home without Follow (Sam).** With the bar gone (leg progress
   option A), the tube home without Follow showed "No live position yet" for the whole ride: nothing fetched TfL's

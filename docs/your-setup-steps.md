@@ -23,7 +23,8 @@ Last updated: 10 Nov 2026 (display mode for Home Assistant).
 - [ ] `RDM_SD_KEY` (Secret): only if Service Details has its own key
 - [ ] `TFL_KEY` (Secret): your TfL app key (api-portal.tfl.gov.uk). Needed in practice: without it the Worker shares
       TfL's anonymous limit with Cloudflare's other customers
-- [ ] **`GOOGLE_KEY` (Secret): your Google Maps key.** Not done yet (Sam, 4 Nov). In Google Cloud, a key used by
+- [ ] **`GOOGLE_KEY` (Secret): your Google Maps key.** Not done yet (Sam, 4 Nov). Since 12 Nov it also times the walk
+      and a cab's drive to Letchworth in the commute (`stories/google-walk-drive.md`). In Google Cloud, a key used by
       the Worker can't be restricted by website; restrict it to Places API (New) and Routes API instead. The existing
       browser key is website-restricted, so a second, server key is usual
 - [ ] `ALLOW_ANY_STATION` (Text): `yes` (Trip's rides anywhere in Great Britain)

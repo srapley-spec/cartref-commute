@@ -24,6 +24,7 @@ export interface Route {
   noPlatform?: string;         // shown when no platform is known
   extra?: Record<string, unknown>;   // carried onto each option (screen-specific data)
   startsAtHome?: boolean;      // the route starts at your home (effort levels: your car is there)
+  driveSecs?: number;          // from where you are: the drive to the station with traffic, from Google (a cab's drive)
   /** Where the route first boards when that isn't the train's station (e.g. the tube from the office). Default:
    *  the train's station (the board key's origin). Used for the Live board before a journey (stationBoard.ts). */
   firstStop?: { code: StationCode; name: string; kind: "rail" | "tube" };
@@ -95,7 +96,8 @@ export function fastWalkLegs(o: Option, leave: number): Leg[] {
 export function accessOf(r: Route): Access {
   const walks = r.before.filter(s => s.kind === "walk"), sum = (f: (s: Segment) => number, xs: Segment[]) => xs.reduce((t, s) => t + f(s), 0);
   return { walk: sum(s => s.secs, walks), walkAvg: sum(s => s.avg ?? s.secs, walks), walkFast: sum(s => s.fast ?? s.secs, walks),
-    fixed: sum(s => s.secs, r.before.filter(s => s.kind !== "walk")), home: !!r.startsAtHome };
+    fixed: sum(s => s.secs, r.before.filter(s => s.kind !== "walk")), home: !!r.startsAtHome,
+    ...(r.driveSecs != null && isFinite(r.driveSecs) ? { driveSecs: r.driveSecs } : {}) };
 }
 
 /** Every train on every route, as a door-to-door option. Trains without a time at either end are skipped. */
