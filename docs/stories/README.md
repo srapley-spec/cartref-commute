@@ -49,6 +49,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Developer journey simulator](journey-simulator.md) · Implemented and independently reviewed: guided Journey Mode, Advanced diagnostics and real-app checkpoint verification ([release #37](https://github.com/srapley-spec/cartref-commute/pull/37))
 - [Direction and arriving](direction-and-arrival.md) · Done
 - [On your way to the station](on-the-way-to-the-station.md) · Done
+- [Google for the walk and the drive from where you are](google-walk-drive.md) · Done 12 Nov (unverified on the phone)
 - [At the station: departure board](at-the-station.md) · Done
 - [Which train you're on](which-train.md) · Done
 - [Visual progress for the journey and current leg](journey-progress.md) · Implemented in Signal; retirement evidence recorded separately

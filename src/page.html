@@ -897,7 +897,7 @@ function direction(){ return state.saved.dirMode==="auto" ? (state.autoDir||"off
 function routesFor(dir, mode, opts){
   return C.samRoutes({ dir, mode, pace:state.saved.pace==="fast"?"fast":"avg", timings:S(), tubeFallback:mode!=="leisure" && aldgateUnusable(),
     london:state.london||null, dest:outTo(dir, mode), start:{ code:HOME, name:HOME_NAME },
-    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome(), atOfficeTube: C.atOfficeTube(dir, fix(), PROFILE) } : null });
+    here: opts && opts.here ? { walkToStation: dir==="office" ? walkFromHere() : null, atHub: state.atHub||null, atHome: dir==="office" && atHome(), atOfficeTube: C.atOfficeTube(dir, fix(), PROFILE), driveToStation: dir==="office" ? googleDriveSecs() : null } : null });
 }
 // Any start and end point, going out: the place, and TfL's legs to it once planned.
 const outTo = (dir, mode) => anyPlace() && mode==="leisure" && dir==="office" && (state.saved.dest||"").trim()
@@ -945,9 +945,49 @@ function walkFromHere(){
   // With your home saved: your measured walk, scaled by how much of the way is left (more accurate than a
   // straight-line estimate). Otherwise the straight line × 1.3 at your walking speed.
   const home=state.saved.home, dh=home?km(home,GEO.HOME):0;
-  if(home && dh>0.2){ const r=d/dh; return r<1 ? homeWalk()*r : null; }
   const est = C.walkSecs(state.here, GEO.HOME, leisure?"leisure":fast?"fast":"avg", PROFILE);
+  // Google's street distance, timed at your pace, when it's known for about here (refreshGoogleNear).
+  const g=googleFresh();
+  if(g&&g.walkM){
+    if(home && dh>0.2 && g.homeM){ const r=g.walkM/g.homeM; return r<1 ? homeWalk()*r : null; }
+    if(!(home && dh>0.2)){ const viaStreets = est * g.walkM/(d*1300); return viaStreets<homeWalk() ? viaStreets : null; }
+  }
+  if(home && dh>0.2){ const r=d/dh; return r<1 ? homeWalk()*r : null; }
   return est<homeWalk() ? est : null;
+}
+// Google for the walk and the drive from where you are to Letchworth station (Sam, 12 Nov: "Surely it can give us more
+// accurate information for the commuter app?"; agreed: walking and driving only, only when it matters). Asked only on
+// your way out (within 3 km of the station, not at home or at the station), at most once per 150 m moved or 3 minutes,
+// with a Google route set up (the Trip key in this browser, or the proxy). The walk is Google's street distance timed at
+// your own pace: with your home saved, the share of your measured walk that the street distance from here is of the
+// street distance from home; without, the straight-line estimate scaled to the streets. The drive is Google's, with
+// traffic, and replaces the cab's guess.
+const googleNear={here:null,at:0,walkM:null,driveS:null,homeM:null,homeKey:'',pending:false};
+let googleNearAd=null,googleNearVia='';
+function googleNearUsable(){ const s=S(); if(s.provider==="demo"||s.simulatedFeeds) return false;
+  const proxy=s.googleVia==="proxy"||s.provider==="proxy"; return proxy ? !!String(s.proxyBase||"").trim() : !!String(s.googleKey||"").trim(); }
+function googleNearAdapter(){ const s=S(), via=(s.googleVia==="proxy"||s.provider==="proxy")?"proxy":"browser";
+  if(!googleNearAd||googleNearVia!==via){ googleNearVia=via; const net={fetchT,logRequest,epoch:()=>sourceEpoch,assertEpoch:assertSource};
+    googleNearAd = via==="proxy" ? tripAdapters.googleProxy({getBase:()=>S().proxyBase,net}) : tripAdapters.googleMapsJs({getKey:()=>S().googleKey,net,loadScript:googleLoadScript}); }
+  return googleNearAd; }
+function googleLoadScript(src){ return new Promise((ok,no)=>{ const el=document.createElement("script"); el.src=src; el.async=true; el.onload=ok; el.onerror=()=>no(new Error("network")); document.head.append(el); }); }
+function googleFresh(){ return googleNear.here&&state.here&&km(googleNear.here,state.here)<0.15&&Date.now()-googleNear.at<300e3 ? googleNear : null; }
+function googleDriveSecs(){ const g=googleFresh(); return g&&Number.isFinite(g.driveS) ? g.driveS : null; }
+async function refreshGoogleNear(now){
+  if(direction()!=="office"||!state.here||!(state.locAcc<=150)||googleNear.pending||!googleNearUsable()) return;
+  const d=km(state.here,GEO.HOME), home=state.saved.home;
+  if(d>3||d<0.15||(home&&km(state.here,home)<0.15)) return;
+  if(googleNear.here&&km(googleNear.here,state.here)<0.15&&now-googleNear.at<180e3) return;
+  const here=state.here, ad=googleNearAdapter(), homeKey=home?home.join(','):'';
+  googleNear.pending=true;
+  try{
+    const [walk,drive,fromHome]=await Promise.all([
+      ad.matrix(here,[GEO.HOME],"walk",now,"to").catch(()=>[null]),
+      ad.matrix(here,[GEO.HOME],"drive",now,"to").catch(()=>[null]),
+      home&&googleNear.homeKey!==homeKey ? ad.matrix(home,[GEO.HOME],"walk",now,"to").catch(()=>[null]) : Promise.resolve(null)]);
+    Object.assign(googleNear,{here,at:Date.now(),walkM:walk[0]?.metres??null,driveS:drive[0]?.secs??null});
+    if(fromHome){ googleNear.homeKey=homeKey; googleNear.homeM=fromHome[0]?.metres??null; }
+  } finally { googleNear.pending=false; }
 }
 // Your usual walk from home to Letchworth station at the current pace (seconds).
 function homeWalk(){ const s=S(), leisure=state.saved.mode==="leisure", fast=!leisure && state.saved.pace==="fast";
@@ -2327,6 +2367,7 @@ async function refresh(opts){
       : Promise.resolve();
     await Promise.all([railP,refreshLondon(),aldP]);if(epoch!==sourceEpoch)return;
     await refreshFollowTransport(Date.now());if(epoch!==sourceEpoch)return;
+    await refreshGoogleNear(Date.now());if(epoch!==sourceEpoch)return;
     await refreshTrainProgress();if(epoch!==sourceEpoch)return;
     await Promise.all([statusP(),nrP()]);
   } catch(e){
@@ -2771,6 +2812,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

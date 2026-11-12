@@ -19,9 +19,11 @@ export function effortNeeds(a: Access, ep: EffortProfile): Record<Exclude<Effort
   const runBudget = (ep.runKm / ep.walkKmh) * 3600;            // seconds of average-pace walking that runKm takes
   const p = Math.min(runBudget, W), fastRatio = W > 0 ? F / W : 1;
   const run = Math.min(F, F - p * fastRatio + p / ep.runFactor);
-  // A car replaces the walking: your own from home, else a cab. No walking means nothing to replace.
+  // A car replaces the walking: your own from home, else a cab. No walking means nothing to replace. A cab's drive is
+  // Google's drive time with traffic when known (12 Nov, Sam: Google for driving in the commute), else a guess at cabKmh.
   const km = (W / 3600) * ep.walkKmh;
-  const car = W <= 0 ? Infinity : a.home ? ep.carFromHomeSecs : ep.cabWaitSecs + (km / ep.cabKmh) * 3600;
+  const drive = a.driveSecs != null && isFinite(a.driveSecs) && a.driveSecs >= 0 ? a.driveSecs : (km / ep.cabKmh) * 3600;
+  const car = W <= 0 ? Infinity : a.home ? ep.carFromHomeSecs : ep.cabWaitSecs + drive;
   const ms = (secs: number) => (isFinite(secs) ? Math.round(secs * 1000) : Infinity);   // whole ms, like every other time
   return {
     walk: ms(fixed + a.walk),
