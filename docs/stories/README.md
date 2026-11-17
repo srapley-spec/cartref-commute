@@ -28,6 +28,9 @@ As <who>, when <situation>, I want <what>, so that <why>.
 `npm run check-docs` fails if a listed test name doesn't exist in that file.
 
 ## Index
+### iPhone
+- [The website bundled as an iPhone app](ios-shell.md) · Shell and CI in progress; native features await contracts
+
 ### Planning
 - [Approved journey and leg UI across planning, Live and Trips](journey-leg-ui.md) · Implemented 2 Nov; independently reviewed before release
 - [Never hide a train](never-hide-a-train.md) · Done

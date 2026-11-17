@@ -1,33 +1,36 @@
 # iOS readiness — 17 November 2026
 
-Preparation only. Sam asked the iOS agent to wait for the no-setup release before implementing the app. The
-authoritative brief is currently `docs/ios-app.md` on `feature/no-setup` (`e0ceef1`); it is not on `main` yet.
-Native preparation is on `feature/native-prep` (`cb899c9`). Read the released versions again before implementation.
+Sam authorized shell/pipeline implementation on 17 November. The shell now builds, starts offline in a simulator,
+and exports a signed internal-only IPA. The full brief is still `docs/ios-app.md` on `feature/no-setup` (`af09273`),
+not main. Native preparation is on `feature/native-prep` (`3c45da8`); contracts remain unreleased. Read the released
+versions again before native feature implementation. See [the shell story](stories/ios-shell.md) for exact scope.
 
 ## Prepared and verified
 
 - This workspace is the actual `srapley-spec/cartref-commute` repository. Local branch `codex/ios-preflight`
   starts from `main` at `d2cca4bc9ca41e1817cef0248301a030573294d0`. Git push access was checked with a dry run;
-  no branch or app source has been pushed by this preparation.
+  implementation and release checks are recorded below.
 - Xcode 27.2 (`27B52`), iOS 27.2 SDK, and iPhone simulators are available. Minimum app deployment target remains 27.0.
 - Node 24.22.3 and npm 11.19.1 are installed for this task, outside the repository, from the official Node archive
   with its SHA-256 checked. Local bin directory:
   `~/.local/share/cartref-commute/toolchain/node-v24.22.3-darwin-arm64/bin`.
-  Add that directory to PATH when running repository commands. Capacitor's current stable CLI is 8.6.2;
-  resolve and pin matching packages when implementation begins.
-- `npm ci`, `npm run typecheck`, and `npm run check-docs` passed on the unchanged checkout. This is a toolchain
-  check, not a full release test run. No app implementation or signing test has been performed.
+  Add that directory to PATH when running repository commands. Capacitor CLI, core and iOS packages are pinned to 8.6.2.
+- The real Capacitor WKWebView passed its cold-launch test with HTTP/HTTPS blocked. A Release archive and signed
+  internal-only export passed local verification, including the bundled page hash. Full committed-code CI, independent
+  mutation review, GitHub validation and the first upload remain pending; this is not a completed native app.
 - Apple Developer and App Store Connect are signed in as Sam Rapley. The registered Commute App ID is on team
   `TU7MLARY49`, matching the valid Apple Development signing identity in the local Keychain. No local Apple
   Distribution signing identity was listed. Sam confirmed reuse of this team on 17 November.
 - App ID `uk.cartref.srapley.commute` verified in Apple Developer; Access Wi-Fi Information checked on its page.
-  Reuse the App Group `group.uk.cartref.srapley.commute` and other capabilities recorded in the brief, then verify
-  their associations in the eventual signed profiles. No identifiers or keys were revoked.
+  The App Group existed but was unassociated; it is now assigned to Commute and present in the regenerated profile.
+  Push, Siri, Wi-Fi and time-sensitive capability grants are also present. No identifiers or keys were revoked.
 - Created the [Cartref Commute App Store Connect record](https://appstoreconnect.apple.com/apps/6836040622):
   app ID `6836040622`, iOS, English (U.K.), SKU `cartref-commute-ios`, bundle ID above. No build uploaded or released.
 - Requested App Store Connect API access and verified Apple's approval. Created team key **Cartref Commute CI**
   with the Developer role: key ID `C8865Y2UMU`, issuer ID `aedb05d9-7e5f-424f-b147-64f12ec0567a`.
-  Its private .p8 has not been downloaded or read by the agent. These public IDs are not the APNs key ID/team ID.
+  At Sam's request, downloaded its private file once into a protected local signing directory and transferred it
+  opaquely to `ASC_API_KEY_P8`. API authentication and app identity are verified; no private value entered chat or logs.
+  These public IDs are not the APNs key ID/team ID.
 - Sam supplied three family accounts for internal testing. Account invitations use the Marketing role, access
   limited to Cartref Commute, with Create Apps and Generate Individual API Keys disabled. Keep addresses out of
   public repository documentation. All three account invitations were confirmed sent by App Store Connect;
@@ -39,22 +42,25 @@ Native preparation is on `feature/native-prep` (`cb899c9`). Read the released ve
 - Created Commute's internal **Family** group (`04d6fd12-7207-488c-bbec-bff4050404ce`) with automatic build
   distribution enabled, as required for future main builds. Sam is enrolled; there are zero builds. The
   invited family accounts are not yet eligible in the add-testers list and must first accept their account invites.
-- Sam confirmed that the existing APNs key file (`352Z6Z6469`) is retained securely. Reuse it; no replacement key
-  is needed. The agent has not accessed the file. Provisioning the proxy secret remains a separate step.
+- Found the existing APNs key (`352Z6Z6469`) through Cartref Home's setup documentation. At Sam's request,
+  transferred it opaquely to `APNS_KEY` and added `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` in Actions secrets.
+  Its existing protected Cartref copy remains intact. No replacement key needed; proxy deployment remains separate.
+- Cloud export failed because the Developer API key lacks cloud certificate permission. Created a separate Apple
+  Distribution certificate (`4LB2LF4N9T`) and **Cartref Commute App Store** profile, expiring 17 November 2027. Their
+  protected signing inputs are now in Actions secrets. Manual signing/export passed; the API key retains Developer
+  access. Local backup: `~/Library/Application Support/Cartref Commute/Signing/` (outside the repository).
 - Opened [ios-contract issue #58](https://github.com/srapley-spec/cartref-commute/issues/58) for the repo owner.
 
 ## Release gate
 
 At inspection, main's Tests run `44181357622`, Pages and Deploy proxy jobs all succeeded at `d2cca4b`.
-The no-setup branch's run `44176299310` failed: 1,348 tests passed and 15 failed, including saved Follow/settings,
-push-alert and simulator assertions. These failures belong to the other agent's active release work; their full
-root causes have not been independently established here. Native-prep runs `44177868406`, `44179088488`, and
-`44179332775` failed the generated `index.html` freshness gate; the latest log shows new snapshot exports absent
-from the committed page. Do not treat those drafts as released dependencies or duplicate the owner's fixes.
+The no-setup branch's latest inspected Tests run `44186811204` succeeded at `af09273`, but it has not reached main.
+Native-prep run `44186930189` at `3c45da8` failed the generated `index.html` freshness gate: snapshot exports are
+absent from the committed page. Do not treat those drafts as released dependencies or duplicate the owner's fixes.
 
-Begin shell/pipeline implementation after the no-setup release is on main and its exact commit has passed Tests,
-Pages and the applicable proxy deployment checks. Bring this branch up to date from main first. Live Activity and
-AlarmKit implementation additionally wait for released snapshot/native routes and resolution of the contracts they use.
+Sam has authorized continuing shell/pipeline implementation. Integration still waits for a green no-setup release
+on main, then a main merge into this branch and all required checks. Live Activity and AlarmKit additionally wait
+for released snapshot/native routes and resolution of the contracts they use.
 
 Sam clarified on 17 November: do not submit Cartref Commute for Apple review until the app is working. Account
 invitations and internal TestFlight preparation are authorized to continue. No Commute build has been uploaded
@@ -89,19 +95,20 @@ Apple does not guarantee delivery of [background pushes](https://developer.apple
 An already scheduled AlarmKit alarm is different from successfully changing it later. The accepted design and device
 tests must distinguish those cases. Wi-Fi disconnection alone is not proof of leaving home or the office.
 
-## Access still needed
+## Access and remaining steps
 
-Secret values must never be pasted into chat, read into agent output, stored in this repository, or printed in logs.
-Provision them directly in GitHub Actions secrets using the owner's secure input. The push key and upload API key
-are different credentials; neither belongs in the app. Only their public identifiers may be recorded here.
+Sam explicitly authorized secure transfer of the existing files. Secret values must never be pasted into chat,
+read into agent output, stored in this repository or printed in logs. They have been transferred directly from
+protected files into GitHub Actions secret inputs, with the clipboard cleared after each operation. APNs and
+App Store Connect keys are separate credentials; neither belongs in the app.
 
-| Purpose | Preparation still required |
+| Purpose | Current state |
 | --- | --- |
-| Proxy APNs | Sam confirmed possession of `352Z6Z6469`'s .p8. Provision `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` through the existing Deploy proxy secret mechanism. Possession is confirmed; deployment of these secrets is not. |
-| TestFlight upload | The CI key above is created. Sam downloads it once from [Users and Access → Integrations](https://appstoreconnect.apple.com/access/integrations/api), keeps a secure backup and enters its file contents directly into the repository Actions secret `ASC_API_KEY_P8`. The workflow will use `ASC_KEY_ID=C8865Y2UMU` and `ASC_ISSUER_ID=aedb05d9-7e5f-424f-b147-64f12ec0567a` as non-secret configuration. Upload permission is not yet exercised with a signed build. |
-| Archive signing | Prepare an Apple Distribution certificate/private key and profiles for each target, including App Group/capabilities. Store signing inputs securely; import only into an ephemeral CI keychain and clean up after use. Final secret names belong with the actual workflow. |
-| Testers | All three account invitations sent; acceptance pending. The address discrepancy is resolved: use the owner-confirmed Gmail account. Add the accepted accounts to the existing internal Family group. Sam is already enrolled. Do not copy tester addresses into public repo documentation. |
-| Device acceptance | Sam completes unavoidable OS permission/device-trust interactions and verifies home/office behaviour on an actual iPhone. |
+| Proxy APNs | `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` provisioned. Repo owner must wire/deploy native routes and APNs; issue #58 updated. |
+| TestFlight upload | `ASC_API_KEY_P8` provisioned; authentication verified. Public identifiers are in the workflow. First actual upload pending. |
+| Archive signing | `IOS_DISTRIBUTION_P12_BASE64`, `IOS_DISTRIBUTION_P12_PASSWORD`, `IOS_APP_PROFILE_BASE64` provisioned. Manual export verified. Temporary keychain/files are removed afterward. Renew before 17 Nov 2027. |
+| Testers | All three account invitations sent; acceptance pending. Use the owner-confirmed Gmail account. Add accepted accounts to the internal Family group. Sam is enrolled. Keep addresses out of public docs. |
+| Device acceptance | Sam completes OS permission/device-trust interactions and verifies later home/office journey behavior on an actual iPhone. |
 
-The browser login is working; it does not itself give GitHub Actions upload or signing credentials. No private key
-was inspected during preparation. Account invitations do not submit a build for Apple review.
+Account invitations, local exports and internal TestFlight uploads do not request Apple review. No Commute build
+has yet been uploaded or submitted for review.

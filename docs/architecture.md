@@ -369,6 +369,15 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **17 Nov, a bundled iPhone shell and internal TestFlight (Sam).** The Apple project lives under `ios/`, reusing
+  the exact committed page and Capacitor 8.6.2, with iOS 27 minimum. No journey logic moves into Swift. Native
+  simulator validation joins Tests; a separate workflow uploads each successful main push's exact SHA, with a
+  serialized queue, increasing build numbers and provenance. PRs receive no signing credentials. Distribution
+  uses a protected certificate/profile and the Developer-role API key; cloud signing was refused for that role.
+  The existing App Group is now associated with the App ID. Export is internal-TestFlight-only; no Apple review
+  submission is authorized until the app works. Native features await the owner's released contracts (issue #58).
+  [Scope and tests](stories/ios-shell.md), [access and gates](ios-readiness.md).
+
 - **17 Nov, the platform time for a late train, and what "set off" means (Sam).** "Be on the platform by" is planned on
   a late train's timetable time (an estimate can come forward), names the platform and station, and needs a position
   no more than 2 minutes old. Going home, set off is 200 m from where you started following (Commute as Leisure). Once

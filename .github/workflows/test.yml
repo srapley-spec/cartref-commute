@@ -31,3 +31,33 @@ jobs:
           node tools/check-docs.mjs --since "$base"
       - name: All tests
         run: node tools/run-tests.mjs
+  ios:
+    needs: test
+    runs-on: xcode-27
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Bundle the committed website
+        run: npm run ios:sync
+      - name: Cold launch without network on iPhone
+        run: npm run ios:test
+      - name: Dependency locks remain unchanged
+        run: git diff --exit-code -- package-lock.json ios/App/CapApp-SPM/Package.swift ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+      - name: Simulator results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-test-results
+          path: ios/DerivedData/Logs/Test/*.xcresult
+          retention-days: 7
