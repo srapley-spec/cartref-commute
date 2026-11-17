@@ -36,7 +36,7 @@ final class BundledPageTests: XCTestCase {
         XCTAssertEqual(title, "Cartref Commute")
         // Check the test's offline condition, rather than assuming that local HTML implies no network.
         let blocked = try await webView.callAsyncJavaScript(
-            "try { await fetch('https://example.com/'); return false; } catch { return true; }",
+            "try { await fetch('https://example.com/', {mode: 'no-cors', cache: 'no-store'}); return false; } catch { return true; }",
             arguments: [:], in: nil, contentWorld: .page
         ) as? Bool
         XCTAssertEqual(blocked, true)

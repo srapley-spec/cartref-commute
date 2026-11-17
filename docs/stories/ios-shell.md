@@ -48,6 +48,7 @@ said not to submit for Apple review until the app works. Account invitations and
   `testPageBootsFromTheBundleWithoutNetwork`. Uses a real Capacitor WKWebView and WebKit network block rules.
   `testApplicationLaunchesTheBundledPage` separately checks the actual app window/controller and its loaded page;
   the independent review identified that the isolated offline test alone could miss a broken app entry point.
+  The offline probe uses `no-cors` so a missing CORS response header cannot masquerade as the network blocker.
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
