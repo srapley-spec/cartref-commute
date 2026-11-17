@@ -48,14 +48,18 @@ final class BundledPageTests: XCTestCase {
     }
 
     private func assertPageReady(_ webView: WKWebView) async throws {
-        for _ in 0..<200 {
+        // A fresh simulator can stall WebKit during its first launch on a busy host.
+        // This is a readiness check, not a device launch-performance benchmark.
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(120))
+        while clock.now < deadline {
             let result = try? await webView.evaluateJavaScript(
                 "document.readyState === 'complete' && typeof CommuteCore === 'object' && document.body.innerText.length > 100"
             )
             if result as? Bool == true { return }
             try await Task.sleep(for: .milliseconds(100))
         }
-        XCTFail("The bundled engine and screen did not start.")
+        XCTFail("The bundled engine and screen did not start within 120 seconds (URL: \(webView.url?.absoluteString ?? "none"), loading: \(webView.isLoading)).")
     }
 }
 

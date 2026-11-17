@@ -55,6 +55,9 @@ said not to submit for Apple review until the app works. Account invitations and
   `testApplicationLaunchesTheBundledPage` separately checks the actual app window/controller and its loaded page;
   the independent review identified that the isolated offline test alone could miss a broken app entry point.
   The offline probe uses `no-cors` so a missing CORS response header cannot masquerade as the network blocker.
+  Readiness waits up to 120 seconds on a monotonic clock: a fresh local simulator reported an unresponsive WebKit
+  process, then loaded both pages after the former 20-second poll allowance. The engine, screen, origin and title
+  assertions remain unchanged; this allowance is not a physical-device launch-performance target.
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
