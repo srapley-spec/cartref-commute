@@ -78,11 +78,12 @@ with the no-setup branch's iPhone checklist when that release lands; the other a
       ready. Never put private keys in the repo or logs.
 - [x] Identify the intended internal testers: Sam supplied three family accounts on 17 November.
 - [ ] Family accepts the App Store Connect account invitations, then joins Commute's internal TestFlight group.
-- [ ] Confirm the one tester address that differs from the Cartref Home list (asked privately in chat).
+- [x] Confirm the one tester address that differs from the Cartref Home list: Sam confirmed Gmail; the iCloud
+      variant was incorrect. Commute's invitation was sent to the confirmed address.
 
 The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App Store Connect record, app ID
-`6836040622`, obtained API access and created the CI key with the Developer role. Two family account invitations
-were sent with Marketing access limited to Commute; the third awaits the address clarification above. The internal
+`6836040622`, obtained API access and created the CI key with the Developer role. All three family account invitations
+were sent with Marketing access limited to Commute. The internal
 Family group is created with automatic distribution enabled and Sam enrolled. No build has been uploaded.
 Implementation waits for the no-setup release. Sam specified that Apple review submission must wait until the app
 is working.

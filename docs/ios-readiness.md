@@ -30,10 +30,14 @@ Native preparation is on `feature/native-prep` (`cb899c9`). Read the released ve
   Its private .p8 has not been downloaded or read by the agent. These public IDs are not the APNs key ID/team ID.
 - Sam supplied three family accounts for internal testing. Account invitations use the Marketing role, access
   limited to Cartref Commute, with Create Apps and Generate Individual API Keys disabled. Keep addresses out of
-  public repository documentation. Two account invitations were confirmed sent by App Store Connect; acceptance
-  is pending. The third is held for an address clarification.
+  public repository documentation. All three account invitations were confirmed sent by App Store Connect;
+  acceptance is pending. Sam confirmed the third account's Gmail address; the earlier iCloud variant in Cartref
+  Home's tester list was incorrect and must not be reused.
+- At Sam's request, corrected the same account in Cartref Home: deleted its incorrect external tester entry
+  from All Testers and added the confirmed Gmail account to the existing external Family group. Verified five
+  Family testers with the corrected address and no old entry. No build or review submission was changed.
 - Created Commute's internal **Family** group (`04d6fd12-7207-488c-bbec-bff4050404ce`) with automatic build
-  distribution enabled, as required for future main builds. Sam is enrolled; there are zero builds. The two
+  distribution enabled, as required for future main builds. Sam is enrolled; there are zero builds. The
   invited family accounts are not yet eligible in the add-testers list and must first accept their account invites.
 - Sam confirmed that the existing APNs key file (`352Z6Z6469`) is retained securely. Reuse it; no replacement key
   is needed. The agent has not accessed the file. Provisioning the proxy secret remains a separate step.
@@ -96,7 +100,7 @@ are different credentials; neither belongs in the app. Only their public identif
 | Proxy APNs | Sam confirmed possession of `352Z6Z6469`'s .p8. Provision `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` through the existing Deploy proxy secret mechanism. Possession is confirmed; deployment of these secrets is not. |
 | TestFlight upload | The CI key above is created. Sam downloads it once from [Users and Access → Integrations](https://appstoreconnect.apple.com/access/integrations/api), keeps a secure backup and enters its file contents directly into the repository Actions secret `ASC_API_KEY_P8`. The workflow will use `ASC_KEY_ID=C8865Y2UMU` and `ASC_ISSUER_ID=aedb05d9-7e5f-424f-b147-64f12ec0567a` as non-secret configuration. Upload permission is not yet exercised with a signed build. |
 | Archive signing | Prepare an Apple Distribution certificate/private key and profiles for each target, including App Group/capabilities. Store signing inputs securely; import only into an ephemeral CI keychain and clean up after use. Final secret names belong with the actual workflow. |
-| Testers | Two account invitations sent; acceptance pending. The third address differs from the Cartref Home list and awaits Sam's clarification. Add the accepted accounts to the existing internal Family group. Sam is already enrolled. Do not copy tester addresses into public repo documentation. |
+| Testers | All three account invitations sent; acceptance pending. The address discrepancy is resolved: use the owner-confirmed Gmail account. Add the accepted accounts to the existing internal Family group. Sam is already enrolled. Do not copy tester addresses into public repo documentation. |
 | Device acceptance | Sam completes unavoidable OS permission/device-trust interactions and verifies home/office behaviour on an actual iPhone. |
 
 The browser login is working; it does not itself give GitHub Actions upload or signing credentials. No private key
