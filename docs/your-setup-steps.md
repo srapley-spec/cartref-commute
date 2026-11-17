@@ -68,17 +68,24 @@ at all, then removes the key fields and other sources from Settings and the keys
 ## iOS access preparation (17 Nov; before implementation)
 Preparation record and implementation gates: [ios-readiness.md](ios-readiness.md). This section must be reconciled
 with the no-setup branch's iPhone checklist when that release lands; the other agent owns the proxy checklist above.
-- [ ] Confirm whether the APNs key file for `352Z6Z6469` exists. Do not paste or upload its contents to chat.
+- [x] Confirm whether the APNs key file for `352Z6Z6469` exists. Sam confirmed secure possession on 17 November;
+      reuse this key. Do not paste or upload its contents to chat.
+- [x] Reuse the existing Apple team `TU7MLARY49` (Sam confirmed, 17 November).
 - [ ] Download **Cartref Commute CI** (key ID `C8865Y2UMU`) from App Store Connect → Users and Access → Integrations
       → App Store Connect API. Keep a secure backup; enter its contents directly in GitHub → this repository →
       Settings → Secrets and variables → Actions as `ASC_API_KEY_P8`. Do not paste the file into chat.
 - [ ] Provision the APNs and archive-signing credentials directly in GitHub Actions secrets when their setup is
       ready. Never put private keys in the repo or logs.
-- [ ] Identify the intended internal testers and anyone still needing App Store Connect access.
+- [x] Identify the intended internal testers: Sam supplied three family accounts on 17 November.
+- [ ] Family accepts the App Store Connect account invitations, then joins Commute's internal TestFlight group.
+- [ ] Confirm the one tester address that differs from the Cartref Home list (asked privately in chat).
 
 The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App Store Connect record, app ID
-`6836040622`, obtained API access and created the CI key with the Developer role. No build or tester invitation
-has been sent. Implementation waits for the no-setup release.
+`6836040622`, obtained API access and created the CI key with the Developer role. Two family account invitations
+were sent with Marketing access limited to Commute; the third awaits the address clarification above. The internal
+Family group is created with automatic distribution enabled and Sam enrolled. No build has been uploaded.
+Implementation waits for the no-setup release. Sam specified that Apple review submission must wait until the app
+is working.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.

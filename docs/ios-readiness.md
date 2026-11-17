@@ -19,7 +19,7 @@ Native preparation is on `feature/native-prep` (`cb899c9`). Read the released ve
   check, not a full release test run. No app implementation or signing test has been performed.
 - Apple Developer and App Store Connect are signed in as Sam Rapley. The registered Commute App ID is on team
   `TU7MLARY49`, matching the valid Apple Development signing identity in the local Keychain. No local Apple
-  Distribution signing identity was listed.
+  Distribution signing identity was listed. Sam confirmed reuse of this team on 17 November.
 - App ID `uk.cartref.srapley.commute` verified in Apple Developer; Access Wi-Fi Information checked on its page.
   Reuse the App Group `group.uk.cartref.srapley.commute` and other capabilities recorded in the brief, then verify
   their associations in the eventual signed profiles. No identifiers or keys were revoked.
@@ -28,13 +28,20 @@ Native preparation is on `feature/native-prep` (`cb899c9`). Read the released ve
 - Requested App Store Connect API access and verified Apple's approval. Created team key **Cartref Commute CI**
   with the Developer role: key ID `C8865Y2UMU`, issuer ID `aedb05d9-7e5f-424f-b147-64f12ec0567a`.
   Its private .p8 has not been downloaded or read by the agent. These public IDs are not the APNs key ID/team ID.
-- App Store Connect's People list currently contains only Sam (Account Holder/Admin); family internal tester
-  accounts are not yet present. Names/addresses and account invitations are still needed.
+- Sam supplied three family accounts for internal testing. Account invitations use the Marketing role, access
+  limited to Cartref Commute, with Create Apps and Generate Individual API Keys disabled. Keep addresses out of
+  public repository documentation. Two account invitations were confirmed sent by App Store Connect; acceptance
+  is pending. The third is held for an address clarification.
+- Created Commute's internal **Family** group (`04d6fd12-7207-488c-bbec-bff4050404ce`) with automatic build
+  distribution enabled, as required for future main builds. Sam is enrolled; there are zero builds. The two
+  invited family accounts are not yet eligible in the add-testers list and must first accept their account invites.
+- Sam confirmed that the existing APNs key file (`352Z6Z6469`) is retained securely. Reuse it; no replacement key
+  is needed. The agent has not accessed the file. Provisioning the proxy secret remains a separate step.
 - Opened [ios-contract issue #58](https://github.com/srapley-spec/cartref-commute/issues/58) for the repo owner.
 
 ## Release gate
 
-At inspection, main's Tests run `44181357622` was still running. Its Pages and Deploy proxy jobs succeeded.
+At inspection, main's Tests run `44181357622`, Pages and Deploy proxy jobs all succeeded at `d2cca4b`.
 The no-setup branch's run `44176299310` failed: 1,348 tests passed and 15 failed, including saved Follow/settings,
 push-alert and simulator assertions. These failures belong to the other agent's active release work; their full
 root causes have not been independently established here. Native-prep runs `44177868406`, `44179088488`, and
@@ -44,6 +51,11 @@ from the committed page. Do not treat those drafts as released dependencies or d
 Begin shell/pipeline implementation after the no-setup release is on main and its exact commit has passed Tests,
 Pages and the applicable proxy deployment checks. Bring this branch up to date from main first. Live Activity and
 AlarmKit implementation additionally wait for released snapshot/native routes and resolution of the contracts they use.
+
+Sam clarified on 17 November: do not submit Cartref Commute for Apple review until the app is working. Account
+invitations and internal TestFlight preparation are authorized to continue. No Commute build has been uploaded
+or submitted for review. Cartref Home's external Family test group is a separate app and setup; its testers are
+not automatically App Store Connect users eligible for Commute's internal group.
 
 ## Implementation sequence
 
@@ -81,11 +93,11 @@ are different credentials; neither belongs in the app. Only their public identif
 
 | Purpose | Preparation still required |
 | --- | --- |
-| Proxy APNs | Sam confirms possession of `352Z6Z6469`'s .p8. If missing, create a replacement without revoking a key another app uses. Provision `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` through the existing Deploy proxy secret mechanism. |
+| Proxy APNs | Sam confirmed possession of `352Z6Z6469`'s .p8. Provision `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` through the existing Deploy proxy secret mechanism. Possession is confirmed; deployment of these secrets is not. |
 | TestFlight upload | The CI key above is created. Sam downloads it once from [Users and Access → Integrations](https://appstoreconnect.apple.com/access/integrations/api), keeps a secure backup and enters its file contents directly into the repository Actions secret `ASC_API_KEY_P8`. The workflow will use `ASC_KEY_ID=C8865Y2UMU` and `ASC_ISSUER_ID=aedb05d9-7e5f-424f-b147-64f12ec0567a` as non-secret configuration. Upload permission is not yet exercised with a signed build. |
 | Archive signing | Prepare an Apple Distribution certificate/private key and profiles for each target, including App Group/capabilities. Store signing inputs securely; import only into an ephemeral CI keychain and clean up after use. Final secret names belong with the actual workflow. |
-| Testers | Sam identifies the intended App Store Connect users, or the people who still need accounts. Do not copy tester addresses into public repo documentation. |
+| Testers | Two account invitations sent; acceptance pending. The third address differs from the Cartref Home list and awaits Sam's clarification. Add the accepted accounts to the existing internal Family group. Sam is already enrolled. Do not copy tester addresses into public repo documentation. |
 | Device acceptance | Sam completes unavoidable OS permission/device-trust interactions and verifies home/office behaviour on an actual iPhone. |
 
 The browser login is working; it does not itself give GitHub Actions upload or signing credentials. No private key
-was inspected during preparation. No tester invitation has been sent from this chat.
+was inspected during preparation. Account invitations do not submit a build for Apple review.
