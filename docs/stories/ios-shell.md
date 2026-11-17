@@ -32,8 +32,11 @@ said not to submit for Apple review until the app works. Account invitations and
 - Before uploading, inspect the signed IPA's identity, minimum OS, iPhone device family, build number, local URL,
   signature, source SHA and actual bundled page hash. Reject mismatches.
 - The website remains complete on its own. The shell introduces no changes to engine, page or proxy behavior.
+- Local full CI may set `COMMUTE_TEST_CONCURRENCY` to a positive integer to limit simultaneous web test files on a
+  Mac also running Xcode. Discovery, virtual clocks and failure reporting stay identical; GitHub defaults are unchanged.
 
 ## Tests
+- tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"
 - tests/ios-shell.test.mjs: "iOS bundles the committed page verbatim and excludes credentials and stale files"
 - tests/ios-shell.test.mjs: "iOS release accepts only the exact successful main push from this repository"
 - tests/ios-shell.test.mjs: "iOS build numbers increase over every existing build and reject ambiguous formats"

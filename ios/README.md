@@ -24,6 +24,8 @@ Capacitor. The committed package is the normalized output, and CI checks it stay
 
 `npm run ci` also performs the native checks on a Mac. Linux sessions run the complete web checks and must wait for
 GitHub's iOS job before merging. Native signing/upload is a separate integration check, not part of PR validation.
+On a Mac running other builds, `COMMUTE_TEST_CONCURRENCY=2 npm run ci` limits simultaneous web test files without
+changing which suites run. This avoids running out of memory while Xcode and simulators are active.
 
 ## Internal TestFlight
 

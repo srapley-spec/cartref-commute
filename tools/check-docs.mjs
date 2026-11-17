@@ -3,7 +3,7 @@
 //
 //   node tools/check-docs.mjs                 story checks only (also run by `npm test`)
 //   node tools/check-docs.mjs --since <ref>   + the change since <ref> must touch docs/ or CLAUDE.md
-//                                             when it touches src/, tests/ or proxy/, unless a commit
+//                                             when it touches src/, tests/, proxy/ or ios/, unless a commit
 //                                             message has a line "Docs: none — <reason>"
 //
 // Story checks: every story is in the index, every index link resolves, each story has a Status line and a

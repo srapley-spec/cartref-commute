@@ -39,7 +39,7 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Keep the context current (enforced)
 - **A behaviour change updates its story in the same commit (or PR):** acceptance criteria, thresholds, test
   links, status. A new capability gets a new story. A decision changes `docs/architecture.md` (decisions log).
-- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/` or `proxy/` change with nothing under `docs/` or
+- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/`, `proxy/` or `ios/` change with nothing under `docs/` or
   this file, unless a commit message in the change has a line `Docs: none — <reason>` (refactor, test-only
   tidy, build output). Use that only when behaviour really is unchanged.
 - CI also fails if a story links a test that doesn't exist. Renaming a test means updating its story.
