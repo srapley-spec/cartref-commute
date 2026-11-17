@@ -39,6 +39,8 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/ios-shell.test.mjs: "iOS configuration stays bundled and iOS behaviour changes require documentation"
 - Native XCTest: `ios/App/CommuteTests/BundledPageTests.swift`,
   `testPageBootsFromTheBundleWithoutNetwork`. Uses a real Capacitor WKWebView and WebKit network block rules.
+  `testApplicationLaunchesTheBundledPage` separately checks the actual app window/controller and its loaded page;
+  the independent review identified that the isolated offline test alone could miss a broken app entry point.
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
