@@ -133,7 +133,7 @@ test('Leave by: following a route keeps the access deadline exposed until you se
  const b=await fixture(),opt=b.c.ranked(NOW).find(o=>o.recommended===1);
  b.d.querySelector('#hero>.opt [data-follow]').click();
  const panel=b.d.querySelector('#followPanel'),head=panel.querySelector('.journey-heading');
- assert.match(head.textContent,/Be on the platform by/);assert.doesNotMatch(head.textContent,/Leave by/);
+ assert.match(head.textContent,/Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);assert.doesNotMatch(head.textContent,/Leave by/);
  assert.match(head.textContent,new RegExp(hm(b.w.CommuteCore.platformBy(opt,opt.train.dep,NOW))));
  // It counts down to the platform time, in its own words (Sam, 12 Nov: countdown to the start of the next step).
  const cd=head.querySelector('[data-cd]');assert.equal(cd?.dataset.step,'platform');b.c.render();

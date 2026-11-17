@@ -46,7 +46,7 @@ test("Commute: at home Leave by counts down to leaving; once set off 'Be on the 
   assert.match(squash(head(a).textContent), /Leave by/); assert.equal(cd(a)?.dataset.step, "leave");
   const st = a.w.CommuteCore.profiles.samCommute.stationGeo.LET;
   at(a, morning + 2 * MIN, [(HOME[0] + st[0]) / 2, (HOME[1] + st[1]) / 2]);
-  assert.match(squash(head(a).textContent), /Be on the platform by/); assert.equal(cd(a)?.dataset.step, "platform");
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/); assert.equal(cd(a)?.dataset.step, "platform");
   assert.match(cd(a).textContent, /^(on the platform in|Head for the platform now · )/);
   // Aboard: "At King's Cross 08:08" counts down to the arrival.
   a.c.state.saved.followRoute.phase = "on-train"; at(a, r.option.train.dep + 10 * MIN, st);
@@ -64,7 +64,7 @@ test("Leisure outbound: the same platform deadline and countdown once you've lef
   assert.match(squash(head(a).textContent), /Leave by/, "at home: Leave by, as in Commute");
   const st = a.w.CommuteCore.profiles.samCommute.stationGeo.LET;
   at(a, morning + 2 * MIN, [(HOME[0] + st[0]) / 2, (HOME[1] + st[1]) / 2]);
-  assert.match(squash(head(a).textContent), /Be on the platform by/); assert.equal(cd(a)?.dataset.step, "platform");
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/); assert.equal(cd(a)?.dataset.step, "platform");
   assert.deepEqual(a.errors, []); a.close();
 });
 
@@ -75,9 +75,9 @@ test("Leisure going home starts wherever you are in London: set off is 200 m fro
   follow(a, (o) => o.effort === "walk" || o.recommended === 1);
   assert.equal(a.c.state.saved.followRoute.mode, "leisure");
   at(a, evening + MIN, start);
-  assert.doesNotMatch(squash(head(a).textContent), /Be on the platform by/, "still where you started (not measured from the office)");
+  assert.doesNotMatch(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/, "still where you started (not measured from the office)");
   at(a, evening + 3 * MIN, [start[0] + 0.004, start[1]]);   // about 450 m north
-  assert.match(squash(head(a).textContent), /Be on the platform by/); assert.equal(cd(a)?.dataset.step, "platform");
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/); assert.equal(cd(a)?.dataset.step, "platform");
   assert.deepEqual(a.errors, []); a.close();
 });
 
@@ -87,10 +87,14 @@ test("Commute going home: within 200 m of the office Leave by; 300 m away 'Be on
   at(a, evening, office); follow(a, (o) => o.effort === "walk" || o.recommended === 1);
   at(a, evening + MIN, [office[0] + 0.0013, office[1]]);   // about 145 m
   assert.match(squash(head(a).textContent), /Leave by/, "still at the office");
-  at(a, evening + 2 * MIN, [office[0] + 0.0027, office[1]]);   // about 300 m
-  assert.match(squash(head(a).textContent), /Be on the platform by/);
-  a.c.state.locAcc = 400; a.c.render();
+  // About 300 m, but on a position only good to 400 m: not evidence you've set off.
+  a.setNow(evening + 2 * MIN); Object.assign(a.c.state, { here: [office[0] + 0.0027, office[1]], locAcc: 400, lastFixAt: evening + 2 * MIN }); a.c.render();
   assert.match(squash(head(a).textContent), /Leave by/, "a coarse position is not evidence you've set off");
+  at(a, evening + 2.5 * MIN, [office[0] + 0.0027, office[1]]);   // the same place, good to 12 m
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
+  // Once set off it holds, whatever the next fix is like (review, 17 Nov).
+  a.c.state.locAcc = 400; a.c.render();
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/, "set off holds");
   assert.deepEqual(a.errors, []); a.close();
 });
 
@@ -101,7 +105,7 @@ test("Leisure going home: 300 m from where the route was drawn is set off (200 m
   follow(a, (o) => o.effort === "walk" || o.recommended === 1);
   at(a, evening + MIN, start);
   at(a, evening + 3 * MIN, [start[0] + 0.0027, start[1]]);   // about 300 m
-  assert.match(squash(head(a).textContent), /Be on the platform by/);
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
   assert.deepEqual(a.errors, []); a.close();
 });
 

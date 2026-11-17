@@ -1309,11 +1309,20 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
     arrivalLabel:(context.arrivalSource||source)==='Timetable'?'Timetable':(context.arrivalSource||source)==='Last known'?'Last known':'Expected'})
     +(C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:'');
 }
+// The platform deadline for a train: its timetable time when it's late (an estimate can come forward), less the
+// route's margin; and which platform, at which station (Sam, 17 Nov: at Aldgate, "Be on the platform by" read as the
+// tube's platform). "Be on platform 4 at Farringdon by"; "Be on the platform at Farringdon by" before it's announced.
+function platformTime(option,train){return C.platformBy(option,train.dep,Date.now(),C.timetabledDeparture(train));}
+function platformLabel(train){
+  const at=STATIONS[train?.from]||HUB_NAME[train?.from]||'';
+  return `Be on ${train?.platform?`platform ${train.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+}
 function journeyHeadlineMarkup(j,dest,timing=''){
-  // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
-  // its platform, counting down to that, never to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
-  if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
-    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,step:'platform',timing});
+  // Rows drawn while you're already on your way (the trains home under the tube you're on; and, once you've set off
+  // on a followed route, the rows below it): the deadline for each is its platform, counting down to that, never to
+  // leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?"; 17 Nov: "Platform in rows too").
+  if((state.rowsUnderWay||state.rowsSetOff)&&j.train&&Number.isFinite(j.train.dep))
+    return journeyTimesMarkup({leave:platformTime(j,j.train),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:platformLabel(j.train),isLeave:false,step:'platform',timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
@@ -2203,6 +2212,8 @@ function renderInner(){
   const now=Date.now(), byView=state.saved.view==="by";
   const shown = journeyPresentation(now, situation(now)), view = shown.view;
   state.presentation=shown;state.rendered.view=view;
+  // After the view is settled (an expired Plan pin cleared above), so the rows match this render (review, 17 Nov).
+  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");

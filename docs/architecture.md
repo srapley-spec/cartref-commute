@@ -376,6 +376,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   through APNs (Live Activity, leave alarm, notifications). This repo's agent builds the engine, page and proxy parts;
   an iOS agent does the app and all Apple work. The web app stays complete. `ios-app.md`, `stories/ios-app.md`.
 - **17 Nov, nothing to set up: the app's proxy built in, the key settings removed (Sam).** `stories/keys-in-the-proxy.md`.
+- **17 Nov, the platform time for a late train, and what "set off" means (Sam).** "Be on the platform by" is planned on
+  a late train's timetable time (an estimate can come forward), names the platform and station, and needs a position
+  no more than 2 minutes old. Going home, set off is 200 m from where you started following (Commute as Leisure). Once
+  set off, the rows below the followed card show their platform time too; Plan and other-time views keep Leave by.
+  Story: `stories/follow-a-route.md`, "Platform time and label".
 - **17 Nov, every key in GitHub, the proxy deployed by an Action (Sam: "I want to move all the keys to a proxy").** The
   Worker was built 4 Nov but never deployed (it needed a computer). The keys live only in the repository's Actions
   secrets; Deploy proxy puts them into the Worker. Next: the address built into the app; then the phone's key settings
