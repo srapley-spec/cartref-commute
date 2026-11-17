@@ -10,7 +10,7 @@ export function nextBuildNumber(builds) {
   return String(numbers.reduce((max, n) => BigInt(n) > max ? BigInt(n) : max, 0n) + 1n);
 }
 
-export async function appStoreClient(env = process.env) {
+export async function appStoreClient(env = process.env, cancellation) {
   for (const key of ['ASC_KEY_PATH', 'ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_APP_ID']) {
     if (!env[key]) throw new Error(`Missing ${key}`);
   }
@@ -27,7 +27,7 @@ export async function appStoreClient(env = process.env) {
     const response = await fetch(url, {
       ...options,
       redirect: 'error',
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.any([AbortSignal.timeout(60_000), ...(cancellation ? [cancellation] : [])]),
       headers: { Authorization: `Bearer ${message}.${signature}`, 'Content-Type': 'application/json' }
     });
     if (!response.ok) throw new Error(`App Store Connect request failed: HTTP ${response.status} (${url.pathname}).`);

@@ -25,7 +25,8 @@ said not to submit for Apple review until the app works. Account invitations and
 - Only successful pushes from this repository's main branch may access signing inputs. PR validation has no signing
   secrets. The app is exported with `testFlightInternalTestingOnly=true`; no workflow submits for review.
 - Signing happens in a temporary keychain and private directory, cleaned on success or failure; the API key's role
-  remains Developer. Only source SHA, page hash and build number are uploaded as provenance artifacts.
+  remains Developer. SIGINT/SIGTERM cancel in-flight commands and API requests and still run cleanup; hard-killed
+  GitHub machines are ephemeral. Only source SHA, page hash and build number are uploaded as provenance artifacts.
 - Before uploading, inspect the signed IPA's identity, minimum OS, iPhone device family, build number, local URL,
   signature, source SHA and actual bundled page hash. Reject mismatches.
 - The website remains complete on its own. The shell introduces no changes to engine, page or proxy behavior.
