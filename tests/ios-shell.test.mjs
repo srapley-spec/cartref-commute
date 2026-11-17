@@ -6,28 +6,29 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash, generateKeyPairSync, verify } from 'node:crypto';
 import { parse } from 'yaml';
-import { stageWeb, webAssets } from '../ios/scripts/stage-web.mjs';
+import { stageWeb } from '../ios/scripts/stage-web.mjs';
 import { nextBuildNumber, appStoreClient } from '../ios/scripts/app-store.mjs';
 import { testedMainSHA, repository } from '../ios/scripts/release-policy.mjs';
 import { checkChange } from '../tools/check-docs.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = file => readFile(new URL(file, root), 'utf8');
+const expectedWebAssets = ['index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'sw.js'];
 
 test('iOS bundles the committed page verbatim and excludes credentials and stale files', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'commute-package-test-'));
   try {
     execFileSync('git', ['init', '-q', dir]);
     execFileSync('git', ['-C', dir, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-qm', 'fixture']);
-    for (const name of webAssets) await writeFile(path.join(dir, name), `fixture:${name}`);
+    for (const name of expectedWebAssets) await writeFile(path.join(dir, name), `fixture:${name}`);
     await writeFile(path.join(dir, 'private.p8'), 'not-a-real-key');
     await writeFile(path.join(dir, '.env'), 'DUMMY=not-a-real-secret');
     const output = path.join(dir, 'dist');
     await mkdir(output);
     await writeFile(path.join(output, 'old-secret.txt'), 'stale');
     await stageWeb(dir, output);
-    assert.deepEqual((await readdir(output)).sort(), [...webAssets, 'build-provenance.json'].sort());
-    for (const name of webAssets) assert.deepEqual(await readFile(path.join(output, name)), await readFile(path.join(dir, name)));
+    assert.deepEqual((await readdir(output)).sort(), [...expectedWebAssets, 'build-provenance.json'].sort());
+    for (const name of expectedWebAssets) assert.deepEqual(await readFile(path.join(output, name)), await readFile(path.join(dir, name)));
     const provenance = JSON.parse(await readFile(path.join(output, 'build-provenance.json')));
     assert.equal(provenance.sourceSHA, execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim());
     assert.equal(provenance.pageSHA256, createHash('sha256').update('fixture:index.html').digest('hex'));
@@ -106,9 +107,13 @@ test('TestFlight queues every passing main revision with internal-only export an
   assert.notEqual(release.concurrency['cancel-in-progress'], true);
   assert.deepEqual(release.permissions, { contents: 'read' });
   const job = release.jobs.upload;
-  for (const condition of ["conclusion == 'success'", "event == 'push'", "head_branch == 'main'", "head_repository.full_name == 'srapley-spec/cartref-commute'", "github.repository == 'srapley-spec/cartref-commute'"]) {
-    assert.ok(job.if.includes(condition), condition);
-  }
+  assert.equal(job.if.replace(/\s+/g, ' ').trim(), [
+    "github.event.workflow_run.conclusion == 'success'",
+    "github.event.workflow_run.event == 'push'",
+    "github.event.workflow_run.head_branch == 'main'",
+    "github.event.workflow_run.head_repository.full_name == 'srapley-spec/cartref-commute'",
+    "github.repository == 'srapley-spec/cartref-commute'"
+  ].join(' && '));
   const checkout = job.steps.find(s => s.uses?.startsWith('actions/checkout@'));
   assert.equal(checkout.with.ref, '${{ github.event.workflow_run.head_sha }}');
   assert.equal(checkout.with['persist-credentials'], false);

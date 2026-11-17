@@ -40,6 +40,10 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/ios-shell.test.mjs: "Apple API authentication handles pagination without exposing credentials or following foreign links"
 - tests/ios-shell.test.mjs: "TestFlight queues every passing main revision with internal-only export and no PR signing secrets"
 - tests/ios-shell.test.mjs: "iOS configuration stays bundled and iOS behaviour changes require documentation"
+- tests/ios-release.test.mjs: "signed IPA checks reject wrong identity, substituted content, stale provenance and invalid signatures"
+- tests/ios-release.test.mjs: "failed archives remove synthetic signing inputs and restore the keychain search list"
+- tests/ios-release.test.mjs: "cancelled archives remove synthetic signing inputs and restore the keychain search list"
+- tests/ios-release.test.mjs: "release rejects a substituted page in the exported IPA and cleans up signing inputs"
 - Native XCTest: `ios/App/CommuteTests/BundledPageTests.swift`,
   `testPageBootsFromTheBundleWithoutNetwork`. Uses a real Capacitor WKWebView and WebKit network block rules.
   `testApplicationLaunchesTheBundledPage` separately checks the actual app window/controller and its loaded page;
