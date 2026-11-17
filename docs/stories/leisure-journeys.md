@@ -29,7 +29,9 @@ Decisions the same evening (Sam, answering design questions):
 - **Plan plus live legs**: live times for every rail leg and change, Follow for the whole trip, drive re-checked.
 - **Trip is a third mode** (Commute / Leisure / Trip). Today's Leisure (home ↔ London) stays exactly as it is.
 - **Google through its Maps JavaScript library**, loaded only when Trip is used; moving it to the proxy later must be
-  one adapter and a setting ("Google: key in this browser | My proxy").
+  one adapter and a setting ("Google: key in this browser | My proxy"). **Since 17 Nov Google always goes through the
+  app's proxy** (`GOOGLE_KEY` in GitHub's Actions secrets, put into the Worker by Deploy proxy); the browser-key choice
+  and field are gone from Settings.
 - Trip needs a TfL key (TfL refuses concurrent searches without one).
 
 3 Nov 2026 (issue #56): Sam planned Letchworth Garden City → One Braham (1 Braham Street, E1 8EE, a BT office next to
@@ -406,7 +408,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-page.test.mjs: "Trip: Current location is used only within 200 m and 2 minutes"
 - tests/trip-page.test.mjs: "Trip: choosing From starts timing its stations before To is chosen"
 - tests/trip-page.test.mjs: "Trip: Refresh while Trip is on screen makes no commute request"
-- tests/trip-page.test.mjs: "Trip settings: the Google key is never shown back, only its last 4 characters"
+- tests/trip-page.test.mjs: "Trip settings: no Google key field (Google goes through the app's proxy); a key saved before is never shown"
 - tests/trip-page.test.mjs: "Trip live: one plan asks for at most 6 boards, never the same pair twice within 30 s"
 - tests/trip-page.test.mjs: "Trip live: boards are asked for as soon as round 1 is drawn, before the later searches come back"
 - tests/trip-page.test.mjs: "Trip drive: re-checked every 5 min; 2 min or more moves the leave time and says which way; 1 min doesn't"

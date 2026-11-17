@@ -1,4 +1,4 @@
-# Every key in the proxy: a new device needs only its address
+# Every key in the proxy: a new device needs nothing
 Status: Done in code (4 Nov 2026); waiting for Sam's Worker deployment · Issues: #17
 
 ## Story
@@ -51,18 +51,38 @@ status, the most-used feed) always went from the phone with its key in the URL.
   that proxy isn't asked again. No: nothing changes and the link is cleared. Only a plain https host name is accepted,
   without asking: no other scheme, user name or password, IP address, port, path, query or backslash.
 
+## The app's own proxy, and no keys on any device (17 Nov 2026)
+Sam, 17 Nov: "I want to move all the keys to a proxy. It's just a recipe for fuck ups the way it is now and makes
+rolling out to new devices a pain", then "Can you remove all the content I'm setting for the key." The Worker is
+deployed by GitHub Actions (Deploy proxy) from the keys in the repository's Actions secrets
+([proxy-setup](../proxy-setup.md)). In the app:
+- **Built in:** the proxy's address is part of the app (`APP_PROXY`, `https://cartref-rail.s-rapley.workers.dev`; not a
+  secret: it answers only this page's origin and holds the keys itself). A new device starts on it, live, with nothing
+  saved.
+- **Settings → Live data:** one choice, Live (the app's proxy) · TfL timetable (not live) · Example data, plus the
+  status line ("National Rail ✓ · TfL ✓ keyed · Google ✓ · Alerts ✗"; what's missing says "Still to add to GitHub's
+  Actions secrets, then run Deploy proxy: …"). No key fields, no proxy address field, no Google choice or key, no
+  "Copy setup link" or "Remove keys" buttons: there is nothing to set or remove.
+- **Once per device, on the first start of this version:** every key saved on it (Darwin, Service Details, TfL,
+  Google, Huxley) is deleted, the Google choice is dropped, and a phone-key source (Rail Data Marketplace, Huxley) or
+  none becomes the proxy. TfL timetable and example data stay as chosen. Marked done (`keysInProxy`), so it runs once.
+- The Darwin-direct and Huxley adapters remain in the code for the tests and recorded feeds (which set them directly);
+  nothing a person can reach selects them. Removing them means re-recording those tests through the proxy: technical
+  debt, not done.
+- The setup link (`#setup=<proxy>`) still works, to point a device at a different proxy; nobody needs it otherwise.
+
 ## Tests
 - tests/proxy.test.mjs: "Proxy (TfL): only the app's TfL paths; the key is added here, never taken from the phone, and scrubbed from replies"
 - tests/proxy.test.mjs: "Proxy: /status says what it's set up for, true or false only, never a key"
 - tests/keys-in-proxy.test.mjs: "My proxy: every TfL request goes to the proxy's /tfl/ route, with no key from the phone, even if one is stored"
 - tests/keys-in-proxy.test.mjs: "Other sources are unchanged: TfL direct with the phone's key; simulated feeds never reach the proxy"
-- tests/keys-in-proxy.test.mjs: "Settings with My proxy: no key fields; what the proxy is set up for and what's still to set; remove keys from this phone"
+- tests/keys-in-proxy.test.mjs: "Settings: no key fields or proxy address at all; what the proxy is set up for and what's still to add; keys saved on a device are deleted once (17 Nov)"
 - tests/keys-in-proxy.test.mjs: "Setup link: opening #setup=<proxy> asks, naming the host; yes sets up My proxy and keeps everything else; no changes nothing"
 - tests/keys-in-proxy.test.mjs: "Setup link: an address that isn't a plain https host is refused without asking (look-alikes, userinfo, IPs, ports, paths)"
 - tests/keys-in-proxy.test.mjs: "Setup link: a page opened from one asks at launch and starts on My proxy; a link arriving later (hashchange) is handled too"
 - tests/keys-in-proxy.test.mjs: "My proxy without an address yet: TfL stays direct (no relative /tfl/ requests); a trailing slash makes no //tfl/"
 - tests/keys-in-proxy.test.mjs: "TfL counts as keyed only when the proxy now in use said so; the advice points at the proxy, not a hidden field"
-- tests/keys-in-proxy.test.mjs: "Settings save: a new proxy address asks /status once; an unrelated save doesn't; an old Worker (404) says redeploy"
+- tests/keys-in-proxy.test.mjs: "A new proxy address (from a setup link) asks /status once; an unrelated save doesn't; an old Worker (404) says redeploy"
 - tests/trip-page.test.mjs: "Trip with My proxy as the source: TfL's planner and Google both go through the proxy, with no key from the phone"
 - tests/keys-in-proxy.test.mjs: "Trip with My proxy: TfL's planner asks through the page's tflUrl (no key in the URL)"
 - tests/keys-in-proxy.test.mjs: "Trip with My proxy: Google goes through the proxy too, so no Google key is asked for"
@@ -70,10 +90,6 @@ status, the most-used feed) always went from the phone with its key in the URL.
 ## Not yet / open questions
 - Not verified against the deployed Worker or TfL itself from Cloudflare (no session has Cloudflare access): the TfL
   paths and caching are checked against the app's own request list in tests.
-- iPhone: a Home Screen app may keep its own storage, separate from Safari's (unverified). If the Home Screen app
-  doesn't start on My proxy after "Add to Home Screen" from the link, it asks again (the link is in its address) or the
-  address can be pasted in its Settings.
-- Each device still has its own Home location, Settings choices and Experimental switches; the setup link carries only
-  the proxy's address.
+- Each device still has its own Home location, Settings choices and Experimental switches (Follow, Trip, alerts).
 - Anyone with the proxy's address and a faked Origin can use its keys' quota; a Cloudflare rate-limiting rule is
   recommended. Giving the app to people outside the family needs accounts (decisions log, 4 Nov).

@@ -21,8 +21,8 @@ with Wrangler (no GitHub Action yet).
 ### Turning it on (the phone)
 - Settings → Experimental → "Time-to-leave alerts", **off by default**. Off: no service worker, no permission prompt,
   no request to `/push/…`; the app works exactly as before.
-- On needs My proxy's URL (Settings → National Rail → Source → My proxy). Without it the status line says so and
-  nothing is asked or sent. Without push support (iPhone: only the Home Screen app, iOS 16.4+) it says so.
+- On needs the app's proxy (Settings → Live data → Live, the default since 17 Nov). On TfL timetable or example data
+  the status line says so and nothing is asked or sent. Without push support (iPhone: only the Home Screen app, iOS 16.4+) it says so.
 - Notification permission is asked **inside the Save tap**, before anything is awaited (iPhone only prompts from a
   tap); already granted: no prompt. Refused: the status says where to allow it; nothing is subscribed.
 - Then: register `sw.js` (shows notifications only, opens the app when tapped; no fetch handler, caches nothing),
