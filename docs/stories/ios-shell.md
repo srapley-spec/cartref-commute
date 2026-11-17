@@ -34,8 +34,11 @@ said not to submit for Apple review until the app works. Account invitations and
 - The website remains complete on its own. The shell introduces no changes to engine, page or proxy behavior.
 - Local full CI may set `COMMUTE_TEST_CONCURRENCY` to a positive integer to limit simultaneous web test files on a
   Mac also running Xcode. Discovery, virtual clocks and failure reporting stay identical; GitHub defaults are unchanged.
+  The existing hung-request page test waits up to 5 seconds for completion instead of assuming a 600 ms startup
+  delay is sufficient under load. Its injected timeout remains 150 ms, and recovery/timeout assertions are unchanged.
 
 ## Tests
+- tests/app.test.mjs: "A hung request times out; the app recovers and refreshes again"
 - tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"
 - tests/ios-shell.test.mjs: "iOS bundles the committed page verbatim and excludes credentials and stale files"
 - tests/ios-shell.test.mjs: "iOS release accepts only the exact successful main push from this repository"

@@ -80,6 +80,10 @@ test("A hung request times out; the app recovers and refreshes again", async () 
   let hangNow = true;
   const app = await createApp({ timeoutMs: 150, settle: 600,
     route: (u, opts) => (hangNow && parseJourneyUrl(u) ? hang(opts) : undefined) });
+  // A busy event loop can deliver the location callback only when the fixed settle timer is already due.
+  // Wait for the resulting request to finish; still fail if the app actually remains stuck loading.
+  const deadline = performance.now() + 5000;
+  while (app.c.state.loading && performance.now() < deadline) await sleep(25);
   assert.equal(app.c.state.loading, false, "not stuck loading");
   assert.match(app.banners().join(" "), /didn't respond in time/);
   hangNow = false;
