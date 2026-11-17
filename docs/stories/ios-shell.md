@@ -64,7 +64,9 @@ removing it now fails the network assertion. Synthetic signing tests verify exac
 and cancellation. Both real-startup and offline native tests passed against the released no-setup page.
 
 ## Not yet / open questions
-- Full committed-code CI, GitHub validation, independent mutation review and first TestFlight upload are pending.
+- Independent review is complete: all 20 deliberate mutations are caught; [review evidence](../reviews/ios-shell-2026-11-17.md).
+  Release still requires committed-code CI, GitHub validation and successful internal TestFlight processing;
+  see Actions and its build-provenance artifact for the exact released SHA/build number.
 - The green no-setup release (`af09273`) is now merged into this branch. Its live proxy accepts the bundled origin;
   the web page and its tests remain the owner's unchanged release.
 - `CommuteNative`, shared offline snapshots/data-age behavior, Live Activity, AlarmKit, Wi-Fi, geofences and Siri

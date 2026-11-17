@@ -84,7 +84,8 @@ Brief: [ios-app.md](ios-app.md). Preparation record and implementation gates: [i
 The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App Store Connect record, app ID
 `6836040622`, obtained API access and created the CI key with the Developer role. All three family account invitations
 were sent with Marketing access limited to Commute. The internal
-Family group is created with automatic distribution enabled and Sam enrolled. No build has been uploaded.
+Family group is created with automatic distribution enabled and Sam enrolled. Builds are distributed internally
+by the TestFlight workflow after the full main Tests run passes.
 Sam authorized shell/pipeline work, now in progress on top of the green no-setup release (`af09273`).
 Native journey features await released contracts. Apple review submission must wait until the app is working.
 

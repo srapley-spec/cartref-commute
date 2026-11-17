@@ -211,8 +211,8 @@ alarm keep working from the newest snapshot without the page.
   - Settings.
 
 Current shell checks: [stories/ios-shell.md](stories/ios-shell.md). A real WKWebView offline launch and a signed
-internal-only export have passed locally; Apple package validation returned no errors. Full combined-code CI and
-independent mutation review are in progress. These checks do not claim the native journey features are built.
+internal-only export have passed locally; Apple package validation returned no errors. Independent review caught all 20 deliberate breakages.
+Full combined-code CI, GitHub validation and internal TestFlight processing remain release gates. These checks do not claim the native journey features are built.
 
 ## 8. Status (update as each part ships)
 | Part | Owner | Status |

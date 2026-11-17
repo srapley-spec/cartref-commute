@@ -16,8 +16,9 @@ versions again before native feature implementation. See [the shell story](stori
   `~/.local/share/cartref-commute/toolchain/node-v24.22.3-darwin-arm64/bin`.
   Add that directory to PATH when running repository commands. Capacitor CLI, core and iOS packages are pinned to 8.6.2.
 - The real Capacitor WKWebView passed its cold-launch test with HTTP/HTTPS blocked. A Release archive and signed
-  internal-only export passed local verification, including the bundled page hash. Full committed-code CI, independent
-  mutation review, GitHub validation and the first upload remain pending; this is not a completed native app.
+  internal-only export passed local verification, including the bundled page hash. Full committed-code CI,
+  GitHub validation and internal TestFlight processing are release gates; this is not a completed native app.
+  Independent review is complete, with all 20 deliberate mutations caught (docs/reviews/ios-shell-2026-11-17.md).
 - Apple Developer and App Store Connect are signed in as Sam Rapley. The registered Commute App ID is on team
   `TU7MLARY49`, matching the valid Apple Development signing identity in the local Keychain. No local Apple
   Distribution signing identity was listed. Sam confirmed reuse of this team on 17 November.
@@ -25,7 +26,8 @@ versions again before native feature implementation. See [the shell story](stori
   The App Group existed but was unassociated; it is now assigned to Commute and present in the regenerated profile.
   Push, Siri, Wi-Fi and time-sensitive capability grants are also present. No identifiers or keys were revoked.
 - Created the [Cartref Commute App Store Connect record](https://appstoreconnect.apple.com/apps/6836040622):
-  app ID `6836040622`, iOS, English (U.K.), SKU `cartref-commute-ios`, bundle ID above. No build uploaded or released.
+  app ID `6836040622`, iOS, English (U.K.), SKU `cartref-commute-ios`, bundle ID above. Internal distribution only;
+  processed builds and their status are visible in TestFlight.
 - Requested App Store Connect API access and verified Apple's approval. Created team key **Cartref Commute CI**
   with the Developer role: key ID `C8865Y2UMU`, issuer ID `aedb05d9-7e5f-424f-b147-64f12ec0567a`.
   At Sam's request, downloaded its private file once into a protected local signing directory and transferred it
@@ -40,7 +42,7 @@ versions again before native feature implementation. See [the shell story](stori
   from All Testers and added the confirmed Gmail account to the existing external Family group. Verified five
   Family testers with the corrected address and no old entry. No build or review submission was changed.
 - Created Commute's internal **Family** group (`04d6fd12-7207-488c-bbec-bff4050404ce`) with automatic build
-  distribution enabled, as required for future main builds. Sam is enrolled; there are zero builds. The
+  distribution enabled, as required for main builds. Sam is enrolled. The
   invited family accounts are not yet eligible in the add-testers list and must first accept their account invites.
 - Found the existing APNs key (`352Z6Z6469`) through Cartref Home's setup documentation. At Sam's request,
   transferred it opaquely to `APNS_KEY` and added `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` in Actions secrets.
@@ -60,12 +62,11 @@ Native-prep run `44186930189` at `3c45da8` failed the generated `index.html` fre
 absent from the committed page. Do not treat those drafts as released dependencies or duplicate the owner's fixes.
 
 The green no-setup release has been merged into the iOS branch. Integration now waits for all required checks
-on the combined revision and the independent review. Live Activity and AlarmKit additionally wait
+on the combined revision. The independent review passed after its findings were fixed. Live Activity and AlarmKit additionally wait
 for released snapshot/native routes and resolution of the contracts they use.
 
 Sam clarified on 17 November: do not submit Cartref Commute for Apple review until the app is working. Account
-invitations and internal TestFlight preparation are authorized to continue. No Commute build has been uploaded
-or submitted for review. Cartref Home's external Family test group is a separate app and setup; its testers are
+invitations and internal TestFlight preparation are authorized to continue. Commute builds are for internal testing only; no review submission is configured. Cartref Home's external Family test group is a separate app and setup; its testers are
 not automatically App Store Connect users eligible for Commute's internal group.
 
 ## Implementation sequence
@@ -106,10 +107,10 @@ App Store Connect keys are separate credentials; neither belongs in the app.
 | Purpose | Current state |
 | --- | --- |
 | Proxy APNs | `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` provisioned. Repo owner must wire/deploy native routes and APNs; issue #58 updated. |
-| TestFlight upload | `ASC_API_KEY_P8` provisioned; authentication verified. Public identifiers are in the workflow. First actual upload pending. |
+| TestFlight upload | `ASC_API_KEY_P8` provisioned; authentication verified. Public identifiers are in the workflow. Successful upload/processing is verified by the TestFlight workflow before declaring a release. |
 | Archive signing | `IOS_DISTRIBUTION_P12_BASE64`, `IOS_DISTRIBUTION_P12_PASSWORD`, `IOS_APP_PROFILE_BASE64` provisioned. Manual export verified. Temporary keychain/files are removed afterward. Renew before 17 Nov 2027. |
 | Testers | All three account invitations sent; acceptance pending. Use the owner-confirmed Gmail account. Add accepted accounts to the internal Family group. Sam is enrolled. Keep addresses out of public docs. |
 | Device acceptance | Sam completes OS permission/device-trust interactions and verifies later home/office journey behavior on an actual iPhone. |
 
-Account invitations, local exports and internal TestFlight uploads do not request Apple review. No Commute build
-has yet been uploaded or submitted for review.
+Account invitations, local exports and internal TestFlight uploads do not request Apple review. Review submission
+is not configured or authorized at this stage.
