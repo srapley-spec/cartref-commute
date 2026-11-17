@@ -100,6 +100,7 @@ async function releaseProbe(t, cancel, tampered = false) {
     fs.appendFileSync(path.join(base, 'security.log'), command + String.fromCharCode(10));
     if (command === 'cms') process.stdout.write('synthetic-profile');
     if (command === 'list-keychains' && !args.includes('-s')) console.log('"/synthetic/original.keychain-db"');
+    if (command === 'list-keychains' && args.includes('-s')) fs.writeFileSync(path.join(base, 'search-list.json'), JSON.stringify(args.slice(args.indexOf('-s') + 1)));
     if (command === 'create-keychain') fs.writeFileSync(args.at(-1), 'synthetic');
     if (command === 'delete-keychain') fs.rmSync(args.at(-1), { force: true });
   `);
@@ -183,6 +184,7 @@ async function releaseProbe(t, cancel, tampered = false) {
   const commands = (await readFile(path.join(dir, 'security.log'), 'utf8')).trim().split('\n');
   assert.ok(commands.includes('delete-keychain'), 'Remove the temporary keychain from Keychain Services.');
   assert.equal(commands.filter(command => command === 'list-keychains').length, 3, 'Read, update and restore the search list.');
+  assert.deepEqual(JSON.parse(await readFile(path.join(dir, 'search-list.json'), 'utf8')), ['/synthetic/original.keychain-db'], 'Restore the exact original keychain search list.');
 }
 
 test('failed archives remove synthetic signing inputs and restore the keychain search list', { timeout: 180_000 }, async t => {

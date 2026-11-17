@@ -64,7 +64,12 @@ private final class OfflineBridgeViewController: CAPBridgeViewController {
     override func webViewConfiguration(for configuration: InstanceConfiguration) -> WKWebViewConfiguration {
         let result = super.webViewConfiguration(for: configuration)
         result.websiteDataStore = .nonPersistent()
-        if let rules { result.userContentController.add(rules) }
         return result
+    }
+
+    override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
+        // Capacitor replaces userContentController after webViewConfiguration(for:), so attach rules here.
+        if let rules { configuration.userContentController.add(rules) }
+        return super.webView(with: frame, configuration: configuration)
     }
 }

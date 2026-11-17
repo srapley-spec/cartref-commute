@@ -58,6 +58,11 @@ said not to submit for Apple review until the app works. Account invitations and
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
+Independent review (17 Nov): [mutation evidence and corrections](../reviews/ios-shell-2026-11-17.md).
+The offline blocker is attached to the final WebKit configuration after Capacitor replaces its content controller;
+removing it now fails the network assertion. Synthetic signing tests verify exact keychain restoration on failure
+and cancellation. Both real-startup and offline native tests passed against the released no-setup page.
+
 ## Not yet / open questions
 - Full committed-code CI, GitHub validation, independent mutation review and first TestFlight upload are pending.
 - The green no-setup release (`af09273`) is now merged into this branch. Its live proxy accepts the bundled origin;
