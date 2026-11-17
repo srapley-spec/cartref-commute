@@ -21,23 +21,27 @@ change; CI checks that they are.
 ## Files
 - `index.html` — the app as hosted (built from `src/`), with `manifest.webmanifest` and the icons.
 - `src/` — the engine (`src/core`) and the screen (`src/page.html`); `tools/build.mjs` builds `index.html`.
-- `proxy/worker.js` — optional Cloudflare Worker, only if the Darwin feed blocks browser calls.
+- `proxy/worker.js` — the app's proxy (Cloudflare Worker): holds every key (National Rail, TfL, Google) and runs the
+  alerts. Deployed by GitHub Actions (`.github/workflows/deploy-proxy.yml`) from the keys in the repository's Actions
+  secrets ([proxy-setup](docs/proxy-setup.md)).
+
+## Use it
+Open `https://srapley-spec.github.io/cartref-commute/` on the phone (Share → Add to Home Screen). Nothing to set up:
+live data comes through the app's proxy, whose address is built in; no key is kept on any device (17 Nov 2026).
+Settings → Live data shows what the proxy is set up for. An iPhone app (TestFlight) is planned:
+[docs/ios-app.md](docs/ios-app.md).
 
 ## Host on GitHub Pages
 1. The repo root is the site (`index.html`).
 2. Repo → Settings → Pages → Deploy from branch → `main` / root.
-3. Open the URL on your phone → Share → Add to Home Screen.
 
-## Darwin key
-1. Register at raildata.org.uk and subscribe to the **Live Arrival and Departure Boards** product (the one with `GetDepBoardWithDetails`).
-2. From the product page, copy the consumer key and the endpoint base URL (ending `/LDBWS/api/20220120`).
-3. In the app: Settings → Source: Rail Data Marketplace → paste both → Save.
-
-If the app says it couldn't reach the feed (no HTTP code), the provider is blocking browser calls. Deploy `proxy/worker.js` and choose **My proxy** instead.
+## Keys
+Every key (Rail Data Marketplace, TfL, Google) is a GitHub Actions secret; the Deploy proxy workflow puts them into the
+Worker. Steps: [docs/your-setup-steps.md](docs/your-setup-steps.md).
 
 ## Model
 - Modes: **Commute** (Cartref ⇄ office) and **Leisure**: from Cartref to King's Cross or St Pancras, or from wherever you are in London home via King's Cross, St Pancras or Farringdon. The London leg comes from TfL's journey planner (slow walking); leisure walks use a 1.15× multiplier on your average times.
-- Train source: Darwin (live) when a key is set; otherwise TfL journey planner timetable (not live), also used as a backup if Darwin fails.
+- Train source: Darwin (live) through the app's proxy; TfL journey planner timetable (not live) when chosen in Settings, and as a backup if Darwin fails.
 - Rail legs: live departures and calling-point estimates from Darwin; cancelled trains are excluded and listed.
 - Tube legs: modelled as interchange walk + wait allowance + typical ride time. All editable in Settings.
 - Aldgate East (H&C): planned from home only when Circle and Met are both closed or suspended; at King's Cross or

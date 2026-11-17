@@ -1,6 +1,6 @@
 // Time-to-leave and wake-up alerts: the page's side (docs/stories/time-to-leave-alerts.md).
 // Settings → Experimental → "Time-to-leave alerts" (off by default). On: this phone subscribes to push through the
-// proxy (My proxy URL), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
+// proxy (built into the app), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
 // you follow a journey, the page hands the proxy its plan (core leaveAlertPlan); the proxy watches the train and
 // sends the alerts even when the app is closed. The page plans nothing here: the engine decides what to say.
 // It never runs during a simulation, so simulated journeys can't reach the real phone.
@@ -40,7 +40,7 @@ const pushAlerts = (() => {
 
     /** Turn alerts on for this phone. Call from the Save tap itself: iPhone only asks for permission from a tap. */
     function enable(next) {
-      if (!base(next)) { status("Alerts need your proxy: Settings → National Rail → Source → My proxy, and its URL."); return Promise.resolve(false); }
+      if (!base(next)) { status("Alerts need the proxy: Settings → Live data → Live."); return Promise.resolve(false); }
       if (!supported()) { status("This browser can't receive notifications. On iPhone, open Commute from the Home Screen (iOS 16.4 or later)."); return Promise.resolve(false); }
       const asked = win.Notification.permission === "granted" ? Promise.resolve("granted") : win.Notification.requestPermission();
       return (async () => {

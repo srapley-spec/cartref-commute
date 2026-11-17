@@ -57,7 +57,8 @@ said not to submit for Apple review until the app works. Account invitations and
 
 ## Not yet / open questions
 - Full committed-code CI, GitHub validation, independent mutation review and first TestFlight upload are pending.
-- No-setup must be released on main before this shell is integrated. The owner is working on that release separately.
+- The green no-setup release (`af09273`) is now merged into this branch. Its live proxy accepts the bundled origin;
+  the web page and its tests remain the owner's unchanged release.
 - `CommuteNative`, shared offline snapshots/data-age behavior, Live Activity, AlarmKit, Wi-Fi, geofences and Siri
   remain gated on released contracts; see [ios-readiness.md](../ios-readiness.md) and issue #58. The shell does not
   advertise any native capability as implemented.

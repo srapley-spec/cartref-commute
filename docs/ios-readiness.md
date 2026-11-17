@@ -1,8 +1,8 @@
 # iOS readiness — 17 November 2026
 
 Sam authorized shell/pipeline implementation on 17 November. The shell now builds, starts offline in a simulator,
-and exports a signed internal-only IPA. The full brief is still `docs/ios-app.md` on `feature/no-setup` (`af09273`),
-not main. Native preparation is on `feature/native-prep` (`3c45da8`); contracts remain unreleased. Read the released
+and exports a signed internal-only IPA. The no-setup release and full brief `docs/ios-app.md` are now on main at `af09273`, with Tests, Pages and Deploy proxy
+all green. Native preparation is on `feature/native-prep` (`3c45da8`); its contracts remain unreleased. Read the released
 versions again before native feature implementation. See [the shell story](stories/ios-shell.md) for exact scope.
 
 ## Prepared and verified
@@ -53,13 +53,14 @@ versions again before native feature implementation. See [the shell story](stori
 
 ## Release gate
 
-At inspection, main's Tests run `44181357622`, Pages and Deploy proxy jobs all succeeded at `d2cca4b`.
-The no-setup branch's latest inspected Tests run `44186811204` succeeded at `af09273`, but it has not reached main.
+The no-setup release is now main at `af09273`: Tests `44193296849`, Pages `44193295352` and Deploy proxy
+`44193296935` all succeeded. Its live `/status` answers HTTP 200 with `Access-Control-Allow-Origin:
+capacitor://localhost`, so the bundled page can reach its proxy without device setup.
 Native-prep run `44186930189` at `3c45da8` failed the generated `index.html` freshness gate: snapshot exports are
 absent from the committed page. Do not treat those drafts as released dependencies or duplicate the owner's fixes.
 
-Sam has authorized continuing shell/pipeline implementation. Integration still waits for a green no-setup release
-on main, then a main merge into this branch and all required checks. Live Activity and AlarmKit additionally wait
+The green no-setup release has been merged into the iOS branch. Integration now waits for all required checks
+on the combined revision and the independent review. Live Activity and AlarmKit additionally wait
 for released snapshot/native routes and resolution of the contracts they use.
 
 Sam clarified on 17 November: do not submit Cartref Commute for Apple review until the app is working. Account

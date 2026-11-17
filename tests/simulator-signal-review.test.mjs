@@ -77,7 +77,7 @@ test('independent Signal simulator: focused technical speed control cannot defer
  assert.equal(a.c.state.presentation.pending,false);assert.ok(view(a).verification.current.assertions.some(row=>row.id==='rail-identity'&&row.status==='PASS'));
  // Genuine commuter editing remains a valid reason to defer a presentation transition.
  a.c.simulator.restart();await checked(a);while(view(a).index<3)await next(a);
- click(a,'settingsBtn');const editing=a.d.getElementById('s_rdmKey');editing.focus();assert.equal(a.d.getElementById('settings').open,true);
+ click(a,'settingsBtn');const editing=a.d.getElementById('s_fastFactor');editing.focus();assert.equal(a.d.getElementById('settings').open,true);
  await a.c.simulator.nextCheckpoint();await checked(a);
  assert.equal(a.c.state.onLine,true);assert.equal(a.c.state.presentation.pending,true,'real Settings editing defers the automatic view');assert.equal(a.c.readSimulationActual().presentationInteracting,true);
  assert.equal(view(a).verification.current.status,'INCONCLUSIVE');assert.ok(view(a).verification.current.assertions.some(row=>row.id==='presentation-deferred'));

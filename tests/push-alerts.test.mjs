@@ -66,7 +66,7 @@ test("Alerts on: refused permission, no proxy, or no push support says why and s
   assert.match(t.statuses.at(-1), /Notifications are off for Commute/); assert.equal(t.calls.length, 0);
   t = setup();
   assert.equal(await t.a.onSave({}, { leaveAlerts: true, proxyBase: "" }), false);
-  assert.match(t.statuses.at(-1), /Alerts need your proxy/); assert.equal(t.order.length, 0, "not even a permission prompt");
+  assert.match(t.statuses.at(-1), /Alerts need the proxy: Settings → Live data → Live/); assert.equal(t.order.length, 0, "not even a permission prompt");
   t = setup({ supported: false });
   assert.equal(await t.a.onSave({}, { leaveAlerts: true, proxyBase: PROXY }), false);
   assert.match(t.statuses.at(-1), /open Commute from the Home Screen/);
@@ -139,11 +139,11 @@ test("Page: time-to-leave alerts are off by default, in Settings → Experimenta
   assert.equal(app.d.querySelector("#s_wakeAt").value, "06:30");
   assert.equal(app.d.querySelector("#s_leaveAlerts").closest("fieldset").querySelector("legend").textContent, "Experimental");
   assert.equal(app.calls.filter(u => /\/push\//.test(u)).length, 0);
-  // Turned on without a proxy: says why, asks nothing (jsdom has no push support either way).
+  // Turned on in a browser without push support (jsdom): says why, asks nothing. (The proxy is built in since 17 Nov.)
   app.d.querySelector("#settingsBtn").click();
   app.d.querySelector("#s_leaveAlerts").checked = true;
   app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { cancelable: true }));
-  assert.match(app.text("#alertsStatus"), /Alerts need your proxy/);
+  assert.match(app.text("#alertsStatus"), /This browser can't receive notifications/);
   assert.equal(app.c.S().leaveAlerts, true, "the setting is kept");
   assert.equal(app.calls.filter(u => /\/push\//.test(u)).length, 0);
   app.close();

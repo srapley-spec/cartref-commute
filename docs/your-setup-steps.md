@@ -4,7 +4,7 @@ What you need to do yourself, in order, for what's been built. Keep this file cu
 from Sam adds it here, and a step is ticked when Sam says it's done. Keys never go in this file, the repo or chat.
 Detail for each step: [proxy-setup.md](proxy-setup.md).
 
-Last updated: 17 Nov 2026 (the proxy deployed from GitHub; every key in GitHub's secrets).
+Last updated: 17 Nov 2026 evening (proxy deployed; nothing to set up on a device; the iPhone app brief).
 
 ## 1–3. The proxy: every key in one place, deployed from GitHub (17 Nov; no computer needed)
 Sam, 17 Nov: "I want to move all the keys to a proxy." The Worker (`proxy/`) has held every key since 4 Nov but was
@@ -13,22 +13,22 @@ deploys it and copies the keys into it: the keys live only in GitHub's Actions s
 
 **A. Cloudflare (dash.cloudflare.com)**
 - [x] Cloudflare account (Sam, 4 Nov)
-- [ ] Workers & Pages: open it once. If it asks for a workers.dev subdomain, pick one (e.g. `srapley`); it becomes
+- [x] (17 Nov: subdomain `s-rapley.workers.dev`, already set for cartref-borris) Workers & Pages: open it once. If it asks for a workers.dev subdomain, pick one (e.g. `srapley`); it becomes
       part of the proxy's address
-- [ ] Account ID: Workers & Pages → the right-hand panel, "Account ID" → copy
-- [ ] API token: profile icon (top right) → My Profile → API Tokens → **Create Token** → template **Edit Cloudflare
+- [x] Account ID: Workers & Pages → the right-hand panel, "Account ID" → copy
+- [x] API token: profile icon (top right) → My Profile → API Tokens → **Create Token** → template **Edit Cloudflare
       Workers** → Use template. Account Resources: Include · your account. Zone Resources: Include · All zones (no zone
       is used). → Continue to summary → Create Token → copy it (shown once)
 
 **B. GitHub (github.com/srapley-spec/cartref-commute → Settings → Secrets and variables → Actions → New repository
 secret)**, one secret each, name exactly as written:
-- [ ] `CLOUDFLARE_API_TOKEN`: the token from A
-- [ ] `CLOUDFLARE_ACCOUNT_ID`: the Account ID from A
-- [ ] `RDM_KEY` and `RDM_BASE`: raildata.org.uk → your Live Departure Board subscription: its consumer key, and the
+- [x] `CLOUDFLARE_API_TOKEN`: the token from A
+- [x] `CLOUDFLARE_ACCOUNT_ID`: the Account ID from A
+- [x] `RDM_KEY` and `RDM_BASE`: raildata.org.uk → your Live Departure Board subscription: its consumer key, and the
       endpoint base from its Specification (ends `/LDBWS/api/20220120`)
-- [ ] `RDM_SD_KEY` and `RDM_SD_BASE`: only if your Service Details subscription has its own key or base
-- [ ] `TFL_KEY`: api-portal.tfl.gov.uk → Profile → your subscription's primary key
-- [ ] `GOOGLE_KEY`: a **new** key for the proxy. console.cloud.google.com → APIs & Services → Credentials → Create
+- [x] (17 Nov: `RDM_SD_KEY` added; the base is the default) `RDM_SD_KEY` and `RDM_SD_BASE`: only if your Service Details subscription has its own key or base
+- [x] `TFL_KEY`: api-portal.tfl.gov.uk → Profile → your subscription's primary key
+- [x] (17 Nov: "Cartref proxy (server)" in My First Project) `GOOGLE_KEY`: a **new** key for the proxy. console.cloud.google.com → APIs & Services → Credentials → Create
       credentials → API key → Edit it: Application restrictions **None**; API restrictions **Restrict key** → Places API
       (New) and Routes API → Save. (The key in the phone's Settings is restricted to the website, which Google refuses
       for calls from the Worker.)
@@ -38,36 +38,36 @@ secret)**, one secret each, name exactly as written:
   `RDM_SD_BASE_URL`, `TFL_APP_KEY`)? Those are used too; no need to add them again.
 
 **C. Deploy**
-- [ ] Tell Claude it's done: Claude runs Deploy proxy (or: Actions → Deploy proxy → Run workflow) and reads back the
+- [x] (17 Nov 20:3x: deployed to `https://cartref-rail.s-rapley.workers.dev`; status: National Rail, Service Details, TfL
+      keyed, Google, any station ✓; alerts ✗ until `VAPID_SUBJECT` is added) Tell Claude it's done: Claude runs Deploy proxy (or: Actions → Deploy proxy → Run workflow) and reads back the
       proxy's address and what it's set up for (true/false only; no key is ever printed). After that it redeploys by
       itself whenever `proxy/` or `src/core/` changes on main
 - [ ] Optional, recommended: Cloudflare → the Worker → Settings → a rate-limiting rule (anyone who learns its address
       can use it from outside a browser)
 
-**D. The app (after C)**: Claude builds the proxy's address into the app, so every device uses it with no settings
-at all, then removes the key fields and other sources from Settings and the keys stored on each device.
+**D. The app:** the proxy's address is built in, and the key settings and stored keys are removed (17 Nov). Nothing
+to do on a device.
+- [ ] Before the Google Cloud free trial ends (about 30 Jan 2027, 74 days from 17 Nov): Google Cloud → **Upgrade**, so a
+      card is on file. Within Google's monthly free allowance it costs nothing, but without a billing account the Google
+      calls stop (Trip, and the walk and cab times)
 
-## 4. Another device
-- [ ] On your phone: Settings → Copy setup link for another device. On the other device open the link in the browser
-      and say yes; on iPhone then Share → Add to Home Screen, open Commute from the Home Screen, and say yes again if
-      it asks (alerts on iPhone need the Home Screen app)
+## 4. Your phone and other devices
+- [ ] After the "nothing to set up" release: open the app, Settings → Live data. The line should read
+      "National Rail ✓ · TfL ✓ keyed · Google ✓ · Alerts ✗". Tell Claude what it says
+- Another device: open `https://srapley-spec.github.io/cartref-commute/` (Share → Add to Home Screen). Nothing else
 
 ## 5. The display in Home Assistant (display mode)
 - [ ] In a Home Assistant dashboard: Add card → **Webpage**. Address:
       `https://srapley-spec.github.io/cartref-commute/?display`. Pick the card's size (it scrolls if the list is
-      longer than the card)
-- [ ] For live times (needs sections 1–2 done): on your phone, Settings → Copy setup link for another device. The
-      link ends `#setup=…`. Put `?display` before the `#` and use that as the card's address:
-      `https://srapley-spec.github.io/cartref-commute/?display#setup=…`. The card then asks once, on the page, whether
-      to use your proxy; tap **Yes, use it**. Without this the card shows timetable times, marked "not live"
-- [ ] Tell Claude how it looks at the card's size, and whether it asks again after Home Assistant restarts
+      longer than the card). Live times need nothing else since 17 Nov (the proxy is built in)
+- [ ] Tell Claude how it looks at the card's size
 - [ ] Check the usage limit on your Rail Data Marketplace subscription (raildata.org.uk → your Live Departure Board
       subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
 
-## iOS access and testing (17 Nov)
-Preparation record and implementation gates: [ios-readiness.md](ios-readiness.md). This section must be reconciled
-with the no-setup branch's iPhone checklist when that release lands; the other agent owns the proxy checklist above.
+## 6. The iPhone app: access and testing (17 Nov)
+Brief: [ios-app.md](ios-app.md). Preparation record and implementation gates: [ios-readiness.md](ios-readiness.md).
+- [x] Give the iOS agent the brief; read and reconciled with the released no-setup page on 17 November.
 - [x] Confirm whether the APNs key file for `352Z6Z6469` exists. Sam confirmed secure possession on 17 November;
       reuse this key. Do not paste or upload its contents to chat.
 - [x] Reuse the existing Apple team `TU7MLARY49` (Sam confirmed, 17 November).
@@ -85,8 +85,8 @@ The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App
 `6836040622`, obtained API access and created the CI key with the Developer role. All three family account invitations
 were sent with Marketing access limited to Commute. The internal
 Family group is created with automatic distribution enabled and Sam enrolled. No build has been uploaded.
-Sam authorized shell/pipeline work, now in progress. Integration waits for the green no-setup release on main;
-native journey features await released contracts. Apple review submission must wait until the app is working.
+Sam authorized shell/pipeline work, now in progress on top of the green no-setup release (`af09273`).
+Native journey features await released contracts. Apple review submission must wait until the app is working.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.

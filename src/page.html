@@ -287,31 +287,18 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
     <h3>Settings</h3>
 
     <fieldset>
-      <legend>National Rail live data</legend>
+      <legend>Live data</legend>
       <label class="f wide"><span>Source</span>
         <select id="s_provider">
-          <option value="rdm">Rail Data Marketplace (Darwin key)</option>
-          <option value="proxy">My proxy (Cloudflare Worker)</option>
-          <option value="huxley">Huxley2 (Darwin token)</option>
-          <option value="tfl">TfL timetable (no key, not live)</option>
-          <option value="demo">Example data (no key)</option>
+          <option value="proxy">Live: National Rail, TfL and Google, through the app's proxy</option>
+          <option value="tfl">TfL timetable (not live)</option>
+          <option value="demo">Example data</option>
         </select>
       </label>
-      <label class="f wide" data-p="rdm"><span>API key (x-apikey)</span><input id="s_rdmKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Endpoint base URL, from the product page (ends …/LDBWS/api/20220120)</span><input id="s_rdmBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Service Details key (only if different from the key above)</span><input id="s_rdmSdKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Service Details endpoint base URL</span><input id="s_rdmSdBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
-      <div class="f wide" data-p="proxy">
-        <p class="hint">My proxy carries every feed: National Rail, TfL and Google (Trip). This phone keeps no keys; they live in Cloudflare.</p>
+      <div class="f wide">
+        <p class="hint">Nothing to set up: no keys are kept on this device. They live with the app's proxy (Sam, 17 Nov).</p>
         <p class="hint" id="proxyStatus" aria-live="polite"></p>
-        <button type="button" class="ghost" id="proxyLinkBtn">Copy setup link for another device</button>
-        <button type="button" class="ghost" id="clearKeysBtn" hidden>Remove keys stored on this phone</button>
       </div>
-      <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-not-proxy><span>TfL app key (optional, free from api-portal.tfl.gov.uk; raises TfL's request limit)</span><input id="s_tflKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <p class="hint">Keys are stored only in this browser on this device. A key typed here can be read by anything that runs on this page; the proxy option keeps the National Rail key off the phone entirely.</p>
     </fieldset>
 
     <fieldset>
@@ -378,8 +365,6 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <legend>Trip</legend>
       <p class="hint">Addresses and the time to and from the station come from Google; trains from TfL's journey planner, with live
         National Rail times. Station list: UK railway stations (ODbL 1.0, github.com/davwheat/uk-railway-stations).</p>
-      <label class="f wide" data-not-proxy><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
-      <label class="f wide" id="googleKeyRow"><span>Google Maps key (website-restricted)</span><input id="s_googleKey" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="googleKeyNote"></span></label>
       <label class="f"><span>Park and reach the platform (min)</span><input id="s_tripParkMin" type="number" step="1" min="0" max="60"></label>
       <label class="f"><span>Lock the bike and reach the platform (min)</span><input id="s_tripLockMin" type="number" step="1" min="0" max="60"></label>
       <label class="f"><span>Station entrance to platform (min)</span><input id="s_tripStationMin" type="number" step="1" min="0" max="60"></label>
@@ -475,13 +460,18 @@ function whichTrain(now,remember=true){
   if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
+// The app's proxy (proxy/worker.js), deployed by GitHub Actions (Deploy proxy). Not a secret: it answers only this page's
+// origin, and holds the keys itself.
+const APP_PROXY = "https://cartref-rail.s-rapley.workers.dev";
 // All durations in seconds.
 const DEFAULTS = {
   simulatorEnabled:false,simulatedFeeds:false,alongLine:false,followRoute:false,appearance:"system",
-  provider:"rdm",
+  // Live data comes through the app's own proxy, which holds every key (Sam, 17 Nov). The phone-key sources below stay
+  // only as internal adapters (tests and recorded feeds); nothing in Settings sets them.
+  provider:"proxy",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
-  rdmSdBase:"https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120", rdmSdKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
+  rdmSdBase:"https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120", rdmSdKey:"", proxyBase:APP_PROXY, huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
   walkHomeStationAvg:1337, walkHomeStationFast:1086, walkStationHomeAvg:1332, walkStationHomeFast:1111,
   letEntry:120, letExit:90, catchMargin:60,
   kxInterchange:400, farInterchange:240, tubeWait:180,
@@ -610,7 +600,7 @@ function tflUrl(u){
 // each load to a minimum and runs requests one at a time.
 // Through the proxy: keyed when the proxy said so, for the address in use now (an old proxy's answer doesn't count).
 const tflKeyed = () => { if(!allViaProxy()) return !!S().tflKey; const st=state.saved.proxyStatus; return !!(st && st.tflKey && st.base===proxyBaseUrl()); };
-const tflKeyAdvice = () => allViaProxy() ? "add TFL_KEY to your proxy in Cloudflare" : "add a free TfL app key in Settings";
+const tflKeyAdvice = () => allViaProxy() ? "add TFL_KEY to GitHub's Actions secrets and run Deploy proxy" : "choose Live in Settings (the app's proxy holds a TfL key)";
 const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retrying in a minute."
   : `TfL limits requests without a key to a handful a minute. Retrying in a minute; ${tflKeyAdvice()} to avoid this.`;
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
@@ -1906,7 +1896,7 @@ function renderDiag(){
     keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
       const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
-    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. ${allViaProxy()?"Adding TFL_KEY to your proxy in Cloudflare widens this.":"A free TfL key in Settings widens this."}</p>`);
+    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. ${allViaProxy()?"Adding TFL_KEY to GitHub's Actions secrets (then Deploy proxy) widens this.":"Choosing Live in Settings widens this."}</p>`);
   }
   if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
@@ -2557,7 +2547,7 @@ async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
 const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
 function simulationPrivateValues(){
  const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
- const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>key!=='keysInProxy'&&/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
  return [...values,simulationInputSnapshot?.origin||'',simulationInputSnapshot?.fields.originInput||'',simulationInputSnapshot?.fields.destInput||'',state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
 }
 const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
@@ -2615,14 +2605,13 @@ async function refreshProxyStatus(){
 }
 function renderProxyStatus(){
   const el=$("#proxyStatus"); if(!el) return;
-  const st=state.saved.proxyStatus, base=proxyBaseUrl(), keys=PHONE_KEYS.filter(k=>S()[k]);
-  $("#clearKeysBtn").hidden=!(S().provider==="proxy"&&keys.length);
+  const st=state.saved.proxyStatus, base=proxyBaseUrl();
   if(!base){ el.textContent=""; return; }
   if(state.proxyStatusErr==="redeploy"){ el.textContent="Your proxy needs redeploying: it doesn't know this version of the app (HTTP 404). See docs/proxy-setup.md."; return; }
   if(state.proxyStatusErr&&(!st||st.base!==base)){ el.textContent=`Couldn't reach your proxy (${state.proxyStatusErr}). Check the address, and that its ALLOW_ORIGIN is this page's address.`; return; }
   if(!st||st.base!==base){ el.textContent="Checking your proxy…"; return; }
   const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.tflKey&&"TfL key (TFL_KEY; without it TfL's shared limit applies)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
-  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to set in Cloudflare: ${need.join("; ")}.`:"")+(keys.length?" This phone still holds keys you can remove.":"");
+  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to add to GitHub's Actions secrets, then run Deploy proxy: ${need.join("; ")}.`:"");
 }
 // A setup link (#setup=<proxy address>) sets up a new device in one tap: My proxy for every feed, nothing else changed.
 // It names the proxy's host in the question (an address that only looks like yours is refused or shown as what it is).
@@ -2695,22 +2684,22 @@ function fillSettings(){
   $("#s_alongLine").checked=s.alongLine===true;
   $("#s_followRoute").checked=!!s.followRoute;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
+  $("#s_provider").value=["proxy","tfl","demo"].includes(s.provider)?s.provider:"proxy"; $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
-  $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
-  $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
+  $("#s_trip").checked=!!s.trip;
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
 }
-function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"||$("#s_provider").value==="proxy"; }
-function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; });
-  document.querySelectorAll("[data-not-proxy]").forEach(el=>{ el.hidden=p==="proxy"; }); showTripFields(); renderProxyStatus(); }
+function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; }
+function showProviderFields(){ showTripFields(); renderProxyStatus(); }
 function readSettings(){
   const o={};
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
+  o.provider=$("#s_provider").value||S().provider;
+  // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
+  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
@@ -2722,19 +2711,14 @@ function readSettings(){
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_trip").checked) o.trip=true;
   if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
-  o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
-  { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
+$("#s_trip").addEventListener("change",showTripFields);
 $("#s_provider").addEventListener("change",showProviderFields);
-$("#proxyLinkBtn").addEventListener("click",async()=>{ const base=proxyOrigin($("#s_proxyBase").value); if(!base){ $("#proxyStatus").textContent="Enter your proxy's address first (https://, just the host)."; return; }
-  const link=proxySetupLink(base); try{ if(navigator.share){ await navigator.share({title:"Commute setup",url:link}); return; } await navigator.clipboard.writeText(link); $("#proxyStatus").textContent="Setup link copied. On the other device, open it in the browser and say yes; on iPhone then Share → Add to Home Screen and open Commute from there (if it asks again, say yes)."; }catch(e){ $("#proxyStatus").textContent=link; } });
-$("#clearKeysBtn").addEventListener("click",()=>{ PHONE_KEYS.forEach(k=>{ delete state.saved.settings[k]; const el=$("#s_"+k); if(el) el.value=""; }); save(); renderProxyStatus(); $("#proxyStatus").textContent+=" Keys removed from this phone."; });
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{
@@ -2823,7 +2807,15 @@ window.addEventListener("pagehide",invalidateSources);
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
-if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
+// Keys move to the app's proxy (Sam, 17 Nov: "Can you remove all the content I'm setting for the key"): once per
+// device, any key saved here is deleted, the phone-key sources become the proxy, and the Google choice goes.
+if(!state.saved.settings.keysInProxy){
+  const s=state.saved.settings;
+  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
+  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
+  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
+  s.keysInProxy=1; save();
+}
 acceptSetupLink();
 if(allViaProxy()) refreshProxyStatus();
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");

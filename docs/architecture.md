@@ -378,6 +378,13 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   submission is authorized until the app works. Native features await the owner's released contracts (issue #58).
   [Scope and tests](stories/ios-shell.md), [access and gates](ios-readiness.md).
 
+- **17 Nov, the iPhone app: a bundled wrapper, the engine as the only logic, the proxy as the back end (Sam).** A
+  Capacitor wrapper around the same `index.html`, bundled (opens with no signal, shows data with its age), built to
+  TestFlight automatically from `main`; iOS 27; internal testers. No journey logic in Swift: the engine builds a journey
+  snapshot that the page publishes to the shell, and the proxy runs the same engine while the app is closed, pushing
+  through APNs (Live Activity, leave alarm, notifications). This repo's agent builds the engine, page and proxy parts;
+  an iOS agent does the app and all Apple work. The web app stays complete. `ios-app.md`, `stories/ios-app.md`.
+- **17 Nov, nothing to set up: the app's proxy built in, the key settings removed (Sam).** `stories/keys-in-the-proxy.md`.
 - **17 Nov, the platform time for a late train, and what "set off" means (Sam).** "Be on the platform by" is planned on
   a late train's timetable time (an estimate can come forward), names the platform and station, and needs a position
   no more than 2 minutes old. Going home, set off is 200 m from where you started following (Commute as Leisure). Once

@@ -16,8 +16,9 @@ know which times to trust.
 - TfL timetable: only direct trains between Letchworth and a London station are used; changes are reported, not
   used.
 - A refusal stops further requests and every route says why; a plain failure doesn't.
-- **Through your own proxy (#17, 4 Nov).** Settings → National Rail → "My proxy (Cloudflare Worker)" is a full live
-  source, the same as a key in Settings: the start offset (−40 on the train; ahead for Leave around / Arrive by) is
+- **Through the app's proxy (#17, 4 Nov; the only live source in Settings since 17 Nov, built in).** Settings → Live
+  data → "Live" is the proxy (Darwin direct and Huxley with a key on the phone are gone from Settings: tests and
+  recorded feeds still use them as internal adapters): the start offset (−40 on the train; ahead for Leave around / Arrive by) is
   passed as `/board/FROM/TO?offset=N`, Service Details for the train you're on as `/service/ID` (ID URL-encoded), and
   no key is sent from the phone. The Worker (`proxy/worker.js`) holds `RDM_KEY` (and optionally `RDM_SD_KEY` /
   `RDM_SD_BASE`; else the board key and Rail Data Marketplace's Service Details product), passes an offset only as a
