@@ -181,11 +181,17 @@ function movedFromStart(route){
 // Set off on the followed route (Sam, 12 Nov; 17 Nov): on the tube to the station; or, with a position good to 150 m
 // and no more than 2 minutes old, outbound away from home (the app's left-home rule), and going home 200 m from where
 // you were when the route was first drawn (Commute as Leisure: the office was the start only when you left from it).
+// Once set off, it holds for this journey (same direction and mode) until you stop following, even when the phone
+// gives no fresh fix (a locked screen) or you switch to another train on the way (review, 17 Nov: both brought back
+// "Leave by · leave time passed"). A fresh fix is needed only to decide you've set off. Kept for this page.
 function followMovedOff(route,observation){
   if(!route||route.phase!=='before-train')return false;
-  if(observation?.activeConnection)return true;
+  const journey=`${route.direction}|${route.mode}`;
+  if(state.setOffJourney===journey)return true;
   const fresh=!!state.here&&state.locAcc<=150&&Number.isFinite(state.lastFixAt)&&Date.now()-state.lastFixAt<=C.FOLLOW_SET_OFF_FIX_MS;
-  return fresh&&(route.direction==='office'?!atHome():movedFromStart(route));
+  const off=!!observation?.activeConnection||(fresh&&(route.direction==='office'?!atHome():movedFromStart(route)));
+  if(off)state.setOffJourney=journey;
+  return off;
 }
 // For the rows below the followed card (Sam, 17 Nov: "Platform in rows too"): set off, and not standing at the station
 // (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
@@ -487,6 +493,7 @@ function renderFollowPanel(){
     return;
   }
   panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading

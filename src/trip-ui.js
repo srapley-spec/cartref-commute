@@ -369,10 +369,19 @@ function createTripUi(deps) {
     const ride=j.rides[0],at=ride.from?.name||'';
     return `Be on ${ride.platform?`platform ${ride.platform}`:'the platform'}${at?` at ${at}`:''} by`;
   }
-  // Set off: over 200 m from where the trip starts, on a position good to 150 m and no more than 2 minutes old.
+  // Set off: seen within 200 m of where the trip starts, then over 200 m from it, each on a position good to 150 m and
+  // no more than 2 minutes old. A trip planned from somewhere you aren't (yet) keeps Leave by: you haven't left it.
+  // Once set off it holds for this trip, without fresh fixes (review, 17 Nov), as in Commute.
+  let tripSeenKey=null,tripOffKey=null;
   function tripSetOff(j){
+    const key=`${j.leave}|${j.from?.id||''}|${j.from?.geo||''}`;
+    if(tripOffKey===key)return true;
     const h=here(),start=j.from?.geo;
-    return !!h&&!!start&&h.acc<=150&&Number.isFinite(h.at)&&now()-h.at<=C.FOLLOW_SET_OFF_FIX_MS&&C.km(h.geo,start)>0.2;
+    if(!h||!start||!(h.acc<=150)||!Number.isFinite(h.at)||now()-h.at>C.FOLLOW_SET_OFF_FIX_MS)return false;
+    const away=C.km(h.geo,start)>0.2;
+    if(!away){tripSeenKey=key;return false;}
+    if(tripSeenKey===key){tripOffKey=key;return true;}
+    return false;
   }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];

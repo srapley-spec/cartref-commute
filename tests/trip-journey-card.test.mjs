@@ -62,12 +62,14 @@ test("Trip: set off needs over 200 m (not 150 m) and a position good to 150 m; a
   const { a, head } = await followed();
   const start = a.c.state.saved.tripMode.follow.journey.from.geo;
   const put = (geo, acc) => { Object.assign(a.c.state, { here: geo, locAcc: acc, lastFixAt: Date.now(), locStatus: "ok" }); a.c.render(); };
+  put([start[0] + 0.01, start[1]], 400);    // 1.1 km but only good to 400 m
+  assert.match(squash(head().textContent), /^Leave by/, "a coarse fix doesn't count as setting off");
   put([start[0] + 0.0016, start[1]], 15);   // about 180 m
   assert.match(squash(head().textContent), /^Leave by/, "180 m: not yet set off");
   put([start[0] + 0.0027, start[1]], 15);   // about 300 m
   assert.match(squash(head().textContent), /^Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/, "300 m: set off (a 0.4 km rule would miss this)");
-  put([start[0] + 0.01, start[1]], 400);    // 1.1 km but only good to 400 m
-  assert.match(squash(head().textContent), /^Leave by/, "a coarse fix doesn't count as setting off");
+  put([start[0] + 0.0027, start[1]], 400);
+  assert.match(squash(head().textContent), /^Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/, "once set off it holds (review, 17 Nov)");
   assert.deepEqual(a.errors, []); a.close();
 });
 
@@ -91,18 +93,22 @@ test("Trip: at a change the left time is the next departure and counts down in '
   assert.deepEqual(a.errors, []); a.close();
 });
 
-test("Trip: a late first train's platform time is its timetable time; the label names the station; an old position doesn't count as set off (17 Nov)", async () => {
+test("Trip: a late first train's platform time is its timetable time; the label names the station; an old position doesn't count as setting off, but set off holds (17 Nov)", async () => {
   const { a, fix, head } = await followed();
   const f = a.c.state.saved.tripMode.follow, j = f.journey, ride = j.rides[0], start = j.from.geo;
   const plat = [...j.before].reverse().find((s) => s.kind === "station");
   // The first train is running 6 minutes late: expected 6 minutes after its timetable time.
   const due = ride.schedDep; ride.dep = due + 6 * 60e3; ride.platform = "2";
+  fix(start);   // seen at the start
+  // 450 m on, but on a position 3 minutes old: not set off.
+  Object.assign(a.c.state, { here: [start[0] + 0.004, start[1]], locAcc: 15, lastFixAt: a.w.Date.now() - 3 * 60e3 }); a.c.render();
+  assert.match(squash(head().textContent), /^Leave by/);
   fix([start[0] + 0.004, start[1]]);
   const text = squash(head().textContent);
   assert.match(text, new RegExp(`^Be on platform 2 at ${ride.from.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} by`));
   assert.equal(Number(head().querySelector("[data-cd]").dataset.cd), due - plat.secs * 1000, "timetable time less the platform allowance, not the 6-minute estimate");
-  // The same place on a position 3 minutes old: not set off.
+  // Once set off it holds, even when the next fix is old (review, 17 Nov: a locked phone).
   a.c.state.lastFixAt = a.w.Date.now() - 3 * 60e3; a.c.render();
-  assert.match(squash(head().textContent), /^Leave by/);
+  assert.match(squash(head().textContent), /^Be on platform 2/);
   assert.deepEqual(a.errors, []); a.close();
 });

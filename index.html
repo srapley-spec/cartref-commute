@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 18:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 19:57 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7561,7 +7561,6 @@ function render(){
   restoreReleasedFollow();
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
-  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   renderInner(); restoreOpen();
   if(state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
@@ -7608,6 +7607,8 @@ function renderInner(){
   const now=Date.now(), byView=state.saved.view==="by";
   const shown = journeyPresentation(now, situation(now)), view = shown.view;
   state.presentation=shown;state.rendered.view=view;
+  // After the view is settled (an expired Plan pin cleared above), so the rows match this render (review, 17 Nov).
+  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -9404,11 +9405,17 @@ function movedFromStart(route){
 // Set off on the followed route (Sam, 12 Nov; 17 Nov): on the tube to the station; or, with a position good to 150 m
 // and no more than 2 minutes old, outbound away from home (the app's left-home rule), and going home 200 m from where
 // you were when the route was first drawn (Commute as Leisure: the office was the start only when you left from it).
+// Once set off, it holds for this journey (same direction and mode) until you stop following, even when the phone
+// gives no fresh fix (a locked screen) or you switch to another train on the way (review, 17 Nov: both brought back
+// "Leave by · leave time passed"). A fresh fix is needed only to decide you've set off. Kept for this page.
 function followMovedOff(route,observation){
   if(!route||route.phase!=='before-train')return false;
-  if(observation?.activeConnection)return true;
+  const journey=`${route.direction}|${route.mode}`;
+  if(state.setOffJourney===journey)return true;
   const fresh=!!state.here&&state.locAcc<=150&&Number.isFinite(state.lastFixAt)&&Date.now()-state.lastFixAt<=C.FOLLOW_SET_OFF_FIX_MS;
-  return fresh&&(route.direction==='office'?!atHome():movedFromStart(route));
+  const off=!!observation?.activeConnection||(fresh&&(route.direction==='office'?!atHome():movedFromStart(route)));
+  if(off)state.setOffJourney=journey;
+  return off;
 }
 // For the rows below the followed card (Sam, 17 Nov: "Platform in rows too"): set off, and not standing at the station
 // (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
@@ -9710,6 +9717,7 @@ function renderFollowPanel(){
     return;
   }
   panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
@@ -10706,10 +10714,19 @@ function createTripUi(deps) {
     const ride=j.rides[0],at=ride.from?.name||'';
     return `Be on ${ride.platform?`platform ${ride.platform}`:'the platform'}${at?` at ${at}`:''} by`;
   }
-  // Set off: over 200 m from where the trip starts, on a position good to 150 m and no more than 2 minutes old.
+  // Set off: seen within 200 m of where the trip starts, then over 200 m from it, each on a position good to 150 m and
+  // no more than 2 minutes old. A trip planned from somewhere you aren't (yet) keeps Leave by: you haven't left it.
+  // Once set off it holds for this trip, without fresh fixes (review, 17 Nov), as in Commute.
+  let tripSeenKey=null,tripOffKey=null;
   function tripSetOff(j){
+    const key=`${j.leave}|${j.from?.id||''}|${j.from?.geo||''}`;
+    if(tripOffKey===key)return true;
     const h=here(),start=j.from?.geo;
-    return !!h&&!!start&&h.acc<=150&&Number.isFinite(h.at)&&now()-h.at<=C.FOLLOW_SET_OFF_FIX_MS&&C.km(h.geo,start)>0.2;
+    if(!h||!start||!(h.acc<=150)||!Number.isFinite(h.at)||now()-h.at>C.FOLLOW_SET_OFF_FIX_MS)return false;
+    const away=C.km(h.geo,start)>0.2;
+    if(!away){tripSeenKey=key;return false;}
+    if(tripSeenKey===key){tripOffKey=key;return true;}
+    return false;
   }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];

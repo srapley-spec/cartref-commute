@@ -272,8 +272,8 @@ not to." Trip has its own following engine and card; this brings it to the Commu
 - **Countdown to the start of the next step**, in that step's words, as in Commute (`follow-a-route.md`, "Clean
   baseline"): Leave by → "leave in …"; aboard, "At Canterbury West" → "arrives in …"; at a change, "Next departure" →
   "in …"; the band under 2 minutes.
-- **"Be on the platform by" once you've set off**: over 200 m from where the trip starts (position good to 150 m and,
-  since 17 Nov, no more than 2 minutes old). The time is the first train's departure less the trip's own time to reach
+- **"Be on the platform by" once you've set off**: seen within 200 m of where the trip starts, then over 200 m from it
+  (each on a position good to 150 m and, since 17 Nov, no more than 2 minutes old); once set off it holds for the trip. The time is the first train's departure less the trip's own time to reach
   the platform (its "station" allowance); a late train's timetable time (`schedDep`), not its estimate; the label names
   the platform and station, "Be on platform 2 at Brighton by" (`follow-a-route.md`, "Platform time and label").
 - **Controls fold under way**: following a trip, the mode, Auto/Plan/Live, from/to and time fold behind one row, "Trip ·

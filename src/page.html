@@ -2176,7 +2176,6 @@ function render(){
   restoreReleasedFollow();
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
-  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   renderInner(); restoreOpen();
   if(state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
@@ -2223,6 +2222,8 @@ function renderInner(){
   const now=Date.now(), byView=state.saved.view==="by";
   const shown = journeyPresentation(now, situation(now)), view = shown.view;
   state.presentation=shown;state.rendered.view=view;
+  // After the view is settled (an expired Plan pin cleared above), so the rows match this render (review, 17 Nov).
+  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");

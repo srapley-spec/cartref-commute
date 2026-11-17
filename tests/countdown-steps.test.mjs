@@ -87,10 +87,14 @@ test("Commute going home: within 200 m of the office Leave by; 300 m away 'Be on
   at(a, evening, office); follow(a, (o) => o.effort === "walk" || o.recommended === 1);
   at(a, evening + MIN, [office[0] + 0.0013, office[1]]);   // about 145 m
   assert.match(squash(head(a).textContent), /Leave by/, "still at the office");
-  at(a, evening + 2 * MIN, [office[0] + 0.0027, office[1]]);   // about 300 m
-  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
-  a.c.state.locAcc = 400; a.c.render();
+  // About 300 m, but on a position only good to 400 m: not evidence you've set off.
+  a.setNow(evening + 2 * MIN); Object.assign(a.c.state, { here: [office[0] + 0.0027, office[1]], locAcc: 400, lastFixAt: evening + 2 * MIN }); a.c.render();
   assert.match(squash(head(a).textContent), /Leave by/, "a coarse position is not evidence you've set off");
+  at(a, evening + 2.5 * MIN, [office[0] + 0.0027, office[1]]);   // the same place, good to 12 m
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
+  // Once set off it holds, whatever the next fix is like (review, 17 Nov).
+  a.c.state.locAcc = 400; a.c.render();
+  assert.match(squash(head(a).textContent), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/, "set off holds");
   assert.deepEqual(a.errors, []); a.close();
 });
 

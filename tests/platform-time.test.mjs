@@ -84,3 +84,24 @@ test("Once set off, the rows below the card show their platform time too; in Pla
   assert.ok(planned.length > 0 && planned.every((h) => /Leave by/.test(h) && !/Be on/.test(h)), "Plan pinned: " + JSON.stringify(planned));
   assert.deepEqual(app.errors, []); app.close();
 });
+
+test("Once set off it holds: switching to another train and minutes with no fresh fix (a locked phone) keep 'Be on the platform', not 'Leave by · leave time passed' (review, 17 Nov)", async () => {
+  const { app, c, P, place, panel } = await homeward();
+  place(1, P.places.office);
+  place(8, [51.5145, -0.0805]);
+  assert.match(panel(), /Be on platform 4 at Farringdon by\s*10:29/);
+  // Switch to the 10:36 from King's Cross on the way: still set off (it used to start again from where you were).
+  [...app.d.querySelectorAll("[data-follow]")].find((b) => /Great Northern via King's Cross/.test(b.getAttribute("aria-label"))).click();
+  place(9, [51.5146, -0.0806]);
+  assert.equal(c.state.saved.followRoute?.option?.train?.std, "10:36");
+  assert.match(panel(), /Be on the platform at King's Cross by\s*10:35/);
+  assert.doesNotMatch(panel(), /Leave by|leave time passed/);
+  // Two and a half minutes on with no new fix.
+  app.setNow(T0 + 11.5 * m); c.state.boardsAt = T0 + 11.5 * m; c.render();
+  assert.match(panel(), /Be on the platform at King's Cross by\s*10:35/);
+  assert.doesNotMatch(panel(), /Leave by|leave time passed/);
+  // Stopping clears it: the next route starts from Leave by.
+  c.state.saved.followRoute = null; c.render();
+  assert.equal(c.state.setOffJourney, null);
+  assert.deepEqual(app.errors, []); app.close();
+});
