@@ -55,8 +55,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   layouts. Train departure time, spare minutes and hidden Journey steps cannot substitute for it. Removing,
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
   approval. **Once you've set off (Sam, 12 Nov)** the followed card, and the trains listed under the tube you're on,
-  show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); planning rows and
-  recommendations keep Leave by. Every left time counts down to the start of the next step, in that step's words.
+  show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); since 17 Nov also the
+  rows below the followed card, named "Be on platform 4 at Farringdon by", on a late train's timetable time
+  ("Platform time and label"). Plan, and the Arrive by / Leave at views, keep Leave by. Every left time counts down to the start of the next step, in that step's words.
   The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit Live's
   timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
 - **All modes (Sam, 12 Nov).** A change applies to Commute, Leisure and Trip unless there is a reason not to; each story

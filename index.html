@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 12 Nov 16:36 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 18:53 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1182,6 +1182,7 @@ var CommuteCore = (() => {
     FOLLOW_FIX_FRESH_MS: () => FOLLOW_FIX_FRESH_MS,
     FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS: () => FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS,
     FOLLOW_NOTICE_MIN: () => FOLLOW_NOTICE_MIN,
+    FOLLOW_SET_OFF_FIX_MS: () => FOLLOW_SET_OFF_FIX_MS,
     FOLLOW_STATION_ACC_M: () => FOLLOW_STATION_ACC_M,
     FOLLOW_STATION_GONE_MS: () => FOLLOW_STATION_GONE_MS,
     FOLLOW_STATION_KM: () => FOLLOW_STATION_KM,
@@ -1418,6 +1419,7 @@ var CommuteCore = (() => {
     thameslinkNote: () => thameslinkNote,
     timeFromTrain: () => timeFromTrain,
     timeToTrain: () => timeToTrain,
+    timetabledDeparture: () => timetabledDeparture,
     topPicks: () => topPicks,
     trackLine: () => trackLine,
     trainFlags: () => trainFlags,
@@ -3493,6 +3495,7 @@ var CommuteCore = (() => {
   // src/core/follow.ts
   var MIN = 6e4;
   var FOLLOW_BETTER_MIN = 5;
+  var FOLLOW_SET_OFF_FIX_MS = 2 * MIN;
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_NOTICE_MIN = 3;
   var FOLLOW_GONE_GRACE_MS = 3e4;
@@ -3547,11 +3550,15 @@ var CommuteCore = (() => {
     if (i.phase !== "before-train" || !near || i.accM == null || !(i.accM <= FOLLOW_STATION_ACC_M)) return null;
     return i.fixOk && i.fixAgeMs != null && i.fixAgeMs >= 0 && i.fixAgeMs <= FOLLOW_FIX_FRESH_MS ? "at" : "was";
   }
-  function platformBy(option, departure, now) {
+  function platformBy(option, departure, now, timetabled = departure) {
+    const first = finite2(timetabled) ? Math.min(departure, timetabled) : departure;
     const before = Array.isArray(option.before) ? option.before : [];
     const last = before[before.length - 1];
-    const by = departure - (last && last.kind === "margin" && finite2(last.secs) ? last.secs * 1e3 : 0);
-    return now > by ? departure : by;
+    const by = first - (last && last.kind === "margin" && finite2(last.secs) ? last.secs * 1e3 : 0);
+    return now <= by ? by : now <= first ? first : departure;
+  }
+  function timetabledDeparture(t2) {
+    return finite2(t2.depLate) && t2.depLate > 0 ? t2.dep - t2.depLate * MIN : t2.dep;
   }
   function followLooksBack(route, now) {
     var _a;
@@ -6697,11 +6704,20 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
     arrivalLabel:(context.arrivalSource||source)==='Timetable'?'Timetable':(context.arrivalSource||source)==='Last known'?'Last known':'Expected'})
     +(C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:'');
 }
+// The platform deadline for a train: its timetable time when it's late (an estimate can come forward), less the
+// route's margin; and which platform, at which station (Sam, 17 Nov: at Aldgate, "Be on the platform by" read as the
+// tube's platform). "Be on platform 4 at Farringdon by"; "Be on the platform at Farringdon by" before it's announced.
+function platformTime(option,train){return C.platformBy(option,train.dep,Date.now(),C.timetabledDeparture(train));}
+function platformLabel(train){
+  const at=STATIONS[train?.from]||HUB_NAME[train?.from]||'';
+  return `Be on ${train?.platform?`platform ${train.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+}
 function journeyHeadlineMarkup(j,dest,timing=''){
-  // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
-  // its platform, counting down to that, never to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
-  if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
-    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,step:'platform',timing});
+  // Rows drawn while you're already on your way (the trains home under the tube you're on; and, once you've set off
+  // on a followed route, the rows below it): the deadline for each is its platform, counting down to that, never to
+  // leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?"; 17 Nov: "Platform in rows too").
+  if((state.rowsUnderWay||state.rowsSetOff)&&j.train&&Number.isFinite(j.train.dep))
+    return journeyTimesMarkup({leave:platformTime(j,j.train),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:platformLabel(j.train),isLeave:false,step:'platform',timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
@@ -7545,6 +7561,7 @@ function render(){
   restoreReleasedFollow();
   if(journeyEnabled())document.querySelectorAll("details:not(#simDock details)").forEach(d=>{if(d.open)openKeys.add(detailsKey(d));else openKeys.delete(detailsKey(d));});
   followChoices.clear();
+  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   renderInner(); restoreOpen();
   if(state.presentation&&!state.presentation.view.startsWith('plan-')&&state.presentation.view!=='following'&&state.presentation.view!=='awaiting-location')renderCanonicalBlocks($("#hero"),state.presentation);
   renderJourneyExtras(); restoreJourneyFocus(focus);
@@ -9384,6 +9401,24 @@ function movedFromStart(route){
   if(state.followFrom?.id!==route.id)state.followFrom={id:route.id,here:state.here};
   return km(state.here,state.followFrom.here)>0.2;
 }
+// Set off on the followed route (Sam, 12 Nov; 17 Nov): on the tube to the station; or, with a position good to 150 m
+// and no more than 2 minutes old, outbound away from home (the app's left-home rule), and going home 200 m from where
+// you were when the route was first drawn (Commute as Leisure: the office was the start only when you left from it).
+function followMovedOff(route,observation){
+  if(!route||route.phase!=='before-train')return false;
+  if(observation?.activeConnection)return true;
+  const fresh=!!state.here&&state.locAcc<=150&&Number.isFinite(state.lastFixAt)&&Date.now()-state.lastFixAt<=C.FOLLOW_SET_OFF_FIX_MS;
+  return fresh&&(route.direction==='office'?!atHome():movedFromStart(route));
+}
+// For the rows below the followed card (Sam, 17 Nov: "Platform in rows too"): set off, and not standing at the station
+// (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
+function followSetOffNow(){
+  if((state.saved.view||'now')!=='now'||state.saved.viewOverride?.mode==='plan')return false;
+  const route=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);
+  if(!route||route.phase!=='before-train'||route.direction!==direction()||route.mode!==currentMode())return false;
+  const observation=followedObservation(route,Date.now());
+  return !observation.boarding&&followMovedOff(route,observation);
+}
 function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
@@ -9709,16 +9744,13 @@ function renderFollowPanel(){
   // from the phone's position and contradicted the status line beneath it).
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   // Once you've set off, the deadline is the platform, not leaving (Sam, 12 Nov: "yes. Be on the platform by"; from
-  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: on the tube to the station; or,
-  // outbound, the app's own left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home
-  // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
-  // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
-  // route was first drawn (kept for this page; after a reload, from the first position then).
-  const movedOff=panelLayout&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
+  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: followMovedOff (on the tube to the
+  // station; outbound, the app's own left-home rule; going home, 200 m from where the route was first drawn, kept for
+  // this page, after a reload from the first position then). At home or where you started, Leave by as before.
+  const movedOff=panelLayout&&followMovedOff(r,observation);
   const setOff=!unknown&&!observation.boarding&&movedOff;
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
-  const platformBy=C.platformBy(r.option,t.dep,Date.now());
+  const platformBy=platformTime(r.option,t);
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
   const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
@@ -9739,7 +9771,7 @@ function renderFollowPanel(){
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
   // The way on keeps the same rule: set off (or at the station), its deadline is its platform; otherwise Leave by.
   const wayOnTimes=!giveUpWay?'':(movedOff||panelLayout&&observation.boarding)&&giveUpWay.train
-    ?journeyTimesMarkup({leave:C.platformBy(giveUpWay,giveUpWay.train.dep,Date.now()),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+    ?journeyTimesMarkup({leave:platformTime(giveUpWay,giveUpWay.train),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(giveUpWay.train),isLeave:false,step:'platform'})
     :journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true});
   // The way on offered below the card ("A way on", "Another option") is drawn by the same rule once you're under way:
   // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
@@ -9749,7 +9781,7 @@ function renderFollowPanel(){
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(t),isLeave:false,step:'platform'})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:unknown?'':r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
@@ -10663,19 +10695,27 @@ function createTripUi(deps) {
   // The same card as Commute and Leisure (Sam, 12 Nov: "all the changes we're making apply to all modes"): the left
   // time is the start of your next step and counts down in that step's words; once you've set off (over 200 m from
   // where the trip starts) the deadline is the platform, the first train's departure less the time to reach it.
+  // As in Commute (17 Nov): a late train's timetable time, less the trip's own time to reach the platform; once that
+  // has gone, the timetable time, then the expected departure.
   function tripPlatformBy(j){
-    const plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
-    return j.rides[0].dep-(plat?plat.secs*1000:0);
+    const ride=j.rides[0],plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
+    const first=Number.isFinite(ride.schedDep)?Math.min(ride.dep,ride.schedDep):ride.dep,by=first-(plat?plat.secs*1000:0),t=now();
+    return t<=by?by:t<=first?first:ride.dep;
   }
+  function tripPlatformLabel(j){
+    const ride=j.rides[0],at=ride.from?.name||'';
+    return `Be on ${ride.platform?`platform ${ride.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+  }
+  // Set off: over 200 m from where the trip starts, on a position good to 150 m and no more than 2 minutes old.
   function tripSetOff(j){
     const h=here(),start=j.from?.geo;
-    return !!h&&!!start&&h.acc<=150&&C.km(h.geo,start)>0.2;
+    return !!h&&!!start&&h.acc<=150&&Number.isFinite(h.at)&&now()-h.at<=C.FOLLOW_SET_OFF_FIX_MS&&C.km(h.geo,start)>0.2;
   }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
     if(fu.phase==='before'||fu.phase==='access'){
-      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:'Be on the platform by',isLeave:false,step:'platform'});
+      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:tripPlatformLabel(j),isLeave:false,step:'platform'});
       return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null});
     }
     const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;

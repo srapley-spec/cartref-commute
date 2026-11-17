@@ -8,6 +8,8 @@ import { railDelayLevel, type DisruptionConfig } from './disruption';
 
 const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
+/** A position counts towards "set off" only while it is this fresh (Sam, 17 Nov: an old fix fell back to nothing). */
+export const FOLLOW_SET_OFF_FIX_MS = 2 * MIN;
 export const FOLLOW_CHANGE_MS = 60e3;
 /** A change to the arrival is worth a notice only when it moves the time you were last told by this many minutes
  *  (as shown), and leaves it this far from the original plan (10 Nov 2026, #57 E2, H16, H25). */
@@ -142,11 +144,19 @@ export function boardingPlace(i: { phase: FollowPhase; accM: number | null | und
 /** At the station, the time to be on the platform: the train's departure less the route's own catch margin (its
  *  last segment before the train); once that has passed, the departure itself. Never the leave-from-here time of
  *  a fresh plan, which at the station is already in the past. */
-export function platformBy(option: Option, departure: number, now: number): number {
+export function platformBy(option: Option, departure: number, now: number, timetabled: number = departure): number {
+  // A late train is planned on its timetable time (Sam, 17 Nov: "be on the platform by 19:02" for an 18:56 running
+  // 7 min late; an estimate can come forward, and "be there by" must never be later than the train can leave). Once the
+  // timetable time has gone, the expected departure is the deadline.
+  const first = finite(timetabled) ? Math.min(departure, timetabled) : departure;
   const before = Array.isArray(option.before) ? option.before as { kind?: string; secs?: number }[] : [];
   const last = before[before.length - 1];
-  const by = departure - (last && last.kind === 'margin' && finite(last.secs) ? last.secs * 1000 : 0);
-  return now > by ? departure : by;
+  const by = first - (last && last.kind === 'margin' && finite(last.secs) ? last.secs * 1000 : 0);
+  return now <= by ? by : now <= first ? first : departure;
+}
+/** The timetabled departure of a train: its expected departure less the reported delay (17 Nov). */
+export function timetabledDeparture(t: { dep: number; depLate?: number | null }): number {
+  return finite(t.depLate) && (t.depLate as number) > 0 ? t.dep - (t.depLate as number) * MIN : t.dep;
 }
 /** Should the boards look back for the followed train (and its own reports be fetched)? Once it has left and you
  *  haven't got off it: aboard, or boarding not yet settled. Not once it is missed or cancelled, and not for long

@@ -369,6 +369,11 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **17 Nov, the platform time for a late train, and what "set off" means (Sam).** "Be on the platform by" is planned on
+  a late train's timetable time (an estimate can come forward), names the platform and station, and needs a position
+  no more than 2 minutes old. Going home, set off is 200 m from where you started following (Commute as Leisure). Once
+  set off, the rows below the followed card show their platform time too; Plan and other-time views keep Leave by.
+  Story: `stories/follow-a-route.md`, "Platform time and label".
 - **12 Nov, "Be on the platform by" once you've set off (Sam).** The protected Leave by (1 Nov) gives way to the
   platform deadline once you've left: on the followed card (on the tube to the station, over 100 m from the saved home
   or 3 minutes nearer the station outbound, over 200 m from the office homeward) and on the trains listed under the

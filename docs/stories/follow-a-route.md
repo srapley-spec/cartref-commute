@@ -483,6 +483,38 @@ progress redesign is in [journey-progress](journey-progress.md) ("Where you are 
   The rest were equivalent (no behaviour change).
 - tests/effort.test.mjs: "Departure countdown: Signal has no redundant leave-now instruction below ninety seconds"
 
+## Platform time and label (17 Nov 2026): built 17 Nov
+Sam, 18:36 at Aldgate, following the 18:56 Thameslink from Farringdon, 7 min late: "Be on the platform by 19:02".
+"The on the platform time is later than the time for leaving Farringdon. And it's not clear what platform it's talking
+about." Cause: the platform time was the *expected* departure (19:03) less the route's minute; the label named no
+platform or station, and he was standing on another (the tube's). Decided by Sam the same evening:
+- **A late train is planned on its timetable time** (Sam: "Timetable time"). "Be on the platform by" is the earlier of
+  the timetable and expected departures, less the route's margin (18:55 in his case); inside that last minute, the
+  timetable time; once that has gone, the expected departure. An estimate can come forward; waiting is the cost.
+  The train panel still shows Scheduled and Expected; "N min to spare" and the arrival still use the expected time.
+  `platformBy(option, expected, now, timetabled)` and `timetabledDeparture(train)` in `src/core/follow.ts`; Trip uses its
+  ride's `schedDep` the same way.
+- **The label names the platform and the station**: "Be on platform 4 at Farringdon by"; "Be on the platform at
+  Farringdon by" before it's announced. On the followed card, on "Instead: the …", on the way on beneath, on the rows,
+  and in Trip ("Be on platform 2 at Brighton by"). The countdown words stay "on the platform in …". At 390 px the
+  longest label wraps to two lines above the time (screenshot checked 17 Nov).
+- **Set off needs a fresh position**: no more than 2 minutes old (`FOLLOW_SET_OFF_FIX_MS`), as well as good to 150 m
+  (Sam: "Yes, 2-minute limit"). An older one keeps Leave by until a fresh one arrives. Trip the same. On the tube the
+  tube is the evidence, as before.
+- **Going home, set off is measured from where you started following**, in Commute as in Leisure (Sam: "Measure from
+  start"): 200 m from where the route was first drawn. It used to be anywhere over 200 m from the office, so following
+  home from elsewhere in London never showed Leave by. After a reload, from the first position then.
+- **Once set off, the rows below the followed card show their platform time too** (Sam: "Platform in rows too"),
+  each naming its own station ("Be on the platform at King's Cross by 10:35"). Not when Plan is pinned or you've asked
+  for another time ("Arrive by", "Leave at"): those are plans and keep Leave by.
+- tests/core/follow-consistency.test.mjs: "A late train's platform time is its timetable time less the margin; once that has gone, the timetable time, then the expected departure (Sam, 17 Nov)"
+- tests/platform-time.test.mjs: "A train 7 min late: be on the platform by its timetable time less the margin, never the later estimate; the label names platform 4 at Farringdon"
+- tests/platform-time.test.mjs: "Before the platform is announced: 'Be on the platform at Farringdon by'"
+- tests/platform-time.test.mjs: "Set off needs a position no more than 2 minutes old: an older one keeps Leave by"
+- tests/platform-time.test.mjs: "Commute going home from somewhere other than the office: Leave by where you started following; 200 m on, the platform"
+- tests/platform-time.test.mjs: "Once set off, the rows below the card show their platform time too; in Plan they keep Leave by"
+- tests/trip-journey-card.test.mjs: "Trip: a late first train's platform time is its timetable time; the label names the station; an old position doesn't count as set off (17 Nov)"
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 

@@ -358,19 +358,27 @@ function createTripUi(deps) {
   // The same card as Commute and Leisure (Sam, 12 Nov: "all the changes we're making apply to all modes"): the left
   // time is the start of your next step and counts down in that step's words; once you've set off (over 200 m from
   // where the trip starts) the deadline is the platform, the first train's departure less the time to reach it.
+  // As in Commute (17 Nov): a late train's timetable time, less the trip's own time to reach the platform; once that
+  // has gone, the timetable time, then the expected departure.
   function tripPlatformBy(j){
-    const plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
-    return j.rides[0].dep-(plat?plat.secs*1000:0);
+    const ride=j.rides[0],plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
+    const first=Number.isFinite(ride.schedDep)?Math.min(ride.dep,ride.schedDep):ride.dep,by=first-(plat?plat.secs*1000:0),t=now();
+    return t<=by?by:t<=first?first:ride.dep;
   }
+  function tripPlatformLabel(j){
+    const ride=j.rides[0],at=ride.from?.name||'';
+    return `Be on ${ride.platform?`platform ${ride.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+  }
+  // Set off: over 200 m from where the trip starts, on a position good to 150 m and no more than 2 minutes old.
   function tripSetOff(j){
     const h=here(),start=j.from?.geo;
-    return !!h&&!!start&&h.acc<=150&&C.km(h.geo,start)>0.2;
+    return !!h&&!!start&&h.acc<=150&&Number.isFinite(h.at)&&now()-h.at<=C.FOLLOW_SET_OFF_FIX_MS&&C.km(h.geo,start)>0.2;
   }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
     if(fu.phase==='before'||fu.phase==='access'){
-      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:'Be on the platform by',isLeave:false,step:'platform'});
+      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:tripPlatformLabel(j),isLeave:false,step:'platform'});
       return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null});
     }
     const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;

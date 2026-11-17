@@ -69,7 +69,7 @@ test("Seen at the station, then the train pulls out and the phone is neither at 
   const { app, c, P, fixAt, panel } = await outbound();
   [...app.d.querySelectorAll("[data-follow]")].find((b) => /Thameslink/.test(b.getAttribute("aria-label"))).click();
   fixAt(18, ...P.stationGeo.LET);
-  assert.match(panel(), /Be on the platform by/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
   // 10:21, a minute after departure, 600 m down the line from the station, no speed from the phone.
   fixAt(21, P.stationGeo.LET[0] - 0.004, P.stationGeo.LET[1] - 0.005);
   assert.notEqual(c.state.saved.followRoute.incident, "missed");

@@ -123,6 +123,18 @@ test("'Be on the platform by' is the train's departure less the route's own marg
   assert.equal(core.platformBy(option({ before: [{ kind: "margin", secs: 60 }, { kind: "walk", secs: 300 }] }), DEP, DEP - 9 * MIN), DEP, "only a margin right before the train counts");
 });
 
+test("A late train's platform time is its timetable time less the margin; once that has gone, the timetable time, then the expected departure (Sam, 17 Nov)", () => {
+  const o = option({ before: [{ kind: "walk", secs: 300 }, { kind: "margin", secs: 60 }] });
+  const late = DEP + 7 * MIN;   // due DEP, expected 7 min later
+  assert.equal(core.platformBy(o, late, DEP - 20 * MIN, DEP), DEP - MIN, "planned on the timetable, not the 7-minute estimate");
+  assert.equal(core.platformBy(o, late, DEP - 30e3, DEP), DEP, "inside the last minute: the timetable departure");
+  assert.equal(core.platformBy(o, late, DEP + MIN, DEP), late, "after the timetable time: the expected departure");
+  assert.equal(core.platformBy(o, DEP - MIN, DEP - 20 * MIN, DEP), DEP - 2 * MIN, "running early: the earlier expected time");
+  assert.equal(core.timetabledDeparture({ dep: late, depLate: 7 }), DEP);
+  assert.equal(core.timetabledDeparture({ dep: DEP, depLate: 0 }), DEP);
+  assert.equal(core.FOLLOW_SET_OFF_FIX_MS, 2 * MIN);
+});
+
 test("Looking back for a followed train ends: not before it leaves, not once it's missed or cancelled, not more than 30 minutes after it was due in", () => {
   const r = start(), ARR = t + 69 * MIN, back = (route, now) => core.followLooksBack(route, now);
   assert.equal(back(null, DEP), false);

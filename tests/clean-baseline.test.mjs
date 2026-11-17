@@ -135,10 +135,10 @@ test("Once you've set off the deadline is the platform ('Be on the platform by')
   const home = [51.9752, -0.2402], st = P.stationGeo.LET, mid = [(home[0] + st[0]) / 2, (home[1] + st[1]) / 2];
   c.state.saved.home = home;
   fixAt(2, home);
-  assert.match(panel(), /Next action ?10:14/); assert.doesNotMatch(panel(), /Be on the platform by/);
+  assert.match(panel(), /Next action ?10:14/); assert.doesNotMatch(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
   // 10:12, halfway between home and the station: the deadline is the platform (Sam, 12 Nov: "yes. Be on the platform by").
   fixAt(12, mid);
-  assert.match(panel(), /Be on the platform by/); assert.doesNotMatch(panel(), /Next action|Leave by/, "no leave time once you've left");
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/); assert.doesNotMatch(panel(), /Next action|Leave by/, "no leave time once you've left");
   // 10:41, never seen at the station: the 10:40 has gone; the header shows the way on.
   fixAt(41, [st[0] - 0.02, st[1] - 0.02]);
   assert.match(panel(), /You can no longer make your 10:40/);
