@@ -15,6 +15,7 @@ Rail and Google could already go through the proxy, each by its own setting; TfL
 status, the most-used feed) always went from the phone with its key in the URL.
 
 ## Acceptance criteria
+- The one-off move of keys off the phone runs once: saving Settings keeps its marker (`keysInProxy`), so a Save never restarts the feeds or re-runs the move, and the marker is not treated as a secret in shared simulator reports (17 Nov, found by GitHub on e0ceef1).
 - **One choice:** Settings → National Rail → Source → **My proxy** sends every feed through the proxy:
   - National Rail boards and Service Details (`/board/…`, `/service/…`; [live-and-timetable](live-and-timetable.md));
   - TfL: every `https://api.tfl.gov.uk/…` request the app makes (timetable trains, Trip's planner, Tube arrivals, line

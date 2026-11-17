@@ -2536,7 +2536,7 @@ async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
 const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
 function simulationPrivateValues(){
  const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
- const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>key!=='keysInProxy'&&/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
  return [...values,simulationInputSnapshot?.origin||'',simulationInputSnapshot?.fields.originInput||'',simulationInputSnapshot?.fields.destInput||'',state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
 }
 const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
@@ -2688,7 +2688,7 @@ function readSettings(){
   const o={};
   o.provider=$("#s_provider").value||S().provider;
   // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
-  ["rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;

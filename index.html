@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 20:14 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 21:57 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -8869,7 +8869,7 @@ async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
 const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
 function simulationPrivateValues(){
  const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
- const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>key!=='keysInProxy'&&/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
  return [...values,simulationInputSnapshot?.origin||'',simulationInputSnapshot?.fields.originInput||'',simulationInputSnapshot?.fields.destInput||'',state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
 }
 const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
@@ -10823,7 +10823,7 @@ window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxySt
 // ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
 // Time-to-leave and wake-up alerts: the page's side (docs/stories/time-to-leave-alerts.md).
 // Settings → Experimental → "Time-to-leave alerts" (off by default). On: this phone subscribes to push through the
-// proxy (My proxy URL), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
+// proxy (built into the app), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
 // you follow a journey, the page hands the proxy its plan (core leaveAlertPlan); the proxy watches the train and
 // sends the alerts even when the app is closed. The page plans nothing here: the engine decides what to say.
 // It never runs during a simulation, so simulated journeys can't reach the real phone.
@@ -10863,7 +10863,7 @@ const pushAlerts = (() => {
 
     /** Turn alerts on for this phone. Call from the Save tap itself: iPhone only asks for permission from a tap. */
     function enable(next) {
-      if (!base(next)) { status("Alerts need your proxy: Settings → National Rail → Source → My proxy, and its URL."); return Promise.resolve(false); }
+      if (!base(next)) { status("Alerts need the proxy: Settings → Live data → Live."); return Promise.resolve(false); }
       if (!supported()) { status("This browser can't receive notifications. On iPhone, open Commute from the Home Screen (iOS 16.4 or later)."); return Promise.resolve(false); }
       const asked = win.Notification.permission === "granted" ? Promise.resolve("granted") : win.Notification.requestPermission();
       return (async () => {
@@ -10985,7 +10985,7 @@ function readSettings(){
   const o={};
   o.provider=$("#s_provider").value||S().provider;
   // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
-  ["rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
