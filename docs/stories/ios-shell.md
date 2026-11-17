@@ -58,6 +58,8 @@ said not to submit for Apple review until the app works. Account invitations and
   Readiness waits up to 120 seconds on a monotonic clock: a fresh local simulator reported an unresponsive WebKit
   process, then loaded both pages after the former 20-second poll allowance. The engine, screen, origin and title
   assertions remain unchanged; this allowance is not a physical-device launch-performance target.
+  Only one readiness evaluation may be in flight. The deadline advances independently of its callback, so a
+  stalled callback cannot turn an expired wait into success or prevent the test from reporting a failure.
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 

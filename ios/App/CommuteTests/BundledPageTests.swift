@@ -52,14 +52,24 @@ final class BundledPageTests: XCTestCase {
         // This is a readiness check, not a device launch-performance benchmark.
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(120))
+        var ready = false
+        var evaluating = false
         while clock.now < deadline {
-            let result = try? await webView.evaluateJavaScript(
-                "document.readyState === 'complete' && typeof CommuteCore === 'object' && document.body.innerText.length > 100"
-            )
-            if result as? Bool == true { return }
+            if ready { return }
+            if !evaluating {
+                evaluating = true
+                webView.evaluateJavaScript(
+                    "document.readyState === 'complete' && typeof CommuteCore === 'object' && document.body.innerText.length > 100"
+                ) { result, _ in
+                    ready = result as? Bool == true
+                    evaluating = false
+                }
+            }
             try await Task.sleep(for: .milliseconds(100))
         }
-        XCTFail("The bundled engine and screen did not start within 120 seconds (URL: \(webView.url?.absoluteString ?? "none"), loading: \(webView.isLoading)).")
+        throw NSError(domain: "CommuteTests.PageReadiness", code: 1, userInfo: [
+            NSLocalizedDescriptionKey: "The bundled engine and screen did not start within 120 seconds (URL: \(webView.url?.absoluteString ?? "none"), loading: \(webView.isLoading))."
+        ])
     }
 }
 
