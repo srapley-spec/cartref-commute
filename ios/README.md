@@ -18,6 +18,9 @@ open ios/App/App.xcodeproj
 Choose the shared **Commute** scheme. The app requires iOS 27.0 and an iPhone. Simulator validation needs no signing
 credentials. `ios:test` creates and removes its own simulator. `ios:sync` stages only the committed website's six
 assets; it does not rebuild the page. When changing web sources, follow the normal build/freshness rules first.
+Capacitor 8.6.2 emits `.iOS(.v27)` in a Swift 5.9 manifest, although that enum needs Swift package tools 6.4.
+The sync script replaces it with the equivalent `.iOS("27.0")`; review/remove this workaround when upgrading
+Capacitor. The committed package is the normalized output, and CI checks it stays unchanged after sync.
 
 `npm run ci` also performs the native checks on a Mac. Linux sessions run the complete web checks and must wait for
 GitHub's iOS job before merging. Native signing/upload is a separate integration check, not part of PR validation.

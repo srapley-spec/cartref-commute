@@ -8,7 +8,7 @@
     "check-docs": "node tools/check-docs.mjs",
     "ci": "node tools/ci-local.mjs",
     "test": "node tools/build.mjs && node tools/run-tests.mjs",
-    "ios:sync": "node ios/scripts/stage-web.mjs && cap sync ios",
+    "ios:sync": "node ios/scripts/stage-web.mjs && cap sync ios && node ios/scripts/fix-swift-package.mjs",
     "ios:test": "node ios/scripts/test-simulator.mjs"
   },
   "devDependencies": {

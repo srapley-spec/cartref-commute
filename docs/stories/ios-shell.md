@@ -16,6 +16,8 @@ said not to submit for Apple review until the app works. Account invitations and
 - The iPhone deployment target is iOS 27.0. A cold WKWebView launch with HTTP/HTTPS blocked must load the engine,
   page and local manifest from `capacitor://localhost`. This proves offline **launch**, not the unfinished shared
   snapshot cache or live data while offline. Commute, Leisure and Trip use the same bundled page.
+- Sync normalizes Capacitor 8.6.2's generated Swift 5.9 manifest to use the string form of the iOS 27 minimum;
+  its generated `.v27` enum requires package tools 6.4 and fails on a clean build without this correction.
 - A main push reaches internal TestFlight only after the whole Tests workflow passes, including the simulator
   check. The upload checks out that run's exact SHA. Web-only main changes also trigger it; no path filters.
 - Uploads are serialized and queued, not superseded by a later push. GitHub's `queue: max` retains up to 100 pending
