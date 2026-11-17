@@ -24,6 +24,9 @@ left set against the measured walk, and TfL's location text for your tube (same 
 drawn inside the followed card (`follow-a-route.md`, "One journey card"). From the 11 Nov retest: the train you said you're on holds (`which-train.md`), the warning ladder ("Can't make it" only when it is: `effort-levels.md`), and the moment the train leaves (`follow-a-route.md`). Then (11 Nov afternoon, Sam: "fix all of them … a clean baseline") everything else found 10–11 Nov: leg progress as one line + folded station list (`journey-progress.md`, Sam chose option A), the change-station tube list, urgency, the way on when missed, controls folded under way, location by station name, C12 and the small things (`follow-a-route.md`, "Clean baseline"). Independent review of dca196d onwards and the 12 Nov batches (countdowns, Trip's Google errors, Trip on the journey card, Google walk/drive): done 12 Nov; its findings are fixed and its tests added (each story's "Independent review (12 Nov" line). Each story lists what is still unbuilt.
 Issue #57 also holds the homeward findings (H1–H28).
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
+**The iPhone app (agreed 17 Nov):** a bundled Capacitor wrapper built by a separate iOS agent; this repo's agent owns the
+engine, page and proxy parts, and the rules: no journey logic in Swift, the web app stays complete, contracts versioned.
+Brief, design, who does what and status: `docs/ios-app.md`.
 
 ## Where the context is
 0. `docs/your-setup-steps.md`: what Sam still has to do himself (Cloudflare Worker, keys, phone). Keep it current: a
