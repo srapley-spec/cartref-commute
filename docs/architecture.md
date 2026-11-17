@@ -374,6 +374,10 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
   no more than 2 minutes old. Going home, set off is 200 m from where you started following (Commute as Leisure). Once
   set off, the rows below the followed card show their platform time too; Plan and other-time views keep Leave by.
   Story: `stories/follow-a-route.md`, "Platform time and label".
+- **17 Nov, every key in GitHub, the proxy deployed by an Action (Sam: "I want to move all the keys to a proxy").** The
+  Worker was built 4 Nov but never deployed (it needed a computer). The keys live only in the repository's Actions
+  secrets; Deploy proxy puts them into the Worker. Next: the address built into the app; then the phone's key settings
+  removed. `proxy-setup.md`, `stories/keys-in-the-proxy.md`.
 - **12 Nov, "Be on the platform by" once you've set off (Sam).** The protected Leave by (1 Nov) gives way to the
   platform deadline once you've left: on the followed card (on the tube to the station, over 100 m from the saved home
   or 3 minutes nearer the station outbound, over 200 m from the office homeward) and on the trains listed under the

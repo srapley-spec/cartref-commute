@@ -8,7 +8,17 @@ Service Details), [time-to-leave-alerts](stories/time-to-leave-alerts.md), [Trip
 Keys never go in the repo, chat or this file: they are set in the Cloudflare dashboard (or with `wrangler secret put`,
 which asks for the value).
 
-## Once
+## From GitHub (17 Nov; the way to do it)
+The Action **Deploy proxy** (`.github/workflows/deploy-proxy.yml`) does every step below except making the Cloudflare
+token: it builds the engine, makes the alerts' KV namespace once (title `cartref-rail-PUSH`) and fills its id into its
+own copy of `wrangler.toml`, makes the alerts' key pair once if neither GitHub nor the Worker has one, sets
+`ALLOW_ORIGIN` and `ALLOW_ANY_STATION`, deploys with the keys from the repository's Actions secrets
+(`--secrets-file`, added to what the Worker has, never clearing one), and reads `/status` back (true/false only).
+Secrets it reads, and the steps to make them: [your-setup-steps.md](your-setup-steps.md) §1–3. It runs by hand and on
+every push to main that touches `proxy/`, `src/core/` or the workflow; without the Cloudflare token it warns and stops
+without failing. wrangler is pinned (`wrangler@4.155.0`, not in the lockfile).
+
+## By hand, from a computer (the old way)
 1. On your computer, in the repo: `npm ci && npm run build` (the Worker bundles the engine from `dist/core.mjs`).
 2. `npx wrangler login` (opens Cloudflare in the browser).
 3. Alerts' storage: `npx wrangler kv namespace create PUSH --config proxy/wrangler.toml`, and put the id it prints into

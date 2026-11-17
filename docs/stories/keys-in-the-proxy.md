@@ -1,5 +1,10 @@
 # Every key in the proxy: a new device needs only its address
-Status: Done in code (4 Nov 2026); waiting for Sam's Worker deployment · Issues: #17
+Status: Done in code (4 Nov 2026); deployed from GitHub from 17 Nov (Deploy proxy: `docs/proxy-setup.md`), waiting for
+Sam's Cloudflare token and keys in GitHub · Issues: #17
+
+17 Nov, Sam: "I want to move all the keys to a proxy. It's just a recipe for fuck ups the way it is now and makes
+rolling out to new devices a pain … Then we can clear out the configuration in the app." Next, once deployed: the
+proxy's address built into the app (no setup link needed), then the key fields, other sources and stored keys removed.
 
 ## Story
 As the person setting the app up, when I add the app to another phone or give it to someone in the family, I want it
