@@ -4,41 +4,48 @@ What you need to do yourself, in order, for what's been built. Keep this file cu
 from Sam adds it here, and a step is ticked when Sam says it's done. Keys never go in this file, the repo or chat.
 Detail for each step: [proxy-setup.md](proxy-setup.md).
 
-Last updated: 10 Nov 2026 (display mode for Home Assistant).
+Last updated: 17 Nov 2026 (the proxy deployed from GitHub; every key in GitHub's secrets).
 
-## 1. The Cloudflare Worker (once)
+## 1–3. The proxy: every key in one place, deployed from GitHub (17 Nov; no computer needed)
+Sam, 17 Nov: "I want to move all the keys to a proxy." The Worker (`proxy/`) has held every key since 4 Nov but was
+never deployed (it needed a computer). Now a GitHub Action, **Deploy proxy** (`.github/workflows/deploy-proxy.yml`),
+deploys it and copies the keys into it: the keys live only in GitHub's Actions secrets. All of this works on the iPad.
+
+**A. Cloudflare (dash.cloudflare.com)**
 - [x] Cloudflare account (Sam, 4 Nov)
-- [ ] On your computer, in the repo: `npm ci && npm run build`
-- [ ] `npx wrangler login`
-- [ ] `npx wrangler kv namespace create PUSH --config proxy/wrangler.toml`; put the id it prints into
-      `proxy/wrangler.toml` (`[[kv_namespaces]] id`; it's an identifier, not a secret) and commit it, or tell Claude
-      the id and Claude commits it
-- [ ] `npx wrangler deploy --config proxy/wrangler.toml`; note the address it prints
-      (`https://cartref-rail.<you>.workers.dev`)
+- [ ] Workers & Pages: open it once. If it asks for a workers.dev subdomain, pick one (e.g. `srapley`); it becomes
+      part of the proxy's address
+- [ ] Account ID: Workers & Pages → the right-hand panel, "Account ID" → copy
+- [ ] API token: profile icon (top right) → My Profile → API Tokens → **Create Token** → template **Edit Cloudflare
+      Workers** → Use template. Account Resources: Include · your account. Zone Resources: Include · All zones (no zone
+      is used). → Continue to summary → Create Token → copy it (shown once)
 
-## 2. The Worker's settings (Cloudflare dashboard → Workers & Pages → cartref-rail → Settings → Variables and Secrets)
-- [ ] `ALLOW_ORIGIN` (Text): `https://srapley-spec.github.io`
-- [ ] `RDM_BASE` (Text): the Live Departure Board endpoint base from the Rail Data Marketplace product page
-- [ ] `RDM_KEY` (Secret): its consumer key
-- [ ] `RDM_SD_KEY` (Secret): only if Service Details has its own key
-- [ ] `TFL_KEY` (Secret): your TfL app key (api-portal.tfl.gov.uk). Needed in practice: without it the Worker shares
-      TfL's anonymous limit with Cloudflare's other customers
-- [ ] **`GOOGLE_KEY` (Secret): your Google Maps key.** Not done yet (Sam, 4 Nov). Since 12 Nov it also times the walk
-      and a cab's drive to Letchworth in the commute (`stories/google-walk-drive.md`). In Google Cloud, a key used by
-      the Worker can't be restricted by website; restrict it to Places API (New) and Routes API instead. The existing
-      browser key is website-restricted, so a second, server key is usual
-- [ ] `ALLOW_ANY_STATION` (Text): `yes` (Trip's rides anywhere in Great Britain)
-- [ ] Alerts: run `node tools/vapid-keys.mjs` on your computer; paste `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`
-      (both Secret); `VAPID_SUBJECT` (Text): `mailto:` and an address you choose
-- [ ] Optional, recommended: a Cloudflare rate-limiting rule on the Worker (anyone who learns its address can use it)
+**B. GitHub (github.com/srapley-spec/cartref-commute → Settings → Secrets and variables → Actions → New repository
+secret)**, one secret each, name exactly as written:
+- [ ] `CLOUDFLARE_API_TOKEN`: the token from A
+- [ ] `CLOUDFLARE_ACCOUNT_ID`: the Account ID from A
+- [ ] `RDM_KEY` and `RDM_BASE`: raildata.org.uk → your Live Departure Board subscription: its consumer key, and the
+      endpoint base from its Specification (ends `/LDBWS/api/20220120`)
+- [ ] `RDM_SD_KEY` and `RDM_SD_BASE`: only if your Service Details subscription has its own key or base
+- [ ] `TFL_KEY`: api-portal.tfl.gov.uk → Profile → your subscription's primary key
+- [ ] `GOOGLE_KEY`: a **new** key for the proxy. console.cloud.google.com → APIs & Services → Credentials → Create
+      credentials → API key → Edit it: Application restrictions **None**; API restrictions **Restrict key** → Places API
+      (New) and Routes API → Save. (The key in the phone's Settings is restricted to the website, which Google refuses
+      for calls from the Worker.)
+- [ ] Optional, alerts: `VAPID_SUBJECT`: `mailto:` and an address you choose. The alerts' key pair is made by the
+      Action itself, once
+- Already in GitHub under the cloud session's names (`RDM_API_KEY`, `RDM_BASE_URL`, `RDM_SD_API_KEY`,
+  `RDM_SD_BASE_URL`, `TFL_APP_KEY`)? Those are used too; no need to add them again.
 
-## 3. Your phone (the Home Screen app)
-- [ ] Settings → National Rail → Source → My proxy; paste the Worker's address; Save
-- [ ] Settings again: the status line should read "National Rail ✓ · TfL ✓ keyed · Google ✓ · Alerts ✓". Anything ✗ is
-      listed with the setting still to add
-- [ ] Settings → Remove keys stored on this phone
-- [ ] Optional: Settings → Experimental → Time-to-leave alerts (needs Follow a route); Save; allow notifications; a
-      test alert should arrive
+**C. Deploy**
+- [ ] Tell Claude it's done: Claude runs Deploy proxy (or: Actions → Deploy proxy → Run workflow) and reads back the
+      proxy's address and what it's set up for (true/false only; no key is ever printed). After that it redeploys by
+      itself whenever `proxy/` or `src/core/` changes on main
+- [ ] Optional, recommended: Cloudflare → the Worker → Settings → a rate-limiting rule (anyone who learns its address
+      can use it from outside a browser)
+
+**D. The app (after C)**: Claude builds the proxy's address into the app, so every device uses it with no settings
+at all, then removes the key fields and other sources from Settings and the keys stored on each device.
 
 ## 4. Another device
 - [ ] On your phone: Settings → Copy setup link for another device. On the other device open the link in the browser
@@ -59,8 +66,7 @@ Last updated: 10 Nov 2026 (display mode for Home Assistant).
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
 
 ## After a change to `proxy/` or `src/core/`
-- [ ] Redeploy: `npm run build && npx wrangler deploy --config proxy/wrangler.toml` (Claude says in the report when
-      a change needs this)
+Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.
 
 ## Tell Claude when done
 Say which steps are done (and any status line the phone shows); Claude ticks them here and checks what it can.

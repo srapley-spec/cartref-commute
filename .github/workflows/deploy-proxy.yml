@@ -1,0 +1,111 @@
+# Deploys the proxy (Cloudflare Worker, proxy/worker.js) and puts the keys into it, so every key lives in one place:
+# GitHub → Settings → Secrets and variables → Actions (Sam, 17 Nov: "I want to move all the keys to a proxy").
+# Runs by hand (Actions → Deploy proxy → Run workflow) and after a change to proxy/ or src/core/ reaches main.
+# docs/proxy-setup.md has what each secret is; docs/your-setup-steps.md, what's left to do.
+#
+# Repository secrets it reads (a missing one is skipped, never cleared on the Worker):
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID    required: to deploy
+#   RDM_KEY, RDM_BASE                              National Rail boards (or RDM_API_KEY / RDM_BASE_URL)
+#   RDM_SD_KEY, RDM_SD_BASE                        Service Details, if it has its own (or RDM_SD_API_KEY / RDM_SD_BASE_URL)
+#   TFL_KEY                                        TfL (or TFL_APP_KEY)
+#   GOOGLE_KEY                                     Google Places and Routes: a server key, not the website-restricted one
+#   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY            alerts; made here once if neither GitHub nor the Worker has them
+#   VAPID_SUBJECT                                  alerts: "mailto:" and an address you choose
+# Nothing here prints a key: GitHub masks secrets in the log, and keys made here are masked before use.
+name: Deploy proxy
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["proxy/**", "src/core/**", ".github/workflows/deploy-proxy.yml"]
+concurrency: deploy-proxy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER: npx --yes wrangler@4.155.0
+      CONFIG: proxy/wrangler.toml
+      ORIGIN: https://srapley-spec.github.io
+    steps:
+      # Until the Cloudflare token is added this says so and stops, without failing (no red mark on main).
+      - name: Cloudflare token present
+        id: ready
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Not deployed: add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to the repository's Actions secrets (docs/your-setup-steps.md)."
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.go == 'yes'
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.go == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.ready.outputs.go == 'yes'
+      - name: Build the engine the Worker bundles
+        if: steps.ready.outputs.go == 'yes'
+        run: npm run build
+      - name: Alerts storage (KV namespace, made once)
+        if: steps.ready.outputs.go == 'yes'
+        run: |
+          title=cartref-rail-PUSH
+          find_id() { $WRANGLER kv namespace list 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const a=JSON.parse(s.slice(s.search(/^\[/m)));const n=a.find(x=>x.title===process.argv[1]);process.stdout.write(n?n.id:"")}catch(e){}})' "$title"; }
+          id=$(find_id)
+          if [ -z "$id" ]; then $WRANGLER kv namespace create "$title" >/dev/null; id=$(find_id); fi
+          if [ -z "$id" ]; then echo "::error::Couldn't find or make the KV namespace $title"; exit 1; fi
+          # The id is an identifier, not a secret; it's written into this run's copy of the config only.
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$id/" "$CONFIG"
+          echo "KV namespace $title: $id"
+      - name: Gather the keys
+        if: steps.ready.outputs.go == 'yes'
+        env:
+          RDM_KEY: ${{ secrets.RDM_KEY || secrets.RDM_API_KEY }}
+          RDM_BASE: ${{ secrets.RDM_BASE || secrets.RDM_BASE_URL }}
+          RDM_SD_KEY: ${{ secrets.RDM_SD_KEY || secrets.RDM_SD_API_KEY }}
+          RDM_SD_BASE: ${{ secrets.RDM_SD_BASE || secrets.RDM_SD_BASE_URL }}
+          TFL_KEY: ${{ secrets.TFL_KEY || secrets.TFL_APP_KEY }}
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          # Alerts' keys: from GitHub if set; else kept if the Worker already has them; else made now, once.
+          have=$($WRANGLER secret list --config "$CONFIG" 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s.slice(s.search(/^\[/m))).map(x=>x.name).join(" "))}catch(e){}})' || true)
+          if [ -z "$VAPID_PUBLIC_KEY" ] && ! echo " $have " | grep -q " VAPID_PUBLIC_KEY "; then
+            pair=$(node tools/vapid-keys.mjs)
+            VAPID_PUBLIC_KEY=$(echo "$pair" | sed -n 's/^VAPID_PUBLIC_KEY=//p'); VAPID_PRIVATE_KEY=$(echo "$pair" | sed -n 's/^VAPID_PRIVATE_KEY=//p')
+            echo "::add-mask::$VAPID_PRIVATE_KEY"
+            echo "Made the alerts' key pair (kept on the Worker from now on)."
+          fi
+          export VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY
+          # Only the keys that are set; the file lives in the runner's temp folder and is removed after the deploy.
+          node -e '
+            const names=["RDM_KEY","RDM_BASE","RDM_SD_KEY","RDM_SD_BASE","TFL_KEY","GOOGLE_KEY","VAPID_PUBLIC_KEY","VAPID_PRIVATE_KEY","VAPID_SUBJECT"];
+            const out={}; for (const n of names) { const v=(process.env[n]||"").trim(); if (v) out[n]=v; }
+            require("fs").writeFileSync(process.env.RUNNER_TEMP+"/worker-secrets.json", JSON.stringify(out), {mode:0o600});
+            console.log("Keys going to the Worker: "+(Object.keys(out).join(", ")||"none"));'
+      - name: Deploy
+        if: steps.ready.outputs.go == 'yes'
+        run: |
+          $WRANGLER deploy --config "$CONFIG" --keep-vars \
+            --var "ALLOW_ORIGIN:$ORIGIN" --var "ALLOW_ANY_STATION:yes" \
+            --secrets-file "$RUNNER_TEMP/worker-secrets.json" | tee "$RUNNER_TEMP/deploy.log"
+          rm -f "$RUNNER_TEMP/worker-secrets.json"
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1)
+          echo "PROXY_URL=$url" >> "$GITHUB_ENV"
+      - name: What the proxy can do now
+        if: always() && steps.ready.outputs.go == 'yes'
+        run: |
+          rm -f "$RUNNER_TEMP/worker-secrets.json"
+          [ -n "$PROXY_URL" ] || { echo "::warning::No Worker address in the deploy output"; exit 0; }
+          sleep 5
+          status=$(curl -s -H "Origin: $ORIGIN" "$PROXY_URL/status" || true)
+          echo "Proxy address: $PROXY_URL"
+          echo "Status (true/false only): $status"
+          { echo "### Proxy deployed"; echo; echo "Address: $PROXY_URL"; echo; echo '```'; echo "$status"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
