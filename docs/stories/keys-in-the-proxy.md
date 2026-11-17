@@ -1,5 +1,7 @@
 # Every key in the proxy: a new device needs nothing
-Status: Done in code (4 Nov 2026); waiting for Sam's Worker deployment · Issues: #17
+Status: Done (17 Nov 2026): the proxy deployed from GitHub with every key (Deploy proxy, `docs/proxy-setup.md`; its
+status: National Rail, Service Details, TfL keyed, Google, any station ✓; alerts need `VAPID_SUBJECT`), its address
+built into the app, the key settings and stored keys removed · Issues: #17
 
 ## Story
 As the person setting the app up, when I add the app to another phone or give it to someone in the family, I want it

@@ -1,5 +1,5 @@
 # The iPhone app: download it and it works
-Status: Proposed (17 Nov 2026); assessment and the building agent's brief in [../ios-app.md](../ios-app.md); the web app is made ready here (no setup); the app itself is built by another agent (Sam, 17 Nov) · Depends on: [keys-in-the-proxy](keys-in-the-proxy.md)
+Status: Agreed (17 Nov 2026); brief and design in [../ios-app.md](../ios-app.md). This repo's agent builds the engine, page and proxy parts; an iOS agent builds the app and does all Apple work (Sam, 17 Nov) · Depends on: [keys-in-the-proxy](keys-in-the-proxy.md)
 
 ## Story
 As Sam, and as family or friends he shares it with, I want to install Commute from a TestFlight link and have it
@@ -10,17 +10,22 @@ working straight away, with no keys, addresses or settings to enter, so that rol
 easy to setup — just download. So we need to check that the web app supports that." For him and family/friends; he
 has an Apple Developer Program membership and a Mac with Xcode.
 
-## Acceptance criteria (proposed; not agreed)
-- A new phone needs nothing but the install: live National Rail, TfL and Google data come from the app's own proxy.
-- One location prompt, on first use.
-- The app shows the same journey, rules and live data as the web app; updates arrive without reinstalling (if the
-  live-site shell is chosen).
-- Without a connection at start, the app says so instead of a blank screen.
-- Alerts: decided separately (Web Push doesn't run inside an app; native push needs an APNs key in the proxy).
+## Acceptance criteria (agreed with Sam, 17 Nov; detail and owners in ../ios-app.md)
+- Installed from TestFlight (internal testers on Sam's team), iOS 27 minimum. Nothing to set up: live data comes through
+  the app's proxy.
+- A bundled copy of the same `index.html` as the website. It opens with no signal and shows the last data with its age.
+  Every change to `main` becomes a TestFlight build automatically.
+- One Live Activity for a followed journey, from the leave countdown to arrival. Its times and words are the page's
+  journey card's, from the engine's snapshot. Updated by the page when open, and by the proxy (APNs) when closed.
+- A leave alarm, 5 minutes before leave time by default (changeable). It cancels itself when you've left (a geofence),
+  stop following or switch trains, and moves when the leave time moves.
+- Siri: "When do I need to leave?", "Follow the next train home".
+- Wi-Fi as a location cue: home = networks starting "Panda", office = "Ciklum", both configurable.
+- No journey logic in Swift; the web app stays complete without the app.
+- Widget: parked.
 
 ## Tests
 None yet: nothing is built.
 
 ## Status
-Assessment only. Decisions for Sam: live site or bundled; alerts now or later; external or internal testers
-([../ios-app.md](../ios-app.md), "Decisions for Sam").
+See ../ios-app.md §8.
