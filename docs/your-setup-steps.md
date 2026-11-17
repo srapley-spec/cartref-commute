@@ -65,6 +65,21 @@ at all, then removes the key fields and other sources from Settings and the keys
       subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
 
+## iOS access preparation (17 Nov; before implementation)
+Preparation record and implementation gates: [ios-readiness.md](ios-readiness.md). This section must be reconciled
+with the no-setup branch's iPhone checklist when that release lands; the other agent owns the proxy checklist above.
+- [ ] Confirm whether the APNs key file for `352Z6Z6469` exists. Do not paste or upload its contents to chat.
+- [ ] Download **Cartref Commute CI** (key ID `C8865Y2UMU`) from App Store Connect → Users and Access → Integrations
+      → App Store Connect API. Keep a secure backup; enter its contents directly in GitHub → this repository →
+      Settings → Secrets and variables → Actions as `ASC_API_KEY_P8`. Do not paste the file into chat.
+- [ ] Provision the APNs and archive-signing credentials directly in GitHub Actions secrets when their setup is
+      ready. Never put private keys in the repo or logs.
+- [ ] Identify the intended internal testers and anyone still needing App Store Connect access.
+
+The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App Store Connect record, app ID
+`6836040622`, obtained API access and created the CI key with the Developer role. No build or tester invitation
+has been sent. Implementation waits for the no-setup release.
+
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.
 
