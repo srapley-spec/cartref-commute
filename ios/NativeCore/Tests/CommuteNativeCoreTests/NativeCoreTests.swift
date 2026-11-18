@@ -187,6 +187,43 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertEqual(copy.entries.first?.dataAt, 10)
     }
 
+    func testUnknownCacheAgeRoundTripsAsNullWithoutBorrowingTheSaveTime() throws {
+        let entries = try Wire.entries([["key": "snapshot", "v": 1, "dataAt": NSNull(), "savedAt": 500,
+                                       "value": ["unknownAge": true]]])
+        var cache = OfflineCache()
+        try cache.replace(entries)
+        XCTAssertNil(cache.entries.first?.dataAt)
+        XCTAssertEqual(cache.entries.first?.savedAt, 500)
+        let returned = try XCTUnwrap(Wire.object(cache.entries) as? [[String: Any]])
+        XCTAssertTrue(returned[0]["dataAt"] is NSNull, "Unknown age must remain explicit null across the bridge.")
+        let restored = try JSONDecoder().decode(OfflineCache.self, from: JSONEncoder().encode(cache))
+        XCTAssertEqual(restored, cache)
+        for time in [-1, Double.infinity, -Double.infinity, Double.nan] {
+            var invalid = entries[0]; invalid.dataAt = time
+            XCTAssertThrowsError(try cache.replace([invalid]))
+            XCTAssertEqual(cache, restored)
+        }
+        var known = entries[0]; known.dataAt = 0
+        XCTAssertNoThrow(try cache.replace([known]))
+        XCTAssertEqual(cache.entries.first?.dataAt, 0)
+    }
+
+    func testExplicitNullReplacementFreesRetainedCacheSpaceAndClearsStoppedSnapshot() throws {
+        var cache = OfflineCache()
+        let boards = CacheEntry(key: "boards", dataAt: 1, savedAt: 2, value: .string(String(repeating: "b", count: 480 * 1024)))
+        try cache.replace([boards, .init(key: "snapshot", dataAt: 1, savedAt: 2, value: .object(["followId": .string("A")]))])
+        let before = cache
+        let settings = CacheEntry(key: "settings", dataAt: 3, savedAt: 4, value: .string(String(repeating: "s", count: 40 * 1024)))
+        XCTAssertThrowsError(try cache.replace([settings]), "Omitting a key does not evict its retained value.")
+        XCTAssertEqual(cache, before)
+        try cache.replace([settings, .init(key: "boards", dataAt: nil, savedAt: 4, value: .null),
+                           .init(key: "snapshot", dataAt: nil, savedAt: 4, value: .null)])
+        XCTAssertEqual(cache.entries.first(where: { $0.key == "settings" }), settings)
+        XCTAssertEqual(cache.entries.first(where: { $0.key == "boards" })?.value, .null)
+        XCTAssertEqual(cache.entries.first(where: { $0.key == "snapshot" })?.value, .null)
+        XCTAssertLessThan(try JSONEncoder().encode(cache.entries).count, 512 * 1024)
+    }
+
     func testFileRoundTripAndCorruptionDoesNotSilentlyEraseState() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

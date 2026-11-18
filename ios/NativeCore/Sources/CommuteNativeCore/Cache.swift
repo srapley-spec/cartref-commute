@@ -3,11 +3,20 @@ import Foundation
 public struct CacheEntry: Codable, Equatable, Sendable {
     public var key: String
     public var v: Int
-    public var dataAt: Double
+    /// Unknown source age stays unknown; savedAt must never be substituted for it.
+    public var dataAt: Double?
     public var savedAt: Double
     public var value: JSONValue
-    public init(key: String, v: Int = 1, dataAt: Double, savedAt: Double, value: JSONValue) {
+    public init(key: String, v: Int = 1, dataAt: Double?, savedAt: Double, value: JSONValue) {
         self.key = key; self.v = v; self.dataAt = dataAt; self.savedAt = savedAt; self.value = value
+    }
+
+    private enum CodingKeys: String, CodingKey { case key, v, dataAt, savedAt, value }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(key, forKey: .key); try c.encode(v, forKey: .v)
+        try c.encode(dataAt, forKey: .dataAt); try c.encode(savedAt, forKey: .savedAt)
+        try c.encode(value, forKey: .value)
     }
 }
 
@@ -23,7 +32,7 @@ public struct OfflineCache: Codable, Equatable, Sendable {
         for entry in incoming {
             guard entry.v == 1 else { throw NativeError.unsupported }
             guard ["snapshot", "boards", "status", "settings"].contains(entry.key),
-                  entry.dataAt.isFinite, entry.dataAt >= 0, entry.savedAt.isFinite, entry.savedAt >= 0
+                  entry.dataAt.map({ $0.isFinite && $0 >= 0 }) ?? true, entry.savedAt.isFinite, entry.savedAt >= 0
             else { throw NativeError.invalid }
             candidate[entry.key] = entry
         }

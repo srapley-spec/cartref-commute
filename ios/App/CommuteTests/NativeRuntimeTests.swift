@@ -223,6 +223,7 @@ final class NativeRuntimeTests: XCTestCase {
             const cache = await errorCode(() => p.cache({entries:[{v:2}]}));
             const wrapper = await errorCode(() => p.configure({v:2}));
             await p.cache({entries:[{key:'boards',v:1,dataAt:10,savedAt:50,value:{opaque:[false,null,'λ']}}]});
+            await p.cache({entries:[{key:'snapshot',v:1,dataAt:null,savedAt:50,value:{unknownAge:true}}]});
             const saved = await p.cached({});
             await p.ready({v:1});
             return {snapshot,cache,wrapper,entries:saved.entries};
@@ -233,6 +234,8 @@ final class NativeRuntimeTests: XCTestCase {
         let entries = try Wire.entries(XCTUnwrap(result?["entries"]))
         XCTAssertEqual(entries.first?.dataAt, 10)
         XCTAssertEqual(entries.first?.value, .object(["opaque": .array([.bool(false), .null, .string("λ")])]))
+        XCTAssertNil(entries.first(where: { $0.key == "snapshot" })?.dataAt)
+        XCTAssertEqual(entries.first(where: { $0.key == "snapshot" })?.value, .object(["unknownAge": .bool(true)]))
     }
 
     private func configuration(origin: String = "https://proxy.example") throws -> NativeConfiguration {

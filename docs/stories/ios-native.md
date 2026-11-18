@@ -23,6 +23,9 @@ for home/office region monitoring. Internal TestFlight only; no Apple review sub
 - Store native state and opaque cache entries atomically in the App Group, protected until first unlock. Cache
   entries replace by key, allow only snapshot/boards/status/settings, and total at most 512 KiB. Reject an invalid
   or oversized batch without partially replacing saved data. A corrupt file is not silently erased.
+  Unknown `dataAt` is accepted and returned as explicit null rather than replaced with `savedAt`; known dates
+  still require a finite nonnegative value. A null-value entry explicitly replaces an obsolete payload, while
+  omitting a key retains it. The owner is aligning the page packing/bootstrap and codifying null age on #58.
 - Proxy device credentials live in the app's Keychain, accessible after first unlock on this device. They never
   enter App Group JSON, errors, bridge logging, test fixtures or build artifacts. Proxy requests use HTTPS and do
   not follow redirects. Changing proxy/device/follow scopes discards obsolete queued evidence.
@@ -157,3 +160,7 @@ suspending platform call. The reviewer approved the implemented scope, not unres
 - The subsequent review regressions and countdown integration pass 35 Swift package tests, including the owner's
   expanded fixture set. App/extension/XCTest build-for-testing passes. The shipped-page check now asserts that its
   real Capacitor bridge exposes the attached Live Activity and alarm adapters; final simulator execution is pending.
+- At `4dc0991`, all 13 real simulator XCTest checks passed, including normal/offline launches and real bridge
+  activation. At `9a68440`, 36 core tests pass and the countdown/activation independent review is approved.
+  Subsequent nullable-cache metadata and explicit null-replacement probes raise the core total to 38; review and
+  final integrated CI remain required. All these builds remain on the native branch.
