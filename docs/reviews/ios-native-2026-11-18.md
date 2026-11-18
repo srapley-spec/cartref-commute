@@ -65,3 +65,11 @@ guards are removed and approved the countdown/activation scope. All nine countdo
 
 The final owner integration, real Capacitor bridge execution, committed-code CI and physical acceptance remain
 separate release/testing gates; this approval does not imply those results.
+
+## Nullable cache metadata follow-up
+At `9ce934f`, the independent reviewer passed all 38 core tests and caught eight of nine cache mutations.
+The surviving mutation substituted `savedAt` for a nil source age in the public initializer; the wire decoding
+tests did not exercise that construction path. A direct constructor and persistence round-trip assertion now
+cover it. Rechecking the survivor remains required. The reviewer also identified Swift's escaped-slash byte
+counting difference from JavaScript; the page owner addresses packing against that native encoding in
+`fix/native-cache-boot`, alongside explicit null replacements and hydration before fetching.

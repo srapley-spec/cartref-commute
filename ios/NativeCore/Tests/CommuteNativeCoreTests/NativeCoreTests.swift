@@ -188,8 +188,15 @@ final class NativeCoreTests: XCTestCase {
     }
 
     func testUnknownCacheAgeRoundTripsAsNullWithoutBorrowingTheSaveTime() throws {
+        let constructed = CacheEntry(key: "snapshot", dataAt: nil, savedAt: 500,
+                                     value: .object(["unknownAge": .bool(true)]))
+        XCTAssertNil(constructed.dataAt, "The public initializer must not invent a source timestamp.")
+        let constructedRoundTrip = try JSONDecoder().decode(CacheEntry.self, from: JSONEncoder().encode(constructed))
+        XCTAssertNil(constructedRoundTrip.dataAt)
+        XCTAssertEqual(constructedRoundTrip.savedAt, 500)
         let entries = try Wire.entries([["key": "snapshot", "v": 1, "dataAt": NSNull(), "savedAt": 500,
                                        "value": ["unknownAge": true]]])
+        XCTAssertEqual(entries, [constructed])
         var cache = OfflineCache()
         try cache.replace(entries)
         XCTAssertNil(cache.entries.first?.dataAt)
