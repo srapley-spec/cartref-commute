@@ -32,8 +32,8 @@ it**, once `feature/no-setup` (which holds those two files) is on `main` and mer
 - APNs from a Cloudflare Worker is unproven until the first real push from a TestFlight build.
 
 ## Next, in order
-1. Merge `main` in (after `feature/no-setup` lands). In `proxySnapshot`, replace the inline platform arithmetic with
-   core `platformBy` / `timetabledDeparture` (now on `main`).
+1. Done 18 Nov: `main` merged in (with the iOS agent's work to cfbe4f0); `proxySnapshot` uses core `platformBy`.
+   `docs/ios-app.md` and its story are now on this branch: fold this note into them.
 2. Wire the bridge into the page: add `src/native-bridge.js` to the build; snapshot from the followed card (add
    `data-*` times to `journeyTimesMarkup`'s heading, read `#followPanel`), phase from the route, train from
    `lastTrain`; `followPlan()` = `C.leaveAlertPlan` + extras (names, margin, after-train time, `startPlace`,

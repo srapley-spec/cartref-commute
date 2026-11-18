@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 22:07 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 06:11 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1158,9 +1158,11 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
     DEFAULT_DISRUPTION_POLICY: () => DEFAULT_DISRUPTION_POLICY,
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
+    EVIDENCE_SKEW_MS: () => EVIDENCE_SKEW_MS,
     FACILITY: () => FACILITY,
     FOLLOW_BETTER_MIN: () => FOLLOW_BETTER_MIN,
     FOLLOW_CHANGE_MS: () => FOLLOW_CHANGE_MS,
@@ -1174,6 +1176,8 @@ var CommuteCore = (() => {
     FOLLOW_TUBE_FRESH_MS: () => FOLLOW_TUBE_FRESH_MS,
     LATE_BAD_MIN: () => LATE_BAD_MIN,
     LATE_WARN_MIN: () => LATE_WARN_MIN,
+    LEAVE_ALARM_DEFAULT_MIN: () => LEAVE_ALARM_DEFAULT_MIN,
+    LEAVE_ALARM_GRACE_MS: () => LEAVE_ALARM_GRACE_MS,
     LEAVE_ALERT_CHANGE_MS: () => LEAVE_ALERT_CHANGE_MS,
     LEAVE_ALERT_GRACE_MS: () => LEAVE_ALERT_GRACE_MS,
     LEAVE_ALERT_MAX_MS: () => LEAVE_ALERT_MAX_MS,
@@ -1190,6 +1194,8 @@ var CommuteCore = (() => {
     REUSE: () => REUSE,
     RUN_SLACK_MS: () => RUN_SLACK_MS,
     SERVICE: () => SERVICE,
+    SNAPSHOT_STALE_MS: () => SNAPSHOT_STALE_MS,
+    SNAPSHOT_VERSION: () => SNAPSHOT_VERSION,
     STATION_EXPECTED_SLACK_MS: () => STATION_EXPECTED_SLACK_MS,
     STATION_MARGIN_KM: () => STATION_MARGIN_KM,
     STATION_MAX_ACC_M: () => STATION_MAX_ACC_M,
@@ -1205,6 +1211,7 @@ var CommuteCore = (() => {
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
+    WIFI_ACCURACY_M: () => WIFI_ACCURACY_M,
     accessOf: () => accessOf,
     acknowledgeFollowNotice: () => acknowledgeFollowNotice,
     addCallingAlternatives: () => addCallingAlternatives,
@@ -1260,6 +1267,8 @@ var CommuteCore = (() => {
     effortKey: () => effortKey,
     effortNeeds: () => effortNeeds,
     effortOffers: () => effortOffers,
+    evidenceFix: () => evidenceFix,
+    evidenceSetOff: () => evidenceSetOff,
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
     findPlannedTrain: () => findPlannedTrain,
@@ -1290,10 +1299,12 @@ var CommuteCore = (() => {
     journeyFlags: () => journeyFlags,
     journeyProgress: () => journeyProgress,
     journeyRemainingMs: () => journeyRemainingMs,
+    journeySnapshot: () => journeySnapshot,
     journeySteps: () => journeySteps,
     journeyTimes: () => journeyTimes,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
+    leaveAlarm: () => leaveAlarm,
     leaveAlertExpired: () => leaveAlertExpired,
     leaveAlertPlan: () => leaveAlertPlan,
     leaveAlertStep: () => leaveAlertStep,
@@ -1344,11 +1355,13 @@ var CommuteCore = (() => {
     plannable: () => plannable,
     plannerCacheKey: () => plannerCacheKey,
     platformBy: () => platformBy,
+    platformLabelText: () => platformLabelText,
     platformNo: () => platformNo,
     profiles: () => profiles,
     progressContextCurrent: () => progressContextCurrent,
     progressLegsFromSteps: () => progressLegsFromSteps,
     promote: () => promote,
+    proxySnapshot: () => proxySnapshot,
     railDelayLevel: () => railDelayLevel,
     railStationBoard: () => railStationBoard,
     railTrackingContext: () => railTrackingContext,
@@ -1383,7 +1396,9 @@ var CommuteCore = (() => {
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
     serviceFlags: () => serviceFlags,
+    shiftSnapshot: () => shiftSnapshot,
     significantLineDisruption: () => significantLineDisruption,
+    snapshotShown: () => snapshotShown,
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
     startFollowTrip: () => startFollowTrip,
@@ -5766,6 +5781,127 @@ var CommuteCore = (() => {
       title: `Commute: ${hit.length} train${hit.length > 1 ? "s" : ""} disrupted`,
       body: shown.join("; ") + (more > 0 ? `; and ${more} more` : "") + "."
     };
+  }
+
+  // src/core/snapshot.ts
+  var SNAPSHOT_VERSION = 1;
+  var SNAPSHOT_STALE_MS = 3 * 6e4;
+  var LEAVE_ALARM_GRACE_MS = 2 * 6e4;
+  var LEAVE_ALARM_DEFAULT_MIN = 5;
+  var COUNTDOWN_WORDS = {
+    leave: { calm: "leave in", urgent: "Leave now", passed: "leave time passed" },
+    platform: { calm: "on the platform in", urgent: "Head for the platform now", passed: "platform time passed" },
+    arrive: { calm: "arrives in", urgent: "Arriving", passed: "" },
+    next: { calm: "in", urgent: "Now", passed: "" }
+  };
+  var fin = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  function platformLabelText(platform, station) {
+    return `Be on ${platform ? `platform ${platform}` : "the platform"}${station ? ` at ${station}` : ""} by`;
+  }
+  function leaveAlarm(leaveAt, opts) {
+    if (!opts.enabled || !fin(leaveAt)) return null;
+    const leadMin = fin(opts.leadMin) && opts.leadMin >= 0 && opts.leadMin <= 60 ? Math.round(opts.leadMin) : LEAVE_ALARM_DEFAULT_MIN;
+    const at = leaveAt - leadMin * 6e4;
+    if (opts.setOff) return { at, leadMin, cancelled: true };
+    if (opts.now > leaveAt + LEAVE_ALARM_GRACE_MS) return null;
+    return { at, leadMin, cancelled: false };
+  }
+  function journeySnapshot(i) {
+    const dataAt = fin(i.dataAt) ? i.dataAt : null;
+    const words = i.headline.step ? COUNTDOWN_WORDS[i.headline.step] : null;
+    const progress = i.progress && (i.progress.next || fin(i.progress.stopsToGo) || i.progress.line) ? {
+      next: i.progress.next || null,
+      stopsToGo: fin(i.progress.stopsToGo) ? i.progress.stopsToGo : null,
+      line: i.progress.line || [i.progress.next ? `Next: ${i.progress.next}` : "", fin(i.progress.stopsToGo) ? `${i.progress.stopsToGo} stop${i.progress.stopsToGo === 1 ? "" : "s"}` : ""].filter(Boolean).join(" \xB7 ")
+    } : null;
+    return {
+      v: SNAPSHOT_VERSION,
+      at: i.now,
+      source: i.source,
+      dataAt,
+      stale: dataAt == null || i.now - dataAt > SNAPSHOT_STALE_MS,
+      mode: i.mode,
+      direction: i.direction,
+      followId: i.followId || null,
+      phase: i.phase,
+      headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
+      arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
+      train: i.train || null,
+      progress,
+      status: i.status || null,
+      alarm: i.alarm || null,
+      deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null
+    };
+  }
+  function proxySnapshot(plan, state, observed, opts) {
+    const now = opts.now;
+    const live = observed && !observed.depUnknown && fin(observed.dep) ? observed : null;
+    const dep = live ? live.dep : fin(state.lastDep) ? state.lastDep : plan.dep;
+    const late = live ? live.depLate || 0 : state.lastLate || 0;
+    const scheduled = dep - late * 6e4;
+    const leaveBy2 = dep - plan.leadMs;
+    const margin = fin(plan.marginMs) && plan.marginMs >= 0 ? plan.marginMs : 0;
+    const platformAt = platformBy({ before: [{ kind: "margin", secs: margin / 1e3 }] }, dep, now, scheduled);
+    const arr = live && fin(live.arr) ? live.arr : fin(state.lastArr) ? state.lastArr : null;
+    const platform = observed && observed.platform || state.lastPlatform || null;
+    const doorArrive = arr != null && fin(plan.afterMs) ? arr + plan.afterMs : null;
+    const status = observed ? trainStatus(observed) || (late >= 1 ? delayStatus(late) : null) : fin(state.lastDep) ? { ...delayStatus(late), text: `${delayStatus(late).text}, last known` } : { level: "info", text: "No live times" };
+    const base = {
+      now,
+      source: "proxy",
+      dataAt: opts.dataAt,
+      mode: plan.mode || "commute",
+      direction: plan.direction || "home",
+      followId: plan.followId,
+      train: { name: `${plan.std} ${plan.operator || "train"}`, from: plan.fromName || plan.from, to: plan.toName || plan.to, platform, scheduled, expected: live ? dep : null, late },
+      status
+    };
+    if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
+    const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
+    if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
+    if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
+    const alarm = leaveAlarm(leaveBy2, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now });
+    if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
+    return journeySnapshot({ ...base, phase: "leave", headline: { label: "Leave by", t: leaveBy2, step: "leave" }, arrive: arriveOut, alarm });
+  }
+  function shiftSnapshot(s, d) {
+    const m = (t2) => t2 == null ? t2 : t2 + d;
+    return {
+      ...s,
+      at: s.at + d,
+      dataAt: m(s.dataAt),
+      headline: { ...s.headline, t: m(s.headline.t) },
+      arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
+      train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) },
+      alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d }
+    };
+  }
+  function snapshotShown(s) {
+    if (!s) return "none";
+    return JSON.stringify([
+      s.phase,
+      s.headline.label,
+      s.headline.t,
+      s.arrive && s.arrive.t,
+      s.train && [s.train.platform, s.train.expected, s.train.late],
+      s.status && s.status.text,
+      s.alarm && [s.alarm.at, s.alarm.cancelled],
+      s.stale
+    ]);
+  }
+  var EVIDENCE_SKEW_MS = 6e4;
+  var WIFI_ACCURACY_M = 50;
+  function evidenceSetOff(ev, startPlace, startedAt, now) {
+    if (!ev || !startPlace || !fin(ev.at)) return false;
+    return ev.kind === "region" && ev.event === "exit" && ev.place === startPlace && ev.at >= startedAt - EVIDENCE_SKEW_MS && ev.at <= now + EVIDENCE_SKEW_MS;
+  }
+  function evidenceFix(ev, places, now, radiusM = 150) {
+    if (!ev || !fin(ev.at) || ev.at > now + EVIDENCE_SKEW_MS) return null;
+    const p = places[ev.place];
+    if (!p || !fin(p[0]) || !fin(p[1])) return null;
+    if (ev.kind === "wifi" && (ev.place === "home" || ev.place === "office")) return { lat: p[0], lon: p[1], acc: WIFI_ACCURACY_M, at: Math.min(ev.at, now) };
+    if (ev.kind === "region" && ev.event === "enter") return { lat: p[0], lon: p[1], acc: Math.max(50, Math.round(radiusM)), at: Math.min(ev.at, now) };
+    return null;
   }
 
   // src/core/index.ts

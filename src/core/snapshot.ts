@@ -5,6 +5,8 @@
 import type { LeaveAlertPlan, LeaveAlertState } from "./alerts";
 import type { Train } from "./types";
 import { trainStatus, delayStatus } from "./rules";
+import { platformBy } from "./follow";
+import type { Option } from "./types";
 
 export const SNAPSHOT_VERSION = 1;
 /** Data older than this is marked stale (the same 3 minutes as the status line's "may be out of date"). */
@@ -123,7 +125,8 @@ export function proxySnapshot(plan: LeaveAlertPlan & NativePlanExtra, state: Nat
   const scheduled = dep - late * 60e3;
   const leaveBy = dep - plan.leadMs;
   const margin = fin(plan.marginMs) && plan.marginMs >= 0 ? plan.marginMs : 0;
-  const platformAt = (() => { const first = Math.min(dep, scheduled), by = first - margin; return now <= by ? by : now <= first ? first : dep; })();
+  // The page's own rule (core platformBy): a late train's platform time is its timetable time less the margin.
+  const platformAt = platformBy({ before: [{ kind: "margin", secs: margin / 1000 }] } as unknown as Option, dep, now, scheduled);
   // Once the train has left the board, the last arrival and platform seen stand.
   const arr = live && fin(live.arr) ? live.arr : fin(state.lastArr) ? (state.lastArr as number) : null;
   const platform = (observed && observed.platform) || state.lastPlatform || null;
