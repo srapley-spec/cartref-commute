@@ -60,4 +60,8 @@ destination, urgency, status, platform, progress and age. This is a macOS SwiftU
 Review at `4dc0991` passed 35 core tests and 11 inert runtime probes. Eight countdown mutations, missing production
 attachment and an unexpected-null fixture were caught. Removing validation of the two transition timestamps
 survived; direct model tests now cover each field with nil/zero/positive, negative, infinity and NaN values. The
-expanded 36-test core baseline passes; the reviewer is rerunning that final survivor.
+expanded 36-test core baseline passes. At `9a68440`, the reviewer confirmed eight assertion failures when both
+guards are removed and approved the countdown/activation scope. All nine countdown mutations are caught.
+
+The final owner integration, real Capacitor bridge execution, committed-code CI and physical acceptance remain
+separate release/testing gates; this approval does not imply those results.
