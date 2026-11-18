@@ -232,7 +232,7 @@ iPhone Safari and VoiceOver remain hardware acceptance. See [verification](../si
 - tests/core/viewControl.test.mjs: "view control: automatic transitions wait during editing, selection or notice reading and then catch up"
 - tests/core/viewControl.test.mjs: "view control: malformed or future saved overrides cannot trap the app in a pinned view"
 
-- tests/signal.test.mjs: "Signal is the default with Auto Plan Live and independently disabled Follow"
+- tests/signal.test.mjs: "Signal is the default with Auto Plan Live, Follow offered and nothing followed"
 - tests/signal.test.mjs: "Signal status summary follows actual engine warning precedence and handles loading"
 - tests/signal.test.mjs: "manual Plan retains tracking, selection and deadline; Return to Auto uses latest situation"
 - tests/signal.test.mjs: "planning override expires exactly at twenty minutes and on a reliable situation change"
@@ -266,7 +266,7 @@ release checks remain required.
 Panda and the two-design parity rule are retired. The Signal switch no longer exists. Archived source, the
 functional audit, executed checks and remaining limitations are in [the retirement review](../panda-retirement-review.md).
 
-- tests/signal.test.mjs: "Signal is the default with Auto Plan Live and independently disabled Follow"
+- tests/signal.test.mjs: "Signal is the default with Auto Plan Live, Follow offered and nothing followed"
 - tests/panda-retirement.test.mjs: "Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload"
 - tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"
 

@@ -34,6 +34,16 @@ retain an explicitly modelled route-duration fallback. The full acceptance crite
 not a claim that every criterion has already passed release verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
+- **Permanent (Sam, 18 Nov, #63).** Follow a route, Any start and end point and Trip need no switch; only Along the line
+  is Experimental. Saved `followRoute`/`follow`/`anyPlace`/`trip` values (missing, false or true) are dropped on load,
+  Save and the iPhone app's cache restore (`RETIRED_SETTINGS`). Once per device from before #63 (`featuresPermanent`
+  absent), what was switched off stays unused: a route saved while Follow was off isn't followed, a Trip left open
+  while Trip was off isn't reopened (its followed Trip dropped), a "Where to?" place saved while Any start and end point
+  was off isn't planned to; anyone who had a feature on keeps everything. Availability isn't use: nothing is followed
+  and Trip isn't entered by itself. Display mode: no Follow, no Trip, no simulation. In Leisure the "Where from?" and
+  "Where to?" rows fold away while following (12 Nov controls under way). Trip's own services (Google, any station)
+  raise the home-page "Not live" warning only in Trip. An ambiguous typed place costs one retry per station (4
+  requests). Historical compatibility review of each switch's later fixes: `docs/reviews/permanent-features-2026-11-18.md`.
 - **Delayed leave steps (18 Nov review):** when a late train moves Leave by, a step before the train whose original time
   has passed is taken as done only with evidence that you've set off (moved from where you started following, on a
   fresh fix). Still at the start, the leave step moves with the train and stays "Next" (Leave by 10:24 → 10:39; at
@@ -541,6 +551,16 @@ platform or station, and he was standing on another (the tube's). Decided by Sam
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
 ## Tests
+- tests/permanent-features.test.mjs: "Fresh install: Follow, Any start and end point and Trip are there with no switch; only Along the line is Experimental"
+- tests/permanent-features.test.mjs: "The iPhone app's cached settings can't bring a retired switch back"
+- tests/permanent-features.test.mjs: "Follow and stop work with no setting, even saved as false before; Siri's follow link works too"
+- tests/permanent-features.test.mjs: "Along the line keeps its own switch, off by default"
+- tests/permanent-features.test.mjs: "Display mode stays read-only: no Follow, no Trip, no simulation, whatever was saved"
+- tests/permanent-features.test.mjs: "A device from before #63 with Follow off: a route left saved isn't followed now (nor sent to alerts or the iPhone app)"
+- tests/permanent-features.test.mjs: "A device from before #63 with Trip off: an open Trip isn't reopened and its followed Trip is dropped; with Trip on, it is kept"
+- tests/permanent-features.test.mjs: "A device from before #63 with Any start and end point off: a 'Where to?' place left saved isn't planned to"
+- tests/permanent-features.test.mjs: "Leisure: 'Where from?' is offered with location, and folds away with the controls while following"
+- tests/permanent-features.test.mjs: "Any start and end point: an ambiguous typed place takes TfL's best guess once per station (4 requests, not 6)"
 - tests/core/journey-card-batch.test.mjs: "Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)"
 - tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"

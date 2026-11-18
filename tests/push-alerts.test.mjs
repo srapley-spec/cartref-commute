@@ -133,11 +133,11 @@ test("Alerts off: the proxy forgets the phone and the push subscription is dropp
   assert.equal(t.state.saved.pushAlerts, undefined); assert.equal(t.statuses.at(-1), "Off.");
 });
 
-test("Page: time-to-leave alerts are off by default, in Settings → Experimental, and make no requests", async () => {
-  const app = await createApp({ settings: { provider: "demo", followRoute: true } });
+test("Page: time-to-leave alerts are off by default, in Settings → Notifications, and make no requests", async () => {
+  const app = await createApp({ settings: { provider: "demo" } });
   assert.equal(app.d.querySelector("#s_leaveAlerts").checked, false);
   assert.equal(app.d.querySelector("#s_wakeAt").value, "06:30");
-  assert.equal(app.d.querySelector("#s_leaveAlerts").closest("fieldset").querySelector("legend").textContent, "Experimental");
+  assert.equal(app.d.querySelector("#s_leaveAlerts").closest("fieldset").querySelector("legend").textContent, "Notifications", "moved from Experimental (#63)");
   assert.equal(app.calls.filter(u => /\/push\//.test(u)).length, 0);
   // Turned on in a browser without push support (jsdom): says why, asks nothing. (The proxy is built in since 17 Nov.)
   app.d.querySelector("#settingsBtn").click();

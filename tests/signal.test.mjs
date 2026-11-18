@@ -6,7 +6,7 @@ const NOW=Date.parse('2026-11-03T10:00:00Z');
 const app=(settings={},saved={})=>createApp({now:NOW,settings:{provider:'demo',...settings},saved});
 const click=(a,mode)=>a.d.querySelector(`[data-journey-view="${mode}"]`).click();
 
-test('Signal is the default with Auto Plan Live and independently disabled Follow',async()=>{
+test('Signal is the default with Auto Plan Live, Follow offered and nothing followed',async()=>{
   const a=await app();
   assert.equal(a.d.documentElement.dataset.design,'signal');
   assert.equal(a.d.querySelector('#s_signal'),null);
@@ -16,7 +16,7 @@ test('Signal is the default with Auto Plan Live and independently disabled Follo
   assert.ok(a.d.querySelector('#dirNote'));
   assert.equal(a.d.querySelector('#dirNote').closest('details'),null,'location remains outside the collapsed options');
   assert.match(a.text('#dirNote'),/^Location:/);
-  assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
+  assert.ok(a.d.querySelectorAll('[data-follow]').length>0,'Follow is permanent (#63)');assert.equal(a.c.state.saved.followRoute??null,null,'but nothing is followed');
   assert.deepEqual(a.errors,[]);a.close();
 });
 test('Signal status summary follows actual engine warning precedence and handles loading',async()=>{

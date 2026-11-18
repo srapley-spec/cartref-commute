@@ -521,6 +521,20 @@ const DISPLAY_OFF = { alongLine:false, simulatorEnabled:false, simulatedFeeds:fa
 // switch a feature off again. Availability isn't use: following a journey and choosing Trip stay explicit actions.
 const RETIRED_SETTINGS = ["followRoute","follow","anyPlace","trip"];
 const dropRetired = settings => { if(settings&&typeof settings==="object") RETIRED_SETTINGS.forEach(k=>{ delete settings[k]; }); return settings; };
+/**
+ * Once, for a device from before #63 (no `featuresPermanent`): what someone had switched off stays unused. A route
+ * left saved while Follow was off isn't followed now; a Trip left open while Trip was off isn't reopened (nor its
+ * followed Trip); a "Where to?" place left while Any start and end point was off isn't planned to. Those who had a
+ * feature on keep everything (18 Nov review of #63: "off wins", 41c43d9).
+ */
+function migratePermanent(saved){
+  const st=saved.settings; if(!st||st.featuresPermanent) return;
+  const followOn=st.followRoute===true||(st.followRoute===undefined&&st.follow===true);
+  if(!followOn){ delete saved.followRoute; if(saved.follow&&typeof saved.follow==="object") delete saved.follow; }
+  if(st.trip!==true&&saved.tripMode&&typeof saved.tripMode==="object"){ saved.tripMode={...saved.tripMode,active:false}; delete saved.tripMode.follow; }
+  if(st.anyPlace!==true) delete saved.dest;
+  st.featuresPermanent=1;
+}
 /** Follow a route is always available, except on the read-only display. */
 const followAvailable = () => !DISPLAY;
 
@@ -529,7 +543,7 @@ function load(){
     const saved=JSON.parse(localStorage.getItem(LS)||"{}");
     // Retired appearance preference: ignore old true/false values without changing
     // any journey, source, home, timing or independently saved Follow preference.
-    if(saved?.settings){ delete saved.settings.signal; dropRetired(saved.settings); }
+    if(saved?.settings){ delete saved.settings.signal; migratePermanent(saved); dropRetired(saved.settings); }
     return saved;
   }catch(e){return {};}
 }
@@ -542,6 +556,8 @@ const state = { saved:displaySaved(Object.assign({mode:"commute",dirMode:"auto",
   lastHub:null, diag:{},
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
   here:null, origin:"", london:null, londonErr:"" };
+// A device with nothing saved starts permanent (nothing to carry over from the switches).
+if(!state.saved.settings.featuresPermanent) state.saved.settings.featuresPermanent=1;
 // Simulation is a session opt-in; reload always returns to device GPS and live sources.
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings, DISPLAY ? DISPLAY_OFF : null);
@@ -859,10 +875,12 @@ function legLabel(l){
 // Any start and end point is permanent (#63); where it applies (Leisure) is decided where it is used.
 const anyPlace = () => true;
 async function fetchLondon(from){
-  const go=async to=>{
-    let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
+  // TfL's "which place?" (300): its best guess, for this hub only and only once (review 18 Nov, #63: re-planning
+  // both hubs for each doubled the requests).
+  const go=async (to,place=from,retried=false)=>{
+    let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(place)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
     catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner."); }
-    if(r.status===300 && anyPlace()){ const m=C.tflPickPlaces(await r.json()).from; if(m && m.value!==from) return (await fetchLondon(m.value))[to===TFL_HUBS.FAR?"FAR":"KXSP"]; }
+    if(r.status===300 && !retried){ const m=C.tflPickPlaces(await r.json()).from; if(m && m.value!==place) return go(to,m.value,true); }
     if(r.status===300) throw new Error("TfL couldn't pin down that place. Try a full postcode.");
     if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
     const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey from there.");
@@ -1962,7 +1980,8 @@ const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darw
 function renderBanners(){
   const out=[];
   // A service that isn't live (not set up, or the proxy unreachable); a failed rail feed has its own banner below.
-  const notLive=liveServices().filter(x=>x.live===false&&!(x.id==="rail"&&state.darwinFailed));
+  // Trip's own services (Google, any station) warn on the home page only in Trip; Settings lists them always.
+  const notLive=liveServices().filter(x=>x.live===false&&!(x.id==="rail"&&state.darwinFailed)&&!(["google","anyStation"].includes(x.id)&&!tripActive()));
   if(notLive.length) out.push(`<div class="banner warn" data-banner="not-live"><b>Not live</b><span class="msg">${esc(notLive.map(x=>`${x.name}: ${x.detail}`).join(". "))}. Settings → Live data.</span></div>`);
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
@@ -2031,10 +2050,12 @@ function renderControls(){
   const locationNote=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
   const staleFix=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $("#dirNote").textContent=`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`;
-  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
+  // While following, the place rows fold away with the other controls (12 Nov "controls under way"; review of #63).
+  let underWay=false; try{ underWay=!!activeFollow(); }catch(e){}
+  const showOrigin = !underWay && leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
   if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
-  $("#destRow").hidden = !(anyPlace() && leisure && dir==="office");
+  $("#destRow").hidden = underWay || !(anyPlace() && leisure && dir==="office");
   if(!$("#destRow").hidden && document.activeElement!==$("#destInput")) $("#destInput").value=state.saved.dest||"";
   const s=S(); const fast=state.saved.pace==="fast";
   $("#modelNote").textContent = leisure
@@ -2832,7 +2853,7 @@ async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
   // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings=dropRetired({...set.value}); save(); }
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent")){ state.saved.settings=dropRetired({...set.value}); save(); }
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
@@ -2891,7 +2912,7 @@ function readSettings(){
   const o={};
   o.provider=$("#s_provider").value||S().provider;
   // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
-  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+  ["keysInProxy","featuresPermanent","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   // The iPhone app's settings: saved only once the app has shown them (a browser never writes them).
   if(native.capabilities()){
@@ -3027,6 +3048,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>

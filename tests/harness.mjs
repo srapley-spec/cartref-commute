@@ -91,7 +91,7 @@ export async function createApp({ settings = { provider: "tfl" }, saved = {}, ge
       w.localStorage.setItem("cartrefCommute.v1", JSON.stringify(Object.assign({ mode: "commute", dirMode: "auto", pace: "avg",
         // Fixtures name their source and keys directly; the one-time move of keys to the proxy (17 Nov) is tested on its
         // own by passing keysInProxy: 0.
-        settings: { keysInProxy: 1, ...settings }, home: TEST_HOME }, saved)));
+        settings: { keysInProxy: 1, featuresPermanent: 1, ...settings }, home: TEST_HOME }, saved)));
       w.addEventListener("error", (e) => errors.push(e.message));
       if (beforeScripts) beforeScripts(w);   // e.g. a confirm() answer for a page opened from a setup link
       w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };

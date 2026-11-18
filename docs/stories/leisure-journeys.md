@@ -394,7 +394,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
-- tests/trip-page.test.mjs: "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
+- tests/trip-page.test.mjs: "Trip available but not chosen (#63): a Trip button, the commute as before, and no Trip or Google request"
 - tests/trip-page.test.mjs: "Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip"
 - tests/trip-page.test.mjs: "Trip without a Google key: the setup card, nothing planned, no Google script or request"
 - tests/trip-page.test.mjs: "Trip: address drop-down after 3 characters and 250 ms; keyboard choose; a late reply for older text is ignored"

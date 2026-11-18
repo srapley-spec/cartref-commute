@@ -102,3 +102,89 @@ test("Display mode stays read-only: no Follow, no Trip, no simulation, whatever 
   assert.equal(app.c.S().alongLine, false); assert.equal(app.c.S().simulatorEnabled, false);
   assert.deepEqual(app.errors, []); app.close();
 });
+
+// ---- Historical compatibility review (18 Nov): what someone had switched off stays unused ----
+test("A device from before #63 with Follow off: a route left saved isn't followed now (nor sent to alerts or the iPhone app)", async () => {
+  const route = { id: "dormant", phase: "before-train", direction: "office", mode: "commute" };
+  for (const followRoute of [false, undefined]) {
+    const app = await createApp({ settings: { provider: "demo", featuresPermanent: 0, ...(followRoute === undefined ? {} : { followRoute }) },
+      saved: { dirMode: "office", followRoute: route, follow: { train: { std: "08:00" } } }, now: T0 });
+    assert.equal(app.c.state.saved.followRoute ?? null, null, `followRoute ${followRoute}: not followed`);
+    assert.equal(app.c.state.saved.follow ?? null, null, "the legacy record too");
+    assert.equal(app.d.querySelector("#followPanel").hidden, true);
+    assert.equal(app.c.nativeFollowPlan(), null, "nothing for the iPhone app");
+    assert.equal(app.c.state.saved.settings.featuresPermanent, 1, "done once");
+    assert.ok(app.d.querySelector("[data-follow]"), "Follow is offered");
+    app.close();
+  }
+  // Follow was on: the journey is kept.
+  const on = await createApp({ settings: { provider: "demo", featuresPermanent: 0, followRoute: true }, saved: { dirMode: "office" }, now: T0 });
+  [...on.d.querySelectorAll("[data-follow]")][0].click();
+  const kept = JSON.parse(on.w.localStorage.getItem("cartrefCommute.v1")); on.close();
+  kept.settings.featuresPermanent = 0; kept.settings.followRoute = true;
+  const { settings: ks, ...krest } = kept;
+  const again = await createApp({ settings: ks, saved: krest, now: T0 });
+  assert.ok(again.c.state.saved.followRoute, "Follow was on: still followed");
+  assert.deepEqual(again.errors, []); again.close();
+  // A device already migrated keeps a route followed after the change, whatever else is saved.
+  const after = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office" }, now: T0 });
+  [...after.d.querySelectorAll("[data-follow]")][0].click();
+  const st = JSON.parse(after.w.localStorage.getItem("cartrefCommute.v1")); after.close();
+  const { settings: s2, ...r2 } = st;
+  const reload = await createApp({ settings: s2, saved: r2, now: T0 });
+  assert.ok(reload.c.state.saved.followRoute, "followed after #63: kept on reload");
+  reload.close();
+});
+
+test("A device from before #63 with Trip off: an open Trip isn't reopened and its followed Trip is dropped; with Trip on, it is kept", async () => {
+  const tripMode = { active: true, from: { name: "Home" }, follow: { id: "t-old", journey: { rides: [] } } };
+  const off = await createApp({ settings: { provider: "demo", featuresPermanent: 0, trip: false }, saved: { tripMode }, now: T0 });
+  assert.equal(off.c.state.saved.tripMode.active, false); assert.equal(off.c.state.saved.tripMode.follow, undefined);
+  assert.equal(off.d.documentElement.dataset.trip, "off"); assert.deepEqual(JSON.parse(JSON.stringify(off.c.state.saved.tripMode.from)), { name: "Home" }, "the rest kept");
+  off.close();
+  const on = await createApp({ settings: { provider: "demo", featuresPermanent: 0, trip: true }, saved: { tripMode }, now: T0 });
+  assert.equal(on.c.state.saved.tripMode.active, true); assert.equal(on.c.state.saved.tripMode.follow.id, "t-old");
+  on.close();
+});
+
+test("A device from before #63 with Any start and end point off: a 'Where to?' place left saved isn't planned to", async () => {
+  const off = await createApp({ settings: { provider: "demo", featuresPermanent: 0 }, saved: { mode: "leisure", dirMode: "office", dest: "Science Museum" }, now: T0 });
+  assert.equal(off.c.state.saved.dest, undefined);
+  assert.equal(off.text("#routeLabel"), "Cartref → King's Cross or St Pancras");
+  off.close();
+  const on = await createApp({ settings: { provider: "demo", featuresPermanent: 0, anyPlace: true }, saved: { mode: "leisure", dirMode: "office", dest: "Science Museum" }, now: T0 });
+  assert.equal(on.c.state.saved.dest, "Science Museum"); on.close();
+});
+
+test("Leisure: 'Where from?' is offered with location, and folds away with the controls while following", async () => {
+  const london = (u) => { const m = /JourneyResults\/[^/]+\/to\/(940GZZLU\w+)/.exec(u); if (!m) return undefined;
+    return new Response(JSON.stringify({ journeys: [{ arrivalDateTime: new Date(Date.now() + 18 * 60e3).toISOString(), duration: 18, legs: [{ mode: { id: "walking" }, duration: 18 }] }] }), { status: 200, headers: { "Content-Type": "application/json" } }); };
+  const app = await createApp({ settings: { provider: "tfl", tflKey: "k" }, saved: { mode: "leisure", dirMode: "home" }, now: at("2026-11-03", "15:00"),
+    geo: { coords: { latitude: 51.5136, longitude: -0.1365, accuracy: 20 } }, route: london, settle: 600 });
+  assert.equal(app.d.querySelector("#originRow").hidden, false, "offered even with location (Any start and end point is permanent)");
+  const b = app.d.querySelector("[data-follow]:not([disabled])");
+  assert.ok(b, "a train to follow");
+  b.click();
+  assert.ok(app.c.state.saved.followRoute);
+  assert.equal(app.d.querySelector("#originRow").hidden, true, "under way: folded away with the controls (12 Nov)");
+  app.d.querySelector('#followPanel [data-follow-action="stop"]').click();
+  assert.equal(app.d.querySelector("#originRow").hidden, false, "stopped: offered again");
+  assert.deepEqual(app.errors, []); app.close();
+});
+
+test("Any start and end point: an ambiguous typed place takes TfL's best guess once per station (4 requests, not 6)", async () => {
+  const j = (b, st = 200) => new Response(JSON.stringify(b), { status: st, headers: { "Content-Type": "application/json" } });
+  const route = (u) => {
+    if (/JourneyResults\/Soho\/to\//.test(u)) return j({ fromLocationDisambiguation: { disambiguationOptions: [{ parameterValue: "1000123", matchQuality: 900, place: { commonName: "Soho Square" } }] } }, 300);
+    if (/JourneyResults\/1000123\/to\//.test(u)) return j({ journeys: [{ arrivalDateTime: new Date(Date.now() + 20 * 60e3).toISOString(), duration: 20, legs: [{ mode: { id: "walking" }, duration: 20 }] }] });
+    return undefined;
+  };
+  const app = await createApp({ settings: { provider: "tfl", tflKey: "k" }, saved: { mode: "commute" }, now: T0, route });
+  const before = app.calls.length;
+  const r = await app.c.fetchLondon("Soho");
+  const asked = app.calls.slice(before).filter((u) => /JourneyResults/.test(u));
+  assert.equal(asked.length, 4, asked.join("\n"));
+  assert.equal(asked.filter((u) => /\/Soho\//.test(u)).length, 2); assert.equal(asked.filter((u) => /\/1000123\//.test(u)).length, 2);
+  assert.ok(r.KXSP && r.FAR, "both stations planned from the guessed place");
+  assert.deepEqual(app.errors, []); app.close();
+});

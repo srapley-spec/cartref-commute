@@ -123,7 +123,7 @@ with Wrangler (no GitHub Action yet).
 - tests/push-alerts.test.mjs: "Followed journey: the plan is posted when it changes (Leave by moved a minute, Follow stopped), not on every render; never in a simulation"
 - tests/push-alerts.test.mjs: "Followed journey: a failed post is retried after a minute, not on every render"
 - tests/push-alerts.test.mjs: "Alerts off: the proxy forgets the phone and the push subscription is dropped; a new wake-up time updates the same phone"
-- tests/push-alerts.test.mjs: "Page: time-to-leave alerts are off by default, in Settings → Experimental, and make no requests"
+- tests/push-alerts.test.mjs: "Page: time-to-leave alerts are off by default, in Settings → Notifications, and make no requests"
 - tests/push-alerts.test.mjs: "Followed journey: retried at a minute, not before; the proxy forgetting the phone (403) stops and says so; a refused plan (400) isn't retried"
 - tests/push-alerts.test.mjs: "Page: with alerts on, following a journey hands the proxy its plan once; simulated feeds or GPS simulation hand over nothing"
 
