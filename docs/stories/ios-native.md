@@ -133,3 +133,6 @@ Apple's limit: https://developer.apple.com/documentation/activitykit/displaying-
 The long-label layout probe at 320-point width measures 158 points, including both destination labels, train/platform,
 progress, status and source age; the leading “Be on … by” label remains complete. The updated app, extension and
 nine-test XCTest target compile. Full simulator execution of the final hand-off/layout changes is still pending.
+The no-follow Siri intent checks the system execution mode: an already-foreground call routes directly; a
+background call transitions only if Apple allows it, otherwise it asks the person to open Commute on their iPhone.
+It never sends a page planning event before the required foreground transition completes.

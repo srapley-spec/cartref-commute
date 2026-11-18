@@ -12,7 +12,13 @@ struct WhenToLeaveIntent: AppIntent {
         let formatter = DateFormatter(); formatter.timeStyle = .short; formatter.dateStyle = .none
         guard let answer = SiriPresentation.answer(NativeRuntime.shared.document.snapshots.current, now: NativeRuntime.now,
             clock: { formatter.string(from: Date(timeIntervalSince1970: $0 / 1000)) }) else {
-            try await continueInForeground("Opening Commute.", alwaysConfirm: false)
+            let mode = systemContext.currentMode
+            if mode != .foreground {
+                guard mode.canContinueInForeground else {
+                    return .result(dialog: "Open Commute on your iPhone to plan the next journey.")
+                }
+                try await continueInForeground(alwaysConfirm: false)
+            }
             NativeRuntime.shared.opened(SiriPresentation.nextHomeURL)
             return .result(dialog: "Opening Commute.")
         }
