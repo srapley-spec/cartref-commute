@@ -6,7 +6,7 @@
 // The v1 contract is docs/ios-app.md §6.7. Page → shell (one object each): capabilities(), ready(),
 // publish({snapshot}), configure({v, proxy, device, alarm, wifi, regions}), cache({entries}), cached(),
 // request({permission}). Shell → page (events, replayed on ready()): apns {token, env}, liveActivity {followId, token},
-// wifi {place, at}, region {place, event, at}, resume {at}.
+// wifi {place, at}, region {place, event, at}, resume {at}, open {url}.
 const nativeBridge = (() => {
   const RETRY_MS = 60e3;
   const ok = (x) => x && typeof x === "object";
@@ -72,6 +72,8 @@ const nativeBridge = (() => {
         p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string") { laToken = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
+        // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
+        p.addListener("open", (e) => { if (ok(e) && typeof e.url === "string" && !simulating()) deps.onOpen && deps.onOpen(e.url); });
       }
       try { await p.configure(config()); } catch (e) { /* an older shell: it keeps its own defaults */ }
       // Listening: the shell now replays what it held (the APNs token, Live Activity tokens, recent Wi-Fi/region).

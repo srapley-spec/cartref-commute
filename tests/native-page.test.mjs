@@ -84,3 +84,47 @@ test("In a browser: no iPhone settings, none saved, nothing published", async ()
   assert.equal(c.native.capabilities(), null);
   assert.deepEqual(app.errors, []); app.close();
 });
+
+test("In the iPhone app, Trip too (Sam, 18 Nov): the followed Trip's snapshot and its plan for the proxy", async () => {
+  const { TRIP_SETTINGS, tripRoute, planBrightonCanterbury, until } = await import("./trip-fixtures.mjs");
+  const sh = shell();
+  const a = await createApp({ now: Date.parse("2026-11-03T09:40:00Z"), settings: TRIP_SETTINGS, route: tripRoute, beforeScripts: sh.install });
+  await planBrightonCanterbury(a);
+  a.d.querySelector(".trip-recommendations [data-trip-follow]").click();
+  await until(() => a.d.querySelector("[data-trip-stop]"));
+  const j = a.c.state.saved.tripMode.follow.journey, start = j.from.geo;
+  const fix = (geo) => { a.c.state.here = geo; a.c.state.locAcc = 15; a.c.state.lastFixAt = Date.now(); a.c.state.locStatus = "ok"; a.c.render(); };
+  fix(start); await flush();
+  let s = lastSnap(sh);
+  assert.equal(s.mode, "trip"); assert.equal(s.direction, null); assert.equal(s.phase, "leave"); assert.equal(s.headline.label, "Leave by");
+  assert.equal(s.followId, a.c.state.saved.tripMode.follow.id); assert.equal(s.confirmed, false);
+  const rail = j.rides.find((r) => r.kind === "rail");
+  assert.equal(s.train.from, rail.from.name); assert.equal(s.train.to, rail.to.name);
+  const fp = a.c.nativeFollowPlan();
+  assert.equal(fp.plan.from, rail.from.crs); assert.equal(fp.plan.to, rail.to.crs); assert.equal(fp.plan.leaveBy, j.leave);
+  assert.equal(fp.extra.mode, "trip"); assert.equal(fp.extra.startPlace, rail.from.crs); assert.equal(fp.setOff, false);
+  assert.equal(s.alarm.cancelOnExit, null, "a Trip starts at no home/office fence");
+  fix([start[0] + 0.004, start[1]]); await flush();   // about 450 m on: set off
+  s = lastSnap(sh);
+  assert.equal(s.phase, "platform"); assert.match(s.headline.label, /^Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by$/);
+  assert.equal(s.alarm.cancelled, true); assert.equal(a.c.nativeFollowPlan().setOff, true);
+  assert.deepEqual(a.errors, []); a.close();
+});
+
+test("Siri's deep link: commute://next shows that direction now; with follow=1 it follows the best train; anything else is ignored", async () => {
+  const sh = shell();
+  const app = await createApp({ settings: { provider: "demo", followRoute: true }, saved: { dirMode: "office" }, geo: null, now: T0, beforeScripts: sh.install });
+  const c = app.c;
+  const far = svc({ from: "ZFD", to: "LET", std: "10:30", dep: T0 + 30 * m, arr: T0 + 70 * m, operator: "Thameslink", serviceId: "TL", destination: "Cambridge", platform: "4" });
+  c.state.boards = { "KGX-LET": { msgs: [], services: [] }, "ZFD-LET": { msgs: [], services: [far] }, "STP-LET": { msgs: [], services: [] } };
+  c.state.boardsAt = T0; c.state.status = []; c.state.nrStatus = [];
+  assert.equal(c.nativeOpen("https://evil.example/next?direction=home"), false);
+  assert.equal(c.nativeOpen("commute://next?direction=sideways"), false);
+  assert.equal(c.state.saved.dirMode, "office");
+  sh.listeners.open({ url: "commute://next?direction=home&follow=1" });
+  assert.equal(c.state.saved.dirMode, "home"); assert.equal(c.state.saved.view, "now");
+  await new Promise((r) => setTimeout(r, 50));
+  assert.ok(c.state.saved.followRoute, "the best train is followed, as if its Follow button were tapped");
+  assert.equal(c.state.saved.followRoute.direction, "home");
+  assert.deepEqual(app.errors, []); app.close();
+});

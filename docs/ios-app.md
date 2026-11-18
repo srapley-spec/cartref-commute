@@ -212,7 +212,10 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
 2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
    token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
    [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
-   change. Swift copies no profile data.
+   change. Swift copies no profile data. Joining a known Wi-Fi network is a position at that place (core
+   `evidenceFix`); losing one is not set off (a router restart would cancel an alarm still needed; Sam may overrule).
+   Deploy proxy passes `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` (names to be confirmed by the iOS agent
+   on #58).
 3. **Alarm cancellation offline.** The snapshot's `alarm` gains `cancelOnExit: "home"|"office"|null`: on that region's
    exit after `snapshot.at`, the shell cancels the alarm locally (an engine-stated rule), then posts `/native/evidence`
    (queued until online), whose reply now carries `{ok, setOff, snapshot}`. Acceptance: notifications denied → no
@@ -243,8 +246,11 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
 
 Built on this side (18 Nov, `feature/native-prep`): `ready`/`cached`/`request` in the bridge, `configure` with proxy,
 device and regions, `cancelOnExit`, `confirmed`, `staleAt` (and the Live Activity stale-date from it), the evidence reply
-with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/status kept for offline launch. Still to
-build: Trip snapshots (page and proxy), the fixtures, and the `commute://next` deep link.
+with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/status kept for offline launch. Also built
+(18 Nov): Trip snapshots (page: the Trip follow card; proxy: core `tripNativePlan`), the fixtures in
+`tests/fixtures/native/`, and the deep link (shell event `open {url}`; `commute://next?direction=home&follow=1`).
+Not yet: the page's own phases as fixtures (missed, switch, tube, arrived), and a Trip with changes gets no door
+arrival from the proxy (only the page knows the onward rides).
 
 ## 7. Testing
 - **This repo's agent:** engine tests for the snapshot (every phase; stale data; alarm present, moved and cancelled);
@@ -266,7 +272,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Part | Owner | Status |
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
-| Journey snapshot in the engine | this repo | Built and tested on `feature/native-prep` (18 Nov), not merged: `docs/native-prep.md` |
+| Journey snapshot in the engine | this repo | Built to the §6.7 contract on `feature/native-prep` (18 Nov); independent review, then release |
 | Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Bridge built into the page, publish/configure/evidence/Settings tested with a fake shell on `feature/native-prep` (18 Nov); cache hand-off not wired; not merged |
 | Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots built and tested on `feature/native-prep`; Service Details polling and `/native/next` not built; the #58 contract questions are still open; not merged |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |

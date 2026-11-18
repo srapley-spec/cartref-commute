@@ -7,6 +7,7 @@ import type { Train } from "./types";
 import { trainStatus, delayStatus } from "./rules";
 import { platformBy } from "./follow";
 import type { Option } from "./types";
+import type { FollowTrip } from "./trip/followTrip";
 
 export const SNAPSHOT_VERSION = 1;
 /** Data older than this is marked stale (the same 3 minutes as the status line's "may be out of date"). */
@@ -37,7 +38,7 @@ export interface JourneySnapshot {
   staleAt: number | null;
   /** Boarding confirmed by the page's boarding check; the proxy never confirms (§6.7 rule 4). */
   confirmed: boolean;
-  mode: string; direction: "office" | "home"; followId: string | null;
+  mode: string; direction: "office" | "home" | null; followId: string | null;
   phase: SnapshotPhase;
   headline: { label: string; t: number | null; countdown: { step: SnapshotStep; calm: string; urgent: string; passed: string } | null };
   arrive: { label: string; t: number | null } | null;
@@ -50,7 +51,7 @@ export interface JourneySnapshot {
 
 export interface SnapshotInput {
   now: number; source: "page" | "proxy"; dataAt?: number | null;
-  mode: string; direction: "office" | "home"; followId?: string | null;
+  mode: string; direction: "office" | "home" | null; followId?: string | null;
   phase: SnapshotPhase;
   headline: { label: string; t: number | null | undefined; step: SnapshotStep };
   arrive?: { label: string; t: number | null | undefined } | null;
@@ -144,7 +145,7 @@ export function proxySnapshot(plan: LeaveAlertPlan & NativePlanExtra, state: Nat
   const doorArrive = arr != null && fin(plan.afterMs) ? arr + (plan.afterMs as number) : null;
   // The page's own status words (core trainStatus): "Cancelled", "No estimate", "7 min late", "On time".
   const status = observed ? trainStatus(observed) || (late >= 1 ? delayStatus(late) : null) : fin(state.lastDep) ? { ...delayStatus(late), text: `${delayStatus(late).text}, last known` } : { level: "info" as const, text: "No live times" };
-  const base = { now, source: "proxy" as const, dataAt: opts.dataAt, mode: plan.mode || "commute", direction: plan.direction || "home", followId: plan.followId,
+  const base = { now, source: "proxy" as const, dataAt: opts.dataAt, mode: plan.mode || "commute", direction: plan.direction || (plan.mode === "trip" ? null : "home"), followId: plan.followId,
     train: { name: `${plan.std} ${plan.operator || "train"}`, from: plan.fromName || plan.from, to: plan.toName || plan.to, platform, scheduled, expected: live ? dep : null, late },
     status };
   if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
@@ -203,4 +204,31 @@ export function evidenceFix(ev: NativeEvidence | null | undefined, places: Recor
   if (ev.kind === "wifi" && (ev.place === "home" || ev.place === "office")) return { lat: p[0], lon: p[1], acc: WIFI_ACCURACY_M, at: Math.min(ev.at, now) };
   if (ev.kind === "region" && ev.event === "enter") return { lat: p[0], lon: p[1], acc: Math.max(50, Math.round(radiusM)), at: Math.min(ev.at, now) };
   return null;
+}
+
+/**
+ * Trip's plan for the proxy (§6.7 rule 4, Sam: Trip in v1): the first timetabled ride of a followed Trip, in the same
+ * shape as the commute's leave-alert plan, plus the snapshot extras. None once that ride has gone or is cancelled.
+ * `std` is the ride's scheduled departure as the board shows it ("18:56").
+ */
+export function tripNativePlan(route: FollowTrip | null | undefined, std: (t: number) => string): { plan: LeaveAlertPlan; extra: NativePlanExtra } | null {
+  const j = route && route.journey;
+  if (!j || !Array.isArray(j.rides)) return null;
+  const ride = j.rides.find(r => r.kind === "rail");
+  if (!ride || ride.cancelled || !fin(ride.dep) || !fin(j.leave) || j.leave > ride.dep) return null;
+  const t = ride.train;
+  const s = (t && t.std) || std(fin(ride.schedDep) ? ride.schedDep : ride.dep);
+  // Trip's time to reach the platform is its last "station" segment (the same allowance Trip's card uses).
+  const before = Array.isArray(j.before) ? (j.before as { kind?: string; secs?: number }[]) : [];
+  const plat = [...before].reverse().find(x => x.kind === "station");
+  const after = j.rides.slice(j.rides.indexOf(ride) + 1);
+  return {
+    plan: { v: 1, followId: route!.id, serviceId: t && t.serviceId, from: ride.from.crs, to: ride.to.crs, std: s, operator: ride.operator || (t && t.operator) || undefined,
+      dep: ride.dep, leaveBy: j.leave, leadMs: ride.dep - j.leave, train: `the ${s} from ${ride.from.name}` },
+    extra: { mode: "trip", fromName: ride.from.name, toName: ride.to.name,
+      marginMs: plat && fin(plat.secs) ? (plat.secs as number) * 1000 : 0,
+      // With more rides after this one, the door arrival isn't this ride's arrival plus a fixed walk: leave it unknown.
+      afterMs: after.length === 0 && fin(j.arrive) && fin(ride.arr) ? Math.max(0, j.arrive - ride.arr) : undefined,
+      arriveLabel: `At ${(j.to && (j.to as { name?: string }).name) || j.toStation.name}`, startPlace: ride.from.crs },
+  };
 }

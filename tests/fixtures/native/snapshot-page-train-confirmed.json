@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "at": 1794942300000,
+  "source": "page",
+  "dataAt": 1794942300000,
+  "stale": false,
+  "staleAt": 1794942480000,
+  "confirmed": true,
+  "mode": "leisure",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "train",
+  "headline": {
+    "label": "At Letchworth Garden City",
+    "t": 1794944400000,
+    "countdown": {
+      "step": "arrive",
+      "calm": "arrives in",
+      "urgent": "Arriving",
+      "passed": ""
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945120000
+  },
+  "train": null,
+  "progress": {
+    "next": "Stevenage",
+    "stopsToGo": 3,
+    "line": "Next: Stevenage · 3 stops"
+  },
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

@@ -86,5 +86,5 @@ export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext }
 export { LEAVE_ALERT_SOON_MS, LEAVE_ALERT_CHANGE_MS, LEAVE_ALERT_WATCH_MS, LEAVE_ALERT_GRACE_MS, LEAVE_ALERT_MAX_MS, MORNING_WINDOW_MIN, MORNING_LATE_MS, MORNING_STILL_WAITING_MS, leaveAlertPlan, findPlannedTrain, leaveAlertWatching, leaveAlertExpired, leaveAlertStep, localMinute, morningDue, morningAlert } from "./alerts";
 export type { LeaveAlertPlan, LeaveAlertState, PushNotice, MorningConfig } from "./alerts";
 // The journey snapshot for the iPhone app (docs/ios-app.md §6.1).
-export { SNAPSHOT_VERSION, SNAPSHOT_STALE_MS, LEAVE_ALARM_GRACE_MS, LEAVE_ALARM_DEFAULT_MIN, COUNTDOWN_WORDS, platformLabelText, leaveAlarm, journeySnapshot, proxySnapshot, shiftSnapshot, snapshotShown, evidenceSetOff, evidenceFix, EVIDENCE_SKEW_MS, WIFI_ACCURACY_M } from './snapshot';
+export { SNAPSHOT_VERSION, SNAPSHOT_STALE_MS, LEAVE_ALARM_GRACE_MS, LEAVE_ALARM_DEFAULT_MIN, COUNTDOWN_WORDS, platformLabelText, leaveAlarm, journeySnapshot, proxySnapshot, tripNativePlan, shiftSnapshot, snapshotShown, evidenceSetOff, evidenceFix, EVIDENCE_SKEW_MS, WIFI_ACCURACY_M } from './snapshot';
 export type { JourneySnapshot, SnapshotInput, SnapshotPhase, SnapshotStep, LeaveAlarm, NativePlanExtra, NativeEvidence, NativeState } from './snapshot';
