@@ -128,3 +128,18 @@ test("Siri's deep link: commute://next shows that direction now; with follow=1 i
   assert.equal(c.state.saved.followRoute.direction, "home");
   assert.deepEqual(app.errors, []); app.close();
 });
+
+test("Review: the plan for the proxy is kept once on the train; Siri's follow doesn't follow twice", async () => {
+  const sh = shell();
+  const { app, c, P, place } = await homeward(sh);
+  place(1, P.places.office); await flush();
+  const before = c.nativeFollowPlan();
+  assert.ok(before && before.plan);
+  const fr = c.state.saved.followRoute; c.state.saved.followRoute = { ...fr, phase: "on-train" }; c.render(); await flush();
+  const onTrain = c.nativeFollowPlan();
+  assert.equal(onTrain.plan.followId, before.plan.followId, "kept after boarding"); assert.equal(onTrain.setOff, true);
+  const id = c.state.saved.followRoute.id;
+  c.nativeOpen("commute://next?direction=home&follow=1"); await new Promise((r) => setTimeout(r, 50));
+  assert.equal(c.state.saved.followRoute.id, id, "already following: not followed again");
+  assert.deepEqual(app.errors, []); app.close();
+});

@@ -12,6 +12,8 @@ import type { FollowTrip } from "./trip/followTrip";
 export const SNAPSHOT_VERSION = 1;
 /** Data older than this is marked stale (the same 3 minutes as the status line's "may be out of date"). */
 export const SNAPSHOT_STALE_MS = 3 * 60e3;
+/** Fresh data is re-sent at least this often (inside the 3-min stale window). */
+export const SNAPSHOT_REFRESH_MS = 2 * 60e3;
 /** A leave alarm is dropped this long after its leave time had passed with no sign you left. */
 export const LEAVE_ALARM_GRACE_MS = 2 * 60e3;
 /** The leave alarm's default lead (Sam, 17 Nov: "5 mins default but configurable"). */
@@ -167,7 +169,9 @@ export function shiftSnapshot(s: JourneySnapshot, d: number): JourneySnapshot {
 /** The parts of a snapshot a native surface shows: a change in any of them is worth a push; a new `at` alone isn't. */
 export function snapshotShown(s: JourneySnapshot | null | undefined): string {
   if (!s) return "none";
-  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
+  // A fresh fetch every 2 minutes counts too, so the stale-date (data + 3 min) is moved on before it passes while the
+  // data is fresh (review 18 Nov: otherwise the Live Activity showed stale on a steady board).
+  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
     s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);
 }
 
@@ -215,6 +219,9 @@ export function tripNativePlan(route: FollowTrip | null | undefined, std: (t: nu
   const j = route && route.journey;
   if (!j || !Array.isArray(j.rides)) return null;
   const ride = j.rides.find(r => r.kind === "rail");
+  // The proxy watches rail boards only. A Trip starting with a tube still gets its train watched, but the platform
+  // allowance and the start fence belong to the first ride, so they're left out (review 18 Nov).
+  const first = !!ride && j.rides[0] === ride;
   if (!ride || ride.cancelled || !fin(ride.dep) || !fin(j.leave) || j.leave > ride.dep) return null;
   const t = ride.train;
   const s = (t && t.std) || std(fin(ride.schedDep) ? ride.schedDep : ride.dep);
@@ -226,9 +233,9 @@ export function tripNativePlan(route: FollowTrip | null | undefined, std: (t: nu
     plan: { v: 1, followId: route!.id, serviceId: t && t.serviceId, from: ride.from.crs, to: ride.to.crs, std: s, operator: ride.operator || (t && t.operator) || undefined,
       dep: ride.dep, leaveBy: j.leave, leadMs: ride.dep - j.leave, train: `the ${s} from ${ride.from.name}` },
     extra: { mode: "trip", fromName: ride.from.name, toName: ride.to.name,
-      marginMs: plat && fin(plat.secs) ? (plat.secs as number) * 1000 : 0,
+      marginMs: first && plat && fin(plat.secs) ? (plat.secs as number) * 1000 : 0,
       // With more rides after this one, the door arrival isn't this ride's arrival plus a fixed walk: leave it unknown.
       afterMs: after.length === 0 && fin(j.arrive) && fin(ride.arr) ? Math.max(0, j.arrive - ride.arr) : undefined,
-      arriveLabel: `At ${(j.to && (j.to as { name?: string }).name) || j.toStation.name}`, startPlace: ride.from.crs },
+      arriveLabel: `At ${(j.to && (j.to as { name?: string }).name) || j.toStation.name}`, ...(first ? { startPlace: ride.from.crs } : {}) },
   };
 }

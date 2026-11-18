@@ -2749,6 +2749,7 @@ function nativeOpen(url){
   const m=/^commute:\/\/next\?(.*)$/.exec(String(url||"")); if(!m) return false;
   const q=new URLSearchParams(m[1]), dir=q.get("direction");
   if(dir!=="home"&&dir!=="office") return false;
+  if(nativeTrip()) return false;   // a Trip being followed stays on screen (review 18 Nov)
   if(tripActive()&&state.saved.tripMode) state.saved.tripMode.active=false;
   state.saved.dirMode=dir; state.saved.view="now"; save(); render();
   if(q.get("follow")==="1"&&S().followRoute&&!state.saved.followRoute){

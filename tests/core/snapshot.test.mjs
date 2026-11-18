@@ -170,3 +170,30 @@ test("Snapshot: only the page confirms boarding; a change of journey or progress
   assert.notEqual(core.snapshotShown(core.journeySnapshot({ ...base, source: "page", progress: { next: "Stevenage", stopsToGo: 2 } })), core.snapshotShown(a));
   assert.notEqual(core.snapshotShown(core.journeySnapshot({ ...base, source: "page", confirmed: true })), core.snapshotShown(a));
 });
+
+test("Review: boundaries: a 60-min lead is kept, 61 isn't; at the departure it's the train, at the arrival the walk", () => {
+  assert.equal(core.leaveAlarm(at(DAY, "18:36"), { enabled: true, leadMin: 60, setOff: false, now: at(DAY, "17:00") }).leadMin, 60);
+  assert.equal(core.leaveAlarm(at(DAY, "18:36"), { enabled: true, leadMin: 61, setOff: false, now: at(DAY, "17:00") }).leadMin, 5);
+  assert.equal(core.proxySnapshot(plan(), {}, tl(), opts({ now: dep })).phase, "train");
+  assert.equal(core.proxySnapshot(plan(), { lastDep: dep, lastArr: at(DAY, "19:40") }, null, opts({ now: at(DAY, "19:40") })).phase, "walk-last");
+  // Only a change of staleness: a change.
+  const s = core.proxySnapshot(plan(), {}, tl(), opts());
+  assert.notEqual(core.snapshotShown({ ...s, stale: true }), core.snapshotShown(s));
+  assert.equal(core.shiftSnapshot(s, 3600e3).staleAt - s.staleAt, 3600e3);
+});
+
+test("Review: a Trip starting with a tube watches its train but claims no platform allowance or start fence", () => {
+  const st = (crs, name) => ({ crs, name });
+  const route = { id: "t2", journey: { leave: at(DAY, "09:00"), arrive: at(DAY, "10:40"), to: { name: "Cambridge" }, toStation: st("CBG", "Cambridge"),
+    before: [{ kind: "walk", secs: 300 }, { kind: "station", secs: 120 }],
+    rides: [{ kind: "tube", from: st("ALD", "Aldgate"), to: st("KGX", "King's Cross"), dep: at(DAY, "09:08"), arr: at(DAY, "09:25"), schedDep: at(DAY, "09:08") },
+      { kind: "rail", from: st("KGX", "King's Cross"), to: st("CBG", "Cambridge"), dep: at(DAY, "09:40"), arr: at(DAY, "10:30"), schedDep: at(DAY, "09:40"), operator: "Great Northern" }] } };
+  const p = core.tripNativePlan(route, () => "09:40");
+  assert.equal(p.plan.from, "KGX"); assert.equal(p.extra.marginMs, 0); assert.equal(p.extra.startPlace, undefined);
+  // Leave exactly at the departure still makes a plan; later doesn't.
+  const solo = { id: "t3", journey: { ...route.journey, leave: at(DAY, "09:40"), rides: [route.journey.rides[1]] } };
+  assert.ok(core.tripNativePlan(solo, () => "09:40"));
+  assert.equal(core.tripNativePlan({ ...solo, journey: { ...solo.journey, leave: at(DAY, "09:41") } }, () => "09:40"), null);
+  // A ride after the train: no door arrival from the proxy.
+  assert.equal(core.tripNativePlan({ ...solo, journey: { ...solo.journey, rides: [route.journey.rides[1], route.journey.rides[0]] } }, () => "").extra.afterMs, undefined);
+});

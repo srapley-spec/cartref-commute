@@ -17,6 +17,8 @@ import { b64u } from "./webpush.js";
 import { londonShift, sha256, str, cleanPlan, body, board, shiftPlan, shiftState } from "./push.js";
 
 export const MAX_IPHONES = 10;
+/** An iPhone not registered or followed from for this long can be replaced when the list is full. */
+export const IPHONE_IDLE_MS = 30 * 86400e3;
 /** /native/follow accepts one change per iPhone this often (the page posts on a change only). */
 export const FOLLOW_MIN_GAP_MS = 10e3;
 /** The board is fetched from this long before Leave by (no live data sooner is worth a request a minute). */
@@ -70,13 +72,17 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     const apns = { token: b.apnsToken.toLowerCase(), env: b.env }, prefs = cleanPrefs(b.prefs);
     const existing = b.id ? await iphone(env, b) : null;
     if (existing) {
-      await env.PUSH.put(`nat:${existing.id}`, JSON.stringify({ ...existing, apns, prefs }));
+      await env.PUSH.put(`nat:${existing.id}`, JSON.stringify({ ...existing, apns, prefs, seen: now }));
       return json({ id: existing.id, token: b.token }, 200, cors);
     }
-    const ids = (await env.PUSH.get("nats", "json")) || [];
-    if (ids.length >= MAX_IPHONES) return json({ error: "Too many iPhones" }, 429, cors);
+    let ids = (await env.PUSH.get("nats", "json")) || [];
+    if (ids.length >= MAX_IPHONES) {
+      // Full: an iPhone not heard from for 30 days gives up its place (a reinstall or a stray registration).
+      for (const old of ids) { const r = await env.PUSH.get(`nat:${old}`, "json"); if (!r || now - (r.seen || r.created || 0) > IPHONE_IDLE_MS) { await env.PUSH.delete(`nat:${old}`); ids = ids.filter(x => x !== old); break; } }
+      if (ids.length >= MAX_IPHONES) return json({ error: "Too many iPhones" }, 429, cors);
+    }
     const id = b64u.encode(crypto.getRandomValues(new Uint8Array(12))), token = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
-    await env.PUSH.put(`nat:${id}`, JSON.stringify({ id, tokenHash: await sha256(token), apns, prefs, created: now }));
+    await env.PUSH.put(`nat:${id}`, JSON.stringify({ id, tokenHash: await sha256(token), apns, prefs, created: now, seen: now }));
     await env.PUSH.put("nats", JSON.stringify([...ids, id]));
     return json({ id, token }, 201, cors);
   }
@@ -94,7 +100,7 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     const keep = rec.plan && rec.plan.followId === plan.followId && rec.plan.std === plan.std && rec.plan.from === plan.from;
     const la = b.laToken ? { token: b.laToken.toLowerCase() } : keep ? rec.la || null : null;
     await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, plan, extra: cleanExtra(b.extra), planState: keep ? rec.planState || {} : {},
-      setOff: keep ? !!rec.setOff || !!b.setOff : !!b.setOff, followedAt: keep ? rec.followedAt || now : now, la, shown: keep ? rec.shown || null : null, planAt: now }));
+      seen: now, setOff: keep ? !!rec.setOff || !!b.setOff : !!b.setOff, followedAt: keep ? rec.followedAt || now : now, la, shown: keep ? rec.shown || null : null, planAt: now }));
     return json({ ok: true }, 200, cors);
   }
   if (path === "/native/evidence") {
@@ -104,7 +110,8 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     // Only a change is written. The reply carries the snapshot now (§6.7 rule 3: no waiting for a background push),
     // from what the proxy last saw; the next scheduler run pushes it to the Live Activity.
     if (setOff && !rec.setOff) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, setOff: true }));
-    return json({ ok: true, setOff, snapshot: rec.plan ? snapshotNow({ ...rec, setOff: setOff || !!rec.setOff }, now) : null }, 200, cors);
+    const stored = setOff || !!rec.setOff;   // the journey's state, not just this event's verdict
+    return json({ ok: true, setOff: stored, snapshot: rec.plan ? snapshotNow({ ...rec, setOff: stored }, now) : null }, 200, cors);
   }
   // unregister
   await env.PUSH.delete(`nat:${rec.id}`);
@@ -193,8 +200,9 @@ export async function runNative(env, now) {
         if (lnow < dep) {
           const step = C.leaveAlertStep(plan, state, observed, lnow);
           state = step.state; notice = step.notice;
-          if (observed && observed.cancelled) done = true;
         } else if (observed && !observed.depUnknown && Number.isFinite(observed.dep)) { state = { ...state, lastDep: observed.dep, lastLate: observed.depLate || 0 }; }
+        // Cancelled, before or after the planned departure (a late cancellation seen in the minutes after it): ends it.
+        if (observed && observed.cancelled) done = true;
         if (observed && Number.isFinite(observed.arr)) state = { ...state, lastArr: observed.arr };
         if (observed && observed.platform) state = { ...state, lastPlatform: observed.platform };
       }

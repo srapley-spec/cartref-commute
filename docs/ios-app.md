@@ -231,7 +231,9 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    `at` ≥ the last applied (equal: the later received wins). A null snapshot or a Live Activity `end` tombstones that
    `followId` for 1 h. A new `liveActivity` token replaces the old (page → proxy). Freshness: the snapshot carries
    `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
-   `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress and staleness.
+   `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress, staleness and a 2-minute
+   bucket of `dataAt`, so fresh data is re-sent at least every 2 minutes and the stale-date never passes while the
+   data is fresh. Live Activity tokens are kept per `followId`; only the current journey's is sent.
 6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.
    Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
@@ -249,7 +251,10 @@ device and regions, `cancelOnExit`, `confirmed`, `staleAt` (and the Live Activit
 with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/status kept for offline launch. Also built
 (18 Nov): Trip snapshots (page: the Trip follow card; proxy: core `tripNativePlan`), the fixtures in
 `tests/fixtures/native/`, and the deep link (shell event `open {url}`; `commute://next?direction=home&follow=1`).
-Not yet: the page's own phases as fixtures (missed, switch, tube, arrived), and a Trip with changes gets no door
+Independent review (18 Nov, 86 mutations): its four bugs are fixed and tested (a late cancellation undone; the stale-date
+not moved on; Live Activity tokens not kept per journey; a Trip starting with a tube claiming the tube's platform
+allowance and start), plus: nothing registers in a simulation, the evidence reply gives the journey's set-off state,
+a full list of 10 iPhones frees one idle for 30 days, Siri's link doesn't take over a followed Trip. Not yet: the page's own phases as fixtures (missed, switch, tube, arrived), and a Trip with changes gets no door
 arrival from the proxy (only the page knows the onward rides).
 
 ## 7. Testing

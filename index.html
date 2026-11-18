@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:23 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1206,6 +1206,7 @@ var CommuteCore = (() => {
     REUSE: () => REUSE,
     RUN_SLACK_MS: () => RUN_SLACK_MS,
     SERVICE: () => SERVICE,
+    SNAPSHOT_REFRESH_MS: () => SNAPSHOT_REFRESH_MS,
     SNAPSHOT_STALE_MS: () => SNAPSHOT_STALE_MS,
     SNAPSHOT_VERSION: () => SNAPSHOT_VERSION,
     STATION_EXPECTED_SLACK_MS: () => STATION_EXPECTED_SLACK_MS,
@@ -5799,6 +5800,7 @@ var CommuteCore = (() => {
   // src/core/snapshot.ts
   var SNAPSHOT_VERSION = 1;
   var SNAPSHOT_STALE_MS = 3 * 6e4;
+  var SNAPSHOT_REFRESH_MS = 2 * 6e4;
   var LEAVE_ALARM_GRACE_MS = 2 * 6e4;
   var LEAVE_ALARM_DEFAULT_MIN = 5;
   var COUNTDOWN_WORDS = {
@@ -5900,6 +5902,7 @@ var CommuteCore = (() => {
       s.phase,
       s.confirmed,
       s.progress && s.progress.line,
+      s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
       s.headline.t,
       s.arrive && s.arrive.t,
@@ -5927,6 +5930,7 @@ var CommuteCore = (() => {
     const j = route && route.journey;
     if (!j || !Array.isArray(j.rides)) return null;
     const ride = j.rides.find((r) => r.kind === "rail");
+    const first = !!ride && j.rides[0] === ride;
     if (!ride || ride.cancelled || !fin(ride.dep) || !fin(j.leave) || j.leave > ride.dep) return null;
     const t2 = ride.train;
     const s = t2 && t2.std || std(fin(ride.schedDep) ? ride.schedDep : ride.dep);
@@ -5951,11 +5955,11 @@ var CommuteCore = (() => {
         mode: "trip",
         fromName: ride.from.name,
         toName: ride.to.name,
-        marginMs: plat && fin(plat.secs) ? plat.secs * 1e3 : 0,
+        marginMs: first && plat && fin(plat.secs) ? plat.secs * 1e3 : 0,
         // With more rides after this one, the door arrival isn't this ride's arrival plus a fixed walk: leave it unknown.
         afterMs: after.length === 0 && fin(j.arrive) && fin(ride.arr) ? Math.max(0, j.arrive - ride.arr) : void 0,
         arriveLabel: `At ${j.to && j.to.name || j.toStation.name}`,
-        startPlace: ride.from.crs
+        ...first ? { startPlace: ride.from.crs } : {}
       }
     };
   }
@@ -11230,7 +11234,9 @@ const nativeBridge = (() => {
       if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
       return (cap.Plugins && cap.Plugins.CommuteNative) || null;
     };
-    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, laToken = null, listening = false;
+    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
+    const laTokens = {};
     const has = (k) => !!(caps && caps[k]);
     const base = () => String(deps.proxyBase() || "").trim().replace(/\/+$/, "");
     const ids = () => { const n = saved().native; return n && n.id && n.token ? { id: n.id, token: n.token } : null; };
@@ -11259,7 +11265,7 @@ const nativeBridge = (() => {
     const configure = () => { const p = plugin(); if (!p || !caps) return null; try { return Promise.resolve(p.configure(config())).catch(() => null); } catch (e) { return null; } };
 
     async function register() {
-      if (!apns || !base()) return null;
+      if (!apns || !base() || simulating()) return null;
       try {
         const r = await call("/native/register", { apnsToken: apns.token, env: apns.env, prefs: prefs(), ...(ids() || {}) });
         saved().native = { id: r.id, token: r.token }; save();
@@ -11276,7 +11282,7 @@ const nativeBridge = (() => {
       if (!listening && typeof p.addListener === "function") {
         listening = true;
         p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
-        p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string") { laToken = e.token; lastFollowKey = null; sync(); } });
+        p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
         // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
@@ -11302,7 +11308,7 @@ const nativeBridge = (() => {
       const who = ids();
       if (!who || !caps || simulating() || Date.now() < retryAt) return null;
       const f = deps.followPlan();
-      const plan = f && f.plan;
+      const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";
       if (key === lastFollowKey) return null;
       lastFollowKey = key;
@@ -11411,6 +11417,7 @@ function nativeOpen(url){
   const m=/^commute:\/\/next\?(.*)$/.exec(String(url||"")); if(!m) return false;
   const q=new URLSearchParams(m[1]), dir=q.get("direction");
   if(dir!=="home"&&dir!=="office") return false;
+  if(nativeTrip()) return false;   // a Trip being followed stays on screen (review 18 Nov)
   if(tripActive()&&state.saved.tripMode) state.saved.tripMode.active=false;
   state.saved.dirMode=dir; state.saved.view="now"; save(); render();
   if(q.get("follow")==="1"&&S().followRoute&&!state.saved.followRoute){

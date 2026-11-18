@@ -23,7 +23,9 @@ const nativeBridge = (() => {
       if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
       return (cap.Plugins && cap.Plugins.CommuteNative) || null;
     };
-    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, laToken = null, listening = false;
+    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
+    const laTokens = {};
     const has = (k) => !!(caps && caps[k]);
     const base = () => String(deps.proxyBase() || "").trim().replace(/\/+$/, "");
     const ids = () => { const n = saved().native; return n && n.id && n.token ? { id: n.id, token: n.token } : null; };
@@ -52,7 +54,7 @@ const nativeBridge = (() => {
     const configure = () => { const p = plugin(); if (!p || !caps) return null; try { return Promise.resolve(p.configure(config())).catch(() => null); } catch (e) { return null; } };
 
     async function register() {
-      if (!apns || !base()) return null;
+      if (!apns || !base() || simulating()) return null;
       try {
         const r = await call("/native/register", { apnsToken: apns.token, env: apns.env, prefs: prefs(), ...(ids() || {}) });
         saved().native = { id: r.id, token: r.token }; save();
@@ -69,7 +71,7 @@ const nativeBridge = (() => {
       if (!listening && typeof p.addListener === "function") {
         listening = true;
         p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
-        p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string") { laToken = e.token; lastFollowKey = null; sync(); } });
+        p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
         // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
@@ -95,7 +97,7 @@ const nativeBridge = (() => {
       const who = ids();
       if (!who || !caps || simulating() || Date.now() < retryAt) return null;
       const f = deps.followPlan();
-      const plan = f && f.plan;
+      const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";
       if (key === lastFollowKey) return null;
       lastFollowKey = key;

@@ -66,5 +66,16 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 - tests/native-fixtures.test.mjs: "Trip's plan for the proxy: its first train, leave time, platform allowance and start station"
 
 
+Independent review (18 Nov): its bugs and surviving mutations:
+- tests/core/snapshot.test.mjs: "Review: boundaries: a 60-min lead is kept, 61 isn't; at the departure it's the train, at the arrival the walk"
+- tests/core/snapshot.test.mjs: "Review: a Trip starting with a tube watches its train but claims no platform allowance or start fence"
+- tests/native-proxy.test.mjs: "Review: a cancellation seen just after the departure time ends the journey; it isn't undone later"
+- tests/native-proxy.test.mjs: "Review: on a steady board the snapshot is re-sent every 2 minutes, so the Live Activity's stale-date moves on"
+- tests/native-proxy.test.mjs: "Review: a different train under the same follow id is a new journey: its setOff, state and Live Activity token start again"
+- tests/native-proxy.test.mjs: "Review: Apple's 400 BadDeviceToken drops the iPhone, another 400 doesn't; alarm off and set off: no Leave alerts"
+- tests/native-proxy.test.mjs: "Review: evidence says the journey's set-off state; Wi-Fi and old reports are refused; a full list frees an idle iPhone"
+- tests/native-bridge.test.mjs: "Review: Live Activity tokens are kept per journey; only the current one is sent; nothing registers or syncs in a simulation"
+- tests/native-page.test.mjs: "Review: the plan for the proxy is kept once on the train; Siri's follow doesn't follow twice"
+
 ## Status
 See ../ios-app.md §8.

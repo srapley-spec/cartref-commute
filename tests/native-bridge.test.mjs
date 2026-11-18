@@ -123,3 +123,19 @@ test("Bridge: Wi-Fi and geofence events reach the page as evidence (never in a s
   assert.equal(noOffline.b.cache([]), null);
   assert.deepEqual(await noOffline.b.cached(), []);
 });
+
+test("Review: Live Activity tokens are kept per journey; only the current one is sent; nothing registers or syncs in a simulation", async () => {
+  const s = setup({ followPlan: PLAN });
+  await s.b.init();
+  s.shell.emit("apns", { token: "a".repeat(64), env: "production" }); await tick(); await tick();
+  s.shell.emit("liveActivity", { followId: "old", token: "c".repeat(64) }); await tick();
+  assert.ok(!s.posts.some(([, b]) => b.laToken === "c".repeat(64)), "an old journey's token isn't attached to this one");
+  s.shell.emit("liveActivity", { token: "d".repeat(64) }); await tick();
+  assert.ok(!s.posts.some(([, b]) => b.laToken), "no followId: ignored");
+  s.shell.emit("liveActivity", { followId: "f1", token: "b".repeat(64) }); await tick();
+  assert.equal(s.posts.at(-1)[1].laToken, "b".repeat(64));
+  const sim = setup({ followPlan: PLAN, simulating: true });
+  await sim.b.init();
+  sim.shell.emit("apns", { token: "a".repeat(64), env: "production" }); await tick(); await tick();
+  assert.deepEqual(sim.posts, []); assert.equal(sim.b.sync(), null); assert.deepEqual(await sim.b.cached(), []);
+});

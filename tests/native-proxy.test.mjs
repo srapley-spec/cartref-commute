@@ -156,7 +156,7 @@ test("Scheduler: the snapshot goes to the Live Activity and the app when it chan
     // 18:23: the alarm's own time (the "Leave in 5 min" alert isn't sent: the alarm is the reminder).
     pushes.length = 0;
     await runNative(env, at(DAY, "18:23"));
-    assert.deepEqual(pushes.map(p => p.headers["apns-push-type"]), []);
+    assert.ok(!pushes.some(p => p.headers["apns-push-type"] === "alert"), "no alert (the fresh-data re-send may go)");
   }, { board: () => gnBoard("18:54") });
   // 18:24: back to 2 min late: Leave by 18:24, earlier by 4 min: the "Leave now" alert in the web's words.
   await withFeeds(async ({ pushes }) => {
@@ -265,7 +265,83 @@ test("Scheduler: a token Apple says is gone is dropped (the iPhone, or just its 
     assert.equal(sent.filter(s => s.kind === "background").length, 2);
   }, { board: () => gnBoard(), apnsStatus: (p) => (p.headers["apns-push-type"] === "liveactivity" && p.url.endsWith(LA) ? 410 : 200) });
   await follow(env, a, { ...PLAN, followId: "f3" });
-  await withFeeds(async () => { await runNative(env, at(DAY, "18:02")); }, { board: () => gnBoard(), apnsStatus: (p) => (p.headers["apns-push-type"] === "background" ? 410 : 200) });
+  await withFeeds(async () => { await runNative(env, at(DAY, "18:01")); }, { board: () => gnBoard(), apnsStatus: (p) => (p.headers["apns-push-type"] === "background" ? 410 : 200) });
   assert.equal(env.PUSH.m.get(`nat:${a.id}`), undefined, "the iPhone is forgotten");
   assert.deepEqual(JSON.parse(env.PUSH.m.get("nats")), [b.id], "the other is kept (nothing new to send it)");
+});
+
+// ---- Independent review, 18 Nov: its bugs and surviving mutations ----
+test("Review: a cancellation seen just after the departure time ends the journey; it isn't undone later", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  await follow(env, me, PLAN, EXTRA, { setOff: true });
+  await withFeeds(async () => { await runNative(env, at(DAY, "18:47")); }, { board: () => gnBoard("On time", { platform: "9" }) });
+  await withFeeds(async ({ pushes }) => {
+    await runNative(env, at(DAY, "18:49"));
+    const la = pushes.find((p) => p.headers["apns-push-type"] === "liveactivity");
+    assert.equal(la.body.aps.event, "end"); assert.equal(la.body.aps["content-state"].phase, "cancelled");
+  }, { board: () => gnBoard("Cancelled", { cancelled: true }) });
+  assert.equal(rec(env, me.id).plan, null, "ended, so 18:52 can't bring back 'On time, last known'");
+});
+
+test("Review: on a steady board the snapshot is re-sent every 2 minutes, so the Live Activity's stale-date moves on", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  await follow(env, me);
+  await withFeeds(async ({ pushes }) => {
+    for (const hm of ["18:00", "18:01", "18:02", "18:03", "18:04", "18:05"]) await runNative(env, at(DAY, hm));
+    const stale = pushes.filter((p) => p.headers["apns-push-type"] === "liveactivity").map((p) => p.body.aps["stale-date"] * 1000);
+    assert.ok(stale.length >= 3, `re-sent (${stale.length})`);
+    for (let i = 1; i < stale.length; i++) assert.ok(stale[i] > stale[i - 1]);
+    // Between pushes the stale-date never falls behind the time of the next run.
+    assert.ok(stale.every((s, i) => i === stale.length - 1 || stale[i + 1] - 3 * MIN <= s));
+  }, { board: () => gnBoard() });
+});
+
+test("Review: a different train under the same follow id is a new journey: its setOff, state and Live Activity token start again", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  await follow(env, me, PLAN, EXTRA, { setOff: true });
+  assert.equal(rec(env, me.id).setOff, true);
+  await follow(env, me, { ...PLAN, std: "19:18", dep: at(DAY, "19:18"), leaveBy: at(DAY, "18:52") }, EXTRA, { setOff: false, laToken: undefined });
+  const r = rec(env, me.id);
+  assert.equal(r.setOff, false); assert.equal(r.la, null, "the old journey's Live Activity token isn't used for the new one"); assert.deepEqual(r.planState, {});
+});
+
+test("Review: Apple's 400 BadDeviceToken drops the iPhone, another 400 doesn't; alarm off and set off: no Leave alerts", async () => {
+  for (const [reason, gone] of [["BadDeviceToken", true], ["PayloadTooLarge", false]]) {
+    const { env } = await envWith();
+    const { body: me } = await register(env);
+    await follow(env, me);
+    const real = globalThis.fetch;
+    globalThis.fetch = async (u) => (String(u).includes("push.apple.com") ? new Response(JSON.stringify({ reason }), { status: 400 }) : new Response(JSON.stringify(gnBoard()), { status: 200 }));
+    try { await runNative(env, at(DAY, "18:00")); } finally { globalThis.fetch = real; }
+    assert.equal(env.PUSH.m.has(`nat:${me.id}`), !gone, reason);
+  }
+  const { env } = await envWith();
+  const { body: me } = await register(env, { prefs: { alarm: false } });
+  await follow(env, me, PLAN, EXTRA, { setOff: true });
+  await withFeeds(async ({ pushes }) => {
+    await runNative(env, at(DAY, "18:17")); await runNative(env, at(DAY, "18:24"));
+    assert.equal(pushes.filter((p) => p.headers["apns-push-type"] === "alert").length, 0);
+  }, { board: () => gnBoard() });
+});
+
+test("Review: evidence says the journey's set-off state; Wi-Fi and old reports are refused; a full list frees an idle iPhone", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  await follow(env, me, PLAN, EXTRA, { setOff: true });
+  const ev = (evidence) => worker.fetch(post("/native/evidence", { ...me, evidence }), env).then((r) => r.status === 200 ? r.json() : r.status);
+  const r = await ev({ kind: "region", place: "office", event: "enter", at: Date.now() });
+  assert.equal(r.setOff, true); assert.equal(r.snapshot.alarm.cancelled, true);
+  assert.equal(await ev({ kind: "wifi", place: "office", at: Date.now() }), 400);
+  assert.equal(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() - 7 * 3600e3 }), 400);
+  await follow(env, me, null);
+  assert.deepEqual(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() }), { ok: true, setOff: false, snapshot: null });
+  // Fill the list, age one: the next registration takes its place.
+  for (let i = 0; i < 9; i++) await register(env);
+  assert.equal((await register(env)).status, 429);
+  const old = rec(env, me.id); env.PUSH.m.set(`nat:${me.id}`, JSON.stringify({ ...old, seen: Date.now() - 31 * 86400e3 }));
+  assert.equal((await register(env)).status, 201);
+  assert.equal(env.PUSH.m.has(`nat:${me.id}`), false);
 });
