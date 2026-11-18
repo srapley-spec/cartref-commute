@@ -32,14 +32,18 @@ const lastSnap = (sh) => sh.calls.filter((x) => x[0] === "publish").at(-1)[1];
 test("In the iPhone app: the followed card's snapshot goes to the shell, Leave by then the platform, the alarm cancelled once set off", async () => {
   const sh = shell();
   const { app, P, place } = await homeward(sh);
-  assert.deepEqual(JSON.parse(JSON.stringify(sh.calls[0])), ["configure", { alarm: { alarm: true, alarmLeadMin: 5 }, wifi: { home: ["Panda"], office: ["Ciklum"] } }]);
+  const cfg = JSON.parse(JSON.stringify(sh.calls[0]));
+  assert.equal(cfg[0], "configure"); assert.equal(cfg[1].v, 1); assert.deepEqual(cfg[1].alarm, { alarm: true, alarmLeadMin: 5 });
+  assert.deepEqual(cfg[1].wifi, { home: ["Panda"], office: ["Ciklum"] });
+  assert.deepEqual(cfg[1].regions.map((r) => [r.place, r.radiusM]), [["home", 150], ["office", 150]], "home and office, 150 m");
   place(1, P.places.office); await flush();
   let s = lastSnap(sh);
   assert.equal(s.v, 1); assert.equal(s.source, "page"); assert.equal(s.phase, "leave"); assert.equal(s.direction, "home");
   assert.equal(s.headline.label, "Leave by"); assert.equal(s.headline.countdown.step, "leave");
   assert.equal(s.headline.t, Number(app.d.querySelector("#followPanel .journey-heading").dataset.left));
   assert.equal(s.train.platform, "4"); assert.equal(s.train.late, 7); assert.equal(s.train.scheduled, T0 + 30 * m); assert.equal(s.train.expected, T0 + 37 * m);
-  assert.equal(s.alarm.cancelled, false); assert.equal(s.alarm.leadMin, 5);
+  assert.equal(s.alarm.cancelled, false); assert.equal(s.alarm.leadMin, 5); assert.equal(s.alarm.cancelOnExit, "office");
+  assert.equal(s.confirmed, false);
   assert.equal(s.stale, false);
   const n = sh.calls.length;
   place(1.1, P.places.office); await flush();
@@ -65,7 +69,8 @@ test("In the iPhone app: office Wi-Fi is a position at the office; settings save
   app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true }));
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(c.S().leaveAlarmMin, 1);
-  assert.deepEqual(JSON.parse(JSON.stringify(sh.calls.filter((x) => x[0] === "configure").at(-1)[1])), { alarm: { alarm: true, alarmLeadMin: 1 }, wifi: { home: ["Panda", "Home"], office: ["Ciklum"] } });
+  assert.deepEqual(JSON.parse(JSON.stringify(sh.calls.filter((x) => x[0] === "configure").at(-1)[1])).alarm, { alarm: true, alarmLeadMin: 1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(sh.calls.filter((x) => x[0] === "configure").at(-1)[1])).wifi, { home: ["Panda", "Home"], office: ["Ciklum"] });
   assert.deepEqual(app.errors, []); app.close();
 });
 

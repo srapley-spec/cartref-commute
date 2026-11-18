@@ -138,8 +138,9 @@ test("Scheduler: the snapshot goes to the Live Activity and the app when it chan
     assert.match(la.headers.authorization, /^bearer [\w-]+\.[\w-]+\.[\w-]+$/);
     const snap = la.body.aps["content-state"];
     assert.equal(la.body.aps.event, "update");
+    assert.equal(la.body.aps["stale-date"], Math.floor((at(DAY, "18:00") + 3 * MIN) / 1000), "stale-date = data + 3 min");
     assert.equal(snap.phase, "leave"); assert.equal(snap.headline.label, "Leave by"); assert.equal(snap.headline.t, at(DAY, "18:22"));
-    assert.deepEqual(snap.alarm, { at: at(DAY, "18:17"), leadMin: 5, cancelled: false });
+    assert.deepEqual(snap.alarm, { at: at(DAY, "18:17"), leadMin: 5, cancelled: false, cancelOnExit: "office" });
     assert.deepEqual(snap.arrive, { label: "At home", t: at(DAY, "19:34") });
     assert.deepEqual(bg.body.snapshot, snap);
     // 18:01: nothing shown has changed: nothing sent.
@@ -192,7 +193,10 @@ test("Scheduler: leaving the office's geofence is set off: the alarm is cancelle
     assert.equal(rec(env, me.id).setOff, false);
   }
   const r = await worker.fetch(post("/native/evidence", { ...me, evidence: { kind: "region", place: "office", event: "exit", at: Date.now() } }), env);
-  assert.deepEqual(await r.json(), { ok: true, setOff: true });
+  const reply = await r.json();
+  assert.equal(reply.setOff, true);
+  // The reply carries the snapshot now: the alarm cancelled, no waiting for a background push (§6.7 rule 3).
+  assert.equal(reply.snapshot.phase, "platform"); assert.equal(reply.snapshot.alarm.cancelled, true); assert.equal(reply.snapshot.alarm.cancelOnExit, "office");
   assert.equal(rec(env, me.id).setOff, true);
   assert.equal((await worker.fetch(post("/native/evidence", { ...me, evidence: { kind: "region", place: "office", event: "exit", at: Date.now() + 2 * MIN } }), env)).status, 400, "from the future");
   await withFeeds(async ({ pushes }) => {

@@ -11,6 +11,9 @@ function fakeShell(caps = { v: 1, liveActivity: true, alarm: true, geofence: tru
   const calls = [], listeners = {};
   const plugin = {
     capabilities: async () => caps,
+    ready: async (x) => { calls.push(["ready", x]); },
+    cached: async () => ({ entries: [{ key: "boards", v: 1, dataAt: 1, savedAt: 2, value: {} }] }),
+    request: async (x) => { calls.push(["request", x]); },
     publish: async (x) => { calls.push(["publish", x]); },
     configure: async (x) => { calls.push(["configure", x]); },
     cache: async (x) => { calls.push(["cache", x]); },
@@ -31,6 +34,7 @@ function setup({ shell = fakeShell(), native = true, settings = {}, snapshot, fo
   };
   let snap = snapshot || null, plan = followPlan || null;
   const b = nativeBridge.create({ win, core, S: () => store.settings, saved: () => store, save: () => {}, proxyBase: () => "https://proxy.test/",
+    regions: () => [{ place: "home", lat: 51.98, lon: -0.23, radiusM: 150 }],
     snapshot: () => snap, followPlan: () => plan, simulating: () => simulating, onEvidence: (e) => evidence.push(e), status: () => {} });
   return { b, shell, posts, store, evidence, win, setSnap: (s) => { snap = s; }, setPlan: (p) => { plan = p; } };
 }
@@ -50,10 +54,13 @@ test("Bridge in a browser: no shell, nothing happens and nothing is sent", async
 test("Bridge: the shell gets the Settings (alarm, Wi-Fi name prefixes; defaults Panda and Ciklum)", async () => {
   const { b, shell } = setup();
   await b.init();
-  assert.deepEqual(shell.calls[0], ["configure", { alarm: { alarm: true, alarmLeadMin: 5 }, wifi: { home: ["Panda"], office: ["Ciklum"] } }]);
+  assert.deepEqual(shell.calls[0], ["configure", { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: true, alarmLeadMin: 5 },
+    wifi: { home: ["Panda"], office: ["Ciklum"] }, regions: [{ place: "home", lat: 51.98, lon: -0.23, radiusM: 150 }] }]);
+  assert.deepEqual(shell.calls[1], ["ready", { v: 1 }], "ready after listening and configuring: the shell replays what it held");
+  // Alarm off: no geofences.
   const s = setup({ settings: { leaveAlarm: false, leaveAlarmMin: 1, wifiHome: "Panda, Home ,", wifiOffice: "" } });
   await s.b.init();
-  assert.deepEqual(s.shell.calls[0][1], { alarm: { alarm: false, alarmLeadMin: 1 }, wifi: { home: ["Panda", "Home"], office: [] } });
+  assert.deepEqual(s.shell.calls[0][1], { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: false, alarmLeadMin: 1 }, wifi: { home: ["Panda", "Home"], office: [] }, regions: [] });
 });
 
 test("Bridge: the snapshot is published when what it shows changes, not on every render; never in a simulation", async () => {
@@ -80,6 +87,7 @@ test("Bridge: with an APNs token the iPhone registers with the proxy, then the f
   await tick(); await tick();
   assert.deepEqual(s.posts[0], ["https://proxy.test/native/register", { apnsToken: "a".repeat(64), env: "production", prefs: { alarm: true, alarmLeadMin: 5 } }]);
   assert.deepEqual(s.store.native, { id: "i1", token: "t1" });
+  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "configure").at(-1)[1].device, { id: "i1", token: "t1" }, "the shell gets the registration for Keychain");
   assert.deepEqual(s.posts[1], ["https://proxy.test/native/follow", { id: "i1", token: "t1", plan: PLAN.plan, extra: PLAN.extra, setOff: false }]);
   s.b.sync(); assert.equal(s.posts.length, 2, "no change, no post");
   // The Live Activity's own push token, then set off: each is a change.
@@ -106,7 +114,12 @@ test("Bridge: Wi-Fi and geofence events reach the page as evidence (never in a s
   // Offline cache: only when the shell keeps one.
   s.b.cache([{ kind: "snapshot", dataAt: 1 }]);
   assert.deepEqual(s.shell.calls.at(-1), ["cache", { entries: [{ kind: "snapshot", dataAt: 1 }] }]);
+  assert.deepEqual(await s.b.cached(), [{ key: "boards", v: 1, dataAt: 1, savedAt: 2, value: {} }]);
+  await s.b.request("location");
+  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "request"), [["request", { permission: "location" }]]);
+  assert.equal(await s.b.request("camera"), null, "only notifications and location");
   const noOffline = setup({ shell: fakeShell({ v: 1, offline: false }) });
   await noOffline.b.init();
   assert.equal(noOffline.b.cache([]), null);
+  assert.deepEqual(await noOffline.b.cached(), []);
 });

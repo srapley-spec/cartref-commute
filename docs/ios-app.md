@@ -241,9 +241,10 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    "When in use" the alarm still works but doesn't cancel itself while the app is closed. In a simulation the page
    never publishes, registers, caches or syncs.
 
-Still to build on this side for the contract: `ready`/`cached`/`request` in the bridge, `configure` with proxy, device
-and regions, `cancelOnExit`, `confirmed`, `staleAt`, evidence reply with snapshot, Trip snapshots (page and proxy), the
-fixtures, and the `commute://next` deep link.
+Built on this side (18 Nov, `feature/native-prep`): `ready`/`cached`/`request` in the bridge, `configure` with proxy,
+device and regions, `cancelOnExit`, `confirmed`, `staleAt` (and the Live Activity stale-date from it), the evidence reply
+with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/status kept for offline launch. Still to
+build: Trip snapshots (page and proxy), the fixtures, and the `commute://next` deep link.
 
 ## 7. Testing
 - **This repo's agent:** engine tests for the snapshot (every phase; stale data; alarm present, moved and cancelled);

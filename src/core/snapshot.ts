@@ -27,10 +27,16 @@ export const COUNTDOWN_WORDS: Record<string, { calm: string; urgent: string; pas
 export type SnapshotPhase = "leave" | "walk" | "platform" | "train" | "tube" | "walk-last" | "arrived" | "missed" | "cancelled";
 export type SnapshotStep = "leave" | "platform" | "arrive" | "next" | "";
 
-export interface LeaveAlarm { at: number; leadMin: number; cancelled: boolean }
+export interface LeaveAlarm { at: number; leadMin: number; cancelled: boolean;
+  /** The geofence whose exit cancels this alarm on the phone with no network (§6.7 rule 3): where the journey starts. */
+  cancelOnExit?: "home" | "office" | null }
 export interface JourneySnapshot {
   v: 1; at: number; source: "page" | "proxy";
   dataAt: number | null; stale: boolean;
+  /** When the data becomes stale (dataAt + 3 min): the Live Activity's stale-date (§6.7 rule 5). */
+  staleAt: number | null;
+  /** Boarding confirmed by the page's boarding check; the proxy never confirms (§6.7 rule 4). */
+  confirmed: boolean;
   mode: string; direction: "office" | "home"; followId: string | null;
   phase: SnapshotPhase;
   headline: { label: string; t: number | null; countdown: { step: SnapshotStep; calm: string; urgent: string; passed: string } | null };
@@ -52,6 +58,7 @@ export interface SnapshotInput {
   progress?: { next?: string | null; stopsToGo?: number | null; line?: string } | null;
   status?: JourneySnapshot["status"];
   alarm?: LeaveAlarm | null;
+  confirmed?: boolean;
 }
 
 const fin = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
@@ -66,13 +73,14 @@ export function platformLabelText(platform: string | null | undefined, station: 
  * the place you start from). None when it's off, when there's no leave time, or when the leave time passed more than
  * LEAVE_ALARM_GRACE_MS ago without you leaving.
  */
-export function leaveAlarm(leaveAt: number | null | undefined, opts: { enabled: boolean; leadMin?: number; setOff: boolean; now: number }): LeaveAlarm | null {
+export function leaveAlarm(leaveAt: number | null | undefined, opts: { enabled: boolean; leadMin?: number; setOff: boolean; now: number; startPlace?: string | null }): LeaveAlarm | null {
   if (!opts.enabled || !fin(leaveAt)) return null;
   const leadMin = fin(opts.leadMin) && opts.leadMin >= 0 && opts.leadMin <= 60 ? Math.round(opts.leadMin) : LEAVE_ALARM_DEFAULT_MIN;
   const at = leaveAt - leadMin * 60e3;
-  if (opts.setOff) return { at, leadMin, cancelled: true };
+  const cancelOnExit = opts.startPlace === "home" || opts.startPlace === "office" ? opts.startPlace : null;
+  if (opts.setOff) return { at, leadMin, cancelled: true, cancelOnExit };
   if (opts.now > leaveAt + LEAVE_ALARM_GRACE_MS) return null;
-  return { at, leadMin, cancelled: false };
+  return { at, leadMin, cancelled: false, cancelOnExit };
 }
 
 /** The snapshot itself: checked, with the countdown words, stale marking and deep link filled in. */
@@ -85,7 +93,8 @@ export function journeySnapshot(i: SnapshotInput): JourneySnapshot {
     : null;
   return {
     v: SNAPSHOT_VERSION, at: i.now, source: i.source,
-    dataAt, stale: dataAt == null || i.now - dataAt > SNAPSHOT_STALE_MS,
+    dataAt, stale: dataAt == null || i.now - dataAt > SNAPSHOT_STALE_MS, staleAt: dataAt == null ? null : dataAt + SNAPSHOT_STALE_MS,
+    confirmed: i.source === "page" && !!i.confirmed,
     mode: i.mode, direction: i.direction, followId: i.followId || null,
     phase: i.phase,
     headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
@@ -109,6 +118,8 @@ export interface NativePlanExtra {
   afterMs?: number;
   /** "At home" / "At office". */
   arriveLabel?: string;
+  /** Where the journey starts ("home", "office", or a station's CRS): its geofence exit is set off. */
+  startPlace?: string;
 }
 
 /**
@@ -140,7 +151,7 @@ export function proxySnapshot(plan: LeaveAlertPlan & NativePlanExtra, state: Nat
   const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
   if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
   if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
-  const alarm = leaveAlarm(leaveBy, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now });
+  const alarm = leaveAlarm(leaveBy, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now, startPlace: plan.startPlace });
   if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
   return journeySnapshot({ ...base, phase: "leave", headline: { label: "Leave by", t: leaveBy, step: "leave" }, arrive: arriveOut, alarm });
 }
@@ -149,13 +160,13 @@ export type NativeState = LeaveAlertState & { lastArr?: number; lastPlatform?: s
 /** Every instant in a snapshot moved by `d` ms (the proxy runs the engine in London time and stores real time). */
 export function shiftSnapshot(s: JourneySnapshot, d: number): JourneySnapshot {
   const m = (t: number | null) => (t == null ? t : t + d);
-  return { ...s, at: s.at + d, dataAt: m(s.dataAt), headline: { ...s.headline, t: m(s.headline.t) }, arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
+  return { ...s, at: s.at + d, dataAt: m(s.dataAt), staleAt: m(s.staleAt), headline: { ...s.headline, t: m(s.headline.t) }, arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
     train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) }, alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d } };
 }
 /** The parts of a snapshot a native surface shows: a change in any of them is worth a push; a new `at` alone isn't. */
 export function snapshotShown(s: JourneySnapshot | null | undefined): string {
   if (!s) return "none";
-  return JSON.stringify([s.phase, s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
+  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
     s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);
 }
 

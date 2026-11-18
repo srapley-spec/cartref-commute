@@ -2318,7 +2318,7 @@ function tick(){
 
 // ---------- Data refresh ----------
 // Successful train data is stamped; when a later load fails the last good data stays on screen, marked stale.
-function setBoards(b,retained=[]){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); state.followFailedBoards=retained; }
+function setBoards(b,retained=[]){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); state.followFailedBoards=retained; if(S().provider==="proxy") try{ nativeCacheNow(); }catch(e){} }
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
  const epoch=sourceEpoch;
@@ -2695,15 +2695,28 @@ function nativeSnapshot(){
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:STATIONS[t.from]||HUB_NAME[t.from]||t.from,to:STATIONS[t.to]||HUB_NAME[t.to]||t.to,platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
     status:status?{level:status.level,text:status.text}:null,
-    alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now()})});
+    // Boarding is confirmed only by the page's own boarding check (the route is on or past the train).
+    confirmed:['on-train','after-train','arrived'].includes(r.phase),
+    alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
 }
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
+  regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
   onResume:()=>refresh({force:true}), status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
-native.init().then(caps=>{ if(caps){ document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
+// Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
+// them (with their age, as any old data) until the first refresh lands.
+function nativeCacheNow(){ if(!state.boards||!state.boardsAt) return; native.cache([{key:"boards",v:1,dataAt:state.boardsAt,savedAt:Date.now(),value:state.boards},
+  ...(state.status&&state.statusAt?[{key:"status",v:1,dataAt:state.statusAt,savedAt:Date.now(),value:state.status}]:[])]); }
+async function nativeHydrate(){
+  const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
+  const b=get("boards"), st=get("status");
+  if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
+  if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
+}
+native.init().then(async caps=>{ if(caps){ await nativeHydrate(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;

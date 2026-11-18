@@ -46,12 +46,12 @@ test("Platform label: names the platform once it's announced, the station always
 
 test("Leave alarm: lead before leave time (5 min default), cancelled once set off, gone 2 min after a missed leave time", () => {
   const leave = at(DAY, "18:36");
-  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, setOff: false, now: at(DAY, "18:00") }), { at: at(DAY, "18:31"), leadMin: 5, cancelled: false });
-  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, leadMin: 1, setOff: false, now: at(DAY, "18:00") }), { at: at(DAY, "18:35"), leadMin: 1, cancelled: false });
+  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, setOff: false, now: at(DAY, "18:00") }), { at: at(DAY, "18:31"), leadMin: 5, cancelled: false, cancelOnExit: null });
+  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, leadMin: 1, setOff: false, now: at(DAY, "18:00") }), { at: at(DAY, "18:35"), leadMin: 1, cancelled: false, cancelOnExit: null });
   assert.equal(core.leaveAlarm(leave, { enabled: true, leadMin: 0, setOff: false, now: at(DAY, "18:00") }).at, leave);
   // A nonsense lead falls back to the default.
   for (const leadMin of [-1, 61, NaN, "5"]) assert.equal(core.leaveAlarm(leave, { enabled: true, leadMin, setOff: false, now: at(DAY, "18:00") }).leadMin, 5);
-  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, setOff: true, now: at(DAY, "18:33") }), { at: at(DAY, "18:31"), leadMin: 5, cancelled: true });
+  assert.deepEqual(core.leaveAlarm(leave, { enabled: true, setOff: true, now: at(DAY, "18:33") }), { at: at(DAY, "18:31"), leadMin: 5, cancelled: true, cancelOnExit: null });
   assert.equal(core.leaveAlarm(leave, { enabled: true, setOff: false, now: leave + 2 * MIN }).cancelled, false);
   assert.equal(core.leaveAlarm(leave, { enabled: true, setOff: false, now: leave + 2 * MIN + 1 }), null);
   assert.equal(core.leaveAlarm(leave, { enabled: false, setOff: false, now: at(DAY, "18:00") }), null);
@@ -62,7 +62,13 @@ test("Proxy snapshot before you leave: Leave by, the alarm, the train and the do
   const s = core.proxySnapshot(plan(), {}, tl({ arr: at(DAY, "19:40") }), opts());
   assert.equal(s.source, "proxy"); assert.equal(s.phase, "leave"); assert.equal(s.stale, false);
   assert.deepEqual(s.headline, { label: "Leave by", t: at(DAY, "18:36"), countdown: { step: "leave", ...core.COUNTDOWN_WORDS.leave } });
-  assert.deepEqual(s.alarm, { at: at(DAY, "18:31"), leadMin: 5, cancelled: false });
+  assert.deepEqual(s.alarm, { at: at(DAY, "18:31"), leadMin: 5, cancelled: false, cancelOnExit: null });
+  // The journey starts at the office: its geofence exit cancels the alarm on the phone (§6.7 rule 3).
+  assert.equal(core.proxySnapshot(plan({ startPlace: "office" }), {}, tl(), opts()).alarm.cancelOnExit, "office");
+  assert.equal(core.proxySnapshot(plan({ startPlace: "ZFD" }), {}, tl(), opts()).alarm.cancelOnExit, null);
+  // Freshness and boarding: stale at data + 3 min; the proxy never confirms boarding.
+  assert.equal(s.staleAt, at(DAY, "18:22")); assert.equal(s.confirmed, false);
+  assert.equal(core.proxySnapshot(plan(), {}, tl(), opts({ now: dep + 60e3 })).confirmed, false);
   assert.deepEqual(s.arrive, { label: "At home", t: at(DAY, "19:52") });
   assert.deepEqual(s.train, { name: "18:56 Thameslink", from: "Farringdon", to: "Letchworth Garden City", platform: null, scheduled: dep, expected: dep, late: 0 });
   assert.deepEqual(s.status, { level: "ok", text: "On time" });
@@ -153,4 +159,14 @@ test("Snapshot shifted in time keeps every instant in step; what's shown ignores
   assert.equal(core.snapshotShown({ ...s, at: s.at + 30e3 }), core.snapshotShown(s));
   assert.notEqual(core.snapshotShown(core.proxySnapshot(plan(), {}, tl({ platform: "5" }), opts())), core.snapshotShown(s));
   assert.equal(core.snapshotShown(null), "none");
+});
+
+test("Snapshot: only the page confirms boarding; a change of journey or progress is a change even with the same times", () => {
+  const base = { now: 0, dataAt: 0, mode: "commute", direction: "home", followId: "f1", phase: "train", headline: { label: "At Letchworth", t: 5e6, step: "arrive" } };
+  assert.equal(core.journeySnapshot({ ...base, source: "page", confirmed: true }).confirmed, true);
+  assert.equal(core.journeySnapshot({ ...base, source: "proxy", confirmed: true }).confirmed, false);
+  const a = core.journeySnapshot({ ...base, source: "page" });
+  assert.notEqual(core.snapshotShown({ ...a, followId: "f2" }), core.snapshotShown(a));
+  assert.notEqual(core.snapshotShown(core.journeySnapshot({ ...base, source: "page", progress: { next: "Stevenage", stopsToGo: 2 } })), core.snapshotShown(a));
+  assert.notEqual(core.snapshotShown(core.journeySnapshot({ ...base, source: "page", confirmed: true })), core.snapshotShown(a));
 });

@@ -101,9 +101,10 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     const ev = cleanEvidence(b.evidence, now);
     if (!ev) return json({ error: "Bad evidence" }, 400, cors);
     const setOff = !!rec.plan && C.evidenceSetOff(ev, rec.extra && rec.extra.startPlace, rec.followedAt || 0, now);
-    // Only a change is written; the next scheduler run pushes the new snapshot (the alarm cancelled).
+    // Only a change is written. The reply carries the snapshot now (§6.7 rule 3: no waiting for a background push),
+    // from what the proxy last saw; the next scheduler run pushes it to the Live Activity.
     if (setOff && !rec.setOff) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, setOff: true }));
-    return json({ ok: true, setOff }, 200, cors);
+    return json({ ok: true, setOff, snapshot: rec.plan ? snapshotNow({ ...rec, setOff: setOff || !!rec.setOff }, now) : null }, 200, cors);
   }
   // unregister
   await env.PUSH.delete(`nat:${rec.id}`);
@@ -151,9 +152,18 @@ export const apnsPayloads = {
   alert: n => ({ aps: { alert: { title: n.title, body: n.body }, sound: "default", "thread-id": n.tag }, kind: n.kind }),
   background: snap => ({ aps: { "content-available": 1 }, snapshot: snap }),
   liveActivity: (snap, end, nowMs) => ({ aps: { timestamp: Math.floor(nowMs / 1000), event: end ? "end" : "update", "content-state": snap,
-    ...(end ? { "dismissal-date": Math.floor(nowMs / 1000) + 15 * 60 } : { "stale-date": Math.floor(nowMs / 1000) + 5 * 60 }) } }),
+    // The stale-date is the snapshot's own staleAt (data + 3 min; §6.7 rule 5).
+    ...(end ? { "dismissal-date": Math.floor(nowMs / 1000) + 15 * 60 } : { "stale-date": Math.floor((snap.staleAt || nowMs) / 1000) }) } }),
 };
 
+/** The snapshot from stored state alone (no board fetch), in real time. */
+function snapshotNow(rec, now) {
+  const d = londonShift(now), lnow = now + d;
+  const plan = { ...shiftPlan(rec.plan, d), ...(rec.extra || {}) };
+  const snap = C.proxySnapshot(plan, shiftNativeState(rec.planState, d), null, { now: lnow, dataAt: Number.isFinite(rec.dataAt) ? rec.dataAt + d : null,
+    setOff: !!rec.setOff, alarm: { enabled: rec.prefs ? rec.prefs.alarm : true, leadMin: rec.prefs ? rec.prefs.alarmLeadMin : undefined } });
+  return C.shiftSnapshot(snap, -d);
+}
 const shiftNativeState = (s, d) => {
   const out = shiftState(s, d);
   if (Number.isFinite(out.lastArr)) out.lastArr += d;
