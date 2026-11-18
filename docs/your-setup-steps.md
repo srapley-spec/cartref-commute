@@ -87,7 +87,8 @@ were sent with Marketing access limited to Commute. The internal
 Family group is created with automatic distribution enabled and Sam enrolled. Builds are distributed internally
 by the TestFlight workflow after the full main Tests run passes.
 Sam authorized shell/pipeline work, now in progress on top of the green no-setup release (`af09273`).
-Native journey features await released contracts. Apple review submission must wait until the app is working.
+The native contracts and proxy routes were released at `9628132` on 18 November. Native implementation and
+physical-iPhone acceptance are in progress; the remaining two contract questions are on issue #58. Apple review submission must wait until the app is working.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.

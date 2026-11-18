@@ -34,7 +34,7 @@ for home/office region monitoring. Internal TestFlight only; no Apple review sub
 - Supported capabilities are separate from permission state. Only Settings `request` calls may prompt. Permission
   denial and deferred Always authorization must not leave bridge calls hanging or initiate a prompt loop.
 
-## Checks and current limits
+## Tests
 `ios/NativeCore` isolates transport/state rules from Apple APIs for fast Swift tests. Its state tests cover
 ordering, stop/switch/restart, tombstone expiry, offline cancellation, transactional cache limits, file corruption,
 event replay, configuration/privacy and unknown versions. `EngineFixtureTests` decodes the owner's actual snapshots
@@ -70,3 +70,28 @@ updates queued at worker completion, disable/exit during suspended alarm schedul
 journey switching during suspended activity update, newer APNs content, background start restriction and permissions/
 OS failure. Independent review identified the completed-worker and duplicate-end races; their fixes still await
 mutation review. Apple surface capability flags remain disabled pending full integration and the two contract answers.
+
+
+## Extension signing
+The Live Activity identifier is `uk.cartref.srapley.commute.journey` (`XSV67947FQ`). Its App Store profile is
+**Cartref Commute Journey App Store**, UUID `bc576c7f-d85a-4998-9da2-ee68f4a47e4c`, using the existing distribution
+certificate. No new Apple API or push key was created. TestFlight needs `IOS_ACTIVITY_PROFILE_BASE64` alongside
+the app profile. The release script validates both profiles before archiving, installs them with private temporary
+filenames, and removes both after success, failure or cancellation. The exported IPA must contain exactly one
+WidgetKit extension with the correct identifier, iOS 27 minimum and matching build number. Both code-signing
+entitlement sets are validated; the app must retain production push, App Group, Wi-Fi, Siri and time-sensitive access.
+`tests/ios-release.test.mjs` exercises wrong profiles, expiration, missing capabilities, wrong extension metadata,
+substituted page content and cleanup. Real signed export remains to verify before release.
+
+A further review probe caught newer ActivityKit cancellation being handed to the runtime while the coordinator
+still scheduled the older alarm. The coordinator now applies the same validated ordering rule to its transport
+state before alarm work, then informs the runtime. Tests cover the newer cancellation and reject unknown-version
+activity content without cancelling a valid current alarm. Both original lifecycle races and all eight foundation
+mutation survivors are now covered; independent review continues on the complete platform coordinator.
+
+Engine cancellation, alarm disable, permission loss and a changed alarm directive now invalidate an existing
+alarm synchronously when accepted, before waiting for ActivityKit. Review reproduced an old alarm remaining armed
+through a suspended activity update; an intermediate-state regression now checks the cancellation before that
+update resumes. A separate regression checks cancellation immediately after a superseded schedule returns,
+while the next activity update is still suspended. The extension profile secret was provisioned and confirmed
+through GitHub's encrypted-secret API on 18 November; no new Apple API/push key was needed.

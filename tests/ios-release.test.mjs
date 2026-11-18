@@ -9,12 +9,15 @@ import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { verifyBundle } from '../ios/scripts/verify-bundle.mjs';
+import { signingTargets, verifyProfile } from '../ios/scripts/signing-policy.mjs';
 
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
 const sha = 'a'.repeat(40);
-const secretNames = ['ASC_API_KEY_P8', 'IOS_DISTRIBUTION_P12_BASE64', 'IOS_DISTRIBUTION_P12_PASSWORD', 'IOS_APP_PROFILE_BASE64'];
+const secretNames = ['ASC_API_KEY_P8', 'IOS_DISTRIBUTION_P12_BASE64', 'IOS_DISTRIBUTION_P12_PASSWORD', 'IOS_APP_PROFILE_BASE64', 'IOS_ACTIVITY_PROFILE_BASE64'];
 const plist = { CFBundleIdentifier: 'uk.cartref.srapley.commute', MinimumOSVersion: '27.0', CFBundleVersion: '4', UIDeviceFamily: [1] };
 const config = { server: { hostname: 'localhost', iosScheme: 'capacitor' } };
+const extensionPlist = { ...plist, CFBundleIdentifier: 'uk.cartref.srapley.commute.journey', NSExtension: { NSExtensionPointIdentifier: 'com.apple.widgetkit-extension' } };
+const distributionEntitlements = target => ({ 'application-identifier': `TU7MLARY49.${target.bundleId}`, 'com.apple.developer.team-identifier': 'TU7MLARY49', 'get-task-allow': false, ...(target.app ? { 'aps-environment': 'production', 'com.apple.security.application-groups': ['group.uk.cartref.srapley.commute'], 'com.apple.developer.networking.wifi-info': true, 'com.apple.developer.siri': true, 'com.apple.developer.usernotifications.time-sensitive': true } : {}) });
 const html = '<html><body>A synthetic committed page</body></html>';
 const provenance = { sourceSHA: sha, pageSHA256: createHash('sha256').update(html).digest('hex') };
 
@@ -34,10 +37,12 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
   const bin = path.join(dir, 'bin');
   await mkdir(path.join(app, 'public'), { recursive: true });
   await mkdir(bin);
+  await mkdir(path.join(app, 'PlugIns/CommuteJourney.appex'), { recursive: true });
   // Stub only platform tools; exercise the actual verifier against real filesystem fixtures.
-  await executable(path.join(bin, 'plutil'), `process.stdout.write(require('fs').readFileSync(process.argv.at(-1)));`);
+  await executable(path.join(bin, 'plutil'), `process.stdout.write(require('fs').readFileSync(process.argv.at(-1) === '-' ? 0 : process.argv.at(-1)));`);
   await executable(path.join(bin, 'codesign'), `
     const fs = require('fs'), path = require('path');
+    if (process.argv.includes('--display')) { process.stdout.write(fs.readFileSync(path.join(process.argv.at(-1), 'entitlements.json'))); process.exit(0); }
     if (!process.argv.includes('--verify') || !process.argv.includes('--strict')) process.exit(2);
     if (fs.existsSync(path.join(process.argv.at(-1), 'reject-signature'))) process.exit(1);
   `);
@@ -48,6 +53,9 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
   await writeFile(path.join(dir, 'index.html'), html);
   async function reset() {
     await write('Info.plist', plist);
+    await write('PlugIns/CommuteJourney.appex/Info.plist', extensionPlist);
+    await write('entitlements.json', distributionEntitlements(signingTargets[0]));
+    await write('PlugIns/CommuteJourney.appex/entitlements.json', distributionEntitlements(signingTargets[1]));
     await write('public/index.html', html);
     await write('public/build-provenance.json', provenance);
     await write('capacitor.config.json', config);
@@ -66,6 +74,11 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
     ['remote start URL', 'capacitor.config.json', { server: { ...config.server, url: 'https://example.invalid/' } }, /bundled website/],
     ['different hostname', 'capacitor.config.json', { server: { ...config.server, hostname: 'elsewhere' } }, /bundled website/],
     ['different scheme', 'capacitor.config.json', { server: { ...config.server, iosScheme: 'https' } }, /bundled website/],
+    ['wrong extension identifier', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, CFBundleIdentifier: 'another.extension' }, /journey extension/],
+    ['wrong extension build', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, CFBundleVersion: '3' }, /journey extension/],
+    ['wrong extension type', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, NSExtension: {} }, /journey extension/],
+    ['extension signed for development', 'PlugIns/CommuteJourney.appex/entitlements.json', { ...distributionEntitlements(signingTargets[1]), 'get-task-allow': true }, /entitlements/],
+    ['missing app push capability', 'entitlements.json', { ...distributionEntitlements(signingTargets[0]), 'aps-environment': 'development' }, /capability/],
     ['invalid code signature', 'reject-signature', 'reject', /Command failed/]
   ];
   for (const [name, file, value, message] of cases) {
@@ -73,6 +86,12 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
     await write(file, value);
     await assert.rejects(verifyBundle(app, dir, sha, '4'), message, name);
   }
+  await reset();
+  await mkdir(path.join(app, 'PlugIns/Unrequested.appex'));
+  await assert.rejects(verifyBundle(app, dir, sha, '4'), /exactly one journey extension/);
+  await rm(path.join(app, 'PlugIns'), { recursive: true });
+  await mkdir(path.join(app, 'PlugIns'));
+  await assert.rejects(verifyBundle(app, dir, sha, '4'), /exactly one journey extension/);
 });
 
 async function releaseProbe(t, cancel, tampered = false) {
@@ -88,11 +107,7 @@ async function releaseProbe(t, cancel, tampered = false) {
     if (name.endsWith('.mjs')) await copyFile(path.join(sourceRoot, 'ios/scripts', name), path.join(scripts, name));
   }
   await writeFile(path.join(root, 'index.html'), html);
-  const profile = {
-    Name: 'Cartref Commute App Store', ExpirationDate: '2099-01-01T00:00:00Z',
-    Entitlements: { 'application-identifier': 'TU7MLARY49.uk.cartref.srapley.commute', 'get-task-allow': false,
-      'com.apple.security.application-groups': ['group.uk.cartref.srapley.commute'] }
-  };
+  const profiles = signingTargets.map(target => ({ Name: target.name, ExpirationDate: '2099-01-01T00:00:00Z', Entitlements: distributionEntitlements(target) }));
   await executable(path.join(bin, 'git'), `console.log('${sha}');`);
   await executable(path.join(bin, 'security'), `
     const fs = require('fs'), path = require('path');
@@ -104,7 +119,7 @@ async function releaseProbe(t, cancel, tampered = false) {
     if (command === 'create-keychain') fs.writeFileSync(args.at(-1), 'synthetic');
     if (command === 'delete-keychain') fs.rmSync(args.at(-1), { force: true });
   `);
-  await executable(path.join(bin, 'python3'), `process.stdout.write(${JSON.stringify(JSON.stringify(profile))});`);
+  await executable(path.join(bin, 'python3'), `process.stdout.write(JSON.stringify(${JSON.stringify(profiles)}[process.argv.at(-1).includes('activity-') ? 1 : 0]));`);
   await executable(path.join(bin, 'xcodebuild'), `
     const fs = require('fs'), path = require('path');
     const base = process.env.COMMUTE_PROBE;
@@ -149,6 +164,7 @@ async function releaseProbe(t, cancel, tampered = false) {
       COMMUTE_PROBE: dir, COMMUTE_PROBE_CANCEL: String(cancel), COMMUTE_PROBE_TAMPER: String(tampered), ASC_KEY_ID: 'SYNTHETIC',
       ASC_ISSUER_ID: 'synthetic-issuer', ASC_APP_ID: 'synthetic-app', ASC_API_KEY_P8: key,
       IOS_DISTRIBUTION_P12_BASE64: Buffer.from('synthetic').toString('base64'),
+      IOS_ACTIVITY_PROFILE_BASE64: Buffer.from('synthetic-activity').toString('base64'),
       IOS_DISTRIBUTION_P12_PASSWORD: 'synthetic-password', IOS_APP_PROFILE_BASE64: Buffer.from('synthetic').toString('base64')
     }
   });
@@ -179,9 +195,10 @@ async function releaseProbe(t, cancel, tampered = false) {
   assert.ok(code !== 0 || signal, 'Failed or cancelled archives cannot report release success.');
   if (tampered) assert.equal(sawTamperedPageError, true, 'Release must call the signed-IPA verifier before reporting success.');
   assert.deepEqual(await readdir(scratch), [], 'Signing key files and the temporary keychain must be removed.');
-  const profiles = path.join(fakeHome, 'Library/Developer/Xcode/UserData/Provisioning Profiles');
-  assert.deepEqual(await readdir(profiles), [], 'The installed temporary profile must be removed.');
+  const installedProfiles = path.join(fakeHome, 'Library/Developer/Xcode/UserData/Provisioning Profiles');
+  assert.deepEqual(await readdir(installedProfiles), [], 'The installed temporary profile must be removed.');
   const commands = (await readFile(path.join(dir, 'security.log'), 'utf8')).trim().split('\n');
+  assert.equal(commands.filter(command => command === 'cms').length, 2, 'Validate both signing profiles before archiving.');
   assert.ok(commands.includes('delete-keychain'), 'Remove the temporary keychain from Keychain Services.');
   assert.equal(commands.filter(command => command === 'list-keychains').length, 3, 'Read, update and restore the search list.');
   assert.deepEqual(JSON.parse(await readFile(path.join(dir, 'search-list.json'), 'utf8')), ['/synthetic/original.keychain-db'], 'Restore the exact original keychain search list.');
@@ -198,4 +215,19 @@ test('cancelled archives remove synthetic signing inputs and restore the keychai
 
 test('release rejects a substituted page in the exported IPA and cleans up signing inputs', { timeout: 180_000 }, async t => {
   await releaseProbe(t, false, true);
+});
+
+
+test('both signing profiles enforce App Store identity, expiration and native entitlements', () => {
+  for (const target of signingTargets) {
+    const valid = { Name: target.name, ExpirationDate: '2099-01-01T00:00:00Z', Entitlements: distributionEntitlements(target) };
+    assert.doesNotThrow(() => verifyProfile(valid, target, 1000));
+    for (const patch of [{ Name: 'Other profile' }, { ProvisionedDevices: ['device'] }, { ProvisionsAllDevices: true }, { ExpirationDate: 'invalid' }, { ExpirationDate: '1970-01-01T00:00:01Z' }]) {
+      assert.throws(() => verifyProfile({ ...valid, ...patch }, target, 1000));
+    }
+    for (const key of Object.keys(valid.Entitlements)) {
+      const entitlements = { ...valid.Entitlements }; delete entitlements[key];
+      assert.throws(() => verifyProfile({ ...valid, Entitlements: entitlements }, target, 1000), key);
+    }
+  }
 });

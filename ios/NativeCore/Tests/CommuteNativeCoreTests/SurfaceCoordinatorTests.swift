@@ -8,6 +8,8 @@ final class SurfaceCoordinatorTests: XCTestCase {
         let coordinator = SurfaceCoordinator(platform: platform)
         var next: Task<Void, Never>?
         platform.onCancel = {
+            // Ignore the synchronous invalidation; enqueue from the worker's final platform operation.
+            guard platform.cancelCount > 1 else { return }
             platform.onCancel = nil
             next = Task { @MainActor in await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true) }
         }
@@ -108,6 +110,83 @@ final class SurfaceCoordinatorTests: XCTestCase {
         platform.failSchedule = false
         await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true)
         XCTAssertEqual(platform.alarm, "A@3000.0")
+    }
+
+    func testNewerActivityCancellationCannotScheduleOlderAlarm() async throws {
+        let platform = SurfaceProbe(), state = try following()
+        var newer = try XCTUnwrap(state.current)
+        newer.at += 1; newer.alarm?.cancelled = true
+        platform.activities = [.init(id: "current", snapshot: newer)]
+        let coordinator = SurfaceCoordinator(platform: platform)
+        await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true)
+        XCTAssertEqual(platform.newer, [newer])
+        XCTAssertTrue(platform.scheduled.isEmpty, "Known newer engine cancellation must prevent an older alarm being scheduled during runtime hand-off.")
+        XCTAssertNil(platform.alarm)
+    }
+
+    func testUnsupportedActivityContentCannotCancelValidCurrentAlarm() async throws {
+        let platform = SurfaceProbe(), state = try following()
+        var unsupported = try XCTUnwrap(state.current)
+        unsupported.at += 1; unsupported.v = 2; unsupported.alarm?.cancelled = true
+        platform.activities = [.init(id: "current", snapshot: unsupported)]
+        let coordinator = SurfaceCoordinator(platform: platform)
+        await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true)
+        XCTAssertTrue(platform.newer.isEmpty)
+        XCTAssertEqual(platform.alarm, "A@3000.0")
+    }
+
+    func testChangedHeadlineClockRefreshesAlarmPresentationEvenWhenAlarmTimeIsUnchanged() async throws {
+        let platform = SurfaceProbe(); var state = try following()
+        let coordinator = SurfaceCoordinator(platform: platform)
+        await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true)
+        var changed = try XCTUnwrap(state.current); changed.at += 1; changed.headline.t = 5000
+        try state.apply(changed, fromPage: true, now: 1001)
+        await coordinator.update(state, alarmEnabled: true, notificationsAllowed: true)
+        XCTAssertEqual(platform.scheduled.count, 2)
+    }
+
+    func testLateAlarmIsCancelledBeforeNextActivityUpdateFinishes() async throws {
+        let platform = SurfaceProbe(), oldState = try following()
+        let old = try XCTUnwrap(oldState.current)
+        platform.activities = [.init(id: "current", snapshot: old)]
+        let coordinator = SurfaceCoordinator(platform: platform)
+        let scheduling = expectation(description: "Old alarm schedule suspended")
+        platform.pauseSchedule = true; platform.onSchedule = { scheduling.fulfill() }
+        let first = Task { await coordinator.update(oldState, alarmEnabled: true, notificationsAllowed: true) }
+        await fulfillment(of: [scheduling], timeout: 3)
+        var newer = old; newer.at += 1; newer.alarm?.at = 5000
+        var newState = oldState; try newState.apply(newer, fromPage: true, now: 1001)
+        let submitted = expectation(description: "New directive submitted")
+        let updating = expectation(description: "New activity update suspended")
+        platform.pauseActivity = true; platform.onActivity = { updating.fulfill() }
+        let second = Task { @MainActor in
+            submitted.fulfill()
+            await coordinator.update(newState, alarmEnabled: true, notificationsAllowed: true)
+        }
+        await fulfillment(of: [submitted], timeout: 3)
+        await Task.yield()
+        platform.releaseSchedule()
+        await fulfillment(of: [updating], timeout: 3)
+        XCTAssertNil(platform.alarm, "The superseded alarm must already be cancelled while the next ActivityKit update waits.")
+        platform.releaseActivity()
+        await first.value; await second.value
+        XCTAssertEqual(platform.alarm, "A@5000.0")
+    }
+
+    func testCancelledSnapshotCancelsBeforeActivityKitCompletes() async throws {
+        let platform = SurfaceProbe(), oldState = try following()
+        let coordinator = SurfaceCoordinator(platform: platform)
+        await coordinator.update(oldState, alarmEnabled: true, notificationsAllowed: true)
+        XCTAssertEqual(platform.alarm, "A@3000.0")
+        var cancelled = try XCTUnwrap(oldState.current); cancelled.at += 1; cancelled.alarm?.cancelled = true
+        var next = oldState; try next.apply(cancelled, fromPage: true, now: 1001)
+        let updating = expectation(description: "ActivityKit update suspended")
+        platform.pauseActivity = true; platform.onActivity = { updating.fulfill() }
+        let update = Task { await coordinator.update(next, alarmEnabled: true, notificationsAllowed: true) }
+        await fulfillment(of: [updating], timeout: 3)
+        XCTAssertNil(platform.alarm, "An engine cancellation must not wait for ActivityKit to finish updating the view.")
+        platform.releaseActivity(); await update.value
+        XCTAssertNil(platform.alarm)
     }
 
     private func following(id: String = "A") throws -> SnapshotState {

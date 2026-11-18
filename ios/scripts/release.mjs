@@ -8,10 +8,11 @@ import path from 'node:path';
 import { appStoreClient, nextBuildNumber } from './app-store.mjs';
 import { testedMainSHA } from './release-policy.mjs';
 import { verifyBundle } from './verify-bundle.mjs';
+import { signingTargets, verifyProfile } from './signing-policy.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const exportOnly = process.argv.includes('--export-only');
-const secretNames = ['ASC_API_KEY_P8', 'IOS_DISTRIBUTION_P12_BASE64', 'IOS_DISTRIBUTION_P12_PASSWORD', 'IOS_APP_PROFILE_BASE64'];
+const secretNames = ['ASC_API_KEY_P8', 'IOS_DISTRIBUTION_P12_BASE64', 'IOS_DISTRIBUTION_P12_PASSWORD', ...signingTargets.map(target => target.secret)];
 const childEnv = { ...process.env };
 for (const name of secretNames) delete childEnv[name];
 const cancellation = new AbortController();
@@ -42,7 +43,8 @@ async function run(command, args, quiet = false) {
   });
 }
 const security = (...args) => run('security', args, true);
-let temporary, keychain, profilePath;
+let temporary, keychain;
+const profilePaths = [];
 let originalKeychains;
 try {
   const head = await run('git', ['rev-parse', 'HEAD'], true);
@@ -59,25 +61,21 @@ try {
   await writeFile(keyPath, process.env.ASC_API_KEY_P8, { mode: 0o600 });
   const p12 = path.join(temporary, 'distribution.p12');
   await writeFile(p12, Buffer.from(process.env.IOS_DISTRIBUTION_P12_BASE64, 'base64'), { mode: 0o600 });
-  const profile = path.join(temporary, 'app.mobileprovision');
-  await writeFile(profile, Buffer.from(process.env.IOS_APP_PROFILE_BASE64, 'base64'), { mode: 0o600 });
-  const decoded = path.join(temporary, 'profile.plist');
-  await writeFile(decoded, await security('cms', '-D', '-i', profile), { mode: 0o600 });
-  const profileInfo = JSON.parse(await run('python3', ['-c',
-    'import json,plistlib,sys; p=plistlib.load(open(sys.argv[1], "rb")); print(json.dumps({k:p[k] for k in ["Name","Entitlements","ExpirationDate","ProvisionedDevices"] if k in p},default=lambda v:v.isoformat()+"Z"))', decoded], true));
-  if (profileInfo.Name !== 'Cartref Commute App Store' ||
-      profileInfo.Entitlements['application-identifier'] !== 'TU7MLARY49.uk.cartref.srapley.commute' ||
-      profileInfo.Entitlements['get-task-allow'] !== false || profileInfo.ProvisionedDevices ||
-      !profileInfo.Entitlements['com.apple.security.application-groups']?.includes('group.uk.cartref.srapley.commute') ||
-      !Number.isFinite(Date.parse(profileInfo.ExpirationDate)) ||
-      Date.parse(profileInfo.ExpirationDate) <= Date.now() + 86_400_000) {
-    throw new Error('Commute App Store profile is wrong, expired, or missing its App Group. Renew the profile secret.');
-  }
   const profileDir = path.join(homedir(), 'Library/Developer/Xcode/UserData/Provisioning Profiles');
   await mkdir(profileDir, { recursive: true });
-  // Use a private filename, leaving any existing local profile untouched.
-  profilePath = path.join(profileDir, `commute-ci-${path.basename(temporary)}.mobileprovision`);
-  await copyFile(profile, profilePath);
+  for (const target of signingTargets) {
+    const profile = path.join(temporary, `${target.file}.mobileprovision`);
+    await writeFile(profile, Buffer.from(process.env[target.secret], 'base64'), { mode: 0o600 });
+    const decoded = path.join(temporary, `${target.file}-profile.plist`);
+    await writeFile(decoded, await security('cms', '-D', '-i', profile), { mode: 0o600 });
+    const profileInfo = JSON.parse(await run('python3', ['-c',
+      'import json,plistlib,sys; p=plistlib.load(open(sys.argv[1], "rb")); print(json.dumps({k:p[k] for k in ["Name","Entitlements","ExpirationDate","ProvisionedDevices","ProvisionsAllDevices"] if k in p},default=lambda v:v.isoformat()+"Z"))', decoded], true));
+    verifyProfile(profileInfo, target);
+    // Private filenames leave existing local profiles untouched; record before copying for failure cleanup.
+    const installed = path.join(profileDir, `commute-ci-${path.basename(temporary)}-${target.file}.mobileprovision`);
+    profilePaths.push(installed);
+    await copyFile(profile, installed);
+  }
   originalKeychains = [...(await security('list-keychains', '-d', 'user')).matchAll(/"([^"]+)"/g)].map(m => m[1]);
   keychain = path.join(temporary, 'build.keychain-db');
   const password = randomBytes(32).toString('hex');
@@ -134,7 +132,7 @@ try {
     catch { console.error('Could not restore the keychain search list.'); process.exitCode = 1; }
   }
   if (keychain) { try { await security('delete-keychain', keychain); } catch { /* Directory cleanup below. */ } }
-  if (profilePath) await rm(profilePath, { force: true });
+  for (const profilePath of profilePaths) await rm(profilePath, { force: true });
   if (temporary) await rm(temporary, { recursive: true, force: true });
   process.removeListener('SIGTERM', interrupt);
   process.removeListener('SIGINT', interrupt);

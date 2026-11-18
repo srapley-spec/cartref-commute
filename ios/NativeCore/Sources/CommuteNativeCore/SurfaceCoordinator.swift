@@ -38,7 +38,12 @@ public final class SurfaceCoordinator {
     private var notificationsAllowed = false
     private var suppressAlarm = false
     private var worker: Task<Void, Never>?
-    private var alarmSignature: String?
+    private struct AlarmSignature: Equatable {
+        let followId: String
+        let at: Double
+        let headline: JourneySnapshot.Headline
+    }
+    private var alarmSignature: AlarmSignature?
     public private(set) var lastError: NativeError?
 
     public init(platform: any SurfacePlatform) { self.platform = platform }
@@ -51,6 +56,7 @@ public final class SurfaceCoordinator {
     public func update(_ state: SnapshotState, alarmEnabled: Bool, notificationsAllowed: Bool) async {
         self.state = state; self.alarmEnabled = alarmEnabled; self.notificationsAllowed = notificationsAllowed
         suppressAlarm = false; generation += 1
+        invalidateObsoleteAlarm()
         if let worker { await worker.value; return }
         let pending = Task { @MainActor in
             var applied = -1
@@ -79,10 +85,34 @@ public final class SurfaceCoordinator {
         }
         guard revision == generation, let snapshot else { return }
         if let matching {
-            if matching.snapshot.at > snapshot.at { platform.newerActivityContent(matching.snapshot) }
+            if matching.snapshot.at > snapshot.at {
+                // A Live Activity push can precede the background push. Adopt that validated transport
+                // state before touching the alarm; notifying the runtime alone leaves an async hand-off gap.
+                var newer = state
+                if (try? newer.apply(matching.snapshot, fromPage: false, now: platform.now)) == true {
+                    state = newer; generation += 1
+                    invalidateObsoleteAlarm()
+                    platform.newerActivityContent(matching.snapshot)
+                }
+            }
             else if matching.snapshot != snapshot { await platform.updateActivity(matching.id, snapshot: snapshot) }
         } else if platform.canStartActivity {
             do { platform.selectActivity(try platform.startActivity(snapshot)) }
+            catch { lastError = .unavailable }
+        }
+    }
+
+    private func invalidateObsoleteAlarm() {
+        let directive = state.scheduledAlarm(at: platform.now, enabled: alarmEnabled && !suppressAlarm,
+                                            authorized: notificationsAllowed && platform.alarmAuthorized)
+        let desired: AlarmSignature?
+        if let at = directive?.at, let snapshot = state.current {
+            desired = AlarmSignature(followId: snapshot.followId, at: at, headline: snapshot.headline)
+        } else { desired = nil }
+        // Cancel synchronously when accepting a change. ActivityKit may suspend for a long time, during
+        // which an obsolete alarm must not remain armed. A pending schedule is also cancelled on return.
+        if desired == nil || desired != alarmSignature {
+            do { try platform.cancelPlatformAlarm(); alarmSignature = nil }
             catch { lastError = .unavailable }
         }
     }
@@ -94,7 +124,7 @@ public final class SurfaceCoordinator {
             do { try platform.cancelPlatformAlarm(); alarmSignature = nil } catch { lastError = .unavailable }
             return
         }
-        let signature = "\(snapshot.followId)|\(at)|\(snapshot.headline.label)"
+        let signature = AlarmSignature(followId: snapshot.followId, at: at, headline: snapshot.headline)
         if alarmSignature == signature { return }
         do {
             try platform.cancelPlatformAlarm()

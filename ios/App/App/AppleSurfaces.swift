@@ -63,7 +63,11 @@ final class AppleSurfaces: NativeSurfaces, SurfacePlatform {
         }
     }
     func scheduleAlarm(_ snapshot: JourneySnapshot, at: Double) async throws {
-        let presentation = AlarmPresentation(alert: .init(title: LocalizedStringResource(stringLiteral: snapshot.headline.label)))
+        var title = snapshot.headline.label
+        if let time = snapshot.headline.t {
+            title += " " + Date(timeIntervalSince1970: time / 1000).formatted(date: .omitted, time: .shortened)
+        }
+        let presentation = AlarmPresentation(alert: .init(title: LocalizedStringResource(stringLiteral: title)))
         let attributes = AlarmAttributes(presentation: presentation, metadata: CommuteAlarmMetadata(followId: snapshot.followId),
                                         tintColor: Color(red: 20 / 255, green: 83 / 255, blue: 182 / 255))
         let config = AlarmManager.AlarmConfiguration.alarm(schedule: .fixed(Date(timeIntervalSince1970: at / 1000)), attributes: attributes)

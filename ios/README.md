@@ -35,7 +35,8 @@ Apple processing. It never submits for App Store or external beta review. Commut
 automatic distribution enabled. Accepted App Store Connect users must be added to that group separately.
 
 Public configuration: team `TU7MLARY49`, app `6836040622`, bundle `uk.cartref.srapley.commute`, CI key `C8865Y2UMU`,
-issuer `aedb05d9-7e5f-424f-b147-64f12ec0567a`. Signing profile: **Cartref Commute App Store**.
+issuer `aedb05d9-7e5f-424f-b147-64f12ec0567a`. Signing profiles: **Cartref Commute App Store** and **Cartref Commute Journey App Store**. The Live Activity
+extension is `uk.cartref.srapley.commute.journey`; it contains no home-screen widget.
 
 Repository Actions secrets (never commit values):
 
@@ -45,16 +46,16 @@ Repository Actions secrets (never commit values):
 | `IOS_DISTRIBUTION_P12_BASE64` | Base64-encoded Apple Distribution certificate and private key |
 | `IOS_DISTRIBUTION_P12_PASSWORD` | Password protecting that signing bundle |
 | `IOS_APP_PROFILE_BASE64` | Base64-encoded Commute App Store provisioning profile |
+| `IOS_ACTIVITY_PROFILE_BASE64` | Base64-encoded journey Live Activity extension provisioning profile |
 
-The signing certificate and profile expire 17 November 2027; renew both secrets before expiry. Adding an extension
+The signing certificate and profiles expire 17 November 2027; renew the certificate and both profile secrets before expiry. Adding an extension
 or changing capabilities requires its identifier/profile and an explicit update to the export mapping and checks.
-The App Group `group.uk.cartref.srapley.commute` is associated with the app ID. App code will request native
-entitlements only as the corresponding capabilities are implemented and tested.
+The App Group `group.uk.cartref.srapley.commute` is associated with the app ID. Native entitlements are checked in the signed IPA alongside both bundle identities and matching build numbers.
 
 APNs secrets belong to the owner's proxy workflow, not the app or TestFlight upload: `APNS_KEY`, `APNS_KEY_ID`,
-`APNS_TEAM_ID`, `APNS_TOPIC`. They have been provisioned; native-route deployment is still the owner's work.
+`APNS_TEAM_ID`, `APNS_TOPIC`. They were provisioned and the owner deployed the native routes at `9628132` on 18 November.
 
-For a local signing check, provide the same four secrets through a secure local process and the three public
+For a local signing check, provide the same five secrets through a secure local process and the three public
 `ASC_*` identifiers, then run `node ios/scripts/release.mjs --export-only`. The signed IPA is ignored under
 `ios/App/output/`. Uploads are deliberately restricted to the trusted GitHub workflow.
 
