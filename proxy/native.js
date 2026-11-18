@@ -90,7 +90,7 @@ export async function nativeRoute(request, env, cors, url, allowed) {
   if (!rec) return json({ error: "Unknown iPhone" }, 403, cors);
   if (path === "/native/follow") {
     if (b.plan == null) {
-      if (rec.plan) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, plan: null, extra: null, planState: null, setOff: false, la: null, shown: null, planAt: now }));
+      if (rec.plan) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, plan: null, extra: null, planState: null, setOff: false, la: null, shown: null, planAt: now, ended: { followId: rec.plan.followId, at: now } }));
       return json({ ok: true }, 200, cors);
     }
     if (rec.planAt && now - rec.planAt < FOLLOW_MIN_GAP_MS && now >= rec.planAt) return json({ error: "Too soon" }, 429, cors);
@@ -111,7 +111,9 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     // from what the proxy last saw; the next scheduler run pushes it to the Live Activity.
     if (setOff && !rec.setOff) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, setOff: true }));
     const stored = setOff || !!rec.setOff;   // the journey's state, not just this event's verdict
-    return json({ ok: true, setOff: stored, snapshot: rec.plan ? snapshotNow({ ...rec, setOff: stored }, now) : null }, 200, cors);
+    // No journey: an identified, dated stop (the last journey ended), never an unidentified null (#58).
+    return json(rec.plan ? { ok: true, setOff: stored, snapshot: snapshotNow({ ...rec, setOff: stored }, now) }
+      : { ok: true, setOff: false, snapshot: null, followId: rec.ended ? rec.ended.followId : null, at: rec.ended ? rec.ended.at : null }, 200, cors);
   }
   // unregister
   await env.PUSH.delete(`nat:${rec.id}`);
@@ -157,7 +159,8 @@ export async function sendApns(env, { token, env: apnsEnv }, kind, payload, nowM
 /** The payloads (the iPhone app decodes `snapshot` as the Live Activity's content state; docs/ios-app.md §6.3). */
 export const apnsPayloads = {
   alert: n => ({ aps: { alert: { title: n.title, body: n.body }, sound: "default", "thread-id": n.tag }, kind: n.kind }),
-  background: snap => ({ aps: { "content-available": 1 }, snapshot: snap }),
+  // A stop names the journey it ends and when (#58, 18 Nov): a late stop for an old journey can't end a new one.
+  background: (snap, stop = null) => ({ aps: { "content-available": 1 }, snapshot: snap, ...(snap ? {} : { followId: stop ? stop.followId : null, at: stop ? stop.at : null }) }),
   liveActivity: (snap, end, nowMs) => ({ aps: { timestamp: Math.floor(nowMs / 1000), event: end ? "end" : "update", "content-state": snap,
     // The stale-date is the snapshot's own staleAt (data + 3 min; §6.7 rule 5).
     ...(end ? { "dismissal-date": Math.floor(nowMs / 1000) + 15 * 60 } : { "stale-date": Math.floor((snap.staleAt || nowMs) / 1000) }) } }),
@@ -216,7 +219,7 @@ export async function runNative(env, now) {
       const refreshOnly = changed && !done && core === rec.shownCore;
       const newState = shiftNativeState(state, -d);
       const upd = {};
-      if (done) Object.assign(upd, { plan: null, extra: null, planState: null, setOff: false, la: null, shown: null });
+      if (done) Object.assign(upd, { plan: null, extra: null, planState: null, setOff: false, la: null, shown: null, ended: { followId: rec.plan.followId, at: now } });
       else {
         if (JSON.stringify(newState) !== JSON.stringify(rec.planState || {})) upd.planState = newState;
         if (changed) { upd.shown = shown; upd.shownCore = core; }
@@ -237,7 +240,7 @@ export async function runNative(env, now) {
         pushes.push(["alert", apnsPayloads.alert(notice), rec.apns]);
       if (changed || done) {
         if (rec.la && rec.la.token) pushes.push(["liveactivity", apnsPayloads.liveActivity(real, done, now), { token: rec.la.token, env: rec.apns.env }, refreshOnly]);
-        if (!refreshOnly) pushes.push(["background", apnsPayloads.background(done ? null : real), rec.apns]);
+        if (!refreshOnly) pushes.push(["background", apnsPayloads.background(done ? null : real, { followId: rec.plan.followId, at: now }), rec.apns]);
       }
       for (const [kind, payload, to, low] of pushes) {
         const r = await sendApns(env, to, kind, payload, now, kind === "alert" ? {} : { collapseId: `snap-${rec.plan.followId}`.slice(0, 64), low: !!low });

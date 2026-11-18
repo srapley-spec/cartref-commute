@@ -204,8 +204,8 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
 1. **Bridge v1.** Every call takes one object and returns a Promise; errors reject `{code, message}`; an unknown `v`
    rejects `code: "unsupported"`. Page → shell: `capabilities()` → `{v:1, liveActivity, alarm, geofence, wifi, siri,
    offline, appVersion, auth:{location:"always"|"whenInUse"|"denied"|"notDetermined", notifications:"granted"|"denied"|
-   "notDetermined"}}`; `ready()`; `publish({snapshot|null})`; `configure({...})`; `cache({entries})`; `cached()` →
-   `{entries}`; `request({permission:"location"|"notifications"})`. Shell → page events: `apns {token, env}`,
+   "notDetermined", alarm:"granted"|"denied"|"notDetermined"}}` (`alarm` is AlarmKit's own authorization, #58 18 Nov); `ready()`; `publish({snapshot|null})`; `configure({...})`; `cache({entries})`; `cached()` →
+   `{entries}`; `request({permission:"notifications"|"alarm"|"location"})` (Settings asks in that order). Shell → page events: `apns {token, env}`,
    `liveActivity {followId, token}`, `wifi {place, at}`, `region {place, event:"enter"|"exit", at}`, `resume {at}`.
    Location events use `place`. **Replay:** until `ready()`, the shell holds the latest `apns`, the latest
    `liveActivity` per `followId` and the last 20 `wifi`/`region` events, and sends them on `ready()`.
@@ -229,7 +229,11 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    switch, stop.
 5. **Ordering, expiry, tokens, freshness.** The shell applies a snapshot only for the current `followId` and with
    `at` ≥ the last applied (equal: the later received wins). A null snapshot or a Live Activity `end` tombstones that
-   `followId` for 1 h. A new `liveActivity` token replaces the old (page → proxy). Freshness: the snapshot carries
+   `followId` for 1 h. **A remote stop is always identified and dated** (#58, 18 Nov): the background push that ends a
+   journey is `{aps:{"content-available":1}, snapshot:null, followId, at}` (fixture `apns-background-stop.json`), and a
+   `/native/evidence` reply with no journey is `{ok, setOff:false, snapshot:null, followId, at}` naming the journey that
+   last ended (both null if none ever did). The shell applies a remote stop only to that `followId`; a local
+   `publish({snapshot:null})` means the current journey. A new `liveActivity` token replaces the old (page → proxy). Freshness: the snapshot carries
    `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
    `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress, staleness and a 2-minute
    bucket of `dataAt`, so fresh data is re-sent at least every 2 minutes and the stale-date never passes while the
@@ -279,9 +283,9 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Part | Owner | Status |
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
-| Journey snapshot in the engine | this repo | Released 18 Nov at `9628132`; Tests, Pages, Deploy proxy and TestFlight green |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released at `9628132`, including cache hand-off and deep links; native integration in progress |
-| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes/APNs/closed-app snapshots released at `9628132`; live `/status` reports `native:true`. Service Details polling not built; `/native/next` is outside v1 by decision B |
+| Journey snapshot in the engine | this repo | Released 18 Nov at `9628132` (independently reviewed); identified stops and the alarm permission added after #58 |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released 18 Nov at `9628132`; cache keeps boards and status only (snapshot/settings entries and the 512 KB cap still to do) |
+| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots released 18 Nov at `9628132`; unproven against Apple until the first TestFlight push; Service Details polling and `/native/next` not in v1 |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
 | Capacitor shell and TestFlight pipeline | iOS agent | Released: main builds automatically reach internal TestFlight. Native extension signing changes are in draft PR #61 |

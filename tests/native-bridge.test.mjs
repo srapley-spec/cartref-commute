@@ -117,7 +117,9 @@ test("Bridge: Wi-Fi and geofence events reach the page as evidence (never in a s
   assert.deepEqual(await s.b.cached(), [{ key: "boards", v: 1, dataAt: 1, savedAt: 2, value: {} }]);
   await s.b.request("location");
   assert.deepEqual(s.shell.calls.filter((x) => x[0] === "request"), [["request", { permission: "location" }]]);
-  assert.equal(await s.b.request("camera"), null, "only notifications and location");
+  await s.b.request("alarm");
+  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "request").at(-1), ["request", { permission: "alarm" }], "AlarmKit's own permission (#58)");
+  assert.equal(await s.b.request("camera"), null, "only notifications, alarm and location");
   const noOffline = setup({ shell: fakeShell({ v: 1, offline: false }) });
   await noOffline.b.init();
   assert.equal(noOffline.b.cache([]), null);
