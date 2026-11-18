@@ -1,5 +1,5 @@
 # Native iPhone journey surfaces
-Status: In progress on `codex/ios-native-v1` · Since: 18 Nov 2026 · Issue: #58
+Status: Implemented; real-phone acceptance pending · Since: 18 Nov 2026 · Issue: #58 · Release: PR #61
 
 ## Story and contract
 Sam and family need the followed journey available when the app is closed, and a leave alarm that cancels on
@@ -82,11 +82,13 @@ state changes publish, expanded fixtures are committed, delayed leave steps reta
 location comes from the accepted prediction. Cache batches retain nullable age, explicitly clear obsolete values,
 account for native JSON bytes and wait for hydration before fetch/sync. Token replay and initial configuration wait
 for restored settings. Swift must not prompt from configure/publish/capabilities or infer settings to compensate
-for page ordering. The remaining Trip source-age correction is tracked in #58 comment 6983061034: a redraw must
-not invent a new fetch time or borrow an unrelated Commute timestamp.
+for page ordering. The owner's Trip correction (`e3e214a`, #62) uses the oldest successful fetch of the boards
+watching the followed Trip, or unknown age while any has never loaded. A redraw must not invent a new fetch time
+or borrow an unrelated Commute timestamp. Swift continues to preserve the supplied age without deriving it.
 
-After the shared dependencies land: validate the complete bridge flow, perform final committed-code CI
-and GitHub-first checks, then distribute through internal TestFlight for real-phone acceptance. Test locked
+Release validates the complete bridge flow with committed-code CI and GitHub-first checks, then distributes
+through internal TestFlight for real-phone acceptance. Exact release evidence and the build number are recorded
+in [PR #61](https://github.com/srapley-spec/cartref-commute/pull/61). Test locked
 journeys, offline/region cancellation, stop/switch races, delayed pushes, restart, permission denial, Siri and Wi-Fi
 before declaring the native app complete. No Apple review submission is configured.
 
@@ -142,6 +144,10 @@ review is part of this acceptance process.
 - `ios/App/CommuteTests/NativeRuntimeTests.swift`: interrupted Keychain/JSON writes, obsolete region/Wi-Fi callbacks,
   unsupported versions, identified/unidentified stops, alarm authorization, scoped evidence replies, real Capacitor cache/error behavior and
   the Siri event retained until the page is listening. `BundledPageTests.swift` checks normal and blocked-network launch.
+- `tests/trip-native-age.test.mjs`: the actual Trip controller and engine board budget with deferred responses;
+  oldest distinct successful source, no-fetch retention, failed older source, unknown required source and reset.
+  The owner's `tests/native-page.test.mjs` also verifies the real page snapshot with absent and successful boards,
+  unrelated Commute timestamps, subsequent successful/failed fetches and the three-minute stale transition.
 - `tests/ios-release.test.mjs` and `tests/ios-shell.test.mjs`: profile validation before archive, cleanup, extension
   identity/OS/device family/build/entitlements, exact profile mapping, workflow secret wiring, signed archive,
   bundled-page provenance and secret isolation.
@@ -176,3 +182,7 @@ suspending platform call. The reviewer approved the implemented scope, not unres
 - At `c2a0325`, the Xcode-managed fresh-device run passed all 38 core and 13 app tests, including the real
   nullable-cache bridge check, without retries or skipped tests. The runner's independent review at `79c108c`
   catches all 16 mutations. Final combined CI still follows the owner integration.
+- At `1847cf8`, full local CI and both GitHub runs passed with the owner's startup/cache fixes: 1,456 web tests,
+  38 Swift core tests and 13 real simulator XCTest checks. The later Trip fix at `54cb185` is independently approved
+  with the two additional source-age regressions from `f81b221`; all five targeted mutations are caught.
+  The final combined revision and internal TestFlight result are recorded in PR #61.

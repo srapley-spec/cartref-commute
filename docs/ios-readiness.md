@@ -12,14 +12,23 @@ countdown wording and alarm directives. Permission requests remain explicit Sett
 
 Owner changes through `88c0a67` are integrated, including permission/stops, countdown publication and fixtures,
 journey fixes, nullable cache age, explicit cache clears, byte accounting and restoration before startup work.
-The remaining Trip source-age correction is coordinated on #58: redraws must not invent a new fetch time or
-borrow an unrelated Commute timestamp. Final combined local CI and GitHub checks remain release gates.
+The owner's Trip source-age correction is integrated from `e3e214a`: the oldest successful fetch of the watched
+Trip boards supplies its age; missing data stays unknown. It never borrows the clock or a Commute timestamp.
+Release requires full local CI and GitHub checks on the combined revision, followed by successful internal
+TestFlight processing. The exact revision, workflow results and build number are recorded in
+[PR #61](https://github.com/srapley-spec/cartref-commute/pull/61).
 
 Validation already completed:
+- Full local CI at `1847cf8` (including the owner's startup/cache fixes) passed all 1,456 web tests, 38 Swift core
+  tests and 13 simulator XCTest checks. Both GitHub runs passed. The Trip follow-up is checked again as part of the
+  final combined release; these earlier results do not substitute for that check.
 - 38 Swift core tests and 13 real simulator XCTest checks passed on a fresh device at `c2a0325`, including offline
   launch and the real Capacitor cache bridge. Both GitHub Tests runs at that revision passed.
 - Independent review approved native state/coordinator/signing/Siri/permissions/countdowns/cache. All nine cache
   mutations are caught at `6254bdc`; all 16 simulator-runner mutations are caught at `79c108c`.
+- The owner's Trip correction at `54cb185` is independently approved with the two additional regressions from
+  `f81b221`. All five targeted mutations fail assertions, including newest-versus-oldest age and ignoring a missing
+  required board. The owner's checks and final combined release checks remain required before distribution.
 - The signed app-plus-extension export and Apple package validation passed at `75351bd`.
 - Earlier local full CI passed its web checks but failed during simulator OS migration before app installation.
   The diagnosed MobileSafari migration watchdog and Xcode-managed startup validation are recorded in the

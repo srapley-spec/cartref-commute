@@ -89,12 +89,14 @@ were sent with Marketing access limited to Commute. The internal
 Family group is created with automatic distribution enabled and Sam enrolled. Builds are distributed internally
 by the TestFlight workflow after the full main Tests run passes.
 The shell and automatic internal TestFlight pipeline are released. The native contracts and proxy routes were
-released at `9628132` on 18 November. Native implementation is in draft PR #61; the Live Activity extension
+released at `9628132` on 18 November. Native implementation is in PR #61; the Live Activity extension
 identifier, signing profile and secret are provisioned, and a real signed package passed Apple validation.
 The owner changes through `88c0a67` are integrated into the native branch: permission/stops, countdown fields and
-fixtures, Settings requests, journey fixes and cache/bootstrap corrections. Trip's source-age correction and final
-combined checks remain in progress. Phone acceptance follows integration and an internal build. Apple review submission must wait
-until the app is working; no review submission is configured.
+fixtures, Settings requests, journey fixes and cache/bootstrap corrections. The owner's Trip source-age correction
+is integrated too. Use the native-feature build identified in
+[PR #61's release evidence](https://github.com/srapley-spec/cartref-commute/pull/61) for phone acceptance; earlier
+shell builds do not include the native features. Apple review submission must wait until the app is working;
+no review submission is configured.
 - [ ] On the native feature build, allow the desired permissions in Settings and enable Experimental → "Follow a
       route". To test home-exit alarm cancellation,
       while at home choose Settings → Home → "Home is where I am now". There is no automatic home inference in v1.

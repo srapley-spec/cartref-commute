@@ -98,3 +98,22 @@ ownership and cleanup failures. Fresh-device execution and final combined CI rem
 The fresh-device gate subsequently passed at `c2a0325` with the production runner: all 38 core tests and all 13
 XCTest checks passed, no skips, at 15:25. Xcode managed startup of a newly created simulator, and the runner removed
 that device afterward. Final combined CI after owner integration remains required.
+
+## Final Trip source-age integration
+Full local CI and both GitHub runs at `1847cf8` passed with the released owner startup/cache fixes: 1,456 web tests,
+38 Swift core tests and 13 simulator XCTest checks. A subsequent page finding (#62) showed Trip's age being replaced
+by the redraw time or an unrelated Commute fetch. The owner corrected this in `e3e214a` and added successful/failed
+board regressions at `54cb185`; native code continues to preserve the supplied metadata without interpreting it.
+
+Independent review of `54cb185` passed the 13-test native-page baseline. Its two added tests (`f81b221`) use the
+actual Trip controller and engine board budget with deferred responses to cover distinct fetch times and a missing
+required board. Both tests pass. All five mutations are caught: always-unknown age, newest instead of oldest source,
+counting a failed fetch as success, ignoring a missing required board and retaining ages on reset. The reviewer
+approved the bounded production fix with these tests included; final combined CI and the owner's reported checks
+remain release gates, with release evidence recorded in PR #61.
+
+Nonblocking follow-up for the page owner: `createTripUi.reset()` currently has no production caller. A controlled
+probe found that a response started before reset can advance the new `boardOkAt` after a newer response completes,
+because the board assignment captured the old object while the following timestamp update reads the new object.
+Any future production use of reset needs request-generation handling. This is not a reproduced current user path
+and was not expanded into this release.
