@@ -141,7 +141,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         let notifications = await UNUserNotificationCenter.current().notificationSettings()
         return ["v": 1, "liveActivity": surfaces?.liveActivitySupported == true,
                 "alarm": surfaces?.alarmSupported == true, "geofence": file != nil && CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
-                "wifi": true, "siri": false, "offline": file != nil,
+                "wifi": true, "siri": true, "offline": file != nil,
                 "appVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
                 "auth": ["location": locationAuthorization, "notifications": Self.notificationAuthorization(notifications.authorizationStatus)]]
     }

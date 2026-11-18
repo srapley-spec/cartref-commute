@@ -11,6 +11,18 @@ final class NativeCoreTests: XCTestCase {
             deepLink: "commute://follow/\(id)")
     }
 
+    func testSiriReadsEngineWordingAndItsDataAgeWithoutPlanning() {
+        var value = snapshot()
+        let clock: (Double) -> String = { "clock:\(Int($0))" }
+        XCTAssertNil(SiriPresentation.answer(nil, now: 1000, clock: clock))
+        XCTAssertEqual(SiriPresentation.nextHomeURL.absoluteString, "commute://next?direction=home&follow=1")
+        XCTAssertEqual(SiriPresentation.answer(value, now: 1000, clock: clock), "Leave by clock:4000. As of clock:900")
+        value.headline.label = "The engine's current next action"; value.headline.t = nil
+        XCTAssertEqual(SiriPresentation.answer(value, now: 180900, clock: clock), "The engine's current next action. As of clock:900. This data is out of date")
+        value.dataAt = nil; value.staleAt = nil; value.stale = true
+        XCTAssertEqual(SiriPresentation.answer(value, now: 1000, clock: clock), "The engine's current next action. Not updated yet. This data is out of date")
+    }
+
     func testTripSnapshotAcceptsNullDirectionFromThePublishedEngineSchema() throws {
         var value = try XCTUnwrap(Wire.object(snapshot()) as? [String: Any])
         value["mode"] = "trip"; value["direction"] = NSNull()

@@ -94,7 +94,7 @@ and cancellation. Both real-startup and offline native tests passed against the 
   the web page and its tests remain the owner's unchanged release.
 - `CommuteNative`, shared offline snapshots/data-age behavior, Live Activity, AlarmKit, Wi-Fi, geofences and Siri
   are being implemented against the now-released `9628132` contract in draft PR #61; see [native story](ios-native.md).
-  The released shell still advertises no native capability. The draft keeps Live Activity/alarm/Siri disabled
+  The released shell still advertises no native capability. The draft keeps Live Activity/alarm disabled
   pending the remaining owner contract answers and final integration checks.
 - Family account invitations must be accepted before enrollment in the internal group. Real iPhone journey and
   permission acceptance tests remain necessary for the later native features.

@@ -27,4 +27,4 @@ The reviewer approved the implemented scope. Owner contract gaps, physical-devic
 outside that approval. The root agent separately performed the real signed export: the first attempt was rejected
 for missing native entitlements, traced to an unsigned archive. Signing each target's archive with its App Store
 profile fixed it; the final `75351bd` app+extension IPA passed identity, content and entitlement verification.
-No native build has been uploaded from this branch; local export is not Apple review submission.
+Apple package validation of that IPA also passed with no errors. No native build has been uploaded from this branch; local export is not Apple review submission.

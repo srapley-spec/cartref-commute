@@ -63,7 +63,7 @@ Three contract questions are pending on #58 (18 November):
 
 Live Activity/AlarmKit adapters, the lock-screen/Dynamic Island layout and Siri intents compile, but are still being
 connected and validated. The WidgetKit extension contains only the journey Live Activity; the parked home-screen
-widget has not been added. The current bridge reports those capabilities false. The contract questions above still gate complete end-to-end validation and distribution.
+widget has not been added. The current bridge reports Live Activity and alarm false; Siri intents are implemented and its capability is true. The contract questions above still gate complete end-to-end validation and distribution.
 
 The owner's `9628132` is now merged into this branch from main; its Tests, Pages and Deploy proxy checks passed.
 The foundation's simulator run passed all eight XCTest checks, including the real Capacitor bridge's version
@@ -113,5 +113,10 @@ so this schema probe does not replace the requested generated Trip/phase fixture
 ## Latest verification
 At `75351bd`: 30 Swift package tests and 12 Node release/shell tests pass; independent review approves the
 implemented scope ([review record](../reviews/ios-native-2026-11-18.md)). The real signed app+extension export
-passes its content, identity and entitlement checks. Apple package validation and full combined CI remain pending;
+passes its content, identity and entitlement checks. Apple package validation at `75351bd` passed with no errors; full combined CI remains pending;
 no native build from this branch has been uploaded. Final activation and physical-phone checks remain gated as above.
+
+Siri's supported capability is now true: the two App Intents read the last engine presentation (with source age
+and staleness) or open the exact page deep link from the published contract. `SiriPresentation` tests cover no
+follow, engine wording, a missing clock, age, stale deadline and unknown freshness. It makes no network request
+or planning decision. Voice invocation and hand-off on a real iPhone still need acceptance testing.

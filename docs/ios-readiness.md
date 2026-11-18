@@ -9,7 +9,7 @@ The live proxy reports `native:true`. APNs secret names were confirmed on issue 
 Native implementation is on `codex/ios-native-v1`, draft PR #61. At `75351bd`, the bridge/store, Apple adapters,
 Live Activity extension and Siri compile; 30 Swift and 12 release/shell tests pass. Independent review approves
 this implemented scope. A real signed app+extension export passes, including native entitlement checks.
-Current runtime capabilities keep Live Activity, alarm and Siri disabled until final integration. Full committed
+Current runtime capabilities keep Live Activity and alarm disabled until final integration. Full committed
 CI and real-phone acceptance remain outstanding. Owner questions on #58 concern AlarmKit authorization,
 identified/dated remote stops and countdown wording transitions; generated Trip/page-phase fixtures remain missing.
 See [the native story](stories/ios-native.md) for current behavior and validation.

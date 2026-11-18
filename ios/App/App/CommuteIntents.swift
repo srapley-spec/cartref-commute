@@ -2,8 +2,6 @@ import AppIntents
 import Foundation
 import CommuteNativeCore
 
-private let nextHomeURL = URL(string: "commute://next?direction=home&follow=1")!
-
 struct WhenToLeaveIntent: AppIntent {
     static var title: LocalizedStringResource = "When do I need to leave?"
     static var description = IntentDescription("Read the last update for your followed Commute journey, or open Commute to plan.")
@@ -11,15 +9,11 @@ struct WhenToLeaveIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard let snapshot = NativeRuntime.shared.document.snapshots.current else {
-            return .result(opensIntent: OpenURLIntent(nextHomeURL), dialog: "Opening Commute.")
-        }
         let formatter = DateFormatter(); formatter.timeStyle = .short; formatter.dateStyle = .none
-        var answer = snapshot.headline.label
-        if let time = snapshot.headline.t { answer += " " + formatter.string(from: Date(timeIntervalSince1970: time / 1000)) }
-        if let at = snapshot.dataAt { answer += ". As of " + formatter.string(from: Date(timeIntervalSince1970: at / 1000)) }
-        else { answer += ". Not updated yet" }
-        if snapshot.stale || snapshot.staleDate.map({ $0 <= Date() }) == true { answer += ". This data is out of date" }
+        guard let answer = SiriPresentation.answer(NativeRuntime.shared.document.snapshots.current, now: NativeRuntime.now,
+            clock: { formatter.string(from: Date(timeIntervalSince1970: $0 / 1000)) }) else {
+            return .result(opensIntent: OpenURLIntent(SiriPresentation.nextHomeURL), dialog: "Opening Commute.")
+        }
         return .result(dialog: IntentDialog(stringLiteral: answer))
     }
 }
@@ -30,7 +24,7 @@ struct FollowNextTrainHomeIntent: AppIntent {
     static var supportedModes: IntentModes { .foreground }
 
     func perform() async throws -> some IntentResult {
-        .result(opensIntent: OpenURLIntent(nextHomeURL))
+        .result(opensIntent: OpenURLIntent(SiriPresentation.nextHomeURL))
     }
 }
 
