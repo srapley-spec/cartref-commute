@@ -311,7 +311,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-controls-review.test.mjs: "Trip controls review: theme redraw preserves the original field, typed query, caret and keyboard suggestions"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a late place reply cannot replace commute context after leaving Trip"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a saved active Trip mounts in the shared host before its first refresh"
-- tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
+- tests/trip-controls-review.test.mjs: "Trip controls review: leaving Trip removes its controls and returning keeps the same field handlers and places"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains rail duration and updates journey remaining through every phase"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "TfL stops: a Tube stop 180 m from a mainline station keeps its own identity (Tower Hill is not Fenchurch Street); hubs match by ICS code or name"
