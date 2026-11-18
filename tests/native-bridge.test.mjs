@@ -113,8 +113,10 @@ test("Bridge: Wi-Fi and geofence events reach the page as evidence (never in a s
   await sim.b.init(); sim.shell.emit("wifi", { place: "home", at: 5 });
   assert.deepEqual(sim.evidence, []);
   // Offline cache: only when the shell keeps one.
-  s.b.cache([{ kind: "snapshot", dataAt: 1 }]);
-  assert.deepEqual(s.shell.calls.at(-1), ["cache", { entries: [{ kind: "snapshot", dataAt: 1 }] }]);
+  s.b.cache([{ key: "snapshot", v: 1, dataAt: null, savedAt: 5, value: { v: 1 } }]);
+  const sent = s.shell.calls.at(-1)[1].entries;
+  assert.deepEqual(sent[0], { key: "snapshot", v: 1, dataAt: null, savedAt: 5, value: { v: 1 } }, "dataAt null (unknown age) is kept as null, never the save time");
+  assert.deepEqual(sent.slice(1).map((e) => [e.key, e.value]), [["settings", null], ["status", null], ["boards", null]]);
   assert.deepEqual(await s.b.cached(), [{ key: "boards", v: 1, dataAt: 1, savedAt: 2, value: {} }]);
   await s.b.request("location");
   assert.deepEqual(s.shell.calls.filter((x) => x[0] === "request"), [["request", { permission: "location" }]]);
@@ -143,15 +145,42 @@ test("Review: Live Activity tokens are kept per journey; only the current one is
   assert.deepEqual(sim.posts, []); assert.equal(sim.b.sync(), null); assert.deepEqual(await sim.b.cached(), []);
 });
 
-test("Offline cache: entries kept most important first within 512 KB; one that doesn't fit is left out, the rest still go", async () => {
-  const big = (k, kb) => ({ key: k, v: 1, dataAt: 1, savedAt: 1, value: "x".repeat(kb * 1024) });
-  const p = nativeBridge.packCache([big("snapshot", 1), big("settings", 1), big("status", 100), big("boards", 450)]);
-  assert.deepEqual(p.entries.map((e) => e.key), ["snapshot", "settings", "status"]); assert.deepEqual(p.dropped, ["boards"]);
+test("Offline cache: most important first within 512 KB; every other key goes as an explicit dated clear (the store merges by key)", async () => {
+  const big = (k, kb, extra = {}) => ({ key: k, v: 1, dataAt: 1, savedAt: 1, value: "x".repeat(kb * 1024), ...extra });
+  const val = (p) => Object.fromEntries(p.entries.map((e) => [e.key, e.value === null ? null : e.value.length]));
+  const p = nativeBridge.packCache([big("snapshot", 1), big("settings", 1), big("status", 100), big("boards", 450)], undefined, 7);
+  assert.deepEqual(p.entries.map((e) => e.key), ["snapshot", "settings", "status", "boards"]);
+  assert.deepEqual(p.dropped, ["boards"]); assert.deepEqual(p.cleared, ["boards"]);
+  assert.deepEqual(p.entries.at(-1), { key: "boards", v: 1, dataAt: null, savedAt: 7, value: null }, "dropped: cleared, not left out");
   assert.ok(p.bytes <= nativeBridge.CACHE_MAX_BYTES);
-  const q = nativeBridge.packCache([big("snapshot", 1), big("boards", 300), big("status", 1)]);
-  assert.deepEqual(q.entries.map((e) => e.key), ["snapshot", "boards", "status"]);
-  // Through the bridge: only what fits reaches the shell.
+  // Nothing to keep for a key (a stopped journey): cleared too.
+  const q = nativeBridge.packCache([big("settings", 1)], undefined, 7);
+  assert.deepEqual(q.entries.map((e) => [e.key, e.value === null]), [["settings", false], ["snapshot", true], ["status", true], ["boards", true]]);
+  // "/" counts twice (Swift writes "\/"): 300 KB of slashes is 600 KB as stored, so it doesn't fit.
+  assert.equal(nativeBridge.cacheBytes({ a: "//" }) - nativeBridge.cacheBytes({ a: "xx" }), 2);
+  assert.deepEqual(nativeBridge.packCache([{ key: "boards", v: 1, dataAt: 1, savedAt: 1, value: "/".repeat(300 * 1024) }]).dropped, ["boards"]);
+  void val;
+});
+
+test("Offline cache against a store that merges by key and refuses more than 512 KB: an old large entry never blocks a new batch", async () => {
+  // A fake of the shell's store (#58): replace by key; a batch that would leave more than 512 KB is refused whole.
+  const store = new Map();
+  const apply = (entries) => { const next = new Map(store); for (const e of entries) next.set(e.key, e);
+    const total = [...next.values()].reduce((n, e) => n + nativeBridge.cacheBytes(e), 2);
+    if (total > nativeBridge.CACHE_MAX_BYTES) throw new Error("refused"); store.clear(); for (const [k, v] of next) store.set(k, v); };
+  const big = (k, kb) => ({ key: k, v: 1, dataAt: 1, savedAt: 1, value: "x".repeat(kb * 1024) });
+  apply(nativeBridge.packCache([big("boards", 480)]).entries);
+  assert.equal(store.get("boards").value.length, 480 * 1024);
+  // Next: bigger settings and boards that no longer fit beside them: boards is cleared in the same batch, so it's accepted.
+  apply(nativeBridge.packCache([big("snapshot", 1), big("settings", 40), big("boards", 480)]).entries);
+  assert.equal(store.get("boards").value, null, "the old 480 KB boards don't stay behind");
+  assert.equal(store.get("settings").value.length, 40 * 1024);
+  // A stopped journey: the old snapshot is cleared, not left as if current.
+  apply(nativeBridge.packCache([big("settings", 1)]).entries);
+  assert.equal(store.get("snapshot").value, null); assert.equal(store.get("snapshot").dataAt, null);
+  // Through the bridge: the shell always gets all four keys.
   const s = setup(); await s.b.init();
   await s.b.cache([big("snapshot", 1), big("boards", 600)]);
-  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "cache").at(-1)[1].entries.map((e) => e.key), ["snapshot"]);
+  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "cache").at(-1)[1].entries.map((e) => [e.key, e.value === null]),
+    [["snapshot", false], ["boards", true], ["settings", true], ["status", true]]);
 });

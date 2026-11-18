@@ -187,3 +187,50 @@ test("Settings asks for notifications, then alarms, then Always location, and sh
   assert.equal(asked.length, 4);
   assert.deepEqual(app.errors, []); app.close();
 });
+
+// ---- #58 integration findings, 18 Nov ----
+function delayedShell(delayMs, entries) {
+  const sh = shell();
+  return { ...sh, install: (w) => { sh.install(w); const p = w.Capacitor.Plugins.CommuteNative;
+    p.cached = () => new Promise((r) => setTimeout(() => r({ entries }), delayMs)); } };
+}
+test("Offline startup: in the app nothing is fetched before the shell's cache is applied, even with a slow cached() and an early resume", async () => {
+  const cachedAt = T0 - 20 * m;
+  const boards = { "KGX-LET": { msgs: [], services: [svc({ from: "KGX", to: "LET", dep: T0 + 36 * m, arr: T0 + 68 * m, serviceId: "C1" })] } };
+  const sh = delayedShell(600, [{ key: "boards", v: 1, dataAt: cachedAt, savedAt: cachedAt, value: boards }]);
+  let app = null, atFirstFetch;
+  const route = () => { if (atFirstFetch === undefined) atFirstFetch = app ? app.c.state.boardsAt : "before the page"; return undefined; };
+  app = await createApp({ settings: { provider: "tfl" }, geo: null, now: T0, beforeScripts: sh.install, settle: 200, route });
+  assert.equal(app.calls.length, 0, "no fetch while cached() is pending");
+  sh.listeners.resume && sh.listeners.resume({ at: T0 });   // a resume before the cache: waits for it too
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(app.calls.length, 0);
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(atFirstFetch, cachedAt, "the cached boards were applied before the first fetch");
+  assert.ok(app.calls.length > 0, "then the first refresh runs");
+  assert.deepEqual(app.errors, []); app.close();
+});
+
+test("Offline startup in a browser is unchanged: the first refresh runs at once", async () => {
+  const app = await createApp({ settings: { provider: "tfl" }, geo: null, now: T0, settle: 200 });
+  assert.ok(app.calls.length > 0);
+  assert.deepEqual(app.errors, []); app.close();
+});
+
+test("Cache: a snapshot of unknown age is kept with dataAt null, never the save time; with no home, Settings says the alarm can't cancel on leaving home", async () => {
+  const sh = shell();
+  const { app, c, P, place } = await homeward(sh);
+  place(1, P.places.office); await flush();
+  c.state.fetchedAt = null;
+  await c.nativeCacheNow();
+  const snap = sh.calls.filter((x) => x[0] === "cache").at(-1)[1].find((e) => e.key === "snapshot");
+  assert.equal(snap.dataAt, null); assert.equal(snap.value.dataAt, null); assert.equal(snap.value.stale, true);
+  assert.ok(Number.isFinite(snap.savedAt));
+  delete c.state.saved.home; c.renderNativePermissions();
+  assert.match(app.text("#nativePermissions"), /Home isn't set, so leaving home can't cancel the leave alarm by itself/);
+  assert.deepEqual(JSON.parse(JSON.stringify(c.native.config().regions.map((r) => r.place))), ["office"], "no home region until home is set");
+  c.state.here = [51.98, -0.23]; app.d.querySelector("#setHomeBtn").click();
+  assert.doesNotMatch(app.text("#nativePermissions"), /Home isn't set/);
+  assert.deepEqual(JSON.parse(JSON.stringify(c.native.config().regions.map((r) => r.place))), ["home", "office"]);
+  assert.deepEqual(app.errors, []); app.close();
+});

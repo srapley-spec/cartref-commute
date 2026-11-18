@@ -67,10 +67,15 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 
 
 - tests/native-page.test.mjs: "Settings asks for notifications, then alarms, then Always location, and shows each answer, refusals included"
-- tests/native-bridge.test.mjs: "Offline cache: entries kept most important first within 512 KB; one that doesn't fit is left out, the rest still go"
 - tests/core/snapshot.test.mjs: "Countdown wording and its change instants come from the engine (#58): calm, urgent under 2 min, passed at the time"
 - tests/core/snapshot.test.mjs: "A countdown turning urgent or passed is a change worth sending (#58: the Live Activity keeps the last wording)"
 - tests/native-proxy.test.mjs: "The proxy sends the Live Activity an update when the countdown turns urgent, at full priority"
+
+- tests/native-page.test.mjs: "Offline startup: in the app nothing is fetched before the shell's cache is applied, even with a slow cached() and an early resume"
+- tests/native-page.test.mjs: "Offline startup in a browser is unchanged: the first refresh runs at once"
+- tests/native-page.test.mjs: "Cache: a snapshot of unknown age is kept with dataAt null, never the save time; with no home, Settings says the alarm can't cancel on leaving home"
+- tests/native-bridge.test.mjs: "Offline cache: most important first within 512 KB; every other key goes as an explicit dated clear (the store merges by key)"
+- tests/native-bridge.test.mjs: "Offline cache against a store that merges by key and refuses more than 512 KB: an old large entry never blocks a new batch"
 
 Independent review (18 Nov): its bugs and surviving mutations (re-check at 7101bf4: satisfied; its push-volume
 finding fixed after):

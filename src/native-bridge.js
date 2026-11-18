@@ -11,18 +11,35 @@ const nativeBridge = (() => {
   const RETRY_MS = 60e3;
   /** The offline store's limit (§6.7 rule 7). */
   const CACHE_MAX_BYTES = 512 * 1024;
+  /** The keys the page keeps (§6.7 rule 7). Every batch names all of them: the shell's store merges by key. */
+  const CACHE_KEYS = ["snapshot", "settings", "status", "boards"];
   /**
-   * The entries that fit, in the order given (most important first): an entry that would take the total over the limit
-   * is left out (and said so), the rest still go. Sizes are UTF-8 bytes of each entry's JSON.
+   * Bytes as the shell will store them: UTF-8 of the JSON, with each "/" counted twice (Swift's JSONEncoder writes
+   * "\/"; #58, 18 Nov). An over-estimate is safe; an under-estimate would have the whole batch refused.
    */
-  function packCache(entries, max = CACHE_MAX_BYTES) {
-    const out = [], dropped = []; let total = 2;
-    for (const e of entries) {
-      let bytes; try { const j = JSON.stringify(e); bytes = (typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length) + 1; } catch (x) { dropped.push(e && e.key); continue; }
+  function cacheBytes(e) {
+    const j = JSON.stringify(e);
+    const utf8 = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length;
+    return utf8 + (j.match(/\//g) || []).length + 1;
+  }
+  /**
+   * The batch for the shell: the entries that fit within 512 KB in the order given (most important first), and an
+   * explicit clear `{key, v:1, dataAt:null, savedAt, value:null}` for every other key (left out for size, or with
+   * nothing to keep, e.g. a stopped journey). The shell replaces by key, so a key that isn't sent would keep its old,
+   * possibly large, value and could make the next batch too big (#58). Clears are counted first.
+   */
+  function packCache(entries, max = CACHE_MAX_BYTES, now = Date.now()) {
+    const clear = (key) => ({ key, v: 1, dataAt: null, savedAt: now, value: null });
+    const wanted = new Map(); for (const e of entries || []) if (e && CACHE_KEYS.includes(e.key) && !wanted.has(e.key)) wanted.set(e.key, e);
+    let total = 2 + CACHE_KEYS.reduce((n, k) => n + cacheBytes(clear(k)), 0);
+    const keep = new Map(), dropped = [];
+    for (const e of wanted.values()) {
+      let bytes; try { bytes = cacheBytes(e) - cacheBytes(clear(e.key)); } catch (x) { dropped.push(e.key); continue; }
       if (total + bytes > max) { dropped.push(e.key); continue; }
-      out.push(e); total += bytes;
+      keep.set(e.key, e); total += bytes;
     }
-    return { entries: out, dropped, bytes: total };
+    const order = [...wanted.keys(), ...CACHE_KEYS.filter((k) => !wanted.has(k))];
+    return { entries: order.map((k) => keep.get(k) || clear(k)), dropped, cleared: order.filter((k) => !keep.has(k)), bytes: total };
   }
   const ok = (x) => x && typeof x === "object";
   /**
@@ -150,8 +167,8 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
   }
-  return { create, RETRY_MS, CACHE_MAX_BYTES, packCache };
+  return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
 if (typeof module !== "undefined") module.exports = nativeBridge;
