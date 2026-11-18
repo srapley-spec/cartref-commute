@@ -2738,7 +2738,7 @@ function nativeSnapshot(){
   }
   const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan;
   const nm=c=>STATIONS[c]||HUB_NAME[c]||c;
-  return C.journeySnapshot({now:Date.now(),source:"page",dataAt:state.fetchedAt||(trip?Date.now():null),mode,direction:dir,followId:id,phase,confirmed,
+  return C.journeySnapshot({now:Date.now(),source:"page",dataAt:trip?((()=>{ try{ return tripUiFor().followedDataAt(); }catch(e){ return null; } })()):(state.fetchedAt||null),mode,direction:dir,followId:id,phase,confirmed,
     headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,

@@ -79,6 +79,8 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 
 - tests/native-page.test.mjs: "Offline startup: tokens replayed by ready() and cached Settings wait for the cache; the shell is configured from the restored Settings (#58)"
 
+- tests/native-page.test.mjs: "Trip's snapshot age is Trip's own board fetch, not the clock or the commute's (#58 6983061034)"
+
 Independent review (18 Nov): its bugs and surviving mutations (re-check at 7101bf4: satisfied; its push-volume
 finding fixed after):
 - tests/native-proxy.test.mjs: "Review: an iPhone in daily use isn't idle: following and re-registering keep it from being replaced"

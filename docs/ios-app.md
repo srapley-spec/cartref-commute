@@ -255,7 +255,9 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
 7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
    replace by key; 512 KB total; opaque to the shell. **`dataAt: null` means the data's age is unknown** (a snapshot
-   with no fetch time): kept and returned as null, never replaced by `savedAt` (#58, 18 Nov; native 9ce934f).
+   with no fetch time): kept and returned as null, never replaced by `savedAt` (#58, 18 Nov; native 9ce934f). A followed
+   Trip's `dataAt` is Trip's own: the oldest successful fetch of the boards it's watched on, or null while any has never
+   loaded; never the clock, never the commute's fetch time (#58 6983061034).
    **Every batch names all four keys** (the store merges by key, so a key left out would keep its old value): the page
    writes them most important first (snapshot, settings, status, boards) on each new snapshot and each live board;
    anything with nothing to keep (a stopped journey) or that would take the total past 512 KB goes as an explicit

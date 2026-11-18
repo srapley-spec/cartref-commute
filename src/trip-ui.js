@@ -31,7 +31,7 @@ function createTripUi(deps) {
     journeyTimesMarkup, journeyFactsMarkup, journeyStepsMarkup, arrangeJourneySummaries, tick, optionMarkup, flagsMarkup } = deps;
   const cfg = () => C.tripConfig({ allow: { parkMin: S().tripParkMin, lockMin: S().tripLockMin, stationMin: S().tripStationMin, exitMin: S().tripExitMin, carBackMin: S().tripCarBackMin } });
   const hhmm = C.hhmm, dur = C.dur;
-  let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, lastBest = null, better = false;
+  let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, boardOkAt = {}, lastBest = null, better = false;
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
@@ -257,7 +257,7 @@ function createTripUi(deps) {
     // One board per station pair per 30 s (refreshMs), however often the screen asks: a forced redraw reuses it.
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
-      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); } catch (e) { liveBoards[b.key] = undefined; } }));
+      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); if (liveBoards[b.key]) boardOkAt[b.key] = now(); } catch (e) { liveBoards[b.key] = undefined; } }));
     const planned=resultQuestion||effectiveQuestion();
     const q = planned.kind === "now" ? { kind: "now", t: now() } : planned;
     const js = C.rankTrips((result?.journeys||[]).map(j => C.applyLive(j, liveBoards, cfg())), q, now(), cfg());
@@ -267,6 +267,17 @@ function createTripUi(deps) {
     if(result)result = { ...result, journeys: js, picks, others: C.otherStations(js, picks[0], cfg().otherStationsMax) };
     updateFollowing(js);
 
+  }
+  /**
+   * When the followed Trip's live data is from (#58, 18 Nov): the oldest successful fetch of the boards it is watched
+   * on, or null (unknown) when any of them has never loaded, or it has none. Never the clock, and never the commute's.
+   */
+  function followedDataAt(){
+    const f=st().follow; if(!f||!f.journey||!C.liveBudget) return null;
+    const keys=C.liveBudget([],f.journey,now(),cfg()).map(b=>b.key);
+    if(!keys.length) return null;
+    const at=keys.map(k=>boardOkAt[k]);
+    return at.every(Number.isFinite)?Math.min(...at):null;
   }
   function updateFollowing(options=result?.journeys||[]){
     const f=st().follow;if(!f){followUpdate=null;return;}
@@ -482,8 +493,8 @@ function createTripUi(deps) {
       const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
       fill(); renderResults(); if (!result && st().to) plan(); },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
-    refresh, plan, renderResults, pinView,
-    reset() { result = null; liveBoards = {}; boardAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
+    refresh, plan, renderResults, pinView, followedDataAt,
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
     state: () => ({ result, error, stage: stageText }),
   };
 }
