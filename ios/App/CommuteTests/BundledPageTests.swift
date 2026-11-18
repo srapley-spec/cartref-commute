@@ -27,8 +27,22 @@ final class BundledPageTests: XCTestCase {
         )
         let controller = OfflineBridgeViewController()
         controller.rules = rules
-        controller.loadViewIfNeeded()
+        let window = try XCTUnwrap(UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow))
+        let original = window.rootViewController
+        defer {
+            window.rootViewController = original
+            window.makeKeyAndVisible()
+        }
+        // Exercise a foreground app screen. Detached WKWebViews may be suspended by WebKit.
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
         let webView = try XCTUnwrap(controller.webView)
+        XCTAssertTrue(webView.window === window)
+        XCTAssertFalse(window.isHidden)
         try await assertPageReady(webView)
         let origin = try await webView.evaluateJavaScript("location.origin") as? String
         XCTAssertEqual(origin, "capacitor://localhost")
@@ -51,7 +65,7 @@ final class BundledPageTests: XCTestCase {
         // A fresh simulator can stall WebKit during its first launch on a busy host.
         // This is a readiness check, not a device launch-performance benchmark.
         let clock = ContinuousClock()
-        let deadline = clock.now.advanced(by: .seconds(120))
+        let deadline = clock.now.advanced(by: .seconds(300))
         var ready = false
         var evaluating = false
         while clock.now < deadline {
@@ -68,7 +82,7 @@ final class BundledPageTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(100))
         }
         throw NSError(domain: "CommuteTests.PageReadiness", code: 1, userInfo: [
-            NSLocalizedDescriptionKey: "The bundled engine and screen did not start within 120 seconds (URL: \(webView.url?.absoluteString ?? "none"), loading: \(webView.isLoading))."
+            NSLocalizedDescriptionKey: "The bundled engine and screen did not start within 300 seconds (URL: \(webView.url?.absoluteString ?? "none"), loading: \(webView.isLoading))."
         ])
     }
 }

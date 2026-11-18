@@ -52,14 +52,30 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/ios-release.test.mjs: "release rejects a substituted page in the exported IPA and cleans up signing inputs"
 - Native XCTest: `ios/App/CommuteTests/BundledPageTests.swift`,
   `testPageBootsFromTheBundleWithoutNetwork`. Uses a real Capacitor WKWebView and WebKit network block rules.
+  The offline controller is displayed in the real app window for the test, then the original controller is
+  restored. A detached WKWebView can be throttled or suspended and does not represent opening the app offline.
+  The test asserts window attachment and visibility while retaining a fresh nonpersistent store and network block.
   `testApplicationLaunchesTheBundledPage` separately checks the actual app window/controller and its loaded page;
   the independent review identified that the isolated offline test alone could miss a broken app entry point.
   The offline probe uses `no-cors` so a missing CORS response header cannot masquerade as the network blocker.
-  Readiness waits up to 120 seconds on a monotonic clock: a fresh local simulator reported an unresponsive WebKit
-  process, then loaded both pages after the former 20-second poll allowance. The engine, screen, origin and title
-  assertions remain unchanged; this allowance is not a physical-device launch-performance target.
+  Readiness waits up to 300 seconds on a monotonic clock. The first main run's 120-second budget expired before
+  WebKit completed its initial navigation (the test finished at 145 seconds and navigation completed immediately
+  afterwards). A separate blank WebKit app, with no Commute code or XCTest, took 57 seconds to become ready on a
+  fresh simulator. These measurements show that infrastructure time cannot be treated as a phone performance
+  measurement; the precise OS cause remains unresolved. The engine, screen, origin, title and offline assertions
+  remain unchanged. Real-device launch performance still needs checking.
   Only one readiness evaluation may be in flight. The deadline advances independently of its callback, so a
   stalled callback cannot turn an expired wait into success or prevent the test from reporting a failure.
+  Xcode test timeouts are enabled (360 seconds by default, 600 maximum); separate five-minute simulator-command
+  and eighteen-minute xcodebuild limits cover bootstrap and test-manager hangs before any test starts. A timeout
+  fails the run and still cleans up its disposable simulator. There are no automatic test retries.
+  The simulator boot report is preserved. A terminal "Data Migration Failed" rejects the environment even when
+  `simctl` exits zero, a case observed during diagnosis. The speculative debugger change was removed because
+  the comparison did not explain the startup delay.
+- tests/ios-simulator.test.mjs: "simulator bootstrap failure prevents app testing and removes only its disposable device"
+- tests/ios-simulator.test.mjs: "simulator test failures propagate after disposable device cleanup"
+- tests/ios-simulator.test.mjs: "hung simulator setup and xcodebuild fail within an outer deadline and clean up"
+- tests/ios-simulator.test.mjs: "the normal iPhone test command enforces its production outer deadlines"
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
@@ -70,7 +86,9 @@ and cancellation. Both real-startup and offline native tests passed against the 
 
 ## Not yet / open questions
 - Independent review is complete: all 20 deliberate mutations are caught; [review evidence](../reviews/ios-shell-2026-11-17.md).
-  Release still requires committed-code CI, GitHub validation and successful internal TestFlight processing;
+  PR #59's initial main native startup check failed on 18 November. TestFlight correctly skipped that revision;
+  the website checks and deployment passed. PR #60 tracks the startup correction and its validation. Every release
+  requires committed-code CI, GitHub validation and successful internal TestFlight processing;
   see Actions and its build-provenance artifact for the exact released SHA/build number.
 - The green no-setup release (`af09273`) is now merged into this branch. Its live proxy accepts the bundled origin;
   the web page and its tests remain the owner's unchanged release.
