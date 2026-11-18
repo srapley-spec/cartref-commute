@@ -512,7 +512,8 @@ function renderFollowPanel(){
   const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
   const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
     !(state.routeFailed&&state.routeFailed[selectedBoard])&&!(state.followFailedBoards||[]).includes(selectedBoard);
-  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,policy:PROFILE.disruption});
+  let setOffEvidence=false; try{ setOffEvidence=route.phase==="before-train"&&!observation.boarding&&followMovedOff(route,observation); }catch(e){}
+  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,setOff:setOffEvidence,policy:PROFILE.disruption});
   state.followUpdate=result;
   if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
   const r=result.route,t=r.lastTrain, alt=result.alternative,st=result.trainStatus;
@@ -537,7 +538,7 @@ function renderFollowPanel(){
   const platformBy=platformTime(r.option,t);
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
-  const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const legs=C.followedLegs(r,Date.now(),{setOff:followSetOffNow()}), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
   const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
   // The live card names a different train (one you selected instead): this card names the train it follows, and
   // leaves "You're on …" to the card that is working out where you are (never two cards claiming two trains).

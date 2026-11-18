@@ -90,7 +90,7 @@ function renderJourneyProgress(){
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);
     const currentTrain={...train,arr:context.expectedArrival??train.arr};
     legs=option?C.progressLegsFromSteps({option,train:currentTrain,route:followed?undefined:progressRoute(option),
-      steps:followed?C.followedLegs(followed,Date.now()):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
+      steps:followed?C.followedLegs(followed,Date.now(),{setOff:followSetOffNow()}):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
       [{id:'rail',kind:'rail',label:'Train',start:train.dep,end:context.expectedArrival??train.arr,from:progressName(train.from),to:progressName(train.to),fromCode:train.from,toCode:train.to}];
     active='rail';calls=ordered;
     evidence={source:details?.data?'reported':context.arrivalLive?'prediction':'modelled',observedAt,
@@ -104,7 +104,7 @@ function renderJourneyProgress(){
     const sameHub=memory&&(memory.hub===ride.hub||(PROFILE.sharesTubeWith?.[memory.hub]||memory.hub)===(PROFILE.sharesTubeWith?.[ride.hub]||ride.hub));
     const remembered=!context.homeward&&sameHub&&C.progressContextCurrent(memory.legs,memory.observedAt,context.departure)?memory:null;
     const chosen=option||remembered?.option;
-    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now()),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
+    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now(),{setOff:followSetOffNow()}),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
     else legs=[];
     const railIndex=legs.findIndex(leg=>leg.kind==='rail');
     const tubeIndex=legs.findIndex((leg,index)=>leg.kind==='tube'&&(context.homeward?index<railIndex:index>railIndex));
@@ -149,7 +149,7 @@ function renderJourneyProgress(){
     evidence={source:live?'prediction':'modelled',observedAt:live?(context.homeward?state.followTransport?.at:state.ald?.at):null,expectedAt:live?.arrival??null,
       scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle,
       // Where TfL says your tube is, in its own words (10 Nov, #57 E1, H11), from the predictions the arrival came from.
-      where:live&&ride.vehicle?C.followTubeWhere(context.homeward?state.followTransport?.predictions:state.ald?.arrivals,String(ride.vehicle),lineIdOf(ride.line)):null};
+      where:live&&ride.vehicle?(live.where||null):null};   // from the accepted prediction itself (18 Nov review)
     uncertain=!(ride.picked||ride.confirmed);
   }
   const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};

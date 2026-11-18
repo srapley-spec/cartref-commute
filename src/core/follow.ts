@@ -59,6 +59,9 @@ export interface FollowInput {
   connectionSteps?: Record<string, Leg[]>;
   /** A missing/rough location must not turn a vanished departure into a missed connection. */
   hasReliableLocation?: boolean;
+  /** Evidence you've set off (moved from where you started following, on a fresh fix). Without it, a step before the
+   *  train whose original time has passed isn't taken as done: it moves with the train (18 Nov review). */
+  setOff?: boolean;
   /**
    * Where you are against the station the followed train leaves from (10 Nov 2026, #57 H15/H20: on the platform at
    * Farringdon the card said "You can no longer make your 15:56" as the train drew in, because a fresh plan from the
@@ -229,7 +232,7 @@ export function dismissFollowAlternative(route: FollowRoute, option: Option): Fo
   const key = followServiceKey(option);
   return { ...route, dismissedAlternatives: [...route.dismissedAlternatives.filter(k => k !== key), key].slice(-100) };
 }
-function legsFor(route: FollowRoute, now?: number): Leg[] {
+function legsFor(route: FollowRoute, now?: number, evidence?: { setOff?: boolean }): Leg[] {
   const before = route.option.train, after = route.lastTrain;
   const departureShift = after.dep - before.dep;
   const railShift = finite(after.arr) ? after.arr - (before.arr as number) : route.expectedArrival - route.plannedArrival;
@@ -245,11 +248,12 @@ function legsFor(route: FollowRoute, now?: number): Leg[] {
       const platform = after.platform ? `platform ${after.platform}` : 'platform unannounced';
       l.note = /\bplatform\s+[^,·]+/i.test(l.note || '') ? (l.note || '').replace(/\bplatform\s+[^,·]+/i, platform)
         : [l.note, platform].filter(Boolean).join(', ');
-    } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now)) {
-      // The steps before the train that are still ahead move with its departure, as the card's own Leave by does
-      // (10 Nov, #57 H2: the header said 15:36 and "Next: 15:34 · Leave office", the step still timed for the
-      // train's old departure). A step whose own time has come is left where it was: it is taken as done, and a
-      // late train must not bring it back as the next thing to do.
+    } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now || !(evidence && evidence.setOff))) {
+      // The steps before the train move with its departure, as the card's own Leave by does (10 Nov, #57 H2: the
+      // header said 15:36 and "Next: 15:34 · Leave office", the step still timed for the train's old departure).
+      // A step whose original time has come is taken as done only with evidence that you've set off: the clock alone
+      // isn't evidence (18 Nov review: a delay moved Leave by 10:24 → 10:39, and at 10:26, still at home, "Next" had
+      // skipped to the 11:05 train). Once you've set off, a passed step stays done and a late train doesn't bring it back.
       l.t = l.t + departureShift;
     } else if (l.t != null && l.t >= (before.arr as number)) {
       // A slower final walk changes its arrival, never the completed rail arrival/interchange history.
@@ -259,7 +263,7 @@ function legsFor(route: FollowRoute, now?: number): Leg[] {
   });
 }
 /** The full saved itinerary, with observed rail changes reflected without replanning its walks/tube. */
-export const followedLegs = (route: FollowRoute, now?: number): Leg[] => legsFor(route, now);
+export const followedLegs = (route: FollowRoute, now?: number, evidence?: { setOff?: boolean }): Leg[] => legsFor(route, now, evidence);
 export function updateFollowRoute(previous: FollowRoute, input: FollowInput): FollowUpdate {
   const route: FollowRoute = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
   const phase = input.phase || route.phase;
@@ -458,7 +462,7 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
       railStatus = arrivalStatus(expected, (route.option.train.arr as number) - route.option.train.arrLate * MIN, input.policy);
     }
   }
-  const legs = legsFor(route, input.now).filter(l => l.t != null && !l.calls);
+  const legs = legsFor(route, input.now, { setOff: input.setOff }).filter(l => l.t != null && !l.calls);
   // "On track" is kept for arriving when planned or sooner (Sam, 10 Nov; #57 H24: green "On track" beside an arrival
   // four minutes past the plan read as "on time"). Later than planned, by the minutes shown, it says so.
   if (status === 'on-track' && level === 'ok' && text.startsWith('On track')) {

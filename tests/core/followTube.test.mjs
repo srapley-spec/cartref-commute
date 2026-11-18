@@ -50,7 +50,7 @@ test('follow Tube: malformed, missing and already passed predictions fall back w
 test('follow Tube: normalized guarded adapter records retain provider timestamp and exact prediction',()=>{
  const raw=fcn.find(x=>x.vehicleId==='441');
  const normalized={vehicle:raw.vehicleId,lineId:raw.lineId,platform:raw.platformName,stopId:raw.naptanId,
-  observedAt:Date.parse(raw.timestamp),t:Date.parse(raw.expectedArrival)};
+  observedAt:Date.parse(raw.timestamp),t:Date.parse(raw.expectedArrival),where:raw.currentLocation};
  const before=JSON.stringify(normalized),expected=core.followTubeArrival([raw],request());
  assert.deepEqual(core.followTubeArrival([normalized],request()),expected);assert.equal(JSON.stringify(normalized),before);
  assert.equal(core.followTubeArrival([{...normalized,observedAt:NOW-3*MIN}],request()),null);
@@ -80,4 +80,18 @@ test('independent review: cache expiry is independent of an accepted provider cl
  assert.ok(core.followTubeArrival([prediction],{...request,now:NOW+3*MIN-1}));
  assert.equal(core.followTubeArrival([prediction],{...request,now:NOW+3*MIN}),null,
   'provider clock offset cannot extend the cache lifetime');
+});
+
+test('follow Tube: the location comes from the accepted prediction, never a stale record for the same vehicle (18 Nov review)',()=>{
+ const base={vehicleId:'217',lineId:'circle',platformName:'Westbound - Platform 2',naptanId:'940GZZLUFCN'};
+ const req=request({vehicle:'217',lineId:'circle',hub:'ZFD',stopId:'940GZZLUFCN',readyMs:0});
+ const stale={...base,timestamp:new Date(NOW-10*MIN).toISOString(),expectedArrival:new Date(NOW+1*MIN).toISOString(),currentLocation:'At Liverpool Street Platform 1'};
+ const fresh={...base,timestamp:new Date(NOW-20e3).toISOString(),expectedArrival:new Date(NOW+4*MIN).toISOString(),currentLocation:'Between Moorgate and Barbican'};
+ const a=core.followTubeArrival([stale,fresh],req);
+ assert.equal(a.arrival,NOW+4*MIN,'the fresh record is the one accepted');
+ assert.equal(a.where,'Between Moorgate and Barbican','its own location, not the stale first one');
+ assert.equal(core.followTubeArrival([{...fresh,currentLocation:''}],req).where,null,'no text from the accepted record: none');
+ // A record for another direction (or stop) never lends its location either.
+ const other={...fresh,platformName:'Eastbound - Platform 1',currentLocation:'At Aldgate'};
+ assert.equal(core.followTubeArrival([other,{...fresh,currentLocation:''}],req).where,null);
 });

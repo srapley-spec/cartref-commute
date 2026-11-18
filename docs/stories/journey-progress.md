@@ -17,6 +17,9 @@ not production position or routing logic. Their old amber/green identity accents
 status-colour rule; Signal uses its own tokens and blue identity/accent.
 
 ## Acceptance criteria
+- **Where your tube is comes from the accepted prediction (18 Nov review):** the location text is the one in the same
+  TfL prediction whose arrival was accepted (fresh, right vehicle, line, direction and stop), never from another record
+  for the same vehicle that may be stale.
 - On a rail or Tube live view, show an overall journey strip identifying its legs, completed/current/upcoming
   state, and the destination. Under it show the current leg and its known calling points or endpoints.
 - Use the existing journey/connection/Follow result and timed steps. Visual progress must not select another
@@ -135,6 +138,7 @@ mockups were drawn (`docs/design/leg-progress-options-2026-11-11.html`); Sam cho
 The acceptance criteria above (bar and marker wording) predate this; where they differ, this section is the app.
 
 ## Tests
+- tests/core/followTube.test.mjs: "follow Tube: the location comes from the accepted prediction, never a stale record for the same vehicle (18 Nov review)"
 Pure-model, adapter and independent counterexample tests are linked below. Real-page and browser checks
 exercise the same generated application; the final committed-head review/release record supplies executed results.
 The phone geometry and source-state cases are in

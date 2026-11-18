@@ -19,6 +19,9 @@ export interface FollowTubeArrival {
   readyAt: number;
   at: number;
   live: true;
+  /** TfL's location text from this same accepted prediction (null when it gave none): never from another record
+   *  for the same vehicle, which may be stale (18 Nov review). */
+  where: string | null;
 }
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -49,7 +52,7 @@ export function followTubeArrival(predictions: unknown, i: FollowTubeRequest): F
     const arrival = explicit != null ? parsedTime(explicit)
       : finite(p.timeToStation) && p.timeToStation >= 0 ? observed + p.timeToStation * 1000 : null;
     if (arrival == null || arrival < i.now - 30e3) continue;
-    return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true };
+    return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true, where: tubeWhere(p.where ?? p.currentLocation) };
   }
   return null;
 }
@@ -65,7 +68,11 @@ export function tubeWhere(text: unknown): string | null {
   if (!s || s.length > 80 || !/^(At|Between|Approaching|Left|Departed|Leaving|Departing|Around)\s+\S/i.test(s)) return null;
   return s.replace(/^Departed\b/i, 'Left').replace(/^[a-z]/, c => c.toUpperCase());
 }
-/** The location text TfL gives for the tube you're matched to, from the same predictions its arrival came from. */
+/**
+ * The location text TfL gives for the tube you're matched to. Prefer `FollowTubeArrival.where` (the accepted record's
+ * own text); this is kept only for callers without a validated arrival and returns the first matching record's.
+ * @deprecated 18 Nov: can pair a fresh arrival with a stale location from another record for the same vehicle.
+ */
 export function followTubeWhere(predictions: unknown, vehicle: string, lineId?: string): string | null {
   if (!Array.isArray(predictions) || !vehicle) return null;
   for (const p of predictions) {
