@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 10:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 11:09 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1170,6 +1170,7 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    COUNTDOWN_URGENT_MS: () => COUNTDOWN_URGENT_MS,
     COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
     DEFAULT_DISRUPTION_POLICY: () => DEFAULT_DISRUPTION_POLICY,
     EFFORTS: () => EFFORTS,
@@ -5803,6 +5804,7 @@ var CommuteCore = (() => {
   var SNAPSHOT_REFRESH_MS = 2 * 6e4;
   var LEAVE_ALARM_GRACE_MS = 2 * 6e4;
   var LEAVE_ALARM_DEFAULT_MIN = 5;
+  var COUNTDOWN_URGENT_MS = 12e4;
   var COUNTDOWN_WORDS = {
     leave: { calm: "leave in", urgent: "Leave now", passed: "leave time passed" },
     platform: { calm: "on the platform in", urgent: "Head for the platform now", passed: "platform time passed" },
@@ -5825,6 +5827,7 @@ var CommuteCore = (() => {
   function journeySnapshot(i) {
     const dataAt = fin(i.dataAt) ? i.dataAt : null;
     const words = i.headline.step ? COUNTDOWN_WORDS[i.headline.step] : null;
+    const t2 = fin(i.headline.t) ? i.headline.t : null;
     const progress = i.progress && (i.progress.next || fin(i.progress.stopsToGo) || i.progress.line) ? {
       next: i.progress.next || null,
       stopsToGo: fin(i.progress.stopsToGo) ? i.progress.stopsToGo : null,
@@ -5842,7 +5845,13 @@ var CommuteCore = (() => {
       direction: i.direction,
       followId: i.followId || null,
       phase: i.phase,
-      headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
+      headline: { label: i.headline.label, t: t2, countdown: words ? {
+        step: i.headline.step,
+        ...words,
+        state: t2 == null ? "calm" : i.now >= t2 ? "passed" : t2 - i.now < COUNTDOWN_URGENT_MS ? "urgent" : "calm",
+        urgentAt: t2 == null ? null : t2 - COUNTDOWN_URGENT_MS,
+        passedAt: t2
+      } : null },
       arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
       train: i.train || null,
       progress,
@@ -5884,12 +5893,13 @@ var CommuteCore = (() => {
   }
   function shiftSnapshot(s, d) {
     const m = (t2) => t2 == null ? t2 : t2 + d;
+    const cd = s.headline.countdown;
     return {
       ...s,
       at: s.at + d,
       dataAt: m(s.dataAt),
       staleAt: m(s.staleAt),
-      headline: { ...s.headline, t: m(s.headline.t) },
+      headline: { ...s.headline, t: m(s.headline.t), countdown: cd && { ...cd, urgentAt: m(cd.urgentAt), passedAt: m(cd.passedAt) } },
       arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
       train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) },
       alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d }
@@ -7880,7 +7890,7 @@ function tick(){
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
   // Every left time counts down, in its step's words (Sam, 12 Nov: "the countdown should be to the start of the next
   // step"; wording reviewed on the countdown journey page): leave, platform, arrival, next step.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<C.COUNTDOWN_URGENT_MS, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
     e.textContent = urgent ? `${w.urgent} · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`${w.calm} ${countdown(ms)}`:w.passed;
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });

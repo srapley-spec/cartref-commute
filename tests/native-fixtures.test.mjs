@@ -24,6 +24,18 @@ const CASES = {
   "page-train-confirmed": core.journeySnapshot({ now: at(DAY, "19:05"), source: "page", dataAt: at(DAY, "19:05"), mode: "leisure", direction: "home", followId: "f9", phase: "train", confirmed: true,
     headline: { label: "At Letchworth Garden City", t: at(DAY, "19:40"), step: "arrive" }, arrive: { label: "At home", t: at(DAY, "19:52") }, progress: { next: "Stevenage", stopsToGo: 3 } }),
 };
+// The page's own phases (the closed app never makes these; the page publishes them while open).
+const page = (phase, label, t, step, more = {}) => core.journeySnapshot({ now: at(DAY, "18:30"), source: "page", dataAt: at(DAY, "18:30"), mode: "commute", direction: "home", followId: "f9", phase,
+  headline: { label, t, step }, arrive: { label: "At home", t: at(DAY, "19:52") }, ...more });
+Object.assign(CASES, {
+  "page-walk": page("walk", "Next tube", at(DAY, "18:33"), "next", { progress: { next: "Farringdon", stopsToGo: 2 } }),
+  "page-tube": page("tube", "At Farringdon", at(DAY, "18:44"), "arrive", { confirmed: true, progress: { next: "Barbican", stopsToGo: 2 } }),
+  "page-missed": page("missed", "Next train", at(DAY, "19:08"), "next", { status: { level: "bad", text: "Missed: the 18:56 has gone" } }),
+  "page-switched": page("leave", "Leave by", at(DAY, "18:48"), "leave", { followId: "f10", alarm: core.leaveAlarm(at(DAY, "18:48"), { enabled: true, setOff: false, now: at(DAY, "18:30"), startPlace: "office" }) }),
+  "page-urgent": page("platform", "Be on platform 4 at Farringdon by", at(DAY, "18:31"), "platform"),
+  "page-arrived": page("arrived", "At home", at(DAY, "19:52"), "", { confirmed: true }),
+  "page-stopped": null,
+});
 const tripRoute = { version: 1, kind: "trip", id: "t1", startedAt: at(DAY, "09:00"), confirmed: [], journey: { id: "j1", leave: at(DAY, "09:30"), arrive: at(DAY, "11:20"),
   from: { name: "Home" }, to: { name: "Canterbury Cathedral" }, toStation: { crs: "CBW", name: "Canterbury West" }, fromStation: { crs: "BTN", name: "Brighton" },
   before: [{ kind: "walk", secs: 900 }, { kind: "station", secs: 180 }], after: [],
@@ -37,6 +49,7 @@ function golden(name, value) {
 
 test("Native fixtures: a snapshot for every phase, as the iPhone app receives them", () => {
   for (const [k, v] of Object.entries(CASES)) golden(`snapshot-${k}`, v);
+  assert.equal(CASES["page-urgent"].headline.countdown.state, "urgent");
   assert.equal(CASES["train-unconfirmed"].confirmed, false); assert.equal(CASES["page-train-confirmed"].confirmed, true);
   assert.equal(CASES.platform.alarm.cancelled, true); assert.equal(CASES.leave.alarm.cancelOnExit, "office");
   assert.equal(CASES.stale.stale, true);
@@ -62,4 +75,6 @@ test("Trip's plan for the proxy: its first train, leave time, platform allowance
   assert.equal(core.tripNativePlan(null, () => ""), null);
   const s = core.proxySnapshot({ ...p.plan, ...p.extra }, {}, null, { now: at(DAY, "09:10"), dataAt: null, setOff: false, alarm: { enabled: true } });
   assert.equal(s.mode, "trip"); assert.equal(s.direction, null); assert.equal(s.alarm.cancelOnExit, null);
+  golden("snapshot-trip-leave", s);
+  golden("snapshot-trip-platform", core.proxySnapshot({ ...p.plan, ...p.extra }, {}, null, { now: at(DAY, "09:40"), dataAt: at(DAY, "09:40"), setOff: true, alarm: { enabled: true } }));
 });

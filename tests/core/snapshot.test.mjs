@@ -11,6 +11,7 @@ const tl = (o = {}) => train({ from: "ZFD", to: "LET", std: "18:56", dep, arr: a
 const plan = (o = {}) => ({ v: 1, followId: "f9", serviceId: "S1856", from: "ZFD", to: "LET", std: "18:56", operator: "Thameslink",
   dep, leaveBy: at(DAY, "18:36"), leadMs: 20 * MIN, train: "the 18:56 from Farringdon",
   mode: "commute", direction: "home", fromName: "Farringdon", toName: "Letchworth Garden City", marginMs: 2 * MIN, afterMs: 12 * MIN, ...o });
+const cd = (step, t, state = "calm") => ({ step, ...core.COUNTDOWN_WORDS[step], state, urgentAt: t - 120e3, passedAt: t });
 const opts = (o = {}) => ({ now: at(DAY, "18:20"), dataAt: at(DAY, "18:19"), setOff: false, alarm: { enabled: true, leadMin: 5 }, ...o });
 
 test("Countdown words: one set, shared by the card and the native surfaces", () => {
@@ -24,7 +25,7 @@ test("Snapshot: version, stale after 3 minutes, no data is stale, deep link from
   const base = { now, source: "page", mode: "commute", direction: "home", followId: "f 9", phase: "leave", headline: { label: "Leave by", t: at(DAY, "18:36"), step: "leave" } };
   const s = core.journeySnapshot({ ...base, dataAt: now - 3 * MIN });
   assert.equal(s.v, 1); assert.equal(s.at, now); assert.equal(s.stale, false);
-  assert.deepEqual(s.headline.countdown, { step: "leave", calm: "leave in", urgent: "Leave now", passed: "leave time passed" });
+  assert.deepEqual(s.headline.countdown, { step: "leave", calm: "leave in", urgent: "Leave now", passed: "leave time passed", state: "calm", urgentAt: at(DAY, "18:34"), passedAt: at(DAY, "18:36") });
   assert.equal(s.deepLink, "commute://follow/f%209");
   assert.equal(core.journeySnapshot({ ...base, dataAt: now - 3 * MIN - 1 }).stale, true);
   assert.equal(core.journeySnapshot({ ...base, dataAt: null }).stale, true);
@@ -61,7 +62,7 @@ test("Leave alarm: lead before leave time (5 min default), cancelled once set of
 test("Proxy snapshot before you leave: Leave by, the alarm, the train and the door arrival", () => {
   const s = core.proxySnapshot(plan(), {}, tl({ arr: at(DAY, "19:40") }), opts());
   assert.equal(s.source, "proxy"); assert.equal(s.phase, "leave"); assert.equal(s.stale, false);
-  assert.deepEqual(s.headline, { label: "Leave by", t: at(DAY, "18:36"), countdown: { step: "leave", ...core.COUNTDOWN_WORDS.leave } });
+  assert.deepEqual(s.headline, { label: "Leave by", t: at(DAY, "18:36"), countdown: cd("leave", at(DAY, "18:36")) });
   assert.deepEqual(s.alarm, { at: at(DAY, "18:31"), leadMin: 5, cancelled: false, cancelOnExit: null });
   // The journey starts at the office: its geofence exit cancels the alarm on the phone (§6.7 rule 3).
   assert.equal(core.proxySnapshot(plan({ startPlace: "office" }), {}, tl(), opts()).alarm.cancelOnExit, "office");
@@ -108,14 +109,14 @@ test("Proxy snapshot: no live estimate keeps the last one seen; none at all is t
 test("Proxy snapshot: on the train it counts to the alighting station, then to the door; cancelled ends it with no alarm", () => {
   const s = core.proxySnapshot(plan(), {}, tl(), opts({ now: dep + MIN }));
   assert.equal(s.phase, "train");
-  assert.deepEqual(s.headline, { label: "At Letchworth Garden City", t: at(DAY, "19:40"), countdown: { step: "arrive", ...core.COUNTDOWN_WORDS.arrive } });
+  assert.deepEqual(s.headline, { label: "At Letchworth Garden City", t: at(DAY, "19:40"), countdown: cd("arrive", at(DAY, "19:40")) });
   assert.equal(s.alarm, null);
   // The train has gone from the board: the last arrival and platform seen stand.
   const gone = core.proxySnapshot(plan(), { lastDep: dep, lastLate: 0, lastArr: at(DAY, "19:40"), lastPlatform: "4" }, null, opts({ now: dep + 20 * MIN }));
   assert.equal(gone.phase, "train"); assert.equal(gone.headline.t, at(DAY, "19:40")); assert.equal(gone.train.platform, "4");
   // Past the arrival: the walk home, counting to the door.
   const off = core.proxySnapshot(plan(), { lastDep: dep, lastArr: at(DAY, "19:40") }, null, opts({ now: at(DAY, "19:41") }));
-  assert.equal(off.phase, "walk-last"); assert.deepEqual(off.headline, { label: "At home", t: at(DAY, "19:52"), countdown: { step: "arrive", ...core.COUNTDOWN_WORDS.arrive } });
+  assert.equal(off.phase, "walk-last"); assert.deepEqual(off.headline, { label: "At home", t: at(DAY, "19:52"), countdown: cd("arrive", at(DAY, "19:52")) });
   const c = core.proxySnapshot(plan(), {}, tl({ cancelled: true }), opts());
   assert.equal(c.phase, "cancelled"); assert.equal(c.headline.label, "Cancelled"); assert.equal(c.headline.countdown, null);
   assert.equal(c.alarm, null); assert.deepEqual(c.status, { level: "bad", text: "Cancelled" });
@@ -196,4 +197,18 @@ test("Review: a Trip starting with a tube watches its train but claims no platfo
   assert.equal(core.tripNativePlan({ ...solo, journey: { ...solo.journey, leave: at(DAY, "09:41") } }, () => "09:40"), null);
   // A ride after the train: no door arrival from the proxy.
   assert.equal(core.tripNativePlan({ ...solo, journey: { ...solo.journey, rides: [route.journey.rides[1], route.journey.rides[0]] } }, () => "").extra.afterMs, undefined);
+});
+
+test("Countdown wording and its change instants come from the engine (#58): calm, urgent under 2 min, passed at the time", () => {
+  const t = at(DAY, "18:36"), snap = (now) => core.journeySnapshot({ now, source: "page", dataAt: now, mode: "commute", direction: "home", followId: "f1", phase: "leave", headline: { label: "Leave by", t, step: "leave" } }).headline.countdown;
+  // As the page: urgent once strictly under 2 minutes (after urgentAt), passed from passedAt.
+  assert.equal(snap(t - 120e3).state, "calm");
+  assert.equal(snap(t - 120e3 + 1).state, "urgent");
+  assert.equal(snap(t - 1).state, "urgent");
+  assert.equal(snap(t).state, "passed");
+  assert.equal(snap(t).urgentAt, t - core.COUNTDOWN_URGENT_MS); assert.equal(snap(t).passedAt, t);
+  assert.equal(core.COUNTDOWN_URGENT_MS, 120e3);
+  // Shifting a snapshot moves its change instants too.
+  const s = core.shiftSnapshot(core.journeySnapshot({ now: t - 600e3, source: "page", dataAt: t, mode: "commute", direction: "home", phase: "leave", headline: { label: "Leave by", t, step: "leave" } }), 3600e3);
+  assert.equal(s.headline.countdown.urgentAt, t - 120e3 + 3600e3); assert.equal(s.headline.countdown.passedAt, t + 3600e3);
 });

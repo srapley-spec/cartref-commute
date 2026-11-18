@@ -2311,7 +2311,7 @@ function tick(){
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
   // Every left time counts down, in its step's words (Sam, 12 Nov: "the countdown should be to the start of the next
   // step"; wording reviewed on the countdown journey page): leave, platform, arrival, next step.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<C.COUNTDOWN_URGENT_MS, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
     e.textContent = urgent ? `${w.urgent} · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`${w.calm} ${countdown(ms)}`:w.passed;
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });

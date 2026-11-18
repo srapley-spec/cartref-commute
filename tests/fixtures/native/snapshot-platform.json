@@ -17,7 +17,10 @@
       "step": "platform",
       "calm": "on the platform in",
       "urgent": "Head for the platform now",
-      "passed": "platform time passed"
+      "passed": "platform time passed",
+      "state": "calm",
+      "urgentAt": 1794941520000,
+      "passedAt": 1794941640000
     }
   },
   "arrive": {
