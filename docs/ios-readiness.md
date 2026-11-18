@@ -1,9 +1,24 @@
 # iOS readiness — 17 November 2026
 
-Sam authorized shell/pipeline implementation on 17 November. The shell now builds, starts offline in a simulator,
-and exports a signed internal-only IPA. The no-setup release and full brief `docs/ios-app.md` are now on main at `af09273`, with Tests, Pages and Deploy proxy
-all green. Native preparation is on `feature/native-prep` (`3c45da8`); its contracts remain unreleased. Read the released
-versions again before native feature implementation. See [the shell story](stories/ios-shell.md) for exact scope.
+## Current status — 18 November 2026
+
+The shell and automatic internal TestFlight pipeline are released (initial build `1.0 (1)` at `cfbe4f0`). The
+owner's snapshot/page/proxy work is released at `9628132`; Tests, Pages, Deploy proxy and TestFlight all passed.
+The live proxy reports `native:true`. APNs secret names were confirmed on issue #58; no key transfer remains.
+
+Native implementation is on `codex/ios-native-v1`, draft PR #61. At `75351bd`, the bridge/store, Apple adapters,
+Live Activity extension and Siri compile; 30 Swift and 12 release/shell tests pass. Independent review approves
+this implemented scope. A real signed app+extension export passes, including native entitlement checks.
+Current runtime capabilities keep Live Activity, alarm and Siri disabled until final integration. Full committed
+CI and real-phone acceptance remain outstanding. Owner questions on #58 concern AlarmKit authorization,
+identified/dated remote stops and countdown wording transitions; generated Trip/page-phase fixtures remain missing.
+See [the native story](stories/ios-native.md) for current behavior and validation.
+
+The extension identifier `uk.cartref.srapley.commute.journey`, App Store profile and
+`IOS_ACTIVITY_PROFILE_BASE64` secret are provisioned. No Apple review submission is authorized or configured.
+
+The sections below preserve the original 17 November preparation record; their historical branch/run references
+are not the current release gates.
 
 ## Prepared and verified
 

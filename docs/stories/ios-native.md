@@ -52,16 +52,18 @@ This is not a
 release claim. Full committed-code CI, GitHub-first checks, independent mutation review, signing checks and real
 iPhone acceptance remain required.
 
-Two contract questions were posted to #58 on 18 November:
+Three contract questions are pending on #58 (18 November):
 - AlarmKit authorization is independent of notification authorization. Settings needs its own returned state and
   explicit request (or an agreed combined request). The implementation must not pretend notifications granted
   implies alarms granted. [Apple API](https://developer.apple.com/documentation/alarmkit/alarmmanager/requestauthorization()).
 - The published background stop carries only `snapshot:null`. It needs `followId` and `at` to make delayed stops
   safe. Unidentified remote nulls are currently ignored; page-local nulls stop the current journey.
+- Countdown words include calm/urgent/passed variants but no engine-selected current wording or transition
+  instants. Native views must not invent urgency rules; the current timer is clamped at zero and uses calm words.
 
 Live Activity/AlarmKit adapters, the lock-screen/Dynamic Island layout and Siri intents compile, but are still being
 connected and validated. The WidgetKit extension contains only the journey Live Activity; the parked home-screen
-widget has not been added. The current bridge reports those capabilities false. The two contract questions above still gate complete end-to-end validation and distribution.
+widget has not been added. The current bridge reports those capabilities false. The contract questions above still gate complete end-to-end validation and distribution.
 
 The owner's `9628132` is now merged into this branch from main; its Tests, Pages and Deploy proxy checks passed.
 The foundation's simulator run passed all eight XCTest checks, including the real Capacitor bridge's version
@@ -69,7 +71,7 @@ errors and offline cache round trip. The surface coordinator now has seven deter
 updates queued at worker completion, disable/exit during suspended alarm scheduling, duplicate activity identity,
 journey switching during suspended activity update, newer APNs content, background start restriction and permissions/
 OS failure. Independent review identified the completed-worker and duplicate-end races; their fixes still await
-mutation review. Apple surface capability flags remain disabled pending full integration and the two contract answers.
+mutation review. Apple surface capability flags remain disabled pending full integration and the remaining contract answers.
 
 
 ## Extension signing
@@ -106,3 +108,10 @@ with cleanup of the already-installed app profile; extension minimum OS/device f
 workflow secret wiring. The published engine schema also revealed that Trip has `direction:null`; Swift now accepts
 that nullable field and tests it. The current owner's nine snapshot fixtures do not yet contain a Trip snapshot,
 so this schema probe does not replace the requested generated Trip/phase fixtures.
+
+
+## Latest verification
+At `75351bd`: 30 Swift package tests and 12 Node release/shell tests pass; independent review approves the
+implemented scope ([review record](../reviews/ios-native-2026-11-18.md)). The real signed app+extension export
+passes its content, identity and entitlement checks. Apple package validation and full combined CI remain pending;
+no native build from this branch has been uploaded. Final activation and physical-phone checks remain gated as above.

@@ -279,14 +279,14 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Part | Owner | Status |
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
-| Journey snapshot in the engine | this repo | Built to the §6.7 contract on `feature/native-prep` (18 Nov); independent review, then release |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Bridge built into the page, publish/configure/evidence/Settings tested with a fake shell on `feature/native-prep` (18 Nov); cache hand-off not wired; not merged |
-| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots built and tested on `feature/native-prep`; Service Details polling and `/native/next` not built; the #58 contract questions are still open; not merged |
+| Journey snapshot in the engine | this repo | Released 18 Nov at `9628132`; Tests, Pages, Deploy proxy and TestFlight green |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released at `9628132`, including cache hand-off and deep links; native integration in progress |
+| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes/APNs/closed-app snapshots released at `9628132`; live `/status` reports `native:true`. Service Details polling not built; `/native/next` is outside v1 by decision B |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
-| Capacitor shell and TestFlight pipeline | iOS agent | Implemented on iOS branch; signed export and Apple validation pass; combined release checks in progress |
-| Native plugin and App Group offline store | iOS agent | Waiting for released page/snapshot contracts and issue #58 |
-| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Not started |
+| Capacitor shell and TestFlight pipeline | iOS agent | Released: main builds automatically reach internal TestFlight. Native extension signing changes are in draft PR #61 |
+| Native plugin and App Group offline store | iOS agent | Implemented and under integration in PR #61; ordered state/cache/bridge tests and independent review pass |
+| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Implemented on `codex/ios-native-v1`; adapters/extension compile and signed export passes. Final activation awaits #58 permission/stop/countdown answers and real-device acceptance; see [native story](stories/ios-native.md) |
 | Widget | (parked) | To discuss with Sam |
 
 ## 9. Open questions
