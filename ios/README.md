@@ -30,7 +30,7 @@ changing which suites run. This avoids running out of memory while Xcode and sim
 ## Internal TestFlight
 
 `.github/workflows/testflight.yml` follows successful **Tests** runs for main pushes. It checks out the tested SHA,
-queues every revision, archives, exports an internal-only signed IPA, verifies its contents, uploads and waits for
+queues every revision, signs the archive with both target profiles, exports an internal-only signed IPA, verifies its contents, uploads and waits for
 Apple processing. It never submits for App Store or external beta review. Commute's internal **Family** group has
 automatic distribution enabled. Accepted App Store Connect users must be added to that group separately.
 

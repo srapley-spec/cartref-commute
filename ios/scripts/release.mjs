@@ -99,7 +99,7 @@ try {
   await run('xcodebuild', ['archive', '-quiet', '-project', 'ios/App/App.xcodeproj', '-scheme', 'Commute',
     '-configuration', 'Release', '-destination', 'generic/platform=iOS', '-archivePath', archive,
     '-derivedDataPath', 'ios/DerivedData', '-onlyUsePackageVersionsFromResolvedFile',
-    'CODE_SIGNING_ALLOWED=NO', `CURRENT_PROJECT_VERSION=${build}`]);
+    'CODE_SIGN_STYLE=Manual', 'CODE_SIGN_IDENTITY=Apple Distribution', `CURRENT_PROJECT_VERSION=${build}`]);
   await run('xcodebuild', ['-exportArchive', '-archivePath', archive, '-exportPath', exported,
     '-exportOptionsPlist', 'ios/ExportOptions.plist']);
   const ipas = (await readdir(exported)).filter(f => f.endsWith('.ipa'));

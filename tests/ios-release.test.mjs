@@ -75,6 +75,8 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
     ['different hostname', 'capacitor.config.json', { server: { ...config.server, hostname: 'elsewhere' } }, /bundled website/],
     ['different scheme', 'capacitor.config.json', { server: { ...config.server, iosScheme: 'https' } }, /bundled website/],
     ['wrong extension identifier', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, CFBundleIdentifier: 'another.extension' }, /journey extension/],
+    ['wrong extension minimum OS', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, MinimumOSVersion: '26.0' }, /journey extension/],
+    ['extension includes iPad', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, UIDeviceFamily: [1, 2] }, /journey extension/],
     ['wrong extension build', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, CFBundleVersion: '3' }, /journey extension/],
     ['wrong extension type', 'PlugIns/CommuteJourney.appex/Info.plist', { ...extensionPlist, NSExtension: {} }, /journey extension/],
     ['extension signed for development', 'PlugIns/CommuteJourney.appex/entitlements.json', { ...distributionEntitlements(signingTargets[1]), 'get-task-allow': true }, /entitlements/],
@@ -94,7 +96,7 @@ test('signed IPA checks reject wrong identity, substituted content, stale proven
   await assert.rejects(verifyBundle(app, dir, sha, '4'), /exactly one journey extension/);
 });
 
-async function releaseProbe(t, cancel, tampered = false) {
+async function releaseProbe(t, cancel, tampered = false, badExtensionProfile = false) {
   const dir = await fixture(t, 'commute-release-probe-');
   const root = path.join(dir, 'repo');
   const bin = path.join(dir, 'bin');
@@ -108,6 +110,7 @@ async function releaseProbe(t, cancel, tampered = false) {
   }
   await writeFile(path.join(root, 'index.html'), html);
   const profiles = signingTargets.map(target => ({ Name: target.name, ExpirationDate: '2099-01-01T00:00:00Z', Entitlements: distributionEntitlements(target) }));
+  if (badExtensionProfile) profiles[1].Name = 'Wrong extension profile';
   await executable(path.join(bin, 'git'), `console.log('${sha}');`);
   await executable(path.join(bin, 'security'), `
     const fs = require('fs'), path = require('path');
@@ -124,7 +127,8 @@ async function releaseProbe(t, cancel, tampered = false) {
     const fs = require('fs'), path = require('path');
     const base = process.env.COMMUTE_PROBE;
     fs.writeFileSync(path.join(base, 'archive-entered.json'), JSON.stringify({
-      leakedSecretNames: ${JSON.stringify(secretNames)}.filter(name => process.env[name] !== undefined)
+      leakedSecretNames: ${JSON.stringify(secretNames)}.filter(name => process.env[name] !== undefined),
+      unsignedArchive: process.argv.includes('CODE_SIGNING_ALLOWED=NO')
     }));
     if (process.env.COMMUTE_PROBE_TAMPER === 'true') {
       const args = process.argv.slice(2);
@@ -177,6 +181,16 @@ async function releaseProbe(t, cancel, tampered = false) {
   const exited = once(child, 'exit');
   t.after(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* Already exited. */ } });
   const marker = path.join(dir, 'archive-entered.json');
+  if (badExtensionProfile) {
+    let timer;
+    const [code] = await Promise.race([exited, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Invalid profile did not fail promptly.')), 10_000); })]).finally(() => clearTimeout(timer));
+    assert.notEqual(code, 0);
+    await assert.rejects(stat(marker), { code: 'ENOENT' }, 'A bad extension profile must be rejected before archiving.');
+    assert.deepEqual(await readdir(scratch), [], 'Remove temporary signing inputs after profile validation failure.');
+    assert.deepEqual(await readdir(path.join(fakeHome, 'Library/Developer/Xcode/UserData/Provisioning Profiles')), [], 'Remove the app profile installed before the extension failed validation.');
+    return;
+  }
+
   const deadline = Date.now() + 120_000;
   while (true) {
     try { await stat(marker); break; } catch {
@@ -185,6 +199,7 @@ async function releaseProbe(t, cancel, tampered = false) {
       await delay(50);
     }
   }
+  assert.equal(JSON.parse(await readFile(marker, 'utf8')).unsignedArchive, false, 'Archive signing must preserve the native entitlements before export.');
   assert.deepEqual(JSON.parse(await readFile(marker, 'utf8')).leakedSecretNames, [], 'Build subprocess must not inherit signing secret values.');
   if (cancel) child.kill('SIGTERM');
   let timer;
@@ -230,4 +245,9 @@ test('both signing profiles enforce App Store identity, expiration and native en
       assert.throws(() => verifyProfile({ ...valid, Entitlements: entitlements }, target, 1000), key);
     }
   }
+});
+
+
+test('release rejects a bad extension profile before archiving and cleans the installed app profile', { timeout: 180_000 }, async t => {
+  await releaseProbe(t, false, false, true);
 });

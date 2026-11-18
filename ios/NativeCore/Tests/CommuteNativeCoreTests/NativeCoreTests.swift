@@ -11,6 +11,15 @@ final class NativeCoreTests: XCTestCase {
             deepLink: "commute://follow/\(id)")
     }
 
+    func testTripSnapshotAcceptsNullDirectionFromThePublishedEngineSchema() throws {
+        var value = try XCTUnwrap(Wire.object(snapshot()) as? [String: Any])
+        value["mode"] = "trip"; value["direction"] = NSNull()
+        let trip = try Wire.snapshot(value)
+        XCTAssertEqual(trip.mode, "trip"); XCTAssertNil(trip.direction)
+        var state = SnapshotState()
+        XCTAssertTrue(try state.apply(trip, fromPage: true, now: 1000))
+    }
+
     func testRemoteMessagesCannotStartOrSwitchJourneyAndEqualTimestampUsesLastReceipt() throws {
         var state = SnapshotState()
         XCTAssertFalse(try state.apply(snapshot(), fromPage: false, now: 1_000))

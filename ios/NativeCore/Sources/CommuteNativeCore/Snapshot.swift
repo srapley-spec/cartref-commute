@@ -49,7 +49,7 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
     public var staleAt: Double?
     public var confirmed: Bool
     public var mode: String
-    public var direction: String
+    public var direction: String?
     public var followId: String
     public var phase: String
     public var headline: Headline

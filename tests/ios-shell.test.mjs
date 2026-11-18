@@ -122,7 +122,10 @@ test('TestFlight queues every passing main revision with internal-only export an
   assert.ok(parse(testWorkflow).jobs.ios);
   assert.equal(job['runs-on'], parse(testWorkflow).jobs.ios['runs-on']);
   assert.equal(job.env.DEVELOPER_DIR, '/Applications/Xcode_27.2.app/Contents/Developer');
+  const signing = job.steps.find(step => step.run === 'node ios/scripts/release.mjs');
+  assert.equal(signing.env.IOS_ACTIVITY_PROFILE_BASE64, '${{ secrets.IOS_ACTIVITY_PROFILE_BASE64 }}');
   const exportOptions = await read('ios/ExportOptions.plist');
+  assert.match(exportOptions, /<key>uk\.cartref\.srapley\.commute\.journey<\/key>\s*<string>Cartref Commute Journey App Store<\/string>/);
   assert.match(exportOptions, /<key>testFlightInternalTestingOnly<\/key>\s*<true\/>/);
   assert.match(exportOptions, /<key>manageAppVersionAndBuildNumber<\/key>\s*<false\/>/);
   assert.match(exportOptions, /<key>destination<\/key>\s*<string>export<\/string>/);

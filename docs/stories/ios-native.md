@@ -95,3 +95,14 @@ through a suspended activity update; an intermediate-state regression now checks
 update resumes. A separate regression checks cancellation immediately after a superseded schedule returns,
 while the next activity update is still suspended. The extension profile secret was provisioned and confirmed
 through GitHub's encrypted-secret API on 18 November; no new Apple API/push key was needed.
+
+The first real export of the native extension failed the capability verifier: archiving with signing disabled
+caused Xcode's export to omit the app's requested native entitlements. Nothing was uploaded. Release now signs
+the archive itself with the installed distribution certificate and target-specific App Store profiles, then
+exports and verifies it. The real signed package is the required regression check for this Xcode behavior.
+
+Review's five signing-test survivors now have regression probes: bad extension profile rejected before archive
+with cleanup of the already-installed app profile; extension minimum OS/device family; exact export mapping; and
+workflow secret wiring. The published engine schema also revealed that Trip has `direction:null`; Swift now accepts
+that nullable field and tests it. The current owner's nine snapshot fixtures do not yet contain a Trip snapshot,
+so this schema probe does not replace the requested generated Trip/phase fixtures.
