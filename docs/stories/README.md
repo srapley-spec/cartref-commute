@@ -64,16 +64,16 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Nearly home](nearly-home.md) · Done
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
-- [Follow a route](follow-a-route.md) · Behind toggle (release verification pending)
+- [Follow a route](follow-a-route.md) · Done (permanent since 18 Nov, #63)
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
 - [Every key in the proxy: a new device needs nothing](keys-in-the-proxy.md) · Proxy built 4 Nov; deployed from GitHub and the key settings removed from the app (17 Nov)
 - [The iPhone app: download it and it works](ios-app.md) · Proposed (17 Nov); web app made ready here, the app built by another agent
-- [Time-to-leave and wake-up alerts](time-to-leave-alerts.md) · Behind toggle (4 Nov; needs the proxy deployed; not yet verified on an iPhone)
+- [Time-to-leave and wake-up alerts](time-to-leave-alerts.md) · Done (Settings → Notifications since 18 Nov; off until you turn it on)
 
 ### Beyond the commute
 - [Along the line: discover the journey outside your window](along-the-line.md) · Behind toggle (#24, #16)
-- [Any start and end point](any-start-and-end-point.md) · Behind toggle
-- [Trip: door to door by rail, anywhere in the region](leisure-journeys.md) · Behind toggle (built 31 Oct night; review before merge)
+- [Any start and end point](any-start-and-end-point.md) · Done (permanent since 18 Nov, #63)
+- [Trip: door to door by rail, anywhere in the region](leisure-journeys.md) · Done (a permanent mode since 18 Nov, #63)
 - [UK-wide Trip: plan by rail anywhere in Great Britain](uk-wide-trip.md) · Live (merged 3 Nov night)
 - [Trip: a taxi when the station isn't walkable, and what Google Maps finds that TfL misses](trip-taxi-and-google-gaps.md) · Building (4 Nov)
 - [Discovered alternatives](discovered-alternatives.md) · Planned (#13)

@@ -369,6 +369,13 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **18 Nov, finished features are permanent (Sam, #63).** Follow a route, Any start and end point and Trip are no
+  longer behind Settings → Experimental: their switches are removed from the code, not just hidden, and saved
+  `followRoute`/`follow`/`anyPlace`/`trip` values are dropped on load, Save and the iPhone app's cache restore
+  (`RETIRED_SETTINGS`). Being available isn't being used: following a journey and choosing Trip stay explicit taps.
+  Only Along the line stays Experimental. Settings now has Appearance, Notifications (time-to-leave alerts, wake-up,
+  test, status) and Simulation and testing (explicit, session-only). Display mode still never follows, simulates,
+  registers or asks for location. Supersedes the 28 Oct, 30 Oct and 31 Oct toggle decisions below.
 - **18 Nov, the iPhone app's v1 contract (Sam: Trip included; Siri opens the app to follow; ask for "Always" location
   for geofences).** Answers the iOS agent's questions in #58: `ios-app.md` §6.7.
 - **17 Nov, a bundled iPhone shell and internal TestFlight (Sam).** The Apple project lives under `ios/`, reusing

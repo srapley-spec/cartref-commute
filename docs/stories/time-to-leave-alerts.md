@@ -1,5 +1,5 @@
 # Time-to-leave and wake-up alerts
-Status: Behind toggle (Settings → Experimental, off by default) · Since: 4 Nov 2026 · Issues: #17 (needs the proxy), #3, #4 (native follow-ons)
+Status: Available to everyone since 18 Nov (#63): Settings → Notifications → "Time-to-leave alerts", off until you turn it on · Since: 4 Nov 2026 · Issues: #17 (needs the proxy), #3, #4 (native follow-ons)
 
 ## Story
 As a commuter, when I've chosen the journey I'm aiming for and put the phone away, I want a notification shortly
@@ -19,7 +19,7 @@ with Wrangler (no GitHub Action yet).
 
 ## Acceptance criteria
 ### Turning it on (the phone)
-- Settings → Experimental → "Time-to-leave alerts", **off by default**. Off: no service worker, no permission prompt,
+- Settings → Notifications → "Time-to-leave alerts" (moved from Experimental, 18 Nov, #63), **off until you turn it on**. Off: no service worker, no permission prompt,
   no request to `/push/…`; the app works exactly as before.
 - On needs the app's proxy (Settings → Live data → Live, the default since 17 Nov). On TfL timetable or example data
   the status line says so and nothing is asked or sent. Without push support (iPhone: only the Home Screen app, iOS 16.4+) it says so.
@@ -36,7 +36,7 @@ with Wrangler (no GitHub Action yet).
   says "Alerts stopped… Open Settings and Save to turn them on again"; a 400 (e.g. a station the proxy doesn't allow)
   isn't retried; other failures are retried after 1 min.
 
-### A followed journey (needs Follow a route, Experimental)
+### A followed journey (Follow a route is permanent since 18 Nov)
 - The page hands the proxy the engine's plan (`leaveAlertPlan`) for the followed journey **only before its train**
   (phase `before-train`, no incident, a train that isn't cancelled, a Leave by no later than the train). The plan's
   lead is the route's own time before the train (`dep − leaveBy` from the followed option: walk, Tube, fast walk if

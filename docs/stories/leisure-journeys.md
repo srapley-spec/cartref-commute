@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Behind toggle (Settings → Experimental → Trip, off by default; Signal is the sole design). Built 31 Oct night; independent
+Status: Done: Trip is a permanent mode since 18 Nov (Sam, #63; it was behind Settings → Experimental → Trip, off by default; Signal is the sole design). Choosing Trip is still a tap on the mode button. Built 31 Oct night; independent
 mutation review before merging; Google unverified until Sam has a key · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
@@ -63,7 +63,7 @@ county edge.
 Minutes are whole minutes, rounded down.
 
 ### Switch and mode
-- Settings → Experimental → "Trip: plan door to door by rail between any two addresses in the region". Off by default.
+- Trip is always offered as a mode (18 Nov, #63; before: Settings → Experimental → "Trip", off by default). The app never switches into it by itself; the Trip settings are always shown in Settings.
   Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
   script loaded, no Trip request).
 - On: a third mode button **Trip** beside Commute and Leisure. Trip's opt-in remains independent and off by

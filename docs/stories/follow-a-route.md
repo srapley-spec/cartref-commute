@@ -1,5 +1,5 @@
 # Follow a route
-Status: Behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Settings → Experimental · Since: 30 Oct 2026 (evening)
+Status: Done: permanent since 18 Nov (#63; was behind Settings → Experimental). Following a journey is still your explicit choice · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have

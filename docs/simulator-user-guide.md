@@ -187,7 +187,7 @@ control. Opening or closing this section does not restart, pause or otherwise ch
 
 ### Independent sources and clocks
 
-The two switches are available under **Settings → Experimental** and in Advanced diagnostics. Both default
+The two switches are available under **Settings → Simulation and testing** and in Advanced diagnostics. Both default
 to off and are session-only. **Journey mode → Start journey** enables both automatically.
 
 | GPS simulation | Transport feed simulation | Location | Transport and application time |

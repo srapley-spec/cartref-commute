@@ -115,7 +115,7 @@ iPhone; simulator and exported-package results do not substitute for actual APNs
    Refusing a permission must leave the app usable and explain the affected feature without repeated prompts.
    At home, use Settings → Home → "Home is where I am now" before testing home-exit alarm cancellation. A fresh
    install has no saved home region; v1 does not infer home automatically. The page explains this limitation.
-3. Enable the existing Settings → Experimental → "Follow a route" option on this installation, then follow a
+3. Follow a
    journey whose leave time is more than five minutes away. Lock the phone: one Live Activity shows
    the engine's leave/platform/train/onward stages, clocks, status and age. Check the Dynamic Island where available.
 4. Stay at the starting place for one alarm test: it rings at the configured lead time. On a separate journey,
