@@ -67,15 +67,22 @@ said not to submit for Apple review until the app works. Account invitations and
   Only one readiness evaluation may be in flight. The deadline advances independently of its callback, so a
   stalled callback cannot turn an expired wait into success or prevent the test from reporting a failure.
   Xcode test timeouts are enabled (360 seconds by default, 600 maximum); separate five-minute simulator-command
-  and eighteen-minute xcodebuild limits cover bootstrap and test-manager hangs before any test starts. A timeout
-  fails the run and still cleans up its disposable simulator. There are no automatic test retries.
-  The simulator boot report is preserved. A terminal "Data Migration Failed" rejects the environment even when
-  `simctl` exits zero, a case observed during diagnosis. The speculative debugger change was removed because
-  the comparison did not explain the startup delay.
-- tests/ios-simulator.test.mjs: "simulator bootstrap failure prevents app testing and removes only its disposable device"
+  and eighteen-minute xcodebuild limits cover setup, destination startup and test-manager hangs before any test
+  starts. A timeout fails the run and still cleans up its disposable simulator. There are no automatic test retries.
+  **18 Nov readiness correction:** create a fresh owned device and let `xcodebuild test` manage its startup,
+  as in [Apple's command-line testing workflow](https://developer.apple.com/library/archive/technotes/tn2339/_index.html).
+  The former separate `simctl bootstatus` gate rejected a stock MobileSafari migration watchdog, before Commute
+  installation. On the retained diagnostic device, Xcode subsequently executed all 13 app tests successfully,
+  with no skips or changed assertions (15:08 on 18 Nov). This delegates readiness to Xcode; it does not repair
+  Safari migration or treat OS diagnostics as app test success. The same tests must pass on a new disposable
+  device and in final committed-code CI. Cleanup handles a device still Shutdown after an early compile failure;
+  unexpected cleanup failures fail the run without obscuring an existing Xcode failure status.
+- tests/ios-simulator.test.mjs: "Xcode manages readiness on one fresh disposable simulator, without a separate OS migration gate"
 - tests/ios-simulator.test.mjs: "simulator test failures propagate after disposable device cleanup"
 - tests/ios-simulator.test.mjs: "hung simulator setup and xcodebuild fail within an outer deadline and clean up"
 - tests/ios-simulator.test.mjs: "the normal iPhone test command enforces its production outer deadlines"
+- tests/ios-simulator.test.mjs: "a compile failure before boot keeps the Xcode failure and deletes its still-shutdown device"
+- tests/ios-simulator.test.mjs: "unexpected simulator cleanup failures cannot turn an Xcode failure into success or hide its status"
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 

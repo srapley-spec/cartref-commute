@@ -77,3 +77,15 @@ counting difference from JavaScript; the page owner addresses packing against th
 The review of its first revision (`d050266`) found token listeners could still sync before hydration and that
 initial configure used defaults before restoring cached settings. Both findings were handed to the page owner
 on #58; native code must not invent a workaround for the page's configuration order.
+The reviewer confirmed `88c0a67` addresses both: early tokens cause no configuration/proxy calls, and completion
+orders cache application before configuration, ready/replay and proxy calls, with restored settings throughout.
+
+## Simulator readiness diagnosis
+Local OS bootstrap failed repeatedly before Commute installation, including with no other simulator running.
+Retained diagnostic logs identify a 30.0226-second MobileSafari migration watchdog; restarting that device retains
+the failed migration status. Runtime cache and temporary-directory permissions are valid. Running Xcode's test
+operation on that device nevertheless executed all 13 app tests successfully at 15:08, with no skips.
+The independent reviewer endorsed delegating readiness to Xcode in principle, conditional on this evidence and
+fresh-device validation. The runner now creates its own device and goes directly to `xcodebuild test`; all XCTest
+assertions, per-test/outer deadlines, failure propagation and no-retry behavior remain. CLI regressions cover
+cleanup when a device never booted and unexpected cleanup failures. Review and a fresh complete CI remain required.

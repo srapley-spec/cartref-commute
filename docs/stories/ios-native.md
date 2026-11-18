@@ -112,14 +112,15 @@ iPhone; simulator and exported-package results do not substitute for actual APNs
    Refusing a permission must leave the app usable and explain the affected feature without repeated prompts.
    At home, use Settings → Home → "Home is where I am now" before testing home-exit alarm cancellation. A fresh
    install has no saved home region; v1 does not infer home automatically. The page explains this limitation.
-3. Follow a journey whose leave time is more than five minutes away. Lock the phone: one Live Activity shows
+3. Enable the existing Settings → Experimental → "Follow a route" option on this installation, then follow a
+   journey whose leave time is more than five minutes away. Lock the phone: one Live Activity shows
    the engine's leave/platform/train/onward stages, clocks, status and age. Check the Dynamic Island where available.
 4. Stay at the starting place for one alarm test: it rings at the configured lead time. On a separate journey,
    leave before the alarm deadline: crossing the configured region cancels it even offline. Wi-Fi loss alone
    must not cancel it. Stop/switch the journey and verify the obsolete activity/alarm does not return.
 5. Check a closed-app live update, then go offline: the timer continues to zero and data ages; wording retains
    its last received state. Reconnect and verify the engine's current state arrives without creating a second activity.
-6. Ask Siri when to leave while following, then ask for the next train home without a follow. The former reads
+6. Keep "Follow a route" enabled. Ask Siri when to leave while following, then ask for the next train home without a follow. The former reads
    the saved engine answer with age; the latter opens the page to plan. Check home/office Wi-Fi classification.
 
 Record the TestFlight build number, time, journey mode and expected/observed behavior for any failure. No Apple
