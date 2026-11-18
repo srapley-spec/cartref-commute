@@ -257,3 +257,23 @@ test("Offline startup: tokens replayed by ready() and cached Settings wait for t
   assert.equal(app.c.S().leaveAlarm, false);
   assert.deepEqual(app.errors, []); app.close();
 });
+
+test("Trip's snapshot age is Trip's own board fetch, not the clock or the commute's (#58 6983061034)", async () => {
+  const { TRIP_SETTINGS, tripRoute, planBrightonCanterbury, until } = await import("./trip-fixtures.mjs");
+  const sh = shell();
+  const a = await createApp({ now: Date.parse("2026-11-03T09:40:00Z"), settings: TRIP_SETTINGS, route: tripRoute, beforeScripts: sh.install });
+  await planBrightonCanterbury(a);
+  a.d.querySelector(".trip-recommendations [data-trip-follow]").click();
+  await until(() => a.d.querySelector("[data-trip-stop]"));
+  a.c.state.fetchedAt = Date.parse("2026-11-03T08:00:00Z");   // an unrelated commute fetch: never borrowed
+  const calls = a.calls.length;
+  const first = a.c.nativeSnapshot();
+  assert.notEqual(first.dataAt, a.c.state.fetchedAt);
+  a.setNow(a.w.Date.now() + 10e3);
+  const again = a.c.nativeSnapshot();
+  assert.equal(again.dataAt, first.dataAt, "a redraw with no fetch doesn't make it fresher");
+  assert.equal(a.calls.length, calls, "and fetches nothing");
+  // This fixture serves no live boards: the age is unknown (null) and stale, as the agent's reproduction expected.
+  assert.equal(first.dataAt, null); assert.equal(first.stale, true); assert.equal(again.stale, true);
+  assert.deepEqual(a.errors, []); a.close();
+});
