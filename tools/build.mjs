@@ -25,7 +25,9 @@ page = page.replace('/*__SIGNAL_STYLES__*/', ['signal.css', 'along-line.css'].ma
   // Trip mode: adapters and screen (module.exports lines are for tests and are stripped here).
   .replace('/*__TRIP_UI__*/', ['trip-adapters.js', 'trip-ui.js'].map(file => readFileSync(path.join(ROOT, 'src', file), 'utf8').replace(/^if \(typeof module !== "undefined"\).*$/m, '')).join('\n'))
   // Time-to-leave alerts: the page's side (src/push-alerts.js), its module.exports line stripped the same way.
-  .replace('/*__PUSH_ALERTS__*/', readFileSync(path.join(ROOT, 'src/push-alerts.js'), 'utf8').replace(/^if \(typeof module !== "undefined"\).*$/m, ''));
+  .replace('/*__PUSH_ALERTS__*/', readFileSync(path.join(ROOT, 'src/push-alerts.js'), 'utf8').replace(/^if \(typeof module !== "undefined"\).*$/m, ''))
+  // The iPhone app's bridge (src/native-bridge.js), the same way.
+  .replace('/*__NATIVE_BRIDGE__*/', () => readFileSync(path.join(ROOT, 'src/native-bridge.js'), 'utf8').replace(/^if \(typeof module !== "undefined"\).*$/m, ''));
 // Embed the development simulator from its own source module and panel asset.
 // The web app is a static single-file GitHub Pages deployment.
 const simController = ["scenarios.js", "gps.js", "catalog.js", "verification.js", "report.js", "controller.js", "session.js", "journey-ui.js"].map(file => readFileSync(path.join(ROOT, "src/simulator", file), "utf8")).join("\n");

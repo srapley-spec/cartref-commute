@@ -11,6 +11,8 @@
 #   GOOGLE_KEY                                     Google Places and Routes: a server key, not the website-restricted one
 #   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY            alerts; made here once if neither GitHub nor the Worker has them
 #   VAPID_SUBJECT                                  alerts: "mailto:" and an address you choose
+#   APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_TOPIC  the iPhone app's pushes: the .p8 file's text, its key ID, the team
+#                                                    ID, the bundle ID (docs/ios-app.md §6.3)
 # ALLOW_ORIGIN: the website, and the iPhone app's bundled copy (capacitor://localhost; docs/ios-app.md).
 # Nothing here prints a key: GitHub masks secrets in the log, and keys made here are masked before use.
 name: Deploy proxy
@@ -75,6 +77,10 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          APNS_KEY: ${{ secrets.APNS_KEY }}
+          APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
+          APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
+          APNS_TOPIC: ${{ secrets.APNS_TOPIC }}
         run: |
           # Alerts' keys: from GitHub if set; else kept if the Worker already has them; else made now, once.
           have=$($WRANGLER secret list --config "$CONFIG" 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s.slice(s.search(/^\[/m))).map(x=>x.name).join(" "))}catch(e){}})' || true)
@@ -87,7 +93,7 @@ jobs:
           export VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY
           # Only the keys that are set; the file lives in the runner's temp folder and is removed after the deploy.
           node -e '
-            const names=["RDM_KEY","RDM_BASE","RDM_SD_KEY","RDM_SD_BASE","TFL_KEY","GOOGLE_KEY","VAPID_PUBLIC_KEY","VAPID_PRIVATE_KEY","VAPID_SUBJECT"];
+            const names=["RDM_KEY","RDM_BASE","RDM_SD_KEY","RDM_SD_BASE","TFL_KEY","GOOGLE_KEY","VAPID_PUBLIC_KEY","VAPID_PRIVATE_KEY","VAPID_SUBJECT","APNS_KEY","APNS_KEY_ID","APNS_TEAM_ID","APNS_TOPIC"];
             const out={}; for (const n of names) { const v=(process.env[n]||"").trim(); if (v) out[n]=v; }
             require("fs").writeFileSync(process.env.RUNNER_TEMP+"/worker-secrets.json", JSON.stringify(out), {mode:0o600});
             console.log("Keys going to the Worker: "+(Object.keys(out).join(", ")||"none"));'

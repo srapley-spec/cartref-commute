@@ -218,9 +218,9 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Part | Owner | Status |
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
-| Journey snapshot in the engine | this repo | Not started |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Not started |
-| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Not released; draft on `feature/native-prep`, contract questions in #58 |
+| Journey snapshot in the engine | this repo | Built and tested on `feature/native-prep` (18 Nov), not merged: `docs/native-prep.md` |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Bridge built into the page, publish/configure/evidence/Settings tested with a fake shell on `feature/native-prep` (18 Nov); cache hand-off not wired; not merged |
+| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots built and tested on `feature/native-prep`; Service Details polling and `/native/next` not built; the #58 contract questions are still open; not merged |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
 | Capacitor shell and TestFlight pipeline | iOS agent | Implemented on iOS branch; signed export and Apple validation pass; combined release checks in progress |
