@@ -68,7 +68,7 @@ test("In the iPhone app: office Wi-Fi is a position at the office; settings save
   assert.equal(sh.calls.filter((x) => x[0] === "cache").length, 0, "example data isn't kept");
   c.state.saved.settings.provider = "proxy"; c.setBoards({ "KGX-LET": { msgs: [], services: [] } });
   const kept = sh.calls.filter((x) => x[0] === "cache").at(-1)[1];
-  assert.deepEqual(kept.map((e) => e.key), ["snapshot", "settings", "status", "boards"], "most important first");
+  assert.deepEqual(JSON.parse(JSON.stringify(kept.map((e) => e.key))), ["snapshot", "settings", "status", "boards"], "most important first");
   const boards = kept.find((e) => e.key === "boards");
   assert.equal(boards.v, 1); assert.equal(boards.dataAt, c.state.boardsAt);
   assert.equal(kept.find((e) => e.key === "snapshot").value.followId, c.state.saved.followRoute.id);
