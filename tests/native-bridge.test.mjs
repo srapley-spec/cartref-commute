@@ -142,3 +142,16 @@ test("Review: Live Activity tokens are kept per journey; only the current one is
   sim.shell.emit("apns", { token: "a".repeat(64), env: "production" }); await tick(); await tick();
   assert.deepEqual(sim.posts, []); assert.equal(sim.b.sync(), null); assert.deepEqual(await sim.b.cached(), []);
 });
+
+test("Offline cache: entries kept most important first within 512 KB; one that doesn't fit is left out, the rest still go", async () => {
+  const big = (k, kb) => ({ key: k, v: 1, dataAt: 1, savedAt: 1, value: "x".repeat(kb * 1024) });
+  const p = nativeBridge.packCache([big("snapshot", 1), big("settings", 1), big("status", 100), big("boards", 450)]);
+  assert.deepEqual(p.entries.map((e) => e.key), ["snapshot", "settings", "status"]); assert.deepEqual(p.dropped, ["boards"]);
+  assert.ok(p.bytes <= nativeBridge.CACHE_MAX_BYTES);
+  const q = nativeBridge.packCache([big("snapshot", 1), big("boards", 300), big("status", 1)]);
+  assert.deepEqual(q.entries.map((e) => e.key), ["snapshot", "boards", "status"]);
+  // Through the bridge: only what fits reaches the shell.
+  const s = setup(); await s.b.init();
+  await s.b.cache([big("snapshot", 1), big("boards", 600)]);
+  assert.deepEqual(s.shell.calls.filter((x) => x[0] === "cache").at(-1)[1].entries.map((e) => e.key), ["snapshot"]);
+});

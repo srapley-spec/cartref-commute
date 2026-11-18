@@ -251,9 +251,16 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
 7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
-   replace by key; 512 KB total; opaque to the shell. The page calls `cached()` before its first fetch, shows what it
+   replace by key; 512 KB total; opaque to the shell. Built 18 Nov: the page writes them most important first (snapshot,
+   settings, status, boards) on each new snapshot and each live board, and leaves out any entry that would pass
+   512 KB (`nativeBridge.packCache`), so the shell never receives an oversized write. Settings are restored only to a
+   device whose own settings were lost; the registration is never in them (Keychain). The page calls `cached()` before its first fetch, shows what it
    gets with its age, then refreshes. A fresh install shows "Not updated yet".
-8. **Permissions and simulation (Sam, decision C: ask for Always).** Supported vs allowed are separate fields. Settings
+8. **Permissions and simulation (Sam, decision C: ask for Always).** Built 18 Nov: Settings → iPhone app lists
+   notifications, alarms and location with their reported state ("Allowed", "Not asked yet", "While using the app
+   only…", "Refused: change it in the iPhone's Settings → Commute"); turning the leave alarm on (the first save with it
+   on) asks, in order, for each not yet asked (location again from While-in-use to Always); a button asks again for
+   what can still be asked; refusals aren't re-asked. Supported vs allowed are separate fields. Settings
    asks for notifications and then "Always" location (with the reason) when the leave alarm is first turned on, via
    `request`; refusals are shown. Geofences use region monitoring only, never continuous background tracking; with
    "When in use" the alarm still works but doesn't cancel itself while the app is closed. In a simulation the page
@@ -292,7 +299,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
 | Journey snapshot in the engine | this repo | Released 18 Nov at `9628132` (independently reviewed); identified stops and the alarm permission added after #58 |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released 18 Nov at `9628132`; cache keeps boards and status only (snapshot/settings entries and the 512 KB cap still to do) |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released 18 Nov at `9628132`; permission requests, snapshot/settings cache entries and the 512 KB limit on `feature/native-countdown` |
 | Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots released 18 Nov at `9628132`; unproven against Apple until the first TestFlight push; Service Details polling and `/native/next` not in v1 |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
