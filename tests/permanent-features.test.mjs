@@ -26,7 +26,8 @@ test("Fresh install: Follow, Any start and end point and Trip are there with no 
   assert.ok(inSection(app, "Appearance", "s_appearance"));
   for (const id of ["s_leaveAlerts", "s_wakeAt", "alertsTestBtn", "alertsStatus"]) assert.ok(inSection(app, "Notifications", id), id);
   for (const id of ["s_simulator", "s_simulatedFeeds"]) assert.ok(inSection(app, "Simulation and testing", id), id);
-  assert.equal(app.d.querySelector("#tripFields").hidden, false, "Trip's settings are shown normally");
+  app.d.querySelector("#settingsBtn").click();
+  assert.equal(app.d.querySelector("#tripFields").hidden, false, "Trip's settings are shown normally (with Settings open)");
   assert.equal(app.c.S().leaveAlerts, undefined, "alerts stay off until you turn them on");
   assert.deepEqual(app.errors, []); app.close();
 });
@@ -187,4 +188,53 @@ test("Any start and end point: an ambiguous typed place takes TfL's best guess o
   assert.equal(asked.filter((u) => /\/Soho\//.test(u)).length, 2); assert.equal(asked.filter((u) => /\/1000123\//.test(u)).length, 2);
   assert.ok(r.KXSP && r.FAR, "both stations planned from the guessed place");
   assert.deepEqual(app.errors, []); app.close();
+});
+
+// ---- Re-check (18 Nov): the once-per-device marker survives Save, a fresh device and an iPhone restore ----
+const followThenReload = async (app) => {
+  [...app.d.querySelectorAll("[data-follow]:not([disabled])")][0].click();
+  const id = app.c.state.saved.followRoute.id;
+  const st = JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")); app.close();
+  assert.equal(st.settings.featuresPermanent, 1, "the marker is stored");
+  const { settings, ...rest } = st;
+  const again = await createApp({ settings, saved: rest, now: T0 });
+  assert.equal(again.c.state.saved.followRoute && again.c.state.saved.followRoute.id, id, "still followed after reload");
+  again.close();
+};
+test("Marker: a fresh device follows, reloads, and is still following", async () => {
+  // A device with nothing saved: the harness's default marker is removed to start truly fresh.
+  const app = await createApp({ settings: { provider: "demo", featuresPermanent: undefined }, saved: { dirMode: "office" }, now: T0 });
+  await followThenReload(app);
+});
+test("Marker: a Settings save keeps it, so a followed route survives Save then reload", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { dirMode: "office" }, now: T0 });
+  submit(app);
+  assert.equal(stored(app).settings.featuresPermanent, 1, "kept by Save");
+  await followThenReload(app);
+});
+test("Marker: settings restored from an older iPhone cache (no marker) don't wipe what's followed after the restore", async () => {
+  const install = (w) => { w.Capacitor = { isNativePlatform: () => true, Plugins: { CommuteNative: {
+    capabilities: async () => ({ v: 1, offline: true }), ready: async () => {}, configure: async () => {}, publish: async () => {}, cache: async () => {},
+    cached: async () => ({ entries: [{ key: "settings", v: 1, dataAt: T0, savedAt: T0, value: { provider: "demo", appearance: "dark" } }] }),
+    addListener: () => {} } } }; };
+  const app = await createApp({ settings: { featuresPermanent: undefined }, saved: { dirMode: "office" }, now: T0, beforeScripts: install });
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(app.c.state.saved.settings.featuresPermanent, 1, "set on restore");
+  assert.equal(app.c.S().appearance, "dark");
+  app.c.render();
+  await followThenReload(app);
+});
+test("Leisure: 'Where to?' folds away while following too", async () => {
+  const app = await createApp({ settings: { provider: "demo" }, saved: { mode: "leisure", dirMode: "office" }, now: T0 });
+  assert.equal(app.d.querySelector("#destRow").hidden, false);
+  [...app.d.querySelectorAll("[data-follow]:not([disabled])")][0].click();
+  assert.equal(app.d.querySelector("#destRow").hidden, true, "under way: folded");
+  app.d.querySelector('#followPanel [data-follow-action="stop"]').click();
+  assert.equal(app.d.querySelector("#destRow").hidden, false);
+  assert.deepEqual(app.errors, []); app.close();
+});
+test("Marker: a device with nothing saved at all starts with it (so its first follow survives reloads)", async () => {
+  const app = await createApp({ now: T0, beforeScripts: (w) => { w.localStorage.removeItem("cartrefCommute.v1"); } });
+  assert.equal(app.c.state.saved.settings.featuresPermanent, 1);
+  app.close();
 });

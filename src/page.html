@@ -2853,7 +2853,7 @@ async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
   // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent")){ state.saved.settings=dropRetired({...set.value}); save(); }
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent")){ state.saved.settings={...dropRetired({...set.value}),featuresPermanent:1}; save(); }   // restored settings are post-#63 (review: an older cache lacks the marker)
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }

@@ -41,7 +41,8 @@ not a claim that every criterion has already passed release verification. See [S
   while Trip was off isn't reopened (its followed Trip dropped), a "Where to?" place saved while Any start and end point
   was off isn't planned to; anyone who had a feature on keeps everything. Availability isn't use: nothing is followed
   and Trip isn't entered by itself. Display mode: no Follow, no Trip, no simulation. In Leisure the "Where from?" and
-  "Where to?" rows fold away while following (12 Nov controls under way). Trip's own services (Google, any station)
+  "Where to?" rows are hidden while following (12 Nov controls under way), not in a live view without following
+  (in London going home that is where "Where from?" is used). Trip's own services (Google, any station)
   raise the home-page "Not live" warning only in Trip. An ambiguous typed place costs one retry per station (4
   requests). Historical compatibility review of each switch's later fixes: `docs/reviews/permanent-features-2026-11-18.md`.
 - **Delayed leave steps (18 Nov review):** when a late train moves Leave by, a step before the train whose original time
@@ -551,6 +552,11 @@ platform or station, and he was standing on another (the tube's). Decided by Sam
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
 ## Tests
+- tests/permanent-features.test.mjs: "Marker: a fresh device follows, reloads, and is still following"
+- tests/permanent-features.test.mjs: "Marker: a Settings save keeps it, so a followed route survives Save then reload"
+- tests/permanent-features.test.mjs: "Marker: settings restored from an older iPhone cache (no marker) don't wipe what's followed after the restore"
+- tests/permanent-features.test.mjs: "Leisure: 'Where to?' folds away while following too"
+- tests/permanent-features.test.mjs: "Marker: a device with nothing saved at all starts with it (so its first follow survives reloads)"
 - tests/permanent-features.test.mjs: "Fresh install: Follow, Any start and end point and Trip are there with no switch; only Along the line is Experimental"
 - tests/permanent-features.test.mjs: "The iPhone app's cached settings can't bring a retired switch back"
 - tests/permanent-features.test.mjs: "Follow and stop work with no setting, even saved as false before; Siri's follow link works too"

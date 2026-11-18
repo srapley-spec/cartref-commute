@@ -15,9 +15,9 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
 ## Review table
 | Feature | Later fix or improvement | Preserved on the first pass? | Corrective change | Supporting test |
 |---|---|---|---|---|
-| anyPlace | 12 Nov clean baseline: controls fold under way | No: "Where from?"/"Where to?" showed under way | Rows fold while following (`underWay` in the route-label render) | permanent-features: "Leisure: 'Where from?' is offered with location, and folds away with the controls while following" (mutation killed) |
+| anyPlace | 12 Nov clean baseline: controls fold under way | Partly: "Where from?"/"Where to?" showed under way | Rows are hidden while a route is followed (`activeFollow()`). **Decision:** not in a live view without following, unlike `underWayControls`: in London going home that view is the normal one, and hiding "Where from?" there would remove the feature where it is meant to work. Hidden, not folded: opening the controls doesn't bring them back while following | permanent-features: "Leisure: 'Where from?' is offered…", "Leisure: 'Where to?' folds away while following too" (mutations M and N killed) |
 | anyPlace | Leisure planning from your location | Yes (same TfL requests: 10 on both) | none | anyplace: "Permanent (#63)…"; goldens show no request changes |
-| anyPlace | Off: TfL's 300 "which place?" was an error | Partly: on, it re-planned both stations per station (6 requests) | Retry only the station asked, once (4 requests) | permanent-features: "Any start and end point: an ambiguous typed place…" |
+| anyPlace | Off: TfL's 300 "which place?" was an error | Partly: on, it re-planned both stations per station (6 requests) | Retry only the station asked, once (4 requests); merge on the GitHub-first path (live request pattern changes) | permanent-features: "Any start and end point: an ambiguous typed place…" |
 | anyPlace | (new risk) a saved `dest` from an earlier on/off use | Changed: became the Leisure destination | Dropped once when `anyPlace` wasn't on (`migratePermanent`) | permanent-features: "A device from before #63 with Any start and end point off…" |
 | Follow | 41c43d9 "explicit disabled setting wins"; "feature off ignores saved follow" | No: a dormant saved route was followed on load (and reached alerts and the Live Activity) | Dropped once when Follow wasn't on (`migratePermanent`); kept when it was | permanent-features: "A device from before #63 with Follow off…" (mutation killed); follow-migration: "Follow switched off before #63…" |
 | Follow | One TfL request on the tube home with nothing followed (11 Nov) | Yes | Scenario rewritten as "nothing followed" | follow-main-regression: "…while with nothing followed it makes only one Tube request…" |
@@ -26,7 +26,8 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
 | Trip | Settings → Trip off didn't clear `tripMode.active` | No: a Trip left open while off reopened (and its followed Trip restarted the Live Activity) | `tripMode.active=false` and its `follow` dropped once when Trip wasn't on | permanent-features: "A device from before #63 with Trip off…" |
 | Trip | Off: no Trip or Google requests in Commute | Yes (0 Trip calls) | test rewritten | trip-page: "Trip available but not chosen (#63)…" |
 | Trip | 18 Nov live services: optional rows only when in use | No: Google/any-station rows raised a home "Not live" warning for every Commute user on a proxy without them | Counted in the home warning only in Trip; always listed in Settings | keys-in-proxy: "Settings: no key fields…", "TfL counts as keyed only…" |
-| Trip | Trip settings shown | Yes | none | permanent-features: "Fresh install…" (`#tripFields` visible) |
+| Trip | Trip settings shown | Yes | First-pass assertion couldn't fail (Settings not opened; mutation survived); now opens Settings first | permanent-features: "Fresh install…" |
+| all | Marker `featuresPermanent` kept across Settings saves, fresh installs and iPhone restores (so the once-per-device migration never runs twice) | No (re-check): a restore from an older iPhone cache dropped it, and the next reload wiped the followed route, Trip and saved destination; Save and fresh-install paths worked but were untested (mutations J, K survived) | Marker set on restore (`nativeHydrate`); tests for restore→follow→reload, Save→reload, fresh→follow→reload and nothing-saved | permanent-features: "Marker: …" (4 tests; mutations K, restore and the nothing-saved line killed; J on a device with settings is equivalent: the migration sets the marker) |
 | all | Retired switches dropped on load, Save and the iPhone app's cache | Yes | none | permanent-features (mutations killed) |
 
 ## Not changed
@@ -34,5 +35,9 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
   separate follow-up.
 - Real-device APNs, Live Activity, alarm cancellation, geofences and Siri remain pending phone acceptance.
 
-## Re-check
-See issue #63 for the reviewer's re-check of the fixes and its final assessment.
+## Re-check (362ebdf)
+All four blockers fixed (follow, Trip, banner; fold partly, decision above); saved-destination decision agreed;
+15 mutations: A, B, D, E, F, G, H, L, M, O killed; C, I, J, K, N survived. The survivors and the iPhone-restore marker
+bug were fixed with tests in the next commit (C, K, N and the restore now killed; I and J equivalent). Rewritten
+older tests still guard the preserved behaviour; goldens: only the added Follow/Unavailable text. Low risk noted:
+a stored state with no `settings` object skips the migration (save() always writes settings).
