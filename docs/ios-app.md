@@ -233,7 +233,9 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
    `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress, staleness and a 2-minute
    bucket of `dataAt`, so fresh data is re-sent at least every 2 minutes and the stale-date never passes while the
-   data is fresh. Live Activity tokens are kept per `followId`; only the current journey's is sent.
+   data is fresh. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
+   (Apple budgets those); a real change goes at priority 10 with the background push. Live Activity tokens are kept
+   per `followId`; only the current journey's is sent.
 6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.
    Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.

@@ -12,7 +12,7 @@ function shell() {
   const calls = [], listeners = {};
   const plugin = { capabilities: async () => ({ v: 1, liveActivity: true, alarm: true, geofence: true, wifi: true, siri: true, offline: true }),
     publish: async (x) => { calls.push(["publish", x.snapshot]); }, configure: async (x) => { calls.push(["configure", x]); },
-    cache: async () => {}, addListener: (n, fn) => { listeners[n] = fn; } };
+    cache: async (x) => { calls.push(["cache", x.entries]); }, addListener: (n, fn) => { listeners[n] = fn; } };
   return { calls, listeners, install: (w) => { w.Capacitor = { isNativePlatform: () => true, Plugins: { CommuteNative: plugin } }; } };
 }
 async function homeward(sh) {
@@ -63,6 +63,13 @@ test("In the iPhone app: office Wi-Fi is a position at the office; settings save
   c.state.here = null; c.state.lastFixAt = null;
   sh.listeners.wifi({ place: "office", at: Date.now() });
   assert.deepEqual(JSON.parse(JSON.stringify(c.state.here)), JSON.parse(JSON.stringify(P.places.office)));
+  // Live boards are kept for a launch with no signal (only from the live proxy).
+  c.setBoards({ "KGX-LET": { msgs: [], services: [] } });
+  assert.equal(sh.calls.filter((x) => x[0] === "cache").length, 0, "example data isn't kept");
+  c.state.saved.settings.provider = "proxy"; c.setBoards({ "KGX-LET": { msgs: [], services: [] } });
+  const kept = sh.calls.filter((x) => x[0] === "cache").at(-1)[1];
+  assert.equal(kept[0].key, "boards"); assert.equal(kept[0].v, 1); assert.equal(kept[0].dataAt, c.state.boardsAt);
+  c.state.saved.settings.provider = "demo";
   assert.equal(c.state.locAcc, 50);
   app.d.querySelector("#settingsBtn").click();
   app.d.querySelector("#s_leaveAlarmMin").value = "1"; app.d.querySelector("#s_wifiHome").value = "Panda, Home";
@@ -108,6 +115,9 @@ test("In the iPhone app, Trip too (Sam, 18 Nov): the followed Trip's snapshot an
   s = lastSnap(sh);
   assert.equal(s.phase, "platform"); assert.match(s.headline.label, /^Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by$/);
   assert.equal(s.alarm.cancelled, true); assert.equal(a.c.nativeFollowPlan().setOff, true);
+  // Siri's link leaves a followed Trip on screen.
+  assert.equal(a.c.nativeOpen("commute://next?direction=home&follow=1"), false);
+  assert.equal(a.c.state.saved.tripMode.active, true);
   assert.deepEqual(a.errors, []); a.close();
 });
 

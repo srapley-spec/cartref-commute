@@ -66,7 +66,9 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 - tests/native-fixtures.test.mjs: "Trip's plan for the proxy: its first train, leave time, platform allowance and start station"
 
 
-Independent review (18 Nov): its bugs and surviving mutations:
+Independent review (18 Nov): its bugs and surviving mutations (re-check at 7101bf4: satisfied; its push-volume
+finding fixed after):
+- tests/native-proxy.test.mjs: "Review: an iPhone in daily use isn't idle: following and re-registering keep it from being replaced"
 - tests/core/snapshot.test.mjs: "Review: boundaries: a 60-min lead is kept, 61 isn't; at the departure it's the train, at the arrival the walk"
 - tests/core/snapshot.test.mjs: "Review: a Trip starting with a tube watches its train but claims no platform allowance or start fence"
 - tests/native-proxy.test.mjs: "Review: a cancellation seen just after the departure time ends the journey; it isn't undone later"

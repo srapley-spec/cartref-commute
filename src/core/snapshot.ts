@@ -167,11 +167,11 @@ export function shiftSnapshot(s: JourneySnapshot, d: number): JourneySnapshot {
     train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) }, alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d } };
 }
 /** The parts of a snapshot a native surface shows: a change in any of them is worth a push; a new `at` alone isn't. */
-export function snapshotShown(s: JourneySnapshot | null | undefined): string {
+export function snapshotShown(s: JourneySnapshot | null | undefined, withRefresh = true): string {
   if (!s) return "none";
   // A fresh fetch every 2 minutes counts too, so the stale-date (data + 3 min) is moved on before it passes while the
   // data is fresh (review 18 Nov: otherwise the Live Activity showed stale on a steady board).
-  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
+  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
     s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);
 }
 

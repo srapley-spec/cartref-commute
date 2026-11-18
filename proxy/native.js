@@ -140,13 +140,13 @@ const host = e => (e === "sandbox" ? "https://api.sandbox.push.apple.com" : "htt
  * One APNs request. kind: "alert" | "background" | "liveactivity". Returns {ok, status, gone}: gone when Apple says the
  * token is no longer valid (410, or 400 BadDeviceToken), so it's dropped.
  */
-export async function sendApns(env, { token, env: apnsEnv }, kind, payload, nowMs, { expiresSec = 15 * 60, collapseId } = {}) {
+export async function sendApns(env, { token, env: apnsEnv }, kind, payload, nowMs, { expiresSec = 15 * 60, collapseId, low = false } = {}) {
   let r;
   try {
     r = await fetch(`${host(apnsEnv)}/3/device/${token}`, { method: "POST", body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), headers: {
       authorization: `bearer ${await apnsJwt(env, nowMs)}`,
       "apns-topic": kind === "liveactivity" ? `${env.APNS_TOPIC}.push-type.liveactivity` : env.APNS_TOPIC,
-      "apns-push-type": kind, "apns-priority": kind === "background" ? "5" : "10",
+      "apns-push-type": kind, "apns-priority": kind === "background" || low ? "5" : "10",
       "apns-expiration": String(Math.floor(nowMs / 1000) + expiresSec),
       ...(collapseId ? { "apns-collapse-id": collapseId } : {}), "content-type": "application/json" } });
   } catch (e) { return { ok: false, status: 0, gone: false }; }
@@ -209,14 +209,17 @@ export async function runNative(env, now) {
       const snap = C.proxySnapshot(plan, state, observed, { now: lnow, dataAt, setOff: !!rec.setOff, alarm: { enabled: rec.prefs ? rec.prefs.alarm : true, leadMin: rec.prefs ? rec.prefs.alarmLeadMin : undefined } });
       const endAt = snap.arrive && Number.isFinite(snap.arrive.t) ? snap.arrive.t : Number.isFinite(state.lastArr) ? state.lastArr : null;
       if (done || C.leaveAlertExpired(plan, lnow) || (endAt != null && lnow > endAt + NATIVE_END_AFTER_MS)) done = true;
-      const real = C.shiftSnapshot(snap, -d), shown = C.snapshotShown(real);
+      const real = C.shiftSnapshot(snap, -d), shown = C.snapshotShown(real), core = C.snapshotShown(real, false);
       const changed = shown !== rec.shown;
+      // Only fresher data (the 2-minute re-send): the Live Activity alone, at low priority; no background push (Apple
+      // budgets those; the app ages the data itself). A real change goes at priority 10 with the background push.
+      const refreshOnly = changed && !done && core === rec.shownCore;
       const newState = shiftNativeState(state, -d);
       const upd = {};
       if (done) Object.assign(upd, { plan: null, extra: null, planState: null, setOff: false, la: null, shown: null });
       else {
         if (JSON.stringify(newState) !== JSON.stringify(rec.planState || {})) upd.planState = newState;
-        if (changed) upd.shown = shown;
+        if (changed) { upd.shown = shown; upd.shownCore = core; }
         if (dataAt != null && (lnow - (rec.dataWrittenAt || 0) >= 5 * 60e3 || changed)) { upd.dataAt = dataAt - d; upd.dataWrittenAt = lnow; }
       }
       if (Object.keys(upd).length) {
@@ -233,11 +236,11 @@ export async function runNative(env, now) {
       if (notice && !(notice.kind === "soon" && alarmOn) && !(rec.setOff && (notice.kind === "soon" || notice.kind === "changed")))
         pushes.push(["alert", apnsPayloads.alert(notice), rec.apns]);
       if (changed || done) {
-        if (rec.la && rec.la.token) pushes.push(["liveactivity", apnsPayloads.liveActivity(real, done, now), { token: rec.la.token, env: rec.apns.env }]);
-        pushes.push(["background", apnsPayloads.background(done ? null : real), rec.apns]);
+        if (rec.la && rec.la.token) pushes.push(["liveactivity", apnsPayloads.liveActivity(real, done, now), { token: rec.la.token, env: rec.apns.env }, refreshOnly]);
+        if (!refreshOnly) pushes.push(["background", apnsPayloads.background(done ? null : real), rec.apns]);
       }
-      for (const [kind, payload, to] of pushes) {
-        const r = await sendApns(env, to, kind, payload, now, kind === "alert" ? {} : { collapseId: `snap-${rec.plan.followId}`.slice(0, 64) });
+      for (const [kind, payload, to, low] of pushes) {
+        const r = await sendApns(env, to, kind, payload, now, kind === "alert" ? {} : { collapseId: `snap-${rec.plan.followId}`.slice(0, 64), low: !!low });
         sent.push({ id, kind, status: r.status, ...(kind === "alert" ? { notice } : { phase: real.phase }) });
         if (r.gone && kind !== "liveactivity") {
           await env.PUSH.delete(`nat:${id}`);

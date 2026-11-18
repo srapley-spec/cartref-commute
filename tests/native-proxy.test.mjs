@@ -295,6 +295,11 @@ test("Review: on a steady board the snapshot is re-sent every 2 minutes, so the 
     for (let i = 1; i < stale.length; i++) assert.ok(stale[i] > stale[i - 1]);
     // Between pushes the stale-date never falls behind the time of the next run.
     assert.ok(stale.every((s, i) => i === stale.length - 1 || stale[i + 1] - 3 * MIN <= s));
+    // Only the first is a real change: the re-sends go to the Live Activity alone, at priority 5, with no background
+    // push (Apple budgets those).
+    const las = pushes.filter((p) => p.headers["apns-push-type"] === "liveactivity");
+    assert.deepEqual(las.map((p) => p.headers["apns-priority"]), ["10", ...las.slice(1).map(() => "5")]);
+    assert.equal(pushes.filter((p) => p.headers["apns-push-type"] === "background").length, 1);
   }, { board: () => gnBoard() });
 });
 
@@ -344,4 +349,15 @@ test("Review: evidence says the journey's set-off state; Wi-Fi and old reports a
   const old = rec(env, me.id); env.PUSH.m.set(`nat:${me.id}`, JSON.stringify({ ...old, seen: Date.now() - 31 * 86400e3 }));
   assert.equal((await register(env)).status, 201);
   assert.equal(env.PUSH.m.has(`nat:${me.id}`), false);
+});
+
+test("Review: an iPhone in daily use isn't idle: following and re-registering keep it from being replaced", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  for (let i = 0; i < 9; i++) await register(env);
+  const age = () => { const r = rec(env, me.id); env.PUSH.m.set(`nat:${me.id}`, JSON.stringify({ ...r, created: Date.now() - 40 * 86400e3, seen: Date.now() - 40 * 86400e3 })); };
+  age(); await follow(env, me);
+  assert.equal((await register(env)).status, 429, "followed today: kept");
+  age(); await register(env, { id: me.id, token: me.token });
+  assert.equal((await register(env)).status, 429, "re-registered today: kept");
 });

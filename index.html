@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:46 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5895,14 +5895,14 @@ var CommuteCore = (() => {
       alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d }
     };
   }
-  function snapshotShown(s) {
+  function snapshotShown(s, withRefresh = true) {
     if (!s) return "none";
     return JSON.stringify([
       s.followId,
       s.phase,
       s.confirmed,
       s.progress && s.progress.line,
-      s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
+      !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
       s.headline.t,
       s.arrive && s.arrive.t,
@@ -11631,7 +11631,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={native,nativeOpen,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={native,nativeOpen,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
