@@ -18,6 +18,7 @@ public struct OfflineCache: Codable, Equatable, Sendable {
 
     /// Whole batch is transactional: overflow or malformed entries leave the previous cache intact.
     public mutating func replace(_ incoming: [CacheEntry]) throws {
+        guard Set(entries.map(\.key)).count == entries.count else { throw NativeError.invalid }
         var candidate = Dictionary(uniqueKeysWithValues: entries.map { ($0.key, $0) })
         for entry in incoming {
             guard entry.v == 1 else { throw NativeError.unsupported }
@@ -29,6 +30,12 @@ public struct OfflineCache: Codable, Equatable, Sendable {
         let replacement = candidate.values.sorted { $0.key < $1.key }
         guard try JSONEncoder().encode(replacement).count <= Self.byteLimit else { throw NativeError.cacheFull }
         entries = replacement
+    }
+
+    public func validate() throws {
+        guard Set(entries.map(\.key)).count == entries.count else { throw NativeError.invalid }
+        var candidate = OfflineCache()
+        try candidate.replace(entries)
     }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "cartref-commute",
   "private": true,
-  "description": "Cartref Commute: when to leave for the office or home, Letchworth ⇄ London.",
+  "description": "Cartref Commute: when to leave for the office or home, Letchworth \u21c4 London.",
   "scripts": {
     "build": "node tools/build.mjs",
     "typecheck": "tsc -p .",
@@ -9,7 +9,7 @@
     "ci": "node tools/ci-local.mjs",
     "test": "node tools/build.mjs && node tools/run-tests.mjs",
     "ios:sync": "node ios/scripts/stage-web.mjs && cap sync ios && node ios/scripts/fix-swift-package.mjs",
-    "ios:test": "node ios/scripts/test-simulator.mjs"
+    "ios:test": "swift test --package-path ios/NativeCore && node ios/scripts/test-simulator.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.2",

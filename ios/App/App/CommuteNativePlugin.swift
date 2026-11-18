@@ -13,13 +13,16 @@ final class CommuteNativePlugin: CAPPlugin, CAPBridgedPlugin {
     let pluginMethods: [CAPPluginMethod] = ["capabilities", "ready", "publish", "configure", "cache", "cached", "request"]
         .map { CAPPluginMethod(name: $0, returnType: CAPPluginReturnPromise) }
     private var navigation: NSKeyValueObservation?
+    @MainActor var runtimeOverride: NativeRuntime?
+    @MainActor private var runtime: NativeRuntime { runtimeOverride ?? NativeRuntime.shared }
 
     override func load() {
         Task { @MainActor [weak self] in
             guard let self else { return }
-            NativeRuntime.shared.attach(self)
+            let runtime = self.runtime
+            runtime.attach(self)
             navigation = bridge?.webView?.observe(\.isLoading, options: [.new]) { _, change in
-                if change.newValue == true { Task { @MainActor in NativeRuntime.shared.pageStarted() } }
+                if change.newValue == true { Task { @MainActor in runtime.pageStarted() } }
             }
         }
     }
@@ -29,7 +32,7 @@ final class CommuteNativePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func publish(_ call: CAPPluginCall) {
         perform(call) { runtime in
             guard let value = call.options["snapshot"] else { throw NativeError.invalid }
-            try runtime.publish(value is NSNull ? nil : Wire.decode(JourneySnapshot.self, value))
+            try runtime.publish(value is NSNull ? nil : Wire.snapshot(value))
             return [:]
         }
     }
@@ -45,7 +48,7 @@ final class CommuteNativePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func cache(_ call: CAPPluginCall) {
         perform(call) { runtime in
             guard let values = call.options["entries"] else { throw NativeError.invalid }
-            try runtime.cache(Wire.decode([CacheEntry].self, values))
+            try runtime.cache(Wire.entries(values))
             return [:]
         }
     }
@@ -64,7 +67,7 @@ final class CommuteNativePlugin: CAPPlugin, CAPBridgedPlugin {
         Task { @MainActor in
             do {
                 try Wire.version(call.options as? [String: Any] ?? [:])
-                call.resolve(try await operation(NativeRuntime.shared))
+                call.resolve(try await operation(self.runtime))
             } catch let error as NativeError {
                 call.reject("The native operation could not be completed.", error.rawValue)
             } catch {

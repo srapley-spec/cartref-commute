@@ -26,6 +26,8 @@ public struct NativeConfiguration: Codable, Equatable, Sendable {
     public var wifi: Wifi
     public var regions: [Region]
 
+    public var normalizedOrigin: String { proxy.origin.hasSuffix("/") ? String(proxy.origin.dropLast()) : proxy.origin }
+
     public func validate() throws {
         guard v == 1 else { throw NativeError.unsupported }
         guard let url = URLComponents(string: proxy.origin), url.scheme == "https", url.host?.isEmpty == false,
@@ -66,7 +68,17 @@ public struct NativeDocument: Codable, Equatable, Sendable {
     public var replay = EventReplay()
     public var configuration: NativeConfiguration?
     public var outbox: [PendingEvidence] = []
+    public var activityID: String?
+    public var activityFollowID: String?
+    public var regionGeneration: String?
     public init() {}
+
+    public func validate() throws {
+        guard v == 1 else { throw NativeError.unsupported }
+        try snapshots.current?.validate()
+        try configuration?.validate()
+        try cache.validate()
+    }
 
     public mutating func enqueue(_ entry: PendingEvidence) {
         // Coalesce only identical transport event kinds in the same journey/registration. An exit remains

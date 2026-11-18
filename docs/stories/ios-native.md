@@ -42,7 +42,13 @@ and both APNs content-state shapes, checking exact supplied stale-date values. D
 read from an explicitly supplied `NATIVE_CONTRACT_FIXTURES` directory extracted from the owner's commit; after
 integration they come from `tests/fixtures/native/`. Absence is reported as a skipped integration test, never a pass.
 
-The initial foundation builds for the iOS simulator and all nine tests pass against `9628132`. This is not a
+The initial foundation builds for the iOS simulator and all 17 Swift tests pass against `9628132`. Six additional
+native runtime/bridge tests are built, with their simulator run pending. Early independent review found and prompted
+fixes for interrupted credential/config writes, delayed Wi-Fi/region callbacks, permission completion identity and
+future-version shape decoding. Regression probes cover these and the eight original mutation survivors. The
+Keychain record is independently bound to its normalized proxy origin. Region identifiers carry a persisted
+configuration generation, so callbacks queued for an old home/office cannot cancel the current alarm.
+This is not a
 release claim. Full committed-code CI, GitHub-first checks, independent mutation review, signing checks and real
 iPhone acceptance remain required.
 
@@ -53,5 +59,7 @@ Two contract questions were posted to #58 on 18 November:
 - The published background stop carries only `snapshot:null`. It needs `followId` and `at` to make delayed stops
   safe. Unidentified remote nulls are currently ignored; page-local nulls stop the current journey.
 
-Live Activity, AlarmKit and Siri adapters are still being connected. The current bridge reports those capabilities
-false. The native contract changes must be released and integrated before end-to-end validation or distribution.
+Live Activity/AlarmKit adapters, the lock-screen/Dynamic Island layout and Siri intents compile, but are still being
+connected and validated. The WidgetKit extension contains only the journey Live Activity; the parked home-screen
+widget has not been added. The current bridge reports those capabilities false. The native contract changes must
+be released and integrated before end-to-end validation or distribution.

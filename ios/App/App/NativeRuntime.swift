@@ -10,8 +10,9 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     static let group = "group.uk.cartref.srapley.commute"
     static let shared = NativeRuntime()
     private(set) var document = NativeDocument()
-    private var file: NativeFileStore?
-    private let credentials = NativeCredentialStore()
+    private var file: (any NativeDocumentStorage)?
+    private let credentials: any NativeCredentialStorage
+    private let platformEnabled: Bool
     private var device: NativeCredentials?
     private let location = CLLocationManager()
     private let network = NWPathMonitor()
@@ -21,23 +22,36 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     private var online = false
     private var retry: Task<Void, Never>?
     private var locationRequest: CheckedContinuation<Void, Never>?
+    private var locationGate = RequestGate()
+    private var locationTimeout: Task<Void, Never>?
+    private var wifiReadID = UUID()
     private(set) var lastError: NativeError?
     // Set by the Apple surface coordinator. State remains usable while those surfaces are disabled by iOS.
     var surfaces: NativeSurfaces?
     private let proxySession = URLSession(configuration: .ephemeral, delegate: NoProxyRedirects(), delegateQueue: nil)
 
-    override init() {
+    init(storage: (any NativeDocumentStorage)? = nil,
+         credentialStore: any NativeCredentialStorage = NativeCredentialStore(), platformEnabled: Bool = true) {
+        self.credentials = credentialStore
+        self.platformEnabled = platformEnabled
         super.init()
         do {
-            guard let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.group) else { throw NativeError.unavailable }
-            let store = try NativeFileStore(directory: directory.appendingPathComponent("Commute"))
-            if let existing = try store.load(NativeDocument.self) {
-                guard existing.v == 1 else { throw NativeError.unsupported }
+            let store: any NativeDocumentStorage
+            if let storage { store = storage }
+            else {
+                guard let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.group) else { throw NativeError.unavailable }
+                store = NativeDocumentFileStore(file: try NativeFileStore(directory: directory.appendingPathComponent("Commute")))
+            }
+            if let existing = try store.load() {
+                try existing.validate()
                 document = existing
             }
             file = store
-            device = try credentials.read()
+            if let stored = try credentials.read(), stored.origin == document.configuration?.normalizedOrigin {
+                device = stored.credentials
+            }
         } catch { lastError = .unavailable }
+        guard platformEnabled else { return }
         location.delegate = self
         network.pathUpdateHandler = { [weak self] path in
             Task { @MainActor in
@@ -51,6 +65,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     }
 
     func start() {
+        guard platformEnabled else { return }
         reconcileRegions()
         UIApplication.shared.registerForRemoteNotifications()
         refreshSurfaces()
@@ -93,8 +108,22 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         let now = Self.now
         if document.snapshots.stop(followId: followId, at: max(now, document.snapshots.current?.at ?? now), now: now) {
             document.replay.removeActivity(followId: followId)
+            document.activityID = nil; document.activityFollowID = nil
             surfaces?.cancelAlarm()
             persistBestEffort()
+        }
+    }
+
+    func activityCreated(id: String, followId: String) {
+        guard document.snapshots.current?.followId == followId else { return }
+        document.activityID = id; document.activityFollowID = followId
+        persistBestEffort()
+    }
+
+    func activityContent(_ snapshot: JourneySnapshot) {
+        guard document.snapshots.current != snapshot else { return }
+        if (try? document.snapshots.apply(snapshot, fromPage: false, now: Self.now)) == true {
+            persistBestEffort(); refreshSurfaces()
         }
     }
 
@@ -122,11 +151,15 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         guard let file else { throw NativeError.unavailable }
         // A new registration or proxy must never receive events queued using an old registration's identity.
         var next = document
-        if device != value || next.configuration?.proxy.origin != configuration.proxy.origin { next.outbox = [] }
+        if device != value || next.configuration?.normalizedOrigin != configuration.normalizedOrigin { next.outbox = [] }
+        if next.regionGeneration == nil || next.configuration?.regions != configuration.regions ||
+            next.configuration?.alarm.alarm != configuration.alarm.alarm { next.regionGeneration = UUID().uuidString }
         next.configuration = configuration
-        try credentials.write(value)
+        // The Keychain record binds the token to the proxy independently of the JSON commit. A failure or
+        // process exit between these writes cannot pair a new token with an old proxy after restart.
+        try credentials.write(value, origin: configuration.normalizedOrigin)
         try file.save(next)
-        device = value; document = next
+        device = value; document = next; wifiReadID = UUID()
         reconcileRegions(); refreshWifi(); refreshSurfaces(); startDrain()
     }
 
@@ -162,15 +195,15 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
             _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             UIApplication.shared.registerForRemoteNotifications()
         } else if permission == "location" {
-            guard locationRequest == nil else { throw NativeError.unavailable }
             if location.authorizationStatus == .notDetermined || location.authorizationStatus == .authorizedWhenInUse {
+                let requestID = try locationGate.begin()
                 await withCheckedContinuation { continuation in
                     locationRequest = continuation
                     location.requestAlwaysAuthorization()
                     // iOS can defer the second Always prompt. Do not leave a bridge Promise unresolved.
-                    Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .seconds(60))
-                        self?.finishLocationRequest()
+                    locationTimeout = Task { @MainActor [weak self] in
+                        do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                        self?.finishLocationRequest(requestID)
                     }
                 }
             }
@@ -179,10 +212,15 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus != .notDetermined { finishLocationRequest() }
+        wifiReadID = UUID()
+        if manager.authorizationStatus != .notDetermined, let id = locationGate.current { finishLocationRequest(id) }
         reconcileRegions(); refreshWifi()
     }
-    private func finishLocationRequest() { let pending = locationRequest; locationRequest = nil; pending?.resume() }
+    private func finishLocationRequest(_ id: UUID) {
+        guard locationGate.finish(id) else { return }
+        locationTimeout?.cancel(); locationTimeout = nil
+        let pending = locationRequest; locationRequest = nil; pending?.resume()
+    }
 
     private var locationAuthorization: String {
         switch location.authorizationStatus {
@@ -201,35 +239,39 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     }
 
     private func reconcileRegions() {
-        let enabled = file != nil && location.authorizationStatus == .authorizedAlways && document.configuration?.alarm.alarm == true
+        guard platformEnabled else { return }
+        let enabled = file != nil && document.regionGeneration != nil && location.authorizationStatus == .authorizedAlways && document.configuration?.alarm.alarm == true
         let desired = enabled ? document.configuration?.regions ?? [] : []
         for region in location.monitoredRegions where region.identifier.hasPrefix("commute:") {
             let same = desired.contains { value in
                 guard let circle = region as? CLCircularRegion else { return false }
-                return circle.identifier == "commute:\(value.place)" && circle.center.latitude == value.lat && circle.center.longitude == value.lon && circle.radius == value.radiusM
+                return circle.identifier == regionIdentifier(value.place)
             }
             if !same { location.stopMonitoring(for: region) }
         }
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
-        for value in desired where !location.monitoredRegions.contains(where: { $0.identifier == "commute:\(value.place)" }) {
-            let circle = CLCircularRegion(center: CLLocationCoordinate2D(latitude: value.lat, longitude: value.lon), radius: value.radiusM, identifier: "commute:\(value.place)")
+        for value in desired where !location.monitoredRegions.contains(where: { $0.identifier == regionIdentifier(value.place) }) {
+            let circle = CLCircularRegion(center: CLLocationCoordinate2D(latitude: value.lat, longitude: value.lon), radius: value.radiusM, identifier: regionIdentifier(value.place))
             circle.notifyOnEntry = true; circle.notifyOnExit = true
             location.startMonitoring(for: circle)
         }
     }
 
+    func regionIdentifier(_ place: String) -> String { "commute:\(document.regionGeneration ?? "unconfigured"):\(place)" }
+
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) { regionEvent(region, event: "enter") }
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) { regionEvent(region, event: "exit") }
     private func regionEvent(_ region: CLRegion, event: String) {
         guard document.configuration?.alarm.alarm == true,
-              let configured = document.configuration?.regions.first(where: { region.identifier == "commute:\($0.place)" }) else { return }
+              document.regionGeneration != nil,
+              let configured = document.configuration?.regions.first(where: { region.identifier == regionIdentifier($0.place) }) else { return }
         let now = Self.now
         if event == "exit", document.snapshots.regionExit(place: configured.place, at: now) {
             // Cancel locally before storage/network: an offline departure must not wait for a server response.
             surfaces?.cancelAlarm()
         }
         let evidence = RegionEvidence(place: configured.place, event: event, at: now)
-        if let id = document.snapshots.current?.followId, let device, let origin = document.configuration?.proxy.origin {
+        if let id = document.snapshots.current?.followId, let device, let origin = document.configuration?.normalizedOrigin {
             document.enqueue(.init(followId: id, deviceID: device.id, origin: origin, evidence: evidence))
         }
         persistBestEffort()
@@ -238,12 +280,24 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     }
 
     private func refreshWifi() {
-        guard let configuration = document.configuration,
+        guard platformEnabled,
               [.authorizedAlways, .authorizedWhenInUse].contains(location.authorizationStatus) else { return }
-        NEHotspotNetwork.fetchCurrent { [weak self] network in
+        guard let receive = makeWifiReceiver() else { return }
+        NEHotspotNetwork.fetchCurrent { network in
+            let ssid = network?.ssid
+            Task { @MainActor in receive(ssid) }
+        }
+    }
+
+    func makeWifiReceiver() -> (@MainActor (String?) -> Void)? {
+        guard let configuration = document.configuration else { return nil }
+        let readID = UUID(), observedAt = Self.now
+        wifiReadID = readID
+        return { [weak self] ssid in
             // Only the classification leaves this callback. Never persist, log or emit the network name.
-            let place = configuration.wifi.place(for: network?.ssid)
-            Task { @MainActor in self?.emit(.init("wifi", ["place": .string(place), "at": .number(Self.now)])) }
+            let place = configuration.wifi.place(for: ssid)
+            guard let self, self.wifiReadID == readID, self.document.configuration == configuration else { return }
+            self.emit(.init("wifi", ["place": .string(place), "at": .number(observedAt)]))
         }
     }
 
@@ -255,16 +309,17 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                 // old stop cancel a new follow. An identified stop envelope is requested on issue #58.
                 return .noData
             }
-            let snapshot = try Wire.decode(JourneySnapshot.self, value)
+            let snapshot = try Wire.snapshot(value)
             guard try document.snapshots.apply(snapshot, fromPage: false, now: Self.now) else { return .noData }
             persistBestEffort()
             await updateSurfaces()
             return .newData
-        } catch { return .failed }
+        } catch NativeError.unsupported { return .noData }
+        catch { return .failed }
     }
 
     private func startDrain() {
-        guard !draining, online, !document.outbox.isEmpty else { return }
+        guard platformEnabled, !draining, online, !document.outbox.isEmpty else { return }
         draining = true
         Task { @MainActor in
             let task = UIApplication.shared.beginBackgroundTask(withName: "Commute region evidence")
@@ -274,7 +329,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
             }
             while let first = document.outbox.first, let device, online {
                 guard first.followId == document.snapshots.current?.followId, first.deviceID == device.id,
-                      first.origin == document.configuration?.proxy.origin else {
+                      first.origin == document.configuration?.normalizedOrigin else {
                     document.outbox.removeFirst(); persistBestEffort(); continue
                 }
                 do {
@@ -287,10 +342,10 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                     guard let http = response as? HTTPURLResponse else { throw NativeError.unavailable }
                     guard (200..<300).contains(http.statusCode) || http.statusCode == 400 else { throw NativeError.unavailable }
                     if http.statusCode == 200, first.followId == document.snapshots.current?.followId,
-                       self.device == device, first.origin == document.configuration?.proxy.origin,
+                       self.device == device, first.origin == document.configuration?.normalizedOrigin,
                        let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let value = reply["snapshot"], !(value is NSNull) {
-                        let snapshot = try Wire.decode(JourneySnapshot.self, value)
+                        let snapshot = try Wire.snapshot(value)
                         if try document.snapshots.apply(snapshot, fromPage: false, now: Self.now) { refreshSurfaces() }
                     }
                     document.outbox.removeAll { $0.id == first.id }; persistBestEffort()
@@ -310,13 +365,27 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         do { guard let file else { throw NativeError.unavailable }; try file.save(document) }
         catch { lastError = .unavailable }
     }
-    private func refreshSurfaces() { Task { @MainActor in await updateSurfaces() } }
+    private func refreshSurfaces() {
+        guard surfaces != nil else { return }
+        Task { @MainActor in await updateSurfaces() }
+    }
     private func updateSurfaces() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         await surfaces?.update(document.snapshots, configuration: document.configuration,
                                notificationsAllowed: Self.notificationAuthorization(settings.authorizationStatus) == "granted")
     }
     static var now: Double { Date().timeIntervalSince1970 * 1000 }
+}
+
+protocol NativeDocumentStorage {
+    func load() throws -> NativeDocument?
+    func save(_ state: NativeDocument) throws
+}
+
+private struct NativeDocumentFileStore: NativeDocumentStorage {
+    let file: NativeFileStore
+    func load() throws -> NativeDocument? { try file.load(NativeDocument.self) }
+    func save(_ state: NativeDocument) throws { try file.save(state) }
 }
 
 /// Redirects could leak the device credential in a POST body to a different origin. Refuse all of them.

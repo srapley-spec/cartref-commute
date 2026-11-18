@@ -131,7 +131,81 @@ final class NativeCoreTests: XCTestCase {
         try Wire.version([:]); try Wire.version(["v": 1])
         for v: Any in [2, true, "1", NSNull()] { XCTAssertThrowsError(try Wire.version(["v": v])) }
         var state = SnapshotState(); var s = snapshot(); s.v = 2
-        XCTAssertThrowsError(try state.apply(s, fromPage: true, now: 1_000))
+        XCTAssertThrowsError(try state.apply(s, fromPage: true, now: 1_000)) { XCTAssertEqual($0 as? NativeError, .unsupported) }
         XCTAssertNil(state.current)
+    }
+
+    func testLocalStopRejectsPageResurrectionForTheWholeHour() throws {
+        var state = SnapshotState()
+        try state.apply(snapshot(), fromPage: true, now: 1_000)
+        state.stopFromPage(now: 2_000)
+        XCTAssertFalse(try state.apply(snapshot(at: 3_000), fromPage: true, now: 2_001))
+        XCTAssertFalse(try state.apply(snapshot(at: 3_000), fromPage: true, now: 3_601_999))
+        XCTAssertTrue(try state.apply(snapshot(at: 3_000), fromPage: true, now: 3_602_000))
+    }
+
+    func testCacheLimitIsTheContract512KiBNotAnImplementationDerivedLimit() throws {
+        var cache = OfflineCache()
+        XCTAssertEqual(OfflineCache.byteLimit, 512 * 1024)
+        try cache.replace([.init(key: "boards", dataAt: 1, savedAt: 2, value: .string(String(repeating: "x", count: 500 * 1024)))])
+        let before = cache
+        XCTAssertThrowsError(try cache.replace([.init(key: "boards", dataAt: 1, savedAt: 2, value: .string(String(repeating: "x", count: 513 * 1024)))])) { XCTAssertEqual($0 as? NativeError, .cacheFull) }
+        XCTAssertThrowsError(try cache.replace([.init(key: "boards", dataAt: 1, savedAt: 2, value: .string(String(repeating: "é", count: 300 * 1024)))]))
+        XCTAssertEqual(cache, before)
+    }
+
+    func testConfigurationRejectsHTTPAndChangedRadiusAndDoesNotResolveAmbiguousWifi() throws {
+        let json = #"{"v":1,"proxy":{"origin":"https://proxy.example"},"alarm":{"alarm":true,"alarmLeadMin":5},"wifi":{"home":["Panda"],"office":["Panda"]},"regions":[{"place":"home","lat":51,"lon":-0.1,"radiusM":150}]}"#
+        var config = try JSONDecoder().decode(NativeConfiguration.self, from: Data(json.utf8))
+        XCTAssertEqual(config.wifi.place(for: "Panda Mobile"), "other")
+        config.proxy.origin = "http://proxy.example"
+        XCTAssertThrowsError(try config.validate())
+        config.proxy.origin = "https://proxy.example"; config.regions[0].radiusM = 151
+        XCTAssertThrowsError(try config.validate())
+    }
+
+    func testQueuedEvidenceIsBoundToJourneyDeviceAndOrigin() throws {
+        var document = NativeDocument()
+        func entry(_ follow: String, _ device: String = "phone", _ origin: String = "https://one.example", _ event: String = "exit", _ at: Double = 1) -> PendingEvidence {
+            .init(followId: follow, deviceID: device, origin: origin, evidence: .init(place: "home", event: event, at: at))
+        }
+        document.enqueue(entry("A")); document.enqueue(entry("A", "phone", "https://one.example", "enter", 2))
+        XCTAssertEqual(document.outbox.count, 2)
+        document.enqueue(entry("A", "phone", "https://one.example", "exit", 3))
+        XCTAssertEqual(document.outbox.count, 2)
+        XCTAssertEqual(document.outbox.last?.evidence.at, 3)
+        document.enqueue(entry("B")); XCTAssertEqual(document.outbox.map(\.followId), ["B"])
+        document.enqueue(entry("B", "new-phone")); XCTAssertEqual(document.outbox.map(\.deviceID), ["new-phone"])
+        document.enqueue(entry("B", "new-phone", "https://two.example")); XCTAssertEqual(document.outbox.map(\.origin), ["https://two.example"])
+    }
+
+    func testDeliveredLocationEvidenceIsNotReplayed() {
+        var replay = EventReplay()
+        replay.retain(.init("wifi", ["place": .string("home")]), delivered: true)
+        replay.retain(.init("region", ["place": .string("home"), "event": .string("exit")]), delivered: true)
+        XCTAssertTrue(replay.ready().isEmpty)
+    }
+
+    func testMinimalFutureVersionPayloadRejectsUnsupportedBeforeShapeDecoding() {
+        XCTAssertThrowsError(try Wire.snapshot(["v": 2])) { XCTAssertEqual($0 as? NativeError, .unsupported) }
+        XCTAssertThrowsError(try Wire.entries([["v": 2]])) { XCTAssertEqual($0 as? NativeError, .unsupported) }
+    }
+
+    func testOldPermissionCompletionCannotCompleteTheNextRequest() throws {
+        var gate = RequestGate()
+        let first = try gate.begin()
+        XCTAssertThrowsError(try gate.begin())
+        XCTAssertTrue(gate.finish(first))
+        let second = try gate.begin()
+        XCTAssertFalse(gate.finish(first))
+        XCTAssertEqual(gate.current, second)
+        XCTAssertTrue(gate.finish(second))
+    }
+
+    func testCorruptButValidJSONCannotIntroduceDuplicateCacheKeys() throws {
+        let json = #"{"entries":[{"key":"boards","v":1,"dataAt":1,"savedAt":1,"value":null},{"key":"boards","v":1,"dataAt":2,"savedAt":2,"value":null}]}"#
+        var cache = try JSONDecoder().decode(OfflineCache.self, from: Data(json.utf8))
+        XCTAssertThrowsError(try cache.validate())
+        XCTAssertThrowsError(try cache.replace([]))
     }
 }

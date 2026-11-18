@@ -32,6 +32,18 @@ public enum JSONValue: Codable, Equatable, Sendable {
 }
 
 public enum Wire {
+    public static func snapshot(_ object: Any) throws -> JourneySnapshot {
+        guard let object = object as? [String: Any] else { throw NativeError.invalid }
+        try version(object)
+        return try decode(JourneySnapshot.self, object)
+    }
+
+    public static func entries(_ object: Any) throws -> [CacheEntry] {
+        guard let entries = object as? [[String: Any]] else { throw NativeError.invalid }
+        for entry in entries { try version(entry) }
+        return try decode([CacheEntry].self, entries)
+    }
+
     public static func decode<T: Decodable>(_ type: T.Type, _ object: Any) throws -> T {
         guard JSONSerialization.isValidJSONObject(object) else { throw NativeError.invalid }
         return try JSONDecoder().decode(type, from: JSONSerialization.data(withJSONObject: object))
@@ -46,5 +58,19 @@ public enum Wire {
         guard let n = version as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue == 1 else {
             throw NativeError.unsupported
         }
+    }
+}
+
+/// A late completion from a previous system permission request cannot finish a newer one.
+public struct RequestGate {
+    public private(set) var current: UUID?
+    public init() {}
+    public mutating func begin() throws -> UUID {
+        guard current == nil else { throw NativeError.unavailable }
+        let id = UUID(); current = id; return id
+    }
+    public mutating func finish(_ id: UUID) -> Bool {
+        guard current == id else { return false }
+        current = nil; return true
     }
 }
