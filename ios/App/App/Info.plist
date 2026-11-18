@@ -70,5 +70,26 @@
 	<string>Commute uses your location while open to show the right direction and follow your journey.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Commute uses home and office region crossings to cancel your leave alarm after you leave, even when the app is closed. It does not continuously track your location in the background.</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Commute schedules the leave alarm you turn on for your followed journey.</string>
+	<key>CommuteAPNSEnvironment</key>
+	<string>$(COMMUTE_APNS_ENVIRONMENT)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>uk.cartref.srapley.commute</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>commute</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
