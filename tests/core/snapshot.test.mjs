@@ -212,3 +212,11 @@ test("Countdown wording and its change instants come from the engine (#58): calm
   const s = core.shiftSnapshot(core.journeySnapshot({ now: t - 600e3, source: "page", dataAt: t, mode: "commute", direction: "home", phase: "leave", headline: { label: "Leave by", t, step: "leave" } }), 3600e3);
   assert.equal(s.headline.countdown.urgentAt, t - 120e3 + 3600e3); assert.equal(s.headline.countdown.passedAt, t + 3600e3);
 });
+
+test("A countdown turning urgent or passed is a change worth sending (#58: the Live Activity keeps the last wording)", () => {
+  const t = at(DAY, "18:36"), snap = (now) => core.journeySnapshot({ now, source: "page", dataAt: t - 600e3, mode: "commute", direction: "home", followId: "f1", phase: "leave", headline: { label: "Leave by", t, step: "leave" } });
+  assert.equal(core.snapshotShown(snap(t - 300e3)), core.snapshotShown(snap(t - 200e3)), "both calm: no change");
+  assert.notEqual(core.snapshotShown(snap(t - 200e3)), core.snapshotShown(snap(t - 60e3)), "calm → urgent");
+  assert.notEqual(core.snapshotShown(snap(t - 60e3)), core.snapshotShown(snap(t + 1)), "urgent → passed");
+  assert.notEqual(core.snapshotShown(snap(t - 200e3), false), core.snapshotShown(snap(t - 60e3), false), "a real change, not just a refresh");
+});

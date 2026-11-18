@@ -240,7 +240,11 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    data is fresh. **Countdowns are engine-chosen** (#58, 18 Nov): `headline.countdown` carries `state` ("calm" | "urgent"
    | "passed" at `at`), `urgentAt` and `passedAt`. Render "<calm> <time left>" until `urgentAt`, "<urgent> · <time
    left>" after it (strictly under 2 minutes, `COUNTDOWN_URGENT_MS`, as the page), and `passed` from `passedAt` (nothing
-   when `passed` is empty). The time left is the system timer to `headline.t`, clamped at zero. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
+   when `passed` is empty). The time left is the system timer to `headline.t`, clamped at zero. **v1 limit (agreed on
+   #58, 18 Nov):** a Live Activity can't change its words by itself at `urgentAt`/`passedAt`, so it renders the
+   `state` of the last content update; the timer keeps running offline and the wording stays as last received until
+   the next update. `countdown.state` is part of `snapshotShown`, so the page and the proxy (while watching, every
+   minute) send an update when it turns urgent or passed. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
    (Apple budgets those); a real change goes at priority 10 with the background push. Live Activity tokens are kept
    per `followId`; only the current journey's is sent.
 6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.

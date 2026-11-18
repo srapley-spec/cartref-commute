@@ -64,13 +64,14 @@ test("Bridge: the shell gets the Settings (alarm, Wi-Fi name prefixes; defaults 
 });
 
 test("Bridge: the snapshot is published when what it shows changes, not on every render; never in a simulation", async () => {
-  const s = setup({ snapshot: SNAP(1000) });
+  const T = 3600e3;   // an hour ahead: the countdown stays calm throughout
+  const s = setup({ snapshot: SNAP(T) });
   await s.b.init(); s.shell.calls.length = 0;
   s.b.publish(); s.b.publish();
-  assert.equal(s.shell.calls.length, 1); assert.deepEqual(s.shell.calls[0], ["publish", { snapshot: SNAP(1000) }]);
-  s.setSnap(SNAP(1000, { now: 30e3, dataAt: 30e3 })); s.b.publish();
+  assert.equal(s.shell.calls.length, 1); assert.deepEqual(s.shell.calls[0], ["publish", { snapshot: SNAP(T) }]);
+  s.setSnap(SNAP(T, { now: 30e3, dataAt: 30e3 })); s.b.publish();
   assert.equal(s.shell.calls.length, 1, "a new build time alone isn't a change");
-  s.setSnap(SNAP(61e3)); s.b.publish();
+  s.setSnap(SNAP(T + 61e3)); s.b.publish();
   assert.equal(s.shell.calls.length, 2);
   s.setSnap(null); s.b.publish();
   assert.deepEqual(s.shell.calls[2], ["publish", { snapshot: null }], "stopped following: nothing to show");

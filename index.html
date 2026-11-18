@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 11:09 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 11:49 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5914,6 +5914,8 @@ var CommuteCore = (() => {
       s.progress && s.progress.line,
       !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
+      // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
+      s.headline.countdown && s.headline.countdown.state,
       s.headline.t,
       s.arrive && s.arrive.t,
       s.train && [s.train.platform, s.train.expected, s.train.late],
