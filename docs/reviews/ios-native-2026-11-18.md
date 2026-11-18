@@ -44,5 +44,15 @@ Review of `c791024` found five additional test gaps. Regression probes now cover
 to start/switch a journey, 256-byte stop identifiers (including multibyte text), overlapping alarm requests while
 the first OS prompt is suspended, removal of actual queued evidence on a stop, and the cleared state reaching the
 Apple adapter before a push finishes. These are test additions; the reviewed production guards remain unchanged.
-The reviewer's mutation rerun and final simulator execution are still required. The preceding local simulator
-attempt failed in iOS data migration before app tests started; it is not a passing app test result.
+At `bb7e489`, the reviewer approved the follow-up: all five survivors now fail assertions, with 34 core and ten
+copied-runtime tests passing in the inert macOS harness. Final simulator execution remains required. The preceding
+local simulator attempt failed in iOS data migration before app tests started; it is not a passing app test result.
+
+## Countdown integration and layout
+The native renderer uses the supplied calm/urgent/passed state; it has no clock-based urgency rule. The owner
+accepted last-received wording while offline in issue #58 comment 6977690109; state-change publishing is on their
+side. Native tests cover exact words, passed/empty output, old v1 cache decoding and all expanded engine fixtures.
+An urgent long-label layout probe initially exceeded 160 points (174 at 320-point width). Interpolating Apple's
+system timer into the countdown text removes the fixed timer column, while explicit vertical text sizing keeps
+both headline labels complete. The same production-view probe now measures 158 points with full headline,
+destination, urgency, status, platform, progress and age. This is a macOS SwiftUI preview, not device acceptance.

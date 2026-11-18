@@ -56,13 +56,14 @@ private struct JourneyLockScreen: View {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(snapshot.headline.label).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     if snapshot.headline.t != nil {
                         SnapshotClock(time: snapshot.headline.t).font(.system(size: 30, weight: .bold)).monospacedDigit()
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if let arrival = snapshot.arrive {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(arrival.label).font(.system(size: 11)).lineLimit(2)
+                        Text(arrival.label).font(.system(size: 11)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                         SnapshotClock(time: arrival.t).font(.system(size: 20, weight: .semibold)).monospacedDigit()
                     }.frame(maxWidth: 100, alignment: .trailing)
                 }
@@ -114,16 +115,15 @@ private struct SnapshotCountdown: View {
     var body: some View {
         if let time = snapshot.headline.t, let words = snapshot.headline.countdown {
             if !words.wording.isEmpty || words.showsTimer {
-                HStack(spacing: 5) {
-                    if !words.wording.isEmpty { Text(words.wording) }
-                    if words.state == .urgent { Text("·") }
+                Group {
                     if words.showsTimer {
-                        // Apple animates the engine's deadline, clamped at zero. Wording changes only with
-                        // an actual content update carrying the engine's new state; Swift has no urgency rule.
-                        Text(timerInterval: Date(timeIntervalSince1970: snapshot.at / 1000)...Date(timeIntervalSince1970: max(snapshot.at, time) / 1000), countsDown: true)
-                            .monospacedDigit().frame(maxWidth: 85, alignment: .leading)
-                    }
-                }.font(.system(size: 13, weight: .semibold))
+                        // Inline system timer text wraps with the engine's words, without a fixed timer column.
+                        // Wording changes only on a content update; Swift has no urgency rule.
+                        let timer = Text(timerInterval: Date(timeIntervalSince1970: snapshot.at / 1000)...Date(timeIntervalSince1970: max(snapshot.at, time) / 1000), countsDown: true)
+                        Text("\(words.wording)\(words.state == .urgent ? " · " : " ")\(timer)")
+                            .monospacedDigit()
+                    } else { Text(words.wording) }
+                }.font(.system(size: 13, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
