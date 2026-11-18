@@ -4,6 +4,42 @@ import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
+import { runSimulator as runNativeSimulator } from '../ios/scripts/test-simulator.mjs';
+
+test('the normal iPhone test command enforces its production outer deadlines', t => {
+  const options = [];
+  const previousExitCode = process.exitCode;
+  t.mock.method(childProcess, 'execFileSync', (command, args, settings) => {
+    options.push({ command, settings });
+    if (args[1] === 'list') return JSON.stringify({ runtimes: [{
+      isAvailable: true, version: '27.2', identifier: 'com.apple.CoreSimulator.SimRuntime.iOS-27-2',
+      supportedDeviceTypes: [{ identifier: 'com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro' }]
+    }] });
+    if (args[1] === 'create') return 'owned-fixture-device';
+    if (args[1] === 'bootstatus') return 'Finished';
+    return '';
+  });
+  t.mock.method(childProcess, 'spawnSync', (command, args, settings) => {
+    options.push({ command, settings });
+    return { status: 0 };
+  });
+  syncBuiltinESMExports();
+  try {
+    runNativeSimulator();
+    assert.ok(options.some(call => call.command === 'xcodebuild'));
+    for (const { command, settings } of options) {
+      assert.equal(settings.timeout, command === 'xcodebuild' ? 1_080_000 : 300_000);
+      assert.equal(settings.killSignal, 'SIGKILL');
+    }
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+    process.exitCode = previousExitCode;
+  }
+});
+
 async function runSimulator(bootFailed, testStatus = 0, hang = '') {
   const dir = await mkdtemp(path.join(tmpdir(), 'commute-simulator-test-'));
   try {

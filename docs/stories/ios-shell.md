@@ -75,6 +75,7 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/ios-simulator.test.mjs: "simulator bootstrap failure prevents app testing and removes only its disposable device"
 - tests/ios-simulator.test.mjs: "simulator test failures propagate after disposable device cleanup"
 - tests/ios-simulator.test.mjs: "hung simulator setup and xcodebuild fail within an outer deadline and clean up"
+- tests/ios-simulator.test.mjs: "the normal iPhone test command enforces its production outer deadlines"
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
