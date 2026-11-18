@@ -91,8 +91,9 @@ by the TestFlight workflow after the full main Tests run passes.
 The shell and automatic internal TestFlight pipeline are released. The native contracts and proxy routes were
 released at `9628132` on 18 November. Native implementation is in draft PR #61; the Live Activity extension
 identifier, signing profile and secret are provisioned, and a real signed package passed Apple validation.
-Three owner contract questions remain on issue #58 (alarm permission, identified/dated remote stops and countdown
-wording). Phone acceptance follows integration and an internal build. Apple review submission must wait until the
+The owner answered the three contract questions on #58: permission/stops are on main at `ea7b056`, and countdown
+fields/remaining fixtures are on `eea5846` pending merge. Integration and the page's Settings permission flow remain
+in progress. Phone acceptance follows integration and an internal build. Apple review submission must wait until the
 app is working; no review submission is configured.
 
 ## After a change to `proxy/` or `src/core/`

@@ -26,5 +26,7 @@ final class EngineFixtureTests: XCTestCase {
         XCTAssertEqual(snapshot, try Wire.decode(JourneySnapshot.self, background["snapshot"]!))
         let staleSeconds = (live["aps"] as! [String: Any])["stale-date"] as! Double
         XCTAssertEqual(snapshot.staleDate?.timeIntervalSince1970, staleSeconds)
+        let stop = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background-stop.json"))) as! [String: Any]
+        XCTAssertEqual(try Wire.remoteSnapshot(stop), .stop(followId: "f9", at: 1794939600000))
     }
 }

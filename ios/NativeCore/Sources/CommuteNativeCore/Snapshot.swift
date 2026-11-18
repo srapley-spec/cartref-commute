@@ -78,6 +78,14 @@ public struct SnapshotState: Codable, Equatable, Sendable {
     public init() {}
 
     @discardableResult
+    public mutating func applyRemote(_ update: RemoteSnapshotUpdate, now: Double) throws -> Bool {
+        switch update {
+        case .snapshot(let snapshot): return try apply(snapshot, fromPage: false, now: now)
+        case .stop(let followId, let at): return stop(followId: followId, at: at, now: now)
+        }
+    }
+
+    @discardableResult
     public mutating func apply(_ snapshot: JourneySnapshot, fromPage: Bool, now: Double) throws -> Bool {
         try snapshot.validate()
         tombstones = tombstones.filter { $0.value > now }

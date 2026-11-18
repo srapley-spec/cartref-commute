@@ -52,24 +52,32 @@ view with only the WidgetKit background modifier substituted, not iPhone/WidgetK
 
 ## Integration gates
 Live Activity and alarm capabilities remain false while the Apple surface adapter is unattached. Siri is enabled;
-geofences, Wi-Fi, bridge and storage are implemented. Three owner contract questions remain on
-[issue #58](https://github.com/srapley-spec/cartref-commute/issues/58):
-- [AlarmKit authorization](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6974073764)
-  is independent of notification authorization. Settings needs its returned state and explicit request, or an
-  agreed combined request. Notifications granted must not imply alarms granted.
-- The same comment requests `followId` and `at` on remote null/stop envelopes, including evidence replies. An old
-  remote stop must not cancel a newer journey. Unidentified remote nulls are currently ignored; a page-local null
-  stops the current journey.
-- [Countdown wording](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6975526255)
-  includes calm/urgent/passed variants but no engine-selected current wording or transition instants. Native views
-  must not invent urgency thresholds. The current timer clamps at zero and uses the engine's calm words.
+geofences, Wi-Fi, bridge and storage are implemented. The owner answered all three contract questions on
+[issue #58](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6976812854):
+- `ea7b056` on main adds `auth.alarm` and explicit `request({permission:"alarm"})`. Native code reports AlarmKit's
+  own authorization without prompting, requests it only when explicitly asked while not determined, and releases
+  the request gate after an OS error. Grant/denial does not cause repeated prompts. The first compile found a
+  main-actor initializer used as a nonisolated default argument; creating the default adapter inside the runtime
+  initializer fixed it, and the app/extension/test target now build.
+- The same commit identifies remote stops with `followId` and `at`. APNs and evidence replies use one decoder and
+  the same ordering/tombstone rules. A current, non-older stop cancels the alarm before persistence or platform
+  suspension, clears its activity token/identity and queued evidence, then updates the surface. Unidentified or
+  never-followed nulls have no effect; malformed identified stops reject. Evidence replies additionally retain
+  origin, registration credential and journey checks so an obsolete request cannot stop a current journey.
+- Owner branch `feature/native-countdown` at `eea5846` supplies countdown `state`, `urgentAt` and `passedAt`, plus
+  page-phase and Trip fixtures. It is not yet merged. Native decoding/rendering integration is next. Closed-app
+  wording transitions need platform validation: system timer text updates autonomously, but arbitrary SwiftUI
+  view re-evaluation must not be assumed in an archived Live Activity.
 
-The owner's nine snapshot fixtures omit a Trip snapshot and page-only missed/switch/tube/arrived phases. Swift
-accepts Trip's nullable `direction` with a schema regression, but complete generated fixtures remain necessary.
-After the contract changes are integrated: attach the Apple adapter, validate the complete bridge flow, perform
-final committed-code CI and GitHub-first checks, then distribute through internal TestFlight for real-phone
-acceptance. Test locked journeys, offline/region cancellation, stop/switch races, delayed pushes, restart,
-permission denial, Siri and Wi-Fi before declaring the native app complete. No Apple review submission is configured.
+The Settings caller is still missing at `ea7b056`: the bridge accepts permission requests, but the page does not
+invoke them or show the returned authorization states. This was reported to the owner on
+[issue #58](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6976923499); Swift must not prompt
+from configure/publish/capabilities to compensate. The countdown and fixture branch also remains a dependency.
+
+After integration: attach the Apple adapter, validate the complete bridge flow, perform final committed-code CI
+and GitHub-first checks, then distribute through internal TestFlight for real-phone acceptance. Test locked
+journeys, offline/region cancellation, stop/switch races, delayed pushes, restart, permission denial, Siri and Wi-Fi
+before declaring the native app complete. No Apple review submission is configured.
 
 ## Extension signing
 The Live Activity identifier is `uk.cartref.srapley.commute.journey` (`XSV67947FQ`). Its App Store profile is
@@ -96,7 +104,7 @@ omit native entitlements during export. Signing both archive targets fixed the f
   async updates, immediate cancellation, superseded scheduling, duplicate activity identity, journey switching,
   newer/unsupported ActivityKit content, background start restrictions, permissions and OS failures.
 - `ios/App/CommuteTests/NativeRuntimeTests.swift`: interrupted Keychain/JSON writes, obsolete region/Wi-Fi callbacks,
-  unsupported versions, unidentified stops, real Capacitor cache/error behavior and
+  unsupported versions, identified/unidentified stops, alarm authorization, scoped evidence replies, real Capacitor cache/error behavior and
   the Siri event retained until the page is listening. `BundledPageTests.swift` checks normal and blocked-network launch.
 - `tests/ios-release.test.mjs` and `tests/ios-shell.test.mjs`: profile validation before archive, cleanup, extension
   identity/OS/device family/build/entitlements, exact profile mapping, workflow secret wiring, signed archive,
@@ -113,7 +121,10 @@ suspending platform call. The reviewer approved the implemented scope, not unres
   offline/native tests and dependency locks. Final combined HEAD CI is still required before merge.
 - At `75351bd`, the real signed app+extension export passed identity, content and entitlement checks. Apple package
   validation returned no errors. This was local validation only; no native build from this branch was uploaded.
-- At `29e89fb`, 31 Swift package tests pass and the nine-test simulator target builds. The local simulator run was
-  interrupted before producing a result; it is not counted as a pass. The earlier eight-test foundation run passed
-  at `5f39b01`; GitHub is running the final revision. Twelve Node release/shell tests pass. Static review approved
-  Siri's foreground handling; voice invocation and actual WidgetKit layout remain to be tested on an iPhone.
+- At `29e89fb`, both GitHub Tests runs passed, including 31 Swift package tests and all nine simulator XCTest
+  checks (run `44287505165`, iOS job `134749676495`). This supplies the result missing from the interrupted local run.
+  Twelve Node release/shell tests pass. Static review approved Siri's foreground handling; voice invocation and
+  actual WidgetKit layout remain to be tested on an iPhone.
+- After integrating `ea7b056`, all 33 Swift package tests pass, including the binding identified-stop fixture and
+  malformed/delayed stop cases. The app, extension and updated twelve-test XCTest target build; simulator execution
+  and independent review of these additions remain pending.

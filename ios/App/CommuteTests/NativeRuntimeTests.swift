@@ -99,6 +99,73 @@ final class NativeRuntimeTests: XCTestCase {
         XCTAssertTrue(replay.ready().isEmpty)
     }
 
+    func testAlarmPermissionIsReportedSeparatelyAndOnlyRequestedExplicitly() async throws {
+        let permission = ProbeAlarmPermission()
+        let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false,
+                                    alarmPermission: permission)
+        try runtime.configure(configuration(), credentials: nil)
+        try runtime.publish(snapshot())
+        runtime.resumed()
+        let before = try await runtime.capabilities()
+        XCTAssertEqual((before["auth"] as? [String: String])?["alarm"], "notDetermined")
+        XCTAssertEqual(permission.requests, 0, "Configuring, publishing and reading capabilities must not prompt.")
+        permission.failRequests = true
+        do { try await runtime.request("alarm"); XCTFail("The OS request should fail.") }
+        catch { XCTAssertEqual(error as? NativeError, .unavailable) }
+        permission.failRequests = false
+        try await runtime.request("alarm")
+        let after = try await runtime.capabilities()
+        XCTAssertEqual((after["auth"] as? [String: String])?["alarm"], "granted")
+        XCTAssertEqual(permission.requests, 2, "A failed OS request must not strand the request gate.")
+        try await runtime.request("alarm")
+        permission.authorization = .denied
+        try await runtime.request("alarm")
+        let denied = try await runtime.capabilities()
+        XCTAssertEqual((denied["auth"] as? [String: String])?["alarm"], "denied")
+        XCTAssertEqual(permission.requests, 2, "Granted/denied authorization must not cause repeated prompts.")
+    }
+
+    func testRemoteStopCancelsBeforeDiskWriteAndRemovesActivityReplay() async throws {
+        let disk = MemoryNativeDisk(), runtime = NativeRuntime(storage: disk, credentialStore: MemoryNativeCredentials(), platformEnabled: false)
+        try runtime.publish(snapshot())
+        runtime.activityCreated(id: "activity-A", followId: "A")
+        runtime.activityToken(followId: "A", token: Data([1, 2]))
+        let surfaces = ProbeSurfaces(), calls = NativeCallLog()
+        surfaces.onCancel = { calls.values.append("cancel") }; runtime.surfaces = surfaces
+        disk.onSave = { calls.values.append("save") }; disk.failWrites = true
+        let old = await runtime.receivePush(["snapshot": NSNull(), "followId": "A", "at": 999])
+        let other = await runtime.receivePush(["snapshot": NSNull(), "followId": "B", "at": 2000])
+        XCTAssertEqual(old, .noData); XCTAssertEqual(other, .noData); XCTAssertTrue(calls.values.isEmpty)
+        let stopped = await runtime.receivePush(["snapshot": NSNull(), "followId": "A", "at": 1000])
+        XCTAssertEqual(stopped, .newData)
+        XCTAssertEqual(calls.values.first, "cancel")
+        XCTAssertNil(runtime.document.snapshots.current); XCTAssertNil(runtime.document.activityID)
+        XCTAssertNil(runtime.document.activityFollowID)
+        var replay = runtime.document.replay
+        XCTAssertFalse(replay.ready().contains { $0.name == "liveActivity" })
+        XCTAssertEqual(runtime.lastError, .unavailable)
+    }
+
+    func testEvidenceStopCannotCrossRegistrationOriginOrJourney() throws {
+        let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false)
+        let credentials = NativeCredentials(id: "phone", token: "test-token")
+        try runtime.configure(configuration(), credentials: credentials)
+        try runtime.publish(snapshot())
+        let evidence = PendingEvidence(followId: "A", deviceID: "phone", origin: "https://proxy.example",
+                                       evidence: .init(place: "office", event: "exit", at: 1500))
+        let stop: [String: Any] = ["snapshot": NSNull(), "followId": "A", "at": 2000]
+        var wrong = evidence; wrong.origin = "https://old.example"
+        XCTAssertFalse(try runtime.receiveEvidence(stop, for: wrong, credentials: credentials))
+        wrong = evidence; wrong.deviceID = "old-phone"
+        XCTAssertFalse(try runtime.receiveEvidence(stop, for: wrong, credentials: credentials))
+        wrong = evidence; wrong.followId = "old-journey"
+        XCTAssertFalse(try runtime.receiveEvidence(stop, for: wrong, credentials: credentials))
+        XCTAssertFalse(try runtime.receiveEvidence(stop, for: evidence, credentials: .init(id: "phone", token: "old-token")))
+        XCTAssertEqual(runtime.document.snapshots.current?.followId, "A")
+        XCTAssertTrue(try runtime.receiveEvidence(stop, for: evidence, credentials: credentials))
+        XCTAssertNil(runtime.document.snapshots.current)
+    }
+
     func testRealCapacitorPluginCacheAndVersionErrors() async throws {
         let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false)
         let rules = try await WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "CommuteNativeProbe",
@@ -173,6 +240,16 @@ private final class MemoryNativeCredentials: NativeCredentialStorage {
     func write(_ value: NativeCredentials?, origin: String) throws {
         if failWrites { throw NativeError.unavailable }
         self.value = value.map { BoundRegistration(origin: origin, credentials: $0) }
+    }
+}
+@MainActor private final class ProbeAlarmPermission: NativeAlarmPermission {
+    var authorization: NativeAlarmAuthorization = .notDetermined
+    var requests = 0
+    var failRequests = false
+    func request() async throws {
+        requests += 1
+        if failRequests { throw NativeError.unavailable }
+        authorization = .granted
     }
 }
 @MainActor private final class NativeCallLog { var values: [String] = [] }

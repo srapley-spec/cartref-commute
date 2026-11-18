@@ -23,6 +23,31 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertEqual(SiriPresentation.answer(value, now: 1000, clock: clock), "The engine's current next action. Not updated yet. This data is out of date")
     }
 
+    func testRemoteStopEnvelopeRejectsUnidentifiedOrMalformedStops() throws {
+        XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull()]))
+        XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": NSNull(), "at": NSNull()]))
+        for fields: [String: Any] in [["followId": "A"], ["at": 1000], ["followId": "", "at": 1000],
+            ["followId": "A", "at": true], ["followId": "A", "at": "1000"], ["followId": "A", "at": -1]] {
+            XCTAssertThrowsError(try Wire.remoteSnapshot(fields.merging(["snapshot": NSNull()]) { _, new in new }))
+        }
+        XCTAssertEqual(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": "A", "at": 1000]), .stop(followId: "A", at: 1000))
+        XCTAssertEqual(try Wire.remoteSnapshot(["snapshot": Wire.object(snapshot())]), .snapshot(snapshot()))
+        XCTAssertThrowsError(try Wire.remoteSnapshot(["snapshot": ["v": 2]])) { XCTAssertEqual($0 as? NativeError, .unsupported) }
+    }
+
+    func testRemoteStopUsesJourneyAndTimestampThenPersistsItsTombstone() throws {
+        var state = SnapshotState()
+        try state.apply(snapshot(), fromPage: true, now: 1000)
+        XCTAssertFalse(try state.applyRemote(.stop(followId: "B", at: 2000), now: 2000))
+        XCTAssertFalse(try state.applyRemote(.stop(followId: "A", at: 999), now: 2000))
+        XCTAssertTrue(try state.applyRemote(.stop(followId: "A", at: 1000), now: 2000))
+        XCTAssertNil(state.current)
+        state = try JSONDecoder().decode(SnapshotState.self, from: JSONEncoder().encode(state))
+        XCTAssertFalse(try state.applyRemote(.snapshot(snapshot(at: 3000)), now: 3000))
+        XCTAssertFalse(try state.apply(snapshot(at: 4000), fromPage: true, now: 3_601_999))
+        XCTAssertTrue(try state.apply(snapshot(at: 4000), fromPage: true, now: 3_602_000))
+    }
+
     func testTripSnapshotAcceptsNullDirectionFromThePublishedEngineSchema() throws {
         var value = try XCTUnwrap(Wire.object(snapshot()) as? [String: Any])
         value["mode"] = "trip"; value["direction"] = NSNull()

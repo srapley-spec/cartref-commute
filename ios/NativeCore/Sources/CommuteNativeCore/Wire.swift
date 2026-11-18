@@ -32,6 +32,19 @@ public enum JSONValue: Codable, Equatable, Sendable {
 }
 
 public enum Wire {
+    /// Both APNs and evidence replies use this envelope. An unidentified legacy stop has no effect.
+    public static func remoteSnapshot(_ payload: [String: Any]) throws -> RemoteSnapshotUpdate? {
+        guard let value = payload["snapshot"] else { return nil }
+        guard value is NSNull else { return .snapshot(try snapshot(value)) }
+        let id = payload["followId"], at = payload["at"]
+        if (id == nil || id is NSNull) && (at == nil || at is NSNull) { return nil }
+        let stop = try decode(RemoteStop.self, payload)
+        guard !stop.followId.isEmpty, stop.followId.utf8.count <= 256, stop.at.isFinite, stop.at >= 0 else {
+            throw NativeError.invalid
+        }
+        return .stop(followId: stop.followId, at: stop.at)
+    }
+
     public static func snapshot(_ object: Any) throws -> JourneySnapshot {
         guard let object = object as? [String: Any] else { throw NativeError.invalid }
         try version(object)
@@ -59,6 +72,16 @@ public enum Wire {
             throw NativeError.unsupported
         }
     }
+}
+
+public enum RemoteSnapshotUpdate: Equatable, Sendable {
+    case snapshot(JourneySnapshot)
+    case stop(followId: String, at: Double)
+}
+
+private struct RemoteStop: Decodable {
+    let followId: String
+    let at: Double
 }
 
 /// A late completion from a previous system permission request cannot finish a newer one.

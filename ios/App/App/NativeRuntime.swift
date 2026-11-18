@@ -3,6 +3,7 @@ import CoreLocation
 import Network
 import NetworkExtension
 import UserNotifications
+import AlarmKit
 import CommuteNativeCore
 
 @MainActor
@@ -13,6 +14,8 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     private var file: (any NativeDocumentStorage)?
     private let credentials: any NativeCredentialStorage
     private let platformEnabled: Bool
+    private let alarmPermission: any NativeAlarmPermission
+    private var alarmPermissionGate = RequestGate()
     private var device: NativeCredentials?
     private let location = CLLocationManager()
     private let network = NWPathMonitor()
@@ -31,9 +34,11 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     private let proxySession = URLSession(configuration: .ephemeral, delegate: NoProxyRedirects(), delegateQueue: nil)
 
     init(storage: (any NativeDocumentStorage)? = nil,
-         credentialStore: any NativeCredentialStorage = NativeCredentialStore(), platformEnabled: Bool = true) {
+         credentialStore: any NativeCredentialStorage = NativeCredentialStore(), platformEnabled: Bool = true,
+         alarmPermission: (any NativeAlarmPermission)? = nil) {
         self.credentials = credentialStore
         self.platformEnabled = platformEnabled
+        self.alarmPermission = alarmPermission ?? SystemAlarmPermission()
         super.init()
         do {
             let store: any NativeDocumentStorage
@@ -143,7 +148,8 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                 "alarm": surfaces?.alarmSupported == true, "geofence": file != nil && CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self),
                 "wifi": true, "siri": true, "offline": file != nil,
                 "appVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
-                "auth": ["location": locationAuthorization, "notifications": Self.notificationAuthorization(notifications.authorizationStatus)]]
+                "auth": ["location": locationAuthorization, "notifications": Self.notificationAuthorization(notifications.authorizationStatus),
+                         "alarm": alarmPermission.authorization.rawValue]]
     }
 
     func configure(_ configuration: NativeConfiguration, credentials value: NativeCredentials?) throws {
@@ -194,6 +200,12 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         if permission == "notifications" {
             _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             UIApplication.shared.registerForRemoteNotifications()
+        } else if permission == "alarm" {
+            if alarmPermission.authorization == .notDetermined {
+                let requestID = try alarmPermissionGate.begin()
+                defer { _ = alarmPermissionGate.finish(requestID) }
+                try await alarmPermission.request()
+            }
         } else if permission == "location" {
             if location.authorizationStatus == .notDetermined || location.authorizationStatus == .authorizedWhenInUse {
                 let requestID = try locationGate.begin()
@@ -303,19 +315,35 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
 
     func receivePush(_ payload: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
         do {
-            guard let value = payload["snapshot"] else { return .noData }
-            if value is NSNull {
-                // Remote nulls cannot identify a journey in the currently published fixture. Do not let an
-                // old stop cancel a new follow. An identified stop envelope is requested on issue #58.
-                return .noData
-            }
-            let snapshot = try Wire.snapshot(value)
-            guard try document.snapshots.apply(snapshot, fromPage: false, now: Self.now) else { return .noData }
-            persistBestEffort()
+            guard let payload = payload as? [String: Any], try applyRemotePayload(payload) else { return .noData }
             await updateSurfaces()
             return .newData
         } catch NativeError.unsupported { return .noData }
         catch { return .failed }
+    }
+
+    @discardableResult
+    private func applyRemotePayload(_ payload: [String: Any]) throws -> Bool {
+        guard let update = try Wire.remoteSnapshot(payload),
+              try document.snapshots.applyRemote(update, now: Self.now) else { return false }
+        if case .stop(let followId, _) = update {
+            // Cancel before persistence or any suspended platform call, even when the disk is unavailable.
+            surfaces?.cancelAlarm()
+            document.replay.removeActivity(followId: followId)
+            document.activityID = nil; document.activityFollowID = nil
+            document.outbox.removeAll { $0.followId == followId }
+        }
+        persistBestEffort()
+        return true
+    }
+
+    @discardableResult
+    func receiveEvidence(_ reply: [String: Any], for pending: PendingEvidence, credentials responseCredentials: NativeCredentials) throws -> Bool {
+        guard pending.followId == document.snapshots.current?.followId, device == responseCredentials,
+              pending.deviceID == device?.id, pending.origin == document.configuration?.normalizedOrigin else { return false }
+        let changed = try applyRemotePayload(reply)
+        if changed { refreshSurfaces() }
+        return changed
     }
 
     private func startDrain() {
@@ -341,12 +369,8 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                     let (data, response) = try await proxySession.data(for: request)
                     guard let http = response as? HTTPURLResponse else { throw NativeError.unavailable }
                     guard (200..<300).contains(http.statusCode) || http.statusCode == 400 else { throw NativeError.unavailable }
-                    if http.statusCode == 200, first.followId == document.snapshots.current?.followId,
-                       self.device == device, first.origin == document.configuration?.normalizedOrigin,
-                       let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let value = reply["snapshot"], !(value is NSNull) {
-                        let snapshot = try Wire.snapshot(value)
-                        if try document.snapshots.apply(snapshot, fromPage: false, now: Self.now) { refreshSurfaces() }
+                    if http.statusCode == 200, let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        try receiveEvidence(reply, for: first, credentials: device)
                     }
                     document.outbox.removeAll { $0.id == first.id }; persistBestEffort()
                 } catch {
@@ -375,6 +399,27 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                                notificationsAllowed: Self.notificationAuthorization(settings.authorizationStatus) == "granted")
     }
     static var now: Double { Date().timeIntervalSince1970 * 1000 }
+}
+
+enum NativeAlarmAuthorization: String { case granted, denied, notDetermined }
+
+@MainActor
+protocol NativeAlarmPermission: AnyObject {
+    var authorization: NativeAlarmAuthorization { get }
+    func request() async throws
+}
+
+@MainActor
+private final class SystemAlarmPermission: NativeAlarmPermission {
+    var authorization: NativeAlarmAuthorization {
+        switch AlarmManager.shared.authorizationState {
+        case .authorized: return .granted
+        case .denied: return .denied
+        case .notDetermined: return .notDetermined
+        @unknown default: return .denied
+        }
+    }
+    func request() async throws { _ = try await AlarmManager.shared.requestAuthorization() }
 }
 
 protocol NativeDocumentStorage {
