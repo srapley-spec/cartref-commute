@@ -77,12 +77,13 @@ The owner answered all three contract questions on
   ActivityKit updates; Apple's timer continues and clamps at zero offline, while the wording retains its last
   received state. The owner accepted this v1 limit in #58 comment 6977690109; state-change publishing is released.
 
-The released owner changes through `3ceefc7` are integrated: Settings requests and reports permissions, countdown
+The released owner changes through `88c0a67` are integrated: Settings requests and reports permissions, countdown
 state changes publish, expanded fixtures are committed, delayed leave steps retain the right action and tube
-location comes from the accepted prediction. The remaining owner cache/bootstrap corrections are on
-`fix/native-cache-boot`: nullable age, explicit clears, native byte accounting and hydration before fetch/sync.
-Integration review also requires token replay and initial configuration to wait for restored settings. Swift
-must not prompt from configure/publish/capabilities or infer settings to compensate for page ordering.
+location comes from the accepted prediction. Cache batches retain nullable age, explicitly clear obsolete values,
+account for native JSON bytes and wait for hydration before fetch/sync. Token replay and initial configuration wait
+for restored settings. Swift must not prompt from configure/publish/capabilities or infer settings to compensate
+for page ordering. The remaining Trip source-age correction is tracked in #58 comment 6983061034: a redraw must
+not invent a new fetch time or borrow an unrelated Commute timestamp.
 
 After the shared dependencies land: validate the complete bridge flow, perform final committed-code CI
 and GitHub-first checks, then distribute through internal TestFlight for real-phone acceptance. Test locked

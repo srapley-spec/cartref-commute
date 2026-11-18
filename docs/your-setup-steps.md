@@ -91,9 +91,9 @@ by the TestFlight workflow after the full main Tests run passes.
 The shell and automatic internal TestFlight pipeline are released. The native contracts and proxy routes were
 released at `9628132` on 18 November. Native implementation is in draft PR #61; the Live Activity extension
 identifier, signing profile and secret are provisioned, and a real signed package passed Apple validation.
-The owner changes through `3ceefc7` are integrated into the native branch: permission/stops, countdown fields and
-fixtures, Settings permission requests and journey fixes. Cache/bootstrap corrections and final combined checks
-remain in progress. Phone acceptance follows integration and an internal build. Apple review submission must wait
+The owner changes through `88c0a67` are integrated into the native branch: permission/stops, countdown fields and
+fixtures, Settings requests, journey fixes and cache/bootstrap corrections. Trip's source-age correction and final
+combined checks remain in progress. Phone acceptance follows integration and an internal build. Apple review submission must wait
 until the app is working; no review submission is configured.
 - [ ] On the native feature build, allow the desired permissions in Settings and enable Experimental → "Follow a
       route". To test home-exit alarm cancellation,

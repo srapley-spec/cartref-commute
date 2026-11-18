@@ -1,26 +1,33 @@
-# iOS readiness — 17 November 2026
+# iOS readiness — 18 November 2026
 
-## Current status — 18 November 2026
+## Current status
 
-The shell and automatic internal TestFlight pipeline are released (initial build `1.0 (1)` at `cfbe4f0`). The
-owner's snapshot/page/proxy work is released at `9628132`; Tests, Pages, Deploy proxy and TestFlight all passed.
-The live proxy reports `native:true`. APNs secret names were confirmed on issue #58; no key transfer remains.
+The bundled shell and automatic internal TestFlight pipeline are released. The shared snapshot/page/proxy
+contract is on main, and the live proxy reports `native:true`. Signing and APNs secrets are provisioned; no key
+entry remains for Sam. The internal Family group distributes builds automatically, with Sam enrolled.
 
-Native implementation is on `codex/ios-native-v1`, draft PR #61. The bridge/store, Apple adapters, Live Activity
-extension and Siri compile; 38 Swift and 12 release/shell tests pass. Independent review approved the native
-scope, including alarm/stop, countdown and nullable-cache regressions (latest approval at `6254bdc`).
-A real signed app+extension export at `75351bd` passes native entitlement checks and Apple package validation.
-Full local CI at `dada2fd` passed all 1,440 web tests and simulator checks. Both GitHub runs at `29e89fb` passed
-(including nine simulator tests); final combined HEAD CI remains required.
-Live Activity and alarm are attached on the native branch; permission remains a separate explicit request. Internal
-TestFlight will provide the build for subsequent real-phone acceptance. Owner changes through `3ceefc7` are
-integrated, including separate AlarmKit authorization, identified stops, Settings requests, countdown publication,
-expanded fixtures and the delayed-leave/TfL-location fixes. Cache/bootstrap corrections remain under integration
-on #58. All 13 real simulator tests passed at `4dc0991`; the subsequent full CI at `9ce934f` passed 1,441 web tests
-but failed during simulator OS data migration before app tests. Final combined local and GitHub checks remain
-release gates. The subsequent fresh-device run at `c2a0325` passed all 38 core and 13 app tests using Xcode-managed
-startup; runner review approved `79c108c` with all 16 mutations caught. No native feature build is uploaded yet.
-See [the native story](stories/ios-native.md) for current behavior and validation.
+The native implementation is in PR #61 (`codex/ios-native-v1`): bridge and App Group cache, queued region evidence,
+Wi-Fi cues, Siri, one journey Live Activity and the AlarmKit leave alarm. The engine supplies journey decisions,
+countdown wording and alarm directives. Permission requests remain explicit Settings actions.
+
+Owner changes through `88c0a67` are integrated, including permission/stops, countdown publication and fixtures,
+journey fixes, nullable cache age, explicit cache clears, byte accounting and restoration before startup work.
+The remaining Trip source-age correction is coordinated on #58: redraws must not invent a new fetch time or
+borrow an unrelated Commute timestamp. Final combined local CI and GitHub checks remain release gates.
+
+Validation already completed:
+- 38 Swift core tests and 13 real simulator XCTest checks passed on a fresh device at `c2a0325`, including offline
+  launch and the real Capacitor cache bridge. Both GitHub Tests runs at that revision passed.
+- Independent review approved native state/coordinator/signing/Siri/permissions/countdowns/cache. All nine cache
+  mutations are caught at `6254bdc`; all 16 simulator-runner mutations are caught at `79c108c`.
+- The signed app-plus-extension export and Apple package validation passed at `75351bd`.
+- Earlier local full CI passed its web checks but failed during simulator OS migration before app installation.
+  The diagnosed MobileSafari migration watchdog and Xcode-managed startup validation are recorded in the
+  [independent review report](reviews/ios-native-2026-11-18.md); those failed runs are not passing release gates.
+
+Internal TestFlight supplies the build for subsequent real-phone acceptance. Actual APNs delivery, locked-screen
+layout, AlarmKit cancellation, region events and Siri invocation remain phone checks. See the
+[native story](stories/ios-native.md#first-internal-testflight-phone-acceptance) for the exact steps.
 
 The extension identifier `uk.cartref.srapley.commute.journey`, App Store profile and
 `IOS_ACTIVITY_PROFILE_BASE64` secret are provisioned. No Apple review submission is authorized or configured.
