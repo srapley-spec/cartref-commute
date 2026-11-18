@@ -1,0 +1,38 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": false,
+  "mode": "commute",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "missed",
+  "headline": {
+    "label": "Next train",
+    "t": 1794942480000,
+    "countdown": {
+      "step": "next",
+      "calm": "in",
+      "urgent": "Now",
+      "passed": "",
+      "state": "calm",
+      "urgentAt": 1794942360000,
+      "passedAt": 1794942480000
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945120000
+  },
+  "train": null,
+  "progress": null,
+  "status": {
+    "level": "bad",
+    "text": "Missed: the 18:56 has gone"
+  },
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

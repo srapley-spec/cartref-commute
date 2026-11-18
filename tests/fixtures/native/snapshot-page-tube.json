@@ -1,0 +1,39 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": true,
+  "mode": "commute",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "tube",
+  "headline": {
+    "label": "At Farringdon",
+    "t": 1794941040000,
+    "countdown": {
+      "step": "arrive",
+      "calm": "arrives in",
+      "urgent": "Arriving",
+      "passed": "",
+      "state": "calm",
+      "urgentAt": 1794940920000,
+      "passedAt": 1794941040000
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945120000
+  },
+  "train": null,
+  "progress": {
+    "next": "Barbican",
+    "stopsToGo": 2,
+    "line": "Next: Barbican · 2 stops"
+  },
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

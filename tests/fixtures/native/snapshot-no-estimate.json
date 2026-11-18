@@ -17,7 +17,10 @@
       "step": "leave",
       "calm": "leave in",
       "urgent": "Leave now",
-      "passed": "leave time passed"
+      "passed": "leave time passed",
+      "state": "calm",
+      "urgentAt": 1794940620000,
+      "passedAt": 1794940740000
     }
   },
   "arrive": {

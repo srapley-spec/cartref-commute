@@ -123,20 +123,34 @@ test("Notices count minutes as shown: seconds don't make a 3-minute change of a 
   assert.ok(Number.isFinite(core.walkFromStopSecs(st, [51.9752, -0.2402], st, 1140, NaN, "avg", sam)));
 });
 
-test("A step whose own time has come is taken as done: a late train doesn't bring it back as the next thing, and at the station the next thing is the train", () => {
+test("A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train", () => {
   const r = core.startFollowRoute({ ...option(), legs: homeLegs.map((l) => ({ ...l })), train: train({ from: "CEN", to: "RVS", std: "08:26", dep: t + 26 * MIN, arr: t + 60 * MIN, serviceId: "chosen" }) }, { now: t, direction: "home", mode: "commute" });
   const lateTrain = { ...r.option, train: { ...r.option.train, dep: t + 41 * MIN, depLate: 15, arr: t + 75 * MIN, arrLate: 15 } };
   const upd = (now, extra = {}) => core.updateFollowRoute(r, { now, phase: "before-train", dataFresh: true, options: [lateTrain], hasReliableLocation: true, ...extra });
   // Before you've left (08:00 step still ahead... at 07:59): both early steps move with the train.
   assert.equal(upd(t - MIN).nextStep.d, "Leave office"); assert.equal(upd(t - MIN).nextStep.t, t + 15 * MIN);
-  // 08:15, on the way (the leave and tube steps' own times have come): next is the train, as before.
-  assert.equal(upd(t + 15 * MIN).nextStep.train, true);
-  // 08:05: the leave step is done, the tube step (08:12) is still ahead and moves with the train.
-  assert.equal(upd(t + 5 * MIN).nextStep.d, "Circle or Met to Central"); assert.equal(upd(t + 5 * MIN).nextStep.t, t + 27 * MIN);
+  // 08:15, on the way (set off; the leave and tube steps' own times have come): next is the train, as before.
+  assert.equal(upd(t + 15 * MIN, { setOff: true }).nextStep.train, true);
+  // 08:05, set off: the leave step is done, the tube step (08:12) is still ahead and moves with the train.
+  assert.equal(upd(t + 5 * MIN, { setOff: true }).nextStep.d, "Circle or Met to Central"); assert.equal(upd(t + 5 * MIN, { setOff: true }).nextStep.t, t + 27 * MIN);
   // At the station the train leaves from, whatever the times say: the train.
   assert.equal(upd(t + 5 * MIN, { boarding: "at" }).nextStep.train, true);
   assert.equal(upd(t + 5 * MIN, { boarding: "was", hasReliableLocation: false }).nextStep.train, true);
   // The list without a time (other callers) still moves every early step.
   assert.equal(core.followedLegs(upd(t + 15 * MIN).route)[0].t, t + 15 * MIN);
-  assert.equal(core.followedLegs(upd(t + 15 * MIN).route, t + 15 * MIN)[0].t, t);
+  assert.equal(core.followedLegs(upd(t + 15 * MIN).route, t + 15 * MIN, { setOff: true })[0].t, t);
+  assert.equal(core.followedLegs(upd(t + 15 * MIN).route, t + 15 * MIN)[0].t, t + 15 * MIN, "no evidence: the step moves with the train");
+});
+
+test("Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)", () => {
+  // Leave by 08:00 for the 08:26; the train goes 15 min late, so Leave by is 08:15. At 08:02, still at the office:
+  const r = core.startFollowRoute({ ...option(), legs: homeLegs.map((l) => ({ ...l })), train: train({ from: "CEN", to: "RVS", std: "08:26", dep: t + 26 * MIN, arr: t + 60 * MIN, serviceId: "chosen" }) }, { now: t - 10 * MIN, direction: "home", mode: "commute" });
+  const lateTrain = { ...r.option, train: { ...r.option.train, dep: t + 41 * MIN, depLate: 15, arr: t + 75 * MIN, arrLate: 15 } };
+  const at = (now, setOff) => core.updateFollowRoute(r, { now, phase: "before-train", dataFresh: true, options: [lateTrain], hasReliableLocation: true, setOff });
+  const still = at(t + 2 * MIN, false);
+  assert.equal(still.nextStep.d, "Leave office", "not skipped to the train or the tube"); assert.equal(still.nextStep.t, t + 15 * MIN);
+  // Through the middle of the old window and up to the new Leave by, still the leave step.
+  assert.equal(at(t + 14 * MIN, false).nextStep.d, "Leave office");
+  // Once set off, the leave step is done.
+  assert.notEqual(at(t + 2 * MIN, true).nextStep.d, "Leave office");
 });

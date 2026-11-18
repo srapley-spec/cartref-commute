@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 10:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 12:36 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -931,6 +931,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
         <label class="f">Office Wi-Fi names start with<input type="text" id="s_wifiOffice" autocomplete="off"></label>
         <p class="hint">Joining one says where you are; the name stays on the phone. Separate several with commas.</p>
       </div>
+      <div class="f wide" id="nativePermissions"></div>
       <p class="hint" id="nativeStatus" aria-live="polite"></p>
     </fieldset>
 
@@ -1170,6 +1171,7 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    COUNTDOWN_URGENT_MS: () => COUNTDOWN_URGENT_MS,
     COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
     DEFAULT_DISRUPTION_POLICY: () => DEFAULT_DISRUPTION_POLICY,
     EFFORTS: () => EFFORTS,
@@ -3642,7 +3644,7 @@ var CommuteCore = (() => {
     const key = followServiceKey(option);
     return { ...route, dismissedAlternatives: [...route.dismissedAlternatives.filter((k) => k !== key), key].slice(-100) };
   }
-  function legsFor(route, now) {
+  function legsFor(route, now, evidence) {
     const before = route.option.train, after = route.lastTrain;
     const departureShift = after.dep - before.dep;
     const railShift = finite2(after.arr) ? after.arr - before.arr : route.expectedArrival - route.plannedArrival;
@@ -3656,7 +3658,7 @@ var CommuteCore = (() => {
         if (base.startsWith(before.std)) l.d = `${before.std}${hhmm(after.dep) !== before.std ? ` (exp ${hhmm(after.dep)})` : ""}${base.slice(before.std.length)}`;
         const platform = after.platform ? `platform ${after.platform}` : "platform unannounced";
         l.note = /\bplatform\s+[^,·]+/i.test(l.note || "") ? (l.note || "").replace(/\bplatform\s+[^,·]+/i, platform) : [l.note, platform].filter(Boolean).join(", ");
-      } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now)) {
+      } else if (l.t != null && l.t < before.dep && (now == null || l.t >= now || !(evidence && evidence.setOff))) {
         l.t = l.t + departureShift;
       } else if (l.t != null && l.t >= before.arr) {
         l.t = index === lastTimed && l.t > before.arr ? route.expectedArrival : l.t + railShift;
@@ -3664,7 +3666,7 @@ var CommuteCore = (() => {
       return l;
     });
   }
-  var followedLegs = (route, now) => legsFor(route, now);
+  var followedLegs = (route, now, evidence) => legsFor(route, now, evidence);
   function updateFollowRoute(previous, input) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     const route = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
@@ -3886,7 +3888,7 @@ var CommuteCore = (() => {
         railStatus = arrivalStatus(expected, route.option.train.arr - route.option.train.arrLate * MIN, input.policy);
       }
     }
-    const legs = legsFor(route, input.now).filter((l) => l.t != null && !l.calls);
+    const legs = legsFor(route, input.now, { setOff: input.setOff }).filter((l) => l.t != null && !l.calls);
     if (status === "on-track" && level === "ok" && text2.startsWith("On track")) {
       const later = Math.floor(route.expectedArrival / MIN) - Math.floor(route.plannedArrival / MIN);
       if (later >= 1) {
@@ -3922,7 +3924,7 @@ var CommuteCore = (() => {
     return finite3(t2) ? t2 : null;
   };
   function followTubeArrival(predictions, i) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     if (!Array.isArray(predictions) || !i.vehicle || !i.hub || !i.stopId || !["eastbound", "westbound", "northbound", "southbound"].includes(i.direction) || !finite3(i.now) || !finite3(i.fetchedAt) || !finite3(i.readyMs) || i.readyMs < 0 || i.now < i.fetchedAt || i.now - i.fetchedAt >= FOLLOW_TUBE_FRESH_MS) return null;
     for (const p of predictions) {
       if (!record2(p)) continue;
@@ -3938,7 +3940,7 @@ var CommuteCore = (() => {
       const explicit = (_f = p.t) != null ? _f : p.expectedArrival;
       const arrival = explicit != null ? parsedTime(explicit) : finite3(p.timeToStation) && p.timeToStation >= 0 ? observed + p.timeToStation * 1e3 : null;
       if (arrival == null || arrival < i.now - 3e4) continue;
-      return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true };
+      return { vehicle: String(vehicle), hub: i.hub, arrival, readyAt: arrival + i.readyMs, at: observed, live: true, where: tubeWhere((_g = p.where) != null ? _g : p.currentLocation) };
     }
     return null;
   }
@@ -5803,6 +5805,7 @@ var CommuteCore = (() => {
   var SNAPSHOT_REFRESH_MS = 2 * 6e4;
   var LEAVE_ALARM_GRACE_MS = 2 * 6e4;
   var LEAVE_ALARM_DEFAULT_MIN = 5;
+  var COUNTDOWN_URGENT_MS = 12e4;
   var COUNTDOWN_WORDS = {
     leave: { calm: "leave in", urgent: "Leave now", passed: "leave time passed" },
     platform: { calm: "on the platform in", urgent: "Head for the platform now", passed: "platform time passed" },
@@ -5825,6 +5828,7 @@ var CommuteCore = (() => {
   function journeySnapshot(i) {
     const dataAt = fin(i.dataAt) ? i.dataAt : null;
     const words = i.headline.step ? COUNTDOWN_WORDS[i.headline.step] : null;
+    const t2 = fin(i.headline.t) ? i.headline.t : null;
     const progress = i.progress && (i.progress.next || fin(i.progress.stopsToGo) || i.progress.line) ? {
       next: i.progress.next || null,
       stopsToGo: fin(i.progress.stopsToGo) ? i.progress.stopsToGo : null,
@@ -5842,7 +5846,13 @@ var CommuteCore = (() => {
       direction: i.direction,
       followId: i.followId || null,
       phase: i.phase,
-      headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
+      headline: { label: i.headline.label, t: t2, countdown: words ? {
+        step: i.headline.step,
+        ...words,
+        state: t2 == null ? "calm" : i.now >= t2 ? "passed" : t2 - i.now < COUNTDOWN_URGENT_MS ? "urgent" : "calm",
+        urgentAt: t2 == null ? null : t2 - COUNTDOWN_URGENT_MS,
+        passedAt: t2
+      } : null },
       arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
       train: i.train || null,
       progress,
@@ -5884,12 +5894,13 @@ var CommuteCore = (() => {
   }
   function shiftSnapshot(s, d) {
     const m = (t2) => t2 == null ? t2 : t2 + d;
+    const cd = s.headline.countdown;
     return {
       ...s,
       at: s.at + d,
       dataAt: m(s.dataAt),
       staleAt: m(s.staleAt),
-      headline: { ...s.headline, t: m(s.headline.t) },
+      headline: { ...s.headline, t: m(s.headline.t), countdown: cd && { ...cd, urgentAt: m(cd.urgentAt), passedAt: m(cd.passedAt) } },
       arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
       train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) },
       alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d }
@@ -5904,6 +5915,8 @@ var CommuteCore = (() => {
       s.progress && s.progress.line,
       !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
+      // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
+      s.headline.countdown && s.headline.countdown.state,
       s.headline.t,
       s.arrive && s.arrive.t,
       s.train && [s.train.platform, s.train.expected, s.train.late],
@@ -7743,7 +7756,7 @@ function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("de
 function render(){
   try{ leaveAlerts.sync(); }catch(e){}
   try{ native.sync(); }catch(e){}
-  queueMicrotask(()=>{ try{ native.publish(); }catch(e){} });   // after this render has drawn the followed card
+  queueMicrotask(()=>{ try{ if(native.publish()&&S().provider==="proxy") nativeCacheNow(); }catch(e){} });   // a new snapshot is kept for offline too   // after this render has drawn the followed card
   try{ syncPick(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
@@ -7880,7 +7893,7 @@ function tick(){
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
   // Every left time counts down, in its step's words (Sam, 12 Nov: "the countdown should be to the start of the next
   // step"; wording reviewed on the countdown journey page): leave, platform, arrival, next step.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<C.COUNTDOWN_URGENT_MS, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
     e.textContent = urgent ? `${w.urgent} · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`${w.calm} ${countdown(ms)}`:w.passed;
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
@@ -9311,7 +9324,7 @@ function renderJourneyProgress(){
     const expectedArrival=factualEnd??(details?.data?.calls?null:context.expectedArrival);
     const currentTrain={...train,arr:context.expectedArrival??train.arr};
     legs=option?C.progressLegsFromSteps({option,train:currentTrain,route:followed?undefined:progressRoute(option),
-      steps:followed?C.followedLegs(followed,Date.now()):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
+      steps:followed?C.followedLegs(followed,Date.now(),{setOff:followSetOffNow()}):undefined,tubeRideSecs:progressSavedRideSeconds(option),names:STATIONS}):
       [{id:'rail',kind:'rail',label:'Train',start:train.dep,end:context.expectedArrival??train.arr,from:progressName(train.from),to:progressName(train.to),fromCode:train.from,toCode:train.to}];
     active='rail';calls=ordered;
     evidence={source:details?.data?'reported':context.arrivalLive?'prediction':'modelled',observedAt,
@@ -9325,7 +9338,7 @@ function renderJourneyProgress(){
     const sameHub=memory&&(memory.hub===ride.hub||(PROFILE.sharesTubeWith?.[memory.hub]||memory.hub)===(PROFILE.sharesTubeWith?.[ride.hub]||ride.hub));
     const remembered=!context.homeward&&sameHub&&C.progressContextCurrent(memory.legs,memory.observedAt,context.departure)?memory:null;
     const chosen=option||remembered?.option;
-    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now()),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
+    if(chosen)legs=followed?C.progressLegsFromSteps({option:chosen,train:followed.lastTrain,steps:C.followedLegs(followed,Date.now(),{setOff:followSetOffNow()}),tubeRideSecs:progressSavedRideSeconds(chosen),names:STATIONS}):remembered?.legs||C.progressLegsFromSteps({option:chosen,route:progressRoute(chosen),names:STATIONS});
     else legs=[];
     const railIndex=legs.findIndex(leg=>leg.kind==='rail');
     const tubeIndex=legs.findIndex((leg,index)=>leg.kind==='tube'&&(context.homeward?index<railIndex:index>railIndex));
@@ -9370,7 +9383,7 @@ function renderJourneyProgress(){
     evidence={source:live?'prediction':'modelled',observedAt:live?(context.homeward?state.followTransport?.at:state.ald?.at):null,expectedAt:live?.arrival??null,
       scheduledAt:plannedEnd,identityMatched:!!live&&!!ride.vehicle,
       // Where TfL says your tube is, in its own words (10 Nov, #57 E1, H11), from the predictions the arrival came from.
-      where:live&&ride.vehicle?C.followTubeWhere(context.homeward?state.followTransport?.predictions:state.ald?.arrivals,String(ride.vehicle),lineIdOf(ride.line)):null};
+      where:live&&ride.vehicle?(live.where||null):null};   // from the accepted prediction itself (18 Nov review)
     uncertain=!(ride.picked||ride.confirmed);
   }
   const input={now,legs,activeLeg:active,calls,evidence,uncertainIdentity:uncertain,contradictedIdentity:context.kind==='rail'&&!!context.contradictedIdentity,cancelled,noEstimate,policy:PROFILE.disruption};
@@ -9922,7 +9935,8 @@ function renderFollowPanel(){
   const selectedBoard=`${route.option.train.from}-${route.option.train.to}`;
   const dataFresh=!!state.boards&&sameContext&&!!state.boardsAt&&now-state.boardsAt<3*60e3&&
     !(state.routeFailed&&state.routeFailed[selectedBoard])&&!(state.followFailedBoards||[]).includes(selectedBoard);
-  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,policy:PROFILE.disruption});
+  let setOffEvidence=false; try{ setOffEvidence=route.phase==="before-train"&&!observation.boarding&&followMovedOff(route,observation); }catch(e){}
+  const result=C.updateFollowRoute(route,{now,options:raw,availableOptions,dataFresh,...observation,setOff:setOffEvidence,policy:PROFILE.disruption});
   state.followUpdate=result;
   if(JSON.stringify(result.route)!==JSON.stringify(state.saved.followRoute)){state.saved.followRoute=result.route;save();}
   const r=result.route,t=r.lastTrain, alt=result.alternative,st=result.trainStatus;
@@ -9947,7 +9961,7 @@ function renderFollowPanel(){
   const platformBy=platformTime(r.option,t);
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
-  const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
+  const legs=C.followedLegs(r,Date.now(),{setOff:followSetOffNow()}), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
   const stepTime=l=>l===leaveStep||(leaveStep&&l&&l.d===leaveStep.d&&l.t===leaveStep.t)?access.leave:l.t;
   // The live card names a different train (one you selected instead): this card names the train it follows, and
   // leaves "You're on …" to the card that is working out where you are (never two cards claiming two trains).
@@ -11220,6 +11234,21 @@ const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, 
 // wifi {place, at}, region {place, event, at}, resume {at}, open {url}.
 const nativeBridge = (() => {
   const RETRY_MS = 60e3;
+  /** The offline store's limit (§6.7 rule 7). */
+  const CACHE_MAX_BYTES = 512 * 1024;
+  /**
+   * The entries that fit, in the order given (most important first): an entry that would take the total over the limit
+   * is left out (and said so), the rest still go. Sizes are UTF-8 bytes of each entry's JSON.
+   */
+  function packCache(entries, max = CACHE_MAX_BYTES) {
+    const out = [], dropped = []; let total = 2;
+    for (const e of entries) {
+      let bytes; try { const j = JSON.stringify(e); bytes = (typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length) + 1; } catch (x) { dropped.push(e && e.key); continue; }
+      if (total + bytes > max) { dropped.push(e.key); continue; }
+      out.push(e); total += bytes;
+    }
+    return { entries: out, dropped, bytes: total };
+  }
   const ok = (x) => x && typeof x === "object";
   /**
    * deps: win, core (C), S() settings, saved() → state.saved, save(), proxyBase() → the proxy's address, snapshot() →
@@ -11323,7 +11352,8 @@ const nativeBridge = (() => {
     function cache(entries) {
       const p = plugin();
       if (!p || !has("offline") || simulating()) return null;
-      try { return Promise.resolve(p.cache({ entries })).catch(() => null); } catch (e) { return null; }
+      const packed = packCache(entries);
+      try { return Promise.resolve(p.cache({ entries: packed.entries })).then(() => packed).catch(() => null); } catch (e) { return null; }
     }
     /** What the shell kept for a launch with no signal (§6.7 rule 7); [] in a browser or on any error. */
     async function cached() {
@@ -11347,7 +11377,7 @@ const nativeBridge = (() => {
     }
     return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
   }
-  return { create, RETRY_MS };
+  return { create, RETRY_MS, CACHE_MAX_BYTES, packCache };
 })();
 
 
@@ -11426,6 +11456,35 @@ function nativeOpen(url){
   }
   return true;
 }
+// Permissions (Sam, 17–18 Nov: asked from Settings when the leave alarm is first turned on, in the order
+// notifications → alarm → location (Always); docs/ios-app.md §6.7 rules 1 and 8). Only what hasn't been asked is
+// asked; a refusal is shown with where to change it. Swift prompts only through request().
+const NATIVE_PERMISSIONS=[["notifications","Notifications","the leave alarm and alerts"],["alarm","Alarms","the leave alarm"],["location","Location","Always lets the alarm cancel itself when you leave"]];
+function nativePermissionText(kind,v){
+  if(v==="granted"||v==="always") return "Allowed";
+  if(v==="whenInUse") return "While using the app only: the alarm won't cancel itself when you leave with the app closed";
+  if(v==="denied") return "Refused: change it in the iPhone's Settings → Commute";
+  if(v==="notDetermined") return "Not asked yet";
+  return "Not reported by this version of the app";
+}
+function renderNativePermissions(){
+  const el=$("#nativePermissions"); if(!el) return;
+  const caps=native.capabilities(); if(!caps){ el.innerHTML=""; return; }
+  const auth=caps.auth||{}, ask=NATIVE_PERMISSIONS.some(([k])=>auth[k]==="notDetermined"||(k==="location"&&auth[k]==="whenInUse"));
+  el.innerHTML=`<ul class="live-services">${NATIVE_PERMISSIONS.map(([k,name,why])=>`<li data-permission="${k}" data-state="${esc(String(auth[k]||""))}"><b>${auth[k]==="granted"||auth[k]==="always"?"✓":auth[k]==="denied"?"✗":"…"} ${name}</b> (${esc(why)}): ${esc(nativePermissionText(k,auth[k]))}</li>`).join("")}</ul>`+
+    (ask?`<button type="button" class="ghost" id="nativeAllowBtn">Allow notifications, alarms and location</button>`:"");
+  const b=$("#nativeAllowBtn"); if(b) b.addEventListener("click",()=>nativeAskPermissions());
+}
+let nativeAsking=false;
+async function nativeAskPermissions(){
+  if(nativeAsking||!native.capabilities()) return; nativeAsking=true;
+  try{
+    for(const [k] of NATIVE_PERMISSIONS){
+      const v=((native.capabilities()||{}).auth||{})[k];
+      if(v==="notDetermined"||(k==="location"&&v==="whenInUse")) await native.request(k);
+    }
+  } finally { nativeAsking=false; renderNativePermissions(); }
+}
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
@@ -11435,15 +11494,26 @@ const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved,
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
 // them (with their age, as any old data) until the first refresh lands.
-function nativeCacheNow(){ if(!state.boards||!state.boardsAt) return; native.cache([{key:"boards",v:1,dataAt:state.boardsAt,savedAt:Date.now(),value:state.boards},
-  ...(state.status&&state.statusAt?[{key:"status",v:1,dataAt:state.statusAt,savedAt:Date.now(),value:state.status}]:[])]); }
+// Most important first; packCache leaves out what doesn't fit in 512 KB. Settings are the device's own (no keys are
+// kept on a device since 17 Nov; this iPhone's registration lives in the shell's Keychain, not here).
+function nativeCacheNow(){
+  const now=Date.now(), e=[];
+  let snap=null; try{ snap=nativeSnapshot(); }catch(x){}
+  if(snap) e.push({key:"snapshot",v:1,dataAt:snap.dataAt,savedAt:now,value:snap});
+  e.push({key:"settings",v:1,dataAt:now,savedAt:now,value:{...state.saved.settings}});
+  if(state.status&&state.statusAt) e.push({key:"status",v:1,dataAt:state.statusAt,savedAt:now,value:state.status});
+  if(state.boards&&state.boardsAt) e.push({key:"boards",v:1,dataAt:state.boardsAt,savedAt:now,value:state.boards});
+  return native.cache(e);
+}
 async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
-  const b=get("boards"), st=get("status");
+  const b=get("boards"), st=get("status"), set=get("settings");
+  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings={...set.value}; save(); }
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
-native.init().then(async caps=>{ if(caps){ await nativeHydrate(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
+native.init().then(async caps=>{ if(caps){ await nativeHydrate(); renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -11554,6 +11624,8 @@ $("#settingsForm").addEventListener("submit",e=>{
  const previous=S(), effective={...DEFAULTS,...next};
  leaveAlerts.onSave(previous, effective);
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
+ // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
+ if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
  const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));

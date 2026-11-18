@@ -68,7 +68,11 @@ test("In the iPhone app: office Wi-Fi is a position at the office; settings save
   assert.equal(sh.calls.filter((x) => x[0] === "cache").length, 0, "example data isn't kept");
   c.state.saved.settings.provider = "proxy"; c.setBoards({ "KGX-LET": { msgs: [], services: [] } });
   const kept = sh.calls.filter((x) => x[0] === "cache").at(-1)[1];
-  assert.equal(kept[0].key, "boards"); assert.equal(kept[0].v, 1); assert.equal(kept[0].dataAt, c.state.boardsAt);
+  assert.deepEqual(JSON.parse(JSON.stringify(kept.map((e) => e.key))), ["snapshot", "settings", "status", "boards"], "most important first");
+  const boards = kept.find((e) => e.key === "boards");
+  assert.equal(boards.v, 1); assert.equal(boards.dataAt, c.state.boardsAt);
+  assert.equal(kept.find((e) => e.key === "snapshot").value.followId, c.state.saved.followRoute.id);
+  assert.ok(!JSON.stringify(kept.find((e) => e.key === "settings").value).match(/rdmKey|tflKey|googleKey/), "no keys");
   c.state.saved.settings.provider = "demo";
   assert.equal(c.state.locAcc, 50);
   app.d.querySelector("#settingsBtn").click();
@@ -151,5 +155,35 @@ test("Review: the plan for the proxy is kept once on the train; Siri's follow do
   const id = c.state.saved.followRoute.id;
   c.nativeOpen("commute://next?direction=home&follow=1"); await new Promise((r) => setTimeout(r, 50));
   assert.equal(c.state.saved.followRoute.id, id, "already following: not followed again");
+  assert.deepEqual(app.errors, []); app.close();
+});
+
+test("Settings asks for notifications, then alarms, then Always location, and shows each answer, refusals included", async () => {
+  const sh = shell(), asked = [];
+  let auth = { notifications: "notDetermined", alarm: "notDetermined", location: "notDetermined" };
+  const answers = { notifications: "granted", alarm: "denied", location: "whenInUse" };
+  const install = (w) => { sh.install(w); const p = w.Capacitor.Plugins.CommuteNative;
+    p.capabilities = async () => ({ v: 1, liveActivity: true, alarm: true, geofence: true, wifi: true, offline: true, auth: { ...auth } });
+    p.request = async ({ permission }) => { asked.push(permission); auth = { ...auth, [permission]: answers[permission] }; }; };
+  const app = await createApp({ settings: { provider: "demo", followRoute: true }, geo: null, now: T0, beforeScripts: install });
+  await new Promise((r) => setTimeout(r, 30));
+  const rows = () => Object.fromEntries([...app.d.querySelectorAll("#nativePermissions [data-permission]")].map((li) => [li.dataset.permission, li.textContent.replace(/\s+/g, " ").trim()]));
+  assert.match(rows().alarm, /Not asked yet/);
+  app.d.querySelector("#settingsBtn").click();
+  app.d.querySelector("#s_leaveAlarm").checked = true;
+  app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true }));
+  await new Promise((r) => setTimeout(r, 50));
+  assert.deepEqual(asked, ["notifications", "alarm", "location"], "in that order, each once");
+  const r = rows();
+  assert.match(r.notifications, /^✓ Notifications.*Allowed$/);
+  assert.match(r.alarm, /^✗ Alarms.*Refused: change it in the iPhone's Settings → Commute$/);
+  assert.match(r.location, /While using the app only: the alarm won't cancel itself/);
+  // The button asks again only for what can still be asked (location up to Always); a refusal isn't asked again.
+  app.d.querySelector("#nativeAllowBtn").click(); await new Promise((r2) => setTimeout(r2, 30));
+  assert.deepEqual(asked, ["notifications", "alarm", "location", "location"]);
+  // Saving again doesn't ask again.
+  app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true }));
+  await new Promise((r2) => setTimeout(r2, 30));
+  assert.equal(asked.length, 4);
   assert.deepEqual(app.errors, []); app.close();
 });

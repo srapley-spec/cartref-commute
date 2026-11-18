@@ -34,6 +34,10 @@ retain an explicitly modelled route-duration fallback. The full acceptance crite
 not a claim that every criterion has already passed release verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
+- **Delayed leave steps (18 Nov review):** when a late train moves Leave by, a step before the train whose original time
+  has passed is taken as done only with evidence that you've set off (moved from where you started following, on a
+  fresh fix). Still at the start, the leave step moves with the train and stays "Next" (Leave by 10:24 → 10:39; at
+  10:26 at home "Next" is still leaving, not the 11:05 train).
 ### Choosing and keeping a route
 - Every journey option (the top card and the list) has a **Follow** button: one tap, no confirmation. It works the
   same at the office, at home, at any station and on the way, in both directions.
@@ -257,7 +261,7 @@ The walk left after the train is in [nearly-home](nearly-home.md); where your tu
 - tests/core/journey-card-batch.test.mjs: "'On track' is kept for arriving when planned or sooner; later than planned it says by how much, in amber"
 - tests/core/journey-card-batch.test.mjs: "A saved route with the new fields restores; one saved before them restores too; a bad value is refused"
 - tests/core/journey-card-batch.test.mjs: "Notices count minutes as shown: seconds don't make a 3-minute change of a 2-minute one, and a dismissed notice doesn't return on a flap"
-- tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
+- tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/journey-card-batch.test.mjs: "One leave time holds after the saved leave time has passed: a much later train moves the header and the first step together, and no step already due comes back as 'Next'"
 - tests/core/follow.test.mjs: "follow: newer arrival reasons replace obsolete ETA wording and returning to an earlier ETA is announced"
 - tests/core/follow.test.mjs: "follow: sub-minute ETA fluctuations hold the baseline and do not emit zero-minute announcements"
@@ -537,6 +541,8 @@ platform or station, and he was standing on another (the tube's). Decided by Sam
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
 ## Tests
+- tests/core/journey-card-batch.test.mjs: "Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)"
+- tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"
 - tests/wrong-train.test.mjs: "I'm on it: answering with the other train selects it without a second question; with nothing to doubt it confirms at once"
 - tests/wrong-train.test.mjs: "Wrong train: selecting a train other than the one you're following asks first; Stay changes nothing, Switch selects it"
