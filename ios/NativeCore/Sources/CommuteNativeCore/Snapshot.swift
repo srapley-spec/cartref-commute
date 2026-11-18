@@ -3,10 +3,24 @@ import Foundation
 /// An engine result, not a native journey model. The JSON shape is also ActivityKit's content-state shape.
 public struct JourneySnapshot: Codable, Hashable, Sendable {
     public struct Countdown: Codable, Hashable, Sendable {
+        public enum State: String, Codable, Sendable { case calm, urgent, passed }
         public var step: String
         public var calm: String
         public var urgent: String
         public var passed: String?
+        // Optional only for v1 snapshots cached before the engine added these fields.
+        public var state: State?
+        public var urgentAt: Double?
+        public var passedAt: Double?
+
+        public var wording: String {
+            switch state ?? .calm {
+            case .calm: return calm
+            case .urgent: return urgent
+            case .passed: return passed ?? ""
+            }
+        }
+        public var showsTimer: Bool { state != .passed }
     }
     public struct Headline: Codable, Hashable, Sendable {
         public var label: String
@@ -63,7 +77,8 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
     public func validate() throws {
         guard v == 1 else { throw NativeError.unsupported }
         guard !followId.isEmpty, followId.utf8.count <= 256, at.isFinite, at >= 0,
-              [dataAt, staleAt, headline.t, arrive?.t, alarm?.at].compactMap({ $0 }).allSatisfy({ $0.isFinite && $0 >= 0 })
+              [dataAt, staleAt, headline.t, headline.countdown?.urgentAt, headline.countdown?.passedAt, arrive?.t, alarm?.at]
+                .compactMap({ $0 }).allSatisfy({ $0.isFinite && $0 >= 0 })
         else { throw NativeError.invalid }
     }
 

@@ -113,13 +113,18 @@ private struct SnapshotCountdown: View {
     let snapshot: JourneySnapshot
     var body: some View {
         if let time = snapshot.headline.t, let words = snapshot.headline.countdown {
-            HStack(spacing: 5) {
-                Text(words.calm)
-                // The system animates the engine-supplied deadline and clamps at zero. There is no native
-                // departure, route, pace or urgency calculation; the prominent clock keeps its engine label.
-                Text(timerInterval: Date(timeIntervalSince1970: snapshot.at / 1000)...Date(timeIntervalSince1970: max(snapshot.at, time) / 1000), countsDown: true)
-                    .monospacedDigit().frame(maxWidth: 85, alignment: .leading)
-            }.font(.system(size: 13, weight: .semibold))
+            if !words.wording.isEmpty || words.showsTimer {
+                HStack(spacing: 5) {
+                    if !words.wording.isEmpty { Text(words.wording) }
+                    if words.state == .urgent { Text("·") }
+                    if words.showsTimer {
+                        // Apple animates the engine's deadline, clamped at zero. Wording changes only with
+                        // an actual content update carrying the engine's new state; Swift has no urgency rule.
+                        Text(timerInterval: Date(timeIntervalSince1970: snapshot.at / 1000)...Date(timeIntervalSince1970: max(snapshot.at, time) / 1000), countsDown: true)
+                            .monospacedDigit().frame(maxWidth: 85, alignment: .leading)
+                    }
+                }.font(.system(size: 13, weight: .semibold))
+            }
         }
     }
 }

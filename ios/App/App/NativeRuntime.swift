@@ -71,6 +71,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
 
     func start() {
         guard platformEnabled else { return }
+        if surfaces == nil { surfaces = AppleSurfaces(runtime: self) }
         reconcileRegions()
         UIApplication.shared.registerForRemoteNotifications()
         refreshSurfaces()

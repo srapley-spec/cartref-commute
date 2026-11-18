@@ -290,7 +290,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
 | Capacitor shell and TestFlight pipeline | iOS agent | Released: main builds automatically reach internal TestFlight. Native extension signing changes are in draft PR #61 |
 | Native plugin and App Group offline store | iOS agent | Implemented and under integration in PR #61; ordered state/cache/bridge tests and independent review pass |
-| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Implemented on `codex/ios-native-v1`; adapters/extension compile and signed export passes. Permission/stop contract at `ea7b056` is integrated; activation awaits countdown/fixture integration and Settings wiring; real-device acceptance follows internal TestFlight; see [native story](stories/ios-native.md) |
+| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Implemented on `codex/ios-native-v1`; Apple adapters attached, countdown fields/rendering integrated against `eea5846` fixtures. Release awaits owner countdown merge/wording agreement, Settings/cache wiring and final native review/CI; real-device acceptance follows internal TestFlight; see [native story](stories/ios-native.md) |
 | Widget | (parked) | To discuss with Sam |
 
 ## 9. Open questions

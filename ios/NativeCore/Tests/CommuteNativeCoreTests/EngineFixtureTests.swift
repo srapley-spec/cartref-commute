@@ -14,10 +14,20 @@ final class EngineFixtureTests: XCTestCase {
             .filter { $0.lastPathComponent.hasPrefix("snapshot-") && $0.pathExtension == "json" }
         XCTAssertGreaterThanOrEqual(files.count, 9)
         for file in files {
-            let snapshot = try JSONDecoder().decode(JourneySnapshot.self, from: Data(contentsOf: file))
+            let data = try Data(contentsOf: file)
+            guard let snapshot = try JSONDecoder().decode(JourneySnapshot?.self, from: data) else {
+                XCTAssertEqual(file.lastPathComponent, "snapshot-page-stopped.json", "Only a stopped page fixture is null.")
+                continue
+            }
             try snapshot.validate()
             let roundTrip = try JSONDecoder().decode(JourneySnapshot.self, from: JSONEncoder().encode(snapshot))
             XCTAssertEqual(snapshot, roundTrip, file.lastPathComponent)
+            let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            if let headline = raw["headline"] as? [String: Any], let countdown = headline["countdown"] as? [String: Any] {
+                XCTAssertEqual(snapshot.headline.countdown?.state?.rawValue, countdown["state"] as? String, file.lastPathComponent)
+                XCTAssertEqual(snapshot.headline.countdown?.urgentAt, countdown["urgentAt"] as? Double, file.lastPathComponent)
+                XCTAssertEqual(snapshot.headline.countdown?.passedAt, countdown["passedAt"] as? Double, file.lastPathComponent)
+            }
         }
         let background = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background.json"))) as! [String: Any]
         let live = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-liveactivity-update.json"))) as! [String: Any]

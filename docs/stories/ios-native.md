@@ -51,8 +51,10 @@ at 370-point width before a final two-point padding reduction. A long-label prob
 view with only the WidgetKit background modifier substituted, not iPhone/WidgetKit acceptance results.
 
 ## Integration gates
-Live Activity and alarm capabilities remain false while the Apple surface adapter is unattached. Siri is enabled;
-geofences, Wi-Fi, bridge and storage are implemented. The owner answered all three contract questions on
+The Apple surface adapter is now attached at production startup, so Live Activity and alarm support are exposed
+separately from permission state. Starting the runtime does not request permission. Siri, geofences, Wi-Fi, bridge
+and storage are implemented. Release still waits for the shared-page dependencies and the checks below.
+The owner answered all three contract questions on
 [issue #58](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6976812854):
 - `ea7b056` on main adds `auth.alarm` and explicit `request({permission:"alarm"})`. Native code reports AlarmKit's
   own authorization without prompting, requests it only when explicitly asked while not determined, and releases
@@ -65,16 +67,19 @@ geofences, Wi-Fi, bridge and storage are implemented. The owner answered all thr
   never-followed nulls have no effect; malformed identified stops reject. Evidence replies additionally retain
   origin, registration credential and journey checks so an obsolete request cannot stop a current journey.
 - Owner branch `feature/native-countdown` at `eea5846` supplies countdown `state`, `urgentAt` and `passedAt`, plus
-  page-phase and Trip fixtures. It is not yet merged. Native decoding/rendering integration is next. Closed-app
-  wording transitions need platform validation: system timer text updates autonomously, but arbitrary SwiftUI
-  view re-evaluation must not be assumed in an archived Live Activity.
+  page-phase and Trip fixtures. Native decoding/rendering now uses the supplied state and exact words, including
+  passed/empty wording; it never derives urgency from a clock. Older cached v1 snapshots still decode. All 18
+  snapshot fixtures (including a null stopped page and nullable Trip direction) pass the binding tests through
+  `NATIVE_CONTRACT_FIXTURES`. The owner branch is not yet merged. Closed-app wording changes require actual
+  ActivityKit updates; Apple's timer continues and clamps at zero offline, while the wording retains its last
+  received state. The owner accepted this v1 limit in #58 comment 6977690109 and is adding state-change publishing.
 
 The Settings caller is still missing at `ea7b056`: the bridge accepts permission requests, but the page does not
 invoke them or show the returned authorization states. This was reported to the owner on
 [issue #58](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6976923499); Swift must not prompt
 from configure/publish/capabilities to compensate. The countdown and fixture branch also remains a dependency.
 
-After integration: attach the Apple adapter, validate the complete bridge flow, perform final committed-code CI
+After the shared dependencies land: validate the complete bridge flow, perform final committed-code CI
 and GitHub-first checks, then distribute through internal TestFlight for real-phone acceptance. Test locked
 journeys, offline/region cancellation, stop/switch races, delayed pushes, restart, permission denial, Siri and Wi-Fi
 before declaring the native app complete. No Apple review submission is configured.
@@ -128,3 +133,6 @@ suspending platform call. The reviewer approved the implemented scope, not unres
 - After integrating `ea7b056`, all 33 Swift package tests pass, including the binding identified-stop fixture and
   malformed/delayed stop cases. The app, extension and updated twelve-test XCTest target build; simulator execution
   and independent review of these additions remain pending.
+- The subsequent review regressions and countdown integration pass 35 Swift package tests, including the owner's
+  expanded fixture set. App/extension/XCTest build-for-testing passes. The shipped-page check now asserts that its
+  real Capacitor bridge exposes the attached Live Activity and alarm adapters; final simulator execution is pending.

@@ -23,6 +23,36 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertEqual(SiriPresentation.answer(value, now: 1000, clock: clock), "The engine's current next action. Not updated yet. This data is out of date")
     }
 
+    func testCountdownUsesEngineStateAndExactWordsWithoutAClockRule() throws {
+        var value = try XCTUnwrap(Wire.object(snapshot()) as? [String: Any])
+        let labels = ["calm": "Engine calm words", "urgent": "Engine urgent words", "passed": "Engine passed words"]
+        for state in ["calm", "urgent", "passed"] {
+            value["headline"] = ["label": "Engine next step", "t": 4000,
+                "countdown": ["step": "anything", "calm": labels["calm"]!, "urgent": labels["urgent"]!, "passed": labels["passed"]!,
+                              "state": state, "urgentAt": 5000, "passedAt": 6000]] as [String: Any]
+            let decoded = try Wire.snapshot(value)
+            XCTAssertEqual(decoded.headline.countdown?.wording, labels[state])
+            XCTAssertEqual(decoded.headline.countdown?.showsTimer, state != "passed")
+            XCTAssertEqual(decoded.headline.countdown?.urgentAt, 5000)
+            XCTAssertEqual(decoded.headline.countdown?.passedAt, 6000)
+        }
+        // The supplied state wins even when transition instants do not match this snapshot's clock.
+        var words: [String: Any] = ["step": "leave", "calm": "Old calm", "urgent": "Old urgent"]
+        value["headline"] = ["label": "Leave by", "t": 4000, "countdown": words]
+        let legacy = try Wire.snapshot(value)
+        XCTAssertNil(legacy.headline.countdown?.state)
+        XCTAssertEqual(legacy.headline.countdown?.wording, "Old calm")
+        XCTAssertEqual(legacy.headline.countdown?.showsTimer, true)
+        words["state"] = "passed"
+        value["headline"] = ["label": "Leave by", "t": 4000, "countdown": words]
+        let passed = try Wire.snapshot(value)
+        XCTAssertEqual(passed.headline.countdown?.wording, "")
+        XCTAssertEqual(passed.headline.countdown?.showsTimer, false)
+        words["state"] = "invented"
+        value["headline"] = ["label": "Leave by", "t": 4000, "countdown": words]
+        XCTAssertThrowsError(try Wire.snapshot(value))
+    }
+
     func testRemoteStopEnvelopeRejectsUnidentifiedOrMalformedStops() throws {
         XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull()]))
         XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": NSNull(), "at": NSNull()]))
