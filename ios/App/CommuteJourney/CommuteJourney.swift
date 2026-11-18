@@ -52,37 +52,42 @@ private struct JourneyLockScreen: View {
     private var card: Color { scheme == .dark ? Color(hex: 0x121c28) : .white }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(snapshot.headline.label).font(.subheadline.weight(.semibold)).lineLimit(2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(snapshot.headline.label).font(.system(size: 13, weight: .semibold)).lineLimit(2)
                     if snapshot.headline.t != nil {
-                        SnapshotClock(time: snapshot.headline.t).font(.system(size: 34, weight: .bold)).monospacedDigit()
+                        SnapshotClock(time: snapshot.headline.t).font(.system(size: 30, weight: .bold)).monospacedDigit()
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if let arrival = snapshot.arrive {
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(arrival.label).font(.caption).lineLimit(2)
-                        SnapshotClock(time: arrival.t).font(.title3.weight(.semibold)).monospacedDigit()
-                    }
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(arrival.label).font(.system(size: 11)).lineLimit(2)
+                        SnapshotClock(time: arrival.t).font(.system(size: 20, weight: .semibold)).monospacedDigit()
+                    }.frame(maxWidth: 100, alignment: .trailing)
                 }
             }
-            SnapshotCountdown(snapshot: snapshot).foregroundStyle(accent)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                SnapshotCountdown(snapshot: snapshot).foregroundStyle(accent)
+                if let status = snapshot.status, !status.text.isEmpty {
+                    Spacer(minLength: 0)
+                    Text(status.text).font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(statusColor(status.level)).lineLimit(1)
+                }
+            }
             if let train = snapshot.train {
                 HStack(spacing: 8) {
                     Text(train.name).lineLimit(1)
                     Spacer(minLength: 0)
                     if let platform = train.platform, !platform.isEmpty { Text("Platform \(platform)").fontWeight(.semibold) }
-                }.font(.caption)
+                }.font(.system(size: 12))
             }
-            if let progress = snapshot.progress?.line { Text(progress).font(.caption).lineLimit(1) }
-            if let status = snapshot.status, !status.text.isEmpty {
-                Text(status.text).font(.caption.weight(.semibold)).foregroundStyle(statusColor(status.level)).lineLimit(2)
-            }
+            if let progress = snapshot.progress?.line { Text(progress).font(.system(size: 12)).lineLimit(1) }
             SnapshotAge(snapshot: snapshot, stale: stale)
         }
         .foregroundStyle(ink)
-        .padding(15)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
         .activityBackgroundTint(card)
     }
 
@@ -114,7 +119,7 @@ private struct SnapshotCountdown: View {
                 // departure, route, pace or urgency calculation; the prominent clock keeps its engine label.
                 Text(timerInterval: Date(timeIntervalSince1970: snapshot.at / 1000)...Date(timeIntervalSince1970: max(snapshot.at, time) / 1000), countsDown: true)
                     .monospacedDigit().frame(maxWidth: 85, alignment: .leading)
-            }.font(.subheadline.weight(.semibold))
+            }.font(.system(size: 13, weight: .semibold))
         }
     }
 }
@@ -122,6 +127,7 @@ private struct SnapshotCountdown: View {
 private struct SnapshotAge: View {
     let snapshot: JourneySnapshot
     let stale: Bool
+    @Environment(\.colorScheme) private var scheme
     var body: some View {
         HStack(spacing: 4) {
             if stale || snapshot.stale { Text("Out of date ·").fontWeight(.semibold) }
@@ -131,7 +137,8 @@ private struct SnapshotAge: View {
                 Text("·")
                 Text(Date(timeIntervalSince1970: at / 1000), style: .relative)
             } else { Text("Not updated yet") }
-        }.font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+        }.font(.system(size: 10))
+            .foregroundStyle(Color(hex: scheme == .dark ? 0xaabbd0 : 0x506174)).lineLimit(1)
     }
 }
 

@@ -86,6 +86,19 @@ final class NativeRuntimeTests: XCTestCase {
         XCTAssertEqual(runtime.document.snapshots.current?.followId, "A")
     }
 
+    func testSiriPageHandoffIsQueuedUntilThePageIsListening() throws {
+        let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false)
+        runtime.opened(URL(string: "https://example.invalid/")!)
+        runtime.opened(URL(string: "commute://unrecognized")!)
+        runtime.opened(SiriPresentation.nextHomeURL)
+        var replay = runtime.document.replay
+        let pending = replay.ready()
+        XCTAssertEqual(pending.count, 1)
+        XCTAssertEqual(pending.first?.name, "open")
+        XCTAssertEqual(pending.first?.data["url"], .string("commute://next?direction=home&follow=1"))
+        XCTAssertTrue(replay.ready().isEmpty)
+    }
+
     func testRealCapacitorPluginCacheAndVersionErrors() async throws {
         let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false)
         let rules = try await WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "CommuteNativeProbe",

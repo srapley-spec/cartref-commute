@@ -12,7 +12,9 @@ struct WhenToLeaveIntent: AppIntent {
         let formatter = DateFormatter(); formatter.timeStyle = .short; formatter.dateStyle = .none
         guard let answer = SiriPresentation.answer(NativeRuntime.shared.document.snapshots.current, now: NativeRuntime.now,
             clock: { formatter.string(from: Date(timeIntervalSince1970: $0 / 1000)) }) else {
-            return .result(opensIntent: OpenURLIntent(SiriPresentation.nextHomeURL), dialog: "Opening Commute.")
+            try await continueInForeground("Opening Commute.", alwaysConfirm: false)
+            NativeRuntime.shared.opened(SiriPresentation.nextHomeURL)
+            return .result(dialog: "Opening Commute.")
         }
         return .result(dialog: IntentDialog(stringLiteral: answer))
     }
@@ -23,8 +25,10 @@ struct FollowNextTrainHomeIntent: AppIntent {
     static var description = IntentDescription("Open Commute to find and follow the next train home.")
     static var supportedModes: IntentModes { .foreground }
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        .result(opensIntent: OpenURLIntent(SiriPresentation.nextHomeURL))
+        NativeRuntime.shared.opened(SiriPresentation.nextHomeURL)
+        return .result()
     }
 }
 

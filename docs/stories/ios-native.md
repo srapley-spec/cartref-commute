@@ -120,3 +120,16 @@ Siri's supported capability is now true: the two App Intents read the last engin
 and staleness) or open the exact page deep link from the published contract. `SiriPresentation` tests cover no
 follow, engine wording, a missing clock, age, stale deadline and unknown freshness. It makes no network request
 or planning decision. Voice invocation and hand-off on a real iPhone still need acceptance testing.
+Siri review caught that `OpenURLIntent` supports universal links, not the custom `commute://` scheme. The intents
+now activate the app through App Intents foreground modes and enqueue the existing `open {url}` bridge event;
+no associated-domain or website change is needed. The no-follow intent transitions before emitting its event.
+Layout inspection found the initial lock-screen view was 176 points high for the platform fixture, above Apple's
+160-point truncation threshold. The native geometry now uses compact rows and explicit type sizes; the same
+fixture measured 125 points at 370-point width before the final two-point padding reduction, retaining headline, arrival, countdown, train/platform, status and
+source age. These measurements come from a macOS SwiftUI render of the production view (only the WidgetKit
+background modifier substituted), not an iPhone/WidgetKit acceptance claim. On-device rendering remains required.
+Apple's limit: https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities
+
+The long-label layout probe at 320-point width measures 158 points, including both destination labels, train/platform,
+progress, status and source age; the leading “Be on … by” label remains complete. The updated app, extension and
+nine-test XCTest target compile. Full simulator execution of the final hand-off/layout changes is still pending.
