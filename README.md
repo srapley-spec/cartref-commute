@@ -66,6 +66,8 @@ See [`docs/architecture.md`](docs/architecture.md). In short:
 - `tools/build.mjs` — type-free bundle of the engine (esbuild) inlined into the page → `index.html` (hosted) and `dist/preview.html`.
 
 ## Development
+- iPhone shell and internal TestFlight: [ios/README.md](ios/README.md). The website remains the complete app;
+  native journey features await the contracts recorded in [iOS readiness](docs/ios-readiness.md).
 - `npm install` once; `npm test` builds and runs everything; `npm run typecheck` checks the engine's types.
 - Edit `src/core/**` or `src/page.html`, then `npm run build` and commit `index.html`. CI fails if it is stale.
 - Tests:

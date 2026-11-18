@@ -25,7 +25,8 @@ has an Apple Developer Program membership and a Mac with Xcode.
 - Widget: parked.
 
 ## Tests
-None yet: nothing is built.
+The initial shell, packaging and release-gate tests are listed in [ios-shell.md](ios-shell.md). Native journey feature
+tests remain pending the released engine/page/proxy contracts; no native journey feature is declared complete.
 
 ## Status
 See ../ios-app.md §8.

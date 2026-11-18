@@ -10,7 +10,12 @@ const files=['tests','tests/core'].flatMap(dir=>
   readdirSync(join(root,dir)).filter(file=>file.endsWith('.test.mjs')).sort().map(file=>`${dir}/${file}`));
 const env={...process.env,TZ:'Europe/London'};
 delete env.NODE_TEST_CONTEXT;
-const child=spawn(process.execPath,['--import','./tests/clock.mjs','--test','--test-reporter=tap',...files],
+const concurrency=env.COMMUTE_TEST_CONCURRENCY;
+if(concurrency!==undefined&&!/^[1-9]\d*$/.test(concurrency)){
+  console.error('COMMUTE_TEST_CONCURRENCY must be a positive integer.');process.exit(1);
+}
+const limits=concurrency?[`--test-concurrency=${concurrency}`]:[];
+const child=spawn(process.execPath,['--import','./tests/clock.mjs','--test','--test-reporter=tap',...limits,...files],
   {cwd:root,env,stdio:'inherit'});
 child.on('error',error=>{console.error(`✗ Could not run tests: ${error.message}`);process.exitCode=1;});
 child.on('close',(code,signal)=>{

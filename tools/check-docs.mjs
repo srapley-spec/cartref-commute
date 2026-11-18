@@ -3,7 +3,7 @@
 //
 //   node tools/check-docs.mjs                 story checks only (also run by `npm test`)
 //   node tools/check-docs.mjs --since <ref>   + the change since <ref> must touch docs/ or CLAUDE.md
-//                                             when it touches src/, tests/ or proxy/, unless a commit
+//                                             when it touches src/, tests/, proxy/ or ios/, unless a commit
 //                                             message has a line "Docs: none — <reason>"
 //
 // Story checks: every story is in the index, every index link resolves, each story has a Status line and a
@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const TEST_REF = /^- (tests\/[\w./-]+\.test\.mjs): "(.+)"\s*$/;
-const BEHAVIOUR = /^(src|tests|proxy)\//;
+const BEHAVIOUR = /^(src|tests|proxy|ios)\//;
 const CONTEXT = /^(docs\/|CLAUDE\.md$)/;
 const WAIVER = /^Docs: none\s*[—–-]+\s*\S/m;
 
@@ -50,12 +50,12 @@ export function checkStories(root = ROOT) {
 /** Whether a change (files touched, commit messages) keeps the context current. */
 export function checkChange(files, messages) {
   const behaviour = files.filter(f => BEHAVIOUR.test(f));
-  if (!behaviour.length) return { ok: true, why: "no change under src/, tests/ or proxy/" };
+  if (!behaviour.length) return { ok: true, why: "no change under src/, tests/, proxy/ or ios/" };
   if (files.some(f => CONTEXT.test(f))) return { ok: true, why: "docs updated with the change" };
   if (messages.some(m => WAIVER.test(m))) return { ok: true, why: "waived by a 'Docs: none — <reason>' line" };
   return {
     ok: false,
-    why: `${behaviour.length} file(s) under src/, tests/ or proxy/ changed (${behaviour.slice(0, 5).join(", ")}` +
+    why: `${behaviour.length} file(s) under src/, tests/, proxy/ or ios/ changed (${behaviour.slice(0, 5).join(", ")}` +
       `${behaviour.length > 5 ? ", …" : ""}) with nothing under docs/ or CLAUDE.md.\n` +
       `Update the story for the behaviour (docs/stories/) or docs/architecture.md, or, if behaviour is unchanged,\n` +
       `add a line to a commit message: "Docs: none — <reason>".`,

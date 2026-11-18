@@ -369,6 +369,15 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **17 Nov, a bundled iPhone shell and internal TestFlight (Sam).** The Apple project lives under `ios/`, reusing
+  the exact committed page and Capacitor 8.6.2, with iOS 27 minimum. No journey logic moves into Swift. Native
+  simulator validation joins Tests; a separate workflow uploads each successful main push's exact SHA, with a
+  serialized queue, increasing build numbers and provenance. PRs receive no signing credentials. Distribution
+  uses a protected certificate/profile and the Developer-role API key; cloud signing was refused for that role.
+  The existing App Group is now associated with the App ID. Export is internal-TestFlight-only; no Apple review
+  submission is authorized until the app works. Native features await the owner's released contracts (issue #58).
+  [Scope and tests](stories/ios-shell.md), [access and gates](ios-readiness.md).
+
 - **17 Nov, the iPhone app: a bundled wrapper, the engine as the only logic, the proxy as the back end (Sam).** A
   Capacitor wrapper around the same `index.html`, bundled (opens with no signal, shows data with its age), built to
   TestFlight automatically from `main`; iOS 27; internal testers. No journey logic in Swift: the engine builds a journey

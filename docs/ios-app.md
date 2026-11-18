@@ -79,7 +79,9 @@ labelled `ios-contract`, or a note to Sam. If the contract has to change, the ch
 - the team's existing APNs key "Cartref App" (team-scoped, all topics, sandbox and production; key ID `352Z6Z6469`). Sam
   confirms he has its `.p8` file, or the iOS agent makes a new key.
 
-The App Store Connect record was not created.
+The iOS agent created the App Store Connect record on 17 November: **Cartref Commute**, app ID `6836040622`.
+Internal Family group and account invitations are prepared. The existing APNs key was found and securely provisioned;
+see [ios-readiness.md](ios-readiness.md) for signing, access and review constraints.
 
 ## 5. Rules
 1. **No journey logic in Swift.** Times, ranking, which train, "set off", "missed", countdown words and labels all come
@@ -208,19 +210,25 @@ alarm keep working from the newest snapshot without the page.
   - the Wi-Fi cue at home and at the office;
   - Settings.
 
+Current shell checks: [stories/ios-shell.md](stories/ios-shell.md). A real WKWebView offline launch and a signed
+internal-only export have passed locally; Apple package validation returned no errors. Independent review caught all 20 deliberate breakages.
+Full combined-code CI, GitHub validation and internal TestFlight processing remain release gates. These checks do not claim the native journey features are built.
+
 ## 8. Status (update as each part ships)
 | Part | Owner | Status |
 |---|---|---|
-| Keys in the proxy; nothing to set up on a device | this repo | Built 17 Nov; releasing |
+| Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
 | Journey snapshot in the engine | this repo | Not started |
 | Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Not started |
-| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next`, `ALLOW_ORIGIN` | this repo | Not started |
-| Apple identifiers, App Group, APNs key | iOS agent | App ID and App Group registered 17 Nov; APNs key exists (`.p8` with Sam?) |
-| Capacitor shell, plugin, offline store, TestFlight pipeline | iOS agent | Not started |
+| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Not released; draft on `feature/native-prep`, contract questions in #58 |
+| Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
+| Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
+| Capacitor shell and TestFlight pipeline | iOS agent | Implemented on iOS branch; signed export and Apple validation pass; combined release checks in progress |
+| Native plugin and App Group offline store | iOS agent | Waiting for released page/snapshot contracts and issue #58 |
 | Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Not started |
 | Widget | (parked) | To discuss with Sam |
 
 ## 9. Open questions
 - Widget: what it shows, and whether the proxy can keep it accurate enough (parked by Sam).
-- The APNs `.p8`: does Sam have the "Cartref App" key's file, or is a new key needed?
+- Snapshot/bridge/native-route alignment and missing lifecycle details: [ios-contract #58](https://github.com/srapley-spec/cartref-commute/issues/58). The existing APNs file has been located and provisioned; no replacement key needed.
 - The hall iPhone app: separate, later.

@@ -65,11 +65,29 @@ to do on a device.
       subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
 
-## 6. The iPhone app (for the iOS agent; docs/ios-app.md)
-- [ ] The APNs key's `.p8` file: the team already has the key "Cartref App" (ID `352Z6Z6469`, made 16 Nov). If you
-      have its file, it becomes the GitHub secret `APNS_KEY` (its contents) when the proxy's native routes are built;
-      if not, the iOS agent makes a new key
-- [ ] Give the iOS agent the brief: `docs/ios-app.md`
+## 6. The iPhone app: access and testing (17 Nov)
+Brief: [ios-app.md](ios-app.md). Preparation record and implementation gates: [ios-readiness.md](ios-readiness.md).
+- [x] Give the iOS agent the brief; read and reconciled with the released no-setup page on 17 November.
+- [x] Confirm whether the APNs key file for `352Z6Z6469` exists. Sam confirmed secure possession on 17 November;
+      reuse this key. Do not paste or upload its contents to chat.
+- [x] Reuse the existing Apple team `TU7MLARY49` (Sam confirmed, 17 November).
+- [x] At Sam's request, securely transferred **Cartref Commute CI** (`C8865Y2UMU`) to `ASC_API_KEY_P8`; protected
+      backup retained outside the repo. Authentication verified. No further key entry is needed from Sam.
+- [x] Found the existing APNs file through Cartref Home's setup notes; transferred it and its metadata to GitHub
+      Actions secrets. Provisioned the distribution signing bundle/password/profile there too; signed export passed.
+- [ ] Renew the iOS distribution certificate/profile before 17 November 2027; see `ios/README.md` for secret names.
+- [x] Identify the intended internal testers: Sam supplied three family accounts on 17 November.
+- [ ] Family accepts the App Store Connect account invitations, then joins Commute's internal TestFlight group.
+- [x] Confirm the one tester address that differs from the Cartref Home list: Sam confirmed Gmail; the iCloud
+      variant was incorrect. Commute's invitation was sent to the confirmed address.
+
+The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App Store Connect record, app ID
+`6836040622`, obtained API access and created the CI key with the Developer role. All three family account invitations
+were sent with Marketing access limited to Commute. The internal
+Family group is created with automatic distribution enabled and Sam enrolled. Builds are distributed internally
+by the TestFlight workflow after the full main Tests run passes.
+Sam authorized shell/pipeline work, now in progress on top of the green no-setup release (`af09273`).
+Native journey features await released contracts. Apple review submission must wait until the app is working.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.

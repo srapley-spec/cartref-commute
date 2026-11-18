@@ -42,7 +42,7 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Keep the context current (enforced)
 - **A behaviour change updates its story in the same commit (or PR):** acceptance criteria, thresholds, test
   links, status. A new capability gets a new story. A decision changes `docs/architecture.md` (decisions log).
-- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/` or `proxy/` change with nothing under `docs/` or
+- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/`, `proxy/` or `ios/` change with nothing under `docs/` or
   this file, unless a commit message in the change has a line `Docs: none — <reason>` (refactor, test-only
   tidy, build output). Use that only when behaviour really is unchanged.
 - CI also fails if a story links a test that doesn't exist. Renaming a test means updating its story.
@@ -94,8 +94,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - `npm ci` once. `npm test` builds and runs everything (slow: 10–30 min on
   GitHub in Nov 2026, longer in a cloud session; run it in the background). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
-- `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
-  committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
+- `npm run ci` runs the web checks (install, typecheck, built page, docs, all tests) on a fresh copy of committed
+  HEAD, and on macOS also bundles and tests the iPhone shell with Xcode 27.2. Linux sessions must wait for GitHub's
+  iOS job before merging. Commit first; it refuses uncommitted changes. Required before any merge to `main`.
 - After editing `src/`, run `npm run build` and commit `index.html`; CI fails if it's stale.
 - Golden tests: after an intentional change, `UPDATE_GOLDEN=1 npm test`, read every diff in `tests/golden/*.json`,
   and say in the commit what changed and why.

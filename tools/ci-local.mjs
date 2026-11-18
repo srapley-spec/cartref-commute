@@ -33,6 +33,17 @@ const steps = [
   ["context kept current (docs/, CLAUDE.md)", "node", base && base !== head ? ["tools/check-docs.mjs", "--since", base] : ["tools/check-docs.mjs"]],
   ["all tests", "node", ["tools/run-tests.mjs"]],
 ];
+if (process.platform === 'darwin') {
+  // Web freshness checks may rewrite only the build timestamp. Restore the committed page before packaging it.
+  steps.push(
+    ["restore the committed website", "git", ["restore", "--source=HEAD", "--", "index.html"]],
+    ["bundle the website for iPhone", "npm", ["run", "ios:sync"]],
+    ["iPhone offline launch", "npm", ["run", "ios:test"]],
+    ["native dependency locks", "git", ["diff", "--exit-code", "--", "package-lock.json", "ios/App/CapApp-SPM/Package.swift", "ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"]],
+  );
+} else {
+  console.log('iOS simulator checks require macOS/Xcode; GitHub must pass its iOS job before merging.');
+}
 let failed = null;
 for (const [name, cmd, args] of steps) {
   const t0 = Date.now(), r = spawnSync(cmd, args, { cwd: copy, encoding: "utf8", maxBuffer: 1 << 28, env: { ...process.env } });
@@ -48,5 +59,5 @@ const logFile = join(dir, "ci.log");
 writeFileSync(logFile, log.join("\n"));
 if (keep || failed) console.log(`Full log: ${logFile}${keep ? `; copy: ${copy}` : ""}`);
 if (!keep) { git("worktree", "remove", "--force", copy); if (!failed) rmSync(dir, { recursive: true, force: true }); }
-console.log(failed ? `✗ ${head.slice(0, 7)} is not ready to merge` : `✓ ${head.slice(0, 7)} passes every GitHub check locally`);
+console.log(failed ? `✗ ${head.slice(0, 7)} is not ready to merge` : `✓ ${head.slice(0, 7)} passes ${process.platform === 'darwin' ? 'web and iOS' : 'web'} checks locally; verify required GitHub checks before merging`);
 process.exit(failed ? 1 : 0);
