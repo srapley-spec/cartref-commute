@@ -53,7 +53,7 @@ $('#alongChoices').addEventListener('change',()=>{
 });
 function alongContext(){
   const progress=state.rendered?.progress;
-  const candidate=S().followRoute&&state.followUpdate?.route;
+  const candidate=followAvailable()&&state.followUpdate?.route;
   const restored=candidate&&C.restoreFollowRoute(state.saved.followRoute);
   const followed=restored&&candidate.id===restored.id&&candidate.direction===direction()&&candidate.mode===currentMode()&&candidate.phase!=='arrived'?candidate:null;
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;

@@ -4,8 +4,8 @@ const followChoices = new Map();
 // View choice is a shared app capability. A skin or Follow preference cannot
 // remove Auto/Plan/Live; Follow itself remains independently configurable.
 const journeyEnabled = () => true;
-const pendingReleasedFollow = () => S().followRoute&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
-const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
+const pendingReleasedFollow = () => followAvailable()&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
+const activeFollow = () => {const r=followAvailable()&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
 function restoreReleasedFollow(){
   const legacy=pendingReleasedFollow();if(!legacy||!state.boards)return;
   const options=(currentMode()==='leisure'?buildLeisure:buildJourneys)(legacy.dir,Date.now(),{here:true});
@@ -197,7 +197,7 @@ function followMovedOff(route,observation){
 // (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
 function followSetOffNow(){
   if((state.saved.view||'now')!=='now'||state.saved.viewOverride?.mode==='plan')return false;
-  const route=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);
+  const route=followAvailable()&&C.restoreFollowRoute(state.saved.followRoute);
   if(!route||route.phase!=='before-train'||route.direction!==direction()||route.mode!==currentMode())return false;
   const observation=followedObservation(route,Date.now());
   return !observation.boarding&&followMovedOff(route,observation);
@@ -340,7 +340,7 @@ document.addEventListener('focusout',()=>{if(state.pendingView)setTimeout(()=>re
 document.addEventListener('toggle',e=>{if(e.target instanceof HTMLDetailsElement&&!e.target.open&&state.pendingView)setTimeout(()=>render(),0);},true);
 
 function followButton(option){
-  if(!S().followRoute)return '';
+  if(!followAvailable())return '';
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
   const selected=C.restoreFollowRoute(state.saved.followRoute);
@@ -492,7 +492,7 @@ function renderFollowPanel(){
     panel.innerHTML=`<div class="lbl">Restoring your saved followed journey</div><div class="big">Last known arrival ${hhmm(pending.arrive)}</div><div>${esc(pending.train.std)} ${esc(pending.train.operator)}</div><div class="note">Waiting for the matching train and itinerary. Your saved selection is kept.</div>${pending.reason?`<div class="note">${esc(pending.reason.text)}</div>`:''}<button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
     return;
   }
-  panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  panel.hidden=!followAvailable()||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
   if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);

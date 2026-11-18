@@ -359,17 +359,27 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
     </fieldset>
 
     <fieldset>
-      <legend>Experimental</legend>
-      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
-      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Independent of appearance.</span></label>
+      <legend>Appearance</legend>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station).</span></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. Needs My proxy, and on iPhone the Home Screen app.</span></label>
+    </fieldset>
+
+    <fieldset id="notificationFields">
+      <legend>Notifications</legend>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. On iPhone: the Home Screen app (in the iPhone app, the leave alarm below does this).</span></label>
       <label class="f" id="wakeAtRow"><span>Wake-up check (weekdays)</span><input id="s_wakeAt" type="time" value="06:30"></label>
       <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Experimental</legend>
+      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
+    </fieldset>
+
+    <fieldset id="simulationFields">
+      <legend>Simulation and testing</legend>
+      <p class="hint">For testing only: nothing here is live. Each starts only when you turn it on, lasts until you stop it or reload, and puts your real journey state back afterwards. While one runs, the iPhone app's Live Activity, alarm and proxy updates are not touched.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
     </fieldset>
@@ -478,7 +488,7 @@ const hubHere = () => C.hubHere(fix(), PROFILE);
 const APP_PROXY = "https://cartref-rail.s-rapley.workers.dev";
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,followRoute:false,appearance:"system",
+  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,appearance:"system",
   // Live data comes through the app's own proxy, which holds every key (Sam, 17 Nov). The phone-key sources below stay
   // only as internal adapters (tests and recorded feeds); nothing in Settings sets them.
   provider:"proxy",
@@ -505,14 +515,21 @@ const DISPLAY = new URLSearchParams(location.search).has("display");
 if(DISPLAY) document.documentElement.classList.add("display-mode");
 const displaySaved = saved => DISPLAY ? { mode:"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
 // Display mode never follows a route, opens Along the line or runs the simulator, whatever Settings say.
-const DISPLAY_OFF = { followRoute:false, alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
+const DISPLAY_OFF = { alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
+// Retired feature switches (Sam, 18 Nov, #63): Follow a route, Any start and end point and Trip are permanent. Saved
+// true/false values are dropped wherever settings come in (load, Save, the iPhone app's offline copy), so none can
+// switch a feature off again. Availability isn't use: following a journey and choosing Trip stay explicit actions.
+const RETIRED_SETTINGS = ["followRoute","follow","anyPlace","trip"];
+const dropRetired = settings => { if(settings&&typeof settings==="object") RETIRED_SETTINGS.forEach(k=>{ delete settings[k]; }); return settings; };
+/** Follow a route is always available, except on the read-only display. */
+const followAvailable = () => !DISPLAY;
 
 function load(){
   try{
     const saved=JSON.parse(localStorage.getItem(LS)||"{}");
     // Retired appearance preference: ignore old true/false values without changing
     // any journey, source, home, timing or independently saved Follow preference.
-    if(saved?.settings)delete saved.settings.signal;
+    if(saved?.settings){ delete saved.settings.signal; dropRetired(saved.settings); }
     return saved;
   }catch(e){return {};}
 }
@@ -527,8 +544,6 @@ const state = { saved:displaySaved(Object.assign({mode:"commute",dirMode:"auto",
   here:null, origin:"", london:null, londonErr:"" };
 // Simulation is a session opt-in; reload always returns to device GPS and live sources.
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
-// Preserve the Follow switch shipped on main. An explicit new choice always wins.
-if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&typeof state.saved.settings.follow==='boolean')state.saved.settings.followRoute=state.saved.settings.follow;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings, DISPLAY ? DISPLAY_OFF : null);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
@@ -841,7 +856,8 @@ function legLabel(l){
   return `${m==="bus"?"Bus ":""}${name} ${d}m`;
 }
 // Feature toggle (Settings → Experimental): any start and end point. Off = the app as before.
-const anyPlace = () => !!S().anyPlace;
+// Any start and end point is permanent (#63); where it applies (Leisure) is decided where it is used.
+const anyPlace = () => true;
 async function fetchLondon(from){
   const go=async to=>{
     let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
@@ -2631,8 +2647,8 @@ function liveServices(){
     row("serviceDetails","Train progress (stops and live position)",st&&st.serviceDetails,"not set up in the proxy (RDM_SD_KEY)"),
     row("tfl","TfL: tubes and line status",true,"",st&&!st.tflKey?"live, without a key (TfL's shared limit applies; TFL_KEY)":"live"),
   ];
-  if(S().trip) out.push(row("google","Google: walk and drive for Trip",st&&st.google,"not set up in the proxy (GOOGLE_KEY)"));
-  if(S().trip) out.push(row("anyStation","Any station for Trip",st&&st.anyStation,"not allowed by the proxy (ALLOW_ANY_STATION=yes)"));
+  if(tripEnabled()) out.push(row("google","Google: walk and drive for Trip",st&&st.google,"not set up in the proxy (GOOGLE_KEY)"));
+  if(tripEnabled()) out.push(row("anyStation","Any station for Trip",st&&st.anyStation,"not allowed by the proxy (ALLOW_ANY_STATION=yes)"));
   if(S().leaveAlerts) out.push(row("alerts","Time-to-leave alerts",st&&st.alerts,"not set up in the proxy (see docs/proxy-setup.md)"));
   return out;
 }
@@ -2680,7 +2696,7 @@ window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxySt
 /*__PUSH_ALERTS__*/
 const alertsMorning = s => ({ from:HOME, to:Object.keys(HUB_NAME), time:s.wakeAt||pushAlerts.DEFAULT_WAKE, days:[1,2,3,4,5], names:{...STATIONS,...HUB_NAME} });
 const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, names:{...STATIONS,...HUB_NAME}, morning:alertsMorning,
-  followed:()=>S().followRoute?C.restoreFollowRoute(state.saved.followRoute):null,
+  followed:()=>followAvailable()?C.restoreFollowRoute(state.saved.followRoute):null,
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   win:window, status:t=>{ const el=$("#alertsStatus"); if(el) el.textContent=t; } });
 // ---------- The iPhone app (docs/ios-app.md §6.2; nothing happens in a browser) ----------
@@ -2688,7 +2704,7 @@ const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, 
 // The followed journey's last plan is kept once you're on the train (leaveAlertPlan ends at boarding), so the proxy
 // keeps the Live Activity going while the app is closed; it goes when you stop following.
 let nativeLastPlan=null;
-function nativeRoute(){ return S().followRoute&&state.saved.followRoute?C.restoreFollowRoute(state.saved.followRoute):null; }
+function nativeRoute(){ return followAvailable()&&state.saved.followRoute?C.restoreFollowRoute(state.saved.followRoute):null; }
 // Trip (Sam, 18 Nov: Trip in v1) has its own following engine and card; its plan comes from core tripNativePlan.
 const nativeTrip=()=>tripActive()&&state.saved.tripMode&&state.saved.tripMode.follow&&state.saved.tripMode.follow.journey?state.saved.tripMode.follow:null;
 const nativeHeading=()=>{ const el=nativeTrip()?$("#tripRoot .trip-follow-card .journey-heading"):(!$("#followPanel").hidden&&$("#followPanel .journey-heading")); return el||null; };
@@ -2754,7 +2770,7 @@ function nativeOpen(url){
   if(nativeTrip()) return false;   // a Trip being followed stays on screen (review 18 Nov)
   if(tripActive()&&state.saved.tripMode) state.saved.tripMode.active=false;
   state.saved.dirMode=dir; state.saved.view="now"; save(); render();
-  if(q.get("follow")==="1"&&S().followRoute&&!state.saved.followRoute){
+  if(q.get("follow")==="1"&&followAvailable()&&!state.saved.followRoute){
     const tryFollow=(n)=>{ const b=document.querySelector("#hero [data-follow]:not([disabled])"); if(b){ b.click(); return; } if(n>0) setTimeout(()=>tryFollow(n-1),1000); };
     tryFollow(20);
   }
@@ -2816,7 +2832,7 @@ async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
   // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings={...set.value}; save(); }
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings=dropRetired({...set.value}); save(); }
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
@@ -2827,7 +2843,8 @@ const nativeReady=(native.present()?native.init().catch(()=>null):Promise.resolv
   .then(caps=>{ nativeBooted=true; if(caps){ renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } return caps; });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
-const tripEnabled = () => !!S().trip;
+// Trip is always available as a mode (#63), except on the read-only display; choosing it stays an explicit tap.
+const tripEnabled = () => !DISPLAY;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
 let tripUi=null;
 function tripUiFor(){
@@ -2856,20 +2873,19 @@ const dlg=$("#settings");
 function fillSettings(){
   const s=S();
   $("#s_alongLine").checked=s.alongLine===true;
-  $("#s_followRoute").checked=!!s.followRoute;
   $("#s_leaveAlarm").checked=s.leaveAlarm!==false; $("#s_leaveAlarmMin").value=Number.isInteger(s.leaveAlarmMin)?s.leaveAlarmMin:C.LEAVE_ALARM_DEFAULT_MIN;
   $("#s_wifiHome").value=s.wifiHome==null?"Panda":s.wifiHome; $("#s_wifiOffice").value=s.wifiOffice==null?"Ciklum":s.wifiOffice;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   $("#s_provider").value=["proxy","tfl","demo"].includes(s.provider)?s.provider:"proxy"; $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
-  $("#s_trip").checked=!!s.trip;
+
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
 }
-function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; }
+function showTripFields(){ $("#tripFields").hidden=false; }
 function showProviderFields(){ showTripFields(); renderProxyStatus(); }
 function readSettings(){
   const o={};
@@ -2888,10 +2904,7 @@ function readSettings(){
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_alongLine").checked) o.alongLine=true;
-  if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
-  if($("#s_anyPlace").checked) o.anyPlace=true;
-  if($("#s_trip").checked) o.trip=true;
   if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
@@ -2899,7 +2912,6 @@ function readSettings(){
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-$("#s_trip").addEventListener("change",showTripFields);
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -2939,7 +2951,7 @@ $("#settingsForm").addEventListener("submit",e=>{
  // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
  if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
- const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
+ const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;

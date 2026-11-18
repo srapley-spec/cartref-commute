@@ -2,7 +2,7 @@
 // chosen route/vehicle/station are checked again after every await before any cache can be reused.
 let followTransportPending = null;
 function followTransportContext(now) {
-  const route = S().followRoute ? C.restoreFollowRoute(state.saved.followRoute) : null;
+  const route = followAvailable() ? C.restoreFollowRoute(state.saved.followRoute) : null;
   if (!route || route.direction !== 'home' || route.mode !== 'commute' || route.phase !== 'before-train' ||
     direction() !== 'home' || currentMode() !== 'commute') return rideTransportContext(now);
   const ride = homeRide(now);
