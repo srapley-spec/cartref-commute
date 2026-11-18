@@ -55,7 +55,7 @@ const nativeBridge = (() => {
       if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
       return (cap.Plugins && cap.Plugins.CommuteNative) || null;
     };
-    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    let caps = null, booted = false, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
     // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
     const laTokens = {};
     const has = (k) => !!(caps && caps[k]);
@@ -102,16 +102,24 @@ const nativeBridge = (() => {
       if (!ok(caps)) { caps = null; return null; }
       if (!listening && typeof p.addListener === "function") {
         listening = true;
-        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
+        // Tokens replayed on ready() (or sent early) are kept; registering and syncing wait until the page has
+        // applied the offline cache and configured the shell (#58, 18 Nov: no /native/follow before the cache).
+        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; if (booted) register().then(() => sync()); } });
         p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
         // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
         p.addListener("open", (e) => { if (ok(e) && typeof e.url === "string" && !simulating()) deps.onOpen && deps.onOpen(e.url); });
       }
+      // The offline cache first (it may bring back Settings), then the shell is configured from the Settings that will
+      // actually be used, then ready() and its replay; only then register and sync (#58, 18 Nov).
+      try { if (deps.hydrate) await deps.hydrate(); } catch (e) { /* no cache: start empty */ }
       try { await p.configure(config()); } catch (e) { /* an older shell: it keeps its own defaults */ }
       // Listening: the shell now replays what it held (the APNs token, Live Activity tokens, recent Wi-Fi/region).
       try { if (typeof p.ready === "function") await p.ready({ v: 1 }); } catch (e) { /* ignore */ }
+      booted = true;
+      if (apns) { await register(); }
+      sync();
       return caps;
     }
     /** After each render: the snapshot to the shell when what it shows changed (cheap when nothing did). */
@@ -127,7 +135,7 @@ const nativeBridge = (() => {
     /** The followed journey to the proxy (so it keeps the Live Activity and alarm current while the app is closed). */
     function sync() {
       const who = ids();
-      if (!who || !caps || simulating() || Date.now() < retryAt) return null;
+      if (!booted || !who || !caps || simulating() || Date.now() < retryAt) return null;
       const f = deps.followPlan();
       const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";

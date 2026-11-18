@@ -263,7 +263,9 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    counted twice (Swift writes `\/`) (`nativeBridge.packCache`, `cacheBytes`). Settings are restored only to a device
    whose own settings were lost; the registration is never in them (Keychain). **Startup:** in the app the page fetches,
    publishes and syncs nothing until `cached()` has returned and been applied; a `resume` (or a timer) that comes
-   first waits for it; a browser starts as before.
+   first waits for it; a browser starts as before. The order in `init` is: `capabilities()`, listeners, `cached()` and
+   apply (Settings may come back), `configure` (from the Settings that will be used), `ready()` and its replay, then
+   `/native/register` and `/native/follow`. Tokens replayed or sent before that are kept and used then.
 8. **Permissions and simulation (Sam, decision C: ask for Always).** Built 18 Nov: Settings → iPhone app lists
    notifications, alarms and location with their reported state ("Allowed", "Not asked yet", "While using the app
    only…", "Refused: change it in the iPhone's Settings → Commute"); turning the leave alarm on (the first save with it

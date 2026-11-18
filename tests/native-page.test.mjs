@@ -234,3 +234,26 @@ test("Cache: a snapshot of unknown age is kept with dataAt null, never the save 
   assert.deepEqual(JSON.parse(JSON.stringify(c.native.config().regions.map((r) => r.place))), ["home", "office"]);
   assert.deepEqual(app.errors, []); app.close();
 });
+
+test("Offline startup: tokens replayed by ready() and cached Settings wait for the cache; the shell is configured from the restored Settings (#58)", async () => {
+  const cachedAt = T0 - 20 * m, order = [];
+  const sh = shell();
+  const install = (w) => { sh.install(w); const p = w.Capacitor.Plugins.CommuteNative;
+    p.cached = () => new Promise((r) => setTimeout(() => { order.push("cached"); r({ entries: [
+      { key: "settings", v: 1, dataAt: cachedAt, savedAt: cachedAt, value: { provider: "demo", leaveAlarm: false, wifiHome: "Cartref", wifiOffice: "Work" } }] }); }, 400));
+    p.configure = async (x) => { order.push("configure"); sh.calls.push(["configure", JSON.parse(JSON.stringify(x))]); };
+    p.ready = async () => { order.push("ready"); sh.listeners.apns({ token: "a".repeat(64), env: "production" }); sh.listeners.liveActivity({ followId: "f1", token: "b".repeat(64) }); }; };
+  let app = null;
+  const route = (u) => { if (/\/native\//.test(u)) order.push(u.replace(/^.*\/native\//, "native/")); return undefined; };
+  app = await createApp({ settings: {}, geo: null, now: T0, beforeScripts: install, settle: 100, route });
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(order[0], "cached", `the cache first: ${order.join(", ")}`);
+  assert.deepEqual(order.slice(1, 3), ["configure", "ready"]);
+  const firstNative = order.findIndex((x) => x.startsWith("native/"));
+  assert.ok(firstNative === -1 || firstNative > order.indexOf("ready"), `no proxy call before the cache and ready: ${order.join(", ")}`);
+  const cfg = sh.calls.find((x) => x[0] === "configure")[1];
+  assert.deepEqual(cfg.alarm, { alarm: false, alarmLeadMin: 5 }, "the restored Settings, not the defaults");
+  assert.deepEqual(cfg.wifi, { home: ["Cartref"], office: ["Work"] }); assert.deepEqual(cfg.regions, [], "alarm off: no geofences");
+  assert.equal(app.c.S().leaveAlarm, false);
+  assert.deepEqual(app.errors, []); app.close();
+});

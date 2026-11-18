@@ -77,6 +77,8 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 - tests/native-bridge.test.mjs: "Offline cache: most important first within 512 KB; every other key goes as an explicit dated clear (the store merges by key)"
 - tests/native-bridge.test.mjs: "Offline cache against a store that merges by key and refuses more than 512 KB: an old large entry never blocks a new batch"
 
+- tests/native-page.test.mjs: "Offline startup: tokens replayed by ready() and cached Settings wait for the cache; the shell is configured from the restored Settings (#58)"
+
 Independent review (18 Nov): its bugs and surviving mutations (re-check at 7101bf4: satisfied; its push-volume
 finding fixed after):
 - tests/native-proxy.test.mjs: "Review: an iPhone in daily use isn't idle: following and re-registering keep it from being replaced"

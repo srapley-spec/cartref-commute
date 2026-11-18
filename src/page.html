@@ -2797,6 +2797,7 @@ const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved,
   regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  hydrate:()=>nativeHydrate(),
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
 // them (with their age, as any old data) until the first refresh lands.
@@ -2822,7 +2823,7 @@ async function nativeHydrate(){
 // Offline startup (§6.7 rule 7, #58): in the app nothing is fetched, published or synced until the shell's cache has
 // been read and applied; a resume (or anything else) that comes first waits for it. A browser starts as before.
 let nativeBooted=!native.present();
-const nativeReady=(native.present()?native.init().then(async caps=>{ if(caps){ await nativeHydrate(); } return caps; }).catch(()=>null):Promise.resolve(null))
+const nativeReady=(native.present()?native.init().catch(()=>null):Promise.resolve(null))   // init applies the cache (deps.hydrate) first
   .then(caps=>{ nativeBooted=true; if(caps){ renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } return caps; });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
