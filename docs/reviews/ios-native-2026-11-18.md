@@ -95,3 +95,6 @@ an actual SIGKILL child case, verifying failure and cleanup. Production already 
 rechecks passed at `79c108c`. The reviewer approved the runner implementation and tests: seven baseline tests pass
 and all 16 mutations are caught, including test filtering, signal termination, deadlines, retries, destination
 ownership and cleanup failures. Fresh-device execution and final combined CI remain separate release gates.
+The fresh-device gate subsequently passed at `c2a0325` with the production runner: all 38 core tests and all 13
+XCTest checks passed, no skips, at 15:25. Xcode managed startup of a newly created simulator, and the runner removed
+that device afterward. Final combined CI after owner integration remains required.

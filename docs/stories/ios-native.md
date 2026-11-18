@@ -172,3 +172,6 @@ suspending platform call. The reviewer approved the implemented scope, not unres
   review approved these at `6254bdc`. Final integrated CI remains required. All these builds remain on the native branch.
 - At `9ce934f`, all 1,441 web tests passed in full local CI, but simulator OS data migration failed before app
   testing. That run is not a passing merge gate. The integrated native retry and final combined CI must succeed.
+- At `c2a0325`, the Xcode-managed fresh-device run passed all 38 core and 13 app tests, including the real
+  nullable-cache bridge check, without retries or skipped tests. The runner's independent review at `79c108c`
+  catches all 16 mutations. Final combined CI still follows the owner integration.

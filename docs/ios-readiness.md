@@ -18,7 +18,8 @@ integrated, including separate AlarmKit authorization, identified stops, Setting
 expanded fixtures and the delayed-leave/TfL-location fixes. Cache/bootstrap corrections remain under integration
 on #58. All 13 real simulator tests passed at `4dc0991`; the subsequent full CI at `9ce934f` passed 1,441 web tests
 but failed during simulator OS data migration before app tests. Final combined local and GitHub checks remain
-release gates. No native feature build is uploaded yet.
+release gates. The subsequent fresh-device run at `c2a0325` passed all 38 core and 13 app tests using Xcode-managed
+startup; runner review approved `79c108c` with all 16 mutations caught. No native feature build is uploaded yet.
 See [the native story](stories/ios-native.md) for current behavior and validation.
 
 The extension identifier `uk.cartref.srapley.commute.journey`, App Store profile and
