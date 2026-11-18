@@ -67,9 +67,14 @@ test("Settings: no key fields or proxy address at all; what the proxy is set up 
   for (const sel of ["#s_tflKey", "#s_rdmKey", "#s_proxyBase", "#s_googleVia", "#s_googleKey", "#googleKeyRow", "#clearKeysBtn", "#proxyLinkBtn", "#s_huxleyToken"])
     assert.equal(app.d.querySelector(sel), null, `${sel} is gone`);
   assert.deepEqual([...app.d.querySelectorAll("#s_provider option")].map(o => o.value), ["proxy", "tfl", "demo"]);
-  const st = app.text("#proxyStatus");
-  assert.match(st, /National Rail ✓ · TfL ✓ keyed · Google ✗ · Alerts ✗/);
-  assert.match(st, /Still to add to GitHub's Actions secrets, then run Deploy proxy: Google for Trip \(GOOGLE_KEY\); any station for Trip \(ALLOW_ANY_STATION=yes\)/);
+  // Live data is a drop-down: a one-line summary, and each service with whether it's live (Sam, 18 Nov).
+  assert.equal(app.d.querySelector("#liveDataDetails summary").textContent, "2 not live: Google: walk and drive for Trip, Any station for Trip");
+  const live = Object.fromEntries([...app.d.querySelectorAll("#liveDataDetails li")].map(li => [li.dataset.service, li.dataset.live]));
+  assert.deepEqual(live, { rail: "true", serviceDetails: "true", tfl: "true", google: "false", anyStation: "false" });
+  assert.match(app.text("#proxyStatus"), /✗ Google: walk and drive for Trip: not set up in the proxy \(GOOGLE_KEY\)/);
+  assert.match(app.text("#proxyStatus"), /add the missing secret to GitHub's Actions secrets, then run Deploy proxy/);
+  // …and the home page says so at the top.
+  assert.match(app.text('[data-banner="not-live"]'), /^Not live.*Google: walk and drive for Trip: not set up in the proxy \(GOOGLE_KEY\)\. Any station for Trip: not allowed/);
   app.close();
   // A new device: nothing saved at all, and it starts on the app's proxy.
   const fresh = await createApp({ settings: { keysInProxy: 0 }, route: (u) => (u.startsWith("https://cartref-rail.s-rapley.workers.dev") ? proxied()(u.replace("https://cartref-rail.s-rapley.workers.dev", PROXY)) : undefined) });
@@ -80,7 +85,8 @@ test("Settings: no key fields or proxy address at all; what the proxy is set up 
   const down = await createApp({ settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => (u === PROXY + "/status" ? json({}, 503) : proxied()(u)) });
   await sleep(100);
   down.d.querySelector("#settingsBtn").click();
-  assert.match(down.text("#proxyStatus"), /Couldn't reach your proxy \(HTTP 503\)/);
+  assert.match(down.text("#proxyStatus"), /✗ National Rail live times: couldn't reach the proxy \(HTTP 503\)/);
+  assert.match(down.text('[data-banner="not-live"]'), /National Rail live times: couldn't reach the proxy \(HTTP 503\)/);
   down.close();
 });
 
@@ -187,8 +193,10 @@ test("TfL counts as keyed only when the proxy now in use said so; the advice poi
   const unkeyed = await createApp({ settings: { provider: "proxy", proxyBase: PROXY }, route: proxied({ ...STATUS, tflKey: false }) });
   await sleep(100);
   unkeyed.d.querySelector("#settingsBtn").click();
-  assert.match(unkeyed.text("#proxyStatus"), /Still to add to GitHub's Actions secrets, then run Deploy proxy: TfL key \(TFL_KEY; without it TfL's shared limit applies\); Google for Trip \(GOOGLE_KEY\)\./);
-  assert.doesNotMatch(unkeyed.text("#proxyStatus"), /any station|alerts \(/, "Trip and alerts are off: not listed");
+  assert.match(unkeyed.text("#proxyStatus"), /✓ TfL: tubes and line status: live, without a key \(TfL's shared limit applies; TFL_KEY\)/);
+  assert.equal(unkeyed.d.querySelector("#liveDataDetails summary").textContent, "All live", "unkeyed TfL is still live: no warning");
+  assert.equal(unkeyed.d.querySelector('[data-banner="not-live"]'), null);
+  assert.doesNotMatch(unkeyed.text("#proxyStatus"), /Google|Any station|alerts/, "Trip and alerts are off: not listed");
   assert.equal(unkeyed.c.tflKeyAdvice(), "add TFL_KEY to GitHub's Actions secrets and run Deploy proxy");
   const shown = unkeyed.d.body.cloneNode(true); shown.querySelectorAll("script,style").forEach(n => n.remove());
   assert.doesNotMatch(shown.textContent, /free TfL (app )?key in Settings/);
@@ -210,6 +218,6 @@ test("A new proxy address (from a setup link) asks /status once; an unrelated sa
   assert.equal(statusCalls(), n + 1);
   assert.ok(app.calls.includes("https://new.example/status"));
   app.d.querySelector("#settingsBtn").click();
-  assert.match(app.text("#proxyStatus"), /Your proxy needs redeploying/);
+  assert.match(app.text("#proxyStatus"), /the proxy needs redeploying/);
   app.close();
 });

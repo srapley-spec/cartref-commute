@@ -15,6 +15,13 @@ Rail and Google could already go through the proxy, each by its own setting; TfL
 status, the most-used feed) always went from the phone with its key in the URL.
 
 ## Acceptance criteria
+- **Live data drop-down (Sam, 18 Nov).** Settings → Live data shows one line ("All live", or "N not live: …") that
+  opens to each service with ✓/✗ and why: National Rail live times, train progress (Service Details), TfL (live
+  without a key is still live, noted), and, only when in use, Google and any station (Trip) and alerts. Live = set up
+  in the proxy, the proxy reachable, and National Rail not fallen back to the timetable. Missing secrets say which.
+- **A service that isn't live puts a "Not live" warning at the top of the home page**, naming it and why, pointing at
+  Settings → Live data. Not while still checking; not for unkeyed TfL; a failed National Rail feed keeps its own
+  "Timetable times, not live" banner instead.
 - The one-off move of keys off the phone runs once: saving Settings keeps its marker (`keysInProxy`), so a Save never restarts the feeds or re-runs the move, and the marker is not treated as a secret in shared simulator reports (17 Nov, found by GitHub on e0ceef1).
 - **One choice:** Settings → National Rail → Source → **My proxy** sends every feed through the proxy:
   - National Rail boards and Service Details (`/board/…`, `/service/…`; [live-and-timetable](live-and-timetable.md));

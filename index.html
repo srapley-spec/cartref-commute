@@ -45,6 +45,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
 #banners{width:100%;box-sizing:border-box;align-self:stretch}
 .banner{box-sizing:border-box;width:100%;border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.live-services{margin:6px 0 0;padding-left:18px}.live-services li{margin:2px 0}
 .banner.warn{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn)}
 .banner.bad{background:var(--bad-bg);color:var(--ink);border-left:4px solid var(--bad)}
 .slowtxt{color:var(--warn)}
@@ -898,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:23 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7508,6 +7509,9 @@ function displayedFailures(){return state.saved.view==="by"?(state.by&&state.by.
 const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darwin" ? livePairs().map(p=>p.join("-")) : boardKeys(), Date.now(), PROFILE);
 function renderBanners(){
   const out=[];
+  // A service that isn't live (not set up, or the proxy unreachable); a failed rail feed has its own banner below.
+  const notLive=liveServices().filter(x=>x.live===false&&!(x.id==="rail"&&state.darwinFailed));
+  if(notLive.length) out.push(`<div class="banner warn" data-banner="not-live"><b>Not live</b><span class="msg">${esc(notLive.map(x=>`${x.name}: ${x.detail}`).join(". "))}. Settings → Live data.</span></div>`);
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
   const failedNow = displayedFailures();
@@ -11024,15 +11028,33 @@ async function refreshProxyStatus(){
   catch(e){ state.proxyStatusErr=e.status===404?"redeploy":(e.message||"unreachable"); }
   save(); renderProxyStatus(); return state.saved.proxyStatus||null;
 }
+// Each live service and whether it's live now (Sam, 18 Nov: "a drop down … list of each service is live"; a warning
+// at the top of the home page when one isn't). Live = set up in the proxy, the proxy reachable, and (for National
+// Rail) the last load not fallen back to the timetable. Optional services are listed only when in use. null = still
+// checking. Returns [] when live data isn't chosen (the existing "Example trains" / "Timetable times" banners say so).
+function liveServices(){
+  if(S().provider!=="proxy"||S().simulatedFeeds) return [];
+  const st=state.saved.proxyStatus, base=proxyBaseUrl(), known=!!(st&&st.base===base);
+  const down=state.proxyStatusErr&&!known ? (state.proxyStatusErr==="redeploy"?"the proxy needs redeploying":`couldn't reach the proxy (${state.proxyStatusErr})`) : "";
+  const row=(id,name,ok,why,note)=>({id,name,live:down?false:!known?null:!!ok,detail:down||(!known?"checking…":ok?(note||"live"):why)});
+  const out=[
+    row("rail","National Rail live times",st&&st.rail&&!state.darwinFailed,st&&!st.rail?"not set up in the proxy (RDM_BASE, RDM_KEY)":"the feed failed: timetable times shown"),
+    row("serviceDetails","Train progress (stops and live position)",st&&st.serviceDetails,"not set up in the proxy (RDM_SD_KEY)"),
+    row("tfl","TfL: tubes and line status",true,"",st&&!st.tflKey?"live, without a key (TfL's shared limit applies; TFL_KEY)":"live"),
+  ];
+  if(S().trip) out.push(row("google","Google: walk and drive for Trip",st&&st.google,"not set up in the proxy (GOOGLE_KEY)"));
+  if(S().trip) out.push(row("anyStation","Any station for Trip",st&&st.anyStation,"not allowed by the proxy (ALLOW_ANY_STATION=yes)"));
+  if(S().leaveAlerts) out.push(row("alerts","Time-to-leave alerts",st&&st.alerts,"not set up in the proxy (see docs/proxy-setup.md)"));
+  return out;
+}
 function renderProxyStatus(){
   const el=$("#proxyStatus"); if(!el) return;
-  const st=state.saved.proxyStatus, base=proxyBaseUrl();
-  if(!base){ el.textContent=""; return; }
-  if(state.proxyStatusErr==="redeploy"){ el.textContent="Your proxy needs redeploying: it doesn't know this version of the app (HTTP 404). See docs/proxy-setup.md."; return; }
-  if(state.proxyStatusErr&&(!st||st.base!==base)){ el.textContent=`Couldn't reach your proxy (${state.proxyStatusErr}). Check the address, and that its ALLOW_ORIGIN is this page's address.`; return; }
-  if(!st||st.base!==base){ el.textContent="Checking your proxy…"; return; }
-  const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.tflKey&&"TfL key (TFL_KEY; without it TfL's shared limit applies)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
-  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to add to GitHub's Actions secrets, then run Deploy proxy: ${need.join("; ")}.`:"");
+  const list=liveServices();
+  if(!list.length){ el.textContent=""; return; }
+  const notLive=list.filter(x=>x.live===false), checking=list.some(x=>x.live==null);
+  const summary=checking&&!notLive.length?"Checking the proxy…":notLive.length?`${notLive.length} not live: ${notLive.map(x=>x.name).join(", ")}`:"All live";
+  const open=el.querySelector("details")&&el.querySelector("details").open;
+  el.innerHTML=`<details id="liveDataDetails"${open?" open":""}><summary>${esc(summary)}</summary><ul class="live-services">${list.map(x=>`<li data-service="${x.id}" data-live="${x.live==null?"":x.live}"><b>${x.live?"✓":x.live===false?"✗":"…"} ${esc(x.name)}</b>: ${esc(x.detail)}</li>`).join("")}</ul>${notLive.some(x=>/not set up|not allowed/.test(x.detail))?`<p class="hint">To fix: add the missing secret to GitHub's Actions secrets, then run Deploy proxy.</p>`:""}</details>`;
 }
 // A setup link (#setup=<proxy address>) sets up a new device in one tap: My proxy for every feed, nothing else changed.
 // It names the proxy's host in the question (an address that only looks like yours is refused or shown as what it is).
@@ -11590,7 +11612,7 @@ if(!state.saved.settings.keysInProxy){
   s.keysInProxy=1; save();
 }
 acceptSetupLink();
-if(allViaProxy()) refreshProxyStatus();
+if(allViaProxy()) refreshProxyStatus().then(()=>render());
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
 simSetup(); locate(); render(); refresh({force:true}).then(()=>planView());
 setInterval(tick,1000);
