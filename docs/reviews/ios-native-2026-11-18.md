@@ -38,3 +38,11 @@ transition branches. No page planning event is emitted before a required transit
 
 Full local CI at `dada2fd` subsequently passed all 1,440 web tests and its simulator checks. This does not replace
 the final combined HEAD CI or physical-device acceptance once the owner contract gaps are resolved.
+
+## Alarm permission and identified-stop follow-up
+Review of `c791024` found five additional test gaps. Regression probes now cover the remote envelope's inability
+to start/switch a journey, 256-byte stop identifiers (including multibyte text), overlapping alarm requests while
+the first OS prompt is suspended, removal of actual queued evidence on a stop, and the cleared state reaching the
+Apple adapter before a push finishes. These are test additions; the reviewed production guards remain unchanged.
+The reviewer's mutation rerun and final simulator execution are still required. The preceding local simulator
+attempt failed in iOS data migration before app tests started; it is not a passing app test result.

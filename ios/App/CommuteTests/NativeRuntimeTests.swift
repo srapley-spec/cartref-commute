@@ -125,9 +125,31 @@ final class NativeRuntimeTests: XCTestCase {
         XCTAssertEqual(permission.requests, 2, "Granted/denied authorization must not cause repeated prompts.")
     }
 
+    func testOverlappingAlarmRequestsPromptOnceAndReleaseTheGateAfterFailure() async throws {
+        let permission = ProbeAlarmPermission(); permission.suspendFirstRequest = true
+        let runtime = NativeRuntime(storage: MemoryNativeDisk(), credentialStore: MemoryNativeCredentials(), platformEnabled: false,
+                                    alarmPermission: permission)
+        let first = Task { try await runtime.request("alarm") }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while permission.pending == nil && ContinuousClock.now < deadline { await Task.yield() }
+        let pending = try XCTUnwrap(permission.pending)
+        do { try await runtime.request("alarm"); XCTFail("A concurrent prompt must be rejected.") }
+        catch { XCTAssertEqual(error as? NativeError, .unavailable) }
+        XCTAssertEqual(permission.requests, 1)
+        permission.pending = nil; pending.resume(throwing: NativeError.unavailable)
+        do { try await first.value; XCTFail("The first OS request should fail.") }
+        catch { XCTAssertEqual(error as? NativeError, .unavailable) }
+        try await runtime.request("alarm")
+        XCTAssertEqual(permission.requests, 2)
+        XCTAssertEqual(permission.authorization, .granted)
+    }
+
     func testRemoteStopCancelsBeforeDiskWriteAndRemovesActivityReplay() async throws {
         let disk = MemoryNativeDisk(), runtime = NativeRuntime(storage: disk, credentialStore: MemoryNativeCredentials(), platformEnabled: false)
+        try runtime.configure(configuration(), credentials: .init(id: "phone", token: "test-token"))
         try runtime.publish(snapshot())
+        runtime.locationManager(CLLocationManager(), didEnterRegion: circle(runtime.regionIdentifier("office")))
+        XCTAssertEqual(runtime.document.outbox.count, 1, "The stop must discard actual queued evidence.")
         runtime.activityCreated(id: "activity-A", followId: "A")
         runtime.activityToken(followId: "A", token: Data([1, 2]))
         let surfaces = ProbeSurfaces(), calls = NativeCallLog()
@@ -136,11 +158,16 @@ final class NativeRuntimeTests: XCTestCase {
         let old = await runtime.receivePush(["snapshot": NSNull(), "followId": "A", "at": 999])
         let other = await runtime.receivePush(["snapshot": NSNull(), "followId": "B", "at": 2000])
         XCTAssertEqual(old, .noData); XCTAssertEqual(other, .noData); XCTAssertTrue(calls.values.isEmpty)
+        XCTAssertEqual(runtime.document.outbox.count, 1)
+        XCTAssertTrue(surfaces.updates.isEmpty, "Rejected stops must not update Apple surfaces.")
         let stopped = await runtime.receivePush(["snapshot": NSNull(), "followId": "A", "at": 1000])
         XCTAssertEqual(stopped, .newData)
         XCTAssertEqual(calls.values.first, "cancel")
         XCTAssertNil(runtime.document.snapshots.current); XCTAssertNil(runtime.document.activityID)
         XCTAssertNil(runtime.document.activityFollowID)
+        XCTAssertTrue(runtime.document.outbox.isEmpty)
+        XCTAssertEqual(surfaces.updates.count, 1, "A push must await the cleared journey reaching Apple surfaces.")
+        XCTAssertNil(surfaces.updates.first?.current)
         var replay = runtime.document.replay
         XCTAssertFalse(replay.ready().contains { $0.name == "liveActivity" })
         XCTAssertEqual(runtime.lastError, .unavailable)
@@ -246,9 +273,12 @@ private final class MemoryNativeCredentials: NativeCredentialStorage {
     var authorization: NativeAlarmAuthorization = .notDetermined
     var requests = 0
     var failRequests = false
+    var suspendFirstRequest = false
+    var pending: CheckedContinuation<Void, Error>?
     func request() async throws {
         requests += 1
         if failRequests { throw NativeError.unavailable }
+        if suspendFirstRequest && requests == 1 { try await withCheckedThrowingContinuation { pending = $0 } }
         authorization = .granted
     }
 }
@@ -256,8 +286,9 @@ private final class MemoryNativeCredentials: NativeCredentialStorage {
 @MainActor private final class ProbeSurfaces: NativeSurfaces {
     let liveActivitySupported = true, alarmSupported = true
     var onCancel: (() -> Void)?
+    var updates: [SnapshotState] = []
     func cancelAlarm() { onCancel?() }
-    func update(_ state: SnapshotState, configuration: NativeConfiguration?, notificationsAllowed: Bool) async {}
+    func update(_ state: SnapshotState, configuration: NativeConfiguration?, notificationsAllowed: Bool) async { updates.append(state) }
 }
 private final class NativeBridgeProbe: CAPBridgeViewController {
     var runtime: NativeRuntime!

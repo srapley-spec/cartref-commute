@@ -31,6 +31,12 @@ final class NativeCoreTests: XCTestCase {
             XCTAssertThrowsError(try Wire.remoteSnapshot(fields.merging(["snapshot": NSNull()]) { _, new in new }))
         }
         XCTAssertEqual(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": "A", "at": 1000]), .stop(followId: "A", at: 1000))
+        for id in [String(repeating: "a", count: 256), String(repeating: "λ", count: 128)] {
+            XCTAssertEqual(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": id, "at": 1000]), .stop(followId: id, at: 1000))
+        }
+        for id in [String(repeating: "a", count: 257), String(repeating: "λ", count: 129)] {
+            XCTAssertThrowsError(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": id, "at": 1000]))
+        }
         XCTAssertEqual(try Wire.remoteSnapshot(["snapshot": Wire.object(snapshot())]), .snapshot(snapshot()))
         XCTAssertThrowsError(try Wire.remoteSnapshot(["snapshot": ["v": 2]])) { XCTAssertEqual($0 as? NativeError, .unsupported) }
     }
@@ -46,6 +52,18 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertFalse(try state.applyRemote(.snapshot(snapshot(at: 3000)), now: 3000))
         XCTAssertFalse(try state.apply(snapshot(at: 4000), fromPage: true, now: 3_601_999))
         XCTAssertTrue(try state.apply(snapshot(at: 4000), fromPage: true, now: 3_602_000))
+    }
+
+    func testRemoteEnvelopeCannotStartOrReplaceThePageJourney() throws {
+        var state = SnapshotState()
+        XCTAssertFalse(try state.applyRemote(.snapshot(snapshot()), now: 1000))
+        XCTAssertNil(state.current)
+        try state.apply(snapshot(), fromPage: true, now: 1000)
+        XCTAssertFalse(try state.applyRemote(.snapshot(snapshot(id: "B", at: 2000)), now: 2000))
+        XCTAssertEqual(state.current?.followId, "A")
+        XCTAssertTrue(state.tombstones.isEmpty, "A rejected remote replacement must not tombstone the page's journey.")
+        XCTAssertTrue(try state.applyRemote(.snapshot(snapshot(at: 2000)), now: 2000))
+        XCTAssertEqual(state.current?.at, 2000)
     }
 
     func testTripSnapshotAcceptsNullDirectionFromThePublishedEngineSchema() throws {
