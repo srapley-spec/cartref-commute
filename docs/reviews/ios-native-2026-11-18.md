@@ -89,3 +89,7 @@ The independent reviewer endorsed delegating readiness to Xcode in principle, co
 fresh-device validation. The runner now creates its own device and goes directly to `xcodebuild test`; all XCTest
 assertions, per-test/outer deadlines, failure propagation and no-retry behavior remain. CLI regressions cover
 cleanup when a device never booted and unexpected cleanup failures. Review and a fresh complete CI remain required.
+The first runner review found two test gaps: restricting execution to only the bundled-page tests, and treating
+a killed Xcode child (no exit status) as success. The CLI probes now reject both forms of `only-testing` and run
+an actual SIGKILL child case, verifying failure and cleanup. Production already handles these correctly; survivor
+rechecks remain required.

@@ -39,7 +39,7 @@ test('the normal iPhone test command enforces its production outer deadlines', t
   }
 });
 
-async function runSimulator(testStatus = 0, hang = '', shutdown = '', deleteFails = false) {
+async function runSimulator(testStatus = 0, hang = '', shutdown = '', deleteFails = false, killBuild = false) {
   const dir = await mkdtemp(path.join(tmpdir(), 'commute-simulator-test-'));
   try {
     const calls = path.join(dir, 'calls.jsonl');
@@ -53,7 +53,10 @@ if (process.env.SIM_FIXTURE_HANG === command || process.env.SIM_FIXTURE_HANG ===
   process.on('SIGTERM', () => {});
   setInterval(() => {}, 1000);
 } else {
-if (command === 'xcodebuild') process.exit(Number(process.env.SIM_FIXTURE_TEST_STATUS));
+if (command === 'xcodebuild') {
+  if (process.env.SIM_FIXTURE_KILL_BUILD === 'true') process.kill(process.pid, 'SIGKILL');
+  process.exit(Number(process.env.SIM_FIXTURE_TEST_STATUS));
+}
 if (args[1] === 'list') console.log(JSON.stringify({ runtimes: [{ isAvailable: true, version: '27.2', identifier: 'com.apple.CoreSimulator.SimRuntime.iOS-27-2', supportedDeviceTypes: [{ identifier: 'com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro' }] }] }));
 if (args[1] === 'create') console.log('owned-fixture-device');
 if (['boot', 'bootstatus'].includes(args[1])) { console.error('Xcode must manage startup'); process.exit(2); }
@@ -72,7 +75,7 @@ if (args[1] === 'delete' && process.env.SIM_FIXTURE_DELETE_FAILS === 'true') pro
       cwd: new URL('../', import.meta.url), encoding: 'utf8',
       env: { ...process.env, PATH: `${dir}${path.delimiter}${process.env.PATH}`, SIM_FIXTURE_CALLS: calls,
         SIM_FIXTURE_TEST_STATUS: String(testStatus), SIM_FIXTURE_HANG: hang,
-        SIM_FIXTURE_SHUTDOWN: shutdown, SIM_FIXTURE_DELETE_FAILS: String(deleteFails) },
+        SIM_FIXTURE_SHUTDOWN: shutdown, SIM_FIXTURE_DELETE_FAILS: String(deleteFails), SIM_FIXTURE_KILL_BUILD: String(killBuild) },
       timeout: 15_000, killSignal: 'SIGKILL'
     });
     return { ...result, calls: (await readFile(calls, 'utf8')).trim().split('\n').map(line => JSON.parse(line)) };
@@ -89,7 +92,7 @@ test('Xcode manages readiness on one fresh disposable simulator, without a separ
   assert.equal(build[build.indexOf('-scheme') + 1], 'Commute');
   assert.ok(build.includes('platform=iOS Simulator,id=owned-fixture-device'));
   assert.ok(build.includes('CODE_SIGNING_ALLOWED=NO'));
-  assert.ok(!build.some(arg => /retry|repetition|skip-testing/i.test(arg)));
+  assert.ok(!build.some(arg => /retry|repetition|(?:skip|only)-testing/i.test(arg)));
 });
 
 test('simulator test failures propagate after disposable device cleanup', async () => {
@@ -136,6 +139,16 @@ test('a compile failure before boot keeps the Xcode failure and deletes its stil
     ['xcrun', 'simctl', 'delete', 'owned-fixture-device']
   ]);
   assert.doesNotMatch(result.stderr, /Could not shut down/);
+});
+
+test('a killed Xcode process cannot count as a passing test run and its device is cleaned up', async () => {
+  const result = await runSimulator(0, '', '', false, true);
+  assert.equal(result.status, 1);
+  assert.equal(result.calls.filter(call => call[0] === 'xcodebuild').length, 1);
+  assert.deepEqual(result.calls.slice(-2), [
+    ['xcrun', 'simctl', 'shutdown', 'owned-fixture-device'],
+    ['xcrun', 'simctl', 'delete', 'owned-fixture-device']
+  ]);
 });
 
 test('unexpected simulator cleanup failures cannot turn an Xcode failure into success or hide its status', async () => {

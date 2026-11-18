@@ -82,6 +82,7 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/ios-simulator.test.mjs: "hung simulator setup and xcodebuild fail within an outer deadline and clean up"
 - tests/ios-simulator.test.mjs: "the normal iPhone test command enforces its production outer deadlines"
 - tests/ios-simulator.test.mjs: "a compile failure before boot keeps the Xcode failure and deletes its still-shutdown device"
+- tests/ios-simulator.test.mjs: "a killed Xcode process cannot count as a passing test run and its device is cleaned up"
 - tests/ios-simulator.test.mjs: "unexpected simulator cleanup failures cannot turn an Xcode failure into success or hide its status"
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
