@@ -1,0 +1,51 @@
+{
+  "v": 1,
+  "at": 1794906600000,
+  "source": "proxy",
+  "dataAt": null,
+  "stale": true,
+  "staleAt": null,
+  "confirmed": false,
+  "mode": "trip",
+  "direction": null,
+  "followId": "t1",
+  "phase": "leave",
+  "headline": {
+    "label": "Leave by",
+    "t": 1794907800000,
+    "countdown": {
+      "step": "leave",
+      "calm": "leave in",
+      "urgent": "Leave now",
+      "passed": "leave time passed",
+      "state": "calm",
+      "urgentAt": 1794907680000,
+      "passedAt": 1794907800000
+    }
+  },
+  "arrive": {
+    "label": "At Canterbury Cathedral",
+    "t": null
+  },
+  "train": {
+    "name": "09:50 Southern",
+    "from": "Brighton",
+    "to": "Canterbury West",
+    "platform": null,
+    "scheduled": 1794909000000,
+    "expected": null,
+    "late": 0
+  },
+  "progress": null,
+  "status": {
+    "level": "info",
+    "text": "No live times"
+  },
+  "alarm": {
+    "at": 1794907500000,
+    "leadMin": 5,
+    "cancelled": false,
+    "cancelOnExit": null
+  },
+  "deepLink": "commute://follow/t1"
+}

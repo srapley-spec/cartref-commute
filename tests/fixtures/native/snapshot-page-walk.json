@@ -1,0 +1,39 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": false,
+  "mode": "commute",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "walk",
+  "headline": {
+    "label": "Next tube",
+    "t": 1794940380000,
+    "countdown": {
+      "step": "next",
+      "calm": "in",
+      "urgent": "Now",
+      "passed": "",
+      "state": "calm",
+      "urgentAt": 1794940260000,
+      "passedAt": 1794940380000
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945120000
+  },
+  "train": null,
+  "progress": {
+    "next": "Farringdon",
+    "stopsToGo": 2,
+    "line": "Next: Farringdon · 2 stops"
+  },
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

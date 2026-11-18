@@ -9,6 +9,21 @@
 // wifi {place, at}, region {place, event, at}, resume {at}, open {url}.
 const nativeBridge = (() => {
   const RETRY_MS = 60e3;
+  /** The offline store's limit (§6.7 rule 7). */
+  const CACHE_MAX_BYTES = 512 * 1024;
+  /**
+   * The entries that fit, in the order given (most important first): an entry that would take the total over the limit
+   * is left out (and said so), the rest still go. Sizes are UTF-8 bytes of each entry's JSON.
+   */
+  function packCache(entries, max = CACHE_MAX_BYTES) {
+    const out = [], dropped = []; let total = 2;
+    for (const e of entries) {
+      let bytes; try { const j = JSON.stringify(e); bytes = (typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length) + 1; } catch (x) { dropped.push(e && e.key); continue; }
+      if (total + bytes > max) { dropped.push(e.key); continue; }
+      out.push(e); total += bytes;
+    }
+    return { entries: out, dropped, bytes: total };
+  }
   const ok = (x) => x && typeof x === "object";
   /**
    * deps: win, core (C), S() settings, saved() → state.saved, save(), proxyBase() → the proxy's address, snapshot() →
@@ -112,7 +127,8 @@ const nativeBridge = (() => {
     function cache(entries) {
       const p = plugin();
       if (!p || !has("offline") || simulating()) return null;
-      try { return Promise.resolve(p.cache({ entries })).catch(() => null); } catch (e) { return null; }
+      const packed = packCache(entries);
+      try { return Promise.resolve(p.cache({ entries: packed.entries })).then(() => packed).catch(() => null); } catch (e) { return null; }
     }
     /** What the shell kept for a launch with no signal (§6.7 rule 7); [] in a browser or on any error. */
     async function cached() {
@@ -136,6 +152,6 @@ const nativeBridge = (() => {
     }
     return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
   }
-  return { create, RETRY_MS };
+  return { create, RETRY_MS, CACHE_MAX_BYTES, packCache };
 })();
 if (typeof module !== "undefined") module.exports = nativeBridge;

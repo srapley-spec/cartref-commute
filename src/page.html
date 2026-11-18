@@ -310,6 +310,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
         <label class="f">Office Wi-Fi names start with<input type="text" id="s_wifiOffice" autocomplete="off"></label>
         <p class="hint">Joining one says where you are; the name stays on the phone. Separate several with commas.</p>
       </div>
+      <div class="f wide" id="nativePermissions"></div>
       <p class="hint" id="nativeStatus" aria-live="polite"></p>
     </fieldset>
 
@@ -2174,7 +2175,7 @@ function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("de
 function render(){
   try{ leaveAlerts.sync(); }catch(e){}
   try{ native.sync(); }catch(e){}
-  queueMicrotask(()=>{ try{ native.publish(); }catch(e){} });   // after this render has drawn the followed card
+  queueMicrotask(()=>{ try{ if(native.publish()&&S().provider==="proxy") nativeCacheNow(); }catch(e){} });   // a new snapshot is kept for offline too   // after this render has drawn the followed card
   try{ syncPick(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
@@ -2311,7 +2312,7 @@ function tick(){
   // (amendment §3, words confirmed by Sam 10 Nov; #57 A1). Accent band, not a status colour.
   // Every left time counts down, in its step's words (Sam, 12 Nov: "the countdown should be to the start of the next
   // step"; wording reviewed on the countdown journey page): leave, platform, arrival, next step.
-  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<120e3, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
+  document.querySelectorAll("[data-cd]").forEach(e=>{ const ms=+e.dataset.cd-now, urgent=ms>0&&ms<C.COUNTDOWN_URGENT_MS, w=COUNTDOWN_WORDS[e.dataset.step]||COUNTDOWN_WORDS.leave;
     e.textContent = urgent ? `${w.urgent} · ${ms<60e3?`${Math.max(1,Math.floor(ms/1000))} s`:countdown(ms)}` : ms>0?`${w.calm} ${countdown(ms)}`:w.passed;
     e.closest(".journey-countdown")?.classList.toggle("urgent", urgent); });
   document.querySelectorAll("[data-boardmin]").forEach(e=>{ e.textContent=C.boardMins(+e.dataset.boardmin-now); });
@@ -2758,6 +2759,35 @@ function nativeOpen(url){
   }
   return true;
 }
+// Permissions (Sam, 17–18 Nov: asked from Settings when the leave alarm is first turned on, in the order
+// notifications → alarm → location (Always); docs/ios-app.md §6.7 rules 1 and 8). Only what hasn't been asked is
+// asked; a refusal is shown with where to change it. Swift prompts only through request().
+const NATIVE_PERMISSIONS=[["notifications","Notifications","the leave alarm and alerts"],["alarm","Alarms","the leave alarm"],["location","Location","Always lets the alarm cancel itself when you leave"]];
+function nativePermissionText(kind,v){
+  if(v==="granted"||v==="always") return "Allowed";
+  if(v==="whenInUse") return "While using the app only: the alarm won't cancel itself when you leave with the app closed";
+  if(v==="denied") return "Refused: change it in the iPhone's Settings → Commute";
+  if(v==="notDetermined") return "Not asked yet";
+  return "Not reported by this version of the app";
+}
+function renderNativePermissions(){
+  const el=$("#nativePermissions"); if(!el) return;
+  const caps=native.capabilities(); if(!caps){ el.innerHTML=""; return; }
+  const auth=caps.auth||{}, ask=NATIVE_PERMISSIONS.some(([k])=>auth[k]==="notDetermined"||(k==="location"&&auth[k]==="whenInUse"));
+  el.innerHTML=`<ul class="live-services">${NATIVE_PERMISSIONS.map(([k,name,why])=>`<li data-permission="${k}" data-state="${esc(String(auth[k]||""))}"><b>${auth[k]==="granted"||auth[k]==="always"?"✓":auth[k]==="denied"?"✗":"…"} ${name}</b> (${esc(why)}): ${esc(nativePermissionText(k,auth[k]))}</li>`).join("")}</ul>`+
+    (ask?`<button type="button" class="ghost" id="nativeAllowBtn">Allow notifications, alarms and location</button>`:"");
+  const b=$("#nativeAllowBtn"); if(b) b.addEventListener("click",()=>nativeAskPermissions());
+}
+let nativeAsking=false;
+async function nativeAskPermissions(){
+  if(nativeAsking||!native.capabilities()) return; nativeAsking=true;
+  try{
+    for(const [k] of NATIVE_PERMISSIONS){
+      const v=((native.capabilities()||{}).auth||{})[k];
+      if(v==="notDetermined"||(k==="location"&&v==="whenInUse")) await native.request(k);
+    }
+  } finally { nativeAsking=false; renderNativePermissions(); }
+}
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
@@ -2767,15 +2797,26 @@ const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved,
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
 // them (with their age, as any old data) until the first refresh lands.
-function nativeCacheNow(){ if(!state.boards||!state.boardsAt) return; native.cache([{key:"boards",v:1,dataAt:state.boardsAt,savedAt:Date.now(),value:state.boards},
-  ...(state.status&&state.statusAt?[{key:"status",v:1,dataAt:state.statusAt,savedAt:Date.now(),value:state.status}]:[])]); }
+// Most important first; packCache leaves out what doesn't fit in 512 KB. Settings are the device's own (no keys are
+// kept on a device since 17 Nov; this iPhone's registration lives in the shell's Keychain, not here).
+function nativeCacheNow(){
+  const now=Date.now(), e=[];
+  let snap=null; try{ snap=nativeSnapshot(); }catch(x){}
+  if(snap) e.push({key:"snapshot",v:1,dataAt:snap.dataAt,savedAt:now,value:snap});
+  e.push({key:"settings",v:1,dataAt:now,savedAt:now,value:{...state.saved.settings}});
+  if(state.status&&state.statusAt) e.push({key:"status",v:1,dataAt:state.statusAt,savedAt:now,value:state.status});
+  if(state.boards&&state.boardsAt) e.push({key:"boards",v:1,dataAt:state.boardsAt,savedAt:now,value:state.boards});
+  return native.cache(e);
+}
 async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
-  const b=get("boards"), st=get("status");
+  const b=get("boards"), st=get("status"), set=get("settings");
+  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings={...set.value}; save(); }
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
-native.init().then(async caps=>{ if(caps){ await nativeHydrate(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
+native.init().then(async caps=>{ if(caps){ await nativeHydrate(); renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -2886,6 +2927,8 @@ $("#settingsForm").addEventListener("submit",e=>{
  const previous=S(), effective={...DEFAULTS,...next};
  leaveAlerts.onSave(previous, effective);
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
+ // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
+ if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
  const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));

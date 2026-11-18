@@ -1,0 +1,51 @@
+{
+  "v": 1,
+  "at": 1794908400000,
+  "source": "proxy",
+  "dataAt": 1794908400000,
+  "stale": false,
+  "staleAt": 1794908580000,
+  "confirmed": false,
+  "mode": "trip",
+  "direction": null,
+  "followId": "t1",
+  "phase": "platform",
+  "headline": {
+    "label": "Be on the platform at Brighton by",
+    "t": 1794908820000,
+    "countdown": {
+      "step": "platform",
+      "calm": "on the platform in",
+      "urgent": "Head for the platform now",
+      "passed": "platform time passed",
+      "state": "calm",
+      "urgentAt": 1794908700000,
+      "passedAt": 1794908820000
+    }
+  },
+  "arrive": {
+    "label": "At Canterbury Cathedral",
+    "t": null
+  },
+  "train": {
+    "name": "09:50 Southern",
+    "from": "Brighton",
+    "to": "Canterbury West",
+    "platform": null,
+    "scheduled": 1794909000000,
+    "expected": null,
+    "late": 0
+  },
+  "progress": null,
+  "status": {
+    "level": "info",
+    "text": "No live times"
+  },
+  "alarm": {
+    "at": 1794907500000,
+    "leadMin": 5,
+    "cancelled": true,
+    "cancelOnExit": null
+  },
+  "deepLink": "commute://follow/t1"
+}

@@ -19,6 +19,8 @@ export const LEAVE_ALARM_GRACE_MS = 2 * 60e3;
 /** The leave alarm's default lead (Sam, 17 Nov: "5 mins default but configurable"). */
 export const LEAVE_ALARM_DEFAULT_MIN = 5;
 
+/** Under this long to go, a countdown is urgent ("Leave now · 45 s"; Sam, 10 Nov), on the page and on the iPhone. */
+export const COUNTDOWN_URGENT_MS = 120e3;
 /** The words each left time counts down in (Sam, 12 Nov), shared by the page's card and native surfaces. */
 export const COUNTDOWN_WORDS: Record<string, { calm: string; urgent: string; passed: string }> = {
   leave: { calm: "leave in", urgent: "Leave now", passed: "leave time passed" },
@@ -30,6 +32,12 @@ export const COUNTDOWN_WORDS: Record<string, { calm: string; urgent: string; pas
 export type SnapshotPhase = "leave" | "walk" | "platform" | "train" | "tube" | "walk-last" | "arrived" | "missed" | "cancelled";
 export type SnapshotStep = "leave" | "platform" | "arrive" | "next" | "";
 
+/**
+ * A countdown and when its wording changes (#58, 18 Nov), so a closed app renders it without its own rule: before
+ * and at `urgentAt` "<calm> <time left>", after `urgentAt` "<urgent> · <time left>" (under 2 minutes, as the page),
+ * from `passedAt` `passed` (or, when that is empty, nothing). `state` is the wording at the snapshot's `at`.
+ */
+export interface Countdown { step: SnapshotStep; calm: string; urgent: string; passed: string; state: "calm" | "urgent" | "passed"; urgentAt: number | null; passedAt: number | null }
 export interface LeaveAlarm { at: number; leadMin: number; cancelled: boolean;
   /** The geofence whose exit cancels this alarm on the phone with no network (§6.7 rule 3): where the journey starts. */
   cancelOnExit?: "home" | "office" | null }
@@ -42,7 +50,7 @@ export interface JourneySnapshot {
   confirmed: boolean;
   mode: string; direction: "office" | "home" | null; followId: string | null;
   phase: SnapshotPhase;
-  headline: { label: string; t: number | null; countdown: { step: SnapshotStep; calm: string; urgent: string; passed: string } | null };
+  headline: { label: string; t: number | null; countdown: Countdown | null };
   arrive: { label: string; t: number | null } | null;
   train: { name: string; from: string; to: string; platform: string | null; scheduled: number | null; expected: number | null; late: number } | null;
   progress: { next: string | null; stopsToGo: number | null; line: string } | null;
@@ -90,6 +98,7 @@ export function leaveAlarm(leaveAt: number | null | undefined, opts: { enabled: 
 export function journeySnapshot(i: SnapshotInput): JourneySnapshot {
   const dataAt = fin(i.dataAt) ? i.dataAt : null;
   const words = i.headline.step ? COUNTDOWN_WORDS[i.headline.step] : null;
+  const t = fin(i.headline.t) ? i.headline.t : null;
   const progress = i.progress && (i.progress.next || fin(i.progress.stopsToGo) || i.progress.line)
     ? { next: i.progress.next || null, stopsToGo: fin(i.progress.stopsToGo) ? i.progress.stopsToGo : null,
         line: i.progress.line || [i.progress.next ? `Next: ${i.progress.next}` : "", fin(i.progress.stopsToGo) ? `${i.progress.stopsToGo} stop${i.progress.stopsToGo === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ") }
@@ -100,7 +109,9 @@ export function journeySnapshot(i: SnapshotInput): JourneySnapshot {
     confirmed: i.source === "page" && !!i.confirmed,
     mode: i.mode, direction: i.direction, followId: i.followId || null,
     phase: i.phase,
-    headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
+    headline: { label: i.headline.label, t, countdown: words ? { step: i.headline.step, ...words,
+      state: t == null ? "calm" : i.now >= t ? "passed" : t - i.now < COUNTDOWN_URGENT_MS ? "urgent" : "calm",
+      urgentAt: t == null ? null : t - COUNTDOWN_URGENT_MS, passedAt: t } : null },
     arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
     train: i.train || null,
     progress,
@@ -163,7 +174,9 @@ export type NativeState = LeaveAlertState & { lastArr?: number; lastPlatform?: s
 /** Every instant in a snapshot moved by `d` ms (the proxy runs the engine in London time and stores real time). */
 export function shiftSnapshot(s: JourneySnapshot, d: number): JourneySnapshot {
   const m = (t: number | null) => (t == null ? t : t + d);
-  return { ...s, at: s.at + d, dataAt: m(s.dataAt), staleAt: m(s.staleAt), headline: { ...s.headline, t: m(s.headline.t) }, arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
+  const cd = s.headline.countdown;
+  return { ...s, at: s.at + d, dataAt: m(s.dataAt), staleAt: m(s.staleAt),
+    headline: { ...s.headline, t: m(s.headline.t), countdown: cd && { ...cd, urgentAt: m(cd.urgentAt), passedAt: m(cd.passedAt) } }, arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
     train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) }, alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d } };
 }
 /** The parts of a snapshot a native surface shows: a change in any of them is worth a push; a new `at` alone isn't. */
@@ -171,7 +184,9 @@ export function snapshotShown(s: JourneySnapshot | null | undefined, withRefresh
   if (!s) return "none";
   // A fresh fetch every 2 minutes counts too, so the stale-date (data + 3 min) is moved on before it passes while the
   // data is fresh (review 18 Nov: otherwise the Live Activity showed stale on a steady board).
-  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
+  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label,
+    // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
+    s.headline.countdown && s.headline.countdown.state, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
     s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);
 }
 

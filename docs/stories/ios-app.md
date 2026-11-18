@@ -66,6 +66,12 @@ the page bridge and the page in the app (with a fake `CommuteNative`), and the b
 - tests/native-fixtures.test.mjs: "Trip's plan for the proxy: its first train, leave time, platform allowance and start station"
 
 
+- tests/native-page.test.mjs: "Settings asks for notifications, then alarms, then Always location, and shows each answer, refusals included"
+- tests/native-bridge.test.mjs: "Offline cache: entries kept most important first within 512 KB; one that doesn't fit is left out, the rest still go"
+- tests/core/snapshot.test.mjs: "Countdown wording and its change instants come from the engine (#58): calm, urgent under 2 min, passed at the time"
+- tests/core/snapshot.test.mjs: "A countdown turning urgent or passed is a change worth sending (#58: the Live Activity keeps the last wording)"
+- tests/native-proxy.test.mjs: "The proxy sends the Live Activity an update when the countdown turns urgent, at full priority"
+
 Independent review (18 Nov): its bugs and surviving mutations (re-check at 7101bf4: satisfied; its push-volume
 finding fixed after):
 - tests/native-proxy.test.mjs: "Review: an iPhone in daily use isn't idle: following and re-registering keep it from being replaced"

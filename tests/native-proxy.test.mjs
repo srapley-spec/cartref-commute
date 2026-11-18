@@ -363,3 +363,17 @@ test("Review: an iPhone in daily use isn't idle: following and re-registering ke
   age(); await register(env, { id: me.id, token: me.token });
   assert.equal((await register(env)).status, 429, "re-registered today: kept");
 });
+
+test("The proxy sends the Live Activity an update when the countdown turns urgent, at full priority", async () => {
+  const { env } = await envWith();
+  const { body: me } = await register(env);
+  await follow(env, me);
+  await withFeeds(async ({ pushes }) => {
+    await runNative(env, at(DAY, "18:19"));
+    pushes.length = 0;
+    await runNative(env, at(DAY, "18:20") + 30e3);   // Leave by 18:22: under 2 minutes, same 2-min data bucket
+    const la = pushes.find((p) => p.headers["apns-push-type"] === "liveactivity");
+    assert.equal(la.body.aps["content-state"].headline.countdown.state, "urgent");
+    assert.equal(la.headers["apns-priority"], "10");
+  }, { board: () => gnBoard() });
+});

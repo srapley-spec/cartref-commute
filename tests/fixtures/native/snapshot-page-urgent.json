@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": false,
+  "mode": "commute",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "platform",
+  "headline": {
+    "label": "Be on platform 4 at Farringdon by",
+    "t": 1794940260000,
+    "countdown": {
+      "step": "platform",
+      "calm": "on the platform in",
+      "urgent": "Head for the platform now",
+      "passed": "platform time passed",
+      "state": "urgent",
+      "urgentAt": 1794940140000,
+      "passedAt": 1794940260000
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945120000
+  },
+  "train": null,
+  "progress": null,
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

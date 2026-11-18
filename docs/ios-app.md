@@ -237,16 +237,30 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
    `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress, staleness and a 2-minute
    bucket of `dataAt`, so fresh data is re-sent at least every 2 minutes and the stale-date never passes while the
-   data is fresh. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
+   data is fresh. **Countdowns are engine-chosen** (#58, 18 Nov): `headline.countdown` carries `state` ("calm" | "urgent"
+   | "passed" at `at`), `urgentAt` and `passedAt`. Render "<calm> <time left>" until `urgentAt`, "<urgent> · <time
+   left>" after it (strictly under 2 minutes, `COUNTDOWN_URGENT_MS`, as the page), and `passed` from `passedAt` (nothing
+   when `passed` is empty). The time left is the system timer to `headline.t`, clamped at zero. **v1 limit (agreed on
+   #58, 18 Nov):** a Live Activity can't change its words by itself at `urgentAt`/`passedAt`, so it renders the
+   `state` of the last content update; the timer keeps running offline and the wording stays as last received until
+   the next update. `countdown.state` is part of `snapshotShown`, so the page and the proxy (while watching, every
+   minute) send an update when it turns urgent or passed. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
    (Apple budgets those); a real change goes at priority 10 with the background push. Live Activity tokens are kept
    per `followId`; only the current journey's is sent.
 6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.
    Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
 7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
-   replace by key; 512 KB total; opaque to the shell. The page calls `cached()` before its first fetch, shows what it
+   replace by key; 512 KB total; opaque to the shell. Built 18 Nov: the page writes them most important first (snapshot,
+   settings, status, boards) on each new snapshot and each live board, and leaves out any entry that would pass
+   512 KB (`nativeBridge.packCache`), so the shell never receives an oversized write. Settings are restored only to a
+   device whose own settings were lost; the registration is never in them (Keychain). The page calls `cached()` before its first fetch, shows what it
    gets with its age, then refreshes. A fresh install shows "Not updated yet".
-8. **Permissions and simulation (Sam, decision C: ask for Always).** Supported vs allowed are separate fields. Settings
+8. **Permissions and simulation (Sam, decision C: ask for Always).** Built 18 Nov: Settings → iPhone app lists
+   notifications, alarms and location with their reported state ("Allowed", "Not asked yet", "While using the app
+   only…", "Refused: change it in the iPhone's Settings → Commute"); turning the leave alarm on (the first save with it
+   on) asks, in order, for each not yet asked (location again from While-in-use to Always); a button asks again for
+   what can still be asked; refusals aren't re-asked. Supported vs allowed are separate fields. Settings
    asks for notifications and then "Always" location (with the reason) when the leave alarm is first turned on, via
    `request`; refusals are shown. Geofences use region monitoring only, never continuous background tracking; with
    "When in use" the alarm still works but doesn't cancel itself while the app is closed. In a simulation the page
@@ -260,7 +274,8 @@ with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/st
 Independent review (18 Nov, 86 mutations): its four bugs are fixed and tested (a late cancellation undone; the stale-date
 not moved on; Live Activity tokens not kept per journey; a Trip starting with a tube claiming the tube's platform
 allowance and start), plus: nothing registers in a simulation, the evidence reply gives the journey's set-off state,
-a full list of 10 iPhones frees one idle for 30 days, Siri's link doesn't take over a followed Trip. Not yet: the page's own phases as fixtures (missed, switch, tube, arrived), and a Trip with changes gets no door
+a full list of 10 iPhones frees one idle for 30 days, Siri's link doesn't take over a followed Trip. Fixtures now include the page's own phases (walk, tube, missed, switched, urgent, arrived, stopped = null) and Trip
+(leave, platform). Not yet: a Trip with changes gets no door
 arrival from the proxy (only the page knows the onward rides).
 
 ## 7. Testing
@@ -284,7 +299,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
 | Journey snapshot in the engine | this repo | Released 18 Nov at `9628132` (independently reviewed); identified stops and the alarm permission added after #58 |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released 18 Nov at `9628132`; cache keeps boards and status only (snapshot/settings entries and the 512 KB cap still to do) |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Released 18 Nov at `9628132`; permission requests, snapshot/settings cache entries and the 512 KB limit on `feature/native-countdown` |
 | Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots released 18 Nov at `9628132`; unproven against Apple until the first TestFlight push; Service Details polling and `/native/next` not in v1 |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
