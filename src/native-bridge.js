@@ -120,10 +120,10 @@ const nativeBridge = (() => {
       if (!p || !has("offline") || simulating()) return [];
       try { const r = await p.cached({}); return r && Array.isArray(r.entries) ? r.entries : []; } catch (e) { return []; }
     }
-    /** Ask for a permission from Settings ("notifications", then "location" for Always); the new capabilities. */
+    /** Ask for a permission from Settings (in order: "notifications", "alarm" (AlarmKit's own), "location" for Always); the new capabilities. */
     async function request(permission) {
       const p = plugin();
-      if (!p || !caps || !["notifications", "location"].includes(permission)) return null;
+      if (!p || !caps || !["notifications", "alarm", "location"].includes(permission)) return null;
       try { await p.request({ permission }); caps = await p.capabilities(); } catch (e) { /* refused or unsupported: caps says */ }
       return caps;
     }

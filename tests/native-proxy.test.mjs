@@ -235,7 +235,8 @@ test("Scheduler: on the train, then the walk home, then the Live Activity ends a
     await runNative(env, at(DAY, "19:34") + NATIVE_END_AFTER_MS + MIN);
     const end = pushes.find(p => p.headers["apns-push-type"] === "liveactivity");
     assert.equal(end.body.aps.event, "end"); assert.ok(end.body.aps["dismissal-date"]);
-    assert.equal(pushes.find(p => p.headers["apns-push-type"] === "background").body.snapshot, null);
+    const stop = pushes.find(p => p.headers["apns-push-type"] === "background").body;
+    assert.equal(stop.snapshot, null); assert.equal(stop.followId, "f1", "the stop names its journey"); assert.ok(Number.isFinite(stop.at));
     assert.equal(rec(env, me.id).plan, null);
   });
 });
@@ -342,7 +343,8 @@ test("Review: evidence says the journey's set-off state; Wi-Fi and old reports a
   assert.equal(await ev({ kind: "wifi", place: "office", at: Date.now() }), 400);
   assert.equal(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() - 7 * 3600e3 }), 400);
   await follow(env, me, null);
-  assert.deepEqual(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() }), { ok: true, setOff: false, snapshot: null });
+  const none = await ev({ kind: "region", place: "office", event: "exit", at: Date.now() });
+  assert.deepEqual({ ...none, at: typeof none.at }, { ok: true, setOff: false, snapshot: null, followId: "f1", at: "number" }, "an identified, dated stop");
   // Fill the list, age one: the next registration takes its place.
   for (let i = 0; i < 9; i++) await register(env);
   assert.equal((await register(env)).status, 429);

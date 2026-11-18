@@ -47,7 +47,8 @@ test("Native fixtures: the APNs payloads (Live Activity update and end, backgrou
   golden("apns-liveactivity-update", apnsPayloads.liveActivity(CASES.leave, false, now));
   golden("apns-liveactivity-end", apnsPayloads.liveActivity(CASES.cancelled, true, now));
   golden("apns-background", apnsPayloads.background(CASES.leave));
-  golden("apns-background-stop", apnsPayloads.background(null));
+  golden("apns-background-stop", apnsPayloads.background(null, { followId: "f9", at: now }));
+  assert.deepEqual(apnsPayloads.background(null, { followId: "f9", at: now }), { aps: { "content-available": 1 }, snapshot: null, followId: "f9", at: now });
   golden("apns-alert", apnsPayloads.alert({ kind: "changed", tag: "leave", title: "Leave later · by 18:43", body: "The 18:56 from Farringdon is 7 min late." }));
   assert.equal(apnsPayloads.liveActivity(CASES.leave, false, now).aps["stale-date"], Math.floor(CASES.leave.staleAt / 1000));
 });
