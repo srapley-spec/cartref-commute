@@ -1,0 +1,42 @@
+{
+  "aps": {
+    "timestamp": 1794939600,
+    "event": "end",
+    "content-state": {
+      "v": 1,
+      "at": 1794939600000,
+      "source": "proxy",
+      "dataAt": 1794939570000,
+      "stale": false,
+      "staleAt": 1794939750000,
+      "confirmed": false,
+      "mode": "commute",
+      "direction": "home",
+      "followId": "f9",
+      "phase": "cancelled",
+      "headline": {
+        "label": "Cancelled",
+        "t": null,
+        "countdown": null
+      },
+      "arrive": null,
+      "train": {
+        "name": "18:56 Thameslink",
+        "from": "Farringdon",
+        "to": "Letchworth Garden City",
+        "platform": "4",
+        "scheduled": 1794941760000,
+        "expected": 1794941760000,
+        "late": 0
+      },
+      "progress": null,
+      "status": {
+        "level": "bad",
+        "text": "Cancelled"
+      },
+      "alarm": null,
+      "deepLink": "commute://follow/f9"
+    },
+    "dismissal-date": 1794940500
+  }
+}

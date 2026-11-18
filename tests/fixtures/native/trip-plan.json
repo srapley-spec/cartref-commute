@@ -1,0 +1,23 @@
+{
+  "plan": {
+    "v": 1,
+    "followId": "t1",
+    "from": "BTN",
+    "to": "CBW",
+    "std": "09:50",
+    "operator": "Southern",
+    "dep": 1794909000000,
+    "leaveBy": 1794907800000,
+    "leadMs": 1200000,
+    "train": "the 09:50 from Brighton"
+  },
+  "extra": {
+    "mode": "trip",
+    "fromName": "Brighton",
+    "toName": "Canterbury West",
+    "marginMs": 180000,
+    "afterMs": 900000,
+    "arriveLabel": "At Canterbury Cathedral",
+    "startPlace": "BTN"
+  }
+}

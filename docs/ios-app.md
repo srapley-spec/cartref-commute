@@ -198,6 +198,67 @@ alarm keep working from the newest snapshot without the page.
 - **Leave alarm:** on/off; minutes before leave (default 5).
 - **Wi-Fi:** home network names begin with (default "Panda"); office network names begin with (default "Ciklum").
 
+### 6.7 The v1 contract (18 Nov; answers to issue #58, decisions A–C by Sam)
+This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/native/` (to be generated) are binding.
+
+1. **Bridge v1.** Every call takes one object and returns a Promise; errors reject `{code, message}`; an unknown `v`
+   rejects `code: "unsupported"`. Page → shell: `capabilities()` → `{v:1, liveActivity, alarm, geofence, wifi, siri,
+   offline, appVersion, auth:{location:"always"|"whenInUse"|"denied"|"notDetermined", notifications:"granted"|"denied"|
+   "notDetermined"}}`; `ready()`; `publish({snapshot|null})`; `configure({...})`; `cache({entries})`; `cached()` →
+   `{entries}`; `request({permission:"location"|"notifications"})`. Shell → page events: `apns {token, env}`,
+   `liveActivity {followId, token}`, `wifi {place, at}`, `region {place, event:"enter"|"exit", at}`, `resume {at}`.
+   Location events use `place`. **Replay:** until `ready()`, the shell holds the latest `apns`, the latest
+   `liveActivity` per `followId` and the last 20 `wifi`/`region` events, and sends them on `ready()`.
+2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
+   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
+   [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
+   change. Swift copies no profile data. Joining a known Wi-Fi network is a position at that place (core
+   `evidenceFix`); losing one is not set off (a router restart would cancel an alarm still needed; Sam may overrule).
+   Deploy proxy passes `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` (names to be confirmed by the iOS agent
+   on #58).
+3. **Alarm cancellation offline.** The snapshot's `alarm` gains `cancelOnExit: "home"|"office"|null`: on that region's
+   exit after `snapshot.at`, the shell cancels the alarm locally (an engine-stated rule), then posts `/native/evidence`
+   (queued until online), whose reply now carries `{ok, setOff, snapshot}`. Acceptance: notifications denied → no
+   alarm, Settings says so; an alarm time already passed → not scheduled; force-quit → region monitoring still wakes
+   the app; late pushes → rule 5.
+4. **Lifecycle, all modes (Sam, decision A: Trip included in v1).** Commute, Leisure and Trip. Trip's snapshot comes
+   from Trip's own following engine (page side: the Trip follow card; proxy side: a Trip plan through the same
+   `/native/follow`, any station allowed by `ALLOW_ANY_STATION`). The snapshot gains `confirmed: boolean`: the proxy
+   never confirms boarding (after departure: "should be on the 18:56", `confirmed:false`); only the page's boarding
+   check sets it. Fixtures per phase and mode: leave, platform, train, tube, walk-last, arrived, missed, cancelled,
+   switch, stop.
+5. **Ordering, expiry, tokens, freshness.** The shell applies a snapshot only for the current `followId` and with
+   `at` ≥ the last applied (equal: the later received wins). A null snapshot or a Live Activity `end` tombstones that
+   `followId` for 1 h. A new `liveActivity` token replaces the old (page → proxy). Freshness: the snapshot carries
+   `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
+   `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress, staleness and a 2-minute
+   bucket of `dataAt`, so fresh data is re-sent at least every 2 minutes and the stale-date never passes while the
+   data is fresh. A re-send of fresher data alone goes to the Live Activity at priority 5 with no background push
+   (Apple budgets those); a real change goes at priority 10 with the background push. Live Activity tokens are kept
+   per `followId`; only the current journey's is sent.
+6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.
+   Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
+   `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
+7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
+   replace by key; 512 KB total; opaque to the shell. The page calls `cached()` before its first fetch, shows what it
+   gets with its age, then refreshes. A fresh install shows "Not updated yet".
+8. **Permissions and simulation (Sam, decision C: ask for Always).** Supported vs allowed are separate fields. Settings
+   asks for notifications and then "Always" location (with the reason) when the leave alarm is first turned on, via
+   `request`; refusals are shown. Geofences use region monitoring only, never continuous background tracking; with
+   "When in use" the alarm still works but doesn't cancel itself while the app is closed. In a simulation the page
+   never publishes, registers, caches or syncs.
+
+Built on this side (18 Nov, `feature/native-prep`): `ready`/`cached`/`request` in the bridge, `configure` with proxy,
+device and regions, `cancelOnExit`, `confirmed`, `staleAt` (and the Live Activity stale-date from it), the evidence reply
+with the snapshot, `snapshotShown` with journey/progress/boarding, and boards/status kept for offline launch. Also built
+(18 Nov): Trip snapshots (page: the Trip follow card; proxy: core `tripNativePlan`), the fixtures in
+`tests/fixtures/native/`, and the deep link (shell event `open {url}`; `commute://next?direction=home&follow=1`).
+Independent review (18 Nov, 86 mutations): its four bugs are fixed and tested (a late cancellation undone; the stale-date
+not moved on; Live Activity tokens not kept per journey; a Trip starting with a tube claiming the tube's platform
+allowance and start), plus: nothing registers in a simulation, the evidence reply gives the journey's set-off state,
+a full list of 10 iPhones frees one idle for 30 days, Siri's link doesn't take over a followed Trip. Not yet: the page's own phases as fixtures (missed, switch, tube, arrived), and a Trip with changes gets no door
+arrival from the proxy (only the page knows the onward rides).
+
 ## 7. Testing
 - **This repo's agent:** engine tests for the snapshot (every phase; stale data; alarm present, moved and cancelled);
   page tests for the bridge, with a fake `CommuteNative`; proxy tests for the native routes, the scheduler and APNs
@@ -218,9 +279,9 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Part | Owner | Status |
 |---|---|---|
 | Keys in the proxy; nothing to set up on a device | this repo | Released 17 Nov at `af09273`; Tests, Pages and Deploy proxy green |
-| Journey snapshot in the engine | this repo | Not started |
-| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Not started |
-| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Not released; draft on `feature/native-prep`, contract questions in #58 |
+| Journey snapshot in the engine | this repo | Built to the §6.7 contract on `feature/native-prep` (18 Nov); independent review, then release |
+| Page bridge (`src/native-bridge.js`), new Settings, cache hand-off | this repo | Bridge built into the page, publish/configure/evidence/Settings tested with a fake shell on `feature/native-prep` (18 Nov); cache hand-off not wired; not merged |
+| Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots built and tested on `feature/native-prep`; Service Details polling and `/native/next` not built; the #58 contract questions are still open; not merged |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
 | Capacitor shell and TestFlight pipeline | iOS agent | Implemented on iOS branch; signed export and Apple validation pass; combined release checks in progress |

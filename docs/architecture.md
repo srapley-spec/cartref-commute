@@ -369,6 +369,8 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **18 Nov, the iPhone app's v1 contract (Sam: Trip included; Siri opens the app to follow; ask for "Always" location
+  for geofences).** Answers the iOS agent's questions in #58: `ios-app.md` §6.7.
 - **17 Nov, a bundled iPhone shell and internal TestFlight (Sam).** The Apple project lives under `ios/`, reusing
   the exact committed page and Capacitor 8.6.2, with iOS 27 minimum. No journey logic moves into Swift. Native
   simulator validation joins Tests; a separate workflow uploads each successful main push's exact SHA, with a

@@ -1,0 +1,48 @@
+{
+  "v": 1,
+  "at": 1794941100000,
+  "source": "proxy",
+  "dataAt": 1794941070000,
+  "stale": false,
+  "staleAt": 1794941250000,
+  "confirmed": false,
+  "mode": "commute",
+  "direction": "home",
+  "followId": "f9",
+  "phase": "platform",
+  "headline": {
+    "label": "Be on platform 4 at Farringdon by",
+    "t": 1794941640000,
+    "countdown": {
+      "step": "platform",
+      "calm": "on the platform in",
+      "urgent": "Head for the platform now",
+      "passed": "platform time passed"
+    }
+  },
+  "arrive": {
+    "label": "At home",
+    "t": 1794945540000
+  },
+  "train": {
+    "name": "18:56 Thameslink",
+    "from": "Farringdon",
+    "to": "Letchworth Garden City",
+    "platform": "4",
+    "scheduled": 1794941760000,
+    "expected": 1794942180000,
+    "late": 7
+  },
+  "progress": null,
+  "status": {
+    "level": "warn",
+    "text": "7 min late"
+  },
+  "alarm": {
+    "at": 1794940680000,
+    "leadMin": 5,
+    "cancelled": true,
+    "cancelOnExit": "office"
+  },
+  "deepLink": "commute://follow/f9"
+}

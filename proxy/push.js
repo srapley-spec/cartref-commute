@@ -37,9 +37,9 @@ export function londonShift(now) {
   return Math.round((london - runtime) / 60e3) * 60e3;
 }
 
-async function sha256(s) { return b64u.encode(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))); }
-const str = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
-const stationOk = (env, crs, allowed) => CRS.test(crs) && (env.ALLOW_ANY_STATION === "yes" || allowed.has(crs));
+export async function sha256(s) { return b64u.encode(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))); }
+export const str = (v, max) => typeof v === "string" && v.length > 0 && v.length <= max;
+export const stationOk = (env, crs, allowed) => CRS.test(crs) && (env.ALLOW_ANY_STATION === "yes" || allowed.has(crs));
 
 /** A morning config as the page sends it, checked; null if absent or malformed. */
 export function cleanMorning(m, env, allowed) {
@@ -65,7 +65,7 @@ export function cleanPlan(p, env, allowed, now) {
     dep: p.dep, leaveBy: p.leaveBy, leadMs: p.leadMs, train: p.train };
 }
 
-async function body(request) {
+export async function body(request) {
   const t = await request.text();
   if (t.length > 8192) return null;
   try { return JSON.parse(t); } catch (e) { return null; }
@@ -135,7 +135,7 @@ export async function pushRoute(request, env, cors, url, allowed) {
 
 const stripTags = h => String(h || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 /** A live board through Rail Data Marketplace, parsed by the engine at London time `lnow`; null if it fails. */
-async function board(env, from, to, lnow) {
+export async function board(env, from, to, lnow) {
   const base = String(env.RDM_BASE || "").trim().replace(/\/+$/, "");
   if (!base || !env.RDM_KEY) return null;
   try {
@@ -145,9 +145,9 @@ async function board(env, from, to, lnow) {
     return C.parseDarwinBoard(await r.json(), from, to, lnow, stripTags);
   } catch (e) { return null; }
 }
-const shiftPlan = (p, d) => ({ ...p, dep: p.dep + d, leaveBy: p.leaveBy + d });
+export const shiftPlan = (p, d) => ({ ...p, dep: p.dep + d, leaveBy: p.leaveBy + d });
 // State instants (lastLeaveBy, lastDep) are stored in real time and shifted like the plan.
-const shiftState = (s, d) => {
+export const shiftState = (s, d) => {
   const out = { ...(s || {}) };
   for (const k of ["lastLeaveBy", "lastDep"]) if (Number.isFinite(out[k])) out[k] += d;
   return out;

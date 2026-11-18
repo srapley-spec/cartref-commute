@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 06:10 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 08:46 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -921,6 +921,17 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
         <p class="hint">Nothing to set up: no keys are kept on this device. They live with the app's proxy (Sam, 17 Nov).</p>
         <p class="hint" id="proxyStatus" aria-live="polite"></p>
       </div>
+    </fieldset>
+    <fieldset id="nativeSettings" data-native="alarm" hidden>
+      <legend>iPhone app</legend>
+      <label class="f"><span><input type="checkbox" id="s_leaveAlarm"> Leave alarm for a followed journey</span></label>
+      <label class="f">Minutes before Leave by<input type="number" id="s_leaveAlarmMin" min="0" max="60" step="1"></label>
+      <div class="f wide" data-native="wifi" hidden>
+        <label class="f">Home Wi-Fi names start with<input type="text" id="s_wifiHome" autocomplete="off"></label>
+        <label class="f">Office Wi-Fi names start with<input type="text" id="s_wifiOffice" autocomplete="off"></label>
+        <p class="hint">Joining one says where you are; the name stays on the phone. Separate several with commas.</p>
+      </div>
+      <p class="hint" id="nativeStatus" aria-live="polite"></p>
     </fieldset>
 
     <fieldset>
@@ -1159,9 +1170,11 @@ var CommuteCore = (() => {
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
     BLOCKS: () => BLOCKS,
+    COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
     DEFAULT_DISRUPTION_POLICY: () => DEFAULT_DISRUPTION_POLICY,
     EFFORTS: () => EFFORTS,
     ENGINE_VERSION: () => ENGINE_VERSION,
+    EVIDENCE_SKEW_MS: () => EVIDENCE_SKEW_MS,
     FACILITY: () => FACILITY,
     FOLLOW_BETTER_MIN: () => FOLLOW_BETTER_MIN,
     FOLLOW_CHANGE_MS: () => FOLLOW_CHANGE_MS,
@@ -1175,6 +1188,8 @@ var CommuteCore = (() => {
     FOLLOW_TUBE_FRESH_MS: () => FOLLOW_TUBE_FRESH_MS,
     LATE_BAD_MIN: () => LATE_BAD_MIN,
     LATE_WARN_MIN: () => LATE_WARN_MIN,
+    LEAVE_ALARM_DEFAULT_MIN: () => LEAVE_ALARM_DEFAULT_MIN,
+    LEAVE_ALARM_GRACE_MS: () => LEAVE_ALARM_GRACE_MS,
     LEAVE_ALERT_CHANGE_MS: () => LEAVE_ALERT_CHANGE_MS,
     LEAVE_ALERT_GRACE_MS: () => LEAVE_ALERT_GRACE_MS,
     LEAVE_ALERT_MAX_MS: () => LEAVE_ALERT_MAX_MS,
@@ -1191,6 +1206,9 @@ var CommuteCore = (() => {
     REUSE: () => REUSE,
     RUN_SLACK_MS: () => RUN_SLACK_MS,
     SERVICE: () => SERVICE,
+    SNAPSHOT_REFRESH_MS: () => SNAPSHOT_REFRESH_MS,
+    SNAPSHOT_STALE_MS: () => SNAPSHOT_STALE_MS,
+    SNAPSHOT_VERSION: () => SNAPSHOT_VERSION,
     STATION_EXPECTED_SLACK_MS: () => STATION_EXPECTED_SLACK_MS,
     STATION_MARGIN_KM: () => STATION_MARGIN_KM,
     STATION_MAX_ACC_M: () => STATION_MAX_ACC_M,
@@ -1206,6 +1224,7 @@ var CommuteCore = (() => {
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
+    WIFI_ACCURACY_M: () => WIFI_ACCURACY_M,
     accessOf: () => accessOf,
     acknowledgeFollowNotice: () => acknowledgeFollowNotice,
     addCallingAlternatives: () => addCallingAlternatives,
@@ -1261,6 +1280,8 @@ var CommuteCore = (() => {
     effortKey: () => effortKey,
     effortNeeds: () => effortNeeds,
     effortOffers: () => effortOffers,
+    evidenceFix: () => evidenceFix,
+    evidenceSetOff: () => evidenceSetOff,
     facilityOnly: () => facilityOnly,
     fastWalkLegs: () => fastWalkLegs,
     findPlannedTrain: () => findPlannedTrain,
@@ -1291,10 +1312,12 @@ var CommuteCore = (() => {
     journeyFlags: () => journeyFlags,
     journeyProgress: () => journeyProgress,
     journeyRemainingMs: () => journeyRemainingMs,
+    journeySnapshot: () => journeySnapshot,
     journeySteps: () => journeySteps,
     journeyTimes: () => journeyTimes,
     keepEveryRoute: () => keepEveryRoute,
     km: () => km,
+    leaveAlarm: () => leaveAlarm,
     leaveAlertExpired: () => leaveAlertExpired,
     leaveAlertPlan: () => leaveAlertPlan,
     leaveAlertStep: () => leaveAlertStep,
@@ -1345,11 +1368,13 @@ var CommuteCore = (() => {
     plannable: () => plannable,
     plannerCacheKey: () => plannerCacheKey,
     platformBy: () => platformBy,
+    platformLabelText: () => platformLabelText,
     platformNo: () => platformNo,
     profiles: () => profiles,
     progressContextCurrent: () => progressContextCurrent,
     progressLegsFromSteps: () => progressLegsFromSteps,
     promote: () => promote,
+    proxySnapshot: () => proxySnapshot,
     railDelayLevel: () => railDelayLevel,
     railStationBoard: () => railStationBoard,
     railTrackingContext: () => railTrackingContext,
@@ -1384,7 +1409,9 @@ var CommuteCore = (() => {
     searchRoutes: () => searchRoutes,
     segmentArrival: () => segmentArrival,
     serviceFlags: () => serviceFlags,
+    shiftSnapshot: () => shiftSnapshot,
     significantLineDisruption: () => significantLineDisruption,
+    snapshotShown: () => snapshotShown,
     standingRoomOnly: () => standingRoomOnly,
     startFollowRoute: () => startFollowRoute,
     startFollowTrip: () => startFollowTrip,
@@ -1417,6 +1444,7 @@ var CommuteCore = (() => {
     tripConfig: () => tripConfig,
     tripDepartureBoard: () => tripDepartureBoard,
     tripJourneyFacts: () => tripJourneyFacts,
+    tripNativePlan: () => tripNativePlan,
     tripPhase: () => tripPhase,
     tripRecoveryStart: () => tripRecoveryStart,
     tripRideTimingUsable: () => tripRideTimingUsable,
@@ -5769,6 +5797,173 @@ var CommuteCore = (() => {
     };
   }
 
+  // src/core/snapshot.ts
+  var SNAPSHOT_VERSION = 1;
+  var SNAPSHOT_STALE_MS = 3 * 6e4;
+  var SNAPSHOT_REFRESH_MS = 2 * 6e4;
+  var LEAVE_ALARM_GRACE_MS = 2 * 6e4;
+  var LEAVE_ALARM_DEFAULT_MIN = 5;
+  var COUNTDOWN_WORDS = {
+    leave: { calm: "leave in", urgent: "Leave now", passed: "leave time passed" },
+    platform: { calm: "on the platform in", urgent: "Head for the platform now", passed: "platform time passed" },
+    arrive: { calm: "arrives in", urgent: "Arriving", passed: "" },
+    next: { calm: "in", urgent: "Now", passed: "" }
+  };
+  var fin = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  function platformLabelText(platform, station) {
+    return `Be on ${platform ? `platform ${platform}` : "the platform"}${station ? ` at ${station}` : ""} by`;
+  }
+  function leaveAlarm(leaveAt, opts) {
+    if (!opts.enabled || !fin(leaveAt)) return null;
+    const leadMin = fin(opts.leadMin) && opts.leadMin >= 0 && opts.leadMin <= 60 ? Math.round(opts.leadMin) : LEAVE_ALARM_DEFAULT_MIN;
+    const at = leaveAt - leadMin * 6e4;
+    const cancelOnExit = opts.startPlace === "home" || opts.startPlace === "office" ? opts.startPlace : null;
+    if (opts.setOff) return { at, leadMin, cancelled: true, cancelOnExit };
+    if (opts.now > leaveAt + LEAVE_ALARM_GRACE_MS) return null;
+    return { at, leadMin, cancelled: false, cancelOnExit };
+  }
+  function journeySnapshot(i) {
+    const dataAt = fin(i.dataAt) ? i.dataAt : null;
+    const words = i.headline.step ? COUNTDOWN_WORDS[i.headline.step] : null;
+    const progress = i.progress && (i.progress.next || fin(i.progress.stopsToGo) || i.progress.line) ? {
+      next: i.progress.next || null,
+      stopsToGo: fin(i.progress.stopsToGo) ? i.progress.stopsToGo : null,
+      line: i.progress.line || [i.progress.next ? `Next: ${i.progress.next}` : "", fin(i.progress.stopsToGo) ? `${i.progress.stopsToGo} stop${i.progress.stopsToGo === 1 ? "" : "s"}` : ""].filter(Boolean).join(" \xB7 ")
+    } : null;
+    return {
+      v: SNAPSHOT_VERSION,
+      at: i.now,
+      source: i.source,
+      dataAt,
+      stale: dataAt == null || i.now - dataAt > SNAPSHOT_STALE_MS,
+      staleAt: dataAt == null ? null : dataAt + SNAPSHOT_STALE_MS,
+      confirmed: i.source === "page" && !!i.confirmed,
+      mode: i.mode,
+      direction: i.direction,
+      followId: i.followId || null,
+      phase: i.phase,
+      headline: { label: i.headline.label, t: fin(i.headline.t) ? i.headline.t : null, countdown: words ? { step: i.headline.step, ...words } : null },
+      arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
+      train: i.train || null,
+      progress,
+      status: i.status || null,
+      alarm: i.alarm || null,
+      deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null
+    };
+  }
+  function proxySnapshot(plan, state, observed, opts) {
+    const now = opts.now;
+    const live = observed && !observed.depUnknown && fin(observed.dep) ? observed : null;
+    const dep = live ? live.dep : fin(state.lastDep) ? state.lastDep : plan.dep;
+    const late = live ? live.depLate || 0 : state.lastLate || 0;
+    const scheduled = dep - late * 6e4;
+    const leaveBy2 = dep - plan.leadMs;
+    const margin = fin(plan.marginMs) && plan.marginMs >= 0 ? plan.marginMs : 0;
+    const platformAt = platformBy({ before: [{ kind: "margin", secs: margin / 1e3 }] }, dep, now, scheduled);
+    const arr = live && fin(live.arr) ? live.arr : fin(state.lastArr) ? state.lastArr : null;
+    const platform = observed && observed.platform || state.lastPlatform || null;
+    const doorArrive = arr != null && fin(plan.afterMs) ? arr + plan.afterMs : null;
+    const status = observed ? trainStatus(observed) || (late >= 1 ? delayStatus(late) : null) : fin(state.lastDep) ? { ...delayStatus(late), text: `${delayStatus(late).text}, last known` } : { level: "info", text: "No live times" };
+    const base = {
+      now,
+      source: "proxy",
+      dataAt: opts.dataAt,
+      mode: plan.mode || "commute",
+      direction: plan.direction || (plan.mode === "trip" ? null : "home"),
+      followId: plan.followId,
+      train: { name: `${plan.std} ${plan.operator || "train"}`, from: plan.fromName || plan.from, to: plan.toName || plan.to, platform, scheduled, expected: live ? dep : null, late },
+      status
+    };
+    if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
+    const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
+    if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
+    if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
+    const alarm = leaveAlarm(leaveBy2, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now, startPlace: plan.startPlace });
+    if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
+    return journeySnapshot({ ...base, phase: "leave", headline: { label: "Leave by", t: leaveBy2, step: "leave" }, arrive: arriveOut, alarm });
+  }
+  function shiftSnapshot(s, d) {
+    const m = (t2) => t2 == null ? t2 : t2 + d;
+    return {
+      ...s,
+      at: s.at + d,
+      dataAt: m(s.dataAt),
+      staleAt: m(s.staleAt),
+      headline: { ...s.headline, t: m(s.headline.t) },
+      arrive: s.arrive && { ...s.arrive, t: m(s.arrive.t) },
+      train: s.train && { ...s.train, scheduled: m(s.train.scheduled), expected: m(s.train.expected) },
+      alarm: s.alarm && { ...s.alarm, at: s.alarm.at + d }
+    };
+  }
+  function snapshotShown(s, withRefresh = true) {
+    if (!s) return "none";
+    return JSON.stringify([
+      s.followId,
+      s.phase,
+      s.confirmed,
+      s.progress && s.progress.line,
+      !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
+      s.headline.label,
+      s.headline.t,
+      s.arrive && s.arrive.t,
+      s.train && [s.train.platform, s.train.expected, s.train.late],
+      s.status && s.status.text,
+      s.alarm && [s.alarm.at, s.alarm.cancelled],
+      s.stale
+    ]);
+  }
+  var EVIDENCE_SKEW_MS = 6e4;
+  var WIFI_ACCURACY_M = 50;
+  function evidenceSetOff(ev, startPlace, startedAt, now) {
+    if (!ev || !startPlace || !fin(ev.at)) return false;
+    return ev.kind === "region" && ev.event === "exit" && ev.place === startPlace && ev.at >= startedAt - EVIDENCE_SKEW_MS && ev.at <= now + EVIDENCE_SKEW_MS;
+  }
+  function evidenceFix(ev, places, now, radiusM = 150) {
+    if (!ev || !fin(ev.at) || ev.at > now + EVIDENCE_SKEW_MS) return null;
+    const p = places[ev.place];
+    if (!p || !fin(p[0]) || !fin(p[1])) return null;
+    if (ev.kind === "wifi" && (ev.place === "home" || ev.place === "office")) return { lat: p[0], lon: p[1], acc: WIFI_ACCURACY_M, at: Math.min(ev.at, now) };
+    if (ev.kind === "region" && ev.event === "enter") return { lat: p[0], lon: p[1], acc: Math.max(50, Math.round(radiusM)), at: Math.min(ev.at, now) };
+    return null;
+  }
+  function tripNativePlan(route, std) {
+    const j = route && route.journey;
+    if (!j || !Array.isArray(j.rides)) return null;
+    const ride = j.rides.find((r) => r.kind === "rail");
+    const first = !!ride && j.rides[0] === ride;
+    if (!ride || ride.cancelled || !fin(ride.dep) || !fin(j.leave) || j.leave > ride.dep) return null;
+    const t2 = ride.train;
+    const s = t2 && t2.std || std(fin(ride.schedDep) ? ride.schedDep : ride.dep);
+    const before = Array.isArray(j.before) ? j.before : [];
+    const plat = [...before].reverse().find((x) => x.kind === "station");
+    const after = j.rides.slice(j.rides.indexOf(ride) + 1);
+    return {
+      plan: {
+        v: 1,
+        followId: route.id,
+        serviceId: t2 && t2.serviceId,
+        from: ride.from.crs,
+        to: ride.to.crs,
+        std: s,
+        operator: ride.operator || t2 && t2.operator || void 0,
+        dep: ride.dep,
+        leaveBy: j.leave,
+        leadMs: ride.dep - j.leave,
+        train: `the ${s} from ${ride.from.name}`
+      },
+      extra: {
+        mode: "trip",
+        fromName: ride.from.name,
+        toName: ride.to.name,
+        marginMs: first && plat && fin(plat.secs) ? plat.secs * 1e3 : 0,
+        // With more rides after this one, the door arrival isn't this ride's arrival plus a fixed walk: leave it unknown.
+        afterMs: after.length === 0 && fin(j.arrive) && fin(ride.arr) ? Math.max(0, j.arrive - ride.arr) : void 0,
+        arriveLabel: `At ${j.to && j.to.name || j.toStation.name}`,
+        ...first ? { startPlace: ride.from.crs } : {}
+      }
+    };
+  }
+
   // src/core/index.ts
   var profiles = { samCommute };
   var ENGINE_VERSION = "1";
@@ -6715,7 +6910,7 @@ function journeyHeadlineMarkup(j,dest,timing=''){
 // `step` names what the left time is the start of (leave, platform, arrive, next): it counts down in that step's words.
 function journeyTimesMarkup({leave,arrive,dest,available=true,pace='',timing='',countdown='',leftLabel='Leave by',isLeave=true,step=isLeave?'leave':''}){
   const known=available&&Number.isFinite(leave),arrival=available&&Number.isFinite(arrive),counts=known&&!!step;
-  return `<div class="journey-heading"${known&&isLeave?` data-fact="leave-by" data-ms="${leave}"`:''}>
+  return `<div class="journey-heading"${known&&isLeave?` data-fact="leave-by" data-ms="${leave}"`:''} data-left="${known?leave:''}" data-arrive="${arrival?arrive:''}" data-step="${counts?esc(step):''}">
     <div class="optrow journey-times">
       <div><small>${esc(leftLabel)}</small><span class="t optbig${known?'':' word'}">${known?hhmm(leave):'Unavailable'}</span></div>
       <div class="optarrow" aria-hidden="true">→</div>
@@ -7547,6 +7742,8 @@ document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTM
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
   try{ leaveAlerts.sync(); }catch(e){}
+  try{ native.sync(); }catch(e){}
+  queueMicrotask(()=>{ try{ native.publish(); }catch(e){} });   // after this render has drawn the followed card
   try{ syncPick(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
@@ -7671,12 +7868,7 @@ function renderInner(){
   const rc=requestCounts();
   $("#updated").textContent = (state.fetchedAt ? `Updated ${hhmm(state.fetchedAt)}` : (state.loading?"Updating…":"Not updated yet")) + ` · requests in the last minute: TfL ${rc.tfl}${rc.other?`, National Rail ${rc.other}`:""}`;
 }
-const COUNTDOWN_WORDS={
-  leave:{calm:'leave in',urgent:'Leave now',passed:'leave time passed'},
-  platform:{calm:'on the platform in',urgent:'Head for the platform now',passed:'platform time passed'},
-  arrive:{calm:'arrives in',urgent:'Arriving',passed:''},
-  next:{calm:'in',urgent:'Now',passed:''},
-};
+const COUNTDOWN_WORDS=C.COUNTDOWN_WORDS;   // the engine's, shared with the iPhone app (core snapshot.ts)
 function tick(){
   const now=Date.now();
   document.querySelectorAll('[data-remaining]').forEach(e=>{
@@ -7699,7 +7891,7 @@ function tick(){
 
 // ---------- Data refresh ----------
 // Successful train data is stamped; when a later load fails the last good data stays on screen, marked stale.
-function setBoards(b,retained=[]){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); state.followFailedBoards=retained; }
+function setBoards(b,retained=[]){ state.boards=b; state.boardsAt=Date.now(); state.boardsSource=state.railSource; state.boardsDir=direction(); state.followFailedBoards=retained; if(S().provider==="proxy") try{ nativeCacheNow(); }catch(e){} }
 const boardsFit = b => !!b && boardKeys().every(k=>k in b);
 async function loadTflTimetable(prev){
  const epoch=sourceEpoch;
@@ -11016,6 +11208,242 @@ const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, 
   followed:()=>S().followRoute?C.restoreFollowRoute(state.saved.followRoute):null,
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   win:window, status:t=>{ const el=$("#alertsStatus"); if(el) el.textContent=t; } });
+// ---------- The iPhone app (docs/ios-app.md §6.2; nothing happens in a browser) ----------
+// The page's side of the iPhone app (docs/ios-app.md §6.2, docs/stories/ios-app.md). In a browser there is no
+// shell and every call here does nothing; in the bundled iPhone app the Capacitor plugin `CommuteNative` is present
+// and this is the only code that talks to it. The page decides nothing here: the snapshot comes from the engine
+// (core journeySnapshot), the shell only shows it, and the proxy (proxy/native.js) keeps it current while closed.
+//
+// The v1 contract is docs/ios-app.md §6.7. Page → shell (one object each): capabilities(), ready(),
+// publish({snapshot}), configure({v, proxy, device, alarm, wifi, regions}), cache({entries}), cached(),
+// request({permission}). Shell → page (events, replayed on ready()): apns {token, env}, liveActivity {followId, token},
+// wifi {place, at}, region {place, event, at}, resume {at}, open {url}.
+const nativeBridge = (() => {
+  const RETRY_MS = 60e3;
+  const ok = (x) => x && typeof x === "object";
+  /**
+   * deps: win, core (C), S() settings, saved() → state.saved, save(), proxyBase() → the proxy's address, snapshot() →
+   * the engine's snapshot of what the journey card shows (or null), followPlan() → {plan, extra, setOff} for the
+   * proxy (or null), simulating() → true in a simulation, onEvidence(ev) → the page takes a fix or a set-off,
+   * onResume(), onCached(entries), status(text) for Settings.
+   */
+  function create(deps) {
+    const { win, core, S, saved, save, simulating } = deps;
+    const plugin = () => {
+      const cap = win.Capacitor;
+      if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
+      return (cap.Plugins && cap.Plugins.CommuteNative) || null;
+    };
+    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
+    const laTokens = {};
+    const has = (k) => !!(caps && caps[k]);
+    const base = () => String(deps.proxyBase() || "").trim().replace(/\/+$/, "");
+    const ids = () => { const n = saved().native; return n && n.id && n.token ? { id: n.id, token: n.token } : null; };
+
+    async function call(path, body) {
+      const ctl = new win.AbortController(), timer = win.setTimeout(() => ctl.abort(), 10000);
+      try {
+        const r = await win.fetch(base() + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+        let j = null; try { j = await r.json(); } catch (e) { /* no body */ }
+        if (!r.ok) { const e = new Error((j && j.error) || `HTTP ${r.status}`); e.status = r.status; throw e; }
+        return j;
+      } finally { win.clearTimeout(timer); }
+    }
+    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN });
+    const prefixes = (v, dflt) => String(v == null ? dflt : v).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
+    /**
+     * What the shell is told (§6.7 rule 2): the proxy and this iPhone's registration (kept in Keychain), the alarm, the
+     * Wi-Fi names to classify (never sent anywhere else), and the geofences (home and office, 150 m, only while the
+     * alarm is on).
+     */
+    const config = (s = S()) => {
+      const alarm = prefs(s);
+      return { v: 1, proxy: { origin: base() }, device: ids(), alarm, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
+        regions: alarm.alarm && deps.regions ? deps.regions() : [] };
+    };
+    const configure = () => { const p = plugin(); if (!p || !caps) return null; try { return Promise.resolve(p.configure(config())).catch(() => null); } catch (e) { return null; } };
+
+    async function register() {
+      if (!apns || !base() || simulating()) return null;
+      try {
+        const r = await call("/native/register", { apnsToken: apns.token, env: apns.env, prefs: prefs(), ...(ids() || {}) });
+        saved().native = { id: r.id, token: r.token }; save();
+        lastFollowKey = null; configure();
+        return r;
+      } catch (e) { deps.status(`The iPhone app couldn't reach your proxy: ${e.message}`); return null; }
+    }
+    /** Start: ask the shell what it can do, listen to it, and tell it the Settings. Safe to call in a browser. */
+    async function init() {
+      const p = plugin();
+      if (!p) return null;
+      try { caps = await p.capabilities(); } catch (e) { caps = null; return null; }
+      if (!ok(caps)) { caps = null; return null; }
+      if (!listening && typeof p.addListener === "function") {
+        listening = true;
+        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
+        p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
+        for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
+        p.addListener("resume", () => deps.onResume && deps.onResume());
+        // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
+        p.addListener("open", (e) => { if (ok(e) && typeof e.url === "string" && !simulating()) deps.onOpen && deps.onOpen(e.url); });
+      }
+      try { await p.configure(config()); } catch (e) { /* an older shell: it keeps its own defaults */ }
+      // Listening: the shell now replays what it held (the APNs token, Live Activity tokens, recent Wi-Fi/region).
+      try { if (typeof p.ready === "function") await p.ready({ v: 1 }); } catch (e) { /* ignore */ }
+      return caps;
+    }
+    /** After each render: the snapshot to the shell when what it shows changed (cheap when nothing did). */
+    function publish() {
+      const p = plugin();
+      if (!p || !caps || simulating()) return null;
+      const snap = deps.snapshot();
+      const shown = core.snapshotShown(snap);
+      if (shown === lastShown) return null;
+      lastShown = shown;
+      try { return Promise.resolve(p.publish({ snapshot: snap })).catch(() => { lastShown = null; }); } catch (e) { lastShown = null; return null; }
+    }
+    /** The followed journey to the proxy (so it keeps the Live Activity and alarm current while the app is closed). */
+    function sync() {
+      const who = ids();
+      if (!who || !caps || simulating() || Date.now() < retryAt) return null;
+      const f = deps.followPlan();
+      const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
+      const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";
+      if (key === lastFollowKey) return null;
+      lastFollowKey = key;
+      return call("/native/follow", { ...who, plan: plan || null, ...(plan ? { extra: f.extra, setOff: !!f.setOff, ...(laToken ? { laToken } : {}) } : {}) }).catch((e) => {
+        // The proxy no longer knows this iPhone: register again; the journey goes on the next try (no loop).
+        if (e.status === 403) { delete saved().native; save(); lastFollowKey = null; retryAt = Date.now() + RETRY_MS; return register(); }
+        if (e.status === 400) return;
+        lastFollowKey = null; retryAt = Date.now() + RETRY_MS;
+      });
+    }
+    /** What to keep for a launch with no signal (the last boards, status and snapshot, each with its time). */
+    function cache(entries) {
+      const p = plugin();
+      if (!p || !has("offline") || simulating()) return null;
+      try { return Promise.resolve(p.cache({ entries })).catch(() => null); } catch (e) { return null; }
+    }
+    /** What the shell kept for a launch with no signal (§6.7 rule 7); [] in a browser or on any error. */
+    async function cached() {
+      const p = plugin();
+      if (!p || !has("offline") || simulating()) return [];
+      try { const r = await p.cached({}); return r && Array.isArray(r.entries) ? r.entries : []; } catch (e) { return []; }
+    }
+    /** Ask for a permission from Settings ("notifications", then "location" for Always); the new capabilities. */
+    async function request(permission) {
+      const p = plugin();
+      if (!p || !caps || !["notifications", "location"].includes(permission)) return null;
+      try { await p.request({ permission }); caps = await p.capabilities(); } catch (e) { /* refused or unsupported: caps says */ }
+      return caps;
+    }
+    /** Settings or home changed: the shell gets the new settings and geofences; the proxy the new alarm. */
+    function onSave() {
+      const p = plugin();
+      if (!p || !caps) return null;
+      configure();
+      return ids() ? register() : null;
+    }
+    return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+  }
+  return { create, RETRY_MS };
+})();
+
+
+// The followed journey's last plan is kept once you're on the train (leaveAlertPlan ends at boarding), so the proxy
+// keeps the Live Activity going while the app is closed; it goes when you stop following.
+let nativeLastPlan=null;
+function nativeRoute(){ return S().followRoute&&state.saved.followRoute?C.restoreFollowRoute(state.saved.followRoute):null; }
+// Trip (Sam, 18 Nov: Trip in v1) has its own following engine and card; its plan comes from core tripNativePlan.
+const nativeTrip=()=>tripActive()&&state.saved.tripMode&&state.saved.tripMode.follow&&state.saved.tripMode.follow.journey?state.saved.tripMode.follow:null;
+const nativeHeading=()=>{ const el=nativeTrip()?$("#tripRoot .trip-follow-card .journey-heading"):(!$("#followPanel").hidden&&$("#followPanel .journey-heading")); return el||null; };
+function nativeFollowPlan(){
+  const trip=nativeTrip(), r=trip?null:nativeRoute();
+  if(!trip&&!r){ nativeLastPlan=null; return null; }
+  const id=trip?trip.id:r.id;
+  let fresh=null;
+  if(trip) fresh=C.tripNativePlan(trip,hhmm);
+  else {
+    const plan=C.leaveAlertPlan(r,{...STATIONS,...HUB_NAME});
+    if(plan){
+      const o=r.option||{}, t=o.train||{}, before=Array.isArray(o.before)?o.before:[], last=before[before.length-1];
+      fresh={plan,extra:{mode:r.mode,direction:r.direction,fromName:STATIONS[t.from]||HUB_NAME[t.from]||t.from,toName:STATIONS[t.to]||HUB_NAME[t.to]||t.to,
+        marginMs:last&&last.kind==='margin'&&Number.isFinite(last.secs)?last.secs*1000:0,afterMs:Number.isFinite(o.arrive)&&Number.isFinite(t.arr)?Math.max(0,o.arrive-t.arr):undefined,
+        arriveLabel:r.direction==='office'?'At office':'At home',startPlace:r.direction==='office'?'home':'office'}};
+    }
+  }
+  // The plan is kept once you're on the train (it stops being made at boarding), so the closed-app Live Activity goes on.
+  if(fresh) nativeLastPlan=fresh; else if(nativeLastPlan&&nativeLastPlan.plan.followId!==id) nativeLastPlan=null;
+  if(!nativeLastPlan) return null;
+  let setOff=false;
+  try{ setOff=trip?(C.followedTripPhase(trip,Date.now()).phase!=='before'||(nativeHeading()||{dataset:{}}).dataset.step==='platform'):(r.phase!=='before-train'||!!followSetOffNow()); }catch(e){}
+  return {...nativeLastPlan,setOff};
+}
+// The snapshot is what the followed card shows: its first heading's times and words, the route's phase and train.
+function nativeSnapshot(){
+  const trip=nativeTrip(), r=trip?null:nativeRoute();
+  if(!trip&&!r) return null;
+  const h=nativeHeading(); if(!h) return null;
+  const smalls=[...h.querySelectorAll(".journey-times small")].map(x=>x.textContent.trim());
+  const num=v=>v===''||v==null?null:Number(v), step=h.dataset.step||'';
+  let phase, t, confirmed, mode, dir, id;
+  if(trip){
+    const p=C.followedTripPhase(trip,Date.now()), rides=trip.journey.rides||[], ride=rides[p.ride]||rides.find(x=>x.kind==='rail');
+    phase=p.phase==='arrived'?'arrived':p.phase==='final'?'walk-last':p.phase==='ride'?(ride&&ride.kind==='tube'?'tube':'train'):p.phase==='change'?'walk'
+      :step==='platform'?'platform':step==='leave'?'leave':'walk';
+    const rail=rides.find(x=>x.kind==='rail');
+    t=rail?{...(rail.train||{}),from:rail.from.crs,to:rail.to.crs,std:(rail.train&&rail.train.std)||hhmm(rail.schedDep),dep:rail.dep,depLate:Math.max(0,Math.round((rail.dep-rail.schedDep)/60e3)),platform:rail.platform||null,operator:rail.operator,cancelled:!!rail.cancelled,_names:[rail.from.name,rail.to.name]}:null;
+    confirmed=(trip.confirmed||[]).length>0||trip.activeRide!=null; mode='trip'; dir=null; id=trip.id;
+  } else {
+    phase=r.incident==='cancelled'?'cancelled':r.incident==='missed'?'missed':r.phase==='arrived'?'arrived':r.phase==='on-train'?'train':r.phase==='after-train'?'walk-last'
+      :step==='platform'?'platform':step==='leave'?'leave':'walk';
+    t=r.lastTrain||(r.option&&r.option.train)||null;
+    // Boarding is confirmed only by the page's own boarding check (the route is on or past the train).
+    confirmed=['on-train','after-train','arrived'].includes(r.phase); mode=r.mode; dir=r.direction; id=r.id;
+  }
+  const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan;
+  const nm=c=>STATIONS[c]||HUB_NAME[c]||c;
+  return C.journeySnapshot({now:Date.now(),source:"page",dataAt:state.fetchedAt||(trip?Date.now():null),mode,direction:dir,followId:id,phase,confirmed,
+    headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
+    train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
+      scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
+    status:status?{level:status.level,text:status.text}:null,
+    alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
+}
+// Siri (Sam, 18 Nov: Siri opens the app to follow): commute://next?direction=home|office shows that direction now;
+// &follow=1 then follows the card's best train, exactly as tapping its Follow button. Anything else is ignored.
+function nativeOpen(url){
+  const m=/^commute:\/\/next\?(.*)$/.exec(String(url||"")); if(!m) return false;
+  const q=new URLSearchParams(m[1]), dir=q.get("direction");
+  if(dir!=="home"&&dir!=="office") return false;
+  if(nativeTrip()) return false;   // a Trip being followed stays on screen (review 18 Nov)
+  if(tripActive()&&state.saved.tripMode) state.saved.tripMode.active=false;
+  state.saved.dirMode=dir; state.saved.view="now"; save(); render();
+  if(q.get("follow")==="1"&&S().followRoute&&!state.saved.followRoute){
+    const tryFollow=(n)=>{ const b=document.querySelector("#hero [data-follow]:not([disabled])"); if(b){ b.click(); return; } if(n>0) setTimeout(()=>tryFollow(n-1),1000); };
+    tryFollow(20);
+  }
+  return true;
+}
+const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
+const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
+  snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
+  regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
+  simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
+  onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
+// Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
+// them (with their age, as any old data) until the first refresh lands.
+function nativeCacheNow(){ if(!state.boards||!state.boardsAt) return; native.cache([{key:"boards",v:1,dataAt:state.boardsAt,savedAt:Date.now(),value:state.boards},
+  ...(state.status&&state.statusAt?[{key:"status",v:1,dataAt:state.statusAt,savedAt:Date.now(),value:state.status}]:[])]); }
+async function nativeHydrate(){
+  const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
+  const b=get("boards"), st=get("status");
+  if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
+  if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
+}
+native.init().then(async caps=>{ if(caps){ await nativeHydrate(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -11048,6 +11476,8 @@ function fillSettings(){
   const s=S();
   $("#s_alongLine").checked=s.alongLine===true;
   $("#s_followRoute").checked=!!s.followRoute;
+  $("#s_leaveAlarm").checked=s.leaveAlarm!==false; $("#s_leaveAlarmMin").value=Number.isInteger(s.leaveAlarmMin)?s.leaveAlarmMin:C.LEAVE_ALARM_DEFAULT_MIN;
+  $("#s_wifiHome").value=s.wifiHome==null?"Panda":s.wifiHome; $("#s_wifiOffice").value=s.wifiOffice==null?"Ciklum":s.wifiOffice;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   $("#s_provider").value=["proxy","tfl","demo"].includes(s.provider)?s.provider:"proxy"; $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
@@ -11066,6 +11496,12 @@ function readSettings(){
   // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
   ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
+  // The iPhone app's settings: saved only once the app has shown them (a browser never writes them).
+  if(native.capabilities()){
+    o.leaveAlarm=$("#s_leaveAlarm").checked;
+    const m=parseInt($("#s_leaveAlarmMin").value,10); if(m>=0&&m<=60) o.leaveAlarmMin=m;
+    o.wifiHome=$("#s_wifiHome").value.trim(); o.wifiOffice=$("#s_wifiOffice").value.trim();
+  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
@@ -11117,8 +11553,9 @@ $("#settingsForm").addEventListener("submit",e=>{
  e.preventDefault();const next=readSettings();
  const previous=S(), effective={...DEFAULTS,...next};
  leaveAlerts.onSave(previous, effective);
+ setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
- const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt"]);
+ const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -11194,7 +11631,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={native,nativeOpen,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 
