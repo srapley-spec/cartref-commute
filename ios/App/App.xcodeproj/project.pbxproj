@@ -23,7 +23,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CC0000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CC0000000000000000000008,); runOnlyForDeploymentPostprocessing = 0;};
+		CC0000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (CC0000000000000000000008, 3B0CAC35FEA8CC3C07197C5B,); runOnlyForDeploymentPostprocessing = 0;};
 		CC0000000000000000000004 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 		CC0000000000000000000005 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CommuteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR;};
 		CC0000000000000000000008 = {isa = PBXBuildFile; fileRef = CC0000000000000000000009;};
@@ -68,6 +68,16 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		75EF86F2C6AF032E86181E22 = {isa = PBXBuildFile; fileRef = 1A3242806510518A1A3FF215;};
+		3B4FE4ADD3D0F7B683279EC7 = {isa = PBXBuildFile; fileRef = DB75CB26EE1459815BA7A04C;};
+		AE35DFDAC8E4421157EDCFDA = {isa = PBXBuildFile; fileRef = 825FC7589FD971221482BF19;};
+		6C05A5F7239D0628A24525CE = {isa = PBXBuildFile; productRef = D4D08E265DC33223FD731473;};
+		A667313BF72E5C42C7926CE2 = {isa = PBXBuildFile; fileRef = 50418790DFFB847B849BB3F0;};
+		9932487E67B0477B07A65382 = {isa = PBXBuildFile; fileRef = D1A8C0A5135BEAE2D0999EC2;};
+		032393CF412AB75811F0544F = {isa = PBXBuildFile; fileRef = 0B9169768979D9F7E6D9AC09;};
+		F790A91ACC71C49100556E9A = {isa = PBXBuildFile; productRef = DCFBFF16969EA434E63DBEB5;};
+		A929A1D31AD9A1FFACFE1646 = {isa = PBXBuildFile; fileRef = 0AD80AD590DBB1CB1F333E0C; settings = {ATTRIBUTES = (RemoveHeadersOnCopy,);};};
+		3B0CAC35FEA8CC3C07197C5B = {isa = PBXBuildFile; fileRef = 246F1810D4DB0D5047AB6A7B;};
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +92,14 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		1A3242806510518A1A3FF215 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NativeCredentials.swift; sourceTree = SOURCE_ROOT;};
+		DB75CB26EE1459815BA7A04C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/CommuteNativePlugin.swift; sourceTree = SOURCE_ROOT;};
+		825FC7589FD971221482BF19 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NativeRuntime.swift; sourceTree = SOURCE_ROOT;};
+		50418790DFFB847B849BB3F0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppleSurfaces.swift; sourceTree = SOURCE_ROOT;};
+		D1A8C0A5135BEAE2D0999EC2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/CommuteIntents.swift; sourceTree = SOURCE_ROOT;};
+		0AD80AD590DBB1CB1F333E0C = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CommuteJourney.appex; sourceTree = BUILT_PRODUCTS_DIR;};
+		0B9169768979D9F7E6D9AC09 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommuteJourney/CommuteJourney.swift; sourceTree = SOURCE_ROOT;};
+		246F1810D4DB0D5047AB6A7B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommuteTests/NativeRuntimeTests.swift; sourceTree = SOURCE_ROOT;};
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,9 +108,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				6C05A5F7239D0628A24525CE,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A49AA54D251A60B243F2483C = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (F790A91ACC71C49100556E9A,); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -102,6 +122,8 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				CC0000000000000000000009 /* BundledPageTests.swift */,
+				246F1810D4DB0D5047AB6A7B,
+				0B9169768979D9F7E6D9AC09,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -111,6 +133,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				CC0000000000000000000005 /* CommuteTests.xctest */,
+				0AD80AD590DBB1CB1F333E0C,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -119,6 +142,12 @@
 			isa = PBXGroup;
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+				D1A8C0A5135BEAE2D0999EC2,
+				50418790DFFB847B849BB3F0,
+				1A3242806510518A1A3FF215,
+				DB75CB26EE1459815BA7A04C,
+				825FC7589FD971221482BF19,
+
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -141,19 +170,26 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				DA3AA3D6A64B684AB3A3239C,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E08F6DFFB22E7F7FCC538069,
 			);
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				D4D08E265DC33223FD731473,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		85754935A4514748072AE09E = {isa = PBXNativeTarget; buildConfigurationList = 34883F346AE86640A3235698; buildPhases = (AC25CBB3FB3584E1DDCDE662, A49AA54D251A60B243F2483C, 7FA08671BF18124D41CB06A7,); buildRules = (); dependencies = (); name = CommuteJourney; packageProductDependencies = (DCFBFF16969EA434E63DBEB5,); productName = CommuteJourney; productReference = 0AD80AD590DBB1CB1F333E0C; productType = "com.apple.product-type.app-extension";};
+		DA3AA3D6A64B684AB3A3239C = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (A929A1D31AD9A1FFACFE1646,); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0;};
+		E08F6DFFB22E7F7FCC538069 = {isa = PBXTargetDependency; target = 85754935A4514748072AE09E; targetProxy = 64942037C3A67B23E729A990;};
+		64942037C3A67B23E729A990 = {isa = PBXContainerItemProxy; containerPortal = 504EC2FC1FED79650016851F; proxyType = 1; remoteGlobalIDString = 85754935A4514748072AE09E; remoteInfo = CommuteJourney;};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -181,6 +217,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				32DD3E0ED59CBFD279722E0E,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -188,6 +225,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				CC0000000000000000000001 /* CommuteTests */,
+				85754935A4514748072AE09E,
 			);
 		};
 /* End PBXProject section */
@@ -206,6 +244,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7FA08671BF18124D41CB06A7 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -215,9 +254,16 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				9932487E67B0477B07A65382,
+				A667313BF72E5C42C7926CE2,
+				75EF86F2C6AF032E86181E22,
+				3B4FE4ADD3D0F7B683279EC7,
+				AE35DFDAC8E4421157EDCFDA,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC25CBB3FB3584E1DDCDE662 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (032393CF412AB75811F0544F,); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
@@ -353,6 +399,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = App/Commute.entitlements;
+				COMMUTE_APNS_ENTITLEMENT = development;
+				COMMUTE_APNS_ENVIRONMENT = sandbox;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = TU7MLARY49;
@@ -378,8 +427,13 @@
 		504EC3181FED79650016851F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = App/Commute.entitlements;
+				COMMUTE_APNS_ENTITLEMENT = production;
+				COMMUTE_APNS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "Cartref Commute App Store";
 				DEVELOPMENT_TEAM = TU7MLARY49;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -399,6 +453,8 @@
 			};
 			name = Release;
 		};
+		65D2287C947832C5F8BA035A = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = TU7MLARY49; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = CommuteJourney/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 27.0; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); PRODUCT_BUNDLE_IDENTIFIER = uk.cartref.srapley.commute.journey; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug;};
+		50FC2AC357EDB84AE8D190AE = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Manual; CODE_SIGN_IDENTITY = "Apple Distribution"; PROVISIONING_PROFILE_SPECIFIER = "Cartref Commute Journey App Store"; DEVELOPMENT_TEAM = TU7MLARY49; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = CommuteJourney/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 27.0; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks",); PRODUCT_BUNDLE_IDENTIFIER = uk.cartref.srapley.commute.journey; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release;};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -420,6 +476,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		34883F346AE86640A3235698 = {isa = XCConfigurationList; buildConfigurations = (65D2287C947832C5F8BA035A, 50FC2AC357EDB84AE8D190AE,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -427,6 +484,7 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "CapApp-SPM";
 		};
+		32DD3E0ED59CBFD279722E0E = {isa = XCLocalSwiftPackageReference; relativePath = ../NativeCore;};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -435,6 +493,8 @@
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
 		};
+		D4D08E265DC33223FD731473 = {isa = XCSwiftPackageProductDependency; package = 32DD3E0ED59CBFD279722E0E; productName = CommuteNativeCore;};
+		DCFBFF16969EA434E63DBEB5 = {isa = XCSwiftPackageProductDependency; package = 32DD3E0ED59CBFD279722E0E; productName = CommuteNativeCore;};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 504EC2FC1FED79650016851F /* Project object */;

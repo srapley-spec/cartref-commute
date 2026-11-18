@@ -1,0 +1,42 @@
+import XCTest
+@testable import CommuteNativeCore
+
+final class EngineFixtureTests: XCTestCase {
+    func testPublishedEngineAndAPNsFixturesDecodeWithoutNativeJourneyInference() throws {
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<5 { root.deleteLastPathComponent() }
+        let path = ProcessInfo.processInfo.environment["NATIVE_CONTRACT_FIXTURES"]
+        let directory = path.map { URL(fileURLWithPath: $0) } ?? root.appendingPathComponent("tests/fixtures/native")
+        guard FileManager.default.fileExists(atPath: directory.path) else {
+            throw XCTSkip("Owner's native fixtures have not reached main; supply NATIVE_CONTRACT_FIXTURES for development checks.")
+        }
+        let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("snapshot-") && $0.pathExtension == "json" }
+        XCTAssertGreaterThanOrEqual(files.count, 9)
+        for file in files {
+            let data = try Data(contentsOf: file)
+            guard let snapshot = try JSONDecoder().decode(JourneySnapshot?.self, from: data) else {
+                XCTAssertEqual(file.lastPathComponent, "snapshot-page-stopped.json", "Only a stopped page fixture is null.")
+                continue
+            }
+            try snapshot.validate()
+            let roundTrip = try JSONDecoder().decode(JourneySnapshot.self, from: JSONEncoder().encode(snapshot))
+            XCTAssertEqual(snapshot, roundTrip, file.lastPathComponent)
+            let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            if let headline = raw["headline"] as? [String: Any], let countdown = headline["countdown"] as? [String: Any] {
+                XCTAssertEqual(snapshot.headline.countdown?.state?.rawValue, countdown["state"] as? String, file.lastPathComponent)
+                XCTAssertEqual(snapshot.headline.countdown?.urgentAt, countdown["urgentAt"] as? Double, file.lastPathComponent)
+                XCTAssertEqual(snapshot.headline.countdown?.passedAt, countdown["passedAt"] as? Double, file.lastPathComponent)
+            }
+        }
+        let background = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background.json"))) as! [String: Any]
+        let live = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-liveactivity-update.json"))) as! [String: Any]
+        let content = (live["aps"] as! [String: Any])["content-state"]!
+        let snapshot = try Wire.decode(JourneySnapshot.self, content)
+        XCTAssertEqual(snapshot, try Wire.decode(JourneySnapshot.self, background["snapshot"]!))
+        let staleSeconds = (live["aps"] as! [String: Any])["stale-date"] as! Double
+        XCTAssertEqual(snapshot.staleDate?.timeIntervalSince1970, staleSeconds)
+        let stop = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background-stop.json"))) as! [String: Any]
+        XCTAssertEqual(try Wire.remoteSnapshot(stop), .stop(followId: "f9", at: 1794939600000))
+    }
+}

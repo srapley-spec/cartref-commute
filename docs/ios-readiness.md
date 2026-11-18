@@ -1,9 +1,48 @@
-# iOS readiness — 17 November 2026
+# iOS readiness — 18 November 2026
 
-Sam authorized shell/pipeline implementation on 17 November. The shell now builds, starts offline in a simulator,
-and exports a signed internal-only IPA. The no-setup release and full brief `docs/ios-app.md` are now on main at `af09273`, with Tests, Pages and Deploy proxy
-all green. Native preparation is on `feature/native-prep` (`3c45da8`); its contracts remain unreleased. Read the released
-versions again before native feature implementation. See [the shell story](stories/ios-shell.md) for exact scope.
+## Current status
+
+The bundled shell and automatic internal TestFlight pipeline are released. The shared snapshot/page/proxy
+contract is on main, and the live proxy reports `native:true`. Signing and APNs secrets are provisioned; no key
+entry remains for Sam. The internal Family group distributes builds automatically, with Sam enrolled.
+
+The native implementation is in PR #61 (`codex/ios-native-v1`): bridge and App Group cache, queued region evidence,
+Wi-Fi cues, Siri, one journey Live Activity and the AlarmKit leave alarm. The engine supplies journey decisions,
+countdown wording and alarm directives. Permission requests remain explicit Settings actions.
+
+Owner changes through `88c0a67` are integrated, including permission/stops, countdown publication and fixtures,
+journey fixes, nullable cache age, explicit cache clears, byte accounting and restoration before startup work.
+The owner's Trip source-age correction is integrated from `e3e214a`: the oldest successful fetch of the watched
+Trip boards supplies its age; missing data stays unknown. It never borrows the clock or a Commute timestamp.
+Release requires full local CI and GitHub checks on the combined revision, followed by successful internal
+TestFlight processing. The exact revision, workflow results and build number are recorded in
+[PR #61](https://github.com/srapley-spec/cartref-commute/pull/61).
+
+Validation already completed:
+- Full local CI at `1847cf8` (including the owner's startup/cache fixes) passed all 1,456 web tests, 38 Swift core
+  tests and 13 simulator XCTest checks. Both GitHub runs passed. The Trip follow-up is checked again as part of the
+  final combined release; these earlier results do not substitute for that check.
+- 38 Swift core tests and 13 real simulator XCTest checks passed on a fresh device at `c2a0325`, including offline
+  launch and the real Capacitor cache bridge. Both GitHub Tests runs at that revision passed.
+- Independent review approved native state/coordinator/signing/Siri/permissions/countdowns/cache. All nine cache
+  mutations are caught at `6254bdc`; all 16 simulator-runner mutations are caught at `79c108c`.
+- The owner's Trip correction at `54cb185` is independently approved with the two additional regressions from
+  `f81b221`. All five targeted mutations fail assertions, including newest-versus-oldest age and ignoring a missing
+  required board. The owner's checks and final combined release checks remain required before distribution.
+- The signed app-plus-extension export and Apple package validation passed at `75351bd`.
+- Earlier local full CI passed its web checks but failed during simulator OS migration before app installation.
+  The diagnosed MobileSafari migration watchdog and Xcode-managed startup validation are recorded in the
+  [independent review report](reviews/ios-native-2026-11-18.md); those failed runs are not passing release gates.
+
+Internal TestFlight supplies the build for subsequent real-phone acceptance. Actual APNs delivery, locked-screen
+layout, AlarmKit cancellation, region events and Siri invocation remain phone checks. See the
+[native story](stories/ios-native.md#first-internal-testflight-phone-acceptance) for the exact steps.
+
+The extension identifier `uk.cartref.srapley.commute.journey`, App Store profile and
+`IOS_ACTIVITY_PROFILE_BASE64` secret are provisioned. No Apple review submission is authorized or configured.
+
+The sections below preserve the original 17 November preparation record; their historical branch/run references
+are not the current release gates.
 
 ## Prepared and verified
 

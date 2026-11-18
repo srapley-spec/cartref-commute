@@ -837,3 +837,15 @@ and planning-pin metadata have a validated compatibility boundary; old records a
 itineraries can restore them. Source freshness, current 5/15-minute bands, explicit boarding-point consent and
 observed completion take precedence over the old implementation's conflicting assumptions. All original scenario
 boundaries remain tested; see the reconciliation record below.
+
+
+### Native Apple transport and surface lifecycle (18 November 2026, in progress)
+The bundled iPhone app implements the owner contract in `docs/ios-app.md` §6.7. `ios/NativeCore` contains versioned
+wire types, ordering/tombstones, opaque cache persistence and a serialized platform coordinator; none plans or
+infers journeys. Keychain registrations are independently bound to their HTTPS proxy origin so an interrupted
+settings write cannot send a credential to an old origin. Region generations and Wi-Fi read identities discard
+callbacks from obsolete settings. ActivityKit's newer validated content enters the same ordered transport state
+before AlarmKit is updated. Native platform adapters are tested separately from engine fixture decoding.
+The Live Activity is an embedded WidgetKit extension with its own App Store profile. TestFlight verifies both
+identities, entitlements and matching build numbers before upload. Details, evidence and remaining contract/phone
+gates: `docs/stories/ios-native.md`. Internal distribution does not submit either form of Apple review.

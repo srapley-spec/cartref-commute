@@ -255,7 +255,9 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
 7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
    replace by key; 512 KB total; opaque to the shell. **`dataAt: null` means the data's age is unknown** (a snapshot
-   with no fetch time): kept and returned as null, never replaced by `savedAt` (#58, 18 Nov; native 9ce934f).
+   with no fetch time): kept and returned as null, never replaced by `savedAt` (#58, 18 Nov; native 9ce934f). A followed
+   Trip's `dataAt` is Trip's own: the oldest successful fetch of the boards it's watched on, or null while any has never
+   loaded; never the clock, never the commute's fetch time (#58 6983061034).
    **Every batch names all four keys** (the store merges by key, so a key left out would keep its old value): the page
    writes them most important first (snapshot, settings, status, boards) on each new snapshot and each live board;
    anything with nothing to keep (a stopped journey) or that would take the total past 512 KB goes as an explicit
@@ -313,9 +315,9 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 | Proxy native routes, APNs, journey watching, Service Details polling, `/native/next` | this repo | Routes, APNs and closed-app snapshots released 18 Nov at `9628132`; unproven against Apple until the first TestFlight push; Service Details polling and `/native/next` not in v1 |
 | Bundled app origin in `ALLOW_ORIGIN` | this repo | Released with no-setup; live HTTP 200/CORS verified for `capacitor://localhost` |
 | Apple identifiers, App Group, APNs key | iOS agent | Registered and App Group associated; existing APNs key and metadata provisioned in Actions secrets, 17 Nov |
-| Capacitor shell and TestFlight pipeline | iOS agent | Implemented on iOS branch; signed export and Apple validation pass; combined release checks in progress |
-| Native plugin and App Group offline store | iOS agent | Waiting for released page/snapshot contracts and issue #58 |
-| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Not started |
+| Capacitor shell and TestFlight pipeline | iOS agent | Released: main builds automatically reach internal TestFlight. Native extension signing changes are in draft PR #61 |
+| Native plugin and App Group offline store | iOS agent | Implemented and under integration in PR #61; ordered state/cache/bridge tests and independent review pass |
+| Live Activity, alarm, geofences, Wi-Fi, Siri | iOS agent | Implemented on `codex/ios-native-v1`; Apple adapters attached, countdown fields/rendering integrated against `eea5846` fixtures. Release awaits owner countdown merge/wording agreement, Settings/cache wiring and final native review/CI; real-device acceptance follows internal TestFlight; see [native story](stories/ios-native.md) |
 | Widget | (parked) | To discuss with Sam |
 
 ## 9. Open questions

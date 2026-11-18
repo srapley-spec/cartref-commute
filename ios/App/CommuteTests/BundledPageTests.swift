@@ -18,6 +18,15 @@ final class BundledPageTests: XCTestCase {
         XCTAssertEqual(origin, "capacitor://localhost")
         let title = try await webView.evaluateJavaScript("document.title") as? String
         XCTAssertEqual(title, "Cartref Commute")
+        let capabilities = try await webView.callAsyncJavaScript(
+            "return await window.Capacitor.Plugins.CommuteNative.capabilities();",
+            arguments: [:], in: nil, contentWorld: .page
+        ) as? [String: Any]
+        XCTAssertEqual(capabilities?["v"] as? Int, 1)
+        XCTAssertEqual(capabilities?["liveActivity"] as? Bool, true, "The shipped bridge must expose the attached Apple adapter.")
+        XCTAssertEqual(capabilities?["alarm"] as? Bool, true)
+        let auth = try XCTUnwrap(capabilities?["auth"] as? [String: String])
+        XCTAssertTrue(["notDetermined", "granted", "denied"].contains(auth["alarm"] ?? ""))
     }
 
     func testPageBootsFromTheBundleWithoutNetwork() async throws {

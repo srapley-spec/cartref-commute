@@ -29,7 +29,8 @@ As <who>, when <situation>, I want <what>, so that <why>.
 
 ## Index
 ### iPhone
-- [The website bundled as an iPhone app](ios-shell.md) · Shell and CI in progress; native features await contracts
+- [The website bundled as an iPhone app](ios-shell.md) · Released to internal TestFlight
+- [Native iPhone journey surfaces](ios-native.md) · In progress (18 Nov); bridge, storage and Apple surfaces under integration review
 
 ### Planning
 - [Approved journey and leg UI across planning, Live and Trips](journey-leg-ui.md) · Implemented 2 Nov; independently reviewed before release
