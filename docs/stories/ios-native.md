@@ -25,7 +25,7 @@ for home/office region monitoring. Internal TestFlight only; no Apple review sub
   or oversized batch without partially replacing saved data. A corrupt file is not silently erased.
   Unknown `dataAt` is accepted and returned as explicit null rather than replaced with `savedAt`; known dates
   still require a finite nonnegative value. A null-value entry explicitly replaces an obsolete payload, while
-  omitting a key retains it. The owner is aligning the page packing/bootstrap and codifying null age on #58.
+  omitting a key retains it. Page packing must count the native JSON encoding and explicitly replace obsolete keys.
 - Proxy device credentials live in the app's Keychain, accessible after first unlock on this device. They never
   enter App Group JSON, errors, bridge logging, test fixtures or build artifacts. Proxy requests use HTTPS and do
   not follow redirects. Changing proxy/device/follow scopes discards obsolete queued evidence.
@@ -69,13 +69,13 @@ The owner answered all three contract questions on
   suspension, clears its activity token/identity and queued evidence, then updates the surface. Unidentified or
   never-followed nulls have no effect; malformed identified stops reject. Evidence replies additionally retain
   origin, registration credential and journey checks so an obsolete request cannot stop a current journey.
-- Owner branch `feature/native-countdown` at `eea5846` supplies countdown `state`, `urgentAt` and `passedAt`, plus
+- The released owner countdown contract supplies `state`, `urgentAt` and `passedAt`, plus
   page-phase and Trip fixtures. Native decoding/rendering now uses the supplied state and exact words, including
   passed/empty wording; it never derives urgency from a clock. Older cached v1 snapshots still decode. All 18
-  snapshot fixtures (including a null stopped page and nullable Trip direction) pass the binding tests through
-  `NATIVE_CONTRACT_FIXTURES`. The owner branch is not yet merged. Closed-app wording changes require actual
+  snapshot fixtures (including a null stopped page and nullable Trip direction) pass the binding tests from the
+  committed fixture directory. Closed-app wording changes require actual
   ActivityKit updates; Apple's timer continues and clamps at zero offline, while the wording retains its last
-  received state. The owner accepted this v1 limit in #58 comment 6977690109 and is adding state-change publishing.
+  received state. The owner accepted this v1 limit in #58 comment 6977690109; state-change publishing is released.
 
 The released owner changes through `3ceefc7` are integrated: Settings requests and reports permissions, countdown
 state changes publish, expanded fixtures are committed, delayed leave steps retain the right action and tube
