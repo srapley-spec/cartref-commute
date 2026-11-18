@@ -70,6 +70,10 @@ separate release/testing gates; this approval does not imply those results.
 At `9ce934f`, the independent reviewer passed all 38 core tests and caught eight of nine cache mutations.
 The surviving mutation substituted `savedAt` for a nil source age in the public initializer; the wire decoding
 tests did not exercise that construction path. A direct constructor and persistence round-trip assertion now
-cover it. Rechecking the survivor remains required. The reviewer also identified Swift's escaped-slash byte
+cover it. At `6254bdc`, the reviewer confirmed three assertion failures from that mutation and approved the native
+cache changes: all 38 tests pass and all nine mutations are caught. The reviewer also identified Swift's escaped-slash byte
 counting difference from JavaScript; the page owner addresses packing against that native encoding in
 `fix/native-cache-boot`, alongside explicit null replacements and hydration before fetching.
+The review of its first revision (`d050266`) found token listeners could still sync before hydration and that
+initial configure used defaults before restoring cached settings. Both findings were handed to the page owner
+on #58; native code must not invent a workaround for the page's configuration order.

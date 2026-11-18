@@ -77,10 +77,12 @@ The owner answered all three contract questions on
   ActivityKit updates; Apple's timer continues and clamps at zero offline, while the wording retains its last
   received state. The owner accepted this v1 limit in #58 comment 6977690109 and is adding state-change publishing.
 
-The Settings caller is still missing at `ea7b056`: the bridge accepts permission requests, but the page does not
-invoke them or show the returned authorization states. This was reported to the owner on
-[issue #58](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6976923499); Swift must not prompt
-from configure/publish/capabilities to compensate. The countdown and fixture branch also remains a dependency.
+The released owner changes through `3ceefc7` are integrated: Settings requests and reports permissions, countdown
+state changes publish, expanded fixtures are committed, delayed leave steps retain the right action and tube
+location comes from the accepted prediction. The remaining owner cache/bootstrap corrections are on
+`fix/native-cache-boot`: nullable age, explicit clears, native byte accounting and hydration before fetch/sync.
+Integration review also requires token replay and initial configuration to wait for restored settings. Swift
+must not prompt from configure/publish/capabilities or infer settings to compensate for page ordering.
 
 After the shared dependencies land: validate the complete bridge flow, perform final committed-code CI
 and GitHub-first checks, then distribute through internal TestFlight for real-phone acceptance. Test locked
@@ -108,6 +110,8 @@ iPhone; simulator and exported-package results do not substitute for actual APNs
    a fresh install with no saved data says it has not updated yet.
 2. In Settings, allow notifications, alarms and Always location. Verify each displayed permission result.
    Refusing a permission must leave the app usable and explain the affected feature without repeated prompts.
+   At home, use Settings → Home → "Home is where I am now" before testing home-exit alarm cancellation. A fresh
+   install has no saved home region; v1 does not infer home automatically. The page explains this limitation.
 3. Follow a journey whose leave time is more than five minutes away. Lock the phone: one Live Activity shows
    the engine's leave/platform/train/onward stages, clocks, status and age. Check the Dynamic Island where available.
 4. Stay at the starting place for one alarm test: it rings at the configured lead time. On a separate journey,
@@ -162,5 +166,7 @@ suspending platform call. The reviewer approved the implemented scope, not unres
   real Capacitor bridge exposes the attached Live Activity and alarm adapters; final simulator execution is pending.
 - At `4dc0991`, all 13 real simulator XCTest checks passed, including normal/offline launches and real bridge
   activation. At `9a68440`, 36 core tests pass and the countdown/activation independent review is approved.
-  Subsequent nullable-cache metadata and explicit null-replacement probes raise the core total to 38; review and
-  final integrated CI remain required. All these builds remain on the native branch.
+  Subsequent nullable-cache metadata and explicit null-replacement probes raise the core total to 38; independent
+  review approved these at `6254bdc`. Final integrated CI remains required. All these builds remain on the native branch.
+- At `9ce934f`, all 1,441 web tests passed in full local CI, but simulator OS data migration failed before app
+  testing. That run is not a passing merge gate. The integrated native retry and final combined CI must succeed.
