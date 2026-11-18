@@ -34,105 +34,86 @@ for home/office region monitoring. Internal TestFlight only; no Apple review sub
 - Supported capabilities are separate from permission state. Only Settings `request` calls may prompt. Permission
   denial and deferred Always authorization must not leave bridge calls hanging or initiate a prompt loop.
 
-## Tests
-`ios/NativeCore` isolates transport/state rules from Apple APIs for fast Swift tests. Its state tests cover
-ordering, stop/switch/restart, tombstone expiry, offline cancellation, transactional cache limits, file corruption,
-event replay, configuration/privacy and unknown versions. `EngineFixtureTests` decodes the owner's actual snapshots
-and both APNs content-state shapes, checking exact supplied stale-date values. During development, fixtures are
-read from an explicitly supplied `NATIVE_CONTRACT_FIXTURES` directory extracted from the owner's commit; after
-integration they come from `tests/fixtures/native/`. Absence is reported as a skipped integration test, never a pass.
+## Siri and journey views
+Siri reads the last engine headline and clock with source age and staleness. Without a followed journey, or for
+“Follow the next train home”, it brings the app forward and queues
+`commute://next?direction=home&follow=1` through the existing `open {url}` bridge event. An already-foreground
+invocation routes directly; a background invocation transitions only when Apple permits it, otherwise it asks the
+person to open Commute on their iPhone. No planning event precedes that transition. App Intents foreground modes
+are required because `OpenURLIntent` accepts universal links, not this custom scheme.
 
-The initial foundation builds for the iOS simulator and all 17 Swift tests pass against `9628132`. All eight simulator XCTest checks also passed, including six
-native runtime/bridge tests. Early independent review found and prompted
-fixes for interrupted credential/config writes, delayed Wi-Fi/region callbacks, permission completion identity and
-future-version shape decoding. Regression probes cover these and the eight original mutation survivors. The
-Keychain record is independently bound to its normalized proxy origin. Region identifiers carry a persisted
-configuration generation, so callbacks queued for an old home/office cannot cancel the current alarm.
-This is not a
-release claim. Full committed-code CI, GitHub-first checks, independent mutation review, signing checks and real
-iPhone acceptance remain required.
+The WidgetKit extension contains only the journey Live Activity; the parked home-screen widget is not included.
+The Signal layout retains the engine headline/clock, arrival, train/platform, status, progress and source age.
+Apple's [160-point height limit](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities)
+prompted a compact layout: the initial platform fixture measured 176 points; the revised one measured 125 points
+at 370-point width before a final two-point padding reduction. A long-label probe at 320-point width measures
+158 points and preserves the full leading “Be on … by” label. These are macOS SwiftUI renders of the production
+view with only the WidgetKit background modifier substituted, not iPhone/WidgetKit acceptance results.
 
-Three contract questions are pending on #58 (18 November):
-- AlarmKit authorization is independent of notification authorization. Settings needs its own returned state and
-  explicit request (or an agreed combined request). The implementation must not pretend notifications granted
-  implies alarms granted. [Apple API](https://developer.apple.com/documentation/alarmkit/alarmmanager/requestauthorization()).
-- The published background stop carries only `snapshot:null`. It needs `followId` and `at` to make delayed stops
-  safe. Unidentified remote nulls are currently ignored; page-local nulls stop the current journey.
-- Countdown words include calm/urgent/passed variants but no engine-selected current wording or transition
-  instants. Native views must not invent urgency rules; the current timer is clamped at zero and uses calm words.
+## Integration gates
+Live Activity and alarm capabilities remain false while the Apple surface adapter is unattached. Siri is enabled;
+geofences, Wi-Fi, bridge and storage are implemented. Three owner contract questions remain on
+[issue #58](https://github.com/srapley-spec/cartref-commute/issues/58):
+- [AlarmKit authorization](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6974073764)
+  is independent of notification authorization. Settings needs its returned state and explicit request, or an
+  agreed combined request. Notifications granted must not imply alarms granted.
+- The same comment requests `followId` and `at` on remote null/stop envelopes, including evidence replies. An old
+  remote stop must not cancel a newer journey. Unidentified remote nulls are currently ignored; a page-local null
+  stops the current journey.
+- [Countdown wording](https://github.com/srapley-spec/cartref-commute/issues/58#issuecomment-6975526255)
+  includes calm/urgent/passed variants but no engine-selected current wording or transition instants. Native views
+  must not invent urgency thresholds. The current timer clamps at zero and uses the engine's calm words.
 
-Live Activity/AlarmKit adapters, the lock-screen/Dynamic Island layout and Siri intents compile, but are still being
-connected and validated. The WidgetKit extension contains only the journey Live Activity; the parked home-screen
-widget has not been added. The current bridge reports Live Activity and alarm false; Siri intents are implemented and its capability is true. The contract questions above still gate complete end-to-end validation and distribution.
-
-The owner's `9628132` is now merged into this branch from main; its Tests, Pages and Deploy proxy checks passed.
-The foundation's simulator run passed all eight XCTest checks, including the real Capacitor bridge's version
-errors and offline cache round trip. The surface coordinator now has seven deterministic platform-adapter tests:
-updates queued at worker completion, disable/exit during suspended alarm scheduling, duplicate activity identity,
-journey switching during suspended activity update, newer APNs content, background start restriction and permissions/
-OS failure. Independent review identified the completed-worker and duplicate-end races; their fixes still await
-mutation review. Apple surface capability flags remain disabled pending full integration and the remaining contract answers.
-
+The owner's nine snapshot fixtures omit a Trip snapshot and page-only missed/switch/tube/arrived phases. Swift
+accepts Trip's nullable `direction` with a schema regression, but complete generated fixtures remain necessary.
+After the contract changes are integrated: attach the Apple adapter, validate the complete bridge flow, perform
+final committed-code CI and GitHub-first checks, then distribute through internal TestFlight for real-phone
+acceptance. Test locked journeys, offline/region cancellation, stop/switch races, delayed pushes, restart,
+permission denial, Siri and Wi-Fi before declaring the native app complete. No Apple review submission is configured.
 
 ## Extension signing
 The Live Activity identifier is `uk.cartref.srapley.commute.journey` (`XSV67947FQ`). Its App Store profile is
 **Cartref Commute Journey App Store**, UUID `bc576c7f-d85a-4998-9da2-ee68f4a47e4c`, using the existing distribution
-certificate. No new Apple API or push key was created. TestFlight needs `IOS_ACTIVITY_PROFILE_BASE64` alongside
-the app profile. The release script validates both profiles before archiving, installs them with private temporary
-filenames, and removes both after success, failure or cancellation. The exported IPA must contain exactly one
-WidgetKit extension with the correct identifier, iOS 27 minimum and matching build number. Both code-signing
-entitlement sets are validated; the app must retain production push, App Group, Wi-Fi, Siri and time-sensitive access.
-`tests/ios-release.test.mjs` exercises wrong profiles, expiration, missing capabilities, wrong extension metadata,
-substituted page content and cleanup. Real signed export remains to verify before release.
+certificate. `IOS_ACTIVITY_PROFILE_BASE64` is provisioned alongside the app's profile secret. No new Apple API or
+push key was created; the APNs secret names were confirmed on #58 and the deployed proxy reports `native:true`.
 
-A further review probe caught newer ActivityKit cancellation being handed to the runtime while the coordinator
-still scheduled the older alarm. The coordinator now applies the same validated ordering rule to its transport
-state before alarm work, then informs the runtime. Tests cover the newer cancellation and reject unknown-version
-activity content without cancelling a valid current alarm. Both original lifecycle races and all eight foundation
-mutation survivors are now covered; independent review continues on the complete platform coordinator.
+The release script validates both profiles before archiving, installs them with private temporary filenames and
+removes both after success, failure or cancellation. Each archive target uses its own distribution profile. Export
+must contain exactly one WidgetKit extension with the right identifier, iOS 27 minimum and matching build number.
+Both signed entitlement sets are checked; the app must retain production push, App Group, Wi-Fi, Siri and
+time-sensitive access. The first real export failed this verifier because an unsigned archive caused Xcode to
+omit native entitlements during export. Signing both archive targets fixed the failure; nothing was uploaded.
 
-Engine cancellation, alarm disable, permission loss and a changed alarm directive now invalidate an existing
-alarm synchronously when accepted, before waiting for ActivityKit. Review reproduced an old alarm remaining armed
-through a suspended activity update; an intermediate-state regression now checks the cancellation before that
-update resumes. A separate regression checks cancellation immediately after a superseded schedule returns,
-while the next activity update is still suspended. The extension profile secret was provisioned and confirmed
-through GitHub's encrypted-secret API on 18 November; no new Apple API/push key was needed.
+## Tests
+- `ios/NativeCore/Tests/CommuteNativeCoreTests/NativeCoreTests.swift`: state ordering, tombstones, local cancellation,
+  transactional cache, corrupt files, event replay, configuration/privacy, permission completion identity, version
+  preflight and Siri presentation.
+- `ios/NativeCore/Tests/CommuteNativeCoreTests/EngineFixtureTests.swift`: decode and round-trip the owner's actual
+  snapshots and both APNs content shapes, checking exact supplied stale dates. By default these use
+  `tests/fixtures/native/`; `NATIVE_CONTRACT_FIXTURES` can supply an explicit development directory. Missing fixtures
+  produce a reported skip, not a successful integration check.
+- `ios/NativeCore/Tests/CommuteNativeCoreTests/SurfaceCoordinatorTests.swift`: 12 deterministic adapter tests for
+  async updates, immediate cancellation, superseded scheduling, duplicate activity identity, journey switching,
+  newer/unsupported ActivityKit content, background start restrictions, permissions and OS failures.
+- `ios/App/CommuteTests/NativeRuntimeTests.swift`: interrupted Keychain/JSON writes, obsolete region/Wi-Fi callbacks,
+  unsupported versions, unidentified stops, real Capacitor cache/error behavior and
+  the Siri event retained until the page is listening. `BundledPageTests.swift` checks normal and blocked-network launch.
+- `tests/ios-release.test.mjs` and `tests/ios-shell.test.mjs`: profile validation before archive, cleanup, extension
+  identity/OS/device family/build/entitlements, exact profile mapping, workflow secret wiring, signed archive,
+  bundled-page provenance and secret isolation.
 
-The first real export of the native extension failed the capability verifier: archiving with signing disabled
-caused Xcode's export to omit the app's requested native entitlements. Nothing was uploaded. Release now signs
-the archive itself with the installed distribution certificate and target-specific App Store profiles, then
-exports and verifies it. The real signed package is the required regression check for this Xcode behavior.
+Independent review is recorded in [the review report](../reviews/ios-native-2026-11-18.md). All eight original
+foundation mutation survivors, 13 critical coordinator/state probes, five signing-test survivors and ten Siri
+renderer mutations are caught. Fixes bind Keychain credentials independently to their proxy, discard callbacks
+from obsolete configurations, order ActivityKit content before alarm work and cancel obsolete alarms before any
+suspending platform call. The reviewer approved the implemented scope, not unresolved contracts or device behavior.
 
-Review's five signing-test survivors now have regression probes: bad extension profile rejected before archive
-with cleanup of the already-installed app profile; extension minimum OS/device family; exact export mapping; and
-workflow secret wiring. The published engine schema also revealed that Trip has `direction:null`; Swift now accepts
-that nullable field and tests it. The current owner's nine snapshot fixtures do not yet contain a Trip snapshot,
-so this schema probe does not replace the requested generated Trip/phase fixtures.
-
-
-## Latest verification
-At `75351bd`: 30 Swift package tests and 12 Node release/shell tests pass; independent review approves the
-implemented scope ([review record](../reviews/ios-native-2026-11-18.md)). The real signed app+extension export
-passes its content, identity and entitlement checks. Apple package validation at `75351bd` passed with no errors; full combined CI remains pending;
-no native build from this branch has been uploaded. Final activation and physical-phone checks remain gated as above.
-
-Siri's supported capability is now true: the two App Intents read the last engine presentation (with source age
-and staleness) or open the exact page deep link from the published contract. `SiriPresentation` tests cover no
-follow, engine wording, a missing clock, age, stale deadline and unknown freshness. It makes no network request
-or planning decision. Voice invocation and hand-off on a real iPhone still need acceptance testing.
-Siri review caught that `OpenURLIntent` supports universal links, not the custom `commute://` scheme. The intents
-now activate the app through App Intents foreground modes and enqueue the existing `open {url}` bridge event;
-no associated-domain or website change is needed. The no-follow intent transitions before emitting its event.
-Layout inspection found the initial lock-screen view was 176 points high for the platform fixture, above Apple's
-160-point truncation threshold. The native geometry now uses compact rows and explicit type sizes; the same
-fixture measured 125 points at 370-point width before the final two-point padding reduction, retaining headline, arrival, countdown, train/platform, status and
-source age. These measurements come from a macOS SwiftUI render of the production view (only the WidgetKit
-background modifier substituted), not an iPhone/WidgetKit acceptance claim. On-device rendering remains required.
-Apple's limit: https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities
-
-The long-label layout probe at 320-point width measures 158 points, including both destination labels, train/platform,
-progress, status and source age; the leading “Be on … by” label remains complete. The updated app, extension and
-nine-test XCTest target compile. Full simulator execution of the final hand-off/layout changes is still pending.
-The no-follow Siri intent checks the system execution mode: an already-foreground call routes directly; a
-background call transitions only if Apple allows it, otherwise it asks the person to open Commute on their iPhone.
-It never sends a page planning event before the required foreground transition completes.
+## Verification recorded on 18 November
+- At `dada2fd`, full committed-code `npm run ci` passed: 1,440 web tests, typecheck, build/docs checks, bundled iPhone
+  offline/native tests and dependency locks. Final combined HEAD CI is still required before merge.
+- At `75351bd`, the real signed app+extension export passed identity, content and entitlement checks. Apple package
+  validation returned no errors. This was local validation only; no native build from this branch was uploaded.
+- At `29e89fb`, 31 Swift package tests pass and the nine-test simulator target builds. The local simulator run was
+  interrupted before producing a result; it is not counted as a pass. The earlier eight-test foundation run passed
+  at `5f39b01`; GitHub is running the final revision. Twelve Node release/shell tests pass. Static review approved
+  Siri's foreground handling; voice invocation and actual WidgetKit layout remain to be tested on an iPhone.

@@ -6,11 +6,12 @@ The shell and automatic internal TestFlight pipeline are released (initial build
 owner's snapshot/page/proxy work is released at `9628132`; Tests, Pages, Deploy proxy and TestFlight all passed.
 The live proxy reports `native:true`. APNs secret names were confirmed on issue #58; no key transfer remains.
 
-Native implementation is on `codex/ios-native-v1`, draft PR #61. At `75351bd`, the bridge/store, Apple adapters,
-Live Activity extension and Siri compile; 30 Swift and 12 release/shell tests pass. Independent review approves
-this implemented scope. A real signed app+extension export passes, including native entitlement checks.
-Current runtime capabilities keep Live Activity and alarm disabled until final integration. Full committed
-CI and real-phone acceptance remain outstanding. Owner questions on #58 concern AlarmKit authorization,
+Native implementation is on `codex/ios-native-v1`, draft PR #61. The bridge/store, Apple adapters, Live Activity
+extension and Siri compile; 31 Swift and 12 release/shell tests pass. Independent review approves the implemented
+scope. A real signed app+extension export at `75351bd` passes native entitlement checks and Apple package validation.
+Full local CI at `dada2fd` passes all 1,440 web tests and simulator checks; final combined HEAD CI remains required.
+Live Activity and alarm stay disabled pending contract integration; Siri is enabled. Internal TestFlight will provide
+the build for subsequent real-phone acceptance. Owner questions on #58 concern AlarmKit authorization,
 identified/dated remote stops and countdown wording transitions; generated Trip/page-phase fixtures remain missing.
 See [the native story](stories/ios-native.md) for current behavior and validation.
 

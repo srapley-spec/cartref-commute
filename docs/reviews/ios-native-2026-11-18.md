@@ -28,3 +28,13 @@ outside that approval. The root agent separately performed the real signed expor
 for missing native entitlements, traced to an unsigned archive. Signing each target's archive with its App Store
 profile fixed it; the final `75351bd` app+extension IPA passed identity, content and entitlement verification.
 Apple package validation of that IPA also passed with no errors. No native build has been uploaded from this branch; local export is not Apple review submission.
+
+## Siri follow-up
+At `de3fa31`, the reviewer passed the 31-test Swift baseline and caught all ten Siri renderer mutations: missing
+follow, exact URL, engine wording/clock, source age, unknown freshness and stale flag/deadline behavior. Static
+review found `OpenURLIntent` unsuitable for the custom scheme; the implementation now uses foreground modes and
+the existing bridge event. Review at `29e89fb` approved the already-foreground, permitted transition and unavailable
+transition branches. No page planning event is emitted before a required transition completes.
+
+Full local CI at `dada2fd` subsequently passed all 1,440 web tests and its simulator checks. This does not replace
+the final combined HEAD CI or physical-device acceptance once the owner contract gaps are resolved.

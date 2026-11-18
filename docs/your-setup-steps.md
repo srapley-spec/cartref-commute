@@ -4,7 +4,7 @@ What you need to do yourself, in order, for what's been built. Keep this file cu
 from Sam adds it here, and a step is ticked when Sam says it's done. Keys never go in this file, the repo or chat.
 Detail for each step: [proxy-setup.md](proxy-setup.md).
 
-Last updated: 17 Nov 2026 evening (proxy deployed; nothing to set up on a device; the iPhone app brief).
+Last updated: 18 Nov 2026 (native proxy released; Apple signing complete; family invitations rechecked).
 
 ## 1–3. The proxy: every key in one place, deployed from GitHub (17 Nov; no computer needed)
 Sam, 17 Nov: "I want to move all the keys to a proxy." The Worker (`proxy/`) has held every key since 4 Nov but was
@@ -77,7 +77,9 @@ Brief: [ios-app.md](ios-app.md). Preparation record and implementation gates: [i
       Actions secrets. Provisioned the distribution signing bundle/password/profile there too; signed export passed.
 - [ ] Renew the iOS distribution certificate/profile before 17 November 2027; see `ios/README.md` for secret names.
 - [x] Identify the intended internal testers: Sam supplied three family accounts on 17 November.
-- [ ] Family accepts the App Store Connect account invitations, then joins Commute's internal TestFlight group.
+- [ ] Family accepts the App Store Connect account invitations, then the iOS agent adds the accepted accounts to
+      Commute's internal TestFlight group. Rechecked 18 November: all three invitations remain pending and expire
+      on 20 November; no replacement invitations were sent.
 - [x] Confirm the one tester address that differs from the Cartref Home list: Sam confirmed Gmail; the iCloud
       variant was incorrect. Commute's invitation was sent to the confirmed address.
 
@@ -86,9 +88,12 @@ The iOS agent verified Apple team `TU7MLARY49` and created Cartref Commute's App
 were sent with Marketing access limited to Commute. The internal
 Family group is created with automatic distribution enabled and Sam enrolled. Builds are distributed internally
 by the TestFlight workflow after the full main Tests run passes.
-Sam authorized shell/pipeline work, now in progress on top of the green no-setup release (`af09273`).
-The native contracts and proxy routes were released at `9628132` on 18 November. Native implementation and
-physical-iPhone acceptance are in progress; the remaining two contract questions are on issue #58. Apple review submission must wait until the app is working.
+The shell and automatic internal TestFlight pipeline are released. The native contracts and proxy routes were
+released at `9628132` on 18 November. Native implementation is in draft PR #61; the Live Activity extension
+identifier, signing profile and secret are provisioned, and a real signed package passed Apple validation.
+Three owner contract questions remain on issue #58 (alarm permission, identified/dated remote stops and countdown
+wording). Phone acceptance follows integration and an internal build. Apple review submission must wait until the
+app is working; no review submission is configured.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.
