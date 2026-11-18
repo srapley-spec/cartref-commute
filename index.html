@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 12:36 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 14:53 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7755,8 +7755,8 @@ document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTM
 function restoreOpen(){ if(!openKeys.size) return; document.querySelectorAll("details:not([open])").forEach(d=>{ if(!d.closest("#simDock")&&openKeys.has(detailsKey(d))) d.open=true; }); }
 function render(){
   try{ leaveAlerts.sync(); }catch(e){}
-  try{ native.sync(); }catch(e){}
-  queueMicrotask(()=>{ try{ if(native.publish()&&S().provider==="proxy") nativeCacheNow(); }catch(e){} });   // a new snapshot is kept for offline too   // after this render has drawn the followed card
+  try{ if(nativeBooted) native.sync(); }catch(e){}
+  queueMicrotask(()=>{ try{ if(nativeBooted&&native.publish()&&S().provider==="proxy") nativeCacheNow(); }catch(e){} });   // a new snapshot is kept for offline too   // after this render has drawn the followed card
   try{ syncPick(); }catch(e){}
   if(tripActive()){ applyJourneyAppearance(); applySignalLayout(); renderControls(); renderTrip(); simulator.notify("application-render"); return; }
   renderTrip();
@@ -7919,6 +7919,7 @@ async function loadTflTimetable(prev){
 // How often things are reloaded. Automatic refreshes (timer, reopening the app) are throttled;
 // a refresh you ask for, or a change of direction or settings, always runs.
 async function refresh(opts){
+ if(!nativeBooted) return nativeReady.then(()=>refresh(opts));   // in the iPhone app: the offline cache first
  if(tripActive()){ await tripUiFor().refresh(); return; }
  const epoch=sourceEpoch;
   const force=!!(opts&&opts.force), manual=!!(opts&&opts.manual);
@@ -11236,18 +11237,35 @@ const nativeBridge = (() => {
   const RETRY_MS = 60e3;
   /** The offline store's limit (§6.7 rule 7). */
   const CACHE_MAX_BYTES = 512 * 1024;
+  /** The keys the page keeps (§6.7 rule 7). Every batch names all of them: the shell's store merges by key. */
+  const CACHE_KEYS = ["snapshot", "settings", "status", "boards"];
   /**
-   * The entries that fit, in the order given (most important first): an entry that would take the total over the limit
-   * is left out (and said so), the rest still go. Sizes are UTF-8 bytes of each entry's JSON.
+   * Bytes as the shell will store them: UTF-8 of the JSON, with each "/" counted twice (Swift's JSONEncoder writes
+   * "\/"; #58, 18 Nov). An over-estimate is safe; an under-estimate would have the whole batch refused.
    */
-  function packCache(entries, max = CACHE_MAX_BYTES) {
-    const out = [], dropped = []; let total = 2;
-    for (const e of entries) {
-      let bytes; try { const j = JSON.stringify(e); bytes = (typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length) + 1; } catch (x) { dropped.push(e && e.key); continue; }
+  function cacheBytes(e) {
+    const j = JSON.stringify(e);
+    const utf8 = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length;
+    return utf8 + (j.match(/\//g) || []).length + 1;
+  }
+  /**
+   * The batch for the shell: the entries that fit within 512 KB in the order given (most important first), and an
+   * explicit clear `{key, v:1, dataAt:null, savedAt, value:null}` for every other key (left out for size, or with
+   * nothing to keep, e.g. a stopped journey). The shell replaces by key, so a key that isn't sent would keep its old,
+   * possibly large, value and could make the next batch too big (#58). Clears are counted first.
+   */
+  function packCache(entries, max = CACHE_MAX_BYTES, now = Date.now()) {
+    const clear = (key) => ({ key, v: 1, dataAt: null, savedAt: now, value: null });
+    const wanted = new Map(); for (const e of entries || []) if (e && CACHE_KEYS.includes(e.key) && !wanted.has(e.key)) wanted.set(e.key, e);
+    let total = 2 + CACHE_KEYS.reduce((n, k) => n + cacheBytes(clear(k)), 0);
+    const keep = new Map(), dropped = [];
+    for (const e of wanted.values()) {
+      let bytes; try { bytes = cacheBytes(e) - cacheBytes(clear(e.key)); } catch (x) { dropped.push(e.key); continue; }
       if (total + bytes > max) { dropped.push(e.key); continue; }
-      out.push(e); total += bytes;
+      keep.set(e.key, e); total += bytes;
     }
-    return { entries: out, dropped, bytes: total };
+    const order = [...wanted.keys(), ...CACHE_KEYS.filter((k) => !wanted.has(k))];
+    return { entries: order.map((k) => keep.get(k) || clear(k)), dropped, cleared: order.filter((k) => !keep.has(k)), bytes: total };
   }
   const ok = (x) => x && typeof x === "object";
   /**
@@ -11263,7 +11281,7 @@ const nativeBridge = (() => {
       if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
       return (cap.Plugins && cap.Plugins.CommuteNative) || null;
     };
-    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    let caps = null, booted = false, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
     // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
     const laTokens = {};
     const has = (k) => !!(caps && caps[k]);
@@ -11310,16 +11328,24 @@ const nativeBridge = (() => {
       if (!ok(caps)) { caps = null; return null; }
       if (!listening && typeof p.addListener === "function") {
         listening = true;
-        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
+        // Tokens replayed on ready() (or sent early) are kept; registering and syncing wait until the page has
+        // applied the offline cache and configured the shell (#58, 18 Nov: no /native/follow before the cache).
+        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; if (booted) register().then(() => sync()); } });
         p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
         // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
         p.addListener("open", (e) => { if (ok(e) && typeof e.url === "string" && !simulating()) deps.onOpen && deps.onOpen(e.url); });
       }
+      // The offline cache first (it may bring back Settings), then the shell is configured from the Settings that will
+      // actually be used, then ready() and its replay; only then register and sync (#58, 18 Nov).
+      try { if (deps.hydrate) await deps.hydrate(); } catch (e) { /* no cache: start empty */ }
       try { await p.configure(config()); } catch (e) { /* an older shell: it keeps its own defaults */ }
       // Listening: the shell now replays what it held (the APNs token, Live Activity tokens, recent Wi-Fi/region).
       try { if (typeof p.ready === "function") await p.ready({ v: 1 }); } catch (e) { /* ignore */ }
+      booted = true;
+      if (apns) { await register(); }
+      sync();
       return caps;
     }
     /** After each render: the snapshot to the shell when what it shows changed (cheap when nothing did). */
@@ -11335,7 +11361,7 @@ const nativeBridge = (() => {
     /** The followed journey to the proxy (so it keeps the Live Activity and alarm current while the app is closed). */
     function sync() {
       const who = ids();
-      if (!who || !caps || simulating() || Date.now() < retryAt) return null;
+      if (!booted || !who || !caps || simulating() || Date.now() < retryAt) return null;
       const f = deps.followPlan();
       const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";
@@ -11375,9 +11401,9 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
   }
-  return { create, RETRY_MS, CACHE_MAX_BYTES, packCache };
+  return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
 
 
@@ -11471,7 +11497,9 @@ function renderNativePermissions(){
   const el=$("#nativePermissions"); if(!el) return;
   const caps=native.capabilities(); if(!caps){ el.innerHTML=""; return; }
   const auth=caps.auth||{}, ask=NATIVE_PERMISSIONS.some(([k])=>auth[k]==="notDetermined"||(k==="location"&&auth[k]==="whenInUse"));
-  el.innerHTML=`<ul class="live-services">${NATIVE_PERMISSIONS.map(([k,name,why])=>`<li data-permission="${k}" data-state="${esc(String(auth[k]||""))}"><b>${auth[k]==="granted"||auth[k]==="always"?"✓":auth[k]==="denied"?"✗":"…"} ${name}</b> (${esc(why)}): ${esc(nativePermissionText(k,auth[k]))}</li>`).join("")}</ul>`+
+  // Home (#58, 18 Nov): the home geofence exists only once home is set; there's no automatic home in v1.
+  const homeNote=Array.isArray(state.saved.home)?"":`<p class="hint" data-home-missing>Home isn't set, so leaving home can't cancel the leave alarm by itself. At home, tap "Home is where I am now" (Settings → Home).</p>`;
+  el.innerHTML=homeNote+`<ul class="live-services">${NATIVE_PERMISSIONS.map(([k,name,why])=>`<li data-permission="${k}" data-state="${esc(String(auth[k]||""))}"><b>${auth[k]==="granted"||auth[k]==="always"?"✓":auth[k]==="denied"?"✗":"…"} ${name}</b> (${esc(why)}): ${esc(nativePermissionText(k,auth[k]))}</li>`).join("")}</ul>`+
     (ask?`<button type="button" class="ghost" id="nativeAllowBtn">Allow notifications, alarms and location</button>`:"");
   const b=$("#nativeAllowBtn"); if(b) b.addEventListener("click",()=>nativeAskPermissions());
 }
@@ -11491,6 +11519,7 @@ const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved,
   regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  hydrate:()=>nativeHydrate(),
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
 // them (with their age, as any old data) until the first refresh lands.
@@ -11513,7 +11542,11 @@ async function nativeHydrate(){
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
-native.init().then(async caps=>{ if(caps){ await nativeHydrate(); renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } }).catch(()=>{});
+// Offline startup (§6.7 rule 7, #58): in the app nothing is fetched, published or synced until the shell's cache has
+// been read and applied; a resume (or anything else) that comes first waits for it. A browser starts as before.
+let nativeBooted=!native.present();
+const nativeReady=(native.present()?native.init().catch(()=>null):Promise.resolve(null))   // init applies the cache (deps.hydrate) first
+  .then(caps=>{ nativeBooted=true; if(caps){ renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } return caps; });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
 const tripEnabled = () => !!S().trip;
@@ -11594,7 +11627,8 @@ $("#s_provider").addEventListener("change",showProviderFields);
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{
   if(!state.here || !(state.locAcc<=100)){ $("#homeNote").textContent="Need a good location fix (within 100 m) first. Try again in a moment."; return; }
-  state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render(); });
+  state.saved.home=[state.here[0],state.here[1]]; save(); renderHomeNote(); render();
+  try{ if(native.capabilities()){ native.configure(); renderNativePermissions(); } }catch(e){} });   // the home geofence now exists
 // Capture live data (Settings): what TfL sends for Aldgate right now, to find where its Met departures are (30 Oct:
 // the arrivals feed lists Met trains only as arriving). The key is removed from everything shown or shared.
 const CAPTURE_URLS = ["https://api.tfl.gov.uk/StopPoint/940GZZLUALD/Arrivals",
@@ -11703,7 +11737,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={native,nativeOpen,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={native,nativeOpen,nativeCacheNow,renderNativePermissions,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

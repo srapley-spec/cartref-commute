@@ -212,7 +212,10 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
 2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
    token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
    [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
-   change. Swift copies no profile data. Joining a known Wi-Fi network is a position at that place (core
+   change. Swift copies no profile data. **Home** (#58, 18 Nov): the home region exists only once home is saved, with
+   Settings → Home → "Home is where I am now" at home; a fresh install has the office region only, and Settings →
+   iPhone app says leaving home can't cancel the alarm until home is set. There is no automatic home (from Wi-Fi or
+   GPS) in v1; setting home sends `configure` with the new region at once. Joining a known Wi-Fi network is a position at that place (core
    `evidenceFix`); losing one is not set off (a router restart would cancel an alarm still needed; Sam may overrule).
    Deploy proxy passes `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC` (names to be confirmed by the iOS agent
    on #58).
@@ -251,11 +254,18 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
    `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
 7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
-   replace by key; 512 KB total; opaque to the shell. Built 18 Nov: the page writes them most important first (snapshot,
-   settings, status, boards) on each new snapshot and each live board, and leaves out any entry that would pass
-   512 KB (`nativeBridge.packCache`), so the shell never receives an oversized write. Settings are restored only to a
-   device whose own settings were lost; the registration is never in them (Keychain). The page calls `cached()` before its first fetch, shows what it
-   gets with its age, then refreshes. A fresh install shows "Not updated yet".
+   replace by key; 512 KB total; opaque to the shell. **`dataAt: null` means the data's age is unknown** (a snapshot
+   with no fetch time): kept and returned as null, never replaced by `savedAt` (#58, 18 Nov; native 9ce934f).
+   **Every batch names all four keys** (the store merges by key, so a key left out would keep its old value): the page
+   writes them most important first (snapshot, settings, status, boards) on each new snapshot and each live board;
+   anything with nothing to keep (a stopped journey) or that would take the total past 512 KB goes as an explicit
+   clear `{key, v:1, dataAt:null, savedAt, value:null}`. Sizes are counted as stored: UTF-8 of the JSON with each `/`
+   counted twice (Swift writes `\/`) (`nativeBridge.packCache`, `cacheBytes`). Settings are restored only to a device
+   whose own settings were lost; the registration is never in them (Keychain). **Startup:** in the app the page fetches,
+   publishes and syncs nothing until `cached()` has returned and been applied; a `resume` (or a timer) that comes
+   first waits for it; a browser starts as before. The order in `init` is: `capabilities()`, listeners, `cached()` and
+   apply (Settings may come back), `configure` (from the Settings that will be used), `ready()` and its replay, then
+   `/native/register` and `/native/follow`. Tokens replayed or sent before that are kept and used then.
 8. **Permissions and simulation (Sam, decision C: ask for Always).** Built 18 Nov: Settings → iPhone app lists
    notifications, alarms and location with their reported state ("Allowed", "Not asked yet", "While using the app
    only…", "Refused: change it in the iPhone's Settings → Commute"); turning the leave alarm on (the first save with it

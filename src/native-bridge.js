@@ -11,18 +11,35 @@ const nativeBridge = (() => {
   const RETRY_MS = 60e3;
   /** The offline store's limit (§6.7 rule 7). */
   const CACHE_MAX_BYTES = 512 * 1024;
+  /** The keys the page keeps (§6.7 rule 7). Every batch names all of them: the shell's store merges by key. */
+  const CACHE_KEYS = ["snapshot", "settings", "status", "boards"];
   /**
-   * The entries that fit, in the order given (most important first): an entry that would take the total over the limit
-   * is left out (and said so), the rest still go. Sizes are UTF-8 bytes of each entry's JSON.
+   * Bytes as the shell will store them: UTF-8 of the JSON, with each "/" counted twice (Swift's JSONEncoder writes
+   * "\/"; #58, 18 Nov). An over-estimate is safe; an under-estimate would have the whole batch refused.
    */
-  function packCache(entries, max = CACHE_MAX_BYTES) {
-    const out = [], dropped = []; let total = 2;
-    for (const e of entries) {
-      let bytes; try { const j = JSON.stringify(e); bytes = (typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length) + 1; } catch (x) { dropped.push(e && e.key); continue; }
+  function cacheBytes(e) {
+    const j = JSON.stringify(e);
+    const utf8 = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(j).length : unescape(encodeURIComponent(j)).length;
+    return utf8 + (j.match(/\//g) || []).length + 1;
+  }
+  /**
+   * The batch for the shell: the entries that fit within 512 KB in the order given (most important first), and an
+   * explicit clear `{key, v:1, dataAt:null, savedAt, value:null}` for every other key (left out for size, or with
+   * nothing to keep, e.g. a stopped journey). The shell replaces by key, so a key that isn't sent would keep its old,
+   * possibly large, value and could make the next batch too big (#58). Clears are counted first.
+   */
+  function packCache(entries, max = CACHE_MAX_BYTES, now = Date.now()) {
+    const clear = (key) => ({ key, v: 1, dataAt: null, savedAt: now, value: null });
+    const wanted = new Map(); for (const e of entries || []) if (e && CACHE_KEYS.includes(e.key) && !wanted.has(e.key)) wanted.set(e.key, e);
+    let total = 2 + CACHE_KEYS.reduce((n, k) => n + cacheBytes(clear(k)), 0);
+    const keep = new Map(), dropped = [];
+    for (const e of wanted.values()) {
+      let bytes; try { bytes = cacheBytes(e) - cacheBytes(clear(e.key)); } catch (x) { dropped.push(e.key); continue; }
       if (total + bytes > max) { dropped.push(e.key); continue; }
-      out.push(e); total += bytes;
+      keep.set(e.key, e); total += bytes;
     }
-    return { entries: out, dropped, bytes: total };
+    const order = [...wanted.keys(), ...CACHE_KEYS.filter((k) => !wanted.has(k))];
+    return { entries: order.map((k) => keep.get(k) || clear(k)), dropped, cleared: order.filter((k) => !keep.has(k)), bytes: total };
   }
   const ok = (x) => x && typeof x === "object";
   /**
@@ -38,7 +55,7 @@ const nativeBridge = (() => {
       if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) return null;
       return (cap.Plugins && cap.Plugins.CommuteNative) || null;
     };
-    let caps = null, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
+    let caps = null, booted = false, lastShown = null, lastFollowKey = null, retryAt = 0, apns = null, listening = false;
     // Live Activity push tokens by journey (§6.7 rules 1 and 5): only the current journey's is sent.
     const laTokens = {};
     const has = (k) => !!(caps && caps[k]);
@@ -85,16 +102,24 @@ const nativeBridge = (() => {
       if (!ok(caps)) { caps = null; return null; }
       if (!listening && typeof p.addListener === "function") {
         listening = true;
-        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; register().then(() => sync()); } });
+        // Tokens replayed on ready() (or sent early) are kept; registering and syncing wait until the page has
+        // applied the offline cache and configured the shell (#58, 18 Nov: no /native/follow before the cache).
+        p.addListener("apns", (e) => { if (ok(e) && typeof e.token === "string" && (e.env === "sandbox" || e.env === "production")) { apns = { token: e.token, env: e.env }; if (booted) register().then(() => sync()); } });
         p.addListener("liveActivity", (e) => { if (ok(e) && typeof e.token === "string" && typeof e.followId === "string") { laTokens[e.followId] = e.token; lastFollowKey = null; sync(); } });
         for (const kind of ["wifi", "region"]) p.addListener(kind, (e) => { if (ok(e) && !simulating()) deps.onEvidence({ kind, place: String(e.place || ""), event: e.event, at: Number(e.at) }); });
         p.addListener("resume", () => deps.onResume && deps.onResume());
         // A deep link the shell was opened with (Siri, the Live Activity): commute://next?direction=home&follow=1.
         p.addListener("open", (e) => { if (ok(e) && typeof e.url === "string" && !simulating()) deps.onOpen && deps.onOpen(e.url); });
       }
+      // The offline cache first (it may bring back Settings), then the shell is configured from the Settings that will
+      // actually be used, then ready() and its replay; only then register and sync (#58, 18 Nov).
+      try { if (deps.hydrate) await deps.hydrate(); } catch (e) { /* no cache: start empty */ }
       try { await p.configure(config()); } catch (e) { /* an older shell: it keeps its own defaults */ }
       // Listening: the shell now replays what it held (the APNs token, Live Activity tokens, recent Wi-Fi/region).
       try { if (typeof p.ready === "function") await p.ready({ v: 1 }); } catch (e) { /* ignore */ }
+      booted = true;
+      if (apns) { await register(); }
+      sync();
       return caps;
     }
     /** After each render: the snapshot to the shell when what it shows changed (cheap when nothing did). */
@@ -110,7 +135,7 @@ const nativeBridge = (() => {
     /** The followed journey to the proxy (so it keeps the Live Activity and alarm current while the app is closed). */
     function sync() {
       const who = ids();
-      if (!who || !caps || simulating() || Date.now() < retryAt) return null;
+      if (!booted || !who || !caps || simulating() || Date.now() < retryAt) return null;
       const f = deps.followPlan();
       const plan = f && f.plan, laToken = plan ? laTokens[plan.followId] || null : null;
       const key = plan ? JSON.stringify([plan.followId, plan.serviceId || "", plan.std, Math.round(plan.leaveBy / 60e3), !!f.setOff, laToken || ""]) : "none";
@@ -150,8 +175,8 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
   }
-  return { create, RETRY_MS, CACHE_MAX_BYTES, packCache };
+  return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
 if (typeof module !== "undefined") module.exports = nativeBridge;
