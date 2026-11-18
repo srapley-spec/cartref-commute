@@ -95,7 +95,8 @@ The owner changes through `3ceefc7` are integrated into the native branch: permi
 fixtures, Settings permission requests and journey fixes. Cache/bootstrap corrections and final combined checks
 remain in progress. Phone acceptance follows integration and an internal build. Apple review submission must wait
 until the app is working; no review submission is configured.
-- [ ] On the native feature build, allow the desired permissions in Settings. To test home-exit alarm cancellation,
+- [ ] On the native feature build, allow the desired permissions in Settings and enable Experimental → "Follow a
+      route". To test home-exit alarm cancellation,
       while at home choose Settings → Home → "Home is where I am now". There is no automatic home inference in v1.
 - [ ] Run the [first-phone acceptance checks](stories/ios-native.md#first-internal-testflight-phone-acceptance) and
       report the TestFlight build number with any failures. Actual APNs, alarms and region delivery need an iPhone.

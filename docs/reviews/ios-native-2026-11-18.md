@@ -92,4 +92,6 @@ cleanup when a device never booted and unexpected cleanup failures. Review and a
 The first runner review found two test gaps: restricting execution to only the bundled-page tests, and treating
 a killed Xcode child (no exit status) as success. The CLI probes now reject both forms of `only-testing` and run
 an actual SIGKILL child case, verifying failure and cleanup. Production already handles these correctly; survivor
-rechecks remain required.
+rechecks passed at `79c108c`. The reviewer approved the runner implementation and tests: seven baseline tests pass
+and all 16 mutations are caught, including test filtering, signal termination, deadlines, retries, destination
+ownership and cleanup failures. Fresh-device execution and final combined CI remain separate release gates.
