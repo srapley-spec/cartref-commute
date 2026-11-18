@@ -27,7 +27,7 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
 | Trip | Off: no Trip or Google requests in Commute | Yes (0 Trip calls) | test rewritten | trip-page: "Trip available but not chosen (#63)…" |
 | Trip | 18 Nov live services: optional rows only when in use | No: Google/any-station rows raised a home "Not live" warning for every Commute user on a proxy without them | Counted in the home warning only in Trip; always listed in Settings | keys-in-proxy: "Settings: no key fields…", "TfL counts as keyed only…" |
 | Trip | Trip settings shown | Yes | First-pass assertion couldn't fail (Settings not opened; mutation survived); now opens Settings first | permanent-features: "Fresh install…" |
-| all | Marker `featuresPermanent` kept across Settings saves, fresh installs and iPhone restores (so the once-per-device migration never runs twice) | No (re-check): a restore from an older iPhone cache dropped it, and the next reload wiped the followed route, Trip and saved destination; Save and fresh-install paths worked but were untested (mutations J, K survived) | Marker set on restore (`nativeHydrate`); tests for restore→follow→reload, Save→reload, fresh→follow→reload and nothing-saved | permanent-features: "Marker: …" (4 tests; mutations K, restore and the nothing-saved line killed; J on a device with settings is equivalent: the migration sets the marker) |
+| all | Marker `featuresPermanent` kept across Settings saves, fresh installs and iPhone restores (so the once-per-device migration never runs twice) | No (re-check): a restore from an older iPhone cache dropped it, and the next reload wiped the followed route, Trip and saved destination; Save and fresh-install paths worked but were untested (mutations J, K survived) | Marker set on restore (`nativeHydrate`); tests for restore→follow→reload, Save→reload, fresh→follow→reload and nothing-saved | permanent-features: "Marker: …" (4 tests; mutations J (the nothing-saved start-up line), K and the restore killed; I is equivalent, because the start-up line sets the marker anyway) |
 | all | Retired switches dropped on load, Save and the iPhone app's cache | Yes | none | permanent-features (mutations killed) |
 
 ## Not changed
@@ -38,6 +38,13 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
 ## Re-check (362ebdf)
 All four blockers fixed (follow, Trip, banner; fold partly, decision above); saved-destination decision agreed;
 15 mutations: A, B, D, E, F, G, H, L, M, O killed; C, I, J, K, N survived. The survivors and the iPhone-restore marker
-bug were fixed with tests in the next commit (C, K, N and the restore now killed; I and J equivalent). Rewritten
+bug were fixed with tests in the next commit (C, J, K, N and the restore now killed; I equivalent). Rewritten
 older tests still guard the preserved behaviour; goldens: only the added Follow/Unavailable text. Low risk noted:
 a stored state with no `settings` object skips the migration (save() always writes settings).
+
+## Final pass (288b01a)
+Verdict: ready for the iOS agent to integrate once `npm run ci` and GitHub are green on the branch; merge on the
+GitHub-first path (saved-state shape, live request pattern). Mutations K, N, C, R (restore) and J all killed. Fold
+decision accepted: hiding "Where from?" in every live view would remove the feature in London going home, where it is
+meant to work; the real 12 Nov loss (rows over a followed card) is fixed and both rows are tested. Open, not blocking:
+a stored state with no `settings` object; the `createTripUi.reset()` race (no caller); real-iPhone acceptance.
