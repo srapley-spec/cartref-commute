@@ -60,6 +60,13 @@ said not to submit for Apple review until the app works. Account invitations and
   assertions remain unchanged; this allowance is not a physical-device launch-performance target.
   Only one readiness evaluation may be in flight. The deadline advances independently of its callback, so a
   stalled callback cannot turn an expired wait into success or prevent the test from reporting a failure.
+  Automated tests launch without attaching LLDB; normal Xcode Run still supports debugging. Main's 18 November
+  failure involved a debugger-attached first launch with long delays before and during WebKit startup. The
+  simulator's boot report is now preserved, and a terminal "Data Migration Failed" rejects the environment even
+  when `simctl` exits zero. These changes retain the two app assertions and their 120-second readiness deadline;
+  validation of the startup correction is in progress.
+- tests/ios-simulator.test.mjs: "simulator bootstrap failure prevents app testing and removes only its disposable device"
+- tests/ios-simulator.test.mjs: "simulator test failures propagate after disposable device cleanup"
 - Manual signing check: unsigned Release archive → manual App Store export → signed IPA inspection passed locally
   on 17 November with Xcode 27.2. Nothing uploaded by that check.
 
@@ -70,7 +77,9 @@ and cancellation. Both real-startup and offline native tests passed against the 
 
 ## Not yet / open questions
 - Independent review is complete: all 20 deliberate mutations are caught; [review evidence](../reviews/ios-shell-2026-11-17.md).
-  Release still requires committed-code CI, GitHub validation and successful internal TestFlight processing;
+  PR #59 merged, but main's native startup check failed on 18 November. TestFlight correctly skipped that revision;
+  the website checks and deployment passed. Release still requires the startup correction, committed-code CI,
+  GitHub validation and successful internal TestFlight processing;
   see Actions and its build-provenance artifact for the exact released SHA/build number.
 - The green no-setup release (`af09273`) is now merged into this branch. Its live proxy accepts the bundled origin;
   the web page and its tests remain the owner's unchanged release.

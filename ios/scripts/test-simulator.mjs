@@ -14,7 +14,11 @@ if (!runtime) throw new Error('Install the iOS 27.2 simulator runtime in Xcode 2
 const device = sim('create', `Commute CI ${process.pid}`, deviceType, runtime.identifier);
 try {
   sim('boot', device);
-  sim('bootstatus', device, '-b');
+  const boot = sim('bootstatus', device, '-b');
+  console.log(boot);
+  // simctl can exit 0 even when its terminal status is "Data Migration Failed".
+  // Never treat a broken OS bootstrap as a valid app test environment.
+  if (boot.includes('Data Migration Failed')) throw new Error('Simulator data migration failed before app testing.');
   const result = spawnSync('xcodebuild', [
     'test', '-project', 'ios/App/App.xcodeproj', '-scheme', 'Commute',
     '-destination', `platform=iOS Simulator,id=${device}`, '-derivedDataPath', 'ios/DerivedData',
