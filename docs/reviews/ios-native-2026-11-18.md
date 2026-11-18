@@ -56,3 +56,8 @@ An urgent long-label layout probe initially exceeded 160 points (174 at 320-poin
 system timer into the countdown text removes the fixed timer column, while explicit vertical text sizing keeps
 both headline labels complete. The same production-view probe now measures 158 points with full headline,
 destination, urgency, status, platform, progress and age. This is a macOS SwiftUI preview, not device acceptance.
+
+Review at `4dc0991` passed 35 core tests and 11 inert runtime probes. Eight countdown mutations, missing production
+attachment and an unexpected-null fixture were caught. Removing validation of the two transition timestamps
+survived; direct model tests now cover each field with nil/zero/positive, negative, infinity and NaN values. The
+expanded 36-test core baseline passes; the reviewer is rerunning that final survivor.

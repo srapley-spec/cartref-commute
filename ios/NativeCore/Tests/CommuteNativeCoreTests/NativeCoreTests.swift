@@ -53,6 +53,24 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertThrowsError(try Wire.snapshot(value))
     }
 
+    func testCountdownTransitionInstantsValidateBeforePlatformUse() throws {
+        var value = snapshot()
+        value.headline.countdown = .init(step: "leave", calm: "in", urgent: "now", passed: "passed",
+                                        state: .calm, urgentAt: nil, passedAt: nil)
+        let fields: [WritableKeyPath<JourneySnapshot.Countdown, Double?>] = [\.urgentAt, \.passedAt]
+        for field in fields {
+            for time: Double? in [nil, 0, 5000] {
+                value.headline.countdown![keyPath: field] = time
+                XCTAssertNoThrow(try value.validate())
+            }
+            for time in [-1, Double.infinity, -Double.infinity, Double.nan] {
+                value.headline.countdown![keyPath: field] = time
+                XCTAssertThrowsError(try value.validate())
+            }
+            value.headline.countdown![keyPath: field] = nil
+        }
+    }
+
     func testRemoteStopEnvelopeRejectsUnidentifiedOrMalformedStops() throws {
         XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull()]))
         XCTAssertNil(try Wire.remoteSnapshot(["snapshot": NSNull(), "followId": NSNull(), "at": NSNull()]))
