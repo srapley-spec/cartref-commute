@@ -898,7 +898,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 12 Nov 16:36 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 17 Nov 22:07 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -908,31 +908,18 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
     <h3>Settings</h3>
 
     <fieldset>
-      <legend>National Rail live data</legend>
+      <legend>Live data</legend>
       <label class="f wide"><span>Source</span>
         <select id="s_provider">
-          <option value="rdm">Rail Data Marketplace (Darwin key)</option>
-          <option value="proxy">My proxy (Cloudflare Worker)</option>
-          <option value="huxley">Huxley2 (Darwin token)</option>
-          <option value="tfl">TfL timetable (no key, not live)</option>
-          <option value="demo">Example data (no key)</option>
+          <option value="proxy">Live: National Rail, TfL and Google, through the app's proxy</option>
+          <option value="tfl">TfL timetable (not live)</option>
+          <option value="demo">Example data</option>
         </select>
       </label>
-      <label class="f wide" data-p="rdm"><span>API key (x-apikey)</span><input id="s_rdmKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Endpoint base URL, from the product page (ends …/LDBWS/api/20220120)</span><input id="s_rdmBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Service Details key (only if different from the key above)</span><input id="s_rdmSdKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-p="rdm"><span>Service Details endpoint base URL</span><input id="s_rdmSdBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="proxy"><span>Proxy URL</span><input id="s_proxyBase" type="url" spellcheck="false" placeholder="https://cartref-rail.yourname.workers.dev"></label>
-      <div class="f wide" data-p="proxy">
-        <p class="hint">My proxy carries every feed: National Rail, TfL and Google (Trip). This phone keeps no keys; they live in Cloudflare.</p>
+      <div class="f wide">
+        <p class="hint">Nothing to set up: no keys are kept on this device. They live with the app's proxy (Sam, 17 Nov).</p>
         <p class="hint" id="proxyStatus" aria-live="polite"></p>
-        <button type="button" class="ghost" id="proxyLinkBtn">Copy setup link for another device</button>
-        <button type="button" class="ghost" id="clearKeysBtn" hidden>Remove keys stored on this phone</button>
       </div>
-      <label class="f wide" data-p="huxley"><span>Huxley2 base URL</span><input id="s_huxleyBase" type="url" spellcheck="false"></label>
-      <label class="f wide" data-p="huxley"><span>Darwin token</span><input id="s_huxleyToken" type="password" autocomplete="off" spellcheck="false"></label>
-      <label class="f wide" data-not-proxy><span>TfL app key (optional, free from api-portal.tfl.gov.uk; raises TfL's request limit)</span><input id="s_tflKey" type="password" autocomplete="off" spellcheck="false"></label>
-      <p class="hint">Keys are stored only in this browser on this device. A key typed here can be read by anything that runs on this page; the proxy option keeps the National Rail key off the phone entirely.</p>
     </fieldset>
 
     <fieldset>
@@ -999,8 +986,6 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <legend>Trip</legend>
       <p class="hint">Addresses and the time to and from the station come from Google; trains from TfL's journey planner, with live
         National Rail times. Station list: UK railway stations (ODbL 1.0, github.com/davwheat/uk-railway-stations).</p>
-      <label class="f wide" data-not-proxy><span>Google</span><select id="s_googleVia"><option value="browser">Key in this browser</option><option value="proxy">My proxy (key held by the proxy)</option></select></label>
-      <label class="f wide" id="googleKeyRow"><span>Google Maps key (website-restricted)</span><input id="s_googleKey" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="googleKeyNote"></span></label>
       <label class="f"><span>Park and reach the platform (min)</span><input id="s_tripParkMin" type="number" step="1" min="0" max="60"></label>
       <label class="f"><span>Lock the bike and reach the platform (min)</span><input id="s_tripLockMin" type="number" step="1" min="0" max="60"></label>
       <label class="f"><span>Station entrance to platform (min)</span><input id="s_tripStationMin" type="number" step="1" min="0" max="60"></label>
@@ -1182,6 +1167,7 @@ var CommuteCore = (() => {
     FOLLOW_FIX_FRESH_MS: () => FOLLOW_FIX_FRESH_MS,
     FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS: () => FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS,
     FOLLOW_NOTICE_MIN: () => FOLLOW_NOTICE_MIN,
+    FOLLOW_SET_OFF_FIX_MS: () => FOLLOW_SET_OFF_FIX_MS,
     FOLLOW_STATION_ACC_M: () => FOLLOW_STATION_ACC_M,
     FOLLOW_STATION_GONE_MS: () => FOLLOW_STATION_GONE_MS,
     FOLLOW_STATION_KM: () => FOLLOW_STATION_KM,
@@ -1418,6 +1404,7 @@ var CommuteCore = (() => {
     thameslinkNote: () => thameslinkNote,
     timeFromTrain: () => timeFromTrain,
     timeToTrain: () => timeToTrain,
+    timetabledDeparture: () => timetabledDeparture,
     topPicks: () => topPicks,
     trackLine: () => trackLine,
     trainFlags: () => trainFlags,
@@ -3493,6 +3480,7 @@ var CommuteCore = (() => {
   // src/core/follow.ts
   var MIN = 6e4;
   var FOLLOW_BETTER_MIN = 5;
+  var FOLLOW_SET_OFF_FIX_MS = 2 * MIN;
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_NOTICE_MIN = 3;
   var FOLLOW_GONE_GRACE_MS = 3e4;
@@ -3547,11 +3535,15 @@ var CommuteCore = (() => {
     if (i.phase !== "before-train" || !near || i.accM == null || !(i.accM <= FOLLOW_STATION_ACC_M)) return null;
     return i.fixOk && i.fixAgeMs != null && i.fixAgeMs >= 0 && i.fixAgeMs <= FOLLOW_FIX_FRESH_MS ? "at" : "was";
   }
-  function platformBy(option, departure, now) {
+  function platformBy(option, departure, now, timetabled = departure) {
+    const first = finite2(timetabled) ? Math.min(departure, timetabled) : departure;
     const before = Array.isArray(option.before) ? option.before : [];
     const last = before[before.length - 1];
-    const by = departure - (last && last.kind === "margin" && finite2(last.secs) ? last.secs * 1e3 : 0);
-    return now > by ? departure : by;
+    const by = first - (last && last.kind === "margin" && finite2(last.secs) ? last.secs * 1e3 : 0);
+    return now <= by ? by : now <= first ? first : departure;
+  }
+  function timetabledDeparture(t2) {
+    return finite2(t2.depLate) && t2.depLate > 0 ? t2.dep - t2.depLate * MIN : t2.dep;
   }
   function followLooksBack(route, now) {
     var _a;
@@ -5853,13 +5845,18 @@ function whichTrain(now,remember=true){
   if(remember)state.trainLock=r.lock; return r.result;
 }
 const hubHere = () => C.hubHere(fix(), PROFILE);
+// The app's proxy (proxy/worker.js), deployed by GitHub Actions (Deploy proxy). Not a secret: it answers only this page's
+// origin, and holds the keys itself.
+const APP_PROXY = "https://cartref-rail.s-rapley.workers.dev";
 // All durations in seconds.
 const DEFAULTS = {
   simulatorEnabled:false,simulatedFeeds:false,alongLine:false,followRoute:false,appearance:"system",
-  provider:"rdm",
+  // Live data comes through the app's own proxy, which holds every key (Sam, 17 Nov). The phone-key sources below stay
+  // only as internal adapters (tests and recorded feeds); nothing in Settings sets them.
+  provider:"proxy",
   rdmBase:"https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120",
   rdmKey:"", tflKey:"",
-  rdmSdBase:"https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120", rdmSdKey:"", proxyBase:"", huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
+  rdmSdBase:"https://api1.raildata.org.uk/1010-service-details1_2/LDBWS/api/20220120", rdmSdKey:"", proxyBase:APP_PROXY, huxleyBase:"https://huxley2.azurewebsites.net", huxleyToken:"",
   walkHomeStationAvg:1337, walkHomeStationFast:1086, walkStationHomeAvg:1332, walkStationHomeFast:1111,
   letEntry:120, letExit:90, catchMargin:60,
   kxInterchange:400, farInterchange:240, tubeWait:180,
@@ -5988,7 +5985,7 @@ function tflUrl(u){
 // each load to a minimum and runs requests one at a time.
 // Through the proxy: keyed when the proxy said so, for the address in use now (an old proxy's answer doesn't count).
 const tflKeyed = () => { if(!allViaProxy()) return !!S().tflKey; const st=state.saved.proxyStatus; return !!(st && st.tflKey && st.base===proxyBaseUrl()); };
-const tflKeyAdvice = () => allViaProxy() ? "add TFL_KEY to your proxy in Cloudflare" : "add a free TfL app key in Settings";
+const tflKeyAdvice = () => allViaProxy() ? "add TFL_KEY to GitHub's Actions secrets and run Deploy proxy" : "choose Live in Settings (the app's proxy holds a TfL key)";
 const TFL_LIMIT_MSG = () => tflKeyed() ? "TfL is rate-limiting requests. Retrying in a minute."
   : `TfL limits requests without a key to a handful a minute. Retrying in a minute; ${tflKeyAdvice()} to avoid this.`;
 function tflBackingOff(){ return state.tflBackoffUntil && Date.now()<state.tflBackoffUntil; }
@@ -6697,11 +6694,20 @@ function trainConnectionMarkup(t,from=STATIONS[t.from]||t.from,context={}){
     arrivalLabel:(context.arrivalSource||source)==='Timetable'?'Timetable':(context.arrivalSource||source)==='Last known'?'Last known':'Expected'})
     +(C.thameslinkNote(t.operator)?`<div class="tl-note" data-block="thameslink">${esc(C.thameslinkNote(t.operator))}</div>`:'');
 }
+// The platform deadline for a train: its timetable time when it's late (an estimate can come forward), less the
+// route's margin; and which platform, at which station (Sam, 17 Nov: at Aldgate, "Be on the platform by" read as the
+// tube's platform). "Be on platform 4 at Farringdon by"; "Be on the platform at Farringdon by" before it's announced.
+function platformTime(option,train){return C.platformBy(option,train.dep,Date.now(),C.timetabledDeparture(train));}
+function platformLabel(train){
+  const at=STATIONS[train?.from]||HUB_NAME[train?.from]||'';
+  return `Be on ${train?.platform?`platform ${train.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+}
 function journeyHeadlineMarkup(j,dest,timing=''){
-  // Rows drawn while you're already on your way (the trains home under the tube you're on): the deadline for each is
-  // its platform, counting down to that, never to leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?").
-  if(state.rowsUnderWay&&j.train&&Number.isFinite(j.train.dep))
-    return journeyTimesMarkup({leave:C.platformBy(j,j.train.dep,Date.now()),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:'Be on the platform by',isLeave:false,step:'platform',timing});
+  // Rows drawn while you're already on your way (the trains home under the tube you're on; and, once you've set off
+  // on a followed route, the rows below it): the deadline for each is its platform, counting down to that, never to
+  // leaving (Sam, 12 Nov: "why wouldn't this also be 'be on the platform by'?"; 17 Nov: "Platform in rows too").
+  if((state.rowsUnderWay||state.rowsSetOff)&&j.train&&Number.isFinite(j.train.dep))
+    return journeyTimesMarkup({leave:platformTime(j,j.train),arrive:j.arrive,dest,available:plannable(j.train),leftLabel:platformLabel(j.train),isLeave:false,step:'platform',timing});
   return journeyTimesMarkup({leave:j.leave,arrive:j.arrive,dest,available:plannable(j.train),pace:j.effort==='run'||j.effort==='car'?'at walking pace':'',timing});
 }
 // Shared by commute and Trip; callers supply the canonical itinerary and availability.
@@ -7275,7 +7281,7 @@ function renderDiag(){
     keys.forEach(k=>{ const x=d[k], [a,b]=k.split("-");
       const dropped=Object.entries(x.dropped).map(([r,n])=>`${n} ${why[r]||r}`).join("; ");
       parts.push(`<p><b>${esc(STATIONS[a])} → ${esc(STATIONS[b])}, timetable:</b> ${x.searches} search${x.searches===1?"":"es"}; TfL returned ${x.returned} journey${x.returned===1?"":"s"}; ${x.kept} direct train${x.kept===1?"":"s"} kept${x.trains&&x.trains.length?` (${esc(uniq(x.trains).join(", "))})`:""}${dropped?`; ${esc(dropped)}`:""}.</p>`); });
-    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. ${allViaProxy()?"Adding TFL_KEY to your proxy in Cloudflare widens this.":"A free TfL key in Settings widens this."}</p>`);
+    if(!tflKeyed()) parts.push(`<p>Without a TfL key each route gets one or two searches, so only the next few trains are found. ${allViaProxy()?"Adding TFL_KEY to GitHub's Actions secrets (then Deploy proxy) widens this.":"Choosing Live in Settings widens this."}</p>`);
   }
   if(!parts.length){ el.hidden=true; return; }
   el.hidden=false;
@@ -7591,6 +7597,8 @@ function renderInner(){
   const now=Date.now(), byView=state.saved.view==="by";
   const shown = journeyPresentation(now, situation(now)), view = shown.view;
   state.presentation=shown;state.rendered.view=view;
+  // After the view is settled (an expired Plan pin cleared above), so the rows match this render (review, 17 Nov).
+  try{ state.rowsSetOff=journeyEnabled()&&followSetOffNow(); }catch(e){ state.rowsSetOff=false; }
   if(view==="awaiting-location"){
     document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.view===(state.saved.view||"now"))));
     $("#byForm").hidden=!(state.saved.view==="by"||state.saved.view==="at");
@@ -8879,7 +8887,7 @@ async function settleSimulation({refresh:reload=false,cancelled=()=>false}={}){
 const simulationReporter=createJourneySimulationReporter({now:()=>simClock.now()});
 function simulationPrivateValues(){
  const settings=[S(),simulationSnapshot?.settings,sim.baseline?.settings].filter(Boolean);
- const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
+ const values=settings.flatMap(value=>Object.entries(value).filter(([key])=>key!=='keysInProxy'&&/key|token|secret|password/i.test(key)).map(([,value])=>String(value||'')));
  return [...values,simulationInputSnapshot?.origin||'',simulationInputSnapshot?.fields.originInput||'',simulationInputSnapshot?.fields.destInput||'',state.saved.dest||'',simulationSnapshot?.dest||'',sim.baseline?.dest||'',state.origin||'',...($("#routeLabel").textContent||'').split(/⇄|→/).map(value=>value.trim()).filter(Boolean)];
 }
 const simulationSession=createJourneySimulationSession({simulator,document,reporter:simulationReporter,evaluate:evaluateSimulationCheckpoint,readActual:readSimulationActual,settle:settleSimulation,privateValues:simulationPrivateValues});
@@ -9384,6 +9392,30 @@ function movedFromStart(route){
   if(state.followFrom?.id!==route.id)state.followFrom={id:route.id,here:state.here};
   return km(state.here,state.followFrom.here)>0.2;
 }
+// Set off on the followed route (Sam, 12 Nov; 17 Nov): on the tube to the station; or, with a position good to 150 m
+// and no more than 2 minutes old, outbound away from home (the app's left-home rule), and going home 200 m from where
+// you were when the route was first drawn (Commute as Leisure: the office was the start only when you left from it).
+// Once set off, it holds for this journey (same direction and mode) until you stop following, even when the phone
+// gives no fresh fix (a locked screen) or you switch to another train on the way (review, 17 Nov: both brought back
+// "Leave by · leave time passed"). A fresh fix is needed only to decide you've set off. Kept for this page.
+function followMovedOff(route,observation){
+  if(!route||route.phase!=='before-train')return false;
+  const journey=`${route.direction}|${route.mode}`;
+  if(state.setOffJourney===journey)return true;
+  const fresh=!!state.here&&state.locAcc<=150&&Number.isFinite(state.lastFixAt)&&Date.now()-state.lastFixAt<=C.FOLLOW_SET_OFF_FIX_MS;
+  const off=!!observation?.activeConnection||(fresh&&(route.direction==='office'?!atHome():movedFromStart(route)));
+  if(off)state.setOffJourney=journey;
+  return off;
+}
+// For the rows below the followed card (Sam, 17 Nov: "Platform in rows too"): set off, and not standing at the station
+// (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
+function followSetOffNow(){
+  if((state.saved.view||'now')!=='now'||state.saved.viewOverride?.mode==='plan')return false;
+  const route=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);
+  if(!route||route.phase!=='before-train'||route.direction!==direction()||route.mode!==currentMode())return false;
+  const observation=followedObservation(route,Date.now());
+  return !observation.boarding&&followMovedOff(route,observation);
+}
 function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
@@ -9675,6 +9707,7 @@ function renderFollowPanel(){
     return;
   }
   panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
@@ -9709,16 +9742,13 @@ function renderFollowPanel(){
   // from the phone's position and contradicted the status line beneath it).
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   // Once you've set off, the deadline is the platform, not leaving (Sam, 12 Nov: "yes. Be on the platform by"; from
-  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: on the tube to the station; or,
-  // outbound, the app's own left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home
-  // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
-  // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
-  // route was first drawn (kept for this page; after a reload, from the first position then).
-  const movedOff=panelLayout&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
+  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: followMovedOff (on the tube to the
+  // station; outbound, the app's own left-home rule; going home, 200 m from where the route was first drawn, kept for
+  // this page, after a reload from the first position then). At home or where you started, Leave by as before.
+  const movedOff=panelLayout&&followMovedOff(r,observation);
   const setOff=!unknown&&!observation.boarding&&movedOff;
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
-  const platformBy=C.platformBy(r.option,t.dep,Date.now());
+  const platformBy=platformTime(r.option,t);
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
   const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
@@ -9739,7 +9769,7 @@ function renderFollowPanel(){
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
   // The way on keeps the same rule: set off (or at the station), its deadline is its platform; otherwise Leave by.
   const wayOnTimes=!giveUpWay?'':(movedOff||panelLayout&&observation.boarding)&&giveUpWay.train
-    ?journeyTimesMarkup({leave:C.platformBy(giveUpWay,giveUpWay.train.dep,Date.now()),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+    ?journeyTimesMarkup({leave:platformTime(giveUpWay,giveUpWay.train),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(giveUpWay.train),isLeave:false,step:'platform'})
     :journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true});
   // The way on offered below the card ("A way on", "Another option") is drawn by the same rule once you're under way:
   // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
@@ -9749,7 +9779,7 @@ function renderFollowPanel(){
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(t),isLeave:false,step:'platform'})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:unknown?'':r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}
@@ -10663,19 +10693,36 @@ function createTripUi(deps) {
   // The same card as Commute and Leisure (Sam, 12 Nov: "all the changes we're making apply to all modes"): the left
   // time is the start of your next step and counts down in that step's words; once you've set off (over 200 m from
   // where the trip starts) the deadline is the platform, the first train's departure less the time to reach it.
+  // As in Commute (17 Nov): a late train's timetable time, less the trip's own time to reach the platform; once that
+  // has gone, the timetable time, then the expected departure.
   function tripPlatformBy(j){
-    const plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
-    return j.rides[0].dep-(plat?plat.secs*1000:0);
+    const ride=j.rides[0],plat=[...(j.before||[])].reverse().find(seg=>seg.kind==='station');
+    const first=Number.isFinite(ride.schedDep)?Math.min(ride.dep,ride.schedDep):ride.dep,by=first-(plat?plat.secs*1000:0),t=now();
+    return t<=by?by:t<=first?first:ride.dep;
   }
+  function tripPlatformLabel(j){
+    const ride=j.rides[0],at=ride.from?.name||'';
+    return `Be on ${ride.platform?`platform ${ride.platform}`:'the platform'}${at?` at ${at}`:''} by`;
+  }
+  // Set off: seen within 200 m of where the trip starts, then over 200 m from it, each on a position good to 150 m and
+  // no more than 2 minutes old. A trip planned from somewhere you aren't (yet) keeps Leave by: you haven't left it.
+  // Once set off it holds for this trip, without fresh fixes (review, 17 Nov), as in Commute.
+  let tripSeenKey=null,tripOffKey=null;
   function tripSetOff(j){
+    const key=`${j.leave}|${j.from?.id||''}|${j.from?.geo||''}`;
+    if(tripOffKey===key)return true;
     const h=here(),start=j.from?.geo;
-    return !!h&&!!start&&h.acc<=150&&C.km(h.geo,start)>0.2;
+    if(!h||!start||!(h.acc<=150)||!Number.isFinite(h.at)||now()-h.at>C.FOLLOW_SET_OFF_FIX_MS)return false;
+    const away=C.km(h.geo,start)>0.2;
+    if(!away){tripSeenKey=key;return false;}
+    if(tripSeenKey===key){tripOffKey=key;return true;}
+    return false;
   }
   function tripFollowHeading(fu){
     const f=fu.route,j=f.journey,phase=C.followedTripPhase(f,now()),ride=j.rides[phase.ride];
     const destination=j.to?.name||j.toStation.name;
     if(fu.phase==='before'||fu.phase==='access'){
-      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:'Be on the platform by',isLeave:false,step:'platform'});
+      if(tripSetOff(j))return journeyTimesMarkup({leave:tripPlatformBy(j),arrive:fu.arrival,dest:destination,available:fu.arrival!=null,leftLabel:tripPlatformLabel(j),isLeave:false,step:'platform'});
       return journeyTimesMarkup({leave:j.leave,arrive:fu.arrival,dest:destination,available:fu.arrival!=null});
     }
     const left=fu.phase==='ride'?(C.tripRideTimingUsable(ride,false)?ride.arr:null):fu.phase==='change'?(ride.cancelled||ride.train?.cancelled||ride.train?.depUnknown?null:ride.dep):fu.phase==='final'?now():fu.arrival;
@@ -10791,14 +10838,13 @@ async function refreshProxyStatus(){
 }
 function renderProxyStatus(){
   const el=$("#proxyStatus"); if(!el) return;
-  const st=state.saved.proxyStatus, base=proxyBaseUrl(), keys=PHONE_KEYS.filter(k=>S()[k]);
-  $("#clearKeysBtn").hidden=!(S().provider==="proxy"&&keys.length);
+  const st=state.saved.proxyStatus, base=proxyBaseUrl();
   if(!base){ el.textContent=""; return; }
   if(state.proxyStatusErr==="redeploy"){ el.textContent="Your proxy needs redeploying: it doesn't know this version of the app (HTTP 404). See docs/proxy-setup.md."; return; }
   if(state.proxyStatusErr&&(!st||st.base!==base)){ el.textContent=`Couldn't reach your proxy (${state.proxyStatusErr}). Check the address, and that its ALLOW_ORIGIN is this page's address.`; return; }
   if(!st||st.base!==base){ el.textContent="Checking your proxy…"; return; }
   const need=[!st.rail&&"National Rail (RDM_BASE, RDM_KEY)",!st.tflKey&&"TfL key (TFL_KEY; without it TfL's shared limit applies)",!st.google&&"Google for Trip (GOOGLE_KEY)",!st.anyStation&&S().trip&&"any station for Trip (ALLOW_ANY_STATION=yes)",!st.alerts&&S().leaveAlerts&&"alerts (see docs/proxy-setup.md)"].filter(Boolean);
-  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to set in Cloudflare: ${need.join("; ")}.`:"")+(keys.length?" This phone still holds keys you can remove.":"");
+  el.textContent=`Proxy: National Rail ${st.rail?"✓":"✗"} · TfL ${st.tflKey?"✓ keyed":"✓ without a key"} · Google ${st.google?"✓":"✗"} · Alerts ${st.alerts?"✓":"✗"}.`+(need.length?` Still to add to GitHub's Actions secrets, then run Deploy proxy: ${need.join("; ")}.`:"");
 }
 // A setup link (#setup=<proxy address>) sets up a new device in one tap: My proxy for every feed, nothing else changed.
 // It names the proxy's host in the question (an address that only looks like yours is refused or shown as what it is).
@@ -10834,7 +10880,7 @@ window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxySt
 // ---------- Time-to-leave and wake-up alerts (Settings → Experimental; off by default) ----------
 // Time-to-leave and wake-up alerts: the page's side (docs/stories/time-to-leave-alerts.md).
 // Settings → Experimental → "Time-to-leave alerts" (off by default). On: this phone subscribes to push through the
-// proxy (My proxy URL), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
+// proxy (built into the app), with its wake-up check (weekdays at the chosen time, the morning trains to London). While
 // you follow a journey, the page hands the proxy its plan (core leaveAlertPlan); the proxy watches the train and
 // sends the alerts even when the app is closed. The page plans nothing here: the engine decides what to say.
 // It never runs during a simulation, so simulated journeys can't reach the real phone.
@@ -10874,7 +10920,7 @@ const pushAlerts = (() => {
 
     /** Turn alerts on for this phone. Call from the Save tap itself: iPhone only asks for permission from a tap. */
     function enable(next) {
-      if (!base(next)) { status("Alerts need your proxy: Settings → National Rail → Source → My proxy, and its URL."); return Promise.resolve(false); }
+      if (!base(next)) { status("Alerts need the proxy: Settings → Live data → Live."); return Promise.resolve(false); }
       if (!supported()) { status("This browser can't receive notifications. On iPhone, open Commute from the Home Screen (iOS 16.4 or later)."); return Promise.resolve(false); }
       const asked = win.Notification.permission === "granted" ? Promise.resolve("granted") : win.Notification.requestPermission();
       return (async () => {
@@ -10981,22 +11027,22 @@ function fillSettings(){
   $("#s_alongLine").checked=s.alongLine===true;
   $("#s_followRoute").checked=!!s.followRoute;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ $("#s_"+k).value=s[k]||""; }); $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
+  $("#s_provider").value=["proxy","tfl","demo"].includes(s.provider)?s.provider:"proxy"; $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
-  $("#s_trip").checked=!!s.trip; $("#s_googleVia").value=s.googleVia==="proxy"?"proxy":"browser"; $("#s_googleKey").value="";
-  $("#googleKeyNote").textContent=s.googleKey?`Saved: ends …${String(s.googleKey).slice(-4)}. Leave blank to keep it.`:"Not set.";
+  $("#s_trip").checked=!!s.trip;
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
 }
-function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; $("#googleKeyRow").hidden=$("#s_googleVia").value==="proxy"||$("#s_provider").value==="proxy"; }
-function showProviderFields(){ const p=$("#s_provider").value; document.querySelectorAll("[data-p]").forEach(el=>{ el.hidden=el.dataset.p!==p; });
-  document.querySelectorAll("[data-not-proxy]").forEach(el=>{ el.hidden=p==="proxy"; }); showTripFields(); renderProxyStatus(); }
+function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; }
+function showProviderFields(){ showTripFields(); renderProxyStatus(); }
 function readSettings(){
   const o={};
-  ["provider","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken"].forEach(k=>{ o[k]=$("#s_"+k).value.trim(); });
+  o.provider=$("#s_provider").value||S().provider;
+  // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
+  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
@@ -11008,19 +11054,14 @@ function readSettings(){
   if($("#s_anyPlace").checked) o.anyPlace=true;
   if($("#s_trip").checked) o.trip=true;
   if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
-  o.googleVia=$("#s_googleVia").value==="proxy"?"proxy":"browser"; if(o.googleVia==="browser") delete o.googleVia;
-  { const k=$("#s_googleKey").value.trim(), old=S().googleKey; if(k) o.googleKey=k; else if(old) o.googleKey=old; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
   if($("#s_simulatedFeeds").checked) o.simulatedFeeds=true;
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-["#s_trip","#s_googleVia"].forEach(id=>$(id).addEventListener("change",showTripFields));
+$("#s_trip").addEventListener("change",showTripFields);
 $("#s_provider").addEventListener("change",showProviderFields);
-$("#proxyLinkBtn").addEventListener("click",async()=>{ const base=proxyOrigin($("#s_proxyBase").value); if(!base){ $("#proxyStatus").textContent="Enter your proxy's address first (https://, just the host)."; return; }
-  const link=proxySetupLink(base); try{ if(navigator.share){ await navigator.share({title:"Commute setup",url:link}); return; } await navigator.clipboard.writeText(link); $("#proxyStatus").textContent="Setup link copied. On the other device, open it in the browser and say yes; on iPhone then Share → Add to Home Screen and open Commute from there (if it asks again, say yes)."; }catch(e){ $("#proxyStatus").textContent=link; } });
-$("#clearKeysBtn").addEventListener("click",()=>{ PHONE_KEYS.forEach(k=>{ delete state.saved.settings[k]; const el=$("#s_"+k); if(el) el.value=""; }); save(); renderProxyStatus(); $("#proxyStatus").textContent+=" Keys removed from this phone."; });
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
 $("#setHomeBtn").addEventListener("click",()=>{
@@ -11109,7 +11150,15 @@ window.addEventListener("pagehide",invalidateSources);
 
 // ---------- Boot ----------
 // First run with no key: show example trains so the layout is visible.
-if(!state.saved.settings.provider && !load().settings){ state.saved.settings={provider:"tfl"}; }
+// Keys move to the app's proxy (Sam, 17 Nov: "Can you remove all the content I'm setting for the key"): once per
+// device, any key saved here is deleted, the phone-key sources become the proxy, and the Google choice goes.
+if(!state.saved.settings.keysInProxy){
+  const s=state.saved.settings;
+  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
+  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
+  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
+  s.keysInProxy=1; save();
+}
 acceptSetupLink();
 if(allViaProxy()) refreshProxyStatus();
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");

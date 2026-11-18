@@ -95,7 +95,7 @@ Routes API by the Worker's address instead.
   elements arrive out of order with `originIndex`/`destinationIndex` and `"123s"` durations: the adapter reorders and
   converts. Built and contract-tested now; deployed when Sam moves.
 - Settings → Trip: "Google: key in this browser | My proxy", like the National Rail source select. Nothing else in the
-  app knows which one is in use.
+  app knows which one is in use. (Since 17 Nov: always the proxy; the choice is gone from Settings.)
 - Session lifecycle lives in `trip-ui.js` (one per field focus/search, ended by `resolve`); attribution text comes from
   the port, so either adapter shows "Powered by Google".
 - **Contract suite** `tests/contracts/google-ports.mjs` exports `suite(makeAdapter, backend)`, run against (1) the JS

@@ -11,6 +11,7 @@
 #   GOOGLE_KEY                                     Google Places and Routes: a server key, not the website-restricted one
 #   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY            alerts; made here once if neither GitHub nor the Worker has them
 #   VAPID_SUBJECT                                  alerts: "mailto:" and an address you choose
+# ALLOW_ORIGIN: the website, and the iPhone app's bundled copy (capacitor://localhost; docs/ios-app.md).
 # Nothing here prints a key: GitHub masks secrets in the log, and keys made here are masked before use.
 name: Deploy proxy
 on:
@@ -94,7 +95,7 @@ jobs:
         if: steps.ready.outputs.go == 'yes'
         run: |
           $WRANGLER deploy --config "$CONFIG" --keep-vars \
-            --var "ALLOW_ORIGIN:$ORIGIN" --var "ALLOW_ANY_STATION:yes" \
+            --var "ALLOW_ORIGIN:$ORIGIN,capacitor://localhost" --var "ALLOW_ANY_STATION:yes" \
             --secrets-file "$RUNNER_TEMP/worker-secrets.json" | tee "$RUNNER_TEMP/deploy.log"
           rm -f "$RUNNER_TEMP/worker-secrets.json"
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1)

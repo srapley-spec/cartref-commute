@@ -24,6 +24,9 @@ left set against the measured walk, and TfL's location text for your tube (same 
 drawn inside the followed card (`follow-a-route.md`, "One journey card"). From the 11 Nov retest: the train you said you're on holds (`which-train.md`), the warning ladder ("Can't make it" only when it is: `effort-levels.md`), and the moment the train leaves (`follow-a-route.md`). Then (11 Nov afternoon, Sam: "fix all of them … a clean baseline") everything else found 10–11 Nov: leg progress as one line + folded station list (`journey-progress.md`, Sam chose option A), the change-station tube list, urgency, the way on when missed, controls folded under way, location by station name, C12 and the small things (`follow-a-route.md`, "Clean baseline"). Independent review of dca196d onwards and the 12 Nov batches (countdowns, Trip's Google errors, Trip on the journey card, Google walk/drive): done 12 Nov; its findings are fixed and its tests added (each story's "Independent review (12 Nov" line). Each story lists what is still unbuilt.
 Issue #57 also holds the homeward findings (H1–H28).
 `?display` (display mode, built 10 Nov) is a read-only board for a Home Assistant frame: `docs/stories/display-mode.md`.
+**The iPhone app (agreed 17 Nov):** a bundled Capacitor wrapper built by a separate iOS agent; this repo's agent owns the
+engine, page and proxy parts, and the rules: no journey logic in Swift, the web app stays complete, contracts versioned.
+Brief, design, who does what and status: `docs/ios-app.md`.
 
 ## Where the context is
 0. `docs/your-setup-steps.md`: what Sam still has to do himself (Cloudflare Worker, keys, phone). Keep it current: a
@@ -39,7 +42,7 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Keep the context current (enforced)
 - **A behaviour change updates its story in the same commit (or PR):** acceptance criteria, thresholds, test
   links, status. A new capability gets a new story. A decision changes `docs/architecture.md` (decisions log).
-- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/` or `proxy/` change with nothing under `docs/` or
+- CI (`tools/check-docs.mjs`) fails when `src/`, `tests/`, `proxy/` or `ios/` change with nothing under `docs/` or
   this file, unless a commit message in the change has a line `Docs: none — <reason>` (refactor, test-only
   tidy, build output). Use that only when behaviour really is unchanged.
 - CI also fails if a story links a test that doesn't exist. Renaming a test means updating its story.
@@ -55,8 +58,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   layouts. Train departure time, spare minutes and hidden Journey steps cannot substitute for it. Removing,
   concealing or replacing it is a material change to flag to Sam before shipping; a layout/copy request is not
   approval. **Once you've set off (Sam, 12 Nov)** the followed card, and the trains listed under the tube you're on,
-  show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); planning rows and
-  recommendations keep Leave by. Every left time counts down to the start of the next step, in that step's words.
+  show "Be on the platform by" instead (`docs/stories/follow-a-route.md`, "Clean baseline"); since 17 Nov also the
+  rows below the followed card, named "Be on platform 4 at Farringdon by", on a late train's timetable time
+  ("Platform time and label"). Plan, and the Arrive by / Leave at views, keep Leave by. Every left time counts down to the start of the next step, in that step's words.
   The approved journey + train panel applies in Auto/Plan including at the station; preserve explicit Live's
   timetable and the arrival/next-action priority once aboard in `docs/design-system.md`.
 - **All modes (Sam, 12 Nov).** A change applies to Commute, Leisure and Trip unless there is a reason not to; each story
@@ -90,8 +94,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 - `npm ci` once. `npm test` builds and runs everything (slow: 10–30 min on
   GitHub in Nov 2026, longer in a cloud session; run it in the background). `npm run typecheck` for the engine.
 - `npm run check-docs` checks story test links (also part of CI).
-- `npm run ci` runs every check GitHub runs (install, typecheck, built page, docs, all tests) on a fresh copy of the
-  committed code (HEAD). Commit first; it refuses uncommitted changes. Required before any merge to `main`.
+- `npm run ci` runs the web checks (install, typecheck, built page, docs, all tests) on a fresh copy of committed
+  HEAD, and on macOS also bundles and tests the iPhone shell with Xcode 27.2. Linux sessions must wait for GitHub's
+  iOS job before merging. Commit first; it refuses uncommitted changes. Required before any merge to `main`.
 - After editing `src/`, run `npm run build` and commit `index.html`; CI fails if it's stale.
 - Golden tests: after an intentional change, `UPDATE_GOLDEN=1 npm test`, read every diff in `tests/golden/*.json`,
   and say in the commit what changed and why.

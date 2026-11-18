@@ -35,11 +35,9 @@ without failing. wrangler is pinned (`wrangler@4.155.0`, not in the lockfile).
    - `TFL_KEY` (Secret) your TfL app key (optional; without it TfL's lower anonymous limit applies).
    - Trip: `GOOGLE_KEY` (Secret; a server key restricted to Places API (New) and Routes API: a website restriction
      doesn't work for calls from the Worker), `ALLOW_ANY_STATION` (Text) `yes`.
-6. On the phone (Home Screen app): Settings → National Rail → Source → My proxy, paste the address; Save. Reopen
-   Settings: the status line says what the proxy is set up for and what's still missing. Then "Remove keys stored on
-   this phone". Optional: Settings → Experimental → Time-to-leave alerts, Save, allow notifications: a test alert
-   should arrive.
-7. Another device: Settings → "Copy setup link for another device", open it there and confirm.
+6. On the phone: nothing since 17 Nov. The app has the proxy's address built in (`APP_PROXY` in `src/page.html`); Settings
+   → Live data shows what the proxy is set up for. If the address ever changes, change `APP_PROXY` and release.
+7. Another device: open the app; nothing else.
 
 ## After a change to `proxy/` or `src/core/`
 `npm run build && npx wrangler deploy --config proxy/wrangler.toml`. Variables and secrets set in the dashboard are

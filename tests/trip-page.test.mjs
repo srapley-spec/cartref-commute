@@ -386,11 +386,11 @@ test("Trip: Refresh while Trip is on screen makes no commute request", async () 
   assert.ok(!after.some(u => !isTrip(u)), after.join("\n"));
 });
 
-test("Trip settings: the Google key is never shown back, only its last 4 characters", async () => {
+test("Trip settings: no Google key field (Google goes through the app's proxy); a key saved before is never shown", async () => {
   const app = await createApp({ settings: { ...ON, googleKey: "AIzaSECRET1234" }, route });
   app.d.querySelector("#settingsBtn").click(); await sleep(50);
-  assert.equal(app.d.querySelector("#s_googleKey").value, "");
-  assert.match(app.text("#googleKeyNote"), /ends …1234/);
+  assert.equal(app.d.querySelector("#s_googleKey"), null);
+  assert.equal(app.d.querySelector("#googleKeyNote"), null);
   assert.ok(!app.d.querySelector("#settings").innerHTML.includes("AIzaSECRET"));
 });
 

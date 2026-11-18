@@ -36,12 +36,12 @@ test("Following, at the station before your train: 'Be on the platform by', on t
   // 10:05, already at the station: the time to be on the platform is a minute before the train, not the time a
   // fresh plan would have had you leave from here (which has passed, or soon will have).
   place(5, station);
-  assert.match(panel(), /Be on the platform by\s*10:19/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:19/);
   assert.match(panel(), /On track · train departs in 15 min/);
   place(19, station);
-  assert.match(panel(), /Be on the platform by\s*10:19/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:19/);
   place(19.5, station);
-  assert.match(panel(), /Be on the platform by\s*10:20/, "inside the last minute: the departure itself, never a time that has passed");
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:20/, "inside the last minute: the departure itself, never a time that has passed");
   assert.doesNotMatch(panel(), /Leave by|leave in |Walk at your usual pace|Can't make it|no longer make/);
   assert.match(panel(), /On track · train departs in 1 min|On track · train departing/);
   assert.match(panel(), /At office/, "the arrival is still shown");
@@ -61,7 +61,7 @@ test("Following, at the station before your train: 'Be on the platform by', on t
 test("Following, at the station on a fix only good to 200 m: the station rule still applies (it used to say 'Location unavailable' and never ask)", async () => {
   const { app, place, panel, station } = await following();
   place(19, station, { locAcc: 200 });
-  assert.match(panel(), /Be on the platform by\s*10:19/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:19/);
   assert.match(panel(), /On track · train departs in 1 min|On track · train departing/);
   assert.doesNotMatch(panel(), /Location unavailable/);
   place(21, station, { locAcc: 200 });
@@ -71,7 +71,7 @@ test("Following, at the station on a fix only good to 200 m: the station rule st
   // 260 m: too vague to say you're at the station; the card says it doesn't know where you are.
   const vague = await following();
   vague.place(19, vague.station, { locAcc: 260 });
-  assert.doesNotMatch(vague.panel(), /Be on the platform by/);
+  assert.doesNotMatch(vague.panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
   assert.match(vague.panel(), /Location unavailable/);
   assert.deepEqual(app.errors, []);
 });
@@ -96,7 +96,7 @@ test("Homeward: the station rule ('train departs in N min') only at the station 
   c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T0 + 10 * m, line: "Circle", vehicle: "v1", picked: true, rideMs: 8 * m, stop: "Farringdon", stopGeo: P.stationGeo.ZFD };
   place(12, [51.519, -0.094]);
   // Set off, so the deadline is the platform (Sam, 12 Nov); the status is still judged by the tube, not the station rule.
-  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:29/);
   assert.doesNotMatch(panel(), /Leave by|train departs in/);
   assert.match(panel(), /On track · \d+ min at your connection/);
   // The tube card under it doesn't state a different journey (10 Nov 15:39: "get off at King's Cross", following Farringdon).
@@ -107,15 +107,16 @@ test("Homeward: the station rule ('train departs in N min') only at the station 
   // 10:22, at Farringdon: at the station.
   c.state.saved.tubeRide = null;
   place(22, P.stationGeo.ZFD, { atHub: "ZFD" });
-  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:29/);
   assert.match(panel(), /On track · train departs in 8 min/);
   assert.doesNotMatch(panel(), /Can't make it|no longer make|Leave by/);
   // 10:22 at King's Cross instead: a different station, so the plan from there decides.
   const other = await homeward();
+  other.place(21, other.P.places.office);   // following from the office (set off is measured from where the route was first drawn)
   other.place(22, other.P.stationGeo.KGX, { atHub: "KGX" });
   assert.doesNotMatch(other.panel(), /train departs in/);
   // The 10:30 from Farringdon can't be made from there; the way on keeps the set-off rule: its platform, not Leave by.
-  assert.match(other.panel(), /^Following your route · homeward Instead: the 10:36 Great Northern to Cambridge Be on the platform by\s*10:35/);
+  assert.match(other.panel(), /^Following your route · homeward Instead: the 10:36 Great Northern to Cambridge Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:35/);
   assert.match(other.panel(), /on the platform in 13m 00s/);
   assert.deepEqual(app.errors, []); assert.deepEqual(other.app.errors, []);
 });
@@ -125,7 +126,7 @@ test("On the tube to the station: set off however vague the fix; once the follow
   c.state.saved.tubeRide = { hub: "ALD", from: "ALD", t: T0 + 10 * m, line: "Circle", vehicle: "v1", picked: true, rideMs: 8 * m, stop: "Farringdon", stopGeo: P.stationGeo.ZFD };
   // Underground the fix is poor: the tube is the evidence you've set off, not the position.
   place(12, [51.519, -0.094], { locAcc: 400 });
-  assert.match(panel(), /Be on the platform by\s*10:29/);
+  assert.match(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:29/);
   assert.doesNotMatch(panel(), /Leave by/);
   // A late tube: it left Aldgate at 10:24, so the 10:30 from Farringdon is gone; a 10:50 from there is reachable.
   c.state.boards["ZFD-LET"].services.push(svc({ from: "ZFD", to: "LET", dep: T0 + 50 * m, arr: T0 + 90 * m, operator: "Thameslink", serviceId: "TL2", destination: "Cambridge" }));
@@ -137,7 +138,7 @@ test("On the tube to the station: set off however vague the fix; once the follow
   assert.doesNotMatch(panel().split("A way on")[0], /Now · \d+ s/);
   // The way on (the 10:50) is offered beneath, and on the tube its deadline is its platform, not a leave time that has passed.
   const way = app.text("#followPanel .follow-alternative");
-  assert.match(way, /^A way on · 20 min later Be on the platform by\s*10:(49|50)/);
+  assert.match(way, /^A way on · 20 min later Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:(49|50)/);
   assert.doesNotMatch(way, /Leave by|leave time passed/);
   assert.match(app.text("#followPanel .journey-progress"), /Aldgate → Farringdon/, "the station's name, not its code");
   assert.deepEqual(app.errors, []); app.close();
@@ -156,7 +157,7 @@ test("At the station on a fix only good to 200 m, after the train has gone: the 
   place(19); place(21); place(23);
   const panel = app.text("#followPanel");
   assert.match(panel, /You can no longer make your 10:20/);
-  assert.match(panel, /Instead: the 10:40 Thameslink to Brighton Be on the platform by\s*10:39/);
+  assert.match(panel, /Instead: the 10:40 Thameslink to Brighton Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by\s*10:39/);
   assert.doesNotMatch(panel.split("Journey remaining")[0], /Leave by/);
   assert.deepEqual(app.errors, []); app.close();
 });
@@ -165,7 +166,7 @@ test("Following, away from the station with no time left to walk there: the plan
   const { place, panel, pointOn } = await following();
   place(19, [51.99, -0.25]);                      // a couple of km from Letchworth station, a minute before the train
   assert.match(panel(), /Can't make it|no longer make/);
-  assert.doesNotMatch(panel(), /Be on the platform by/);
+  assert.doesNotMatch(panel(), /Be on (?:the platform|platform \w+) at [A-Za-z' ]+ by/);
 });
 
 test("Following, last seen at the station and then no position (underground): not 'missed'; after departure it asks whether you're on it", async () => {

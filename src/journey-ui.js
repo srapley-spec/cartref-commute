@@ -178,6 +178,30 @@ function movedFromStart(route){
   if(state.followFrom?.id!==route.id)state.followFrom={id:route.id,here:state.here};
   return km(state.here,state.followFrom.here)>0.2;
 }
+// Set off on the followed route (Sam, 12 Nov; 17 Nov): on the tube to the station; or, with a position good to 150 m
+// and no more than 2 minutes old, outbound away from home (the app's left-home rule), and going home 200 m from where
+// you were when the route was first drawn (Commute as Leisure: the office was the start only when you left from it).
+// Once set off, it holds for this journey (same direction and mode) until you stop following, even when the phone
+// gives no fresh fix (a locked screen) or you switch to another train on the way (review, 17 Nov: both brought back
+// "Leave by · leave time passed"). A fresh fix is needed only to decide you've set off. Kept for this page.
+function followMovedOff(route,observation){
+  if(!route||route.phase!=='before-train')return false;
+  const journey=`${route.direction}|${route.mode}`;
+  if(state.setOffJourney===journey)return true;
+  const fresh=!!state.here&&state.locAcc<=150&&Number.isFinite(state.lastFixAt)&&Date.now()-state.lastFixAt<=C.FOLLOW_SET_OFF_FIX_MS;
+  const off=!!observation?.activeConnection||(fresh&&(route.direction==='office'?!atHome():movedFromStart(route)));
+  if(off)state.setOffJourney=journey;
+  return off;
+}
+// For the rows below the followed card (Sam, 17 Nov: "Platform in rows too"): set off, and not standing at the station
+// (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
+function followSetOffNow(){
+  if((state.saved.view||'now')!=='now'||state.saved.viewOverride?.mode==='plan')return false;
+  const route=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);
+  if(!route||route.phase!=='before-train'||route.direction!==direction()||route.mode!==currentMode())return false;
+  const observation=followedObservation(route,Date.now());
+  return !observation.boarding&&followMovedOff(route,observation);
+}
 function oneStatus(node){node?.querySelector('.jp-heading > .jp-status')?.remove();}
 function singleCard(route){
   const panel=$('#followPanel'), hero=$('#hero');
@@ -469,6 +493,7 @@ function renderFollowPanel(){
     return;
   }
   panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
   // Unfiltered options retain a departed/cancelled chosen service. Existing effort grading
@@ -503,16 +528,13 @@ function renderFollowPanel(){
   // from the phone's position and contradicted the status line beneath it).
   const wayAhead=!observation.activeConnection&&!observation.boarding;
   // Once you've set off, the deadline is the platform, not leaving (Sam, 12 Nov: "yes. Be on the platform by"; from
-  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: on the tube to the station; or,
-  // outbound, the app's own left-home rule (over 100 m from the saved home, or 3 minutes nearer the station than home
-  // is); homeward, over 200 m from the office. Position good to 150 m. At home or at the office, Leave by as before.
-  // Leisure going home starts wherever you are in London: there, set off means 200 m from where you were when this
-  // route was first drawn (kept for this page; after a reload, from the first position then).
-  const movedOff=panelLayout&&(!!observation.activeConnection||(!!state.here&&state.locAcc<=150
-    &&(r.direction==='office'?!atHome():r.mode==='commute'?km(state.here,PROFILE.places.office)>0.2:movedFromStart(r))));
+  // 11 Nov 07:21, "Leave by" halfway to the station, and #57 H4 homeward). Set off: followMovedOff (on the tube to the
+  // station; outbound, the app's own left-home rule; going home, 200 m from where the route was first drawn, kept for
+  // this page, after a reload from the first position then). At home or where you started, Leave by as before.
+  const movedOff=panelLayout&&followMovedOff(r,observation);
   const setOff=!unknown&&!observation.boarding&&movedOff;
   const access=panelLayout&&!unknown&&wayAhead&&!setOff?comparison:null;
-  const platformBy=C.platformBy(r.option,t.dep,Date.now());
+  const platformBy=platformTime(r.option,t);
   // One leave time (10 Nov, #57 H2): while the header shows Leave by, the first step ("Leave office") carries that
   // same time, not its own copy.
   const legs=C.followedLegs(r,Date.now()), leaveStep=access&&Number.isFinite(access.leave)&&legs[0]&&!legs[0].train&&!legs[0].tube?legs[0]:null;
@@ -533,7 +555,7 @@ function renderFollowPanel(){
   const giveUpWay=result.status==='missed'&&result.alternative&&!observation.activeConnection?result.alternative:null;
   // The way on keeps the same rule: set off (or at the station), its deadline is its platform; otherwise Leave by.
   const wayOnTimes=!giveUpWay?'':(movedOff||panelLayout&&observation.boarding)&&giveUpWay.train
-    ?journeyTimesMarkup({leave:C.platformBy(giveUpWay,giveUpWay.train.dep,Date.now()),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+    ?journeyTimesMarkup({leave:platformTime(giveUpWay,giveUpWay.train),arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(giveUpWay.train),isLeave:false,step:'platform'})
     :journeyTimesMarkup({leave:giveUpWay.leave,arrive:giveUpWay.arrive,dest:r.direction==='office'?'office':'home',leftLabel:'Leave by',isLeave:true});
   // The way on offered below the card ("A way on", "Another option") is drawn by the same rule once you're under way:
   // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
@@ -543,7 +565,7 @@ function renderFollowPanel(){
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
-      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:'Be on the platform by',isLeave:false,step:'platform'})
+      :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(t),isLeave:false,step:'platform'})
       :journeyTimesMarkup({leave:r.phase==='on-train'?(observation.currentTrainArrival??t.arr):lastLeg?Date.now():result.nextStep?.t,arrive:unknown?null:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:r.phase==='on-train'?'At '+(STATIONS[t.to]||t.to):lastLeg?'Now':'Next action',isLeave:false,step:unknown?'':r.phase==='on-train'?'arrive':lastLeg?'':'next'})}
     ${r.direction==='home'?tubeLine:''}
     ${''/* The train is stated once, by the train panel (amendment §3; #57 A4): no "Next train: …" line. */}

@@ -69,7 +69,9 @@ test('independent UX: GPS-only verification settles instead of waiting forever o
 
 test('independent UX: Copy results redacts credentials changed during a session even after Stop restores settings',async()=>{
  const a=await createApp({settings:{provider:'rdm',rdmKey:'initial-review-credential'},settle:100});await begin(a);
- click(a,'settingsBtn');a.d.getElementById('s_rdmKey').value='secondapikey';
+ // (Settings no longer shows keys (17 Nov: they live in the proxy); an internal adapter key changed mid-session is
+ // kept by Save, so it is changed directly and saved through the form.)
+ click(a,'settingsBtn');a.c.state.saved.settings.rdmKey='secondapikey';
  a.d.getElementById('settingsForm').dispatchEvent(new a.w.Event('submit',{bubbles:true,cancelable:true}));await sleep(50);await settled(a);
  // Restart clears earlier report rows, but the original credential remains private while
  // the temporarily changed credential is active and the original settings are retained.

@@ -40,7 +40,7 @@ export { nextStops, railStationBoard, tubeStationBoard, reachFlag } from "./stat
 export type { BoardStop, Reach, BoardRow, StationBoardGroup, TubeBoardRow } from "./stationBoard";
 export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewControl } from './viewControl';
 export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
-export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, FOLLOW_NOTICE_MIN, confirmFollowBoarding, followMatchesObservedTrain, followIsTrain, boardingCheck, boardingPlace, platformBy, followLooksBack, FOLLOW_STATION_GONE_MS, FOLLOW_STATION_ACC_M, FOLLOW_STATION_KM, FOLLOW_FIX_FRESH_MS, FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
+export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, FOLLOW_NOTICE_MIN, confirmFollowBoarding, followMatchesObservedTrain, followIsTrain, boardingCheck, boardingPlace, platformBy, timetabledDeparture, FOLLOW_SET_OFF_FIX_MS, followLooksBack, FOLLOW_STATION_GONE_MS, FOLLOW_STATION_ACC_M, FOLLOW_STATION_KM, FOLLOW_FIX_FRESH_MS, FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
 export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';
 export { FOLLOW_TUBE_FRESH_MS, followTubeArrival, tubeWhere, followTubeWhere } from './followTube';
 export type { FollowTubeRequest, FollowTubeArrival } from './followTube';

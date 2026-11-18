@@ -52,27 +52,30 @@ test("Other sources are unchanged: TfL direct with the phone's key; simulated fe
   sim.close();
 });
 
-test("Settings with My proxy: no key fields; what the proxy is set up for and what's still to set; remove keys from this phone", async () => {
+test("Settings: no key fields or proxy address at all; what the proxy is set up for and what's still to add; keys saved on a device are deleted once (17 Nov)", async () => {
   const KEYS = { rdmKey: "R", rdmSdKey: "S", tflKey: "PHONEKEY", googleKey: "G", huxleyToken: "H" };
-  const app = await createApp({ settings: { provider: "proxy", proxyBase: PROXY, ...KEYS, trip: true }, route: proxied() });
+  // A phone set up the old way: Darwin with its key, TfL and Google keys typed in, the Google choice made.
+  const app = await createApp({ settings: { keysInProxy: 0, provider: "rdm", ...KEYS, googleVia: "browser", trip: true }, route: (u) => (u.startsWith("https://cartref-rail.s-rapley.workers.dev") ? proxied()(u.replace("https://cartref-rail.s-rapley.workers.dev", PROXY)) : undefined) });
   await sleep(100);
+  for (const k of Object.keys(KEYS)) assert.equal(app.c.S()[k] || "", "", `${k} gone`);
+  assert.equal(app.c.S().provider, "proxy", "the phone-key source becomes the app's proxy");
+  assert.equal(app.c.S().proxyBase, "https://cartref-rail.s-rapley.workers.dev", "the address built into the app");
+  const stored = JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).settings;
+  for (const k of [...Object.keys(KEYS), "googleVia"]) assert.ok(!(k in stored), `${k} not stored either`);
+  assert.equal(stored.keysInProxy, 1, "done once");
   app.d.querySelector("#settingsBtn").click();
-  assert.equal(app.d.querySelector("#s_tflKey").closest("label").hidden, true, "no TfL key field");
-  assert.equal(app.d.querySelector("#s_googleVia").closest("label").hidden, true, "no Google choice");
-  assert.equal(app.d.querySelector("#googleKeyRow").hidden, true, "no Google key field");
+  for (const sel of ["#s_tflKey", "#s_rdmKey", "#s_proxyBase", "#s_googleVia", "#s_googleKey", "#googleKeyRow", "#clearKeysBtn", "#proxyLinkBtn", "#s_huxleyToken"])
+    assert.equal(app.d.querySelector(sel), null, `${sel} is gone`);
+  assert.deepEqual([...app.d.querySelectorAll("#s_provider option")].map(o => o.value), ["proxy", "tfl", "demo"]);
   const st = app.text("#proxyStatus");
   assert.match(st, /National Rail ✓ · TfL ✓ keyed · Google ✗ · Alerts ✗/);
-  assert.match(st, /Still to set in Cloudflare: Google for Trip \(GOOGLE_KEY\); any station for Trip \(ALLOW_ANY_STATION=yes\)/);
-  assert.match(st, /This phone still holds keys you can remove/);
-  const btn = app.d.querySelector("#clearKeysBtn");
-  assert.equal(btn.hidden, false);
-  btn.click();
-  for (const k of Object.keys(KEYS)) assert.equal(app.c.S()[k] || "", "", `${k} gone`);
-  assert.match(app.text("#proxyStatus"), /Keys removed from this phone\./);
-  assert.equal(btn.hidden, true);
-  const stored = JSON.parse(app.w.localStorage.getItem("cartrefCommute.v1")).settings;
-  for (const k of Object.keys(KEYS)) assert.ok(!(k in stored), `${k} not stored either`);
+  assert.match(st, /Still to add to GitHub's Actions secrets, then run Deploy proxy: Google for Trip \(GOOGLE_KEY\); any station for Trip \(ALLOW_ANY_STATION=yes\)/);
   app.close();
+  // A new device: nothing saved at all, and it starts on the app's proxy.
+  const fresh = await createApp({ settings: { keysInProxy: 0 }, route: (u) => (u.startsWith("https://cartref-rail.s-rapley.workers.dev") ? proxied()(u.replace("https://cartref-rail.s-rapley.workers.dev", PROXY)) : undefined) });
+  await sleep(100);
+  assert.equal(fresh.c.S().provider, "proxy"); assert.equal(fresh.c.S().proxyBase, "https://cartref-rail.s-rapley.workers.dev");
+  fresh.close();
   // Proxy unreachable: says so.
   const down = await createApp({ settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => (u === PROXY + "/status" ? json({}, 503) : proxied()(u)) });
   await sleep(100);
@@ -113,7 +116,7 @@ test("Setup link: an address that isn't a plain https host is refused without as
     assert.equal(app.w.location.hash, "", `${bad}: cleared`);
   }
   assert.equal(asked, 0, "never asked");
-  assert.equal(app.c.S().provider, "tfl"); assert.equal(app.c.S().proxyBase || "", "");
+  assert.equal(app.c.S().provider, "tfl"); assert.equal(app.c.S().proxyBase, "https://cartref-rail.s-rapley.workers.dev", "the built-in address, unchanged");
   // Punycode: a look-alike Unicode host is shown as what it is.
   assert.match(app.c.proxyOrigin("https://саrtref.example"), /^https:\/\/xn--[a-z0-9-]+\.example$/);
   app.close();
@@ -184,15 +187,15 @@ test("TfL counts as keyed only when the proxy now in use said so; the advice poi
   const unkeyed = await createApp({ settings: { provider: "proxy", proxyBase: PROXY }, route: proxied({ ...STATUS, tflKey: false }) });
   await sleep(100);
   unkeyed.d.querySelector("#settingsBtn").click();
-  assert.match(unkeyed.text("#proxyStatus"), /Still to set in Cloudflare: TfL key \(TFL_KEY; without it TfL's shared limit applies\); Google for Trip \(GOOGLE_KEY\)\./);
+  assert.match(unkeyed.text("#proxyStatus"), /Still to add to GitHub's Actions secrets, then run Deploy proxy: TfL key \(TFL_KEY; without it TfL's shared limit applies\); Google for Trip \(GOOGLE_KEY\)\./);
   assert.doesNotMatch(unkeyed.text("#proxyStatus"), /any station|alerts \(/, "Trip and alerts are off: not listed");
-  assert.equal(unkeyed.c.tflKeyAdvice(), "add TFL_KEY to your proxy in Cloudflare");
+  assert.equal(unkeyed.c.tflKeyAdvice(), "add TFL_KEY to GitHub's Actions secrets and run Deploy proxy");
   const shown = unkeyed.d.body.cloneNode(true); shown.querySelectorAll("script,style").forEach(n => n.remove());
   assert.doesNotMatch(shown.textContent, /free TfL (app )?key in Settings/);
   unkeyed.close();
 });
 
-test("Settings save: a new proxy address asks /status once; an unrelated save doesn't; an old Worker (404) says redeploy", async () => {
+test("A new proxy address (from a setup link) asks /status once; an unrelated save doesn't; an old Worker (404) says redeploy", async () => {
   const app = await createApp({ settings: { provider: "proxy", proxyBase: PROXY }, route: (u) => (u === "https://new.example/status" ? json({}, 404) : proxied()(u)) });
   await sleep(100);
   const statusCalls = () => app.calls.filter(u => u.endsWith("/status")).length;
@@ -200,7 +203,10 @@ test("Settings save: a new proxy address asks /status once; an unrelated save do
   const n = statusCalls();
   app.d.querySelector("#settingsBtn").click(); app.d.querySelector("#s_alongLine").checked = true; await save();
   assert.equal(statusCalls(), n, "unrelated save");
-  app.d.querySelector("#settingsBtn").click(); app.d.querySelector("#s_proxyBase").value = "https://new.example"; await save();
+  assert.equal(app.c.S().proxyBase, PROXY, "a save keeps the address it doesn't show");
+  app.w.confirm = () => true;
+  app.w.location.hash = `#setup=${encodeURIComponent("https://new.example")}`;
+  app.w.dispatchEvent(new app.w.Event("hashchange")); await sleep(100);
   assert.equal(statusCalls(), n + 1);
   assert.ok(app.calls.includes("https://new.example/status"));
   app.d.querySelector("#settingsBtn").click();

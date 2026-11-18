@@ -31,9 +31,10 @@ for the Home App that will live in HA."
 - **Changes nothing you've saved:** it starts from the defaults rather than this browser's saved journey state, and
   writes nothing back, so opening the display address on your phone doesn't disturb the app there. The one
   exception is the live-data source from a setup link (below), which is saved for that browser.
-- **Live data in a frame:** a browser keeps a framed page's storage separate from the same site opened directly, so
-  the frame starts with no keys and shows TfL timetable times ("Timetable times, not live") until it's set up. Set
-  it up with a setup link carrying display mode: `…/cartref-commute/?display#setup=<your proxy address>`. In display
+- **Live data in a frame:** since 17 Nov the app's proxy is built in, so a frame shows live times with nothing set up
+  (`?display` alone). The setup link below still works, to point a display at a different proxy. Before 17 Nov a
+  browser kept a framed page's storage separate from the same site opened directly, so the frame started with no keys
+  and showed TfL timetable times until it was set up with a setup link carrying display mode: `…/cartref-commute/?display#setup=<your proxy address>`. In display
   mode the question is a panel on the page ("Use <proxy host> for all live data on this display?" · Yes, use it ·
   No), not a browser dialog, because browsers block dialogs from framed pages. Yes saves My proxy for that browser
   and reloads the data; No clears the link and changes nothing; an address that isn't a valid proxy address isn't

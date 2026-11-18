@@ -29,7 +29,9 @@ Decisions the same evening (Sam, answering design questions):
 - **Plan plus live legs**: live times for every rail leg and change, Follow for the whole trip, drive re-checked.
 - **Trip is a third mode** (Commute / Leisure / Trip). Today's Leisure (home ↔ London) stays exactly as it is.
 - **Google through its Maps JavaScript library**, loaded only when Trip is used; moving it to the proxy later must be
-  one adapter and a setting ("Google: key in this browser | My proxy").
+  one adapter and a setting ("Google: key in this browser | My proxy"). **Since 17 Nov Google always goes through the
+  app's proxy** (`GOOGLE_KEY` in GitHub's Actions secrets, put into the Worker by Deploy proxy); the browser-key choice
+  and field are gone from Settings.
 - Trip needs a TfL key (TfL refuses concurrent searches without one).
 
 3 Nov 2026 (issue #56): Sam planned Letchworth Garden City → One Braham (1 Braham Street, E1 8EE, a BT office next to
@@ -272,8 +274,10 @@ not to." Trip has its own following engine and card; this brings it to the Commu
 - **Countdown to the start of the next step**, in that step's words, as in Commute (`follow-a-route.md`, "Clean
   baseline"): Leave by → "leave in …"; aboard, "At Canterbury West" → "arrives in …"; at a change, "Next departure" →
   "in …"; the band under 2 minutes.
-- **"Be on the platform by" once you've set off**: over 200 m from where the trip starts (position good to 150 m). The
-  time is the first train's departure less the trip's own time to reach the platform (its "station" allowance).
+- **"Be on the platform by" once you've set off**: seen within 200 m of where the trip starts, then over 200 m from it
+  (each on a position good to 150 m and, since 17 Nov, no more than 2 minutes old); once set off it holds for the trip. The time is the first train's departure less the trip's own time to reach
+  the platform (its "station" allowance); a late train's timetable time (`schedDep`), not its estimate; the label names
+  the platform and station, "Be on platform 2 at Brighton by" (`follow-a-route.md`, "Platform time and label").
 - **Controls fold under way**: following a trip, the mode, Auto/Plan/Live, from/to and time fold behind one row, "Trip ·
   To Canterbury Cathedral · Leave now", which opens them.
 - Already equivalent: one followed card; "A way on · not selected" with Follow this instead (Commute's "Instead: …");
@@ -406,7 +410,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-page.test.mjs: "Trip: Current location is used only within 200 m and 2 minutes"
 - tests/trip-page.test.mjs: "Trip: choosing From starts timing its stations before To is chosen"
 - tests/trip-page.test.mjs: "Trip: Refresh while Trip is on screen makes no commute request"
-- tests/trip-page.test.mjs: "Trip settings: the Google key is never shown back, only its last 4 characters"
+- tests/trip-page.test.mjs: "Trip settings: no Google key field (Google goes through the app's proxy); a key saved before is never shown"
 - tests/trip-page.test.mjs: "Trip live: one plan asks for at most 6 boards, never the same pair twice within 30 s"
 - tests/trip-page.test.mjs: "Trip live: boards are asked for as soon as round 1 is drawn, before the later searches come back"
 - tests/trip-page.test.mjs: "Trip drive: re-checked every 5 min; 2 min or more moves the leave time and says which way; 1 min doesn't"
