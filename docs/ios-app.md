@@ -198,6 +198,53 @@ alarm keep working from the newest snapshot without the page.
 - **Leave alarm:** on/off; minutes before leave (default 5).
 - **Wi-Fi:** home network names begin with (default "Panda"); office network names begin with (default "Ciklum").
 
+### 6.7 The v1 contract (18 Nov; answers to issue #58, decisions A–C by Sam)
+This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/native/` (to be generated) are binding.
+
+1. **Bridge v1.** Every call takes one object and returns a Promise; errors reject `{code, message}`; an unknown `v`
+   rejects `code: "unsupported"`. Page → shell: `capabilities()` → `{v:1, liveActivity, alarm, geofence, wifi, siri,
+   offline, appVersion, auth:{location:"always"|"whenInUse"|"denied"|"notDetermined", notifications:"granted"|"denied"|
+   "notDetermined"}}`; `ready()`; `publish({snapshot|null})`; `configure({...})`; `cache({entries})`; `cached()` →
+   `{entries}`; `request({permission:"location"|"notifications"})`. Shell → page events: `apns {token, env}`,
+   `liveActivity {followId, token}`, `wifi {place, at}`, `region {place, event:"enter"|"exit", at}`, `resume {at}`.
+   Location events use `place`. **Replay:** until `ready()`, the shell holds the latest `apns`, the latest
+   `liveActivity` per `followId` and the last 20 `wifi`/`region` events, and sends them on `ready()`.
+2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
+   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
+   [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
+   change. Swift copies no profile data.
+3. **Alarm cancellation offline.** The snapshot's `alarm` gains `cancelOnExit: "home"|"office"|null`: on that region's
+   exit after `snapshot.at`, the shell cancels the alarm locally (an engine-stated rule), then posts `/native/evidence`
+   (queued until online), whose reply now carries `{ok, setOff, snapshot}`. Acceptance: notifications denied → no
+   alarm, Settings says so; an alarm time already passed → not scheduled; force-quit → region monitoring still wakes
+   the app; late pushes → rule 5.
+4. **Lifecycle, all modes (Sam, decision A: Trip included in v1).** Commute, Leisure and Trip. Trip's snapshot comes
+   from Trip's own following engine (page side: the Trip follow card; proxy side: a Trip plan through the same
+   `/native/follow`, any station allowed by `ALLOW_ANY_STATION`). The snapshot gains `confirmed: boolean`: the proxy
+   never confirms boarding (after departure: "should be on the 18:56", `confirmed:false`); only the page's boarding
+   check sets it. Fixtures per phase and mode: leave, platform, train, tube, walk-last, arrived, missed, cancelled,
+   switch, stop.
+5. **Ordering, expiry, tokens, freshness.** The shell applies a snapshot only for the current `followId` and with
+   `at` ≥ the last applied (equal: the later received wins). A null snapshot or a Live Activity `end` tombstones that
+   `followId` for 1 h. A new `liveActivity` token replaces the old (page → proxy). Freshness: the snapshot carries
+   `staleAt = dataAt + 3 min`; the Live Activity's stale-date is `staleAt` (not +5 min); the shell shows age from
+   `dataAt` so it ages without pushes. `snapshotShown` includes `followId`, progress and staleness.
+6. **Siri (Sam, decision B: open the app).** "When do I need to leave?" answers from the last snapshot while following.
+   Without a followed journey, and for "Follow the next train home", Siri opens the app (deep link
+   `commute://next?direction=home`) and the page plans and follows. `/native/next` is not in v1.
+7. **Offline cache.** Entries `{key, v, dataAt, savedAt, value}`, keys `snapshot`, `boards`, `status`, `settings`;
+   replace by key; 512 KB total; opaque to the shell. The page calls `cached()` before its first fetch, shows what it
+   gets with its age, then refreshes. A fresh install shows "Not updated yet".
+8. **Permissions and simulation (Sam, decision C: ask for Always).** Supported vs allowed are separate fields. Settings
+   asks for notifications and then "Always" location (with the reason) when the leave alarm is first turned on, via
+   `request`; refusals are shown. Geofences use region monitoring only, never continuous background tracking; with
+   "When in use" the alarm still works but doesn't cancel itself while the app is closed. In a simulation the page
+   never publishes, registers, caches or syncs.
+
+Still to build on this side for the contract: `ready`/`cached`/`request` in the bridge, `configure` with proxy, device
+and regions, `cancelOnExit`, `confirmed`, `staleAt`, evidence reply with snapshot, Trip snapshots (page and proxy), the
+fixtures, and the `commute://next` deep link.
+
 ## 7. Testing
 - **This repo's agent:** engine tests for the snapshot (every phase; stale data; alarm present, moved and cancelled);
   page tests for the bridge, with a fake `CommuteNative`; proxy tests for the native routes, the scheduler and APNs
