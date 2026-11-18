@@ -7,7 +7,7 @@ departure. The engine remains the sole owner of journey facts, decisions and wor
 persists and presents its versioned snapshot; it never plans a journey or infers a train.
 
 Sam authorized implementation against `docs/ios-app.md` §6.7 at `385f56b`. The owner subsequently published the
-implementation and initial fixtures at `9628132` on `feature/native-prep`. Those changes are not yet on main.
+implementation and initial fixtures at `9628132`, now released on main and integrated into this branch.
 Decisions A/B/C include Trip, Siri's snapshot-or-open-app behavior, and Always authorization requested in Settings
 for home/office region monitoring. Internal TestFlight only; no Apple review submission.
 
@@ -35,15 +35,15 @@ for home/office region monitoring. Internal TestFlight only; no Apple review sub
   denial and deferred Always authorization must not leave bridge calls hanging or initiate a prompt loop.
 
 ## Checks and current limits
-`ios/NativeCore` isolates transport/state rules from Apple APIs for fast Swift tests. Its eight unit tests cover
+`ios/NativeCore` isolates transport/state rules from Apple APIs for fast Swift tests. Its state tests cover
 ordering, stop/switch/restart, tombstone expiry, offline cancellation, transactional cache limits, file corruption,
 event replay, configuration/privacy and unknown versions. `EngineFixtureTests` decodes the owner's actual snapshots
 and both APNs content-state shapes, checking exact supplied stale-date values. During development, fixtures are
 read from an explicitly supplied `NATIVE_CONTRACT_FIXTURES` directory extracted from the owner's commit; after
 integration they come from `tests/fixtures/native/`. Absence is reported as a skipped integration test, never a pass.
 
-The initial foundation builds for the iOS simulator and all 17 Swift tests pass against `9628132`. Six additional
-native runtime/bridge tests are built, with their simulator run pending. Early independent review found and prompted
+The initial foundation builds for the iOS simulator and all 17 Swift tests pass against `9628132`. All eight simulator XCTest checks also passed, including six
+native runtime/bridge tests. Early independent review found and prompted
 fixes for interrupted credential/config writes, delayed Wi-Fi/region callbacks, permission completion identity and
 future-version shape decoding. Regression probes cover these and the eight original mutation survivors. The
 Keychain record is independently bound to its normalized proxy origin. Region identifiers carry a persisted
@@ -61,5 +61,12 @@ Two contract questions were posted to #58 on 18 November:
 
 Live Activity/AlarmKit adapters, the lock-screen/Dynamic Island layout and Siri intents compile, but are still being
 connected and validated. The WidgetKit extension contains only the journey Live Activity; the parked home-screen
-widget has not been added. The current bridge reports those capabilities false. The native contract changes must
-be released and integrated before end-to-end validation or distribution.
+widget has not been added. The current bridge reports those capabilities false. The two contract questions above still gate complete end-to-end validation and distribution.
+
+The owner's `9628132` is now merged into this branch from main; its Tests, Pages and Deploy proxy checks passed.
+The foundation's simulator run passed all eight XCTest checks, including the real Capacitor bridge's version
+errors and offline cache round trip. The surface coordinator now has seven deterministic platform-adapter tests:
+updates queued at worker completion, disable/exit during suspended alarm scheduling, duplicate activity identity,
+journey switching during suspended activity update, newer APNs content, background start restriction and permissions/
+OS failure. Independent review identified the completed-worker and duplicate-end races; their fixes still await
+mutation review. Apple surface capability flags remain disabled pending full integration and the two contract answers.
