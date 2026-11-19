@@ -45,6 +45,12 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
         public var stopsToGo: Int?
         public var line: String?
     }
+    /// What to do next, in the page's words ("Get on the Met to Aldgate" · "eastbound · Platform 2 · due 08:20").
+    /// Optional: snapshots from before #57 H29 have none.
+    public struct Step: Codable, Hashable, Sendable {
+        public var text: String
+        public var detail: String?
+    }
     public struct Status: Codable, Hashable, Sendable {
         public var level: String
         public var text: String
@@ -70,6 +76,7 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
     public var arrive: Arrival?
     public var train: Train?
     public var progress: Progress?
+    public var step: Step?
     public var status: Status?
     public var alarm: Alarm?
     public var deepLink: String

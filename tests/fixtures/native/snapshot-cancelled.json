@@ -26,6 +26,7 @@
     "late": 0
   },
   "progress": null,
+  "step": null,
   "status": {
     "level": "bad",
     "text": "Cancelled"

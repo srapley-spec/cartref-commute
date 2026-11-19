@@ -54,6 +54,9 @@ export interface JourneySnapshot {
   arrive: { label: string; t: number | null } | null;
   train: { name: string; from: string; to: string; platform: string | null; scheduled: number | null; expected: number | null; late: number } | null;
   progress: { next: string | null; stopsToGo: number | null; line: string } | null;
+  /** What to do next, in the card's own words (#57 H29, 19 Nov): "Get on the Met to Aldgate" with "eastbound · Platform 2
+   * · due 08:20". Absent from snapshots made before H29; null when the headline and train already say it. */
+  step?: { text: string; detail: string | null } | null;
   status: { level: "ok" | "info" | "warn" | "bad"; text: string } | null;
   alarm: LeaveAlarm | null;
   deepLink: string | null;
@@ -67,12 +70,16 @@ export interface SnapshotInput {
   arrive?: { label: string; t: number | null | undefined } | null;
   train?: JourneySnapshot["train"];
   progress?: { next?: string | null; stopsToGo?: number | null; line?: string } | null;
+  step?: { text?: string | null; detail?: string | null } | null;
   status?: JourneySnapshot["status"];
   alarm?: LeaveAlarm | null;
   confirmed?: boolean;
 }
 
 const fin = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+/** One line of card text: spaces collapsed, empty "·" separators dropped, trimmed. */
+const clean = (s: string | null | undefined): string => typeof s !== "string" ? ""
+  : s.replace(/\s+/g, " ").split(" · ").map(x => x.trim()).filter(Boolean).join(" · ").replace(/^·\s*|\s*·$/g, "").trim();
 
 /** "Be on platform 4 at Farringdon by"; "Be on the platform at Farringdon by" before it's announced (17 Nov). */
 export function platformLabelText(platform: string | null | undefined, station: string | null | undefined): string {
@@ -115,6 +122,7 @@ export function journeySnapshot(i: SnapshotInput): JourneySnapshot {
     arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
     train: i.train || null,
     progress,
+    step: i.step && clean(i.step.text) ? { text: clean(i.step.text), detail: clean(i.step.detail) || null } : null,
     status: i.status || null,
     alarm: i.alarm || null,
     deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null,
@@ -163,7 +171,9 @@ export function proxySnapshot(plan: LeaveAlertPlan & NativePlanExtra, state: Nat
     status };
   if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
   const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
-  if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
+  if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null,
+    // Off the train, it leaves the card (#57 H29): its "3 min late" and platform are no longer yours.
+    train: null, status: null });
   if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
   const alarm = leaveAlarm(leaveBy, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now, startPlace: plan.startPlace });
   if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
@@ -184,7 +194,7 @@ export function snapshotShown(s: JourneySnapshot | null | undefined, withRefresh
   if (!s) return "none";
   // A fresh fetch every 2 minutes counts too, so the stale-date (data + 3 min) is moved on before it passes while the
   // data is fresh (review 18 Nov: otherwise the Live Activity showed stale on a steady board).
-  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label,
+  return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.step ? [s.step.text, s.step.detail] : null,
     // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
     s.headline.countdown && s.headline.countdown.state, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
     s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);

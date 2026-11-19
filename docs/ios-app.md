@@ -141,6 +141,7 @@ Times are epoch milliseconds; text is final, ready to show.
   "train": { "name": "18:56 Thameslink", "from": "Farringdon", "to": "Letchworth", "platform": "4",
              "scheduled": 1794943000000, "expected": 1794943420000, "late": 7 },
   "progress": { "next": "St Pancras", "stopsToGo": 3, "line": "Next: St Pancras · 3 stops" },
+  "step": { "text": "Get on the Met to Aldgate", "detail": "eastbound · Platform 2 · due 08:20" },
   "status": { "level": "warn", "text": "7 min late" },
   "alarm": { "at": 1794943200000, "leadMin": 5, "cancelled": false },
   "deepLink": "commute://follow/f_…"
@@ -149,7 +150,9 @@ Times are epoch milliseconds; text is final, ready to show.
 
 `headline` is exactly what the page's journey card shows on the left (Leave by / Be on platform… by / At King's Cross
 / Next tube), with the same countdown words (`COUNTDOWN_WORDS`). `alarm` is the leave alarm the shell should have
-scheduled: absent if there's none, `cancelled` once you've left. The shell schedules, moves or cancels its alarm to
+scheduled: absent if there's none, `cancelled` once you've left. `step` (added 19 Nov, #57 H29; optional, so still v1)
+is what to do next in the page's own words, drawn under the countdown; `null` when the headline and train already say
+it. Once you're off the train, `train` and `status` are `null`. The shell schedules, moves or cancels its alarm to
 match the newest snapshot. It never decides any of these itself.
 
 ### 6.2 Page ⇄ shell bridge
