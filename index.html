@@ -747,6 +747,9 @@ html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#si
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 html .signal-disruption-title[hidden] {display:none}
+/* Which tube, and where it's going (19 Nov): checked against the train's front. */
+html .journey-progress .jp-service {margin:0;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+html .journey-progress .jp-service .jp-muted {font-size:13px;color:var(--muted)}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -899,7 +902,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 15:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:08 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1473,6 +1476,7 @@ var CommuteCore = (() => {
     tripPhase: () => tripPhase,
     tripRecoveryStart: () => tripRecoveryStart,
     tripRideTimingUsable: () => tripRideTimingUsable,
+    tubeDestination: () => tubeDestination,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
@@ -3990,6 +3994,23 @@ var CommuteCore = (() => {
       if (where) return where;
     }
     return null;
+  }
+  var usableDest = (d, notTo) => {
+    const s = String(d != null ? d : "").replace(/ Underground Station/i, "").replace(/ \([^)]*Line\)/i, "").trim();
+    return !s || /check front of train|^unknown$/i.test(s) || notTo && notTo.test(s) ? "" : s;
+  };
+  function tubeDestination(tube, lists, notTo) {
+    if (!tube) return "";
+    const own = usableDest(tube.dest, notTo);
+    if (own) return own;
+    const v = String(tube.vehicle || "");
+    if (!v) return "";
+    for (const list of lists) for (const p of list || []) {
+      if (String(p.vehicle || "") !== v || tube.lineId && p.lineId && p.lineId !== tube.lineId) continue;
+      const d = usableDest(p.dest, notTo);
+      if (d) return d;
+    }
+    return "";
   }
 
   // src/core/followMigration.ts
@@ -6885,6 +6906,16 @@ function boardBtns(hub, list, all, now, dflt){
 // On the tube the board is gone: the others that left, by how long ago (ticking).
 const goneBtns = (hub, list, now, dflt) => list.map(a=>tubeBtn(hub, a, `${lineDest(a, dflt)} · <span data-leftago="${a.t}">${C.leftAgo(now-a.t)}</span>`)).join("");
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
+// Where a tube is going, from its own listing or any other TfL list the app holds for the same vehicle (Sam, 19 Nov:
+// "Can we be clear here what the destination of the train is. This helps confirm which one you're on"). Going home,
+// "Aldgate" is never a destination (that's where you got on).
+function tubeDest(t, homeward){
+  if(!t) return "";
+  return C.tubeDestination({dest:t.dest,vehicle:t.vehicle,lineId:t.lineId||(t.line?lineIdOf(t.line):null)},
+    [state.followTransport&&state.followTransport.predictions,state.aldDeps&&state.aldDeps.list,state.saved.aldHome&&state.saved.aldHome.deps,
+     state.tube&&state.tube.arrivals,state.lastHub&&state.lastHub.arrivals,state.ald&&state.ald.arrivals],homeward?/^aldgate\b/i:undefined);
+}
+const withDest = (list, homeward) => (list||[]).map(a=>({...a,dest:tubeDest(a,homeward)}));
 // The line's colour class for a lozenge naming it; none for an unknown line.
 const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
 // A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
@@ -7397,12 +7428,12 @@ function renderOnTubeHome(now){
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt" data-block="which"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
-  const others = C.otherTubes(a&&a.deps, r, now);
+  const others = withDest(C.otherTubes(a&&a.deps, r, now), true), rd=tubeDest(r,true);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:best.stop,stationArrival:best.stopAt,arrival:best.arrive,dest:'home'})}</div>
-    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${rd?` to ${esc(rd)}`:""} that left Aldgate at ${hhmm(r.t)}${rd?"":" (TfL isn't showing where it's going)"}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which">${journeyFactsMarkup(best.o,{arrival:best.arrive,duration:'remaining'})}<span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -7420,13 +7451,13 @@ function renderOnTube(now){
   const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
-  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:r.dest }, other: auto && auto.other && auto.other.t!==r.t ? auto.other : null };
+  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:tubeDest(r,false) }, other: auto && auto.other && auto.other.t!==r.t ? {...auto.other,dest:tubeDest(auto.other,false)} : null };
   const head=`<div class="lbl" data-block="label">On the tube · ${hhmm(now)} · ${r.picked?"the tube you picked":`worked out from when you left ${esc(HUB_NAME[r.hub])}`}</div>`;
   // Still at the station you left, well after your tube went (a good, fresh fix): ask rather than guess.
   const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt" data-block="which"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
-  const others = C.otherTubes(lh&&lh.arrivals, r, now);
+  const others = withDest(C.otherTubes(lh&&lh.arrivals, r, now), false);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const target=(PROFILE.places.officeStops||[]).find(stop=>stop.name===leg.stop);
@@ -9535,6 +9566,7 @@ function progressHtml(model){
     <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${leg.state==='current'?'0%':percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
+      ${current.kind==='tube'&&current.service?`<p class="jp-service"><span class="chip ${lineChip(current.service.line)}">${esc(current.service.line)}</span> ${current.service.dest?`to <b>${esc(current.service.dest)}</b>`:"<span class='jp-muted'>TfL isn't showing where it's going</span>"}</p>`:''}
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
       ${whereHtml(model)}
       ${model.where?'':`<p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>`}
@@ -9632,7 +9664,10 @@ function renderJourneyProgress(){
         {id:active,kind:'tube',label:'Tube',start:context.departure,end:arrival,from:context.from,to:context.to}];
       if(context.finalArrival!=null&&arrival!=null)legs.push({id:'after-walk',kind:'walk',label:'Walk',start:arrival,end:context.finalArrival});
     }
-    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line)}:leg);
+    // Which tube, with where it's going (Sam, 19 Nov): "Met to Uxbridge", so you can check it against the train's front.
+    const destination=tubeDest(ride,!!context.homeward);
+    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line),
+      service:{line:ride.line||'Tube',dest:destination}}:leg);
     calls=progressTubeCalls(ride,fromCode,toCode,arrival,context.from,context.to);
     // followTubeArrival already checks provider timestamps (including its small
     // allowed clock offset); freshness here uses our validated capture time.

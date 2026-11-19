@@ -1096,6 +1096,16 @@ function boardBtns(hub, list, all, now, dflt){
 // On the tube the board is gone: the others that left, by how long ago (ticking).
 const goneBtns = (hub, list, now, dflt) => list.map(a=>tubeBtn(hub, a, `${lineDest(a, dflt)} · <span data-leftago="${a.t}">${C.leftAgo(now-a.t)}</span>`)).join("");
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
+// Where a tube is going, from its own listing or any other TfL list the app holds for the same vehicle (Sam, 19 Nov:
+// "Can we be clear here what the destination of the train is. This helps confirm which one you're on"). Going home,
+// "Aldgate" is never a destination (that's where you got on).
+function tubeDest(t, homeward){
+  if(!t) return "";
+  return C.tubeDestination({dest:t.dest,vehicle:t.vehicle,lineId:t.lineId||(t.line?lineIdOf(t.line):null)},
+    [state.followTransport&&state.followTransport.predictions,state.aldDeps&&state.aldDeps.list,state.saved.aldHome&&state.saved.aldHome.deps,
+     state.tube&&state.tube.arrivals,state.lastHub&&state.lastHub.arrivals,state.ald&&state.ald.arrivals],homeward?/^aldgate\b/i:undefined);
+}
+const withDest = (list, homeward) => (list||[]).map(a=>({...a,dest:tubeDest(a,homeward)}));
 // The line's colour class for a lozenge naming it; none for an unknown line.
 const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
 // A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
@@ -1608,12 +1618,12 @@ function renderOnTubeHome(now){
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt" data-block="which"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
-  const others = C.otherTubes(a&&a.deps, r, now);
+  const others = withDest(C.otherTubes(a&&a.deps, r, now), true), rd=tubeDest(r,true);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:best.stop,stationArrival:best.stopAt,arrival:best.arrive,dest:'home'})}</div>
-    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${rd?` to ${esc(rd)}`:""} that left Aldgate at ${hhmm(r.t)}${rd?"":" (TfL isn't showing where it's going)"}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which">${journeyFactsMarkup(best.o,{arrival:best.arrive,duration:'remaining'})}<span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -1631,13 +1641,13 @@ function renderOnTube(now){
   const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
-  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:r.dest }, other: auto && auto.other && auto.other.t!==r.t ? auto.other : null };
+  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:tubeDest(r,false) }, other: auto && auto.other && auto.other.t!==r.t ? {...auto.other,dest:tubeDest(auto.other,false)} : null };
   const head=`<div class="lbl" data-block="label">On the tube · ${hhmm(now)} · ${r.picked?"the tube you picked":`worked out from when you left ${esc(HUB_NAME[r.hub])}`}</div>`;
   // Still at the station you left, well after your tube went (a good, fresh fix): ask rather than guess.
   const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt" data-block="which"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
-  const others = C.otherTubes(lh&&lh.arrivals, r, now);
+  const others = withDest(C.otherTubes(lh&&lh.arrivals, r, now), false);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const target=(PROFILE.places.officeStops||[]).find(stop=>stop.name===leg.stop);
