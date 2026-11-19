@@ -10,7 +10,8 @@
     "scheme": "Commute",
     "contentInset": "never",
     "backgroundColor": "#f2f5f8",
-    "webContentsDebuggingEnabled": false
+    "webContentsDebuggingEnabled": false,
+    "handleApplicationNotifications": false
   },
   "loggingBehavior": "none"
 }
