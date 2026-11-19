@@ -77,7 +77,11 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   - Turning it on asks for notifications only (not the alarm or location), from Settings, never at start-up.
   - The proxy receives it as `prefs.watch` (only `true` turns it on); the shell's configuration doesn't carry it.
   - "Send a test to this iPhone" proves the proxy → Apple → phone path (`/native/test`, at most one a minute).
-  - Alerts show as a banner even while the app is open.
+  - Alerts show as a banner even while the app is open. **Fixed 19 Nov after the first phone test:** Apple accepted the
+    test ("Sent") but nothing appeared while the app was open. Capacitor's bridge made itself the notification
+    delegate after `AppDelegate` did, and with no push handler it shows nothing in the foreground. Now
+    `capacitor.config.json` sets `ios.handleApplicationNotifications: false`, so `AppDelegate`'s delegate stands.
+    Alerts with the app closed or in the background were never affected.
 - **Proxy cost:**
   - Inside a window it checks every 2 minutes, only when an iPhone has the watch on: 3 boards and 1 TfL line status
     per check. That is 300 checks on a watched weekday: 900 board requests and 300 TfL requests.
@@ -115,6 +119,7 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/watch-settings.test.mjs: "Commute watch: the test button sends through the proxy and says what happened"
 - tests/watch-settings.test.mjs: "Commute watch: not in a browser, and not in display mode"
 - tests/watch-settings.test.mjs: "Commute watch: hidden in display mode even inside the iPhone app; a failed test says so"
+- tests/ios-notifications.test.mjs: "iPhone: alerts show while the app is open: AppDelegate is the notification delegate and Capacitor doesn't take it over"
 - tests/core/watch.test.mjs: "Re-review (19 Nov): a blocking phrase wins over other words; stretches count only when both ends are on your line"
 - tests/core/watch.test.mjs: "Re-review (19 Nov): one train on two morning boards counts once; one stuck train, or a 'Delayed' blip at departure, is not amber"
 - tests/core/watch.test.mjs: "Re-review (19 Nov): the tube part suspended on all three lines is amber, not red; 'ok' must hold 3 checks in a row"
