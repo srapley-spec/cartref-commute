@@ -251,3 +251,43 @@ test('both signing profiles enforce App Store identity, expiration and native en
 test('release rejects a bad extension profile before archiving and cleans the installed app profile', { timeout: 180_000 }, async t => {
   await releaseProbe(t, false, false, true);
 });
+
+test('TestFlight wait: a dropped check is retried, not reported as a failed release (build 14, 19 Nov)', async () => {
+  const { waitForBuild, transientAppStoreError } = await import('../ios/scripts/app-store.mjs');
+  const httpError = status => Object.assign(new Error(`HTTP ${status}`), { status });
+  const run = async (answers, limitMs = 30 * 60_000) => {
+    let clock = 0, calls = 0;
+    const log = [];
+    const client = { builds: async number => {
+      assert.equal(number, '14');
+      const next = answers[Math.min(calls++, answers.length - 1)];
+      if (next instanceof Error) throw next;
+      return next ? [{ attributes: { processingState: next } }] : [];
+    } };
+    const result = await waitForBuild(client, '14', { wait: async ms => { clock += ms; }, now: () => clock, limitMs, log: m => log.push(m) })
+      .then(state => ({ state }), error => ({ error }));
+    return { ...result, calls, log };
+  };
+  // What happened on 19 Nov: processing, then one network failure, then (now) carry on to VALID.
+  let r = await run([null, new TypeError('fetch failed'), 'PROCESSING', 'VALID']);
+  assert.equal(r.state, 'VALID');
+  assert.equal(r.calls, 4);
+  assert.ok(r.log.some(m => /didn't answer \(fetch failed\)/.test(m)), r.log.join('\n'));
+  r = await run([httpError(503), httpError(429), Object.assign(new Error('slow'), { name: 'TimeoutError' }), 'VALID']);
+  assert.equal(r.state, 'VALID', 'a 5xx, 429 or a timeout is retried');
+  // Not retried: Apple refusing the key, Apple rejecting the build, the run being cancelled.
+  r = await run([httpError(401), 'VALID']);
+  assert.match(r.error.message, /HTTP 401/); assert.equal(r.calls, 1);
+  r = await run(['PROCESSING', 'INVALID']);
+  assert.match(r.error.message, /Apple rejected processing build 14/);
+  r = await run([Object.assign(new Error('cancelled'), { name: 'AbortError' }), 'VALID']);
+  assert.match(r.error.message, /cancelled/); assert.equal(r.calls, 1);
+  // A network that never comes back still ends at the deadline, saying so.
+  r = await run([new TypeError('fetch failed')], 60_000);
+  assert.match(r.error.message, /Timed out waiting for Apple to process build 14 \(\d+ dropped checks\)/);
+  assert.ok(r.calls >= 4 && r.calls <= 6, `about one check every 15 s: ${r.calls}`);
+  r = await run(['PROCESSING'], 60_000);
+  assert.match(r.error.message, /Timed out waiting for Apple to process build 14\. Check TestFlight/);
+  assert.equal(transientAppStoreError(httpError(404)), false);
+  assert.equal(transientAppStoreError(httpError(500)), true);
+});
