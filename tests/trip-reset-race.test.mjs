@@ -15,10 +15,10 @@ const journey = core.buildJourney(raw, null, null, { from: 'walk', to: 'walk' },
 
 function setup() {
   let clock = start, state = { active: true, follow: core.startFollowTrip(journey, start) };
-  const pending = [];
-  const ui = createTripUi({ root: {}, C: core, S: () => ({}), now: () => clock, store: { get: () => state, set: (v) => { state = v; } },
+  const pending = [], sets = [];
+  const ui = createTripUi({ root: {}, C: core, S: () => ({}), now: () => clock, store: { get: () => state, set: (v) => { sets.push(v); state = v; } },
     fetchBoard: (from, to) => new Promise((resolve, reject) => pending.push({ key: `${from}-${to}`, resolve, reject })) });
-  return { ui, pending, setNow: (v) => { clock = v; } };
+  return { ui, pending, sets, setNow: (v) => { clock = v; } };
 }
 const board = () => ({ services: [], msgs: [] });
 const flushed = () => new Promise(setImmediate);
@@ -68,4 +68,28 @@ test('Trip without reset: ordinary successes and failures still work as before',
   setNow(start + 45_000); const second = ui.refresh();
   setNow(start + 50_000); pending[2].resolve(board()); pending[3].resolve(board()); await second;
   assert.equal(ui.followedDataAt(), start + 50_000);
+});
+
+test('Trip reset race: after a reset, the old request goes no further (nothing saved, nothing re-ranked)', async () => {
+  const { ui, pending, sets, setNow } = setup();
+  const old = ui.refresh(); ui.reset();
+  const before = sets.length;
+  setNow(start + 10_000); pending[0].resolve(board()); pending[1].resolve(board()); await old; await flushed();
+  assert.equal(sets.length, before, 'the followed Trip is not saved from the old request');
+});
+
+test('Trip without reset: a board that loaded and then fails is cleared; an older overlapping request never overwrites a newer one', async () => {
+  const { ui, pending, setNow } = setup();
+  const first = ui.refresh(); pending[0].resolve(board()); pending[1].resolve(board()); await first;
+  setNow(start + 31_000); const second = ui.refresh();
+  pending[2].reject(new Error('down')); pending[3].resolve(board()); await second;
+  assert.deepEqual(ui.state().boards, [pending[3].key], 'the failed board is cleared, the other kept');
+  // Overlap with no reset (the iPhone suspended the app and the clock jumped): request A still out when B starts.
+  const o = setup();
+  const a = o.ui.refresh();                                    // A: pending 0, 1
+  o.setNow(start + 31_000); const b = o.ui.refresh();          // B: pending 2, 3
+  o.setNow(start + 40_000); o.pending[2].resolve(board()); o.pending[3].resolve(board()); await b;
+  o.pending[0].reject(new Error('late')); o.pending[1].resolve(board()); await a; await flushed();
+  assert.equal(o.ui.state().boards.length, 2, "A's late failure doesn't clear B's board");
+  assert.equal(o.ui.followedDataAt(), start + 40_000, "and A's late success doesn't restamp it");
 });

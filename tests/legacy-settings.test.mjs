@@ -77,6 +77,7 @@ test("Unreadable saved state starts fresh rather than half-loading", async () =>
   for (const value of ["not json", "[1,2]", "null", "42"]) {
     const app = await createApp({ now: T0, beforeScripts: raw(value) });
     assert.equal(app.c.state.saved.settings.featuresPermanent, 1, value);
+    assert.equal("0" in app.c.state.saved, false, `${value}: nothing from it loaded`);
     assert.equal(app.c.state.saved.followRoute ?? null, null);
     assert.deepEqual(app.errors, [], value); app.close();
   }
@@ -93,4 +94,21 @@ test("A really cleared iPhone web view (nothing saved at all) gets its settings 
   const own = await createApp({ now: T0, beforeScripts: (w) => { raw({ settings: { provider: "proxy", appearance: "light" } })(w); shellWith(cached)(w); } });
   await new Promise((r) => setTimeout(r, 60));
   assert.equal(own.c.S().appearance, "light"); own.close();
+});
+
+test("A restored cache from before the keys move (17 Nov) brings no key back; settings of the device's own are kept", async () => {
+  const app = await createApp({ now: T0, beforeScripts: (w) => { w.localStorage.removeItem(LS); shellWith({ provider: "rdm", rdmKey: "SECRETX", tflKey: "T", googleVia: "phone", appearance: "dark" })(w); } });
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(app.c.S().appearance, "dark", "(restored)");
+  assert.equal(app.c.S().provider, "proxy"); assert.equal(app.c.S().keysInProxy, 1);
+  const kept = app.c.state.saved.settings;
+  assert.equal(kept.rdmKey, undefined); assert.equal(kept.tflKey, undefined); assert.equal(kept.googleVia, undefined);
+  assert.doesNotMatch(app.w.localStorage.getItem(LS), /SECRETX/, "no key in storage");
+  app.close();
+  for (const provider of ["tfl", "demo"]) {
+    const own = await createApp({ now: T0, beforeScripts: (w) => { raw({ settings: { provider, keysInProxy: 1, featuresPermanent: 1 } })(w); shellWith({ provider: "proxy", appearance: "dark" })(w); } });
+    await new Promise((r) => setTimeout(r, 60));
+    assert.equal(own.c.S().provider, provider, `${provider}: the device's own choice is kept`); assert.notEqual(own.c.S().appearance, "dark");
+    own.close();
+  }
 });

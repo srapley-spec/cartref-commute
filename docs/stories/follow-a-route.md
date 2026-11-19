@@ -45,7 +45,8 @@ not a claim that every criterion has already passed release verification. See [S
   Trip and destination, and the marker keeps it one-time across Save, reload and the iPhone's cache restore.
   Unreadable saved state starts fresh. A really cleared iPhone web view, holding only what start-up writes (the marker,
   the keys move, the default source "proxy"), gets its settings back from the app's cache; before 19 Nov that default
-  source stopped the restore. Availability isn't use: nothing is followed
+  source stopped the restore. A restored cache from before the keys move (17 Nov) goes through that move, so no key comes
+  back. Availability isn't use: nothing is followed
   and Trip isn't entered by itself. Display mode: no Follow, no Trip, no simulation. In Leisure the "Where from?" and
   "Where to?" rows are hidden while following (12 Nov controls under way), not in a live view without following
   (in London going home that is where "Where from?" is used). Trip's own services (Google, any station)
@@ -580,6 +581,7 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 - tests/legacy-settings.test.mjs: "Valid settings are unchanged by this: explicit switches on keep their journey; a migrated device keeps everything"
 - tests/legacy-settings.test.mjs: "Unreadable saved state starts fresh rather than half-loading"
 - tests/legacy-settings.test.mjs: "A really cleared iPhone web view (nothing saved at all) gets its settings back from the app's cache"
+- tests/legacy-settings.test.mjs: "A restored cache from before the keys move (17 Nov) brings no key back; settings of the device's own are kept"
 - tests/core/journey-card-batch.test.mjs: "Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)"
 - tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"

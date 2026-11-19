@@ -57,4 +57,11 @@ a stored state with no `settings` object; the `createTripUi.reset()` race (no ca
 - Found on the way: a really cleared iPhone web view never got its settings back from the app's cache, because
   start-up's default source ("proxy") made it look like a device with settings of its own. Fixed.
 - **Trip reset race.** See `ios-native-2026-11-18.md`.
-- Tests: `tests/legacy-settings.test.mjs`, `tests/trip-reset-race.test.mjs`; independent review below.
+- Tests: `tests/legacy-settings.test.mjs`, `tests/trip-reset-race.test.mjs`.
+- **Independent review (19 Nov):** 11 settings mutations, 9 killed.
+  - The two survivors guarded saved state that is a list or not an object; they're now tested (nothing from it is
+    loaded).
+  - It found that making the cleared-web-view restore work also made it restore a pre-17 Nov cache with raw API keys
+    in it, because the keys move had already run at start-up. Restored settings now go through the same keys move. A
+    test checks no key reaches storage. A device's own "tfl" or "demo" choice is never replaced (tested).
+  - Migration can't run twice through the restore: it never calls the migration, and it forces the marker.

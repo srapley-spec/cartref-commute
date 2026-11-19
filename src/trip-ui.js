@@ -35,7 +35,7 @@ function createTripUi(deps) {
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
   // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
   // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
-  let liveGen = 0;
+  let liveGen = 0, boardSeq = {};
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -261,9 +261,12 @@ function createTripUi(deps) {
     const gen = liveGen;
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
+      const seq = boardSeq[b.key] = (boardSeq[b.key] || 0) + 1;
       let got;
       try { got = await fetchBoard(b.from, b.to); } catch (e) { got = undefined; }
-      if (gen !== liveGen) return;   // reset meanwhile: this response belongs to what was cleared
+      // Reset meanwhile (this response belongs to what was cleared), or a newer request for the same board has
+      // started since (after the iPhone suspends the app the clock can jump past the 30 s spacing): write nothing.
+      if (gen !== liveGen || seq !== boardSeq[b.key]) return;
       liveBoards[b.key] = got; if (got) boardOkAt[b.key] = now(); }));
     if (gen !== liveGen) return;
     const planned=resultQuestion||effectiveQuestion();

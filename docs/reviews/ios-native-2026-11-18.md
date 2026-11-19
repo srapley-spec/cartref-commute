@@ -129,3 +129,17 @@ and the rest of that `live()` run stops. `reset()` also clears the 30 s spacing,
 Ordinary successes and failures are unchanged. Tests: `tests/trip-reset-race.test.mjs`, which resets during an
 outstanding request, starts a newer one, then delivers the old response as both a success and a failure. Both failed
 before the fix.
+
+**Independent review of the fix (19 Nov):**
+- 11 Trip mutations, 7 killed.
+- It found the same overlap could happen without a reset: an old request still out when a newer one starts for the
+  same board, after the iPhone suspends the app and the clock jumps past the 30 s spacing. A late failure then cleared
+  the newer board while its age still said fresh. Fixed with a per-board request number, and tested.
+- A board that loads and later fails is still cleared (now tested).
+- Survivors:
+  - the check after all responses (the rest of that run only recomputes from the cleared state, so nothing
+    observable changes; kept as a guard);
+  - `const`/`let`;
+  - a duplicate check.
+- **`reset()` still has no production caller**: only the tests call it. The fix is correct but latent. Whether a change
+  of live-data source should reset Trip (as `invalidateSources` does for the commute) is an open question for Sam.

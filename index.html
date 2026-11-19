@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 10:04 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 10:22 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -10634,7 +10634,7 @@ function createTripUi(deps) {
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
   // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
   // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
-  let liveGen = 0;
+  let liveGen = 0, boardSeq = {};
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -10860,9 +10860,12 @@ function createTripUi(deps) {
     const gen = liveGen;
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
+      const seq = boardSeq[b.key] = (boardSeq[b.key] || 0) + 1;
       let got;
       try { got = await fetchBoard(b.from, b.to); } catch (e) { got = undefined; }
-      if (gen !== liveGen) return;   // reset meanwhile: this response belongs to what was cleared
+      // Reset meanwhile (this response belongs to what was cleared), or a newer request for the same board has
+      // started since (after the iPhone suspends the app the clock can jump past the 30 s spacing): write nothing.
+      if (gen !== liveGen || seq !== boardSeq[b.key]) return;
       liveBoards[b.key] = got; if (got) boardOkAt[b.key] = now(); }));
     if (gen !== liveGen) return;
     const planned=resultQuestion||effectiveQuestion();
@@ -11623,13 +11626,21 @@ function nativeCacheNow(){
   if(state.boards&&state.boardsAt) e.push({key:"boards",v:1,dataAt:state.boardsAt,savedAt:now,value:state.boards});
   return native.cache(e);
 }
+/** The keys move (17 Nov), on settings that predate it: keys deleted, the phone-key sources become the proxy. */
+function keysMove(s){
+  if(s.keysInProxy) return s;
+  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
+  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
+  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
+  s.keysInProxy=1; return s;
+}
 async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
   // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones. A
   // cleared device has only what start-up writes: the marker, the keys move and its default source, the proxy (19 Nov:
   // that default had stopped the restore on a really cleared device).
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent"||(k==="provider"&&state.saved.settings.provider==="proxy"))){ state.saved.settings={...dropRetired({...set.value}),featuresPermanent:1}; save(); }   // restored settings are post-#63 (review: an older cache lacks the marker)
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent"||(k==="provider"&&state.saved.settings.provider==="proxy"))){ state.saved.settings={...keysMove(dropRetired({...set.value})),featuresPermanent:1}; save(); }   // a cache from before 17 Nov still had keys: they go, as at start-up (review 19 Nov)   // restored settings are post-#63 (review: an older cache lacks the marker)
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
@@ -11804,13 +11815,7 @@ window.addEventListener("pagehide",invalidateSources);
 // First run with no key: show example trains so the layout is visible.
 // Keys move to the app's proxy (Sam, 17 Nov: "Can you remove all the content I'm setting for the key"): once per
 // device, any key saved here is deleted, the phone-key sources become the proxy, and the Google choice goes.
-if(!state.saved.settings.keysInProxy){
-  const s=state.saved.settings;
-  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
-  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
-  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
-  s.keysInProxy=1; save();
-}
+if(!state.saved.settings.keysInProxy){ keysMove(state.saved.settings); save(); }
 acceptSetupLink();
 if(allViaProxy()) refreshProxyStatus().then(()=>render());
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
