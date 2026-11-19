@@ -71,7 +71,7 @@ const nativeBridge = (() => {
         return j;
       } finally { win.clearTimeout(timer); }
     }
-    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN });
+    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN, watch: s.commuteWatch === true });
     const prefixes = (v, dflt) => String(v == null ? dflt : v).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
     /**
      * What the shell is told (§6.7 rule 2): the proxy and this iPhone's registration (kept in Keychain), the alarm, the
@@ -79,7 +79,8 @@ const nativeBridge = (() => {
      * alarm is on).
      */
     const config = (s = S()) => {
-      const alarm = prefs(s);
+      // The shell gets the alarm only; the watch is the proxy's (#66).
+      const { watch, ...alarm } = prefs(s);
       return { v: 1, proxy: { origin: base() }, device: ids(), alarm, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
         regions: alarm.alarm && deps.regions ? deps.regions() : [] };
     };
@@ -175,7 +176,12 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    /** Settings → Send a test to this iPhone (#66): the proxy sends one notification through Apple. */
+    async function test() {
+      if (!ids() || !base()) return { ok: false, error: "this iPhone isn't registered with your proxy yet" };
+      try { return await call("/native/test", ids()); } catch (e) { return { ok: false, error: e.message }; }
+    }
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs, test };
   }
   return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();

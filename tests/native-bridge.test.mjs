@@ -86,7 +86,7 @@ test("Bridge: with an APNs token the iPhone registers with the proxy, then the f
   assert.equal(s.b.sync(), null, "no APNs token yet: not registered, nothing sent");
   s.shell.emit("apns", { token: "a".repeat(64), env: "production" });
   await tick(); await tick();
-  assert.deepEqual(s.posts[0], ["https://proxy.test/native/register", { apnsToken: "a".repeat(64), env: "production", prefs: { alarm: true, alarmLeadMin: 5 } }]);
+  assert.deepEqual(s.posts[0], ["https://proxy.test/native/register", { apnsToken: "a".repeat(64), env: "production", prefs: { alarm: true, alarmLeadMin: 5, watch: false } }]);
   assert.deepEqual(s.store.native, { id: "i1", token: "t1" });
   assert.deepEqual(s.shell.calls.filter((x) => x[0] === "configure").at(-1)[1].device, { id: "i1", token: "t1" }, "the shell gets the registration for Keychain");
   assert.deepEqual(s.posts[1], ["https://proxy.test/native/follow", { id: "i1", token: "t1", plan: PLAN.plan, extra: PLAN.extra, setOff: false }]);

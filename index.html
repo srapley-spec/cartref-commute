@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 08:20 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:57 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -990,6 +990,11 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <label class="f" id="wakeAtRow"><span>Wake-up check (weekdays)</span><input id="s_wakeAt" type="time" value="06:30"></label>
       <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
+      <div id="watchFields" hidden>
+        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and 15:00–20:00 home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). Not on bank holidays. Nothing needs following.</span></label>
+        <button type="button" class="ghost" id="watchTestBtn">Send a test to this iPhone</button>
+        <p class="hint" id="watchStatus" aria-live="polite"></p>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -1180,6 +1185,7 @@ var CommuteCore = (() => {
     ALONG_INTERESTS: () => ALONG_INTERESTS,
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
+    BANK_HOLIDAYS: () => BANK_HOLIDAYS,
     BLOCKS: () => BLOCKS,
     COUNTDOWN_URGENT_MS: () => COUNTDOWN_URGENT_MS,
     COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
@@ -1235,6 +1241,12 @@ var CommuteCore = (() => {
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
+    WATCH_AMBER_MIN: () => WATCH_AMBER_MIN,
+    WATCH_CLEAR_CHECKS: () => WATCH_CLEAR_CHECKS,
+    WATCH_RED_MIN: () => WATCH_RED_MIN,
+    WATCH_TUBE_LINES: () => WATCH_TUBE_LINES,
+    WATCH_WINDOWS: () => WATCH_WINDOWS,
+    WATCH_WINDOW_MIN: () => WATCH_WINDOW_MIN,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
     WIFI_ACCURACY_M: () => WIFI_ACCURACY_M,
     accessOf: () => accessOf,
@@ -1474,7 +1486,10 @@ var CommuteCore = (() => {
     walkFromStopSecs: () => walkFromStopSecs,
     walkSecs: () => walkSecs,
     walkSteps: () => walkSteps,
+    watchStep: () => watchStep,
     watchStop: () => watchStop,
+    watchVerdict: () => watchVerdict,
+    watchWindow: () => watchWindow,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
     whichTube: () => whichTube,
@@ -5682,6 +5697,165 @@ var CommuteCore = (() => {
   ];
   var samAlongStations = [{ code: "LET", name: "Letchworth" }, { code: "HIT", name: "Hitchin" }, { code: "SVG", name: "Stevenage" }, { code: "KBW", name: "Knebworth" }, { code: "WLW", name: "Welwyn North" }, { code: "WGC", name: "Welwyn Garden City" }, { code: "HAT", name: "Hatfield" }, { code: "PBR", name: "Potters Bar" }, { code: "AAP", name: "Alexandra Palace" }, { code: "FPK", name: "Finsbury Park" }];
 
+  // src/core/watch.ts
+  var WATCH_AMBER_MIN = 15;
+  var WATCH_RED_MIN = 45;
+  var WATCH_WINDOW_MIN = 90;
+  var WATCH_WINDOWS = [
+    { direction: "office", from: "05:00", to: "10:00" },
+    { direction: "home", from: "15:00", to: "20:00" }
+  ];
+  var BANK_HOLIDAYS = /* @__PURE__ */ new Set([
+    "2026-12-25",
+    "2026-12-28",
+    "2027-01-01",
+    "2027-03-26",
+    "2027-03-29",
+    "2027-05-03",
+    "2027-05-31",
+    "2027-08-30",
+    "2027-12-27",
+    "2027-12-28"
+  ]);
+  var WATCH_TUBE_LINES = ["circle", "metropolitan", "hammersmith-city"];
+  var isoLocal = (t2) => {
+    const d = new Date(t2);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  var minutesOf = (hm) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
+  function watchWindow(now) {
+    const d = new Date(now), day2 = d.getDay(), date = isoLocal(now);
+    if (day2 === 0 || day2 === 6 || BANK_HOLIDAYS.has(date)) return null;
+    const m = d.getHours() * 60 + d.getMinutes();
+    const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
+    return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
+  }
+  var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
+  var WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
+  var FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|machine)|car park|waiting room)/i;
+  var AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
+  var CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+  var blocking = (m) => STRONG_NOTICE.test(m) || WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m);
+  var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  function notToday(m, now) {
+    if (/overrun/i.test(m) || !/(planned|engineering|improvement works|no trains will run)/i.test(m)) return false;
+    if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
+    const today = DAYS[new Date(now).getDay()];
+    const day2 = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
+    return !!day2 && day2[1].toLowerCase() !== today;
+  }
+  var TUBE_CLOSED = [1, 2, 4, 16];
+  var TUBE_BAD = [3, 5, 6, 7, 8];
+  var STUCK_LOOKBACK_MIN = 60;
+  var STUCK_AFTER_MIN = 10;
+  var schedArr = (t2) => t2.arr == null ? null : t2.arr - (t2.arrLate || 0) * 6e4;
+  var schedDep = (t2) => t2.dep - (t2.depLate || 0) * 6e4;
+  function onYourLine(m, corridor) {
+    if (!corridor) return true;
+    const all2 = new RegExp(`^(london )?(${corridor})`, "i");
+    const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
+    const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| on | via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+    if (stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
+    const place = new RegExp(`(?<!(?:call|stop|terminat|start|turn(?:ed)? back|run(?:ning)? fast)\\w* )\\b(?:at|near|north of|south of|outside|called to|in the) (?:london )?(?:${corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+    return m.split(/(?<=[.!?])\s+/).some((sentence) => blocking(sentence) && place.test(sentence));
+  }
+  function watchVerdict(direction, boards, tube, now, policy, corridor) {
+    const read = Object.values(boards).filter((b) => !!b);
+    const out = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, stuck: 0, reasons: [] };
+    if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
+    const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4;
+    const keyOf3 = (t2) => {
+      const sa = schedArr(t2);
+      return direction === "office" ? `${t2.operator}|${t2.from}|${schedDep(t2)}` : sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
+    };
+    const runs = (t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null;
+    const better = (a, b) => runs(b) && (!runs(a) || b.arr < a.arr);
+    const chosen = /* @__PURE__ */ new Map();
+    for (const t2 of read.flatMap((b) => b.services || [])) {
+      const k = keyOf3(t2), had = chosen.get(k);
+      if (!had || better(had, t2)) chosen.set(k, t2);
+    }
+    const trains = [...chosen.values()].filter((t2) => {
+      const sd = schedDep(t2);
+      return sd <= horizon && (sd >= now || !t2.cancelled && (t2.dep >= now || (t2.depUnknown || t2.arrUnknown) && sd >= back));
+    });
+    out.cancelled = trains.filter((t2) => t2.cancelled && schedDep(t2) >= now).length;
+    out.stuck = trains.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown) && schedDep(t2) <= now - STUCK_AFTER_MIN * 6e4).length;
+    const normal = trains.filter((t2) => schedDep(t2) >= now).map(schedArr).filter((x) => x != null);
+    const running = trains.filter((t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null && t2.dep >= now);
+    const best = running.reduce((a, t2) => !a || t2.arr < a.arr ? t2 : a, null);
+    let level = "ok";
+    const raise = (l) => {
+      if (l === "red" || l === "amber" && level === "ok") level = l;
+    };
+    if (normal.length) out.normalArrive = Math.min(...normal);
+    if (best) {
+      out.train = best;
+      out.expectedArrive = best.arr;
+    }
+    if (!trains.length) level = "unknown";
+    else if (!best) {
+      raise("red");
+      out.reasons.push(out.cancelled ? `No trains running: ${out.cancelled} cancelled` : "No train has a time");
+    } else {
+      out.lateMin = out.normalArrive != null ? Math.max(0, Math.round((best.arr - out.normalArrive) / 6e4)) : Math.max(best.depLate || 0, best.arrLate || 0);
+      if (out.lateMin > WATCH_RED_MIN) raise("red");
+      else if (out.lateMin >= WATCH_AMBER_MIN) raise("amber");
+      if (out.lateMin >= WATCH_AMBER_MIN) out.reasons.push(`About ${out.lateMin} min later than normal`);
+    }
+    if (out.stuck >= 2) {
+      raise("amber");
+      out.reasons.push(`${out.stuck} trains delayed with no estimate`);
+    }
+    if (out.cancelled && best) out.reasons.push(`${out.cancelled} cancelled`);
+    const msgs = [...new Set(read.flatMap((b) => b.msgs || []))];
+    const redMsg = msgs.find((m) => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
+    const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
+    if (redMsg) {
+      raise("red");
+      out.reasons.push(redMsg);
+    } else if (amberMsg && level !== "ok" && level !== "unknown") out.reasons.push(amberMsg);
+    const lines = (tube || []).filter((l) => WATCH_TUBE_LINES.includes(l.id));
+    if (lines.length === WATCH_TUBE_LINES.length) {
+      const closed = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev)));
+      const bad = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev) || TUBE_BAD.includes(s.sev)));
+      if (closed) {
+        raise("red");
+        out.reasons.push("Circle, Met and H&C all closed or suspended");
+      } else if (bad) {
+        raise("amber");
+        out.reasons.push("Circle, Met and H&C all disrupted");
+      }
+    }
+    out.level = level;
+    return out;
+  }
+  var WATCH_CLEAR_CHECKS = 3;
+  function watchStep(prev, window, v, now) {
+    const same = !!prev && prev.key === window.key;
+    const peak = same && (prev.level === "amber" || prev.level === "red") ? prev.level : "ok";
+    const okRun = same ? prev.okRun || 0 : 0;
+    const keep = (level, run2) => run2 ? { key: window.key, level, okRun: run2 } : { key: window.key, level };
+    if (v.level === "unknown") return { notice: null, state: keep(peak, okRun) };
+    const rank2 = (l) => l === "red" ? 2 : l === "amber" ? 1 : 0;
+    const tag = `watch-${window.key}`;
+    const going = window.direction === "office" ? "to the office" : "home";
+    const way = v.train && v.expectedArrive != null ? `Best now: the ${v.train.std} from ${v.train.from}, arriving ${hhmm(v.expectedArrive)}.` : "";
+    const why = v.reasons.slice(0, 2).join(". ");
+    if (rank2(v.level) > rank2(peak)) {
+      const title = v.level === "red" ? window.direction === "office" ? "Commute: consider working from home" : "Commute: disruption on the way home" : window.direction === "office" ? "Commute: delays this morning" : "Commute: delays on the way home";
+      const act = v.level === "red" && window.direction === "home" ? " If you can, head home now." : "";
+      return { notice: { kind: "watch", tag, title, body: [why, way].filter(Boolean).join(". ").replace(/\.\./g, ".") + act }, state: keep(v.level, 0) };
+    }
+    if (v.level !== "ok") return { notice: null, state: keep(peak, 0) };
+    const run = peak === "ok" ? 0 : okRun + 1;
+    if (peak !== "ok" && run >= WATCH_CLEAR_CHECKS) {
+      const notice = peak === "red" ? { kind: "watch", tag, title: `Commute: back to normal ${going}`, body: way || "Trains are running close to normal again." } : null;
+      return { notice, state: keep("ok", 0) };
+    }
+    return { notice: null, state: keep(peak, run) };
+  }
+
   // src/core/alerts.ts
   var LEAVE_ALERT_SOON_MS = 5 * 6e4;
   var LEAVE_ALERT_CHANGE_MS = 2 * 6e4;
@@ -5765,8 +5939,8 @@ var CommuteCore = (() => {
     return { notice: null, state: s, done: false };
   }
   var cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
-  var localMinute = (now) => ({ hm: hhmm(now), day: new Date(now).getDay(), date: isoLocal(now) });
-  var isoLocal = (t2) => {
+  var localMinute = (now) => ({ hm: hhmm(now), day: new Date(now).getDay(), date: isoLocal2(now) });
+  var isoLocal2 = (t2) => {
     const d = new Date(t2);
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
@@ -11357,7 +11531,7 @@ const nativeBridge = (() => {
         return j;
       } finally { win.clearTimeout(timer); }
     }
-    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN });
+    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN, watch: s.commuteWatch === true });
     const prefixes = (v, dflt) => String(v == null ? dflt : v).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
     /**
      * What the shell is told (§6.7 rule 2): the proxy and this iPhone's registration (kept in Keychain), the alarm, the
@@ -11365,7 +11539,8 @@ const nativeBridge = (() => {
      * alarm is on).
      */
     const config = (s = S()) => {
-      const alarm = prefs(s);
+      // The shell gets the alarm only; the watch is the proxy's (#66).
+      const { watch, ...alarm } = prefs(s);
       return { v: 1, proxy: { origin: base() }, device: ids(), alarm, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
         regions: alarm.alarm && deps.regions ? deps.regions() : [] };
     };
@@ -11461,7 +11636,12 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    /** Settings → Send a test to this iPhone (#66): the proxy sends one notification through Apple. */
+    async function test() {
+      if (!ids() || !base()) return { ok: false, error: "this iPhone isn't registered with your proxy yet" };
+      try { return await call("/native/test", ids()); } catch (e) { return { ok: false, error: e.message }; }
+    }
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs, test };
   }
   return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
@@ -11664,6 +11844,9 @@ function fillSettings(){
   FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
+  // Commute watch (#66): the iPhone app only (Apple's push service); off until turned on.
+  $("#watchFields").hidden=!native.capabilities()||!!DISPLAY; $("#s_commuteWatch").checked=s.commuteWatch===true;
+  $("#watchTestBtn").hidden=!(state.saved.native&&state.saved.native.id); $("#watchStatus").textContent="";
 
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
@@ -11681,7 +11864,8 @@ function readSettings(){
     o.leaveAlarm=$("#s_leaveAlarm").checked;
     const m=parseInt($("#s_leaveAlarmMin").value,10); if(m>=0&&m<=60) o.leaveAlarmMin=m;
     o.wifiHome=$("#s_wifiHome").value.trim(); o.wifiOffice=$("#s_wifiOffice").value.trim();
-  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+    if($("#s_commuteWatch").checked) o.commuteWatch=true;
+  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
@@ -11733,8 +11917,10 @@ $("#settingsForm").addEventListener("submit",e=>{
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
  // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
  if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
+ // The commute watch turned on: it needs notifications only (asked once; from Settings, never at start-up).
+ else if(next.commuteWatch===true&&previous.commuteWatch!==true&&((native.capabilities()||{}).auth||{}).notifications==="notDetermined") setTimeout(()=>{ native.request("notifications").then(()=>renderNativePermissions()).catch(()=>{}); },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
- const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
+ const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -11750,6 +11936,8 @@ $("#settingsForm").addEventListener("submit",e=>{
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 $("#alertsTestBtn").addEventListener("click",()=>leaveAlerts.test());
+$("#watchTestBtn").addEventListener("click",async()=>{ const st=$("#watchStatus"); st.textContent="Sending…";
+  const r=await native.test(); st.textContent=r&&r.ok?"Sent: it should arrive in a few seconds. Nothing? Check Notifications for Commute in the iPhone's Settings.":`Couldn't send${r&&r.error?`: ${r.error}`:""}.`; });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.

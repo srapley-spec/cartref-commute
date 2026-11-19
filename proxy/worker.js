@@ -44,6 +44,7 @@
 
 import { pushRoute, runAlerts } from "./push.js";
 import { nativeRoute, runNative, nativeConfigured } from "./native.js";
+import { runWatch } from "./watch.js";
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
@@ -183,6 +184,7 @@ export default {
   // Time-to-leave and wake-up alerts (proxy/push.js): a Cron Trigger every minute.
   async scheduled(event, env, ctx) {
     const now = Date.now();
-    ctx.waitUntil(Promise.all([runAlerts(env, now), runNative(env, now)]));
+    // The watch runs after the iPhones' journey run: both rewrite the same records, never at the same moment.
+    ctx.waitUntil(Promise.all([runAlerts(env, now), runNative(env, now).catch(() => []).then(() => runWatch(env, now))]));
   },
 };
