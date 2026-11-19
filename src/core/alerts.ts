@@ -37,7 +37,7 @@ export interface LeaveAlertState {
   /** The last live expected departure seen, and how late it was: used when there's no fresh estimate. */
   lastDep?: number; lastLate?: number;
 }
-export interface PushNotice { kind: "soon" | "changed" | "cancelled" | "unknown" | "morning"; title: string; body: string; tag: string; }
+export interface PushNotice { kind: "soon" | "changed" | "cancelled" | "unknown" | "morning" | "watch"; title: string; body: string; tag: string; }
 
 /**
  * The plan the proxy watches for a followed journey: only before the train (once you're on it there's nothing to

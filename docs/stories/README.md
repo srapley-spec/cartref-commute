@@ -68,6 +68,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
 - [Every key in the proxy: a new device needs nothing](keys-in-the-proxy.md) · Proxy built 4 Nov; deployed from GitHub and the key settings removed from the app (17 Nov)
 - [The iPhone app: download it and it works](ios-app.md) · Proposed (17 Nov); web app made ready here, the app built by another agent
+- [Commute watch: weekday alerts only when they matter](commute-watch.md) · Built 19 Nov (iPhone app; off until you turn it on)
 - [Time-to-leave and wake-up alerts](time-to-leave-alerts.md) · Done (Settings → Notifications since 18 Nov; off until you turn it on)
 
 ### Beyond the commute

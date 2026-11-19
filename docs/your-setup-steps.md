@@ -99,6 +99,12 @@ shell builds do not include the native features. Apple review submission must wa
 no review submission is configured.
 - [ ] On the native feature build, allow the desired permissions in Settings (Follow a route needs no switch since 18 Nov, #63), and
       while at home choose Settings → Home → "Home is where I am now". There is no automatic home inference in v1.
+- [ ] Commute watch (#66, 19 Nov): once TestFlight has the build after 19 Nov, open the app → Settings → Notifications →
+      tick **Commute watch** → Save (allow notifications when asked) → **Send a test to this iPhone**. A notification
+      "Alerts are on" should arrive within seconds. If it doesn't, tell Claude what the line under the button says.
+- [ ] Optional, for earlier incident warnings: subscribe to **Knowledgebase Incidents data feed** on raildata.org.uk,
+      then add its consumer key and endpoint base as Actions secrets `RDM_KB_KEY` and `RDM_KB_BASE`, and the same two in the
+      cloud environment's secrets. Tell Claude when it's done (never paste the key).
 - [ ] Run the [first-phone acceptance checks](stories/ios-native.md#first-internal-testflight-phone-acceptance) and
       report the TestFlight build number with any failures. Actual APNs, alarms and region delivery need an iPhone.
 

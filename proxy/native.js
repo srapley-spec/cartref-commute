@@ -44,7 +44,8 @@ export function cleanExtra(x) {
 }
 export function cleanPrefs(p) {
   const lead = p && Number.isInteger(p.alarmLeadMin) && p.alarmLeadMin >= 0 && p.alarmLeadMin <= 60 ? p.alarmLeadMin : C.LEAVE_ALARM_DEFAULT_MIN;
-  return { alarm: !(p && p.alarm === false), alarmLeadMin: lead };
+  // Commute watch (#66) is off unless turned on in Settings → Notifications.
+  return { alarm: !(p && p.alarm === false), alarmLeadMin: lead, watch: !!(p && p.watch === true) };
 }
 function cleanEvidence(e, now) {
   if (!e || typeof e !== "object" || e.kind !== "region" || !["exit", "enter"].includes(e.event) || typeof e.place !== "string" || !PLACE.test(e.place)) return null;
@@ -61,7 +62,7 @@ async function iphone(env, b) {
 export async function nativeRoute(request, env, cors, url, allowed) {
   if (!nativeConfigured(env)) return json({ error: "Proxy not configured for the iPhone app: bind KV namespace PUSH and set APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_TOPIC." }, 500, cors);
   const path = url.pathname;
-  if (!["/native/register", "/native/follow", "/native/evidence", "/native/unregister"].includes(path)) return json({ error: "Not found" }, 404, cors);
+  if (!["/native/register", "/native/follow", "/native/evidence", "/native/test", "/native/unregister"].includes(path)) return json({ error: "Not found" }, 404, cors);
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
   const b = await body(request);
   if (!b) return json({ error: "Bad request" }, 400, cors);
@@ -102,6 +103,16 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, plan, extra: cleanExtra(b.extra), planState: keep ? rec.planState || {} : {},
       seen: now, setOff: keep ? !!rec.setOff || !!b.setOff : !!b.setOff, followedAt: keep ? rec.followedAt || now : now, la, shown: keep ? rec.shown || null : null, planAt: now }));
     return json({ ok: true }, 200, cors);
+  }
+  if (path === "/native/test") {
+    // Settings → Notifications → Send a test (#66): proves the proxy → Apple → this iPhone path. One a minute.
+    if (rec.testAt && now - rec.testAt < 60e3 && now >= rec.testAt) return json({ error: "Too soon" }, 429, cors);
+    await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, testAt: now }));
+    let r;
+    try { r = await sendApns(env, rec.apns, "alert", apnsPayloads.alert({ kind: "test", tag: "test", title: "Alerts are on",
+      body: rec.prefs && rec.prefs.watch ? "Commute watch is on: weekdays 05:00–10:00 to the office and 15:00–20:00 home, only when something's wrong." : "You'll hear from Commute when something needs you." }), now); }
+    catch (e) { r = { ok: false, status: 0 }; }
+    return json({ ok: r.ok, status: r.status }, r.ok ? 200 : 502, cors);
   }
   if (path === "/native/evidence") {
     const ev = cleanEvidence(b.evidence, now);
