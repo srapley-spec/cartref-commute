@@ -199,7 +199,7 @@ test("Proxy: /status says what it's set up for, true or false only, never a key"
   const full = { ...ENV, RDM_SD_KEY: "sd-key-1", TFL_KEY: "tfl-key-2", GOOGLE_KEY: "g-key-3", ALLOW_ANY_STATION: "yes", PUSH: {}, VAPID_PUBLIC_KEY: "pub-4", VAPID_PRIVATE_KEY: "priv-5", VAPID_SUBJECT: "mailto:x" };
   let r = await worker.fetch(req("/status"), full);
   const text = await r.text();
-  assert.deepEqual(JSON.parse(text), { v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: true, native: false });
+  assert.deepEqual(JSON.parse(text), { v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: true, native: false, ha: false });
   for (const secret of ["secret-key", "sd-key-1", "tfl-key-2", "g-key-3", "pub-4", "priv-5"]) assert.ok(!text.includes(secret), secret);
   assert.equal(r.headers.get("Cache-Control"), "no-store");
   const partial = async (env) => (await worker.fetch(req("/status"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN, ...env })).json();
@@ -208,6 +208,10 @@ test("Proxy: /status says what it's set up for, true or false only, never a key"
   assert.equal((await partial({ VAPID_PUBLIC_KEY: "p", VAPID_PRIVATE_KEY: "v", VAPID_SUBJECT: "m" })).alerts, false, "no storage, no alerts");
   assert.equal((await partial({ ALLOW_ANY_STATION: "no" })).anyStation, false);
   r = await worker.fetch(req("/status"), { ALLOW_ORIGIN: ENV.ALLOW_ORIGIN });
-  assert.deepEqual(await r.json(), { v: 1, rail: false, serviceDetails: false, tflKey: false, google: false, anyStation: false, alerts: false, native: false });
+  assert.deepEqual(await r.json(), { v: 1, rail: false, serviceDetails: false, tflKey: false, google: false, anyStation: false, alerts: false, native: false, ha: false });
+  const haText = await (await worker.fetch(req("/status"), { ...full, HA_TOKEN: "ha-tok-6", HA_BASE_URL: "https://ha.example.test", HA_PERSON: "person.sam" })).text();
+  assert.equal(JSON.parse(haText).ha, true, "Home Assistant set up: true");
+  assert.ok(!haText.includes("ha-tok-6") && !haText.includes("ha.example.test"), "never the HA token or address");
+  assert.equal((await partial({ HA_TOKEN: "t", HA_BASE_URL: "http://ha.example.test", HA_PERSON: "person.sam" })).ha, false, "plain http isn't Home Assistant");
   assert.equal((await worker.fetch(req("/status", { origin: "https://evil.test" }), full)).status, 403);
 });
