@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:53 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:55 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5735,6 +5735,7 @@ var CommuteCore = (() => {
   var FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|machine)|car park|waiting room)/i;
   var AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
   var CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+  var blocking = (m) => STRONG_NOTICE.test(m) || WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m);
   var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   function notToday(m, now) {
     if (/overrun/i.test(m) || !/(planned|engineering|improvement works|no trains will run)/i.test(m)) return false;
@@ -5753,12 +5754,10 @@ var CommuteCore = (() => {
     if (!corridor) return true;
     const all2 = new RegExp(`^(london )?(${corridor})`, "i");
     const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
-    const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+    const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| on | via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
     if (stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
-    let rest = m;
-    for (const x of stretches) rest = rest.replace(x[0], " ");
-    rest = rest.replace(/\bvia [A-Za-z][A-Za-z' .&-]*?(?=[.,:;]| may| will| is| are|$)/gi, " ");
-    return local.test(rest);
+    const place = new RegExp(`(?<!call(?:ing)? |stop(?:ping)? |terminat(?:e|ing) |start(?:ing)? |run(?:ning)? fast )\\b(at|near|north of|south of|outside|called to) (london )?(${corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+    return m.split(/(?<=[.!?])\s+/).some((sentence) => blocking(sentence) && place.test(sentence));
   }
   function watchVerdict(direction, boards, tube, now, policy, corridor) {
     const read = Object.values(boards).filter((b) => !!b);
@@ -5810,7 +5809,6 @@ var CommuteCore = (() => {
     }
     if (out.cancelled && best) out.reasons.push(`${out.cancelled} cancelled`);
     const msgs = [...new Set(read.flatMap((b) => b.msgs || []))];
-    const blocking = (m) => STRONG_NOTICE.test(m) || WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m);
     const redMsg = msgs.find((m) => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
     const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
     if (redMsg) {

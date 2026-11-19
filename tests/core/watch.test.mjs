@@ -249,3 +249,20 @@ test("Final re-check (19 Nov): of two copies of one morning train, the one that 
     "LET-KGX": { services: [gnm("07:25"), gnm("07:50")], msgs: [] } }, null, now);
   assert.equal(v.cancelled, 0); assert.equal(v.train.to, "STP"); assert.equal(v.level, "ok");
 });
+
+test("Last pass (19 Nov): East Coast notices that mention your stations as calling points or diversions aren't red", () => {
+  const now = T("17:00"), corridor = `${core.profiles.samCommute.corridorPattern}|ashwell|royston|cambridge`;
+  const lvl = (msg) => core.watchVerdict("home", boards([gn("17:05")], [], [msg]), null, now, undefined, corridor).level;
+  for (const msg of [
+    "Lines are blocked between Newcastle and Morpeth. LNER trains to Edinburgh will not call at Stevenage.",
+    "Trains between London Kings Cross and Leeds, calling at Stevenage, may be cancelled: a person has been hit by a train between Doncaster and Wakefield.",
+    "Lines are blocked between Peterborough and Grantham. Hull Trains services will start from Stevenage.",
+    "A person has been hit by a train between Doncaster and Retford. LNER tickets are accepted on Great Northern services from Stevenage and Hitchin.",
+    "Overhead line damage between York and Darlington. Customers at Stevenage should use the next available train.",
+    "Lines are blocked between Peterborough and York. Trains towards York will run fast from Stevenage.",
+    "Lines are blocked between Ely and King's Lynn. Trains from Cambridge to King's Lynn may be cancelled.",
+  ]) assert.notEqual(lvl(msg), "red", msg);
+  assert.equal(lvl("Disruption between London Kings Cross and Peterborough. A person has been hit by a train at Hatfield."), "red");
+  assert.equal(lvl("Lines are blocked at Stevenage. Disruption is expected between now and the end of the day."), "red");
+  assert.equal(lvl("Emergency services have been called to Welwyn North; lines are blocked. Lifts at Welwyn Garden City are also out of use."), "red");
+});

@@ -53,6 +53,7 @@ const FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|m
 const AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
 /** Cleared: specific phrases only (independent review, 19 Nov: "lines have now been blocked" is not cleared). */
 const CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+const blocking = (m: string) => STRONG_NOTICE.test(m) || (WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m));
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 /**
  * Planned work for another time: only a notice about planned work ("engineering", "no trains will run", "planned
@@ -100,13 +101,13 @@ function onYourLine(m: string, corridor: string | undefined): boolean {
   if (!corridor) return true;
   const all = new RegExp(`^(london )?(${corridor})`, "i");
   const local = new RegExp(corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
-  const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+  const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| on | via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
   if (stretches.some(x => all.test(x[1].trim()) && all.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
-  // A station of yours named outside any stretch ("… at Hatfield"), but not as a "via" on someone else's route.
-  let rest = m;
-  for (const x of stretches) rest = rest.replace(x[0], " ");
-  rest = rest.replace(/\bvia [A-Za-z][A-Za-z' .&-]*?(?=[.,:;]| may| will| is| are|$)/gi, " ");
-  return local.test(rest);
+  // A station of yours named as the incident's place, in the same sentence as the blocking phrase ("… hit by a train
+  // at Hatfield"), never as where someone else's trains call, start or are diverted ("will not call at Stevenage",
+  // "start from Stevenage", "tickets accepted … from Hitchin"). Final re-check, 19 Nov.
+  const place = new RegExp(`(?<!call(?:ing)? |stop(?:ping)? |terminat(?:e|ing) |start(?:ing)? |run(?:ning)? fast )\\b(at|near|north of|south of|outside|called to) (london )?(${corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+  return m.split(/(?<=[.!?])\s+/).some(sentence => blocking(sentence) && place.test(sentence));
 }
 
 /**
@@ -161,7 +162,6 @@ export function watchVerdict(direction: WatchDirection, boards: Record<string, B
   const msgs = [...new Set(read.flatMap(b => b.msgs || []))];
   // A blocking incident counts only when it names a station on your line outside London, isn't planned or for
   // another day, isn't about a lift or a ticket office, and hasn't cleared.
-  const blocking = (m: string) => STRONG_NOTICE.test(m) || (WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m));
   const redMsg = msgs.find(m => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
   const amberMsg = msgs.find(m => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
   if (redMsg) { raise("red"); out.reasons.push(redMsg); } else if (amberMsg && level !== "ok" && level !== "unknown") out.reasons.push(amberMsg);

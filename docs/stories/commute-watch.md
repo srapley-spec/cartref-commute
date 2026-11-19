@@ -41,8 +41,10 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
     - **It must not be cleared or for another time.** Cleared means specific phrases only: "lines have reopened",
       "running normally", "disruption has cleared". Not today means planned engineering or works, "this weekend", or
       "on <a day other than today>". An overrun is never "planned".
-    - **A station of yours named outside any stretch** ("… hit by a train at Hatfield") counts, but not as a "via" on
-      another route.
+    - **A station of yours named as the incident's place** counts: in the same sentence as the blocking phrase, after
+      "at", "near", "north of", "south of", "outside" or "called to" ("… hit by a train at Hatfield"). It doesn't count
+      as where other operators' trains call, start, stop or run fast ("LNER trains will not call at Stevenage",
+      "services will start from Stevenage"), or as "via".
     - **Planned work only can be for another time.** "Expected to continue on Friday" after an incident is today's.
     - **Accepted miss:** "between Peterborough and Stevenage" includes Stevenage–Hitchin, but telling that needs route
       order, so it counts only once the trains show it.
@@ -119,6 +121,7 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/watch-proxy.test.mjs: "The cron: the watch starts only after the followed-journey run has finished, and still runs if that run fails"
 - tests/watch-proxy.test.mjs: "The proxy's corridor runs on beyond Letchworth: 'between Hitchin and Cambridge' is your line"
 - tests/core/watch.test.mjs: "Final re-check (19 Nov): a station of yours outside a stretch counts; a follow-on day isn't another day; London-only and facility notices aren't red"
+- tests/core/watch.test.mjs: "Last pass (19 Nov): East Coast notices that mention your stations as calling points or diversions aren't red"
 - tests/core/watch.test.mjs: "Final re-check (19 Nov): of two copies of one morning train, the one that runs counts (cancelled at Farringdon, running to St Pancras)"
 
 Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it found false reds (the tube's
@@ -140,6 +143,11 @@ out "ok": a local station named outside a stretch; a time phrase read as a stret
 weekend" after an incident. It also found that a Thameslink cancelled at Farringdon but running to St Pancras was
 counted as cancelled. All are fixed with tests, as are the low survivors it named: the overrun guard, a London-only
 stretch, the facility filter, and the proxy's corridor beyond Letchworth.
+
+Last pass (19 Nov, of 9771b40): those fixes worked, but naming a station anywhere outside a stretch brought back
+false reds from East Coast notices ("will not call at Stevenage", "start from Stevenage", "tickets accepted from
+Hitchin"). Now a station counts only as the incident's place in the same sentence as the blocking phrase. The
+reviewer's seven notices are tests that must not be red, next to the ones that must be.
 
 Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
 test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.
