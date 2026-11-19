@@ -10,6 +10,40 @@ export function nextBuildNumber(builds) {
   return String(numbers.reduce((max, n) => BigInt(n) > max ? BigInt(n) : max, 0n) + 1n);
 }
 
+// Apple's API or the runner's network sometimes drops one request while a build processes (19 Nov: build 14
+// uploaded, then one poll failed with "fetch failed" and the release reported failure). A dropped poll, a timeout,
+// HTTP 429 or a 5xx is retried until the deadline; Apple rejecting the build, refusing the key, or the run
+// being cancelled (AbortError) is not.
+export function transientAppStoreError(error) {
+  if (typeof error?.status === 'number') return error.status === 429 || error.status >= 500;
+  return error?.name === 'TypeError' || error?.name === 'TimeoutError';
+}
+
+export async function waitForBuild(client, number, { wait = delay, now = Date.now, limitMs = 30 * 60_000, log = console.log } = {}) {
+  const deadline = now() + limitMs;
+  let lastState = '';
+  let dropped = 0;
+  while (true) {
+    let build;
+    try {
+      [build] = await client.builds(number);
+    } catch (error) {
+      if (!transientAppStoreError(error)) throw error;
+      dropped++;
+      log(`Build ${number}: App Store Connect didn't answer (${error.message}); trying again.`);
+      if (now() >= deadline) throw new Error(`Timed out waiting for Apple to process build ${number} (${dropped} dropped checks). Check TestFlight before retrying.`);
+      await wait(15_000);
+      continue;
+    }
+    const state = build?.attributes.processingState || 'AWAITING_PROCESSING';
+    if (state !== lastState) { log(`Build ${number}: ${state}`); lastState = state; }
+    if (state === 'VALID') return state;
+    if (state === 'FAILED' || state === 'INVALID') throw new Error(`Apple rejected processing build ${number}.`);
+    if (now() >= deadline) throw new Error(`Timed out waiting for Apple to process build ${number}. Check TestFlight before retrying.`);
+    await wait(15_000);
+  }
+}
+
 export async function appStoreClient(env = process.env, cancellation) {
   for (const key of ['ASC_KEY_PATH', 'ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_APP_ID']) {
     if (!env[key]) throw new Error(`Missing ${key}`);
@@ -30,7 +64,11 @@ export async function appStoreClient(env = process.env, cancellation) {
       signal: AbortSignal.any([AbortSignal.timeout(60_000), ...(cancellation ? [cancellation] : [])]),
       headers: { Authorization: `Bearer ${message}.${signature}`, 'Content-Type': 'application/json' }
     });
-    if (!response.ok) throw new Error(`App Store Connect request failed: HTTP ${response.status} (${url.pathname}).`);
+    if (!response.ok) {
+      const error = new Error(`App Store Connect request failed: HTTP ${response.status} (${url.pathname}).`);
+      error.status = response.status;
+      throw error;
+    }
     return response.status === 204 ? null : response.json();
   }
   async function builds(version) {
@@ -61,17 +99,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     } else if (command === 'wait') {
       const number = process.argv[3];
       if (!/^\d+$/.test(number || '')) throw new Error('A numeric build number is required.');
-      const deadline = Date.now() + 30 * 60_000;
-      let lastState = '';
-      while (true) {
-        const [build] = await client.builds(number);
-        const state = build?.attributes.processingState || 'AWAITING_PROCESSING';
-        if (state !== lastState) { console.log(`Build ${number}: ${state}`); lastState = state; }
-        if (state === 'VALID') break;
-        if (state === 'FAILED' || state === 'INVALID') throw new Error(`Apple rejected processing build ${number}.`);
-        if (Date.now() >= deadline) throw new Error(`Timed out waiting for Apple to process build ${number}. Check TestFlight before retrying.`);
-        await delay(15_000);
-      }
+      await waitForBuild(client, number);
     } else throw new Error('Expected check, next-number, or wait.');
   } catch (error) {
     console.error(error.message);

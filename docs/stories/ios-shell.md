@@ -24,6 +24,11 @@ said not to submit for Apple review until the app works. Account invitations and
   runs; exceeding that limit is an operational failure to investigate, not a reason to silently skip a revision.
 - Build numbers advance beyond all existing builds, across all versions. The job waits for Apple processing before
   releasing its queue slot. After an upload/processing timeout, inspect TestFlight before retrying the failed run.
+  While it waits, a dropped check (network failure, timeout, HTTP 429 or 5xx) is logged and retried every 15 s until
+  the 30-minute deadline; Apple rejecting the build, refusing the key (4xx) or the run being cancelled is not retried.
+  (19 Nov: build 14 from `4ad81b4` uploaded, then one poll failed with "fetch failed" and the release was reported
+  as failed, though the upload had gone through.) Test: `tests/ios-release.test.mjs`, "TestFlight wait: a dropped
+  check is retried".
 - Only successful pushes from this repository's main branch may access signing inputs. PR validation has no signing
   secrets. The app is exported with `testFlightInternalTestingOnly=true`; no workflow submits for review.
 - Signing happens in a temporary keychain and private directory, cleaned on success or failure; the API key's role
