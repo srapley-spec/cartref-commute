@@ -125,8 +125,11 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     // Only a change is written. The reply carries the snapshot now (§6.7 rule 3: no waiting for a background push),
     // from what the proxy last saw; the next scheduler run pushes it to the Live Activity.
     // Home (#66): the afternoon watch stops for the rest of its window. Only a later arrival is written.
+    // Leaving home (the geofence) brings it back for the evening. Only a later arrival or departure is written.
     const home = C.watchHomeEvidence(ev) && !(Number.isFinite(rec.homeAt) && rec.homeAt >= ev.at);
-    if ((setOff && !rec.setOff) || home) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, ...(setOff ? { setOff: true } : {}), ...(home ? { homeAt: ev.at } : {}) }));
+    const left = C.watchLeftHome(ev) && !(Number.isFinite(rec.leftAt) && rec.leftAt >= ev.at);
+    if ((setOff && !rec.setOff) || home || left) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, ...(setOff ? { setOff: true } : {}),
+      ...(home ? { homeAt: ev.at } : {}), ...(left ? { leftAt: ev.at } : {}) }));
     const stored = setOff || !!rec.setOff;   // the journey's state, not just this event's verdict
     // No journey: an identified, dated stop (the last journey ended), never an unidentified null (#58).
     return json(rec.plan ? { ok: true, setOff: stored, snapshot: snapshotNow({ ...rec, setOff: stored }, now) }

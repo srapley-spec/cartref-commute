@@ -217,3 +217,29 @@ test("Home this morning doesn't stop this evening's watch; away from home (leavi
     assert.equal(pushes.length, 1, "still out at 17:00: the evening watch warns");
   }, () => "Cancelled");
 });
+
+test("Review (19 Nov): leaving home brings the evening watch back; an older arrival delivered late doesn't move it back; bad events are refused; London time on a UTC server", async () => {
+  const env = await envWith();
+  const me = await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  const send = async (evidence, t) => { const realNow = Date.now; try { Date.now = () => t; return await worker.fetch(post("/native/evidence", { id: me.id, token: me.token, evidence: { ...evidence, at: t } }), env); } finally { Date.now = realNow; } };
+  const rec = () => JSON.parse(env.PUSH.m.get(`nat:${me.id}`));
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "07:30"));
+  await send({ kind: "region", place: "home", event: "enter" }, at(DAY, "14:30"));
+  assert.equal(rec().leftAt, at(DAY, "07:30")); assert.equal(rec().homeAt, at(DAY, "14:30"));
+  await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.equal(fetched.length, 0, "home since 14:30, not left: not watched"); });
+  await send({ kind: "region", place: "home", event: "enter" }, at(DAY, "14:10"));
+  assert.equal(rec().homeAt, at(DAY, "14:30"), "an older arrival, delivered late, doesn't move it back");
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "16:50"));
+  await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.ok(fetched.length > 0, "out again: watched"); });
+  assert.equal((await send({ kind: "region", place: "home", event: "wobble" }, at(DAY, "17:10"))).status, 400);
+  // Summer, on the real Worker's UTC clock: home at 15:30 BST ends that evening's watch.
+  const s = await envWith();
+  const you = await register(s, { alarm: true, alarmLeadMin: 5, watch: true });
+  const tz = process.env.TZ;
+  try {
+    process.env.TZ = "UTC";
+    const realNow = Date.now;
+    try { Date.now = () => Date.UTC(2027, 6, 1, 14, 30); await worker.fetch(post("/native/evidence", { id: you.id, token: you.token, evidence: { kind: "wifi", place: "home", at: Date.UTC(2027, 6, 1, 14, 30) } }), s); } finally { Date.now = realNow; }
+    await withFeeds(async ({ fetched }) => { await runWatch(s, Date.UTC(2027, 6, 1, 16, 0)); assert.equal(fetched.length, 0, "home at 15:30 BST: the 17:00 BST check fetches nothing"); });
+  } finally { process.env.TZ = tz; }
+});

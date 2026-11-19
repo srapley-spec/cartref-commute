@@ -267,6 +267,8 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
             let circle = CLCircularRegion(center: CLLocationCoordinate2D(latitude: value.lat, longitude: value.lon), radius: value.radiusM, identifier: regionIdentifier(value.place))
             circle.notifyOnEntry = true; circle.notifyOnExit = true
             location.startMonitoring(for: circle)
+            // iOS reports no entry when monitoring starts with the phone already inside: ask once (review 19 Nov).
+            location.requestState(for: circle)
         }
     }
 
@@ -274,6 +276,10 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) { regionEvent(region, event: "enter") }
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) { regionEvent(region, event: "exit") }
+    /// The answer to `requestState`: already inside counts as arriving (an exit is left to `didExitRegion`).
+    func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
+        if state == .inside { regionEvent(region, event: "enter") }
+    }
     private func regionEvent(_ region: CLRegion, event: String) {
         guard document.configuration?.geofencing == true,
               document.regionGeneration != nil,
@@ -287,7 +293,8 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         // Evidence for a followed journey; or, with the commute watch on and nothing followed, arriving home (#66: the
         // proxy's afternoon watch stops). Watch evidence has no journey ("").
         let follow = document.snapshots.current?.followId
-        let watchHome = follow == nil && document.configuration?.watch == true && configured.place == "home" && event == "enter"
+        // Leaving home too: "home since 14:30 and not left" also ends the evening watch, and leaving again restarts it.
+        let watchHome = follow == nil && document.configuration?.watch == true && configured.place == "home"
         if follow != nil || watchHome, let device, let origin = document.configuration?.normalizedOrigin {
             document.enqueue(.init(followId: follow ?? "", deviceID: device.id, origin: origin, evidence: evidence))
         }

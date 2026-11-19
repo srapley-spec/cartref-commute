@@ -32,7 +32,7 @@ export async function runWatch(env, now) {
   for (const id of ids) {
     const rec = await env.PUSH.get(`nat:${id}`, "json");
     // Home already since the afternoon window started: nothing more to watch tonight (#66).
-    if (rec && rec.prefs && rec.prefs.watch && rec.apns && !C.watchHomeDone({ ...w, from: w.from - d }, rec.homeAt)) recs.push(rec);
+    if (rec && rec.prefs && rec.prefs.watch && rec.apns && !C.watchHomeDone({ ...w, from: w.from - d }, rec.homeAt, rec.leftAt)) recs.push(rec);
   }
   if (!recs.length) return [];
   const boards = {};

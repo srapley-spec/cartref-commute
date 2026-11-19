@@ -60,9 +60,22 @@ export function watchWindow(now: number): { direction: WatchDirection; date: str
 export function watchHomeEvidence(ev: { kind?: string; place?: string; event?: string } | null | undefined): boolean {
   return !!ev && ev.place === "home" && (ev.kind === "region" ? ev.event === "enter" : ev.kind === "wifi" || ev.kind === "place");
 }
-/** The home watch is over for this window once you've been home since it started. */
-export function watchHomeDone(window: { direction: WatchDirection; from: number } | null | undefined, homeAt: number | null | undefined): boolean {
-  return !!window && window.direction === "home" && typeof homeAt === "number" && Number.isFinite(homeAt) && homeAt >= window.from;
+/** Leaving home: the home geofence exited (the iPhone). */
+export function watchLeftHome(ev: { kind?: string; place?: string; event?: string } | null | undefined): boolean {
+  return !!ev && ev.kind === "region" && ev.place === "home" && ev.event === "exit";
+}
+/** Home that early counts as still home, if the geofence hasn't seen you leave since (12 h before the window). */
+export const WATCH_HOME_STILL_MS = 12 * 3600e3;
+/**
+ * The home watch is over for this window: you've been home since it started; or you came home earlier and the home
+ * geofence hasn't seen you leave since (home at 14:30 and staying in; review 19 Nov). Leaving again (an exit after the
+ * arrival) brings it back: home at 15:30, then out to the pub, is watched again.
+ */
+export function watchHomeDone(window: { direction: WatchDirection; from: number } | null | undefined, homeAt: number | null | undefined, leftAt?: number | null): boolean {
+  if (!window || window.direction !== "home" || typeof homeAt !== "number" || !Number.isFinite(homeAt)) return false;
+  const left = typeof leftAt === "number" && Number.isFinite(leftAt) ? leftAt : null;
+  if (left != null && left > homeAt) return false;
+  return homeAt >= window.from || (left != null && window.from - homeAt <= WATCH_HOME_STILL_MS);
 }
 
 /** National Rail notices of a blocked or broken railway. Strong: these win over any other word in the notice. */

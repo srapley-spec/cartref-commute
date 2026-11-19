@@ -287,3 +287,15 @@ test("Last pass (19 Nov): East Coast notices that mention your stations as calli
   assert.equal(lvl("Lines are blocked at Stevenage. Disruption is expected between now and the end of the day."), "red");
   assert.equal(lvl("Emergency services have been called to Welwyn North; lines are blocked. Lifts at Welwyn Garden City are also out of use."), "red");
 });
+
+test("Review (19 Nov): home before 15:00 and staying in ends the evening watch, if the geofence saw you arrive after leaving; going out again brings it back", () => {
+  const w = core.watchWindow(T("17:00"));
+  assert.equal(core.watchHomeDone(w, T("14:30"), T("07:30")), true, "left at 07:30, home at 14:30, not left since: home");
+  assert.equal(core.watchHomeDone(w, T("14:30"), T("18:00")), false, "out again at 18:00 (the pub): watched");
+  assert.equal(core.watchHomeDone(w, T("15:30"), T("18:00")), false, "home at 15:30, then out: watched");
+  assert.equal(core.watchHomeDone(w, T("14:30"), null), false, "no geofence evidence of leaving: an early arrival alone doesn't count");
+  assert.equal(core.watchHomeDone(w, T("02:00"), T("01:00")), false, "home 13 h before the window: too old to trust");
+  assert.equal(core.watchHomeDone(w, T("03:30"), T("01:00")), true, "within 12 h: still home");
+  // A bank holiday the day before: its small hours aren't watched (Tuesday 00:30 after the 28 Dec holiday).
+  assert.equal(core.watchWindow(at("2026-12-29", "00:30")), null);
+});

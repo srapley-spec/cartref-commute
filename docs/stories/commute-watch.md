@@ -20,7 +20,18 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - **Until you're home.** Evidence ends that evening's watch: the home geofence entered (the iPhone, even with the app
   closed), home Wi-Fi, or a good fix (100 m or better) within 150 m of home while the app is open. With no evidence it
   ends after the last trains home, at 01:00 the next morning; those small hours belong to the evening they started.
-  Being home in the morning doesn't end the evening, and leaving home or reaching the office changes nothing.
+  Being home in the morning doesn't end the evening, and reaching the office changes nothing.
+  - **Home before 15:00 and staying in** (review, 19 Nov): an arrival home before the window still counts if the home
+    geofence saw you leave earlier and hasn't seen you leave since (within 12 h of the window; older evidence isn't
+    trusted). With Wi-Fi only (no geofence), an early arrival alone doesn't count.
+  - **Leaving again brings it back:** home at 15:30 and then out to the pub is watched again (a home geofence exit after
+    the arrival). The proxy keeps the latest arrival (`homeAt`) and departure (`leftAt`); an older one delivered late
+    doesn't move either back.
+  - **Already inside when monitoring starts:** iOS reports no entry, so the shell asks for the region's state once
+    (`requestState`); "inside" counts as arriving.
+  - A report that doesn't reach the proxy (offline) is made again on the next sign of home.
+  - Side effects, accepted: with the watch on and the leave alarm off, a followed journey also gets geofence set-off
+    evidence (a cancel with no alarm does nothing). Starting to follow a journey drops a queued, unsent arrival home.
   - The page tells the proxy once per evening, only with the watch on and its home window running, never from display
     mode or a simulation (`/native/evidence` with `kind` "wifi" or "place"). The proxy keeps the latest arrival home
     (`homeAt`) and doesn't watch, or fetch, for an iPhone home since the window started.
@@ -136,6 +147,9 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/watch-proxy.test.mjs: "Home ends the evening watch: the geofence, home Wi-Fi or the app at home stops it for the rest of the night; tomorrow it runs again"
 - tests/watch-proxy.test.mjs: "Home this morning doesn't stop this evening's watch; away from home (leaving, or the office) changes nothing"
 - tests/watch-settings.test.mjs: "The app tells the proxy you're home once per evening: home Wi-Fi or a good fix at home, only with the watch on, only in the evening window"
+- tests/core/watch.test.mjs: "Review (19 Nov): home before 15:00 and staying in ends the evening watch, if the geofence saw you arrive after leaving; going out again brings it back"
+- tests/watch-proxy.test.mjs: "Review (19 Nov): leaving home brings the evening watch back; an older arrival delivered late doesn't move it back; bad events are refused; London time on a UTC server"
+- tests/watch-settings.test.mjs: "Review (19 Nov): home is never reported from display mode or a simulation, from a fix 300 m away or a poor one, or from leaving the geofence; a failed report is tried again; 'while using' location is upgraded"
 - `ios/NativeCore/Tests/CommuteNativeCoreTests/NativeCoreTests.swift`: `testCommuteWatchAloneKeepsTheGeofencesAndOlderPagesStillDecode`, `testWatchEvidenceWithoutAJourneyIsQueuedSeparately`
 - tests/ios-notifications.test.mjs: "iPhone: alerts show while the app is open: AppDelegate is the notification delegate and Capacitor doesn't take it over"
 - tests/core/watch.test.mjs: "Re-review (19 Nov): a blocking phrase wins over other words; stretches count only when both ends are on your line"

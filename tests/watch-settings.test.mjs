@@ -99,3 +99,33 @@ test("The app tells the proxy you're home once per evening: home Wi-Fi or a good
   const away = await run({ settings: { commuteWatch: true }, now: EVE, act: async (app) => { app.c.onPosition({ coords: { latitude: 51.53, longitude: -0.12, accuracy: 20, speed: null }, timestamp: app.w.Date.now() }); } });
   assert.equal(away.length, 0, "a fix in London: nothing");
 });
+
+test("Review (19 Nov): home is never reported from display mode or a simulation, from a fix 300 m away or a poor one, or from leaving the geofence; a failed report is tried again; 'while using' location is upgraded", async () => {
+  const run = async ({ settings = {}, url, act, fail = false, auth = { notifications: "authorized", location: "authorizedAlways" } }) => {
+    const posts = [], listeners = {}, requests = [];
+    const install = (w) => { w.Capacitor = { isNativePlatform: () => true, Plugins: { CommuteNative: {
+      capabilities: async () => ({ v: 1, offline: true, wifi: true, geofence: true, auth }), request: async (x) => { requests.push(x.permission); },
+      publish: async () => {}, configure: async () => {}, cache: async () => {}, ready: async () => {}, addListener: (n, fn) => { listeners[n] = fn; } } } }; };
+    const route = (u, o) => { if (/\/native\/evidence/.test(u)) { posts.push(JSON.parse(o.body).evidence); return fail && posts.length === 1 ? new Response("down", { status: 503 }) : new Response(JSON.stringify({ ok: true }), { status: 200 }); } return undefined; };
+    const app = await createApp({ ...(url ? { url } : {}), settings: { provider: "proxy", proxyBase: "https://proxy.test", commuteWatch: true, ...settings }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: at("2026-11-19", "17:00"), beforeScripts: install, route });
+    await new Promise((r) => setTimeout(r, 30));
+    await act(app, listeners); await new Promise((r) => setTimeout(r, 40));
+    app.close(); return { posts, requests };
+  };
+  const fix = (lat, lon, accuracy) => async (app) => { app.c.onPosition({ coords: { latitude: lat, longitude: lon, accuracy, speed: null }, timestamp: app.w.Date.now() }); };
+  const wifi = async (app, l) => { l.wifi({ place: "home", at: app.w.Date.now() }); };
+  assert.equal((await run({ url: "https://srapley-spec.github.io/cartref-commute/?display", act: wifi })).posts.length, 0, "display mode");
+  // A simulation is a session opt-in (cleared on reload): switched on after start-up, as Settings does.
+  assert.equal((await run({ act: async (app, l) => { app.c.state.saved.settings.simulatedFeeds = true; await wifi(app, l); } })).posts.length, 0, "a simulation");
+  assert.equal((await run({ act: fix(51.9777, -0.23, 20) })).posts.length, 0, "a fix 300 m from home");
+  assert.equal((await run({ act: fix(51.975, -0.23, 250) })).posts.length, 0, "a poor fix at home");
+  assert.equal((await run({ act: async (app, l) => { l.region({ place: "home", event: "exit", at: app.w.Date.now() }); } })).posts.length, 0, "leaving the geofence");
+  assert.equal((await run({ act: async (app, l) => { l.region({ place: "home", event: "enter", at: app.w.Date.now() }); } })).posts.length, 1, "entering it");
+  const retried = await run({ fail: true, act: async (app, l) => { l.wifi({ place: "home", at: app.w.Date.now() }); await new Promise((r) => setTimeout(r, 30)); l.wifi({ place: "home", at: app.w.Date.now() }); } });
+  assert.equal(retried.posts.length, 2, "the first report failed, so the next sign of home reports again");
+  // Turning the watch on with location "while using": asked for Always.
+  const up = await run({ settings: { commuteWatch: false, leaveAlarm: true }, auth: { notifications: "authorized", location: "whenInUse" }, act: async (app) => {
+    app.d.querySelector("#settingsBtn").click(); app.d.querySelector("#s_commuteWatch").checked = true;
+    app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true })); } });
+  assert.deepEqual(up.requests, ["location"]);
+});

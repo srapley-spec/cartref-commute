@@ -2859,9 +2859,11 @@ async function nativeAskPermissions(){
 // and its home window running; never from display mode or a simulation (the bridge checks).
 let watchHomeSent=null;
 function watchHome(kind,at){
-  if(DISPLAY||S().commuteWatch!==true) return;
+  if(DISPLAY||S().commuteWatch!==true||S().simulatorEnabled||S().simulatedFeeds||(typeof sim!=="undefined"&&sim.active)) return;
   const w=C.watchWindow(Date.now()); if(!w||w.direction!=="home"||watchHomeSent===w.key) return;
-  watchHomeSent=w.key; native.reportHome(kind,Number.isFinite(at)?at:Date.now());
+  watchHomeSent=w.key;
+  // Not delivered (offline, proxy down): said again on the next sign of home (review 19 Nov).
+  Promise.resolve(native.reportHome(kind,Number.isFinite(at)?at:Date.now())).then(r=>{ if(!r&&watchHomeSent===w.key) watchHomeSent=null; }).catch(()=>{ watchHomeSent=null; });
 }
 /** A good fix within the home geofence's reach (150 m) counts as home too. */
 function watchHomeFromFix(){

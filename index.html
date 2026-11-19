@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 14:56 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 15:06 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1243,6 +1243,7 @@ var CommuteCore = (() => {
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WATCH_AMBER_MIN: () => WATCH_AMBER_MIN,
     WATCH_CLEAR_CHECKS: () => WATCH_CLEAR_CHECKS,
+    WATCH_HOME_STILL_MS: () => WATCH_HOME_STILL_MS,
     WATCH_RED_MIN: () => WATCH_RED_MIN,
     WATCH_TUBE_LINES: () => WATCH_TUBE_LINES,
     WATCH_WINDOWS: () => WATCH_WINDOWS,
@@ -1488,6 +1489,7 @@ var CommuteCore = (() => {
     walkSteps: () => walkSteps,
     watchHomeDone: () => watchHomeDone,
     watchHomeEvidence: () => watchHomeEvidence,
+    watchLeftHome: () => watchLeftHome,
     watchStep: () => watchStep,
     watchStop: () => watchStop,
     watchVerdict: () => watchVerdict,
@@ -5745,8 +5747,15 @@ var CommuteCore = (() => {
   function watchHomeEvidence(ev) {
     return !!ev && ev.place === "home" && (ev.kind === "region" ? ev.event === "enter" : ev.kind === "wifi" || ev.kind === "place");
   }
-  function watchHomeDone(window, homeAt) {
-    return !!window && window.direction === "home" && typeof homeAt === "number" && Number.isFinite(homeAt) && homeAt >= window.from;
+  function watchLeftHome(ev) {
+    return !!ev && ev.kind === "region" && ev.place === "home" && ev.event === "exit";
+  }
+  var WATCH_HOME_STILL_MS = 12 * 36e5;
+  function watchHomeDone(window, homeAt, leftAt) {
+    if (!window || window.direction !== "home" || typeof homeAt !== "number" || !Number.isFinite(homeAt)) return false;
+    const left = typeof leftAt === "number" && Number.isFinite(leftAt) ? leftAt : null;
+    if (left != null && left > homeAt) return false;
+    return homeAt >= window.from || left != null && window.from - homeAt <= WATCH_HOME_STILL_MS;
   }
   var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
   var WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
@@ -11813,9 +11822,11 @@ async function nativeAskPermissions(){
 // and its home window running; never from display mode or a simulation (the bridge checks).
 let watchHomeSent=null;
 function watchHome(kind,at){
-  if(DISPLAY||S().commuteWatch!==true) return;
+  if(DISPLAY||S().commuteWatch!==true||S().simulatorEnabled||S().simulatedFeeds||(typeof sim!=="undefined"&&sim.active)) return;
   const w=C.watchWindow(Date.now()); if(!w||w.direction!=="home"||watchHomeSent===w.key) return;
-  watchHomeSent=w.key; native.reportHome(kind,Number.isFinite(at)?at:Date.now());
+  watchHomeSent=w.key;
+  // Not delivered (offline, proxy down): said again on the next sign of home (review 19 Nov).
+  Promise.resolve(native.reportHome(kind,Number.isFinite(at)?at:Date.now())).then(r=>{ if(!r&&watchHomeSent===w.key) watchHomeSent=null; }).catch(()=>{ watchHomeSent=null; });
 }
 /** A good fix within the home geofence's reach (150 m) counts as home too. */
 function watchHomeFromFix(){
