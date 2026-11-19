@@ -144,3 +144,77 @@ test("Display mode: an always-on screen stays inside its request budget: three b
   assert.ok(total <= 40, `under four requests a minute on average (≈5,300 a day): ${perMinute.join(",")}`);
   app.close();
 });
+
+// ?display=next: the hall iPhone's one dim card (docs/stories/display-mode.md, "The hall's next train"; Cartref Hall
+// contract §4, Sam 18 Nov 2026, option A). Same planning and pick as ?display; whole minutes only; moves each minute.
+const M = 60e3, HALL_START = at("2026-11-03", "06:30");
+const hallBoard = (to) => ({ locationName: "Letchworth", trainServices: [15, 30, 45, 60, 75].map((d, i) => ({ serviceID: `S${i}${to}`, std: hm(HALL_START + d * M), etd: "On time",
+  operator: "Thameslink", platform: "1", subsequentCallingPoints: [{ callingPoint: [{ crs: to, locationName: to, st: hm(HALL_START + (d + 45) * M), et: "On time" }] }] })), nrccMessages: [] });
+const hallRoute = (u) => { if (!u.startsWith(PROXY)) return undefined; const b = u.match(/\/board\/[A-Z]{3}\/([A-Z]{3})/);
+  return b ? json(hallBoard(b[1])) : u.endsWith("/status") ? json({ v: 1, rail: true, serviceDetails: true, tflKey: true }) : json([]); };
+const hallApp = (url, now = HALL_START) => createApp({ url: BASE + url, settings: { provider: "proxy", proxyBase: PROXY }, now, route: hallRoute });
+const visible = (app, el) => { let node = el; while (node && node.nodeType === 1) { if (node.hidden || app.w.getComputedStyle(node).display === "none") return false; node = node.parentElement; } return true; };
+
+test("Display next: one card with the full display's top recommendation — Leave by, train, platform, status and arrival", async () => {
+  const app = await hallApp("?display=next");
+  const html = app.d.documentElement;
+  assert.ok(html.classList.contains("display-next") && html.classList.contains("display-mode"), "every display rule applies");
+  assert.equal(app.c.direction(), "office");
+  const card = app.text("#hallNext");
+  const heroLeave = app.text("#hero").match(/Leave by\s*(\d\d:\d\d)/)[1];
+  assert.match(card, new RegExp(`Leave by\\s*${heroLeave}`), `the same Leave by as the full display's best (${heroLeave}): ${card}`);
+  const left = card.match(/in (\d+) min/);
+  const [h, m] = heroLeave.split(":").map(Number), nowMin = new Date(HALL_START).getHours() * 60 + new Date(HALL_START).getMinutes();
+  assert.ok(left && Number(left[1]) === h * 60 + m - nowMin, `minutes left match the clock: ${card}`);
+  assert.match(card, /Thameslink/);
+  assert.match(card, /platform 1/);
+  assert.match(card, /On time/);
+  assert.match(card, /At office\s*\d\d:\d\d/);
+  assert.match(card, /as of \d\d:\d\d/);
+  assert.ok(visible(app, app.d.querySelector("#hallNext")), "the card is shown");
+  assert.ok(!visible(app, app.d.querySelector(".wrap")), "the rest of the page is not");
+  assert.deepEqual(app.errors, []);
+  app.close();
+});
+
+test("Display next: whole minutes only, so the card's text changes at most once a minute, and it moves each minute", async () => {
+  const app = await hallApp("?display=next");
+  const list = app.c.ranked(HALL_START);
+  const a = app.c.hallNextMarkup(list, HALL_START + 5e3), b = app.c.hallNextMarkup(list, HALL_START + 50e3);
+  assert.equal(a, b, "nothing changes within a minute");
+  const spots = new Set(); for (let i = 0; i < 9; i++) { const p = app.c.hallNextSpot(HALL_START + i * M); spots.add(`${p.x},${p.y}`);
+    assert.ok(Math.abs(p.x) <= 40 && Math.abs(p.y) <= 40, `stays near the middle: ${p.x},${p.y}`); }
+  assert.ok(spots.size >= 8, `nine minutes visit (almost) nine different spots: ${[...spots].join(" ")}`);
+  const c = app.c.hallNextMarkup(list, HALL_START + M + 5e3);
+  assert.notEqual(c, a, "the next minute it moves (and the minutes left go down)");
+  assert.notEqual(c.match(/translate\([^)]*\)/)[0], a.match(/translate\([^)]*\)/)[0]);
+  app.close();
+});
+
+test("Display next: data more than 3 minutes old is greyed and says so; no data says so", async () => {
+  const app = await hallApp("?display=next");
+  const list = app.c.ranked(HALL_START);
+  app.c.state.fetchedAt = HALL_START - 4 * M;
+  const stale = app.c.hallNextMarkup(list, HALL_START);
+  assert.match(stale, /class="hn-card stale"/);
+  assert.match(stale, /not up to date/);
+  app.c.state.fetchedAt = HALL_START - 2 * M;
+  assert.doesNotMatch(app.c.hallNextMarkup(list, HALL_START), /not up to date/, "2 minutes old is still fresh");
+  const boards = app.c.state.boards; app.c.state.boards = null; app.c.state.loading = false;
+  assert.match(app.c.hallNextMarkup([], HALL_START), /No train data yet/);
+  app.c.state.boards = boards;
+  app.close();
+});
+
+test("Display next: plain ?display and the normal app are unchanged", async () => {
+  const d = await hallApp("?display");
+  assert.ok(!d.d.documentElement.classList.contains("display-next"));
+  assert.equal(d.c.DISPLAY_NEXT, false);
+  assert.ok(!visible(d, d.d.querySelector("#hallNext")), "no card on the normal display");
+  assert.match(d.text("#hero"), /Leave by/);
+  d.close();
+  const n = await hallApp("");
+  assert.ok(!n.d.documentElement.classList.contains("display-mode"));
+  assert.ok(!visible(n, n.d.querySelector("#hallNext")));
+  n.close();
+});
