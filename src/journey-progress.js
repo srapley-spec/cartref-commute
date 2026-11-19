@@ -45,6 +45,7 @@ function progressHtml(model){
     <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${leg.state==='current'?'0%':percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
+      ${current.kind==='tube'&&current.service?`<p class="jp-service"><span class="chip ${lineChip(current.service.line)}">${esc(current.service.line)}</span> ${current.service.dest?`to <b>${esc(current.service.dest)}</b>`:"<span class='jp-muted'>TfL isn't showing where it's going</span>"}</p>`:''}
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
       ${whereHtml(model)}
       ${model.where?'':`<p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>`}
@@ -142,7 +143,10 @@ function renderJourneyProgress(){
         {id:active,kind:'tube',label:'Tube',start:context.departure,end:arrival,from:context.from,to:context.to}];
       if(context.finalArrival!=null&&arrival!=null)legs.push({id:'after-walk',kind:'walk',label:'Walk',start:arrival,end:context.finalArrival});
     }
-    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line)}:leg);
+    // Which tube, with where it's going (Sam, 19 Nov): "Met to Uxbridge", so you can check it against the train's front.
+    const destination=tubeDest(ride,!!context.homeward);
+    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line),
+      service:{line:ride.line||'Tube',dest:destination}}:leg);
     calls=progressTubeCalls(ride,fromCode,toCode,arrival,context.from,context.to);
     // followTubeArrival already checks provider timestamps (including its small
     // allowed clock offset); freshness here uses our validated capture time.
