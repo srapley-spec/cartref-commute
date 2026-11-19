@@ -1,0 +1,109 @@
+// Commute watch (#66; Sam, 19 Nov 2026): docs/stories/commute-watch.md. Amber at 15 min later than normal, red beyond
+// 45, no trains, every tube line to the stations closed, or a blocking incident notice; one notification per change.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { core, at, MIN, train } from "./helpers.mjs";
+
+const DAY = "2026-11-19";   // a Thursday
+const T = (hm) => at(DAY, hm);
+// Trains home from King's Cross and Farringdon to Letchworth, from 17:00.
+const gn = (std, o = {}) => { const dep = T(std); return train({ from: "KGX", to: "LET", std, dep: dep + (o.late || 0) * MIN, arr: dep + 35 * MIN + (o.late || 0) * MIN,
+  depLate: o.late || 0, arrLate: o.late || 0, operator: "Great Northern", serviceId: "GN" + std, cancelled: !!o.cancelled, depUnknown: !!o.unknown, arrUnknown: !!o.unknown }); };
+const tl = (std, o = {}) => { const dep = T(std); return train({ from: "ZFD", to: "LET", std, dep: dep + (o.late || 0) * MIN, arr: dep + 44 * MIN + (o.late || 0) * MIN,
+  depLate: o.late || 0, arrLate: o.late || 0, operator: "Thameslink", serviceId: "TL" + std, cancelled: !!o.cancelled }); };
+const boards = (kgx, zfd = [], msgs = []) => ({ "KGX-LET": { services: kgx, msgs }, "ZFD-LET": { services: zfd, msgs: [] }, "STP-LET": { services: [], msgs: [] } });
+const line = (id, sev) => ({ id, name: id, statuses: [{ sev, desc: String(sev) }] });
+
+test("Watch windows: weekdays 05:00–10:00 to the office and 15:00–20:00 home; never at weekends or on a bank holiday", () => {
+  assert.equal(core.watchWindow(T("04:59")), null);
+  assert.deepEqual(core.watchWindow(T("05:00")), { direction: "office", date: DAY, key: `${DAY}-office` });
+  assert.equal(core.watchWindow(T("09:59")).direction, "office");
+  assert.equal(core.watchWindow(T("10:00")), null);
+  assert.equal(core.watchWindow(T("14:59")), null);
+  assert.equal(core.watchWindow(T("15:00")).direction, "home");
+  assert.equal(core.watchWindow(T("19:59")).direction, "home");
+  assert.equal(core.watchWindow(T("20:00")), null);
+  assert.equal(core.watchWindow(at("2026-11-21", "07:00")), null, "Saturday");
+  assert.equal(core.watchWindow(at("2026-11-22", "16:00")), null, "Sunday");
+  assert.equal(core.watchWindow(at("2026-12-25", "07:00")), null, "Christmas Day (a Friday)");
+  assert.equal(core.watchWindow(at("2026-12-28", "07:00")), null, "Boxing Day substitute (Monday)");
+  assert.equal(core.watchWindow(at("2026-12-29", "07:00")).direction, "office", "an ordinary Tuesday");
+});
+
+test("Lateness is how much later you'd get there, not one train: a cancellation with the next train 10 min behind is OK", () => {
+  const now = T("17:00");
+  const ok = core.watchVerdict("home", boards([gn("17:05"), gn("17:15"), gn("17:35")]), null, now);
+  assert.equal(ok.level, "ok"); assert.equal(ok.lateMin, 0);
+  const one = core.watchVerdict("home", boards([gn("17:05", { cancelled: true }), gn("17:15"), gn("17:35")]), null, now);
+  assert.equal(one.level, "ok", "10 min later than normal"); assert.equal(one.lateMin, 10); assert.equal(one.cancelled, 1);
+  // A faster train from another station counts: Farringdon's Thameslink is the earliest arrival.
+  const other = core.watchVerdict("home", boards([gn("17:05", { late: 30 })], [tl("17:00")]), null, now);
+  assert.equal(other.train.from, "ZFD"); assert.equal(other.lateMin, 4);
+});
+
+test("Amber from 15 min later than normal; red beyond 45; red when nothing runs", () => {
+  const now = T("17:00");
+  assert.equal(core.watchVerdict("home", boards([gn("17:05", { late: 14 })]), null, now).level, "ok");
+  const amber = core.watchVerdict("home", boards([gn("17:05", { late: 15 })]), null, now);
+  assert.equal(amber.level, "amber"); assert.match(amber.reasons[0], /About 15 min later than normal/);
+  assert.equal(core.watchVerdict("home", boards([gn("17:05", { late: 45 })]), null, now).level, "amber");
+  assert.equal(core.watchVerdict("home", boards([gn("17:05", { late: 46 })]), null, now).level, "red");
+  const none = core.watchVerdict("home", boards([gn("17:05", { cancelled: true }), gn("17:35", { cancelled: true })]), null, now);
+  assert.equal(none.level, "red"); assert.match(none.reasons[0], /No trains running: 2 cancelled/);
+  assert.equal(core.watchVerdict("home", boards([gn("17:05", { unknown: true })]), null, now).level, "red", "delayed with no estimate, nothing else");
+  // A delayed train whose timetable time has passed but which hasn't left still counts as running.
+  const due = core.watchVerdict("home", boards([gn("16:55", { late: 20 }), gn("17:25")]), null, now);
+  assert.equal(due.train.std, "16:55");
+});
+
+test("National Rail's notices: a blocking incident is red at once; a disruption notice explains amber but doesn't raise it", () => {
+  const now = T("16:00");
+  const red = core.watchVerdict("home", boards([gn("16:05")], [], ["Disruption between Stevenage and Hitchin: overhead line problems. Lines may be blocked."]), null, now);
+  assert.equal(red.level, "red"); assert.match(red.reasons.join(" "), /overhead line/);
+  assert.equal(core.watchVerdict("home", boards([gn("16:05")], [], ["A person has been hit by a train at Hatfield."]), null, now).level, "red");
+  assert.equal(core.watchVerdict("home", boards([gn("16:05")], [], ["Disruption expected until 18:00 due to a signalling fault."]), null, now).level, "ok");
+  assert.equal(core.watchVerdict("home", boards([gn("16:05")], [], ["Thameslink: Special Service"]), null, now).level, "ok");
+  // Only on your line: King's Cross's board also carries notices for the East Coast further north.
+  const corridor = core.profiles.samCommute.corridorPattern;
+  assert.equal(core.watchVerdict("home", boards([gn("16:05")], [], ["Lines are blocked between Peterborough and York."]), null, now, undefined, corridor).level, "ok");
+  assert.equal(core.watchVerdict("home", boards([gn("16:05")], [], ["Lines are blocked between Stevenage and Hitchin."]), null, now, undefined, corridor).level, "red");
+  const explained = core.watchVerdict("home", boards([gn("16:05", { late: 20 })], [], ["Disruption expected until 18:00 due to a signalling fault."]), null, now);
+  assert.equal(explained.level, "amber"); assert.match(explained.reasons.join(" "), /signalling fault/);
+});
+
+test("The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone is nothing", () => {
+  const now = T("16:00"), b = boards([gn("16:05")]);
+  assert.equal(core.watchVerdict("home", b, [line("circle", 20), line("metropolitan", 2), line("hammersmith-city", 3)], now).level, "red");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 6), line("metropolitan", 6), line("hammersmith-city", 7)], now).level, "amber");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 20), line("metropolitan", 10), line("hammersmith-city", 10)], now).level, "ok");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 9), line("metropolitan", 9), line("hammersmith-city", 9)], now).level, "ok", "Minor Delays");
+});
+
+test("No board read at all is 'unknown', never 'ok'", () => {
+  const v = core.watchVerdict("office", { "LET-KGX": null, "LET-ZFD": null, "LET-STP": null }, null, T("07:00"));
+  assert.equal(v.level, "unknown");
+});
+
+test("One notification per change: amber once, quiet while amber, again on red, 'back to normal' only after red; a new window starts again", () => {
+  const w = { key: `${DAY}-home`, direction: "home" }, now = T("17:00");
+  const v = (late, cancelled) => core.watchVerdict("home", boards(cancelled ? [gn("17:05", { cancelled: true })] : [gn("17:05", { late })]), null, now);
+  let s = core.watchStep(null, w, v(0), now);
+  assert.equal(s.notice, null);
+  s = core.watchStep(s.state, w, v(20), now);
+  assert.equal(s.notice.title, "Commute: delays on the way home"); assert.match(s.notice.body, /About 20 min later than normal.*17:05 from KGX, arriving 18:00/);
+  assert.equal(s.notice.kind, "watch");
+  assert.equal(core.watchStep(s.state, w, v(25), now).notice, null, "still amber: quiet");
+  s = core.watchStep(s.state, w, v(0, true), now);
+  assert.equal(s.notice.title, "Commute: disruption on the way home"); assert.match(s.notice.body, /head home now/);
+  assert.equal(core.watchStep(s.state, w, { ...v(0), level: "unknown" }, now).notice, null, "a feed failing isn't news");
+  assert.equal(core.watchStep(s.state, w, { ...v(0), level: "unknown" }, now).state.level, "red", "and doesn't forget the red");
+  const cleared = core.watchStep(s.state, w, v(0), now);
+  assert.equal(cleared.notice.title, "Commute: back to normal home");
+  const amberAgain = core.watchStep(core.watchStep(null, w, v(20), now).state, w, v(0), now);
+  assert.equal(amberAgain.notice, null, "amber clearing isn't news");
+  // The morning's red doesn't silence the afternoon.
+  const morning = { key: `${DAY}-office`, level: "red" };
+  assert.ok(core.watchStep(morning, w, v(20), now).notice);
+  const am = core.watchStep(null, { key: `${DAY}-office`, direction: "office" }, core.watchVerdict("office", { "LET-KGX": { services: [], msgs: ["Lines are blocked between Hitchin and Stevenage."] } }, null, T("07:00")), T("07:00"));
+  assert.equal(am.notice.title, "Commute: consider working from home");
+});
