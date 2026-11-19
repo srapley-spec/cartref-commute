@@ -129,7 +129,6 @@ test("Trip: Brighton → Canterbury plans door to door from TfL, every journey l
   assert.match(app.text("#tripResults"), /Brighton → .*Canterbury West/);
   assert.match(app.text("#tripResults"), /3 changes/);
   const after = app.calls.slice(before);
-  console.log("CALLS", after.join("\n"));
   assert.ok(after.some(u => /JourneyResults\/90000899\/to\/1001160/.test(u)));
   assert.ok(!after.some(u => /JourneyResults\/51\.|Line\/|national-rail\/Status|GetDepBoard.*LET/.test(u)), after.filter(u => !isTrip(u)).join("\n"));
   const planner = after.filter(u => /JourneyResults/.test(u)).length;
@@ -607,4 +606,43 @@ test("Trip resets on a change of live-data source (Sam, 19 Nov): switching to th
   assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "planned again through the new source:\n" + seen.join("\n"));
   await until(() => app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
   assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3, app.text("#tripResults"));
+});
+
+// Review of 9ab0b72 (19 Nov): a settings change with the same source (a walking time) depends on Trip planning again
+// from its own refresh; re-entering Trip must not re-plan (it used to keep the plan until the 5-min re-check).
+const PLANNER = u => /JourneyResults/.test(u);
+async function planned(app) {
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length >= 3, 6000);
+  await sleep(1500);
+}
+async function saveWith(app, fn) { app.d.querySelector("#settingsBtn").click(); await sleep(50); fn(); app.d.querySelector("#saveBtn").click(); }
+
+test("Trip resets on a settings change with the same source: planned once again (no double plan), boards asked again at once", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route }); googleStub(app.w);
+  const b0 = app.calls.length; await planned(app);
+  const first = app.calls.slice(b0).filter(PLANNER).length;
+  const b1 = app.calls.length;
+  await saveWith(app, () => { const el = app.d.querySelector("#s_walkHomeStationAvg"); el.value = String(Number(el.value) + 1); });
+  await sleep(3000);
+  const after = app.calls.slice(b1);
+  assert.equal(after.filter(PLANNER).length, first, "the same planner searches as the first plan, once");
+  assert.ok(boardCalls(after).length >= 1, "boards asked again straight away");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+});
+
+test("Trip is not reset by a display-only save, or by leaving and coming back to Trip", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route }); googleStub(app.w);
+  await planned(app);
+  let b = app.calls.length;
+  await saveWith(app, () => { app.d.querySelector("#s_appearance").value = "dark"; });
+  await sleep(2000);
+  assert.equal(app.calls.slice(b).filter(PLANNER).length, 0, "display-only save: no planner search");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+  app.d.querySelector('[data-mode]:not([data-mode="trip"])').click(); await sleep(800);
+  b = app.calls.length;
+  app.d.querySelector("#tripModeBtn").click(); await sleep(2500);
+  assert.equal(app.calls.slice(b).filter(PLANNER).length, 0, "back to Trip: the plan is kept, no new search");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
 });
