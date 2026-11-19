@@ -1,0 +1,53 @@
+# One-off probe (#66): what the Rail Data Marketplace Disruptions API returns for Sam's stations, so the watch's reader
+# is written against real data. Runs only on pushes to probe/disruptions. Prints status codes and the response's
+# structure (keys, types, short samples of text); never the key (GitHub masks secrets, and nothing here echoes it).
+name: Probe Disruptions API
+on:
+  push:
+    branches: [probe/disruptions]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the API and describe the replies
+        env:
+          KEY: ${{ secrets.RDM_DISRUPTIONS_KEY }}
+          BASE: ${{ secrets.RDM_DISRUPTIONS_BASE }}
+        run: |
+          node - <<'JS'
+          const key = process.env.KEY, base = (process.env.BASE || "").trim().replace(/\/+$/, "");
+          if (!key || !base) { console.log("missing secret(s):", !key ? "KEY" : "", !base ? "BASE" : ""); process.exit(0); }
+          const host = (() => { try { return new URL(base).host; } catch { return "unparseable"; } })();
+          console.log("base host:", host, "| base path segments:", (() => { try { return new URL(base).pathname.split("/").filter(Boolean).length; } catch { return "?"; } })());
+          const shape = (v, depth = 0) => {
+            if (depth > 5) return "…";
+            if (Array.isArray(v)) return v.length ? [`array(${v.length})`, shape(v[0], depth + 1)] : "array(0)";
+            if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).slice(0, 40).map(([k, x]) => [k, shape(x, depth + 1)]));
+            if (typeof v === "string") return `string: ${v.replace(/\s+/g, " ").slice(0, 90)}`;
+            return typeof v + (v === null ? "(null)" : `: ${v}`);
+          };
+          const tries = [
+            "/stations/disruptions/incidents?crs=LET,HIT,SVG,KGX",
+            "/stations/disruptions/incidents?crsCodes=LET,HIT,SVG,KGX",
+            "/stations/disruptions/incidents?stations=LET,HIT,SVG,KGX",
+            "/stations/LET/disruptions/incidents",
+            "/stations/disruptions/stationMessages?crs=LET,KGX",
+            "/tocs/serviceIndicators",
+            "/tocs/GN/serviceIndicators",
+          ];
+          for (const t of tries) {
+            for (const header of ["x-apikey", "x-api-key"]) {
+              try {
+                const r = await fetch(base + t, { headers: { [header]: key, accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+                const text = await r.text();
+                let body; try { body = JSON.parse(text); } catch { body = text.replace(/\s+/g, " ").slice(0, 200); }
+                console.log(`\n=== ${t} [${header}] -> ${r.status} ${r.headers.get("content-type") || ""}`);
+                console.log(JSON.stringify(shape(body), null, 1).slice(0, 4000));
+                if (r.status !== 401 && r.status !== 403) break;
+              } catch (e) { console.log(`\n=== ${t} [${header}] -> error ${e.message}`); }
+            }
+          }
+          JS
