@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:55 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:57 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5756,7 +5756,7 @@ var CommuteCore = (() => {
     const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
     const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| on | via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
     if (stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
-    const place = new RegExp(`(?<!call(?:ing)? |stop(?:ping)? |terminat(?:e|ing) |start(?:ing)? |run(?:ning)? fast )\\b(at|near|north of|south of|outside|called to) (london )?(${corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+    const place = new RegExp(`(?<!(?:call|stop|terminat|start|turn(?:ed)? back|run(?:ning)? fast)\\w* )\\b(?:at|near|north of|south of|outside|called to|in the) (?:london )?(?:${corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
     return m.split(/(?<=[.!?])\s+/).some((sentence) => blocking(sentence) && place.test(sentence));
   }
   function watchVerdict(direction, boards, tube, now, policy, corridor) {

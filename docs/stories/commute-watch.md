@@ -42,8 +42,8 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
       "running normally", "disruption has cleared". Not today means planned engineering or works, "this weekend", or
       "on <a day other than today>". An overrun is never "planned".
     - **A station of yours named as the incident's place** counts: in the same sentence as the blocking phrase, after
-      "at", "near", "north of", "south of", "outside" or "called to" ("… hit by a train at Hatfield"). It doesn't count
-      as where other operators' trains call, start, stop or run fast ("LNER trains will not call at Stevenage",
+      "at", "near", "north of", "south of", "outside", "called to" or "in the … area" ("… hit by a train at Hatfield").
+      It doesn't count as where other operators' trains call, stop, start, terminate, turn back or run fast ("LNER trains will not call at Stevenage",
       "services will start from Stevenage"), or as "via".
     - **Planned work only can be for another time.** "Expected to continue on Friday" after an incident is today's.
     - **Accepted miss:** "between Peterborough and Stevenage" includes Stevenage–Hitchin, but telling that needs route
@@ -147,7 +147,9 @@ stretch, the facility filter, and the proxy's corridor beyond Letchworth.
 Last pass (19 Nov, of 9771b40): those fixes worked, but naming a station anywhere outside a stretch brought back
 false reds from East Coast notices ("will not call at Stevenage", "start from Stevenage", "tickets accepted from
 Hitchin"). Now a station counts only as the incident's place in the same sentence as the blocking phrase. The
-reviewer's seven notices are tests that must not be red, next to the ones that must be.
+reviewer's seven notices are tests that must not be red, next to the ones that must be. Its pass came with two
+wording follow-ups, both fixed with tests: other verb forms ("terminated at", "stops at", "turn back at"), and
+National Rail's "in the Stevenage area".
 
 Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
 test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.

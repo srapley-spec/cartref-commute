@@ -261,7 +261,12 @@ test("Last pass (19 Nov): East Coast notices that mention your stations as calli
     "Overhead line damage between York and Darlington. Customers at Stevenage should use the next available train.",
     "Lines are blocked between Peterborough and York. Trains towards York will run fast from Stevenage.",
     "Lines are blocked between Ely and King's Lynn. Trains from Cambridge to King's Lynn may be cancelled.",
+    "Lines are blocked between Peterborough and York, and LNER trains will be terminated at Stevenage.",
+    "A person has been hit by a train at Huntingdon; the next train only stops at Stevenage.",
+    "Overhead line damage between York and Darlington: LNER trains will turn back at Stevenage.",
   ]) assert.notEqual(lvl(msg), "red", msg);
+  assert.equal(lvl("A person has been hit by a train in the Stevenage area."), "red");
+  assert.equal(lvl("Disruption in the Hitchin area: lines are blocked."), "red");
   assert.equal(lvl("Disruption between London Kings Cross and Peterborough. A person has been hit by a train at Hatfield."), "red");
   assert.equal(lvl("Lines are blocked at Stevenage. Disruption is expected between now and the end of the day."), "red");
   assert.equal(lvl("Emergency services have been called to Welwyn North; lines are blocked. Lifts at Welwyn Garden City are also out of use."), "red");

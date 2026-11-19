@@ -106,7 +106,7 @@ function onYourLine(m: string, corridor: string | undefined): boolean {
   // A station of yours named as the incident's place, in the same sentence as the blocking phrase ("… hit by a train
   // at Hatfield"), never as where someone else's trains call, start or are diverted ("will not call at Stevenage",
   // "start from Stevenage", "tickets accepted … from Hitchin"). Final re-check, 19 Nov.
-  const place = new RegExp(`(?<!call(?:ing)? |stop(?:ping)? |terminat(?:e|ing) |start(?:ing)? |run(?:ning)? fast )\\b(at|near|north of|south of|outside|called to) (london )?(${corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+  const place = new RegExp(`(?<!(?:call|stop|terminat|start|turn(?:ed)? back|run(?:ning)? fast)\\w* )\\b(?:at|near|north of|south of|outside|called to|in the) (?:london )?(?:${corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
   return m.split(/(?<=[.!?])\s+/).some(sentence => blocking(sentence) && place.test(sentence));
 }
 
