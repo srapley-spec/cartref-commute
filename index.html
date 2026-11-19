@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 16:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 16:59 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5761,7 +5761,11 @@ var CommuteCore = (() => {
   }
   function watchDone(window, homeAt, leftAt, ha) {
     if (!window || window.direction !== "home") return false;
-    if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") return ha.state === "home";
+    if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") {
+      if (ha.state === "home") return true;
+      const home = typeof homeAt === "number" && Number.isFinite(homeAt) ? homeAt : null;
+      return home != null && typeof ha.since === "number" && Number.isFinite(ha.since) && home > ha.since && watchHomeDone(window, homeAt, leftAt);
+    }
     return watchHomeDone(window, homeAt, leftAt);
   }
   var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;

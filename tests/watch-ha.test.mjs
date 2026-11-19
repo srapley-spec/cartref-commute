@@ -116,3 +116,52 @@ test("Home Assistant prefs and status: 'ha' kept only when true and with the wat
     assert.match(pushes[0].aps.alert.body, /Home Assistant says you're out\.$/);
   } finally { globalThis.fetch = real; }
 });
+
+// ---------- Independent review of fb97b73 (19 Nov) ----------
+test("Review: a stuck 'out' loses to an arrival the phone saw later; 'unknown'/'unavailable' and a refusal with a JSON body are no reading; the read has a timeout; a missing last_changed is kept as unknown", async () => {
+  const evening = { direction: "home", from: at(DAY, "15:00") };
+  assert.equal(core.watchDone(evening, at(DAY, "18:00"), null, { state: "not_home", since: at(DAY, "08:00") }), true, "home at 18:00 by the geofence, HA 'out' since 08:00: the fresher wins");
+  assert.equal(core.watchDone(evening, at(DAY, "18:00"), at(DAY, "18:30"), { state: "not_home", since: at(DAY, "08:00") }), false, "left again after: watched");
+  assert.equal(core.watchDone(evening, at(DAY, "18:00"), null, { state: "not_home", since: null }), false, "no time for HA's change: HA's 'out' stands");
+  const env = { HA_BASE_URL: "https://ha.example", HA_TOKEN: "t" };
+  for (const state of ["unknown", "unavailable", ""]) assert.equal(await haPresence(env, async () => new Response(JSON.stringify({ state }), { status: 200 })), null, state || "empty");
+  assert.equal(await haPresence(env, async () => new Response(JSON.stringify({ state: "home" }), { status: 401 })), null, "refused, whatever the body says");
+  let signal; await haPresence(env, async (u, o) => { signal = o.signal; return new Response(JSON.stringify({ state: "home" }), { status: 200 }); });
+  assert.ok(signal instanceof AbortSignal, "a timeout on the read");
+  assert.deepEqual(await haPresence(env, async () => new Response(JSON.stringify({ state: "not_home" }), { status: 200 })), { state: "not_home", since: null });
+  assert.equal(haConfigured({ HA_BASE_URL: "http://ha.example", HA_TOKEN: "t" }), false, "http: not offered (it could never be read)");
+  assert.equal(haConfigured({ ...env, HA_PERSON: "light.x" }), false, "not a person: not offered");
+  const s = await (await worker.fetch(new Request("https://proxy.test/status", { headers: { Origin: ORIGIN } }), await envWith({ HA_BASE_URL: "https://ha.example" }))).json();
+  assert.equal(s.ha, false, "an address with no token: not set up");
+});
+
+test("Review: with two iPhones, Home Assistant only decides for the one that opted in", async () => {
+  const env = await envWith();
+  const a = await register(env, { alarm: true, watch: true, ha: true });
+  const b = (await (await worker.fetch(post("/native/register", { apnsToken: "d".repeat(64), env: "production", prefs: { alarm: true, watch: true } }), env)).json());
+  const rb = JSON.parse(env.PUSH.m.get(`nat:${b.id}`)); env.PUSH.m.set(`nat:${b.id}`, JSON.stringify({ ...rb, homeAt: at(DAY, "16:00") }));
+  await withFeeds(async ({ pushes }) => {
+    const sent = await runWatch(env, at(DAY, "17:00"), async () => ({ state: "not_home", since: at(DAY, "16:30") }));
+    assert.deepEqual(sent.map((x) => x.id), [a.id], "the opted-in phone is watched; the other, home by its geofence, is not");
+    assert.equal(pushes.length, 1);
+  });
+});
+
+test("Review: 'Send a test' leaves Home Assistant alone without the opt-in, and says when it couldn't be read", async () => {
+  const env = await envWith({ HA_BASE_URL: "https://ha.example", HA_TOKEN: "ha-secret" });
+  const off = await register(env, { alarm: true, watch: true });
+  const real = globalThis.fetch, pushes = [], asked = [];
+  globalThis.fetch = async (url, opts = {}) => { const u = String(url);
+    if (u.includes("push.apple.com")) { pushes.push(JSON.parse(opts.body)); return new Response(null, { status: 200 }); }
+    asked.push(u); return new Response("down", { status: 503 }); };
+  try {
+    const r1 = await (await worker.fetch(post("/native/test", { id: off.id, token: off.token }), env)).json();
+    assert.equal("ha" in r1, false); assert.equal(asked.length, 0, "not opted in: not read");
+    assert.doesNotMatch(pushes[0].aps.alert.body, /Home Assistant/);
+    const env2 = await envWith({ HA_BASE_URL: "https://ha.example", HA_TOKEN: "ha-secret" });
+    const on = await register(env2, { alarm: true, watch: true, ha: true });
+    const r2 = await (await worker.fetch(post("/native/test", { id: on.id, token: on.token }), env2)).json();
+    assert.equal(r2.ha, "unread");
+    assert.match(pushes[1].aps.alert.body, /Home Assistant couldn't be read: your phone's location decides\.$/);
+  } finally { globalThis.fetch = real; }
+});

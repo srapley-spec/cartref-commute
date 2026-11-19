@@ -89,7 +89,13 @@ export interface HaPresence { state: string; since: number | null }
 export function watchDone(window: { direction: WatchDirection; from: number } | null | undefined, homeAt: number | null | undefined,
   leftAt: number | null | undefined, ha: HaPresence | null | undefined): boolean {
   if (!window || window.direction !== "home") return false;
-  if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") return ha.state === "home";
+  if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") {
+    if (ha.state === "home") return true;
+    // Out, unless the phone saw you arrive home after Home Assistant last changed (a stuck tracker; review, 19 Nov):
+    // whichever is fresher wins.
+    const home = typeof homeAt === "number" && Number.isFinite(homeAt) ? homeAt : null;
+    return home != null && typeof ha.since === "number" && Number.isFinite(ha.since) && home > ha.since && watchHomeDone(window, homeAt, leftAt);
+  }
   return watchHomeDone(window, homeAt, leftAt);
 }
 

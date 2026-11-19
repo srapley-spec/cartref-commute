@@ -140,6 +140,11 @@ test("Home Assistant in Settings: offered only when the app's proxy has it set u
   none.d.querySelector("#settingsBtn").click();
   assert.equal(none.d.querySelector("#watchHaRow").hidden, true, "not set up on the proxy: not offered");
   none.close();
+  const kept = await createApp({ settings: { ...base, watchHa: true }, saved: { native: { id: "i1", token: "t1" }, proxyStatus: { v: 1, rail: true, ha: false } }, geo: null, now: T0, beforeScripts: sh.install,
+    route: (u) => /proxy\.test\/status$/.test(u) ? new Response(JSON.stringify({ v: 1, rail: true }), { status: 200 }) : undefined });
+  kept.d.querySelector("#settingsBtn").click();
+  assert.equal(kept.d.querySelector("#watchHaRow").hidden, false, "already on: still shown, so it can be turned off");
+  kept.close();
   // The proxy's /status says it's set up (read at start-up): offered.
   const app = await createApp({ settings: base, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: sh.install, route });
   await new Promise((r) => setTimeout(r, 100));
