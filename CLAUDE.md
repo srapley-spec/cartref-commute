@@ -81,6 +81,9 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   2 Nov journey/leg review linked above. This authorisation covers that design across Commute, Leisure and Trip;
   unrelated redesigns remain outside scope. Shared tokens alone are not proof of visual fidelity. Preserve the
   real control handlers, planning/effort rules, optional Follow, correction, source and simulator behaviour.
+- **Permanent since 18 Nov (Sam, #63):** Follow a route, Any start and end point and Trip; only Along the line is in
+  Experimental. Don't reintroduce a switch for them; keep "available" separate from "chosen" (no auto-follow, no
+  automatic Trip).
 - Toggles are Sam's decision. For a very complex or experimental change, recommend a toggle (Settings → Experimental,
   off by default) and ask; don't put every new or changed feature behind one. A toggle Sam agrees to is tested off and
   on, and he's told it exists and where.

@@ -8,7 +8,7 @@ As a developer I want to replay coherent location, Darwin and TfL inputs through
 so that I can inspect inference and onward planning without travelling.
 
 ## Acceptance criteria
-- Settings → Experimental has independent GPS Simulation and Transport Feed Simulation switches, both off by default and session-only. Reload exits simulation. Stop restores real GPS, clock, feeds and pre-simulation journey memory.
+- Settings → Simulation and testing (moved from Experimental, 18 Nov, #63) has independent GPS Simulation and Transport Feed Simulation switches, both off by default and session-only. Reload exits simulation. Stop restores real GPS, clock, feeds and pre-simulation journey memory.
 - Either route (Great Northern via King's Cross or Thameslink via Farringdon) works outbound and returning on an independently defined timetable. Scenario controls select normal, later/wrong train, uncertainty, delay, cancellation, platform change, missed connection, disruption, outage, awaiting GPS, permission denied, GPS loss or low accuracy.
 - Start/restart begins at the selected UTC date/time, paused at the first checkpoint. Continue advances at1×,5× or20× and pauses at every checkpoint indefinitely. Pause stops immediately. Selection changes require a restart before continuing. If the selected time is empty when enabling feeds, restore the displayed default with a visible warning before starting the session. Reset clears journey memory and caches.
 - GPS fixes enter the normal position handler; train identities are inferred or manually chosen through normal application controls. Synthetic GPS never assigns a train lock or tube ride.

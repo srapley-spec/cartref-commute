@@ -97,8 +97,7 @@ is integrated too. Use the native-feature build identified in
 [PR #61's release evidence](https://github.com/srapley-spec/cartref-commute/pull/61) for phone acceptance; earlier
 shell builds do not include the native features. Apple review submission must wait until the app is working;
 no review submission is configured.
-- [ ] On the native feature build, allow the desired permissions in Settings and enable Experimental → "Follow a
-      route". To test home-exit alarm cancellation,
+- [ ] On the native feature build, allow the desired permissions in Settings (Follow a route needs no switch since 18 Nov, #63), and
       while at home choose Settings → Home → "Home is where I am now". There is no automatic home inference in v1.
 - [ ] Run the [first-phone acceptance checks](stories/ios-native.md#first-internal-testflight-phone-acceptance) and
       report the TestFlight build number with any failures. Actual APNs, alarms and region delivery need an iPhone.

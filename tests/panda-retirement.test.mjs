@@ -6,13 +6,13 @@ after(closeAll);
 const NOW=Date.parse('2026-11-03T10:00:00Z');
 const plain=value=>JSON.parse(JSON.stringify(value));
 
-for(const legacy of [undefined,false,true])test(`Panda retirement: saved signal=${legacy} opens Signal without enabling Follow`,async()=>{
+for(const legacy of [undefined,false,true])test(`Panda retirement: saved signal=${legacy} opens Signal without following anything`,async()=>{
  const settings={provider:'demo',followRoute:false,appearance:'dark',walkHomeStationAvg:777,...(legacy===undefined?{}:{signal:legacy})};
  const a=await createApp({now:NOW,settings,saved:{dirMode:'office',pace:'fast',home:[51.975,-.23]}});
  assert.equal(a.d.documentElement.dataset.design,'signal');
  assert.equal(a.d.querySelector('#s_signal'),null);
- assert.equal(a.c.S().followRoute,false);
- assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
+ assert.ok(!('followRoute' in a.c.S()),'the retired Follow switch is dropped (#63)');
+ assert.ok(a.d.querySelectorAll('[data-follow]').length>0,'Follow is offered');assert.equal(a.c.state.saved.followRoute??null,null,'nothing followed');
  assert.equal('signal' in a.c.S(),false,'obsolete settings cannot select a second renderer');
  assert.equal(a.c.S().walkHomeStationAvg,777);
  assert.equal(a.d.documentElement.dataset.theme,'dark');
@@ -26,7 +26,7 @@ for(const legacy of [undefined,false,true])test(`Panda retirement: saved signal=
  assert.equal('signal' in persisted.settings,false);
  assert.equal(persisted.settings.walkHomeStationAvg,777);
  assert.deepEqual(persisted.home,[51.975,-.23]);assert.equal(persisted.pace,'fast');
- assert.equal(a.c.S().followRoute,false);assert.deepEqual(a.errors,[]);a.close();
+ assert.ok(!('followRoute' in a.c.S()));assert.deepEqual(a.errors,[]);a.close();
 });
 
 test('Panda retirement: an existing followed trip and planning pin survive upgrade settings and reload',async()=>{

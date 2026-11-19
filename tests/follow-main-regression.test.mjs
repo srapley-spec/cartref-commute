@@ -73,7 +73,7 @@ scenario('main Follow preservation: reopening retains selection, a seven minute 
  assert.equal(a.c.state.saved.followRoute.expectedArrival,r.expectedArrival+7*MIN);assert.match(a.c.state.followUpdate.notice.text,/7 min late/);assert.match(a.text('#followPanel'),/Original plan: arrive/);
  a.d.querySelector('[data-follow-action="seen"]').click();a.c.render();assert.equal(a.c.state.followUpdate.notice,null);
  const again=plain(a.c.state.saved);a.close();a=await open({now:T('18:20'),saved:again});assert.equal(a.c.state.saved.followRoute.id,r.id);assert.deepEqual(a.errors,[]);a.close();
- const off=await open({enabled:false});assert.equal(off.d.querySelectorAll('[data-follow]').length,0);off.close();
+ const off=await open({enabled:false});assert.ok(off.d.querySelectorAll('[data-follow]').length>0,'Follow is offered with no setting (#63)');off.close();
 });
 
 scenario('main Follow preservation: a slow 19:06 route offers only five minute gains, remembers refusal, reports missed and accepts I am on it',async()=>{
@@ -127,16 +127,16 @@ scenario('main Follow preservation: another vehicle, wrong destination stop, sta
  assert.deepEqual(a.errors,[]);a.close();
 });
 
-scenario('main Follow preservation: confirmed boarding prevents better offers, while feature off ignores saved follow, makes only one Tube request for the ride and no view writes',async()=>{
+scenario('main Follow preservation: confirmed boarding prevents better offers, while with nothing followed it makes only one Tube request for the ride and no view writes',async()=>{
  const a=await open({now:T('18:10')}),r=choose(a,'19:06');freshRender(a,T('19:15'));a.d.querySelector('[data-follow-action="boarded"]').click();
  assert.equal(a.c.state.followUpdate.alternative,null);assert.notEqual(a.c.state.followUpdate.status,'missed');a.close();
- const off=await open({now:T('16:30'),geo:null,enabled:false,saved:{followRoute:r},extra:u=>/940GZZLUALD\/Arrivals/.test(u)?json(aldgateFeed()):undefined});
+ const off=await open({now:T('16:30'),geo:null,enabled:false,saved:{},extra:u=>/940GZZLUALD\/Arrivals/.test(u)?json(aldgateFeed()):undefined});
  await off.fix(ALD,T('16:44'));const button=off.d.querySelector(`[data-tubepick^="ALD|${T('16:46')}|Circle"]`);assert.ok(button);button.click();off.at(T('16:48'));await off.c.refresh({force:true});await settle(off);
  assert.ok(off.c.homeRide(T('16:48')));assert.equal(off.d.querySelector('#followPanel').hidden,true);
  // Follow off, on the tube home: one request for your tube at the stop you get off, for the leg's position (Sam,
  // 11 Nov 18:36: "Fetch it while you're on the tube home: one TfL request per refresh"). Nothing for the saved follow.
  assert.equal(off.calls.filter(u=>/940GZZLUKSX\/Arrivals|940GZZLUFCN\/Arrivals/.test(u)).length,1);
- assert.notEqual(off.c.state.followTransport?.routeId,r.id,'never the saved (ignored) follow');
+ assert.notEqual(off.c.state.followTransport?.routeId,r.id,'nothing followed: no follow transport');
  off.d.querySelector('[data-view="by"]').click();await settle(off);assert.equal(off.c.state.saved.viewOverride.mode,'plan','planning pins consistently in both supported designs even with Follow off');assert.equal(off.c.state.saved.viewAt,undefined);assert.equal(off.c.state.saved.viewKey,undefined);
  assert.deepEqual(off.errors,[]);off.close();
 });

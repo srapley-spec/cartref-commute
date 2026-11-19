@@ -64,9 +64,9 @@ const key = (app, end, k) => app.d.querySelector(`#tripInput-${end}`).dispatchEv
 const options = (app, end) => [...app.d.querySelectorAll(`#tripList-${end} [role=option]`)].map(li => li.textContent.trim());
 async function until(fn, ms = 4000) { const end = Date.now() + ms; while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(25); } return fn(); }
 
-test("Trip switch off: no Trip button, the commute as before, and no Trip or Google request", async () => {
+test("Trip available but not chosen (#63): a Trip button, the commute as before, and no Trip or Google request", async () => {
   const app = await createApp({ settings: { provider: "tfl" }, route });
-  assert.equal(app.d.querySelector("#tripModeBtn").hidden, true);
+  assert.equal(app.d.querySelector("#tripModeBtn").hidden, false, "Trip is offered as a mode");
   assert.equal(app.d.querySelector("#tripRoot").hidden, true);
   assert.equal(app.d.documentElement.dataset.trip, "off");
   assert.ok(!app.calls.some(isTrip), app.calls.filter(isTrip).join("\n"));

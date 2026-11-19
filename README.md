@@ -4,7 +4,7 @@ When to leave the office or Cartref, using live National Rail trains via King's 
 
 Signal is the app's default and only design, with System/Light/Dark appearance in Settings. Panda is preserved
 on [`archive/panda-2026-11-01`](https://github.com/srapley-spec/cartref-commute/tree/archive/panda-2026-11-01);
-see the [retirement review](docs/panda-retirement-review.md). Follow remains an independent Experimental option.
+see the [retirement review](docs/panda-retirement-review.md). Follow a route, Any start and end point and Trip are permanent since 18 Nov (#63); only Along the line is Experimental.
 
 ## Try the journey simulator
 Open **Simulator** in the app header to replay a journey through the real application without travelling.
@@ -136,7 +136,7 @@ See [`docs/architecture.md`](docs/architecture.md). In short:
   Cross) for the earliest home time. Same model as the morning tube: pick your tube, ride, "Did you get it?".
 - **Nearly home:** home time from your train's expected Letchworth time, or the walk from where you are once your
   home is set in Settings ("Home is where I am now"); "You're home" within 100 m.
-- **Any start and end point** (Settings → Experimental, off by default): in Leisure, "Where to?" plans the train to
+- **Any start and end point** (permanent since 18 Nov): in Leisure, "Where to?" plans the train to
   King's Cross, St Pancras or Farringdon and TfL's leg from there to any London place (a place name is matched to
   TfL's best guess, and the card names it); going home, "Where from?" is always offered. Off: the app as before.
 - **Extra effort to catch a train** (Settings → Experimental, off by default): every train you'd have to hurry for is labelled

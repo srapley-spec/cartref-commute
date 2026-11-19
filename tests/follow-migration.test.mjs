@@ -15,8 +15,8 @@ async function oldSelection(provider='demo'){
 }
 test('released saved Follow switch and journey restore without deleting the old record',async()=>{
  const old=await oldSelection();
- const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',follow:true},saved:{dirMode:'home',follow:old}});
- assert.equal(a.c.S().followRoute,true);assert.ok(a.c.state.saved.followRoute);
+ const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',follow:true,featuresPermanent:0},saved:{dirMode:'home',follow:old}});
+ assert.ok(!('follow' in a.c.state.saved.settings)&&!('followRoute' in a.c.state.saved.settings),'retired switches dropped');assert.ok(a.c.state.saved.followRoute,'Follow was on: the journey is kept');
  assert.equal(a.c.state.saved.followRoute.option.train.std,old.train.std);
  assert.equal(a.c.state.saved.followRoute.plannedArrival,old.planned);assert.equal(a.c.state.saved.followRoute.expectedArrival,old.arrive);
  assert.deepEqual(plain(a.c.state.saved.follow),old);assert.equal(a.d.querySelector('#followPanel').hidden,false);
@@ -36,12 +36,12 @@ test('a released saved journey waits for real data; Stop cannot resurrect the le
  assert.equal(a.c.state.saved.followRoute,null);assert.equal(a.c.state.saved.follow,null);assert.equal(a.d.querySelector('#followPanel').hidden,true);
  a.w.dispatchEvent(new a.w.Event('pagehide'));await sleep(30);assert.deepEqual(a.errors,[]);a.close();
 });
-test('an explicit new disabled setting wins over the released switch and saved route',async()=>{
+test('Follow switched off before #63: the saved journey is not followed now, and Follow is offered',async()=>{
  const old=await oldSelection();
- const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',follow:true,followRoute:false},saved:{dirMode:'home',follow:old}});
- assert.equal(a.c.S().followRoute,false);assert.equal(a.c.state.saved.followRoute,undefined);
- assert.equal(a.d.querySelector('#followPanel').hidden,true);assert.equal(a.d.querySelectorAll('[data-follow]').length,0);
- assert.deepEqual(plain(a.c.state.saved.follow),old);assert.equal(a.c.state.saved.viewOverride,undefined);
+ const a=await createApp({now:NOW,geo:IN_LONDON,settings:{provider:'demo',follow:true,followRoute:false,featuresPermanent:0},saved:{dirMode:'home',follow:old}});
+ assert.equal(a.c.state.saved.followRoute,undefined);assert.equal(a.c.state.saved.follow,undefined,'the dormant record is dropped once, not followed');
+ assert.equal(a.d.querySelector('#followPanel').hidden,true);assert.ok(a.d.querySelectorAll('[data-follow]').length>0,'Follow is offered');
+ assert.equal(a.c.state.saved.viewOverride,undefined);
  assert.deepEqual(a.errors,[]);a.close();
 });
 test('released planning pins keep their original age and deadline while restoring at the same station',async()=>{

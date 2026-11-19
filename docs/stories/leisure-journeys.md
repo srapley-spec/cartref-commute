@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Behind toggle (Settings → Experimental → Trip, off by default; Signal is the sole design). Built 31 Oct night; independent
+Status: Done: Trip is a permanent mode since 18 Nov (Sam, #63; it was behind Settings → Experimental → Trip, off by default; Signal is the sole design). Choosing Trip is still a tap on the mode button. Built 31 Oct night; independent
 mutation review before merging; Google unverified until Sam has a key · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
@@ -63,7 +63,7 @@ county edge.
 Minutes are whole minutes, rounded down.
 
 ### Switch and mode
-- Settings → Experimental → "Trip: plan door to door by rail between any two addresses in the region". Off by default.
+- Trip is always offered as a mode (18 Nov, #63; before: Settings → Experimental → "Trip", off by default). The app never switches into it by itself; the Trip settings are always shown in Settings.
   Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
   script loaded, no Trip request).
 - On: a third mode button **Trip** beside Commute and Leisure. Trip's opt-in remains independent and off by
@@ -311,7 +311,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-controls-review.test.mjs: "Trip controls review: theme redraw preserves the original field, typed query, caret and keyboard suggestions"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a late place reply cannot replace commute context after leaving Trip"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a saved active Trip mounts in the shared host before its first refresh"
-- tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
+- tests/trip-controls-review.test.mjs: "Trip controls review: leaving Trip removes its controls and returning keeps the same field handlers and places"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains rail duration and updates journey remaining through every phase"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "TfL stops: a Tube stop 180 m from a mainline station keeps its own identity (Tower Hill is not Fenchurch Street); hubs match by ICS code or name"
@@ -394,7 +394,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
-- tests/trip-page.test.mjs: "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
+- tests/trip-page.test.mjs: "Trip available but not chosen (#63): a Trip button, the commute as before, and no Trip or Google request"
 - tests/trip-page.test.mjs: "Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip"
 - tests/trip-page.test.mjs: "Trip without a Google key: the setup card, nothing planned, no Google script or request"
 - tests/trip-page.test.mjs: "Trip: address drop-down after 3 characters and 250 ms; keyboard choose; a late reply for older text is ignored"

@@ -194,7 +194,7 @@ test('independent review: Follow planning metadata and caches stay isolated whil
  a.c.followChoices.set('STALE-REVIEW-FOLLOW',{sentinel:true});
  a.c.state.followTransport={vehicle:'STALE-REVIEW-VEHICLE',hub:'KGX',at:Date.now(),predictions:[]};
  await begin(a);
- assert.equal(a.c.S().followRoute,true,'user feature preference remains enabled');
+ assert.ok(!('followRoute' in a.c.state.saved.settings),'Follow is permanent (#63): no switch is saved');
  for(const key of ['followRoute','viewOverride','planInputs','follow','viewAt','viewKey'])assert.equal(a.c.state.saved[key],undefined,key+' does not carry into simulation');
  assert.equal(a.c.followChoices.has('STALE-REVIEW-FOLLOW'),false);assert.equal(a.c.state.followTransport,null);
  await waitReview(()=>!!a.d.querySelector('[data-follow]:not([disabled])'),'genuine Follow remains available with synthetic providers');
