@@ -24,13 +24,14 @@ const post = (path, body) => new Request(`https://proxy.test${path}`, { method: 
 // Boards home: the 17:05 from King's Cross, cancelled or late as asked.
 const kgx = (etd) => ({ trainServices: [{ std: "17:05", etd, operator: "Great Northern", serviceID: "S1705", ...(etd === "Cancelled" ? { isCancelled: true } : {}),
   subsequentCallingPoints: [{ callingPoint: [{ crs: "LET", locationName: "Letchworth Garden City", st: "17:40", et: etd === "On time" ? "On time" : etd }] }] }], nrccMessages: [] });
-async function withFeeds(fn, etd = () => "On time") {
+async function withFeeds(fn, etd = () => "On time", hooks = {}) {
   const real = globalThis.fetch, pushes = [], fetched = [];
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url);
-    if (u.includes("push.apple.com")) { pushes.push({ url: u, body: JSON.parse(opts.body) }); return new Response(null, { status: 200 }); }
+    if (u.includes("push.apple.com")) { pushes.push({ url: u, headers: opts.headers, body: JSON.parse(opts.body) }); return new Response(null, { status: 200 }); }
     fetched.push(u);
-    if (u.startsWith("https://up.test/")) return new Response(JSON.stringify(/\/KGX\?/.test(u) ? kgx(etd()) : { trainServices: [], nrccMessages: [] }), { status: 200 });
+    if (hooks.onBoard) await hooks.onBoard(u);
+    if (u.startsWith("https://up.test/")) return new Response(JSON.stringify(/\/KGX\?/.test(u) ? { ...kgx(etd()), nrccMessages: hooks.msgs || [] } : { trainServices: [], nrccMessages: [] }), { status: 200 });
     if (u.startsWith("https://api.tfl.gov.uk/")) return new Response(JSON.stringify([]), { status: 200 });
     throw new Error("unexpected fetch " + u);
   };
@@ -78,7 +79,9 @@ test("Commute watch: one APNs alert when it turns red, none while it stays red, 
   }, () => etd);
   assert.equal(JSON.parse(env.PUSH.m.get(`nat:${me.id}`)).watchState.level, "red");
   await withFeeds(async ({ pushes }) => {
-    // The 17:05 running again clears it.
+    // The 17:05 running again: three 'ok' checks, then it's cleared.
+    assert.deepEqual(await runWatch(env, at(DAY, "17:02")), []);
+    assert.deepEqual(await runWatch(env, at(DAY, "17:02")), []);
     const sent = await runWatch(env, at(DAY, "17:02"));
     assert.equal(sent[0].notice.title, "Commute: back to normal home");
   }, () => "On time");
@@ -95,4 +98,50 @@ test("Settings' test notification: the iPhone's own registration, one a minute; 
     assert.equal((await worker.fetch(post("/native/test", { id: me.id, token: me.token }), env)).status, 429, "one a minute");
     assert.equal((await worker.fetch(post("/native/test", { id: me.id, token: "wrong" }), env)).status, 403);
   });
+});
+
+test("Commute watch: the alert is a visible APNs alert; East Coast notices from King's Cross don't go red; the record is written only on a change and keeps what the page wrote meanwhile", async () => {
+  const env = await envWith();
+  const me = await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  let puts = 0; const put = env.PUSH.put.bind(env.PUSH); env.PUSH.put = async (k, v) => { puts++; return put(k, v); };
+  await withFeeds(async ({ pushes }) => {
+    await runWatch(env, at(DAY, "17:00")); await runWatch(env, at(DAY, "17:02")); await runWatch(env, at(DAY, "17:04"));
+    assert.equal(pushes.length, 0, "a notice for further north on King's Cross's board is not your line");
+    assert.ok(puts <= 1, `written at most once over three unchanged checks (${puts})`);
+  }, () => "On time", { msgs: ["Lines are blocked between Peterborough and York."] });
+  // The page follows a journey while the watch is fetching: its plan survives the watch's write.
+  let wrote = false;
+  await withFeeds(async ({ pushes }) => {
+    await runWatch(env, at(DAY, "17:04"));
+    assert.equal(pushes.length, 1);
+    assert.equal(pushes[0].headers["apns-push-type"], "alert", "a visible alert, not a background push");
+  }, () => "Cancelled", { onBoard: async () => { if (wrote) return; wrote = true; const r = JSON.parse(env.PUSH.m.get(`nat:${me.id}`)); r.plan = { followId: "page" }; env.PUSH.m.set(`nat:${me.id}`, JSON.stringify(r)); } });
+  const stored = JSON.parse(env.PUSH.m.get(`nat:${me.id}`));
+  assert.equal(stored.plan.followId, "page"); assert.equal(stored.watchState.level, "red");
+});
+
+test("Commute watch runs in London time on a UTC server in summer, and the cron runs it", async () => {
+  const env = await envWith();
+  await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  const tz = process.env.TZ;
+  try {
+    process.env.TZ = "UTC";
+    await withFeeds(async ({ fetched }) => {
+      // 1 July, 14:00 UTC is 15:00 in London: the afternoon window has started there.
+      await runWatch(env, Date.UTC(2027, 6, 1, 14, 0));
+      assert.ok(fetched.length > 0, "15:00 BST is inside the window");
+      fetched.length = 0;
+      await runWatch(env, Date.UTC(2027, 6, 1, 19, 0));
+      assert.equal(fetched.length, 0, "20:00 BST is outside it");
+    });
+  } finally { process.env.TZ = tz; }
+  // The cron: the watch's board requests come after the followed-journey run has finished.
+  const order = [];
+  const realNow = Date.now;
+  await withFeeds(async () => {
+    const waits = [];
+    Date.now = () => at(DAY, "17:00");
+    try { await worker.scheduled({}, env, { waitUntil: (p) => waits.push(p) }); await Promise.all(waits); } finally { Date.now = realNow; }
+  }, () => "On time", { onBoard: async (u) => order.push(u) });
+  assert.ok(order.some((u) => u.startsWith("https://up.test/")), "the cron runs the watch");
 });

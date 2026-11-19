@@ -81,7 +81,7 @@ export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpda
 export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
 export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';
 export { samAlongLine, samAlongStations } from './profiles/samAlongLine';
-export { WATCH_AMBER_MIN, WATCH_RED_MIN, WATCH_WINDOW_MIN, WATCH_WINDOWS, WATCH_TUBE_LINES, BANK_HOLIDAYS, watchWindow, watchVerdict, watchStep } from "./watch";
+export { WATCH_AMBER_MIN, WATCH_RED_MIN, WATCH_WINDOW_MIN, WATCH_WINDOWS, WATCH_TUBE_LINES, WATCH_CLEAR_CHECKS, BANK_HOLIDAYS, watchWindow, watchVerdict, watchStep } from "./watch";
 export type { WatchDirection, WatchLevel, WatchVerdict, WatchState } from "./watch";
 export { journeyFacts, connectionJourneyFacts, tripJourneyFacts, journeyRemainingMs, tripRideTimingUsable } from './journeyFacts';
 export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

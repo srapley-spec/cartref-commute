@@ -18,24 +18,35 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   Claude's default; Sam named only the start.
 - **Lateness is "how much later you'd get there", not one train.** It is the earliest arrival the live trains still
   give, from King's Cross, St Pancras and Farringdon (or from Letchworth to all three), against the earliest the
-  timetable gave for trains leaving from now, over the next 90 minutes. A cancellation with the next train 10 minutes
-  behind is 10 minutes.
+  timetable gave for trains still to leave, over the next 90 minutes. A cancellation with the next train 10 minutes
+  behind is 10 minutes. A train already due, now running late, never sets "normal". The same train on two boards
+  (a Thameslink at Farringdon and at St Pancras: same operator, same timetabled arrival) counts once. When no
+  timetable train is left to compare with, the best train's own lateness is used.
 - **Amber:** at least 15 minutes later than normal (`WATCH_AMBER_MIN`).
 - **Red:** any of these:
   - more than 45 minutes later than normal (`WATCH_RED_MIN`);
-  - no train running (all cancelled, or none with a time);
-  - Circle, Met and H&C all closed or suspended;
-  - a National Rail notice on the boards of a blocking incident (lines blocked, overhead line, person hit by a train,
-    emergency services, trespass, suspended), naming a station on the line between Letchworth and London (the
-    profile's corridor). King's Cross also carries East Coast notices for further north.
-- **Also amber:** all three tube lines badly disrupted (Severe Delays and worse). One line alone is nothing, and
-  Minor Delays are nothing.
+  - no train running (all cancelled, or none with a time, counting trains stuck at "Delayed" past their time);
+  - Circle, Met and H&C all closed, suspended, planned-closed or not running (TfL 1, 2, 4, 16). "Service Closed" (20),
+    which is how TfL shows the tube before it opens, is not a closure.
+  - a National Rail notice on the boards of a blocking incident (lines blocked, unable to run, overhead line, person
+    hit by a train, emergency services, trespass, suspended). It must name a station on the line between Letchworth and
+    London outside the London terminals: King's Cross and St Pancras carry every operator's notices (the East Coast to
+    Edinburgh, Southeastern, Bedford). It must not be planned or for another day ("engineering", "on Sunday"), about a
+    facility (lift, step-free, ticket office), or cleared ("have now reopened", "earlier today").
+- **Also amber:**
+  - two or more trains stuck at "Delayed" with no estimate past their time (Darwin often hasn't updated the trains
+    behind them);
+  - all three tube lines badly disrupted or worse (part suspended, part closure, Severe Delays, reduced service,
+    replacement bus). One line alone is nothing, and Minor Delays are nothing.
+- **Unknown, never "ok" and never an alert:** no board read, or boards read but no train listed in the next 90 minutes.
 - **A notice that explains but doesn't block** (signalling fault, "disruption"), such as "Disruption expected until
   18:00", explains an amber or red but doesn't raise one.
-- **One notification per change.**
-  - It notifies when the watch turns amber or red, or amber turns red; it stays quiet while the level holds.
-  - "Back to normal" is sent only after a red.
-  - A feed that fails sends nothing and forgets nothing (the level is kept).
+- **One notification per change, with no flapping (independent review, 19 Nov).**
+  - It notifies when the level rises above the highest sent since the last all-clear: to amber, or amber to red.
+  - A drop counts only after "ok" has held for 3 checks in a row (`WATCH_CLEAR_CHECKS`, 6 minutes). Then a red sends
+    "back to normal" and an amber clears quietly. Lateness steps as trains leave, so 14/15/14/15 is one amber, and
+    46/44/46 one red.
+  - A feed that fails, or "unknown", sends nothing and resets nothing.
   - Each window starts afresh: the morning's red doesn't silence the afternoon.
 - **What the notifications say:**
   - Morning red: "Commute: consider working from home". Morning amber: "Commute: delays this morning".
@@ -52,9 +63,12 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   - Alerts show as a banner even while the app is open.
 - **Proxy cost:**
   - Inside a window it checks every 2 minutes, only when an iPhone has the watch on: 3 boards and 1 TfL line status
-    per check, so about 600 board requests on a watched weekday.
+    per check. That is 300 checks on a watched weekday: 900 board requests and 300 TfL requests.
   - A record is written only when the watch level changes.
-  - It runs after the followed-journey run in the same minute, so the two never rewrite a record at once.
+  - It runs after the followed-journey run in the same minute, and writes on top of a fresh read, so a plan the page
+    or that run wrote meanwhile is kept.
+  - **Known risk:** Cloudflare KV is eventually consistent (about a minute). A stale read just after a level change
+    could resend that alert once. A page registration racing the write could drop the stored level and resend once.
 - **Not yet:**
   - National Rail's incident feed (Knowledgebase Incidents). Sam is arranging the key: `RDM_KB_KEY` and `RDM_KB_BASE`
     in `your-setup-steps.md`. Until then, incidents come from the notices on the boards.
@@ -67,15 +81,30 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/core/watch.test.mjs: "Lateness is how much later you'd get there, not one train: a cancellation with the next train 10 min behind is OK"
 - tests/core/watch.test.mjs: "Amber from 15 min later than normal; red beyond 45; red when nothing runs"
 - tests/core/watch.test.mjs: "National Rail's notices: a blocking incident is red at once; a disruption notice explains amber but doesn't raise it"
-- tests/core/watch.test.mjs: "The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone is nothing"
+- tests/core/watch.test.mjs: "The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone, or 'Service Closed' before opening, is nothing"
 - tests/core/watch.test.mjs: "No board read at all is 'unknown', never 'ok'"
-- tests/core/watch.test.mjs: "One notification per change: amber once, quiet while amber, again on red, 'back to normal' only after red; a new window starts again"
+- tests/core/watch.test.mjs: "One notification per change: amber once, again on red; a drop counts only after 3 'ok' checks; 'back to normal' only after red; a new window starts again"
+- tests/core/watch.test.mjs: "No flapping: lateness stepping 14/15/14/15 and 46/44/46/44 sends one amber and one red"
+- tests/core/watch.test.mjs: "Trains stuck at 'Delayed' past their time aren't forgotten; a timetable train due already doesn't make 'normal' unreachable"
+- tests/core/watch.test.mjs: "Boards read but no train listed is 'unknown', not 'ok'; 'unable to run' is red"
+- tests/core/watch.test.mjs: "The same train on two boards is counted once"
+- tests/core/watch.test.mjs: "Notices that aren't a blocking incident on your line now: planned works, other routes from the London terminals, facilities, cleared"
 - tests/watch-proxy.test.mjs: "Commute watch: nothing fetched with nobody watching, outside the windows, or on an odd minute"
 - tests/watch-proxy.test.mjs: "Commute watch: one APNs alert when it turns red, none while it stays red, 'back to normal' when it clears"
 - tests/watch-proxy.test.mjs: "Settings' test notification: the iPhone's own registration, one a minute; prefs keep 'watch' only when true"
-- tests/watch-settings.test.mjs: "Commute watch: in the iPhone app, off by default; turning it on asks for notifications only, and reaches the proxy"
+- tests/watch-proxy.test.mjs: "Commute watch: the alert is a visible APNs alert; East Coast notices from King's Cross don't go red; the record is written only on a change and keeps what the page wrote meanwhile"
+- tests/watch-proxy.test.mjs: "Commute watch runs in London time on a UTC server in summer, and the cron runs it"
+- tests/watch-settings.test.mjs: "Commute watch: in the iPhone app, off by default; turning it on asks for notifications only, and goes in what the proxy is sent"
 - tests/watch-settings.test.mjs: "Commute watch: the test button sends through the proxy and says what happened"
 - tests/watch-settings.test.mjs: "Commute watch: not in a browser, and not in display mode"
+- tests/watch-settings.test.mjs: "Commute watch: hidden in display mode even inside the iPhone app; a failed test says so"
+
+Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it found false reds (the tube's
+"Service Closed" every morning; planned, other-route, facility and cleared notices), missed reds (trains stuck at
+"Delayed"; empty boards), flapping and a duplicate count. All are fixed above with tests. Survivors re-checked: London
+time on a UTC server, the corridor passed by the proxy, the push type, the write over a fresh read, the cron calling
+the watch, display mode in the app, and a failed test message. Equivalent or low: the 90-minute horizon (the earliest
+times decide either way), `Math.max(0, …)`, the bridge's `!!`.
 
 Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
 test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.

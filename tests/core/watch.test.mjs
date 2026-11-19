@@ -71,12 +71,17 @@ test("National Rail's notices: a blocking incident is red at once; a disruption 
   assert.equal(explained.level, "amber"); assert.match(explained.reasons.join(" "), /signalling fault/);
 });
 
-test("The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone is nothing", () => {
+test("The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone, or 'Service Closed' before opening, is nothing", () => {
   const now = T("16:00"), b = boards([gn("16:05")]);
-  assert.equal(core.watchVerdict("home", b, [line("circle", 20), line("metropolitan", 2), line("hammersmith-city", 3)], now).level, "red");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 1), line("metropolitan", 2), line("hammersmith-city", 16)], now).level, "red");
   assert.equal(core.watchVerdict("home", b, [line("circle", 6), line("metropolitan", 6), line("hammersmith-city", 7)], now).level, "amber");
-  assert.equal(core.watchVerdict("home", b, [line("circle", 20), line("metropolitan", 10), line("hammersmith-city", 10)], now).level, "ok");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 3), line("metropolitan", 2), line("hammersmith-city", 5)], now).level, "amber", "part suspended isn't all closed");
+  assert.equal(core.watchVerdict("home", b, [line("circle", 2), line("metropolitan", 10), line("hammersmith-city", 10)], now).level, "ok");
   assert.equal(core.watchVerdict("home", b, [line("circle", 9), line("metropolitan", 9), line("hammersmith-city", 9)], now).level, "ok", "Minor Delays");
+  // 05:00: TfL reports the tube as "Service Closed" until it opens (independent review, 19 Nov: a red every morning).
+  const early = core.watchVerdict("office", { "LET-KGX": { services: [train({ from: "LET", to: "KGX", std: "05:20", dep: at(DAY, "05:20"), arr: at(DAY, "05:55"), operator: "Great Northern" })], msgs: [] } },
+    [line("circle", 20), line("metropolitan", 20), line("hammersmith-city", 20)], at(DAY, "05:00"));
+  assert.equal(early.level, "ok");
 });
 
 test("No board read at all is 'unknown', never 'ok'", () => {
@@ -84,7 +89,7 @@ test("No board read at all is 'unknown', never 'ok'", () => {
   assert.equal(v.level, "unknown");
 });
 
-test("One notification per change: amber once, quiet while amber, again on red, 'back to normal' only after red; a new window starts again", () => {
+test("One notification per change: amber once, again on red; a drop counts only after 3 'ok' checks; 'back to normal' only after red; a new window starts again", () => {
   const w = { key: `${DAY}-home`, direction: "home" }, now = T("17:00");
   const v = (late, cancelled) => core.watchVerdict("home", boards(cancelled ? [gn("17:05", { cancelled: true })] : [gn("17:05", { late })]), null, now);
   let s = core.watchStep(null, w, v(0), now);
@@ -97,13 +102,72 @@ test("One notification per change: amber once, quiet while amber, again on red, 
   assert.equal(s.notice.title, "Commute: disruption on the way home"); assert.match(s.notice.body, /head home now/);
   assert.equal(core.watchStep(s.state, w, { ...v(0), level: "unknown" }, now).notice, null, "a feed failing isn't news");
   assert.equal(core.watchStep(s.state, w, { ...v(0), level: "unknown" }, now).state.level, "red", "and doesn't forget the red");
-  const cleared = core.watchStep(s.state, w, v(0), now);
-  assert.equal(cleared.notice.title, "Commute: back to normal home");
-  const amberAgain = core.watchStep(core.watchStep(null, w, v(20), now).state, w, v(0), now);
-  assert.equal(amberAgain.notice, null, "amber clearing isn't news");
+  // Clearing: three 'ok' checks in a row, then "back to normal".
+  let c = s;
+  for (let i = 1; i < core.WATCH_CLEAR_CHECKS; i++) { c = core.watchStep(c.state, w, v(0), now); assert.equal(c.notice, null, `ok check ${i}: not yet`); }
+  c = core.watchStep(c.state, w, v(0), now);
+  assert.equal(c.notice.title, "Commute: back to normal home");
+  assert.equal(c.state.level, "ok");
+  // Amber clearing is quiet.
+  let a = core.watchStep(null, w, v(20), now);
+  for (let i = 0; i < core.WATCH_CLEAR_CHECKS; i++) { a = core.watchStep(a.state, w, v(0), now); assert.equal(a.notice, null); }
+  assert.equal(a.state.level, "ok");
   // The morning's red doesn't silence the afternoon.
   const morning = { key: `${DAY}-office`, level: "red" };
   assert.ok(core.watchStep(morning, w, v(20), now).notice);
   const am = core.watchStep(null, { key: `${DAY}-office`, direction: "office" }, core.watchVerdict("office", { "LET-KGX": { services: [], msgs: ["Lines are blocked between Hitchin and Stevenage."] } }, null, T("07:00")), T("07:00"));
   assert.equal(am.notice.title, "Commute: consider working from home");
+  assert.doesNotMatch(am.notice.body, /head home/, "the morning doesn't say head home");
+});
+
+test("No flapping: lateness stepping 14/15/14/15 and 46/44/46/44 sends one amber and one red", () => {
+  const w = { key: `${DAY}-home`, direction: "home" }, now = T("17:00");
+  const v = (late) => core.watchVerdict("home", boards([gn("17:05", { late })]), null, now);
+  let st = null, sent = [];
+  for (const late of [14, 15, 14, 15, 14, 15, 46, 44, 46, 44, 46]) { const r = core.watchStep(st, w, v(late), now); st = r.state; if (r.notice) sent.push(r.notice.title); }
+  assert.deepEqual(sent, ["Commute: delays on the way home", "Commute: disruption on the way home"]);
+});
+
+test("Trains stuck at 'Delayed' past their time aren't forgotten; a timetable train due already doesn't make 'normal' unreachable", () => {
+  const now = T("17:00");
+  // 16:35 and 16:50 'Delayed' with no estimate; the 17:05 and 17:20 not yet updated by Darwin.
+  const stuck = core.watchVerdict("home", boards([gn("16:35", { unknown: true }), gn("16:50", { unknown: true }), gn("17:05"), gn("17:20")]), null, now);
+  assert.equal(stuck.level, "amber"); assert.equal(stuck.stuck, 2); assert.match(stuck.reasons.join(" "), /2 trains delayed with no estimate/);
+  // Only past-due 'Delayed' trains: nothing has a time.
+  assert.equal(core.watchVerdict("home", boards([gn("16:05", { unknown: true }), gn("16:35", { unknown: true }), gn("16:50", { unknown: true })]), null, now).level, "red");
+  // A 16:50 running 20 late and the 17:20 on time: normal is the 17:20's timetable (the 16:50's is gone).
+  const due = core.watchVerdict("home", boards([gn("16:50", { late: 20 }), gn("17:20")]), null, now);
+  assert.equal(due.level, "ok"); assert.equal(due.lateMin, 0);
+  // Only late trains past their time, nothing in the timetable after now: the best train's own lateness.
+  const late = core.watchVerdict("home", boards([gn("16:30", { late: 80 }), gn("16:45", { late: 80 })]), null, now);
+  assert.equal(late.level, "red"); assert.equal(late.lateMin, 80);
+});
+
+test("Boards read but no train listed is 'unknown', not 'ok'; 'unable to run' is red", () => {
+  const now = T("17:00");
+  assert.equal(core.watchVerdict("home", boards([]), null, now).level, "unknown");
+  assert.equal(core.watchVerdict("home", boards([], [], ["Trains are unable to run between Hitchin and Stevenage."]), null, now, undefined, core.profiles.samCommute.corridorPattern).level, "red");
+});
+
+test("The same train on two boards is counted once", () => {
+  const now = T("16:00"), dep = T("16:10");
+  const atZfd = train({ from: "ZFD", to: "LET", std: "16:10", dep, arr: T("16:55"), operator: "Thameslink", serviceId: "A1@ZFD", cancelled: true });
+  const atStp = train({ from: "STP", to: "LET", std: "16:14", dep: dep + 4 * MIN, arr: T("16:55"), operator: "Thameslink", serviceId: "A1@STP", cancelled: true });
+  const v = core.watchVerdict("home", { "ZFD-LET": { services: [atZfd, gn("16:20")], msgs: [] }, "STP-LET": { services: [atStp], msgs: [] } }, null, now);
+  assert.equal(v.cancelled, 1);
+});
+
+test("Notices that aren't a blocking incident on your line now: planned works, other routes from the London terminals, facilities, cleared", () => {
+  const now = T("16:00"), corridor = core.profiles.samCommute.corridorPattern;
+  const lvl = (msg) => core.watchVerdict("home", boards([gn("16:05")], [], [msg]), null, now, undefined, corridor).level;
+  for (const msg of [
+    "Engineering works: on Sunday 22 November no trains will run between Hitchin and Stevenage.",
+    "Southeastern high speed services from London St Pancras International are suspended.",
+    "Disruption between London St Pancras International and Bedford: overhead electric wires have been damaged.",
+    "Trains between London Kings Cross and Edinburgh may be cancelled: a person has been hit by a train between Newcastle and Morpeth.",
+    "Step-free access at Farringdon is suspended: the lift is out of order.",
+    "Following a person being hit by a train earlier today at Hatfield all lines have now reopened.",
+  ]) assert.equal(lvl(msg), "ok", msg);
+  assert.equal(lvl("A person has been hit by a train between Hatfield and Welwyn Garden City. Lines are blocked."), "red");
+  assert.equal(lvl("Overhead line problems between Stevenage and Hitchin."), "red");
 });

@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:32 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:44 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1242,6 +1242,7 @@ var CommuteCore = (() => {
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WATCH_AMBER_MIN: () => WATCH_AMBER_MIN,
+    WATCH_CLEAR_CHECKS: () => WATCH_CLEAR_CHECKS,
     WATCH_RED_MIN: () => WATCH_RED_MIN,
     WATCH_TUBE_LINES: () => WATCH_TUBE_LINES,
     WATCH_WINDOWS: () => WATCH_WINDOWS,
@@ -5729,22 +5730,33 @@ var CommuteCore = (() => {
     const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
     return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
   }
-  var RED_NOTICE = /(lines? (are|is|have been) blocked|all lines|no trains|suspended|overhead (line|electric|wire)|person (has been )?hit|hit by a train|emergency services|trespass|major disruption)/i;
+  var RED_NOTICE = /(lines? (are|is|have been) blocked|all lines|no trains (are|will be )?(running|able)|unable to run|suspended|overhead (line|electric|wire)|person (has been )?hit|hit by a train|emergency services|trespass|major disruption)/i;
   var AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
+  var NOT_NOW_NOTICE = /(engineering|planned|improvement works|on (mon|tues|wednes|thurs|fri|satur|sun)day|this weekend|step-free|lift|escalator|toilet|ticket (office|machine)|car park|reopened|re-opened|have now|has now|resumed|now running|earlier today|cleared)/i;
+  var TUBE_CLOSED = [1, 2, 4, 16];
+  var TUBE_BAD = [3, 5, 6, 7, 8];
+  var STUCK_LOOKBACK_MIN = 60;
   var schedArr = (t2) => t2.arr == null ? null : t2.arr - (t2.arrLate || 0) * 6e4;
   var schedDep = (t2) => t2.dep - (t2.depLate || 0) * 6e4;
+  function localPattern(corridor) {
+    if (!corridor) return null;
+    const parts = corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x));
+    return parts.length ? new RegExp(parts.join("|"), "i") : null;
+  }
   function watchVerdict(direction, boards, tube, now, policy, corridor) {
     const read = Object.values(boards).filter((b) => !!b);
-    const out = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, reasons: [] };
+    const out = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, stuck: 0, reasons: [] };
     if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
-    const horizon = now + WATCH_WINDOW_MIN * 6e4, seen = /* @__PURE__ */ new Set();
+    const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4, seen = /* @__PURE__ */ new Set();
     const trains = read.flatMap((b) => b.services || []).filter((t2) => {
-      const id = t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
+      const sa = schedArr(t2), id = sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
       if (seen.has(id)) return false;
       seen.add(id);
-      return (schedDep(t2) >= now || !t2.cancelled && t2.dep >= now) && schedDep(t2) <= horizon;
+      const sd = schedDep(t2);
+      return sd <= horizon && (sd >= now || !t2.cancelled && (t2.dep >= now || (t2.depUnknown || t2.arrUnknown) && sd >= back));
     });
-    out.cancelled = trains.filter((t2) => t2.cancelled).length;
+    out.cancelled = trains.filter((t2) => t2.cancelled && schedDep(t2) >= now).length;
+    out.stuck = trains.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown) && schedDep(t2) < now).length;
     const normal = trains.filter((t2) => schedDep(t2) >= now).map(schedArr).filter((x) => x != null);
     const running = trains.filter((t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null && t2.dep >= now);
     const best = running.reduce((a, t2) => !a || t2.arr < a.arr ? t2 : a, null);
@@ -5757,28 +5769,33 @@ var CommuteCore = (() => {
       out.train = best;
       out.expectedArrive = best.arr;
     }
-    if (trains.length && !best) {
+    if (!trains.length) level = "unknown";
+    else if (!best) {
       raise("red");
       out.reasons.push(out.cancelled ? `No trains running: ${out.cancelled} cancelled` : "No train has a time");
-    } else if (best && out.normalArrive != null) {
-      out.lateMin = Math.max(0, Math.round((best.arr - out.normalArrive) / 6e4));
+    } else {
+      out.lateMin = out.normalArrive != null ? Math.max(0, Math.round((best.arr - out.normalArrive) / 6e4)) : Math.max(best.depLate || 0, best.arrLate || 0);
       if (out.lateMin > WATCH_RED_MIN) raise("red");
       else if (out.lateMin >= WATCH_AMBER_MIN) raise("amber");
       if (out.lateMin >= WATCH_AMBER_MIN) out.reasons.push(`About ${out.lateMin} min later than normal`);
     }
+    if (out.stuck >= 2) {
+      raise("amber");
+      out.reasons.push(`${out.stuck} trains delayed with no estimate`);
+    }
     if (out.cancelled && best) out.reasons.push(`${out.cancelled} cancelled`);
     const msgs = [...new Set(read.flatMap((b) => b.msgs || []))];
-    const onLine2 = (m) => !corridor || new RegExp(corridor, "i").test(m);
-    const redMsg = msgs.find((m) => RED_NOTICE.test(m) && onLine2(m)), amberMsg = msgs.find((m) => AMBER_NOTICE.test(m));
+    const local = localPattern(corridor);
+    const redMsg = msgs.find((m) => RED_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m) && (!corridor || !!local && local.test(m)));
+    const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m));
     if (redMsg) {
       raise("red");
       out.reasons.push(redMsg);
-    } else if (amberMsg && level !== "ok") out.reasons.push(amberMsg);
-    const p = resolveDisruptionPolicy(policy).tube;
+    } else if (amberMsg && level !== "ok" && level !== "unknown") out.reasons.push(amberMsg);
     const lines = (tube || []).filter((l) => WATCH_TUBE_LINES.includes(l.id));
     if (lines.length === WATCH_TUBE_LINES.length) {
-      const closed = lines.every((l) => l.statuses.some((s) => p.closedSeverities.includes(s.sev)));
-      const bad = lines.every((l) => l.statuses.some((s) => p.significantSeverities.includes(s.sev)));
+      const closed = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev)));
+      const bad = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev) || TUBE_BAD.includes(s.sev)));
       if (closed) {
         raise("red");
         out.reasons.push("Circle, Met and H&C all closed or suspended");
@@ -5790,26 +5807,30 @@ var CommuteCore = (() => {
     out.level = level;
     return out;
   }
+  var WATCH_CLEAR_CHECKS = 3;
   function watchStep(prev, window, v, now) {
-    const last = prev && prev.key === window.key ? prev.level : "ok";
-    if (v.level === "unknown") return { notice: null, state: { key: window.key, level: last, ...prev && prev.key === window.key && prev.sentAt ? { sentAt: prev.sentAt } : {} } };
+    const same = !!prev && prev.key === window.key;
+    const peak = same && (prev.level === "amber" || prev.level === "red") ? prev.level : "ok";
+    const okRun = same ? prev.okRun || 0 : 0;
+    const keep = (level, run2) => run2 ? { key: window.key, level, okRun: run2 } : { key: window.key, level };
+    if (v.level === "unknown") return { notice: null, state: keep(peak, okRun) };
     const rank2 = (l) => l === "red" ? 2 : l === "amber" ? 1 : 0;
-    const state = { key: window.key, level: v.level };
     const tag = `watch-${window.key}`;
     const going = window.direction === "office" ? "to the office" : "home";
     const way = v.train && v.expectedArrive != null ? `Best now: the ${v.train.std} from ${v.train.from}, arriving ${hhmm(v.expectedArrive)}.` : "";
     const why = v.reasons.slice(0, 2).join(". ");
-    let notice = null;
-    if (rank2(v.level) > rank2(last)) {
+    if (rank2(v.level) > rank2(peak)) {
       const title = v.level === "red" ? window.direction === "office" ? "Commute: consider working from home" : "Commute: disruption on the way home" : window.direction === "office" ? "Commute: delays this morning" : "Commute: delays on the way home";
       const act = v.level === "red" && window.direction === "home" ? " If you can, head home now." : "";
-      notice = { kind: "watch", tag, title, body: [why, way].filter(Boolean).join(". ").replace(/\.\./g, ".") + act };
-    } else if (last === "red" && v.level === "ok") {
-      notice = { kind: "watch", tag, title: `Commute: back to normal ${going}`, body: way || "Trains are running close to normal again." };
+      return { notice: { kind: "watch", tag, title, body: [why, way].filter(Boolean).join(". ").replace(/\.\./g, ".") + act }, state: keep(v.level, 0) };
     }
-    if (notice) state.sentAt = now;
-    else if (prev && prev.key === window.key && prev.sentAt) state.sentAt = prev.sentAt;
-    return { notice, state };
+    if (v.level !== "ok") return { notice: null, state: keep(peak, 0) };
+    const run = peak === "ok" ? 0 : okRun + 1;
+    if (peak !== "ok" && run >= WATCH_CLEAR_CHECKS) {
+      const notice = peak === "red" ? { kind: "watch", tag, title: `Commute: back to normal ${going}`, body: way || "Trains are running close to normal again." } : null;
+      return { notice, state: keep("ok", 0) };
+    }
+    return { notice: null, state: keep(peak, run) };
   }
 
   // src/core/alerts.ts

@@ -15,7 +15,7 @@ function shell(auth = { notifications: "notDetermined", alarm: "notDetermined", 
 }
 const submit = async (app) => { app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 30)); };
 
-test("Commute watch: in the iPhone app, off by default; turning it on asks for notifications only, and reaches the proxy", async () => {
+test("Commute watch: in the iPhone app, off by default; turning it on asks for notifications only, and goes in what the proxy is sent", async () => {
   const sh = shell(), posts = [];
   const route = (u, o) => { if (/\/native\//.test(u)) { posts.push([u.replace(/^.*\/native\//, ""), JSON.parse(o.body)]); return new Response(JSON.stringify({ id: "i1", token: "t1", ok: true }), { status: 200 }); } return undefined; };
   const app = await createApp({ settings: { provider: "demo", leaveAlarm: true }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: sh.install, route });
@@ -59,4 +59,18 @@ test("Commute watch: not in a browser, and not in display mode", async () => {
   app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true }));
   assert.equal(app.c.S().commuteWatch, undefined, "a browser never writes it");
   assert.deepEqual(app.errors, []); app.close();
+});
+
+test("Commute watch: hidden in display mode even inside the iPhone app; a failed test says so", async () => {
+  const sh = shell({ notifications: "authorized" });
+  const app = await createApp({ url: "https://srapley-spec.github.io/cartref-commute/?display", settings: { provider: "demo" }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: sh.install });
+  const btn = app.d.querySelector("#settingsBtn"); if (btn && !btn.hidden) btn.click();
+  assert.equal(app.d.querySelector("#watchFields").hidden, true);
+  app.close();
+  const route = (u) => /\/native\/test/.test(u) ? new Response(JSON.stringify({ ok: false, status: 400, error: "BadDeviceToken" }), { status: 502 }) : undefined;
+  const b = await createApp({ settings: { provider: "proxy", proxyBase: "https://proxy.test" }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: shell({ notifications: "authorized" }).install, route });
+  b.d.querySelector("#settingsBtn").click();
+  b.d.querySelector("#watchTestBtn").click(); await new Promise((r) => setTimeout(r, 30));
+  assert.match(b.d.querySelector("#watchStatus").textContent, /^Couldn't send: BadDeviceToken/);
+  b.close();
 });
