@@ -283,6 +283,26 @@ final class NativeCoreTests: XCTestCase {
         XCTAssertThrowsError(try c.validate())
     }
 
+    func testCommuteWatchAloneKeepsTheGeofencesAndOlderPagesStillDecode() throws {
+        // #66: the home fence also tells the proxy you're home, so geofences run for the watch with the alarm off.
+        let json = #"{"v":1,"proxy":{"origin":"https://proxy.example"},"alarm":{"alarm":false,"alarmLeadMin":5},"watch":true,"wifi":{"home":["Panda"],"office":["Ciklum"]},"regions":[{"place":"home","lat":51,"lon":-0.1,"radiusM":150}]}"#
+        var c = try JSONDecoder().decode(NativeConfiguration.self, from: Data(json.utf8))
+        XCTAssertTrue(c.geofencing); try c.validate()
+        c.watch = false
+        XCTAssertFalse(c.geofencing); XCTAssertThrowsError(try c.validate())
+        let older = #"{"v":1,"proxy":{"origin":"https://proxy.example"},"alarm":{"alarm":true,"alarmLeadMin":5},"wifi":{"home":["Panda"],"office":["Ciklum"]},"regions":[]}"#
+        let o = try JSONDecoder().decode(NativeConfiguration.self, from: Data(older.utf8))
+        XCTAssertNil(o.watch); XCTAssertTrue(o.geofencing); try o.validate()
+    }
+
+    func testWatchEvidenceWithoutAJourneyIsQueuedSeparately() throws {
+        var document = NativeDocument()
+        document.enqueue(.init(followId: "", deviceID: "phone", origin: "https://one.example", evidence: .init(place: "home", event: "enter", at: 1)))
+        document.enqueue(.init(followId: "", deviceID: "phone", origin: "https://one.example", evidence: .init(place: "home", event: "enter", at: 2)))
+        XCTAssertEqual(document.outbox.count, 1, "the latest arrival home stands")
+        XCTAssertEqual(document.outbox.first?.evidence.at, 2)
+    }
+
     func testUnknownVersionDoesNotMutateState() throws {
         try Wire.version([:]); try Wire.version(["v": 1])
         for v: Any in [2, true, "1", NSNull()] { XCTAssertThrowsError(try Wire.version(["v": v])) }

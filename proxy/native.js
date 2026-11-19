@@ -48,9 +48,13 @@ export function cleanPrefs(p) {
   return { alarm: !(p && p.alarm === false), alarmLeadMin: lead, watch: !!(p && p.watch === true) };
 }
 function cleanEvidence(e, now) {
-  if (!e || typeof e !== "object" || e.kind !== "region" || !["exit", "enter"].includes(e.event) || typeof e.place !== "string" || !PLACE.test(e.place)) return null;
+  if (!e || typeof e !== "object" || typeof e.place !== "string" || !PLACE.test(e.place)) return null;
   if (!Number.isFinite(e.at) || e.at > now + C.EVIDENCE_SKEW_MS || e.at < now - 6 * 3600e3) return null;
-  return { kind: "region", place: e.place, event: e.event, at: e.at };
+  // A geofence crossed (the iPhone, app closed), or a known Wi-Fi network / the app placing you at home or the office
+  // (the page; #66: the home watch ends once you're home).
+  if (e.kind === "region" && ["exit", "enter"].includes(e.event)) return { kind: "region", place: e.place, event: e.event, at: e.at };
+  if ((e.kind === "wifi" || e.kind === "place") && (e.place === "home" || e.place === "office")) return { kind: e.kind, place: e.place, at: e.at };
+  return null;
 }
 async function iphone(env, b) {
   if (!b || !str(b.id, 64) || !str(b.token, 128)) return null;
@@ -110,7 +114,7 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, testAt: now }));
     let r;
     try { r = await sendApns(env, rec.apns, "alert", apnsPayloads.alert({ kind: "test", tag: "test", title: "Alerts are on",
-      body: rec.prefs && rec.prefs.watch ? "Commute watch is on: weekdays 05:00–10:00 to the office and 15:00–20:00 home, only when something's wrong." : "You'll hear from Commute when something needs you." }), now); }
+      body: rec.prefs && rec.prefs.watch ? "Commute watch is on: weekdays 05:00–10:00 to the office and from 15:00 until you're home, only when something's wrong." : "You'll hear from Commute when something needs you." }), now); }
     catch (e) { r = { ok: false, status: 0 }; }
     return json({ ok: r.ok, status: r.status }, r.ok ? 200 : 502, cors);
   }
@@ -120,7 +124,12 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     const setOff = !!rec.plan && C.evidenceSetOff(ev, rec.extra && rec.extra.startPlace, rec.followedAt || 0, now);
     // Only a change is written. The reply carries the snapshot now (§6.7 rule 3: no waiting for a background push),
     // from what the proxy last saw; the next scheduler run pushes it to the Live Activity.
-    if (setOff && !rec.setOff) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, setOff: true }));
+    // Home (#66): the afternoon watch stops for the rest of its window. Only a later arrival is written.
+    // Leaving home (the geofence) brings it back for the evening. Only a later arrival or departure is written.
+    const home = C.watchHomeEvidence(ev) && !(Number.isFinite(rec.homeAt) && rec.homeAt >= ev.at);
+    const left = C.watchLeftHome(ev) && !(Number.isFinite(rec.leftAt) && rec.leftAt >= ev.at);
+    if ((setOff && !rec.setOff) || home || left) await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, ...(setOff ? { setOff: true } : {}),
+      ...(home ? { homeAt: ev.at } : {}), ...(left ? { leftAt: ev.at } : {}) }));
     const stored = setOff || !!rec.setOff;   // the journey's state, not just this event's verdict
     // No journey: an identified, dated stop (the last journey ended), never an unidentified null (#58).
     return json(rec.plan ? { ok: true, setOff: stored, snapshot: snapshotNow({ ...rec, setOff: stored }, now) }

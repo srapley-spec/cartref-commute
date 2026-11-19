@@ -14,20 +14,36 @@ const tl = (std, o = {}) => { const dep = T(std); return train({ from: "ZFD", to
 const boards = (kgx, zfd = [], msgs = []) => ({ "KGX-LET": { services: kgx, msgs }, "ZFD-LET": { services: zfd, msgs: [] }, "STP-LET": { services: [], msgs: [] } });
 const line = (id, sev) => ({ id, name: id, statuses: [{ sev, desc: String(sev) }] });
 
-test("Watch windows: weekdays 05:00–10:00 to the office and 15:00–20:00 home; never at weekends or on a bank holiday", () => {
+test("Watch windows: weekdays 05:00–10:00 to the office, and home from 15:00 until 01:00 (or until you're home); never at weekends or on a bank holiday", () => {
   assert.equal(core.watchWindow(T("04:59")), null);
-  assert.deepEqual(core.watchWindow(T("05:00")), { direction: "office", date: DAY, key: `${DAY}-office` });
+  assert.deepEqual(core.watchWindow(T("05:00")), { direction: "office", date: DAY, key: `${DAY}-office`, from: T("05:00") });
   assert.equal(core.watchWindow(T("09:59")).direction, "office");
   assert.equal(core.watchWindow(T("10:00")), null);
   assert.equal(core.watchWindow(T("14:59")), null);
-  assert.equal(core.watchWindow(T("15:00")).direction, "home");
-  assert.equal(core.watchWindow(T("19:59")).direction, "home");
-  assert.equal(core.watchWindow(T("20:00")), null);
+  assert.deepEqual(core.watchWindow(T("15:00")), { direction: "home", date: DAY, key: `${DAY}-home`, from: T("15:00") });
+  assert.equal(core.watchWindow(T("20:30")).direction, "home", "in the pub at 20:30: still watching");
+  assert.equal(core.watchWindow(T("23:59")).key, `${DAY}-home`);
+  // After midnight it is still Thursday's home window, until 01:00.
+  assert.deepEqual(core.watchWindow(at("2026-11-20", "00:30")), { direction: "home", date: DAY, key: `${DAY}-home`, from: T("15:00") });
+  assert.equal(core.watchWindow(at("2026-11-20", "01:00")), null);
+  assert.equal(core.watchWindow(at("2026-11-21", "00:30")).key, "2026-11-20-home", "Friday night runs into Saturday's small hours");
+  assert.equal(core.watchWindow(at("2026-11-23", "00:30")), null, "Sunday night: no watch");
   assert.equal(core.watchWindow(at("2026-11-21", "07:00")), null, "Saturday");
   assert.equal(core.watchWindow(at("2026-11-22", "16:00")), null, "Sunday");
   assert.equal(core.watchWindow(at("2026-12-25", "07:00")), null, "Christmas Day (a Friday)");
   assert.equal(core.watchWindow(at("2026-12-28", "07:00")), null, "Boxing Day substitute (Monday)");
   assert.equal(core.watchWindow(at("2026-12-29", "07:00")).direction, "office", "an ordinary Tuesday");
+});
+
+test("Home evidence ends the home watch for the rest of that window: the geofence entered, home Wi-Fi, or the app at home", () => {
+  const w = core.watchWindow(T("17:00"));
+  for (const ev of [{ kind: "region", place: "home", event: "enter" }, { kind: "wifi", place: "home" }, { kind: "place", place: "home" }]) assert.equal(core.watchHomeEvidence(ev), true, JSON.stringify(ev));
+  for (const ev of [{ kind: "region", place: "home", event: "exit" }, { kind: "wifi", place: "office" }, { kind: "region", place: "office", event: "enter" }, null]) assert.equal(core.watchHomeEvidence(ev), false, JSON.stringify(ev));
+  assert.equal(core.watchHomeDone(w, T("16:10")), true, "home at 16:10: done");
+  assert.equal(core.watchHomeDone(w, T("08:00")), false, "home this morning, before the window: still watching");
+  assert.equal(core.watchHomeDone(w, null), false);
+  assert.equal(core.watchHomeDone(core.watchWindow(T("07:00")), T("06:00")), false, "never ends the morning watch");
+  assert.equal(core.watchHomeDone(core.watchWindow(at("2026-11-20", "00:30")), T("23:00")), true, "home at 23:00: done after midnight too");
 });
 
 test("Lateness is how much later you'd get there, not one train: a cancellation with the next train 10 min behind is OK", () => {
@@ -270,4 +286,16 @@ test("Last pass (19 Nov): East Coast notices that mention your stations as calli
   assert.equal(lvl("Disruption between London Kings Cross and Peterborough. A person has been hit by a train at Hatfield."), "red");
   assert.equal(lvl("Lines are blocked at Stevenage. Disruption is expected between now and the end of the day."), "red");
   assert.equal(lvl("Emergency services have been called to Welwyn North; lines are blocked. Lifts at Welwyn Garden City are also out of use."), "red");
+});
+
+test("Review (19 Nov): home before 15:00 and staying in ends the evening watch, if the geofence saw you arrive after leaving; going out again brings it back", () => {
+  const w = core.watchWindow(T("17:00"));
+  assert.equal(core.watchHomeDone(w, T("14:30"), T("07:30")), true, "left at 07:30, home at 14:30, not left since: home");
+  assert.equal(core.watchHomeDone(w, T("14:30"), T("18:00")), false, "out again at 18:00 (the pub): watched");
+  assert.equal(core.watchHomeDone(w, T("15:30"), T("18:00")), false, "home at 15:30, then out: watched");
+  assert.equal(core.watchHomeDone(w, T("14:30"), null), false, "no geofence evidence of leaving: an early arrival alone doesn't count");
+  assert.equal(core.watchHomeDone(w, T("02:00"), T("01:00")), false, "home 13 h before the window: too old to trust");
+  assert.equal(core.watchHomeDone(w, T("03:30"), T("01:00")), true, "within 12 h: still home");
+  // A bank holiday the day before: its small hours aren't watched (Tuesday 00:30 after the 28 Dec holiday).
+  assert.equal(core.watchWindow(at("2026-12-29", "00:30")), null);
 });

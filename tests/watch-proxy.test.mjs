@@ -131,8 +131,8 @@ test("Commute watch runs in London time on a UTC server in summer, and the cron 
       await runWatch(env, Date.UTC(2027, 6, 1, 14, 0));
       assert.ok(fetched.length > 0, "15:00 BST is inside the window");
       fetched.length = 0;
-      await runWatch(env, Date.UTC(2027, 6, 1, 19, 0));
-      assert.equal(fetched.length, 0, "20:00 BST is outside it");
+      await runWatch(env, Date.UTC(2027, 6, 2, 0, 0));
+      assert.equal(fetched.length, 0, "01:00 BST is outside it");
     });
   } finally { process.env.TZ = tz; }
   // The cron: the watch's board requests come after the followed-journey run has finished.
@@ -178,4 +178,72 @@ test("The proxy's corridor runs on beyond Letchworth: 'between Hitchin and Cambr
     await runWatch(env, at(DAY, "17:00"));
     assert.equal(pushes.length, 1); assert.equal(pushes[0].body.aps.alert.title, "Commute: disruption on the way home");
   }, () => "On time", { msgs: ["Lines are blocked between Hitchin and Cambridge."] });
+});
+
+test("Home ends the evening watch: the geofence, home Wi-Fi or the app at home stops it for the rest of the night; tomorrow it runs again", async () => {
+  for (const evidence of [{ kind: "region", place: "home", event: "enter" }, { kind: "wifi", place: "home" }, { kind: "place", place: "home" }]) {
+    const env = await envWith();
+    const me = await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+    const realNow = Date.now;
+    try {
+      Date.now = () => at(DAY, "16:40");
+      const r = await worker.fetch(post("/native/evidence", { id: me.id, token: me.token, evidence: { ...evidence, at: at(DAY, "16:40") } }), env);
+      assert.equal(r.status, 200, JSON.stringify(evidence));
+    } finally { Date.now = realNow; }
+    assert.equal(JSON.parse(env.PUSH.m.get(`nat:${me.id}`)).homeAt, at(DAY, "16:40"));
+    await withFeeds(async ({ fetched, pushes }) => {
+      await runWatch(env, at(DAY, "17:00")); await runWatch(env, at(DAY, "20:30"));
+      assert.equal(fetched.length, 0, `${evidence.kind}: home since 16:40, so nothing is watched (or fetched) tonight`);
+      assert.equal(pushes.length, 0);
+      await runWatch(env, at("2026-11-20", "07:00"));
+      assert.ok(fetched.length > 0, "the next morning's watch runs");
+      fetched.length = 0;
+      await runWatch(env, at("2026-11-20", "17:00"));
+      assert.ok(fetched.length > 0, "and the next evening's");
+    }, () => "Cancelled");
+  }
+});
+
+test("Home this morning doesn't stop this evening's watch; away from home (leaving, or the office) changes nothing", async () => {
+  const env = await envWith();
+  const me = await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  const send = async (evidence, t) => { const realNow = Date.now; try { Date.now = () => t; return await worker.fetch(post("/native/evidence", { id: me.id, token: me.token, evidence: { ...evidence, at: t } }), env); } finally { Date.now = realNow; } };
+  await send({ kind: "wifi", place: "home" }, at(DAY, "07:00"));
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "07:30"));
+  await send({ kind: "wifi", place: "office" }, at(DAY, "09:00"));
+  assert.equal(JSON.parse(env.PUSH.m.get(`nat:${me.id}`)).homeAt, at(DAY, "07:00"), "only arrivals home are kept");
+  await withFeeds(async ({ pushes }) => {
+    await runWatch(env, at(DAY, "17:00"));
+    assert.equal(pushes.length, 1, "still out at 17:00: the evening watch warns");
+  }, () => "Cancelled");
+});
+
+test("Review (19 Nov): leaving home brings the evening watch back; an older arrival delivered late doesn't move it back; bad events are refused; London time on a UTC server", async () => {
+  const env = await envWith();
+  const me = await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  const send = async (evidence, t) => { const realNow = Date.now; try { Date.now = () => t; return await worker.fetch(post("/native/evidence", { id: me.id, token: me.token, evidence: { ...evidence, at: t } }), env); } finally { Date.now = realNow; } };
+  const rec = () => JSON.parse(env.PUSH.m.get(`nat:${me.id}`));
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "07:30"));
+  await send({ kind: "region", place: "home", event: "enter" }, at(DAY, "14:30"));
+  assert.equal(rec().leftAt, at(DAY, "07:30")); assert.equal(rec().homeAt, at(DAY, "14:30"));
+  await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.equal(fetched.length, 0, "home since 14:30, not left: not watched"); });
+  await send({ kind: "region", place: "home", event: "enter" }, at(DAY, "14:10"));
+  assert.equal(rec().homeAt, at(DAY, "14:30"), "an older arrival, delivered late, doesn't move it back");
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "07:10"));
+  assert.equal(rec().leftAt, at(DAY, "07:30"), "an older exit, delivered late, doesn't move it back");
+  await send({ kind: "region", place: "office", event: "exit" }, at(DAY, "16:00"));
+  assert.equal(rec().leftAt, at(DAY, "07:30"), "leaving the office isn't leaving home");
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "16:50"));
+  await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.ok(fetched.length > 0, "out again: watched"); });
+  assert.equal((await send({ kind: "region", place: "home", event: "wobble" }, at(DAY, "17:10"))).status, 400);
+  // Summer, on the real Worker's UTC clock: home at 15:30 BST ends that evening's watch.
+  const s = await envWith();
+  const you = await register(s, { alarm: true, alarmLeadMin: 5, watch: true });
+  const tz = process.env.TZ;
+  try {
+    process.env.TZ = "UTC";
+    const realNow = Date.now;
+    try { Date.now = () => Date.UTC(2027, 6, 1, 14, 30); await worker.fetch(post("/native/evidence", { id: you.id, token: you.token, evidence: { kind: "wifi", place: "home", at: Date.UTC(2027, 6, 1, 14, 30) } }), s); } finally { Date.now = realNow; }
+    await withFeeds(async ({ fetched }) => { await runWatch(s, Date.UTC(2027, 6, 1, 16, 0)); assert.equal(fetched.length, 0, "home at 15:30 BST: the 17:00 BST check fetches nothing"); });
+  } finally { process.env.TZ = tz; }
 });

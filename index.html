@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 11:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 15:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -991,7 +991,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
       <div id="watchFields" hidden>
-        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and 15:00–20:00 home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). Not on bank holidays. Nothing needs following.</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and from 15:00 until you're home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). The evening watch runs until you're home: your home Wi-Fi, or your location (Always) at home, ends it for the night. Not on bank holidays. Nothing needs following.</span></label>
         <button type="button" class="ghost" id="watchTestBtn">Send a test to this iPhone</button>
         <p class="hint" id="watchStatus" aria-live="polite"></p>
       </div>
@@ -1243,6 +1243,7 @@ var CommuteCore = (() => {
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
     WATCH_AMBER_MIN: () => WATCH_AMBER_MIN,
     WATCH_CLEAR_CHECKS: () => WATCH_CLEAR_CHECKS,
+    WATCH_HOME_STILL_MS: () => WATCH_HOME_STILL_MS,
     WATCH_RED_MIN: () => WATCH_RED_MIN,
     WATCH_TUBE_LINES: () => WATCH_TUBE_LINES,
     WATCH_WINDOWS: () => WATCH_WINDOWS,
@@ -1486,6 +1487,9 @@ var CommuteCore = (() => {
     walkFromStopSecs: () => walkFromStopSecs,
     walkSecs: () => walkSecs,
     walkSteps: () => walkSteps,
+    watchHomeDone: () => watchHomeDone,
+    watchHomeEvidence: () => watchHomeEvidence,
+    watchLeftHome: () => watchLeftHome,
     watchStep: () => watchStep,
     watchStop: () => watchStop,
     watchVerdict: () => watchVerdict,
@@ -5703,7 +5707,7 @@ var CommuteCore = (() => {
   var WATCH_WINDOW_MIN = 90;
   var WATCH_WINDOWS = [
     { direction: "office", from: "05:00", to: "10:00" },
-    { direction: "home", from: "15:00", to: "20:00" }
+    { direction: "home", from: "15:00", to: "25:00" }
   ];
   var BANK_HOLIDAYS = /* @__PURE__ */ new Set([
     "2026-12-25",
@@ -5724,11 +5728,34 @@ var CommuteCore = (() => {
   };
   var minutesOf = (hm) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
   function watchWindow(now) {
-    const d = new Date(now), day2 = d.getDay(), date = isoLocal(now);
-    if (day2 === 0 || day2 === 6 || BANK_HOLIDAYS.has(date)) return null;
-    const m = d.getHours() * 60 + d.getMinutes();
-    const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
-    return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
+    for (const back of [0, 1]) {
+      const start = new Date(now);
+      start.setDate(start.getDate() - back);
+      start.setHours(0, 0, 0, 0);
+      const day2 = start.getDay(), date = isoLocal(start.getTime());
+      if (day2 === 0 || day2 === 6 || BANK_HOLIDAYS.has(date)) continue;
+      const m = Math.round((now - start.getTime()) / 6e4);
+      const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
+      if (w) {
+        const from = new Date(start);
+        from.setHours(0, minutesOf(w.from), 0, 0);
+        return { direction: w.direction, date, key: `${date}-${w.direction}`, from: from.getTime() };
+      }
+    }
+    return null;
+  }
+  function watchHomeEvidence(ev) {
+    return !!ev && ev.place === "home" && (ev.kind === "region" ? ev.event === "enter" : ev.kind === "wifi" || ev.kind === "place");
+  }
+  function watchLeftHome(ev) {
+    return !!ev && ev.kind === "region" && ev.place === "home" && ev.event === "exit";
+  }
+  var WATCH_HOME_STILL_MS = 12 * 36e5;
+  function watchHomeDone(window, homeAt, leftAt) {
+    if (!window || window.direction !== "home" || typeof homeAt !== "number" || !Number.isFinite(homeAt)) return false;
+    const left = typeof leftAt === "number" && Number.isFinite(leftAt) ? leftAt : null;
+    if (left != null && left > homeAt) return false;
+    return homeAt >= window.from || left != null && window.from - homeAt <= WATCH_HOME_STILL_MS;
   }
   var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
   var WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
@@ -8254,6 +8281,7 @@ function onPosition(p){
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
+  try{ watchHomeFromFix(); }catch(e){}
   noteAldgate();
   const speed=typeof p.coords.speed==='number'&&p.coords.speed>=0?p.coords.speed:null;
   const railContext=C.railTrackingContext({fix:fix(),speed,track:state.lineTrack||null,train:lockedTrain()||state.rendered?.train?.t||null,trains:Object.values(state.boards||{}).flatMap(board=>board?.services||[]),dir:direction(),now:Date.now(),departingHub:state.lastHub?{hub:state.lastHub.hub,seen:state.lastHub.seen}:null,onTube:!!(state.saved.tubeRide||state.saved.tubePick||state.rendered?.ride)},PROFILE);
@@ -11554,10 +11582,10 @@ const nativeBridge = (() => {
      * alarm is on).
      */
     const config = (s = S()) => {
-      // The shell gets the alarm only; the watch is the proxy's (#66).
       const { watch, ...alarm } = prefs(s);
-      return { v: 1, proxy: { origin: base() }, device: ids(), alarm, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
-        regions: alarm.alarm && deps.regions ? deps.regions() : [] };
+      // Geofences run for the leave alarm, or for the commute watch (the home fence says you're home; #66).
+      return { v: 1, proxy: { origin: base() }, device: ids(), alarm, watch, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
+        regions: (alarm.alarm || watch) && deps.regions ? deps.regions() : [] };
     };
     const configure = () => { const p = plugin(); if (!p || !caps) return null; try { return Promise.resolve(p.configure(config())).catch(() => null); } catch (e) { return null; } };
 
@@ -11651,12 +11679,17 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
+    /** You're home (#66): the proxy's afternoon watch stops for tonight. kind "wifi" (home network) or "place" (a fix). */
+    async function reportHome(kind, at) {
+      if (!ids() || !base() || simulating()) return null;
+      try { return await call("/native/evidence", { ...ids(), evidence: { kind, place: "home", at } }); } catch (e) { return null; }
+    }
     /** Settings → Send a test to this iPhone (#66): the proxy sends one notification through Apple. */
     async function test() {
       if (!ids() || !base()) return { ok: false, error: "this iPhone isn't registered with your proxy yet" };
       try { return await call("/native/test", ids()); } catch (e) { return { ok: false, error: e.message }; }
     }
-    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs, test };
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs, test, reportHome };
   }
   return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
@@ -11785,12 +11818,28 @@ async function nativeAskPermissions(){
     }
   } finally { nativeAsking=false; renderNativePermissions(); }
 }
+// Home (#66): the proxy's afternoon watch stops for the rest of tonight. Said once per evening, only with the watch on
+// and its home window running; never from display mode or a simulation (the bridge checks).
+let watchHomeSent=null;
+function watchHome(kind,at){
+  if(DISPLAY||S().commuteWatch!==true||S().simulatorEnabled||S().simulatedFeeds||(typeof sim!=="undefined"&&sim.active)) return;
+  const w=C.watchWindow(Date.now()); if(!w||w.direction!=="home"||watchHomeSent===w.key) return;
+  watchHomeSent=w.key;
+  // Not delivered (offline, proxy down): said again on the next sign of home (review 19 Nov).
+  Promise.resolve(native.reportHome(kind,Number.isFinite(at)?at:Date.now())).then(r=>{ if(!r&&watchHomeSent===w.key) watchHomeSent=null; }).catch(()=>{ watchHomeSent=null; });
+}
+/** A good fix within the home geofence's reach (150 m) counts as home too. */
+function watchHomeFromFix(){
+  const h=state.saved.home; if(!Array.isArray(h)||!state.here||!(state.locAcc<=100)) return;
+  if(C.km(state.here,h)*1000<=150) watchHome("place",state.lastFixAt||Date.now());
+}
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
   regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
-  onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  onEvidence:ev=>{ if(ev&&ev.place==="home"&&(ev.kind==="wifi"||(ev.kind==="region"&&ev.event==="enter"))) watchHome(ev.kind==="wifi"?"wifi":"place",ev.at);
+    const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
   hydrate:()=>nativeHydrate(),
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
@@ -11942,8 +11991,13 @@ $("#settingsForm").addEventListener("submit",e=>{
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
  // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
  if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
- // The commute watch turned on: it needs notifications only (asked once; from Settings, never at start-up).
- else if(next.commuteWatch===true&&previous.commuteWatch!==true&&((native.capabilities()||{}).auth||{}).notifications==="notDetermined") setTimeout(()=>{ native.request("notifications").then(()=>renderNativePermissions()).catch(()=>{}); },0);
+ // The commute watch turned on: notifications, and location "Always" so the home geofence can say you're home (#66).
+ // Asked once each, from Settings, never at start-up; a refusal stays refused.
+ else if(next.commuteWatch===true&&previous.commuteWatch!==true) setTimeout(async()=>{ try{
+   const auth=()=>((native.capabilities()||{}).auth||{});
+   if(auth().notifications==="notDetermined") await native.request("notifications");
+   if(auth().location==="notDetermined"||auth().location==="whenInUse") await native.request("location");
+   renderNativePermissions(); }catch(e){} },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
  const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
