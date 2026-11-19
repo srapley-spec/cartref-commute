@@ -76,6 +76,9 @@ test("Leg strip review: a stale feed's report is drawn as 'stale' (outlined), no
   const obs=time('09:05');
   const s=core.journeyProgress({now:time('09:40'),legs:rail,activeLeg:'rail',calls:c,evidence:{source:'reported',observedAt:obs,identityMatched:true,expectedAt:time('09:41'),scheduledAt:time('09:40')}}).strip;
   assert.equal(s.marker.kind,'stale');
+  // A stale tube prediction (no place from TfL) keeps an outlined estimate, frozen at its last time.
+  const t=tubeAt(time('08:20'),null,{evidence:{source:'prediction',observedAt:time('08:15'),identityMatched:true,expectedAt:time('08:22'),where:null}}).strip;
+  assert.equal(t.marker.kind,'estimate');
 });
 
 test("Leg strip review: no estimated times for a train with no estimate; times going backwards are left alone; over 64 stations, no strip", () => {

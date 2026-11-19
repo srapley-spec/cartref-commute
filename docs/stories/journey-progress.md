@@ -191,6 +191,7 @@ Trip has no calling points (`leisure-journeys.md`), so no strip.
 - tests/core/snapshot.test.mjs: "Snapshot strip (#71): the leg's dots, marker, line colour and names; an estimate moves in quarter stations; none without names to match"
 - tests/core/leg-strip.test.mjs: "Leg strip review: 'Left X' is halfway past X; 'Between' naming only the next station puts the marker at the start"
 - tests/core/leg-strip.test.mjs: "Leg strip review: a stale feed's report is drawn as 'stale' (outlined), not as where the train is now"
+- tests/journey-progress.test.mjs: "Signal progress: stale reports freeze the confirmed bar and keep report details accessible"
 - tests/core/leg-strip.test.mjs: "Leg strip review: no estimated times for a train with no estimate; times going backwards are left alone; over 64 stations, no strip"
 - tests/core/snapshot.test.mjs: "Snapshot strip review (#71): an estimate stays an estimate on the lock screen; only a live time for your stop; the marker's kind changing is a push; over 64 stations, none"
 - tests/leg-strip-page.test.mjs: "Strip on the card: TfL's place is a solid marker in the Met's colour, passed dots filled, the line dark up to the marker; 'You're here · between stations' in the list"
