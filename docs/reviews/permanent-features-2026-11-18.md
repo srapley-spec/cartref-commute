@@ -65,3 +65,12 @@ a stored state with no `settings` object; the `createTripUi.reset()` race (no ca
     in it, because the keys move had already run at start-up. Restored settings now go through the same keys move. A
     test checks no key reaches storage. A device's own "tfl" or "demo" choice is never replaced (tested).
   - Migration can't run twice through the restore: it never calls the migration, and it forces the marker.
+- **Final re-review (19 Nov, 6a552e2: the fixes plus `main` 0e3cf1d merged): satisfied, OK to merge.**
+  - 14 mutations, 12 killed: the per-board request number (4 ways), the keys move on restore (4 ways), the
+    saved-state guards, any-provider restore, and a failed board left in place.
+  - Two effectively equivalent survivors:
+    - T2, the check after all responses: the rest only redraws from current state, and nothing is saved.
+    - K2, the keys move ignoring `keysInProxy`: after the move only proxy, tfl or demo remain, which it leaves
+      alone.
+  - The merge with the commute watch was checked: `commuteWatch` is written only by Save, so it never blocks a
+    cleared web view's restore. Watch, native, legacy, Trip and permanent-features tests all pass.
