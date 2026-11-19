@@ -221,6 +221,13 @@ Minutes are whole minutes, rounded down.
   two rides fit (within 1 km and 5 min) it asks "Are you on the 14:05 to Victoria?" and remembers for this trip.
 - Views: planning; on the way to the station; on a ride (headline = arrival); at a change (headline = next departure
   and spare); final leg. Auto / Plan / Live work as in the commute.
+- **A change of live-data source resets Trip (Sam, 19 Nov).** Saving Settings with anything other than display-only
+  settings changed (the source, the simulator, a walking time) clears what Trip loaded from the old source: its boards
+  and their ages, the planner and access caches, and the plan on screen; the trip is then planned again at once from the
+  new source, its boards asked for straight away (not after the 30 s spacing). A followed trip stays followed. A
+  response still out from the old source writes nothing (`liveGen`). Saving with nothing changed, or only display
+  settings, changes nothing. Entering or leaving Trip doesn't reset it (independent review, 19 Nov: it re-planned, with
+  Google's paid requests, every time you came back to Trip); the plan is kept until its 5-minute re-check, as before.
 
 ### Speed
 - First answer after at most 2 network steps one after another from choosing the second place (its place fetch, then
@@ -304,6 +311,9 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: unknown access keeps known rail duration without inventing a door-to-door total"
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: cancellation or an unknown rail time withdraws the rail sum and the total"
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: a missing transfer time cannot become a claimed total; no rail cannot become zero minutes on trains"
+- tests/trip-page.test.mjs: "Trip resets on a settings change with the same source: planned once again (no double plan), boards asked again at once"
+- tests/trip-page.test.mjs: "Trip is not reset by a display-only save, or by leaving and coming back to Trip"
+- tests/trip-page.test.mjs: "Trip resets on a change of live-data source (Sam, 19 Nov): switching to the proxy clears Trip's live data and plans again at once through it"
 - tests/trip-shared-ui.test.mjs: "Trip cards: one complete recommendation and compact rows retain every connection, canonical facts and shared actions"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Journey steps keep their own disclosure state through refresh and Follow uses the selected itinerary"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Next best has the same complete headline, facts, connections and actions in all planning questions"

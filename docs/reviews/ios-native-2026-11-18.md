@@ -143,3 +143,5 @@ before the fix.
   - a duplicate check.
 - **`reset()` still has no production caller**: only the tests call it. The fix is correct but latent. Whether a change
   of live-data source should reset Trip (as `invalidateSources` does for the commute) is an open question for Sam.
+  **Closed 19 Nov:** Sam said yes. `invalidateSources()` now calls `tripUi.reset()`, and the next refresh plans the
+  trip again from the new source (`docs/stories/leisure-journeys.md`, "Live, and keeping you up to date").

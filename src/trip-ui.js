@@ -36,6 +36,8 @@ function createTripUi(deps) {
   // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
   // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
   let liveGen = 0, boardSeq = {};
+  // After reset() (a change of live-data source; Sam, 19 Nov) the trip is planned again once, from the new source.
+  let needPlan = false;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -300,6 +302,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
+    if (needPlan) { needPlan = false; if (st().to) await plan(); }
     if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
@@ -502,10 +505,10 @@ function createTripUi(deps) {
   return {
     show() { mount(); root.hidden = false;
       const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
-      fill(); renderResults(); if (!result && st().to) plan(); },
+      fill(); renderResults(); if (!result && st().to) { needPlan = false; plan(); } },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults, pinView, followedDataAt,
-    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; },
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; needPlan = true; },
     state: () => ({ result, error, stage: stageText, boards: Object.keys(liveBoards).filter(k => liveBoards[k]).sort() }),
   };
 }
