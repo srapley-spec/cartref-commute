@@ -5,6 +5,7 @@
 import * as C from "../dist/core.mjs";
 import { londonShift, board } from "./push.js";
 import { nativeConfigured, sendApns, apnsPayloads } from "./native.js";
+import { haPresence } from "./ha.js";
 
 /** Checked every this many minutes inside a window (3 boards + 1 TfL status per check). */
 export const WATCH_EVERY_MIN = 2;
@@ -22,17 +23,20 @@ export async function tubeStatus(env) {
 }
 
 /** One scheduler run. Returns what was sent, for tests and logs. */
-export async function runWatch(env, now) {
+export async function runWatch(env, now, fetchHa = haPresence) {
   if (!nativeConfigured(env)) return [];
   const d = londonShift(now), lnow = now + d;
   const w = C.watchWindow(lnow);
   if (!w || Math.floor(lnow / 60e3) % WATCH_EVERY_MIN !== 0) return [];
   const ids = (await env.PUSH.get("nats", "json")) || [];
   const recs = [];
+  let ha;   // Home Assistant, read at most once a run and only in the evening for an iPhone that opted in
   for (const id of ids) {
     const rec = await env.PUSH.get(`nat:${id}`, "json");
-    // Home already since the afternoon window started: nothing more to watch tonight (#66).
-    if (rec && rec.prefs && rec.prefs.watch && rec.apns && !C.watchHomeDone({ ...w, from: w.from - d }, rec.homeAt, rec.leftAt)) recs.push(rec);
+    if (!(rec && rec.prefs && rec.prefs.watch && rec.apns)) continue;
+    if (w.direction === "home" && rec.prefs.ha && ha === undefined) ha = await fetchHa(env);
+    // Home (Home Assistant, else the phone's geofence since the afternoon window started): nothing more tonight (#66).
+    if (!C.watchDone({ ...w, from: w.from - d }, rec.homeAt, rec.leftAt, rec.prefs.ha ? ha : null)) recs.push(rec);
   }
   if (!recs.length) return [];
   const boards = {};

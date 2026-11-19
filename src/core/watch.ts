@@ -77,6 +77,21 @@ export function watchHomeDone(window: { direction: WatchDirection; from: number 
   if (left != null && left > homeAt) return false;
   return homeAt >= window.from || (left != null && window.from - homeAt <= WATCH_HOME_STILL_MS);
 }
+/** What Home Assistant says about you (the proxy reads your `person` entity each run; Sam, 19 Nov: "we can use Home
+ *  Assistant to be doubly sure"): its state ("home", "not_home" or a zone's name) and when it changed. */
+export interface HaPresence { state: string; since: number | null }
+/**
+ * Is tonight's watch over? Home Assistant first, when the iPhone opted in and the proxy could read it: "home" ends the
+ * evening watch (even if you were home all day: "I could get home at 3pm. No point telling me then"); anything else
+ * ("not_home", a zone) keeps it going, whatever the phone's geofence last said. With no reading (not set up, refused,
+ * timed out) the geofence rule (`watchHomeDone`) decides, as before. The morning watch is never ended by either.
+ */
+export function watchDone(window: { direction: WatchDirection; from: number } | null | undefined, homeAt: number | null | undefined,
+  leftAt: number | null | undefined, ha: HaPresence | null | undefined): boolean {
+  if (!window || window.direction !== "home") return false;
+  if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") return ha.state === "home";
+  return watchHomeDone(window, homeAt, leftAt);
+}
 
 /** National Rail notices of a blocked or broken railway. Strong: these win over any other word in the notice. */
 const STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;

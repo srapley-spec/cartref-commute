@@ -15,6 +15,7 @@
 import * as C from "../dist/core.mjs";
 import { b64u } from "./webpush.js";
 import { londonShift, sha256, str, cleanPlan, body, board, shiftPlan, shiftState } from "./push.js";
+import { haPresence } from "./ha.js";
 
 export const MAX_IPHONES = 10;
 /** An iPhone not registered or followed from for this long can be replaced when the list is full. */
@@ -45,7 +46,9 @@ export function cleanExtra(x) {
 export function cleanPrefs(p) {
   const lead = p && Number.isInteger(p.alarmLeadMin) && p.alarmLeadMin >= 0 && p.alarmLeadMin <= 60 ? p.alarmLeadMin : C.LEAVE_ALARM_DEFAULT_MIN;
   // Commute watch (#66) is off unless turned on in Settings → Notifications.
-  return { alarm: !(p && p.alarm === false), alarmLeadMin: lead, watch: !!(p && p.watch === true) };
+  return { alarm: !(p && p.alarm === false), alarmLeadMin: lead, watch: !!(p && p.watch === true),
+    // Home Assistant says when you're home (Sam, 19 Nov); only with the watch on.
+    ha: !!(p && p.watch === true && p.ha === true) };
 }
 function cleanEvidence(e, now) {
   if (!e || typeof e !== "object" || typeof e.place !== "string" || !PLACE.test(e.place)) return null;
@@ -112,11 +115,14 @@ export async function nativeRoute(request, env, cors, url, allowed) {
     // Settings → Notifications → Send a test (#66): proves the proxy → Apple → this iPhone path. One a minute.
     if (rec.testAt && now - rec.testAt < 60e3 && now >= rec.testAt) return json({ error: "Too soon" }, 429, cors);
     await env.PUSH.put(`nat:${rec.id}`, JSON.stringify({ ...rec, testAt: now }));
-    let r;
+    let r, ha = null;
+    // With Home Assistant on, the test says what it reads now, so you can see it works (Sam, 19 Nov).
+    if (rec.prefs && rec.prefs.watch && rec.prefs.ha) ha = (await haPresence(env)) || { state: "" };
+    const haLine = !ha ? "" : ha.state === "home" ? " Home Assistant says you're home." : ha.state ? " Home Assistant says you're out." : " Home Assistant couldn't be read: your phone's location decides.";
     try { r = await sendApns(env, rec.apns, "alert", apnsPayloads.alert({ kind: "test", tag: "test", title: "Alerts are on",
-      body: rec.prefs && rec.prefs.watch ? "Commute watch is on: weekdays 05:00–10:00 to the office and from 15:00 until you're home, only when something's wrong." : "You'll hear from Commute when something needs you." }), now); }
+      body: (rec.prefs && rec.prefs.watch ? "Commute watch is on: weekdays 05:00–10:00 to the office and from 15:00 until you're home, only when something's wrong." : "You'll hear from Commute when something needs you.") + haLine }), now); }
     catch (e) { r = { ok: false, status: 0 }; }
-    return json({ ok: r.ok, status: r.status }, r.ok ? 200 : 502, cors);
+    return json({ ok: r.ok, status: r.status, ...(ha ? { ha: ha.state === "home" ? "home" : ha.state ? "out" : "unread" } : {}) }, r.ok ? 200 : 502, cors);
   }
   if (path === "/native/evidence") {
     const ev = cleanEvidence(b.evidence, now);

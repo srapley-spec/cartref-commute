@@ -371,6 +371,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
       <div id="watchFields" hidden>
         <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and from 15:00 until you're home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). The evening watch runs until you're home: your home Wi-Fi, or your location (Always) at home, ends it for the night. Not on bank holidays. Nothing needs following.</span></label>
+        <label id="watchHaRow" style="display:flex;gap:8px;align-items:flex-start" hidden><input type="checkbox" id="s_watchHa" style="margin-top:3px"><span>Use Home Assistant to know when I'm home: home ends the evening watch; out keeps it going, whatever the phone last said.</span></label>
         <button type="button" class="ghost" id="watchTestBtn">Send a test to this iPhone</button>
         <p class="hint" id="watchStatus" aria-live="polite"></p>
       </div>
@@ -2660,7 +2661,7 @@ const proxySetupLink = base => `${location.origin}${location.pathname}#setup=${e
 async function refreshProxyStatus(){
   const base=proxyBaseUrl(); if(!base) return null;
   try{ const r=await fetchT(`${base}/status`); if(!r.ok){ const e=new Error(`HTTP ${r.status}`); e.status=r.status; throw e; } const j=await r.json();
-    state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,at:Date.now(),base}; state.proxyStatusErr=""; }
+    state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,ha:!!j.ha,at:Date.now(),base}; state.proxyStatusErr=""; }
   catch(e){ state.proxyStatusErr=e.status===404?"redeploy":(e.message||"unreachable"); }
   save(); renderProxyStatus(); return state.saved.proxyStatus||null;
 }
@@ -2957,6 +2958,8 @@ function fillSettings(){
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
   // Commute watch (#66): the iPhone app only (Apple's push service); off until turned on.
   $("#watchFields").hidden=!native.capabilities()||!!DISPLAY; $("#s_commuteWatch").checked=s.commuteWatch===true;
+  // Home Assistant (Sam, 19 Nov): offered only when the app's proxy has it set up; kept if it was already on.
+  $("#watchHaRow").hidden=!(state.saved.proxyStatus&&state.saved.proxyStatus.ha)&&s.watchHa!==true; $("#s_watchHa").checked=s.watchHa===true;
   $("#watchTestBtn").hidden=!(state.saved.native&&state.saved.native.id); $("#watchStatus").textContent="";
 
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
@@ -2976,7 +2979,8 @@ function readSettings(){
     const m=parseInt($("#s_leaveAlarmMin").value,10); if(m>=0&&m<=60) o.leaveAlarmMin=m;
     o.wifiHome=$("#s_wifiHome").value.trim(); o.wifiOffice=$("#s_wifiOffice").value.trim();
     if($("#s_commuteWatch").checked) o.commuteWatch=true;
-  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+    if($("#s_watchHa").checked) o.watchHa=true;
+  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch","watchHa"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
@@ -3036,7 +3040,7 @@ $("#settingsForm").addEventListener("submit",e=>{
    if(auth().location==="notDetermined"||auth().location==="whenInUse") await native.request("location");
    renderNativePermissions(); }catch(e){} },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
- const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"]);
+ const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch","watchHa"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -3053,7 +3057,8 @@ $("#settingsForm").addEventListener("submit",e=>{
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 $("#alertsTestBtn").addEventListener("click",()=>leaveAlerts.test());
 $("#watchTestBtn").addEventListener("click",async()=>{ const st=$("#watchStatus"); st.textContent="Sending…";
-  const r=await native.test(); st.textContent=r&&r.ok?"Sent: it should arrive in a few seconds. Nothing? Check Notifications for Commute in the iPhone's Settings.":`Couldn't send${r&&r.error?`: ${r.error}`:""}.`; });
+  const r=await native.test(); const ha=r&&r.ha==="home"?" Home Assistant says you're home.":r&&r.ha==="out"?" Home Assistant says you're out.":r&&r.ha==="unread"?" Home Assistant couldn't be read: your phone's location decides.":"";
+  st.textContent=r&&r.ok?`Sent: it should arrive in a few seconds. Nothing? Check Notifications for Commute in the iPhone's Settings.${ha}`:`Couldn't send${r&&r.error?`: ${r.error}`:""}.`; });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
