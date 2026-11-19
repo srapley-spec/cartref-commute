@@ -1305,6 +1305,27 @@ test("On the tube home without Follow, your tube's TfL prediction at the stop yo
   app.close();
 });
 
+test("On the tube home, the tube says where it's going (Sam, 19 Nov); when Aldgate's list didn't, TfL's prediction for the same tube at your stop does", async () => {
+  const ksx = (now) => [{ vehicleId: "c46", lineId: "circle", platformName: "Westbound - Platform 2", naptanId: "940GZZLUKSX",
+    destinationName: "Edgware Road (Circle Line) Underground Station", expectedArrival: new Date(T("16:56")).toISOString(),
+    timeToStation: Math.round((T("16:56") - now) / 1000), timestamp: new Date(now).toISOString(), currentLocation: "Between Barbican and Farringdon" }];
+  const app = await open({ now: T("16:30"), geo: null, settings: RDM, saved: { dirMode: "home" },
+    extra: (u, now) => (/940GZZLUALD\/Arrivals/.test(u) ? json(aldgateFeed()) : /940GZZLUKSX\/Arrivals/.test(u) ? json(ksx(now)) : undefined) }), c = app.c;
+  await c.refresh({ force: true }); await sleep(400);
+  await app.fix(...OFFICE_PT, 15, T("16:30"));
+  app.d.querySelector('[data-tubepick^="ALD|' + T("16:46") + '|Circle"]').click();
+  await app.fix(...ALD, 15, T("16:44"));
+  app.at(T("16:52")); c.render();
+  // Aldgate's list said "Check front of train" (no destination): nothing to name until the prediction arrives.
+  c.state.saved.tubeRide.dest = ""; c.state.saved.tubeRide.vehicle = "c46"; c.state.followTransport = null; c.state.aldDeps = null; c.state.saved.aldHome = null; c.state.tube = null; c.render();
+  assert.match(app.text(".journey-progress .jp-service"), /^Circle TfL isn't showing where it's going$/);
+  assert.match(app.text("#hero"), /\(TfL isn't showing where it's going\)/);
+  await c.refresh({ force: true }); await sleep(300); c.render();
+  assert.match(app.text(".journey-progress .jp-service"), /^Circle to Edgware Road$/, "the destination TfL gives the same tube at King's Cross");
+  assert.match(app.text("#hero"), /the Circle to Edgware Road that left Aldgate at/);
+  assert.deepEqual(app.errors, []); app.close();
+});
+
 test("Going home: tubes from Aldgate get off where you're home soonest; pick one; once it leaves you're on it", async () => {
   const { app, c } = await homeApp(T("16:30"));
   await app.fix(...OFFICE_PT, 15, T("16:30"));

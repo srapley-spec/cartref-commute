@@ -576,3 +576,6 @@ html .journey-progress .jp-vlist .jp-stop[data-time="estimate"] .jp-stop-time {f
 html .journey-progress .jp-vlist .jp-here {display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:13px;font-weight:650;color:var(--accent)}
 html .journey-progress .jp-vlist .jp-here .jp-stop-dot {width:14px;height:14px;margin:0;border-radius:50%;background:var(--accent);border:2px solid var(--accent)}
 html .journey-progress .jp-vlist .jp-here:is([data-kind="estimate"],[data-kind="stale"]) .jp-stop-dot {background:var(--card);border-style:dashed}
+/* Which tube, and where it's going (19 Nov): checked against the train's front. */
+html .journey-progress .jp-service {margin:0;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+html .journey-progress .jp-service .jp-muted {font-size:13px;color:var(--muted)}

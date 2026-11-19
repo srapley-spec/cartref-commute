@@ -84,3 +84,26 @@ export function followTubeWhere(predictions: unknown, vehicle: string, lineId?: 
   }
   return null;
 }
+
+/** A tube's destination as the passenger reads it on the train's front: TfL's name, never its placeholders. */
+const usableDest = (d: unknown, notTo?: RegExp): string => {
+  const s = String(d ?? '').replace(/ Underground Station/i, '').replace(/ \([^)]*Line\)/i, '').trim();
+  return !s || /check front of train|^unknown$/i.test(s) || (notTo && notTo.test(s)) ? '' : s;
+};
+/**
+ * Where your tube is going (Sam, 19 Nov: "Can we be clear here what the destination of the train is. This helps
+ * confirm which one you're on / getting on"). Its own listed destination when TfL gave one; otherwise the destination
+ * TfL gives the same vehicle on the same line in any other list the app already has (e.g. the arrivals at the station
+ * you're riding to, when Aldgate's departures said "Check front of train"). Empty when nobody says.
+ */
+export function tubeDestination(tube: { dest?: string | null; vehicle?: string | null; lineId?: string | null } | null | undefined,
+  lists: readonly (readonly { dest?: string | null; vehicle?: string | null; lineId?: string | null }[] | null | undefined)[], notTo?: RegExp): string {
+  if (!tube) return '';
+  const own = usableDest(tube.dest, notTo); if (own) return own;
+  const v = String(tube.vehicle || ''); if (!v) return '';
+  for (const list of lists) for (const p of list || []) {
+    if (String(p.vehicle || '') !== v || (tube.lineId && p.lineId && p.lineId !== tube.lineId)) continue;
+    const d = usableDest(p.dest, notTo); if (d) return d;
+  }
+  return '';
+}

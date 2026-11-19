@@ -14,7 +14,8 @@ token: it builds the engine, makes the alerts' KV namespace once (title `cartref
 own copy of `wrangler.toml`, makes the alerts' key pair once if neither GitHub nor the Worker has one, sets
 `ALLOW_ORIGIN` and `ALLOW_ANY_STATION`, deploys with the keys from the repository's Actions secrets
 (`--secrets-file`, added to what the Worker has, never clearing one), and reads `/status` back (true/false only).
-Secrets it reads, and the steps to make them: [your-setup-steps.md](your-setup-steps.md) §1–3. It runs by hand and on
+Secrets it reads, and the steps to make them: [your-setup-steps.md](your-setup-steps.md) §1–3 (and, for the evening
+watch, `HA_BASE_URL`/`HA_TOKEN`/optional `HA_PERSON`: Home Assistant, read-only; `stories/commute-watch.md`). It runs by hand and on
 every push to main that touches `proxy/`, `src/core/` or the workflow; without the Cloudflare token it warns and stops
 without failing. wrangler is pinned (`wrangler@4.155.0`, not in the lockfile).
 

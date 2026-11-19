@@ -104,6 +104,18 @@ no review submission is configured.
 - [ ] Commute watch (#66, 19 Nov): once TestFlight has the build after 19 Nov, open the app → Settings → Notifications →
       tick **Commute watch** → Save (allow notifications when asked) → **Send a test to this iPhone**. A notification
       "Alerts are on" should arrive within seconds. If it doesn't, tell Claude what the line under the button says.
+- [ ] Home Assistant for the evening watch (19 Nov, Sam: "use Home Assistant to be doubly sure"). Read-only; nothing
+      in Home Assistant is changed.
+      1. In Home Assistant: your profile (bottom left) → **Security** → **Long-lived access tokens** → Create token,
+         name it "Commute proxy". Copy it (it's shown once).
+      2. GitHub → the repo → Settings → Secrets and variables → Actions → New repository secret: `HA_TOKEN`, paste the
+         token. Another: `HA_BASE_URL`, Home Assistant's address from the internet, starting `https://` (your Nabu Casa
+         address, if you use it; not a home-network address like 192.168…). Only if your person entity isn't
+         `person.sam_rapley`, a third: `HA_PERSON`.
+      3. Actions → Deploy proxy → Run workflow. Its summary should show `"ha":true`.
+      4. In the app (after this release reaches TestFlight): Settings → Notifications → tick **Use Home Assistant to know
+         when I'm home** → Save → **Send a test to this iPhone**. The line under it says what Home Assistant reads.
+      Never paste the token into chat.
 - [ ] Optional, for earlier incident warnings: subscribe to **Knowledgebase Incidents data feed** on raildata.org.uk,
       then add its consumer key and endpoint base as Actions secrets `RDM_KB_KEY` and `RDM_KB_BASE`, and the same two in the
       cloud environment's secrets. Tell Claude when it's done (never paste the key).

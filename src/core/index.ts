@@ -42,7 +42,7 @@ export { VIEW_OVERRIDE_MS, createViewOverride, restoreViewOverride, resolveViewC
 export type { ViewOverride, ViewControlInput, ViewControlResult } from './viewControl';
 export { FOLLOW_BETTER_MIN, FOLLOW_CHANGE_MS, FOLLOW_NOTICE_MIN, confirmFollowBoarding, followMatchesObservedTrain, followIsTrain, boardingCheck, boardingPlace, platformBy, timetabledDeparture, FOLLOW_SET_OFF_FIX_MS, followLooksBack, FOLLOW_STATION_GONE_MS, FOLLOW_STATION_ACC_M, FOLLOW_STATION_KM, FOLLOW_FIX_FRESH_MS, FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS, readyAtFromConnection, followServiceKey, followMatchesService, startFollowRoute, restoreFollowRoute, updateFollowRoute, acknowledgeFollowNotice, dismissFollowAlternative, followedLegs } from './follow';
 export type { FollowRoute, FollowPhase, FollowInput, FollowUpdate, FollowNotice } from './follow';
-export { FOLLOW_TUBE_FRESH_MS, followTubeArrival, tubeWhere, followTubeWhere } from './followTube';
+export { FOLLOW_TUBE_FRESH_MS, followTubeArrival, tubeWhere, followTubeWhere, tubeDestination } from './followTube';
 export type { FollowTubeRequest, FollowTubeArrival } from './followTube';
 export { migrateFollowRoute, isLegacyFollowRoute } from './followMigration';
 export type { LegacyFollowRoute } from './followMigration';
@@ -81,7 +81,8 @@ export type { TripPhase, TripNotice, FollowTrip, FollowTripInput, FollowTripUpda
 export { ALONG_INTERESTS, alongPreferences, alongLine } from './alongLine';
 export type { AlongInterest, AlongPreferences, AlongPoint, AlongInput } from './alongLine';
 export { samAlongLine, samAlongStations } from './profiles/samAlongLine';
-export { WATCH_AMBER_MIN, WATCH_RED_MIN, WATCH_WINDOW_MIN, WATCH_WINDOWS, WATCH_TUBE_LINES, WATCH_CLEAR_CHECKS, BANK_HOLIDAYS, watchWindow, watchVerdict, watchStep, watchHomeEvidence, watchHomeDone, watchLeftHome, WATCH_HOME_STILL_MS } from "./watch";
+export { WATCH_AMBER_MIN, WATCH_RED_MIN, WATCH_WINDOW_MIN, WATCH_WINDOWS, WATCH_TUBE_LINES, WATCH_CLEAR_CHECKS, BANK_HOLIDAYS, watchWindow, watchVerdict, watchStep, watchHomeEvidence, watchHomeDone, watchDone, watchLeftHome, WATCH_HOME_STILL_MS } from "./watch";
+export type { HaPresence } from "./watch";
 export type { WatchDirection, WatchLevel, WatchVerdict, WatchState } from "./watch";
 export { journeyFacts, connectionJourneyFacts, tripJourneyFacts, journeyRemainingMs, tripRideTimingUsable } from './journeyFacts';
 export type { JourneyFacts, JourneyFactsContext, ConnectionJourneyFactsContext } from './journeyFacts';

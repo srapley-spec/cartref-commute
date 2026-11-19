@@ -555,6 +555,28 @@ platform or station, and he was standing on another (the tube's). Decided by Sam
   two regressions above (fixed, and tested), the calling-point limitation (documented), and rows a render behind a
   view change (fixed: worked out after the view is settled).
 
+## The tube's destination (19 Nov 2026): built 19 Nov
+**Why.** On the tube home, 17:53, Sam: "Can we be clear here what the destination of the train is. This helps confirm
+which one you're on / getting on." The card said "Met · left 2 min ago" and the leg "Aldgate → King's Cross" with no
+destination: Aldgate's own list gives none for a Met (TfL often says "Check front of train"), and the leg never named
+the tube at all.
+
+**What it shows now:**
+- The current tube leg names the tube under its heading: the line's lozenge and "to **Uxbridge**", or "TfL isn't showing
+  where it's going" when nobody says. The live card's "Your tube: the Met to Uxbridge that left Aldgate at 17:50" uses the
+  same destination, and says "(TfL isn't showing where it's going)" when there is none. "On a different tube?" names
+  each one's destination the same way.
+- Where it comes from (`tubeDestination`, `src/core/followTube.ts`): the tube's own listing when TfL gave a real
+  destination; otherwise the destination TfL gives the **same vehicle on the same line** in any other list the app
+  already holds (the prediction at the station you're riding to, the departures you picked from, the boards at the
+  station). Never "Check front of train" or "unknown"; going home, never "Aldgate" (where you got on). No extra request.
+- **Covers:** Commute and Leisure, both directions, followed or not (the live tube cards and the leg). Trip names its
+  rides from its own planner (`leisure-journeys.md`).
+- **Unverified:** how often TfL's prediction at King's Cross or Farringdon carries a destination for a Met that left
+  Aldgate with none. Sam checks on the next ride home.
+- tests/core/tube-destination.test.mjs: "Tube destination: its own when TfL gave one; else the same vehicle on the same line in another TfL list; never a placeholder"
+- tests/rules.test.mjs: "On the tube home, the tube says where it's going (Sam, 19 Nov); when Aldgate's list didn't, TfL's prediction for the same tube at your stop does"
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 

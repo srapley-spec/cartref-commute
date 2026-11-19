@@ -369,6 +369,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **19 Nov, Home Assistant says when you're home (Sam: "The phone always knows where I am. And we can use Home
+  Assistant to be doubly sure").** The proxy reads Sam's `person` entity from Home Assistant (read-only, a long-lived
+  token in the Worker's secrets) for the evening watch of an iPhone that opted in: "home" ends it, anything else keeps
+  it, whatever the geofence last said; no reading falls back to the geofence. Never used for the morning
+  (`commute-watch.md`, "Home Assistant").
+
 - **19 Nov, commute watch (Sam, #66).** On weekdays the proxy watches the commute without anything followed: 05:00–10:00
   to the office, and home from 15:00 until you're home (geofence, home Wi-Fi or a fix at home; 01:00 at the latest). It notifies only on a change to amber (15 min or more later than normal getting there)
   or red (more than 45, no trains, the tube to the stations closed, or a blocking incident on the line). Lateness is
