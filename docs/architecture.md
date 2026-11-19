@@ -369,6 +369,25 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **19 Nov, Home Assistant says when you're home (Sam: "The phone always knows where I am. And we can use Home
+  Assistant to be doubly sure").** The proxy reads Sam's `person` entity from Home Assistant (read-only, a long-lived
+  token in the Worker's secrets) for the evening watch of an iPhone that opted in: "home" ends it, anything else keeps
+  it, whatever the geofence last said; no reading falls back to the geofence. Never used for the morning
+  (`commute-watch.md`, "Home Assistant").
+
+- **19 Nov, commute watch (Sam, #66).** On weekdays the proxy watches the commute without anything followed: 05:00–10:00
+  to the office, and home from 15:00 until you're home (geofence, home Wi-Fi or a fix at home; 01:00 at the latest). It notifies only on a change to amber (15 min or more later than normal getting there)
+  or red (more than 45, no trains, the tube to the stations closed, or a blocking incident on the line). Lateness is
+  measured at arrival across all three London stations, not on one train. These are the watch's own thresholds; the
+  page's delay colours are unchanged. iPhone app only, off until turned on (`commute-watch.md`). The lock-screen status
+  card and the incident feed come next.
+- **18 Nov, finished features are permanent (Sam, #63).** Follow a route, Any start and end point and Trip are no
+  longer behind Settings → Experimental: their switches are removed from the code, not just hidden, and saved
+  `followRoute`/`follow`/`anyPlace`/`trip` values are dropped on load, Save and the iPhone app's cache restore
+  (`RETIRED_SETTINGS`). Being available isn't being used: following a journey and choosing Trip stay explicit taps.
+  Only Along the line stays Experimental. Settings now has Appearance, Notifications (time-to-leave alerts, wake-up,
+  test, status) and Simulation and testing (explicit, session-only). Display mode still never follows, simulates,
+  registers or asks for location. Supersedes the 28 Oct, 30 Oct and 31 Oct toggle decisions below.
 - **18 Nov, the iPhone app's v1 contract (Sam: Trip included; Siri opens the app to follow; ask for "Always" location
   for geofences).** Answers the iOS agent's questions in #58: `ios-app.md` §6.7.
 - **17 Nov, a bundled iPhone shell and internal TestFlight (Sam).** The Apple project lives under `ios/`, reusing
@@ -849,3 +868,7 @@ before AlarmKit is updated. Native platform adapters are tested separately from 
 The Live Activity is an embedded WidgetKit extension with its own App Store profile. TestFlight verifies both
 identities, entitlements and matching build numbers before upload. Details, evidence and remaining contract/phone
 gates: `docs/stories/ios-native.md`. Internal distribution does not submit either form of Apple review.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.

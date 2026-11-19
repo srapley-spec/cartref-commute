@@ -1,0 +1,230 @@
+# Commute watch: weekday alerts only when they matter (#66)
+
+**Modes:** Commute only. It watches Sam's own journey between Letchworth and the office, and needs no route followed.
+Leisure and Trip are one-off journeys with no fixed time to watch.
+
+## Who and why
+Sam, 19 Nov 2026, on the first real iPhone commute:
+- **Morning:** "I need to know whether to continue getting ready and heading to the station, or if I should consider
+  making alternative arrangements and WFH."
+- **In London:** "I only want to know if there is a real risk of me not getting home or getting home late. A delay of
+  15 mins seems like a good threshold for an amber warning. More than 45, or closed or disrupted (person on track,
+  OHL equipment failure), should trigger this immediately, because the risk of disruption is high and I'd want to rush home."
+- **When:** 05:00–10:00 in the morning, and from 15:00 in the afternoon, Monday to Friday.
+
+## Acceptance criteria
+- **Windows, local time, Monday to Friday:** 05:00–10:00 to the office; home from 15:00 **until you're home** (Sam,
+  19 Nov: "I could get home at 3pm. No point telling me then. I could be in the pub at 8.30 and need to rush to King's
+  Cross"). Not at weekends or on England and Wales bank holidays (`BANK_HOLIDAYS`, gov.uk dates to the end of 2027;
+  extend yearly).
+- **Until you're home.** Evidence ends that evening's watch: the home geofence entered (the iPhone, even with the app
+  closed), home Wi-Fi, or a good fix (100 m or better) within 150 m of home while the app is open. With no evidence it
+  ends after the last trains home, at 01:00 the next morning; those small hours belong to the evening they started.
+  Being home in the morning doesn't end the evening, and reaching the office changes nothing.
+  - **Home before 15:00 and staying in** (review, 19 Nov): an arrival home before the window still counts if the home
+    geofence saw you leave earlier and hasn't seen you leave since (within 12 h of the window; older evidence isn't
+    trusted). With Wi-Fi only (no geofence), an early arrival alone doesn't count.
+  - **Leaving again brings it back:** home at 15:30 and then out to the pub is watched again (a home geofence exit after
+    the arrival). The proxy keeps the latest arrival (`homeAt`) and departure (`leftAt`); an older one delivered late
+    doesn't move either back.
+  - **Already inside when monitoring starts:** iOS reports no entry, so the shell asks for the region's state once
+    monitoring has started (`didStartMonitoringFor` → `requestState`); "inside" counts as arriving.
+  - **Trade-off (Sam, 19 Nov: "never miss an alert" until Home Assistant presence is added):** the 12 h limit means
+    a work-from-home evening may still be watched (an alert at home is possible). A longer limit would risk silence in
+    London if a "left home" signal were lost. Home Assistant's `person.sam_rapley` is the planned primary presence
+    signal, with the geofence as backup.
+  - A report that doesn't reach the proxy (offline) is made again on the next sign of home.
+  - Side effects, accepted: with the watch on and the leave alarm off, a followed journey also gets geofence set-off
+    evidence (a cancel with no alarm does nothing). Starting to follow a journey drops a queued, unsent arrival home.
+  - The page tells the proxy once per evening, only with the watch on and its home window running, never from display
+    mode or a simulation (`/native/evidence` with `kind` "wifi" or "place"). The proxy keeps the latest arrival home
+    (`homeAt`) and doesn't watch, or fetch, for an iPhone home since the window started.
+  - Turning the watch on asks for notifications and for location "Always", which the home geofence needs. Geofences
+    run for the watch even with the leave alarm off: `configure` carries `watch`, and Swift's `geofencing` is the alarm
+    or the watch. With the app closed and nothing followed, arriving home is queued as evidence with no journey (`""`)
+    and sent to the proxy.
+- **Lateness is "how much later you'd get there", not one train.** It is the earliest arrival the live trains still
+  give, from King's Cross, St Pancras and Farringdon (or from Letchworth to all three), against the earliest the
+  timetable gave for trains still to leave, over the next 90 minutes. A cancellation with the next train 10 minutes
+  behind is 10 minutes. A train already due, now running late, never sets "normal". The same train on two boards
+  counts once: going out, the same departure from Letchworth (one Thameslink on the Farringdon and St Pancras boards);
+  coming home, the same timetabled arrival at Letchworth. Of two copies, the one that runs counts: a Thameslink
+  cancelled at Farringdon may still reach St Pancras. When no
+  timetable train is left to compare with, the best train's own lateness is used.
+- **Amber:** at least 15 minutes later than normal (`WATCH_AMBER_MIN`).
+- **Red:** any of these:
+  - more than 45 minutes later than normal (`WATCH_RED_MIN`);
+  - no train running (all cancelled, or none with a time, counting trains stuck at "Delayed" past their time);
+  - Circle, Met and H&C all closed, suspended, planned-closed or not running (TfL 1, 2, 4, 16). "Service Closed" (20),
+    which is how TfL shows the tube before it opens, is not a closure.
+  - a National Rail notice on the boards of a blocking incident:
+    - **Strong phrases win over any other word in the notice:** lines blocked (also "have now been blocked"), unable to
+      run, no trains running, hit by a train, overhead line. "Suspended", "emergency services", "trespass" and "major
+      disruption" count unless the notice is about a facility (lift, step-free, ticket office, car park).
+    - **It must be on your line.** A "between X and Y" stretch counts only when both ends are stations on the way, or
+      on beyond Letchworth to Cambridge. "Between Hitchin and Peterborough" is the East Coast; "between Alexandra
+      Palace and Hertford North" is the Hertford loop. A notice with no stretch must name a station outside London:
+      King's Cross and St Pancras carry every operator's notices.
+    - **It must not be cleared or for another time.** Cleared means specific phrases only: "lines have reopened",
+      "running normally", "disruption has cleared". Not today means planned engineering or works, "this weekend", or
+      "on <a day other than today>". An overrun is never "planned".
+    - **A station of yours named as the incident's place** counts: in the same sentence as the blocking phrase, after
+      "at", "near", "north of", "south of", "outside", "called to" or "in the … area" ("… hit by a train at Hatfield").
+      It doesn't count as where other operators' trains call, stop, start, terminate, turn back or run fast ("LNER trains will not call at Stevenage",
+      "services will start from Stevenage"), or as "via".
+    - **Planned work only can be for another time.** "Expected to continue on Friday" after an incident is today's.
+    - **Accepted miss:** "between Peterborough and Stevenage" includes Stevenage–Hitchin, but telling that needs route
+      order, so it counts only once the trains show it.
+    - **Design choice:** a blocking notice that names only King's Cross, St Pancras or Farringdon counts for nothing by
+      itself. The train data shows its effect, because those trains go late or are cancelled.
+- **Also amber:**
+  - two or more trains stuck at "Delayed" with no estimate, from 10 minutes past their time. Darwin shows "Delayed"
+    for a few minutes around departure, and often hasn't updated the trains behind a stuck one.
+  - all three tube lines badly disrupted or worse (part suspended, part closure, Severe Delays, reduced service,
+    replacement bus). One line alone is nothing, and Minor Delays are nothing.
+- **Unknown, never "ok" and never an alert:** no board read, or boards read but no train listed in the next 90 minutes.
+- **A notice that explains but doesn't block** (signalling fault, "disruption"), such as "Disruption expected until
+  18:00", explains an amber or red but doesn't raise one.
+- **One notification per change, with no flapping (independent review, 19 Nov).**
+  - It notifies when the level rises above the highest sent since the last all-clear: to amber, or amber to red.
+  - A drop counts only after "ok" has held for 3 checks in a row (`WATCH_CLEAR_CHECKS`, 6 minutes). Then a red sends
+    "back to normal" and an amber clears quietly. Lateness steps as trains leave, so 14/15/14/15 is one amber, and
+    46/44/46 one red.
+  - A feed that fails, or "unknown", sends nothing and resets nothing.
+  - Each window starts afresh: the morning's red doesn't silence the afternoon.
+- **What the notifications say:**
+  - Morning red: "Commute: consider working from home". Morning amber: "Commute: delays this morning".
+  - Afternoon red: "Commute: disruption on the way home … If you can, head home now". Afternoon amber: "Commute:
+    delays on the way home".
+  - Every one gives the reason ("About 20 min later than normal", "No trains running: 2 cancelled", or the notice
+    itself) and the best train now ("the 17:15 from KGX, arriving 17:50").
+- **The iPhone app only, off until turned on.**
+  - Settings → Notifications → "Commute watch" (`commuteWatch`) is shown only in the iPhone app, never in display
+    mode, and a browser never writes it.
+  - Turning it on asks for notifications only (not the alarm or location), from Settings, never at start-up.
+  - The proxy receives it as `prefs.watch` (only `true` turns it on); the shell's configuration doesn't carry it.
+  - "Send a test to this iPhone" proves the proxy → Apple → phone path (`/native/test`, at most one a minute).
+  - Alerts show as a banner even while the app is open. **Fixed 19 Nov after the first phone test:** Apple accepted the
+    test ("Sent") but nothing appeared while the app was open. Capacitor's bridge made itself the notification
+    delegate after `AppDelegate` did, and with no push handler it shows nothing in the foreground. Now
+    `capacitor.config.json` sets `ios.handleApplicationNotifications: false`, so `AppDelegate`'s delegate stands.
+    Alerts with the app closed or in the background were never affected.
+- **Proxy cost:**
+  - Inside a window it checks every 2 minutes, only when an iPhone has the watch on: 3 boards and 1 TfL line status
+    per check. That is 150 checks in the morning and up to 300 in the evening (to 01:00), unless you're home sooner: at most 1,350
+    board requests and 450 TfL requests on a watched weekday.
+  - A record is written only when the watch level changes.
+  - It runs after the followed-journey run in the same minute, and writes on top of a fresh read, so a plan the page
+    or that run wrote meanwhile is kept.
+  - **Known risk:** Cloudflare KV is eventually consistent (about a minute). A stale read just after a level change
+    could resend that alert once. A page registration racing the write could drop the stored level and resend once.
+- **Not yet:**
+  - National Rail's incident feed (Knowledgebase Incidents). Sam is arranging the key: `RDM_KB_KEY` and `RDM_KB_BASE`
+    in `your-setup-steps.md`. Until then, incidents come from the notices on the boards.
+  - The always-on morning status card on the lock screen (a Live Activity started by the proxy). It needs Apple's
+    push-to-start in the iPhone shell and a new TestFlight build: #66.
+  - Web push for a browser.
+
+## Home Assistant (built 19 Nov 2026)
+**Why.** Sam, on the evening watch ending when he's home: "The phone always knows where I am. And we can use Home
+Assistant to be doubly sure." The geofence alone can miss an arrival or a departure; Home Assistant already tracks Sam.
+
+**What it does:**
+- Settings → Notifications, under Commute watch: **"Use Home Assistant to know when I'm home"**. Offered only when the
+  app's proxy has Home Assistant set up so it can be read (an https address, a token, a person entity: `/status` says
+  `ha: true`), or when it is already on (so it can be turned off); off until ticked, and used only with the watch on.
+  The iPhone's registration carries `prefs.ha`; the shell isn't told.
+- In the evening window the proxy reads the `person` entity (`person.sam_rapley`, or `HA_PERSON`) once a run, only if an
+  iPhone opted in: `GET <HA_BASE_URL>/api/states/<entity>` with the token, 8 s timeout, https only. Read-only: no
+  service is called and nothing in Home Assistant changes.
+- **"home" ends the evening watch**, even if you were home all day (working from home: "I could get home at 3pm. No point
+  telling me then"). **Anything else** ("not_home", a zone) keeps it going, even if the geofence said home, unless the
+  phone saw you arrive home *after* Home Assistant's state last changed (a stuck tracker; the fresher wins; independent
+  review, 19 Nov). **No reading** (not set up, refused, a redirect, unreachable, "unknown"/"unavailable") falls back to
+  the geofence rule above. The morning watch is
+  never ended by either. Engine: `watchDone` (`src/core/watch.ts`); proxy: `proxy/ha.js`, `proxy/watch.js`.
+- **Send a test to this iPhone** says what Home Assistant reads now ("Home Assistant says you're home / out / couldn't
+  be read"), in the notification and under the button, so Sam can see it works.
+- **Needs from Sam:** a long-lived access token and Home Assistant's https address as Actions secrets `HA_TOKEN` and
+  `HA_BASE_URL` (`your-setup-steps.md`). Deploy proxy passes them to the Worker. **Unverified:** that the Worker can reach
+  Sam's Home Assistant from Cloudflare (an address reachable from the internet is needed, e.g. Nabu Casa's).
+- **Covers:** the commute watch only (Commute; it has no Leisure or Trip form).
+- tests/watch-ha.test.mjs: "Watch with Home Assistant (engine): home ends the evening watch, out keeps it whatever the geofence said, no reading falls back; never the morning"
+- tests/watch-ha.test.mjs: "Home Assistant reading: one GET of the person entity with the token; https only; any failure is no reading"
+- tests/watch-ha.test.mjs: "Proxy watch with Home Assistant: only an iPhone that opted in; HA home stops it, HA out overrides the geofence, HA down falls back; read once a run, never in the morning"
+- tests/watch-ha.test.mjs: "Home Assistant prefs and status: 'ha' kept only when true and with the watch on; /status says whether it's set up (booleans only); the test says what HA reads"
+- tests/watch-ha.test.mjs: "Review: a stuck 'out' loses to an arrival the phone saw later; 'unknown'/'unavailable' and a refusal with a JSON body are no reading; the read has a timeout; a missing last_changed is kept as unknown"
+- tests/watch-ha.test.mjs: "Review: with two iPhones, Home Assistant only decides for the one that opted in"
+- tests/watch-ha.test.mjs: "Review: 'Send a test' leaves Home Assistant alone without the opt-in, and says when it couldn't be read"
+- tests/watch-settings.test.mjs: "Home Assistant in Settings: offered only when the app's proxy has it set up; on, it goes to the proxy (not the shell); off with the watch off; the test says what HA reads"
+
+## Tests
+- tests/core/watch.test.mjs: "Watch windows: weekdays 05:00–10:00 to the office, and home from 15:00 until 01:00 (or until you're home); never at weekends or on a bank holiday"
+- tests/core/watch.test.mjs: "Lateness is how much later you'd get there, not one train: a cancellation with the next train 10 min behind is OK"
+- tests/core/watch.test.mjs: "Amber from 15 min later than normal; red beyond 45; red when nothing runs"
+- tests/core/watch.test.mjs: "National Rail's notices: a blocking incident is red at once; a disruption notice explains amber but doesn't raise it"
+- tests/core/watch.test.mjs: "The tube to the stations: all three lines closed is red; all three badly disrupted is amber; one line alone, or 'Service Closed' before opening, is nothing"
+- tests/core/watch.test.mjs: "No board read at all is 'unknown', never 'ok'"
+- tests/core/watch.test.mjs: "One notification per change: amber once, again on red; a drop counts only after 3 'ok' checks; 'back to normal' only after red; a new window starts again"
+- tests/core/watch.test.mjs: "No flapping: lateness stepping 14/15/14/15 and 46/44/46/44 sends one amber and one red"
+- tests/core/watch.test.mjs: "Trains stuck at 'Delayed' past their time aren't forgotten; a timetable train due already doesn't make 'normal' unreachable"
+- tests/core/watch.test.mjs: "Boards read but no train listed is 'unknown', not 'ok'; 'unable to run' is red"
+- tests/core/watch.test.mjs: "The same train on two boards is counted once"
+- tests/core/watch.test.mjs: "Notices that aren't a blocking incident on your line now: planned works, other routes from the London terminals, facilities, cleared"
+- tests/watch-proxy.test.mjs: "Commute watch: nothing fetched with nobody watching, outside the windows, or on an odd minute"
+- tests/watch-proxy.test.mjs: "Commute watch: one APNs alert when it turns red, none while it stays red, 'back to normal' when it clears"
+- tests/watch-proxy.test.mjs: "Settings' test notification: the iPhone's own registration, one a minute; prefs keep 'watch' only when true"
+- tests/watch-proxy.test.mjs: "Commute watch: the alert is a visible APNs alert; East Coast notices from King's Cross don't go red; the record is written only on a change and keeps what the page wrote meanwhile"
+- tests/watch-proxy.test.mjs: "Commute watch runs in London time on a UTC server in summer, and the cron runs it"
+- tests/watch-settings.test.mjs: "Commute watch: in the iPhone app, off by default; turning it on asks for notifications and location, and goes in what the proxy is sent"
+- tests/watch-settings.test.mjs: "Commute watch: the test button sends through the proxy and says what happened"
+- tests/watch-settings.test.mjs: "Commute watch: not in a browser, and not in display mode"
+- tests/watch-settings.test.mjs: "Commute watch: hidden in display mode even inside the iPhone app; a failed test says so"
+- tests/core/watch.test.mjs: "Home evidence ends the home watch for the rest of that window: the geofence entered, home Wi-Fi, or the app at home"
+- tests/watch-proxy.test.mjs: "Home ends the evening watch: the geofence, home Wi-Fi or the app at home stops it for the rest of the night; tomorrow it runs again"
+- tests/watch-proxy.test.mjs: "Home this morning doesn't stop this evening's watch; away from home (leaving, or the office) changes nothing"
+- tests/watch-settings.test.mjs: "The app tells the proxy you're home once per evening: home Wi-Fi or a good fix at home, only with the watch on, only in the evening window"
+- tests/core/watch.test.mjs: "Review (19 Nov): home before 15:00 and staying in ends the evening watch, if the geofence saw you arrive after leaving; going out again brings it back"
+- tests/watch-proxy.test.mjs: "Review (19 Nov): leaving home brings the evening watch back; an older arrival delivered late doesn't move it back; bad events are refused; London time on a UTC server"
+- tests/watch-settings.test.mjs: "Review (19 Nov): home is never reported from display mode or a simulation, from a fix 300 m away or a poor one, or from leaving the geofence; a failed report is tried again; 'while using' location is upgraded"
+- `ios/NativeCore/Tests/CommuteNativeCoreTests/NativeCoreTests.swift`: `testCommuteWatchAloneKeepsTheGeofencesAndOlderPagesStillDecode`, `testWatchEvidenceWithoutAJourneyIsQueuedSeparately`
+- tests/ios-notifications.test.mjs: "iPhone: alerts show while the app is open: AppDelegate is the notification delegate and Capacitor doesn't take it over"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): a blocking phrase wins over other words; stretches count only when both ends are on your line"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): one train on two morning boards counts once; one stuck train, or a 'Delayed' blip at departure, is not amber"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): the tube part suspended on all three lines is amber, not red; 'ok' must hold 3 checks in a row"
+- tests/watch-proxy.test.mjs: "The cron: the watch starts only after the followed-journey run has finished, and still runs if that run fails"
+- tests/watch-proxy.test.mjs: "The proxy's corridor runs on beyond Letchworth: 'between Hitchin and Cambridge' is your line"
+- tests/core/watch.test.mjs: "Final re-check (19 Nov): a station of yours outside a stretch counts; a follow-on day isn't another day; London-only and facility notices aren't red"
+- tests/core/watch.test.mjs: "Last pass (19 Nov): East Coast notices that mention your stations as calling points or diversions aren't red"
+- tests/core/watch.test.mjs: "Final re-check (19 Nov): of two copies of one morning train, the one that runs counts (cancelled at Farringdon, running to St Pancras)"
+
+Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it found false reds (the tube's
+"Service Closed" every morning; planned, other-route, facility and cleared notices), missed reds (trains stuck at
+"Delayed"; empty boards), flapping and a duplicate count. All are fixed above with tests. Survivors re-checked: London
+time on a UTC server, the corridor passed by the proxy, the push type, the write over a fresh read, the cron calling
+the watch, display mode in the app, and a failed test message. Equivalent or low: the 90-minute horizon (the earliest
+times decide either way), `Math.max(0, …)`, the bridge's `!!`.
+
+Re-review (19 Nov, of 044d28a): the earlier fixes held (42 of 62 mutations caught). It found that the "not now" filter
+hid real incidents ("lines have now been blocked", "overrunning engineering … lines are blocked", "on Thursday" when
+today is Thursday, "Lifts … also out of use", "emergency services have cleared the area"). It also found notices from
+junction stations for other routes going red, one morning train on two boards counted twice (a false amber), and a
+'Delayed' blip at departure counted as stuck. All are fixed above, with tests. Survivors now caught: tube part
+suspended alone, one stuck train, arrival-only 'Delayed', 3 checks in a row, and the cron order and failure.
+
+Final re-check (19 Nov, of b1dd52c): the second round's fixes held. It found four ways a real incident still came
+out "ok": a local station named outside a stretch; a time phrase read as a stretch; "continue on Friday"; and "this
+weekend" after an incident. It also found that a Thameslink cancelled at Farringdon but running to St Pancras was
+counted as cancelled. All are fixed with tests, as are the low survivors it named: the overrun guard, a London-only
+stretch, the facility filter, and the proxy's corridor beyond Letchworth.
+
+Last pass (19 Nov, of 9771b40): those fixes worked, but naming a station anywhere outside a stretch brought back
+false reds from East Coast notices ("will not call at Stevenage", "start from Stevenage", "tickets accepted from
+Hitchin"). Now a station counts only as the incident's place in the same sentence as the blocking phrase. The
+reviewer's seven notices are tests that must not be red, next to the ones that must be. Its pass came with two
+wording follow-ups, both fixed with tests: other verb forms ("terminated at", "stops at", "turn back at"), and
+National Rail's "in the Stevenage area".
+
+Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
+test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.
+APNs from the Worker had not been proven against Apple before this; the test button is the first proof.

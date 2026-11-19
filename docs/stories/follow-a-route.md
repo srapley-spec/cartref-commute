@@ -1,5 +1,5 @@
 # Follow a route
-Status: Behind toggle (independent review approved; release gates recorded in docs/signal-testing.md) · Settings → Experimental · Since: 30 Oct 2026 (evening)
+Status: Done: permanent since 18 Nov (#63; was behind Settings → Experimental). Following a journey is still your explicit choice · Since: 30 Oct 2026 (evening)
 
 ## Story
 As a commuter on my way, when I've decided which journey I'm aiming for, I want to tell the app with one tap and have
@@ -34,6 +34,24 @@ retain an explicitly modelled route-duration fallback. The full acceptance crite
 not a claim that every criterion has already passed release verification. See [Signal testing](../signal-testing.md).
 
 ## Acceptance criteria
+- **Permanent (Sam, 18 Nov, #63).** Follow a route, Any start and end point and Trip need no switch; only Along the line
+  is Experimental. Saved `followRoute`/`follow`/`anyPlace`/`trip` values (missing, false or true) are dropped on load,
+  Save and the iPhone app's cache restore (`RETIRED_SETTINGS`). Once per device from before #63 (`featuresPermanent`
+  absent), what was switched off stays unused: a route saved while Follow was off isn't followed, a Trip left open
+  while Trip was off isn't reopened (its followed Trip dropped), a "Where to?" place saved while Any start and end point
+  was off isn't planned to; anyone who had a feature on keeps everything. **Saved state with no usable settings
+  object** (missing, null, or not an object; 19 Nov follow-up) is ambiguous. Nothing says a switch was on, so it is
+  treated as every switch off, as the defaults were before #63: the same one-time migration drops a dormant route,
+  Trip and destination, and the marker keeps it one-time across Save, reload and the iPhone's cache restore.
+  Unreadable saved state starts fresh. A really cleared iPhone web view, holding only what start-up writes (the marker,
+  the keys move, the default source "proxy"), gets its settings back from the app's cache; before 19 Nov that default
+  source stopped the restore. A restored cache from before the keys move (17 Nov) goes through that move, so no key comes
+  back. Availability isn't use: nothing is followed
+  and Trip isn't entered by itself. Display mode: no Follow, no Trip, no simulation. In Leisure the "Where from?" and
+  "Where to?" rows are hidden while following (12 Nov controls under way), not in a live view without following
+  (in London going home that is where "Where from?" is used). Trip's own services (Google, any station)
+  raise the home-page "Not live" warning only in Trip. An ambiguous typed place costs one retry per station (4
+  requests). Historical compatibility review of each switch's later fixes: `docs/reviews/permanent-features-2026-11-18.md`.
 - **Delayed leave steps (18 Nov review):** when a late train moves Leave by, a step before the train whose original time
   has passed is taken as done only with evidence that you've set off (moved from where you started following, on a
   fresh fix). Still at the start, the leave step moves with the train and stays "Next" (Leave by 10:24 → 10:39; at
@@ -537,10 +555,55 @@ platform or station, and he was standing on another (the tube's). Decided by Sam
   two regressions above (fixed, and tested), the calling-point limitation (documented), and rows a render behind a
   view change (fixed: worked out after the view is settled).
 
+## The tube's destination (19 Nov 2026): built 19 Nov
+**Why.** On the tube home, 17:53, Sam: "Can we be clear here what the destination of the train is. This helps confirm
+which one you're on / getting on." The card said "Met · left 2 min ago" and the leg "Aldgate → King's Cross" with no
+destination: Aldgate's own list gives none for a Met (TfL often says "Check front of train"), and the leg never named
+the tube at all.
+
+**What it shows now:**
+- The current tube leg names the tube under its heading: the line's lozenge and "to **Uxbridge**", or "TfL isn't showing
+  where it's going" when nobody says. The live card's "Your tube: the Met to Uxbridge that left Aldgate at 17:50" uses the
+  same destination, and says "(TfL isn't showing where it's going)" when there is none. "On a different tube?" names
+  each one's destination the same way.
+- Where it comes from (`tubeDestination`, `src/core/followTube.ts`): the tube's own listing when TfL gave a real
+  destination; otherwise the destination TfL gives the **same vehicle on the same line** in any other list the app
+  already holds (the prediction at the station you're riding to, the departures you picked from, the boards at the
+  station). Never "Check front of train" or "unknown"; going home, never "Aldgate" (where you got on). No extra request.
+- **Covers:** Commute and Leisure, both directions, followed or not (the live tube cards and the leg). Trip names its
+  rides from its own planner (`leisure-journeys.md`).
+- **Unverified:** how often TfL's prediction at King's Cross or Farringdon carries a destination for a Met that left
+  Aldgate with none. Sam checks on the next ride home.
+- tests/core/tube-destination.test.mjs: "Tube destination: its own when TfL gave one; else the same vehicle on the same line in another TfL list; never a placeholder"
+- tests/rules.test.mjs: "On the tube home, the tube says where it's going (Sam, 19 Nov); when Aldgate's list didn't, TfL's prediction for the same tube at your stop does"
+
 ## Agreed 10 Nov 2026, not yet built
 From the trip debrief (#57) and the [journey card amendment](../design-system.md#journey-card-amendment--10-november-2026-sam-from-the-trip-debrief-57): one journey card while following (C5, C6, D1), the station wording and urgency (A1, B1), the train stated once (A3, A4), the aboard card (C10, C11), the wrong-train question and "I'm on it" (C1, C2, C4), state kept across a reload (C3) and arrival notices (E2). The criteria above describe the app as built; update them, with tests, as each item ships.
 
 ## Tests
+- tests/permanent-features.test.mjs: "Marker: a fresh device follows, reloads, and is still following"
+- tests/permanent-features.test.mjs: "Marker: a Settings save keeps it, so a followed route survives Save then reload"
+- tests/permanent-features.test.mjs: "Marker: settings restored from an older iPhone cache (no marker) don't wipe what's followed after the restore"
+- tests/permanent-features.test.mjs: "Leisure: 'Where to?' folds away while following too"
+- tests/permanent-features.test.mjs: "Marker: a device with nothing saved at all starts with it (so its first follow survives reloads)"
+- tests/permanent-features.test.mjs: "Fresh install: Follow, Any start and end point and Trip are there with no switch; only Along the line is Experimental"
+- tests/permanent-features.test.mjs: "The iPhone app's cached settings can't bring a retired switch back"
+- tests/permanent-features.test.mjs: "Follow and stop work with no setting, even saved as false before; Siri's follow link works too"
+- tests/permanent-features.test.mjs: "Along the line keeps its own switch, off by default"
+- tests/permanent-features.test.mjs: "Display mode stays read-only: no Follow, no Trip, no simulation, whatever was saved"
+- tests/permanent-features.test.mjs: "A device from before #63 with Follow off: a route left saved isn't followed now (nor sent to alerts or the iPhone app)"
+- tests/permanent-features.test.mjs: "A device from before #63 with Trip off: an open Trip isn't reopened and its followed Trip is dropped; with Trip on, it is kept"
+- tests/permanent-features.test.mjs: "A device from before #63 with Any start and end point off: a 'Where to?' place left saved isn't planned to"
+- tests/permanent-features.test.mjs: "Leisure: 'Where from?' is offered with location, and folds away with the controls while following"
+- tests/permanent-features.test.mjs: "Any start and end point: an ambiguous typed place takes TfL's best guess once per station (4 requests, not 6)"
+- `tests/legacy-settings.test.mjs`: one generated test per kind of unusable settings (missing, null, a string, an array,
+  a number): "Settings <kind>: a dormant route, Trip and destination stay dormant; the migration is done once".
+- tests/legacy-settings.test.mjs: "Missing settings: the one-time migration doesn't run again: a route followed after it survives save and reload, twice"
+- tests/legacy-settings.test.mjs: "Missing settings on the iPhone: cached settings restored after the migration can't bring the dormant route back"
+- tests/legacy-settings.test.mjs: "Valid settings are unchanged by this: explicit switches on keep their journey; a migrated device keeps everything"
+- tests/legacy-settings.test.mjs: "Unreadable saved state starts fresh rather than half-loading"
+- tests/legacy-settings.test.mjs: "A really cleared iPhone web view (nothing saved at all) gets its settings back from the app's cache"
+- tests/legacy-settings.test.mjs: "A restored cache from before the keys move (17 Nov) brings no key back; settings of the device's own are kept"
 - tests/core/journey-card-batch.test.mjs: "Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)"
 - tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"

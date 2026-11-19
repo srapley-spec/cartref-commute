@@ -44,6 +44,8 @@
 
 import { pushRoute, runAlerts } from "./push.js";
 import { nativeRoute, runNative, nativeConfigured } from "./native.js";
+import { runWatch } from "./watch.js";
+import { haConfigured } from "./ha.js";
 
 const ALLOWED_CRS = new Set(["LET", "KGX", "ZFD", "STP"]);
 const CRS = /^[A-Z]{3}$/;
@@ -78,7 +80,8 @@ async function tfl(env, cors, url, refuse) {
 function status(env) {
   return { v: 1, rail: !!(env.RDM_KEY && env.RDM_BASE), serviceDetails: !!(env.RDM_SD_KEY || env.RDM_KEY), tflKey: !!env.TFL_KEY,
     google: !!env.GOOGLE_KEY, anyStation: env.ALLOW_ANY_STATION === "yes",
-    alerts: !!(env.PUSH && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT), native: nativeConfigured(env) };
+    alerts: !!(env.PUSH && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT), native: nativeConfigured(env),
+    ha: haConfigured(env) };
 }
 // Darwin service IDs: letters, digits and the base64 / underscore characters seen in LDBWS IDs.
 const SERVICE_ID = /^[A-Za-z0-9+/=_-]{1,64}$/;
@@ -183,6 +186,7 @@ export default {
   // Time-to-leave and wake-up alerts (proxy/push.js): a Cron Trigger every minute.
   async scheduled(event, env, ctx) {
     const now = Date.now();
-    ctx.waitUntil(Promise.all([runAlerts(env, now), runNative(env, now)]));
+    // The watch runs after the iPhones' journey run: both rewrite the same records, never at the same moment.
+    ctx.waitUntil(Promise.all([runAlerts(env, now), runNative(env, now).catch(() => []).then(() => runWatch(env, now))]));
   },
 };

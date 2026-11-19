@@ -34,7 +34,7 @@ for(const signal of [undefined,false,true])test(`independent Panda retirement: s
  assert.equal(a.c.readSimulationActual().railProgress.diagram,true,'the sole design always verifies its real diagram');
  assert.match(a.text('#hero .journey-total-time'),/^Total journey /,'the new whole-journey label is independent of obsolete design settings');
  assert.match(a.text('#followPanel .journey-total-time'),/^Journey remaining /,'the followed journey uses the same explicit whole-journey meaning');
- assert.equal(a.c.S().followRoute,true);assert.equal(a.c.S().alongLine,true);
+ assert.ok(!('followRoute' in a.c.S()),'Follow is permanent (#63)');assert.equal(a.c.S().alongLine,true);
  assert.equal(a.c.state.saved.followRoute.id,route.id);assert.equal(a.c.state.saved.followRoute.plannedArrival,route.plannedArrival);
  assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),route.option.legs);
  assert.deepEqual(plain(a.c.state.saved.viewOverride),pin);
@@ -47,7 +47,7 @@ for(const signal of [undefined,false,true])test(`independent Panda retirement: s
  assert.equal(a.c.state.boards,boards);assert.deepEqual(a.calls,requests,'appearance-only save does not restart feeds');
  const persisted=JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1'));a.close();
  assert.equal('signal' in persisted.settings,false);
- assert.equal(persisted.settings.followRoute,true);assert.equal(persisted.settings.alongLine,true);
+ assert.equal('followRoute' in persisted.settings,false,'retired switch not written (#63)');assert.equal(persisted.settings.alongLine,true);
  assert.equal(persisted.settings.walkHomeStationAvg,777);assert.equal(persisted.settings.fastFactor,.74);
  for(const key of ['home','pace','planInputs','alongLinePreferences'])assert.deepEqual(persisted[key],saved[key],key);
  assert.equal(persisted.followRoute.id,route.id);assert.deepEqual(persisted.followRoute.option.legs,route.option.legs);
@@ -168,9 +168,9 @@ test('independent Panda retirement: Trip opt-in and its followed address journey
   a.d.querySelector('[data-mode="commute"]').click();
   assert.equal(a.d.documentElement.dataset.trip,'off');assert.equal(a.c.state.saved.tripMode.active,false);
   for(const key of ['from','to','modes','question','recent','follow'])assert.deepEqual(plain(a.c.state.saved.tripMode[key]),trip[key],key);
-  a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_trip').checked=false;submitSettings(a);
-  assert.equal(a.d.querySelector('#tripModeBtn').hidden,true);assert.equal(a.c.S().followRoute,true);
-  a.d.querySelector('#settingsBtn').click();a.d.querySelector('#s_trip').checked=true;submitSettings(a);
+  // Trip is permanent (#63): a Settings save keeps the Trip button and the saved Trip.
+  a.d.querySelector('#settingsBtn').click();submitSettings(a);
+  assert.equal(a.d.querySelector('#tripModeBtn').hidden,false);
   a.d.querySelector('#tripModeBtn').click();assert.equal(a.d.documentElement.dataset.trip,'on');
   assert.equal(a.c.state.saved.tripMode.follow.id,trip.follow.id);
   assert.equal(a.d.querySelector('script[src*="maps.googleapis"]'),null,'missing-key setup remains honest after the upgrade');

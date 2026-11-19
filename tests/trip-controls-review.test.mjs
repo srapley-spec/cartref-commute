@@ -71,18 +71,18 @@ test('Trip controls review: a saved active Trip mounts in the shared host before
  }
 });
 
-test('Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places',async()=>{
+test('Trip controls review: leaving Trip removes its controls and returning keeps the same field handlers and places',async()=>{
  const a=await createApp({now:NOW,settings:TRIP_SETTINGS,route:tripRoute});
  const label=a.text('#routeLabel'),context=a.text('#signalContextSummary');
  await planBrightonCanterbury(a);
  const form=a.d.querySelector('#tripForm'),from=a.d.querySelector('#tripInput-from'),to=a.d.querySelector('#tripInput-to');
- a.c.state.saved.settings.trip=false;a.c.render();await sleep(400);
+ a.c.state.saved.tripMode.active=false;a.c.render();await sleep(400);   // Trip is permanent (#63): leaving the mode, not a switch
  assert.equal(a.d.documentElement.dataset.trip,'off');
  assert.equal(a.d.querySelector('#signalAdjustments #tripForm'),null);
  assert.equal(form.parentElement.id,'tripRoot');
  assert.equal(a.d.querySelector('#tripRoot').hidden,true);
  assert.equal(a.text('#routeLabel'),label);assert.equal(a.text('#signalContextSummary'),context);
- a.c.state.saved.settings.trip=true;a.c.render();
+ a.c.state.saved.tripMode.active=true;a.c.render();
  assert.equal(a.d.querySelector('#signalAdjustments #tripForm'),form);
  assert.equal(a.d.querySelector('#tripInput-from'),from);assert.equal(a.d.querySelector('#tripInput-to'),to);
  assert.equal(from.value,'Brighton Station');assert.equal(to.value,'Canterbury Cathedral');

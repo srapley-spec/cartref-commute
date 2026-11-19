@@ -94,7 +94,8 @@ test("Display mode: a setup link asks on the page (a framed page can't show a br
   assert.ok(app.calls.includes(PROXY + "/status"), "and asks the proxy what it's set up for");
   const s = stored(app);
   assert.equal(s.settings.provider, "proxy"); assert.equal(s.settings.proxyBase, PROXY);
-  assert.equal(s.settings.followRoute, true, "your own switches are stored as they were, not as display mode forces them");
+  assert.equal(s.settings.alongLine, true, "your own switches are stored as they were, not as display mode forces them");
+  assert.ok(!("followRoute" in s.settings), "the retired Follow switch is dropped (permanent since #63), not stored");
   assert.equal(s.view, "by"); assert.deepEqual(s.followRoute, { marker: "kept" });
   app.close();
 });

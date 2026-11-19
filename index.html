@@ -747,6 +747,9 @@ html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#si
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 html .signal-disruption-title[hidden] {display:none}
+/* Which tube, and where it's going (19 Nov): checked against the train's front. */
+html .journey-progress .jp-service {margin:0;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+html .journey-progress .jp-service .jp-muted {font-size:13px;color:var(--muted)}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -913,7 +916,7 @@ html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:cent
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 22:57 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:37 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -994,17 +997,33 @@ html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:cent
     </fieldset>
 
     <fieldset>
-      <legend>Experimental</legend>
-      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
-      <label class="f wide"><span><input type="checkbox" id="s_followRoute"> Follow a route — keep your chosen journey, with reasons when times change. Independent of appearance.</span></label>
+      <legend>Appearance</legend>
       <label class="f wide" id="appearanceControl"><span>Appearance</span><select id="s_appearance"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_anyPlace" style="margin-top:3px"><span>Any start and end point: in Leisure, plan to any London place (train, then TfL from the station), and home from anywhere you type.</span></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_trip" style="margin-top:3px"><span>Trip: plan door to door by rail between any two addresses in London, the South East and the East of England (walk, cycle or drive to the station).</span></label>
-      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. Needs My proxy, and on iPhone the Home Screen app.</span></label>
+    </fieldset>
+
+    <fieldset id="notificationFields">
+      <legend>Notifications</legend>
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_leaveAlerts" style="margin-top:3px"><span>Time-to-leave alerts: a notification 5 min before Leave by for a journey you follow (and when it moves or the train is cancelled), and a weekday wake-up warning when your morning trains are delayed. On iPhone: the Home Screen app (in the iPhone app, the leave alarm below does this).</span></label>
       <label class="f" id="wakeAtRow"><span>Wake-up check (weekdays)</span><input id="s_wakeAt" type="time" value="06:30"></label>
       <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
+      <div id="watchFields" hidden>
+        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and from 15:00 until you're home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). The evening watch runs until you're home: your home Wi-Fi, or your location (Always) at home, ends it for the night. Not on bank holidays. Nothing needs following.</span></label>
+        <label id="watchHaRow" style="display:flex;gap:8px;align-items:flex-start" hidden><input type="checkbox" id="s_watchHa" style="margin-top:3px"><span>Use Home Assistant to know when I'm home: home ends the evening watch; out keeps it going, whatever the phone last said.</span></label>
+        <button type="button" class="ghost" id="watchTestBtn">Send a test to this iPhone</button>
+        <p class="hint" id="watchStatus" aria-live="polite"></p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Experimental</legend>
+      <label class="f wide"><span><input type="checkbox" id="s_alongLine"> Along the line — discover views, places and railway stories. Off by default.</span></label>
       <p class="hint">Off: the app works exactly as before.</p>
+    </fieldset>
+
+    <fieldset id="simulationFields">
+      <legend>Simulation and testing</legend>
+      <p class="hint">For testing only: nothing here is live. Each starts only when you turn it on, lasts until you stop it or reload, and puts your real journey state back afterwards. While one runs, the iPhone app's Live Activity, alarm and proxy updates are not touched.</p>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulatedFeeds" style="margin-top:3px"><span>Transport Feed Simulation — synthetic Darwin and TfL data. Off by default.</span></label>
       <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_simulator" style="margin-top:3px"><span>GPS Simulation — manual location and route playback. Off by default.</span></label>
     </fieldset>
@@ -1184,6 +1203,7 @@ var CommuteCore = (() => {
     ALONG_INTERESTS: () => ALONG_INTERESTS,
     AT_OFFICE_KM: () => AT_OFFICE_KM,
     BAD_SEV: () => BAD_SEV,
+    BANK_HOLIDAYS: () => BANK_HOLIDAYS,
     BLOCKS: () => BLOCKS,
     COUNTDOWN_URGENT_MS: () => COUNTDOWN_URGENT_MS,
     COUNTDOWN_WORDS: () => COUNTDOWN_WORDS,
@@ -1239,6 +1259,13 @@ var CommuteCore = (() => {
     TUBE_REACH_SLACK_MS: () => TUBE_REACH_SLACK_MS,
     TripError: () => TripError,
     VIEW_OVERRIDE_MS: () => VIEW_OVERRIDE_MS,
+    WATCH_AMBER_MIN: () => WATCH_AMBER_MIN,
+    WATCH_CLEAR_CHECKS: () => WATCH_CLEAR_CHECKS,
+    WATCH_HOME_STILL_MS: () => WATCH_HOME_STILL_MS,
+    WATCH_RED_MIN: () => WATCH_RED_MIN,
+    WATCH_TUBE_LINES: () => WATCH_TUBE_LINES,
+    WATCH_WINDOWS: () => WATCH_WINDOWS,
+    WATCH_WINDOW_MIN: () => WATCH_WINDOW_MIN,
     WAY_COMFORT_MIN: () => WAY_COMFORT_MIN,
     WIFI_ACCURACY_M: () => WIFI_ACCURACY_M,
     accessOf: () => accessOf,
@@ -1464,6 +1491,7 @@ var CommuteCore = (() => {
     tripPhase: () => tripPhase,
     tripRecoveryStart: () => tripRecoveryStart,
     tripRideTimingUsable: () => tripRideTimingUsable,
+    tubeDestination: () => tubeDestination,
     tubeFallbackNeeded: () => tubeFallbackNeeded,
     tubeFlags: () => tubeFlags,
     tubeHomeConnections: () => tubeHomeConnections,
@@ -1478,7 +1506,14 @@ var CommuteCore = (() => {
     walkFromStopSecs: () => walkFromStopSecs,
     walkSecs: () => walkSecs,
     walkSteps: () => walkSteps,
+    watchDone: () => watchDone,
+    watchHomeDone: () => watchHomeDone,
+    watchHomeEvidence: () => watchHomeEvidence,
+    watchLeftHome: () => watchLeftHome,
+    watchStep: () => watchStep,
     watchStop: () => watchStop,
+    watchVerdict: () => watchVerdict,
+    watchWindow: () => watchWindow,
     wayLevel: () => wayLevel,
     whichTrain: () => whichTrain,
     whichTube: () => whichTube,
@@ -3976,6 +4011,23 @@ var CommuteCore = (() => {
     }
     return null;
   }
+  var usableDest = (d, notTo) => {
+    const s = String(d != null ? d : "").replace(/ Underground Station/i, "").replace(/ \([^)]*Line\)/i, "").trim();
+    return !s || /check front of train|^unknown$/i.test(s) || notTo && notTo.test(s) ? "" : s;
+  };
+  function tubeDestination(tube, lists, notTo) {
+    if (!tube) return "";
+    const own = usableDest(tube.dest, notTo);
+    if (own) return own;
+    const v = String(tube.vehicle || "");
+    if (!v) return "";
+    for (const list of lists) for (const p of list || []) {
+      if (String(p.vehicle || "") !== v || tube.lineId && p.lineId && p.lineId !== tube.lineId) continue;
+      const d = usableDest(p.dest, notTo);
+      if (d) return d;
+    }
+    return "";
+  }
 
   // src/core/followMigration.ts
   var MIN2 = 6e4;
@@ -5686,6 +5738,197 @@ var CommuteCore = (() => {
   ];
   var samAlongStations = [{ code: "LET", name: "Letchworth" }, { code: "HIT", name: "Hitchin" }, { code: "SVG", name: "Stevenage" }, { code: "KBW", name: "Knebworth" }, { code: "WLW", name: "Welwyn North" }, { code: "WGC", name: "Welwyn Garden City" }, { code: "HAT", name: "Hatfield" }, { code: "PBR", name: "Potters Bar" }, { code: "AAP", name: "Alexandra Palace" }, { code: "FPK", name: "Finsbury Park" }];
 
+  // src/core/watch.ts
+  var WATCH_AMBER_MIN = 15;
+  var WATCH_RED_MIN = 45;
+  var WATCH_WINDOW_MIN = 90;
+  var WATCH_WINDOWS = [
+    { direction: "office", from: "05:00", to: "10:00" },
+    { direction: "home", from: "15:00", to: "25:00" }
+  ];
+  var BANK_HOLIDAYS = /* @__PURE__ */ new Set([
+    "2026-12-25",
+    "2026-12-28",
+    "2027-01-01",
+    "2027-03-26",
+    "2027-03-29",
+    "2027-05-03",
+    "2027-05-31",
+    "2027-08-30",
+    "2027-12-27",
+    "2027-12-28"
+  ]);
+  var WATCH_TUBE_LINES = ["circle", "metropolitan", "hammersmith-city"];
+  var isoLocal = (t2) => {
+    const d = new Date(t2);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  var minutesOf = (hm) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
+  function watchWindow(now) {
+    for (const back of [0, 1]) {
+      const start = new Date(now);
+      start.setDate(start.getDate() - back);
+      start.setHours(0, 0, 0, 0);
+      const day2 = start.getDay(), date = isoLocal(start.getTime());
+      if (day2 === 0 || day2 === 6 || BANK_HOLIDAYS.has(date)) continue;
+      const m = Math.round((now - start.getTime()) / 6e4);
+      const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
+      if (w) {
+        const from = new Date(start);
+        from.setHours(0, minutesOf(w.from), 0, 0);
+        return { direction: w.direction, date, key: `${date}-${w.direction}`, from: from.getTime() };
+      }
+    }
+    return null;
+  }
+  function watchHomeEvidence(ev) {
+    return !!ev && ev.place === "home" && (ev.kind === "region" ? ev.event === "enter" : ev.kind === "wifi" || ev.kind === "place");
+  }
+  function watchLeftHome(ev) {
+    return !!ev && ev.kind === "region" && ev.place === "home" && ev.event === "exit";
+  }
+  var WATCH_HOME_STILL_MS = 12 * 36e5;
+  function watchHomeDone(window, homeAt, leftAt) {
+    if (!window || window.direction !== "home" || typeof homeAt !== "number" || !Number.isFinite(homeAt)) return false;
+    const left = typeof leftAt === "number" && Number.isFinite(leftAt) ? leftAt : null;
+    if (left != null && left > homeAt) return false;
+    return homeAt >= window.from || left != null && window.from - homeAt <= WATCH_HOME_STILL_MS;
+  }
+  function watchDone(window, homeAt, leftAt, ha) {
+    if (!window || window.direction !== "home") return false;
+    if (ha && typeof ha.state === "string" && ha.state && ha.state !== "unknown" && ha.state !== "unavailable") {
+      if (ha.state === "home") return true;
+      const home = typeof homeAt === "number" && Number.isFinite(homeAt) ? homeAt : null;
+      return home != null && typeof ha.since === "number" && Number.isFinite(ha.since) && home > ha.since && watchHomeDone(window, homeAt, leftAt);
+    }
+    return watchHomeDone(window, homeAt, leftAt);
+  }
+  var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
+  var WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
+  var FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|machine)|car park|waiting room)/i;
+  var AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
+  var CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+  var blocking = (m) => STRONG_NOTICE.test(m) || WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m);
+  var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  function notToday(m, now) {
+    if (/overrun/i.test(m) || !/(planned|engineering|improvement works|no trains will run)/i.test(m)) return false;
+    if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
+    const today = DAYS[new Date(now).getDay()];
+    const day2 = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
+    return !!day2 && day2[1].toLowerCase() !== today;
+  }
+  var TUBE_CLOSED = [1, 2, 4, 16];
+  var TUBE_BAD = [3, 5, 6, 7, 8];
+  var STUCK_LOOKBACK_MIN = 60;
+  var STUCK_AFTER_MIN = 10;
+  var schedArr = (t2) => t2.arr == null ? null : t2.arr - (t2.arrLate || 0) * 6e4;
+  var schedDep = (t2) => t2.dep - (t2.depLate || 0) * 6e4;
+  function onYourLine(m, corridor) {
+    if (!corridor) return true;
+    const all2 = new RegExp(`^(london )?(${corridor})`, "i");
+    const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
+    const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| on | via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+    if (stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
+    const place = new RegExp(`(?<!(?:call|stop|terminat|start|turn(?:ed)? back|run(?:ning)? fast)\\w* )\\b(?:at|near|north of|south of|outside|called to|in the) (?:london )?(?:${corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|")})`, "i");
+    return m.split(/(?<=[.!?])\s+/).some((sentence) => blocking(sentence) && place.test(sentence));
+  }
+  function watchVerdict(direction, boards, tube, now, policy, corridor) {
+    const read = Object.values(boards).filter((b) => !!b);
+    const out = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, stuck: 0, reasons: [] };
+    if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
+    const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4;
+    const keyOf3 = (t2) => {
+      const sa = schedArr(t2);
+      return direction === "office" ? `${t2.operator}|${t2.from}|${schedDep(t2)}` : sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
+    };
+    const runs = (t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null;
+    const better = (a, b) => runs(b) && (!runs(a) || b.arr < a.arr);
+    const chosen = /* @__PURE__ */ new Map();
+    for (const t2 of read.flatMap((b) => b.services || [])) {
+      const k = keyOf3(t2), had = chosen.get(k);
+      if (!had || better(had, t2)) chosen.set(k, t2);
+    }
+    const trains = [...chosen.values()].filter((t2) => {
+      const sd = schedDep(t2);
+      return sd <= horizon && (sd >= now || !t2.cancelled && (t2.dep >= now || (t2.depUnknown || t2.arrUnknown) && sd >= back));
+    });
+    out.cancelled = trains.filter((t2) => t2.cancelled && schedDep(t2) >= now).length;
+    out.stuck = trains.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown) && schedDep(t2) <= now - STUCK_AFTER_MIN * 6e4).length;
+    const normal = trains.filter((t2) => schedDep(t2) >= now).map(schedArr).filter((x) => x != null);
+    const running = trains.filter((t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null && t2.dep >= now);
+    const best = running.reduce((a, t2) => !a || t2.arr < a.arr ? t2 : a, null);
+    let level = "ok";
+    const raise = (l) => {
+      if (l === "red" || l === "amber" && level === "ok") level = l;
+    };
+    if (normal.length) out.normalArrive = Math.min(...normal);
+    if (best) {
+      out.train = best;
+      out.expectedArrive = best.arr;
+    }
+    if (!trains.length) level = "unknown";
+    else if (!best) {
+      raise("red");
+      out.reasons.push(out.cancelled ? `No trains running: ${out.cancelled} cancelled` : "No train has a time");
+    } else {
+      out.lateMin = out.normalArrive != null ? Math.max(0, Math.round((best.arr - out.normalArrive) / 6e4)) : Math.max(best.depLate || 0, best.arrLate || 0);
+      if (out.lateMin > WATCH_RED_MIN) raise("red");
+      else if (out.lateMin >= WATCH_AMBER_MIN) raise("amber");
+      if (out.lateMin >= WATCH_AMBER_MIN) out.reasons.push(`About ${out.lateMin} min later than normal`);
+    }
+    if (out.stuck >= 2) {
+      raise("amber");
+      out.reasons.push(`${out.stuck} trains delayed with no estimate`);
+    }
+    if (out.cancelled && best) out.reasons.push(`${out.cancelled} cancelled`);
+    const msgs = [...new Set(read.flatMap((b) => b.msgs || []))];
+    const redMsg = msgs.find((m) => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
+    const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
+    if (redMsg) {
+      raise("red");
+      out.reasons.push(redMsg);
+    } else if (amberMsg && level !== "ok" && level !== "unknown") out.reasons.push(amberMsg);
+    const lines = (tube || []).filter((l) => WATCH_TUBE_LINES.includes(l.id));
+    if (lines.length === WATCH_TUBE_LINES.length) {
+      const closed = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev)));
+      const bad = lines.every((l) => l.statuses.some((s) => TUBE_CLOSED.includes(s.sev) || TUBE_BAD.includes(s.sev)));
+      if (closed) {
+        raise("red");
+        out.reasons.push("Circle, Met and H&C all closed or suspended");
+      } else if (bad) {
+        raise("amber");
+        out.reasons.push("Circle, Met and H&C all disrupted");
+      }
+    }
+    out.level = level;
+    return out;
+  }
+  var WATCH_CLEAR_CHECKS = 3;
+  function watchStep(prev, window, v, now) {
+    const same = !!prev && prev.key === window.key;
+    const peak = same && (prev.level === "amber" || prev.level === "red") ? prev.level : "ok";
+    const okRun = same ? prev.okRun || 0 : 0;
+    const keep = (level, run2) => run2 ? { key: window.key, level, okRun: run2 } : { key: window.key, level };
+    if (v.level === "unknown") return { notice: null, state: keep(peak, okRun) };
+    const rank2 = (l) => l === "red" ? 2 : l === "amber" ? 1 : 0;
+    const tag = `watch-${window.key}`;
+    const going = window.direction === "office" ? "to the office" : "home";
+    const way = v.train && v.expectedArrive != null ? `Best now: the ${v.train.std} from ${v.train.from}, arriving ${hhmm(v.expectedArrive)}.` : "";
+    const why = v.reasons.slice(0, 2).join(". ");
+    if (rank2(v.level) > rank2(peak)) {
+      const title = v.level === "red" ? window.direction === "office" ? "Commute: consider working from home" : "Commute: disruption on the way home" : window.direction === "office" ? "Commute: delays this morning" : "Commute: delays on the way home";
+      const act = v.level === "red" && window.direction === "home" ? " If you can, head home now." : "";
+      return { notice: { kind: "watch", tag, title, body: [why, way].filter(Boolean).join(". ").replace(/\.\./g, ".") + act }, state: keep(v.level, 0) };
+    }
+    if (v.level !== "ok") return { notice: null, state: keep(peak, 0) };
+    const run = peak === "ok" ? 0 : okRun + 1;
+    if (peak !== "ok" && run >= WATCH_CLEAR_CHECKS) {
+      const notice = peak === "red" ? { kind: "watch", tag, title: `Commute: back to normal ${going}`, body: way || "Trains are running close to normal again." } : null;
+      return { notice, state: keep("ok", 0) };
+    }
+    return { notice: null, state: keep(peak, run) };
+  }
+
   // src/core/alerts.ts
   var LEAVE_ALERT_SOON_MS = 5 * 6e4;
   var LEAVE_ALERT_CHANGE_MS = 2 * 6e4;
@@ -5769,8 +6012,8 @@ var CommuteCore = (() => {
     return { notice: null, state: s, done: false };
   }
   var cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
-  var localMinute = (now) => ({ hm: hhmm(now), day: new Date(now).getDay(), date: isoLocal(now) });
-  var isoLocal = (t2) => {
+  var localMinute = (now) => ({ hm: hhmm(now), day: new Date(now).getDay(), date: isoLocal2(now) });
+  var isoLocal2 = (t2) => {
     const d = new Date(t2);
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
@@ -5827,6 +6070,7 @@ var CommuteCore = (() => {
     next: { calm: "in", urgent: "Now", passed: "" }
   };
   var fin = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var clean = (s) => typeof s !== "string" ? "" : s.replace(/\s+/g, " ").split(" \xB7 ").map((x) => x.trim()).filter(Boolean).join(" \xB7 ").replace(/^·\s*|\s*·$/g, "").trim();
   function platformLabelText(platform, station) {
     return `Be on ${platform ? `platform ${platform}` : "the platform"}${station ? ` at ${station}` : ""} by`;
   }
@@ -5870,6 +6114,7 @@ var CommuteCore = (() => {
       arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
       train: i.train || null,
       progress,
+      step: i.step && clean(i.step.text) ? { text: clean(i.step.text), detail: clean(i.step.detail) || null } : null,
       status: i.status || null,
       alarm: i.alarm || null,
       deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null
@@ -5900,7 +6145,16 @@ var CommuteCore = (() => {
     };
     if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
     const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
-    if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
+    if (arr != null && now >= arr) return journeySnapshot({
+      ...base,
+      phase: "walk-last",
+      headline: { label: arriveOut.label, t: doorArrive, step: "arrive" },
+      arrive: arriveOut,
+      alarm: null,
+      // Off the train, it leaves the card (#57 H29): its "3 min late" and platform are no longer yours.
+      train: null,
+      status: null
+    });
     if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
     const alarm = leaveAlarm(leaveBy2, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now, startPlace: plan.startPlace });
     if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
@@ -5929,6 +6183,7 @@ var CommuteCore = (() => {
       s.progress && s.progress.line,
       !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
+      s.step ? [s.step.text, s.step.detail] : null,
       // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
       s.headline.countdown && s.headline.countdown.state,
       s.headline.t,
@@ -6073,7 +6328,7 @@ const hubHere = () => C.hubHere(fix(), PROFILE);
 const APP_PROXY = "https://cartref-rail.s-rapley.workers.dev";
 // All durations in seconds.
 const DEFAULTS = {
-  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,followRoute:false,appearance:"system",
+  simulatorEnabled:false,simulatedFeeds:false,alongLine:false,appearance:"system",
   // Live data comes through the app's own proxy, which holds every key (Sam, 17 Nov). The phone-key sources below stay
   // only as internal adapters (tests and recorded feeds); nothing in Settings sets them.
   provider:"proxy",
@@ -6103,14 +6358,39 @@ if(DISPLAY) document.documentElement.classList.add("display-mode");
 if(DISPLAY_NEXT) document.documentElement.classList.add("display-next");
 const displaySaved = saved => DISPLAY ? { mode:"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
 // Display mode never follows a route, opens Along the line or runs the simulator, whatever Settings say.
-const DISPLAY_OFF = { followRoute:false, alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
+const DISPLAY_OFF = { alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
+// Retired feature switches (Sam, 18 Nov, #63): Follow a route, Any start and end point and Trip are permanent. Saved
+// true/false values are dropped wherever settings come in (load, Save, the iPhone app's offline copy), so none can
+// switch a feature off again. Availability isn't use: following a journey and choosing Trip stay explicit actions.
+const RETIRED_SETTINGS = ["followRoute","follow","anyPlace","trip"];
+const dropRetired = settings => { if(settings&&typeof settings==="object") RETIRED_SETTINGS.forEach(k=>{ delete settings[k]; }); return settings; };
+/**
+ * Once, for a device from before #63 (no `featuresPermanent`): what someone had switched off stays unused. A route
+ * left saved while Follow was off isn't followed now; a Trip left open while Trip was off isn't reopened (nor its
+ * followed Trip); a "Where to?" place left while Any start and end point was off isn't planned to. Those who had a
+ * feature on keep everything (18 Nov review of #63: "off wins", 41c43d9).
+ */
+function migratePermanent(saved){
+  const st=saved.settings; if(!st||st.featuresPermanent) return;
+  const followOn=st.followRoute===true||(st.followRoute===undefined&&st.follow===true);
+  if(!followOn){ delete saved.followRoute; if(saved.follow&&typeof saved.follow==="object") delete saved.follow; }
+  if(st.trip!==true&&saved.tripMode&&typeof saved.tripMode==="object"){ saved.tripMode={...saved.tripMode,active:false}; delete saved.tripMode.follow; }
+  if(st.anyPlace!==true) delete saved.dest;
+  st.featuresPermanent=1;
+}
+/** Follow a route is always available, except on the read-only display. */
+const followAvailable = () => !DISPLAY;
 
 function load(){
   try{
     const saved=JSON.parse(localStorage.getItem(LS)||"{}");
+    if(!saved||typeof saved!=="object"||Array.isArray(saved)) return {};
+    // No usable settings object (missing, null, not an object: follow-up to the #63 review, 19 Nov): nothing says a
+    // retired switch was on, so it is every switch off, as the defaults were, and the one-time migration runs on it.
+    if(!saved.settings||typeof saved.settings!=="object"||Array.isArray(saved.settings)) saved.settings={};
     // Retired appearance preference: ignore old true/false values without changing
     // any journey, source, home, timing or independently saved Follow preference.
-    if(saved?.settings)delete saved.settings.signal;
+    delete saved.settings.signal; migratePermanent(saved); dropRetired(saved.settings);
     return saved;
   }catch(e){return {};}
 }
@@ -6123,10 +6403,10 @@ const state = { saved:displaySaved(Object.assign({mode:"commute",dirMode:"auto",
   lastHub:null, diag:{},
   boards:null, status:null, nrStatus:null, errors:[], autoDir:null, autoSrc:"", fetchedAt:null, loading:false,
   here:null, origin:"", london:null, londonErr:"" };
+// A device with nothing saved starts permanent (nothing to carry over from the switches).
+if(!state.saved.settings.featuresPermanent) state.saved.settings.featuresPermanent=1;
 // Simulation is a session opt-in; reload always returns to device GPS and live sources.
 delete state.saved.settings.simulatorEnabled;delete state.saved.settings.simulatedFeeds;
-// Preserve the Follow switch shipped on main. An explicit new choice always wins.
-if(!Object.prototype.hasOwnProperty.call(state.saved.settings,'followRoute')&&typeof state.saved.settings.follow==='boolean')state.saved.settings.followRoute=state.saved.settings.follow;
 const S = () => Object.assign({}, DEFAULTS, state.saved.settings, DISPLAY ? DISPLAY_OFF : null);
 function beginSimulationSession(){if(!simulationSnapshot){
  simulationSnapshot=JSON.parse(JSON.stringify(state.saved));
@@ -6173,6 +6453,10 @@ function invalidateSources({preserveRateLimits=false}={}){
  for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
  state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();if(preserveRateLimits)state.tflBackoffUntil=backoff;else reqLog.length=0;
 }
+// A change of live-data source (Settings, the display's setup link): Trip's boards, ages and plans belong to the old
+// source too (Sam, 19 Nov), so they are cleared and planned again on its next refresh. Not on entering or leaving Trip
+// or on pagehide (review 19 Nov: that re-planned every time you came back to Trip).
+function invalidateSourcesAndTrip(){ invalidateSources(); if(tripUi) tripUi.reset(); }
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
 async function fetchT(url, opts){
@@ -6439,12 +6723,15 @@ function legLabel(l){
   return `${m==="bus"?"Bus ":""}${name} ${d}m`;
 }
 // Feature toggle (Settings → Experimental): any start and end point. Off = the app as before.
-const anyPlace = () => !!S().anyPlace;
+// Any start and end point is permanent (#63); where it applies (Leisure) is decided where it is used.
+const anyPlace = () => true;
 async function fetchLondon(from){
-  const go=async to=>{
-    let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
+  // TfL's "which place?" (300): its best guess, for this hub only and only once (review 18 Nov, #63: re-planning
+  // both hubs for each doubled the requests).
+  const go=async (to,place=from,retried=false)=>{
+    let r; try{ r=await fetchTfl_(`https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(place)}/to/${to}?walkingSpeed=slow&journeyPreference=leasttime`); }
     catch(e){ if(e.rateLimited) throw e; throw new Error(e.timeout?"TfL's journey planner didn't respond in time.":"Couldn't reach TfL's journey planner."); }
-    if(r.status===300 && anyPlace()){ const m=C.tflPickPlaces(await r.json()).from; if(m && m.value!==from) return (await fetchLondon(m.value))[to===TFL_HUBS.FAR?"FAR":"KXSP"]; }
+    if(r.status===300 && !retried){ const m=C.tflPickPlaces(await r.json()).from; if(m && m.value!==place) return go(to,m.value,true); }
     if(r.status===300) throw new Error("TfL couldn't pin down that place. Try a full postcode.");
     if(!r.ok) throw new Error(`TfL journey planner error (HTTP ${r.status}).`);
     const js=(await r.json()).journeys||[]; if(!js.length) throw new Error("TfL found no journey from there.");
@@ -6651,6 +6938,16 @@ function boardBtns(hub, list, all, now, dflt){
 // On the tube the board is gone: the others that left, by how long ago (ticking).
 const goneBtns = (hub, list, now, dflt) => list.map(a=>tubeBtn(hub, a, `${lineDest(a, dflt)} · <span data-leftago="${a.t}">${C.leftAgo(now-a.t)}</span>`)).join("");
 const lineIdOf = line => ({Circle:"circle",Met:"metropolitan","H&C":"hammersmith-city"})[line]||"circle";
+// Where a tube is going, from its own listing or any other TfL list the app holds for the same vehicle (Sam, 19 Nov:
+// "Can we be clear here what the destination of the train is. This helps confirm which one you're on"). Going home,
+// "Aldgate" is never a destination (that's where you got on).
+function tubeDest(t, homeward){
+  if(!t) return "";
+  return C.tubeDestination({dest:t.dest,vehicle:t.vehicle,lineId:t.lineId||(t.line?lineIdOf(t.line):null)},
+    [state.followTransport&&state.followTransport.predictions,state.aldDeps&&state.aldDeps.list,state.saved.aldHome&&state.saved.aldHome.deps,
+     state.tube&&state.tube.arrivals,state.lastHub&&state.lastHub.arrivals,state.ald&&state.ald.arrivals],homeward?/^aldgate\b/i:undefined);
+}
+const withDest = (list, homeward) => (list||[]).map(a=>({...a,dest:tubeDest(a,homeward)}));
 // The line's colour class for a lozenge naming it; none for an unknown line.
 const lineCls = line => ({Circle:"circle",Met:"met","H&C":"hc"})[line]||"";
 // A ride (engine Ride) from a London station on the tube you picked or were worked out to be on.
@@ -7163,12 +7460,12 @@ function renderOnTubeHome(now){
   // Still at Aldgate with a good, fresh fix well after your tube left: ask.
   const ask = C.rideDoubtful(r, now, fix(), GEO.ALD, 0.15) ? `<div class="alt" data-block="which"><b>Still at Aldgate?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
-  const others = C.otherTubes(a&&a.deps, r, now);
+  const others = withDest(C.otherTubes(a&&a.deps, r, now), true), rd=tubeDest(r,true);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns("ALD", others, now, "")}</div>` : "";
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:best.stop,stationArrival:best.stopAt,arrival:best.arrive,dest:'home'})}</div>
-    <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${rd?` to ${esc(rd)}`:""} that left Aldgate at ${hhmm(r.t)}${rd?"":" (TfL isn't showing where it's going)"}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which">${journeyFactsMarkup(best.o,{arrival:best.arrive,duration:'remaining'})}<span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -7186,13 +7483,13 @@ function renderOnTube(now){
   const leg=officeLeg(r.hub, lineIdOf(r.line))||officeLeg(r.hub,"circle"), ride=leg.rideMs, tail=leg.tailMs;
   const lh=state.lastHub && state.lastHub.hub===r.hub ? state.lastHub : null;
   const auto = !r.picked && lh ? whichTube(now) : null;
-  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:r.dest }, other: auto && auto.other && auto.other.t!==r.t ? auto.other : null };
+  const w = { best:{ t:r.t, line:r.line, vehicle:r.vehicle, dest:tubeDest(r,false) }, other: auto && auto.other && auto.other.t!==r.t ? {...auto.other,dest:tubeDest(auto.other,false)} : null };
   const head=`<div class="lbl" data-block="label">On the tube · ${hhmm(now)} · ${r.picked?"the tube you picked":`worked out from when you left ${esc(HUB_NAME[r.hub])}`}</div>`;
   // Still at the station you left, well after your tube went (a good, fresh fix): ask rather than guess.
   const ask = C.rideDoubtful(r, now, fix(), PROFILE.places.hubGeo[r.hub]||null, PROFILE.places.atHubKm) ? `<div class="alt" data-block="which"><b>Still at ${esc(HUB_NAME[r.hub])}?</b> Did you get the ${hhmm(r.t)} ${esc(r.line||"tube")}?
     <div class="pick" data-block="which"><button type="button" class="pickbtn" data-ride="yes">Yes, I'm on it</button><button type="button" class="pickbtn" data-ride="no">No, still here</button></div></div>` : "";
   // A different tube: the others that left around then.
-  const others = C.otherTubes(lh&&lh.arrivals, r, now);
+  const others = withDest(C.otherTubes(lh&&lh.arrivals, r, now), false);
   const swap = others.length ? `<div class="pick" data-block="which"><small>On a different tube?</small>${goneBtns(r.hub, others, now, "Aldgate")}</div>` : "";
   // Live arrival at Aldgate when it's that train (Aldgate East has no live feed here: estimate).
   const target=(PROFILE.places.officeStops||[]).find(stop=>stop.name===leg.stop);
@@ -7205,7 +7502,7 @@ function renderOnTube(now){
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:leg.stop,stationArrival:aldT,arrival:office,dest:live?'office':'office · estimate'})}</div>
     ${journeyFactsMarkup(null,{arrival:office,unavailable:false,duration:'remaining'})}
-    <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?`Your tube: ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`:`Probably the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div data-block="which"><span class="slack ${lineCls(w.best.line)}" data-native-step${leg&&leg.stop?` data-native-detail="Get off at ${esc(leg.stop)}"`:""}>${r.picked||r.confirmed?`Your tube: ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`:`Probably the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
     <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${ride}">~${dur(ride)} Tube</span></div>
     ${ask}
     <ol class="legs" data-block="then">
@@ -7281,7 +7578,7 @@ function renderAtHub(now){
     const nearly = "";
     hero=`${head}
       <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next tube',isLeave:false,step:'next'})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
-      <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px">eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
+      <div data-block="which"><span class="slack ${lineCls(n.line)}" data-native-step>${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px" data-native-detail>eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}" data-native-skip></span>${plan.spareMin>=1?`<span data-native-skip> · about ${plan.spareMin} min to spare on the platform</span>`:""}</span></div>
       <ol class="legs" data-block="then">
         <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
@@ -7294,7 +7591,7 @@ function renderAtHub(now){
     const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle, Met or H&C trains listed." : "Loading live tube times…";
     hero=`${head}
       <div data-block="headline">${journeyTimesMarkup({leave:now,arrive:office,dest:'office · estimate',leftLabel:'Now',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:office,unavailable:false,duration:'remaining'})}
-      <div data-block="which"><span class="slack">Get on the next Circle or Met eastbound to Aldgate</span></div>
+      <div data-block="which"><span class="slack" data-native-step>Get on the next Circle or Met eastbound to Aldgate</span></div>
       <div class="note" data-block="source" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
   }
   $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan","hammersmith-city"]);
@@ -7571,7 +7868,8 @@ const railWarnings = () => C.railWarnings(state.boards, state.railSource==="darw
 function renderBanners(){
   const out=[];
   // A service that isn't live (not set up, or the proxy unreachable); a failed rail feed has its own banner below.
-  const notLive=liveServices().filter(x=>x.live===false&&!(x.id==="rail"&&state.darwinFailed));
+  // Trip's own services (Google, any station) warn on the home page only in Trip; Settings lists them always.
+  const notLive=liveServices().filter(x=>x.live===false&&!(x.id==="rail"&&state.darwinFailed)&&!(["google","anyStation"].includes(x.id)&&!tripActive()));
   if(notLive.length) out.push(`<div class="banner warn" data-banner="not-live"><b>Not live</b><span class="msg">${esc(notLive.map(x=>`${x.name}: ${x.detail}`).join(". "))}. Settings → Live data.</span></div>`);
   if(S().provider==="demo") out.push(`<div class="banner info"><b>Example trains</b><span class="msg">Times below are made up to show the layout. Choose a live source in Settings.</span></div>`);
   if(state.railSource==="tfl") out.push(`<div class="banner info"><b>Timetable times, not live</b><span class="msg">${state.darwinFailed?"The live National Rail feed failed, so these come from TfL's timetable. ":S().provider==="tfl"?"":"No National Rail key yet, so these come from TfL's timetable. "}Delays and cancellations may not show. Check a live board when things look disrupted.</span></div>`);
@@ -7640,10 +7938,12 @@ function renderControls(){
   const locationNote=state.autoSrc||(state.locStatus==='pending'||!state.locStatus?'finding your location…':'location unavailable');
   const staleFix=state.lastFixAt&&Date.now()-state.lastFixAt>90e3?` · stale fix ${hhmm(state.lastFixAt)}`:'';
   $("#dirNote").textContent=`Location: ${locationNote}${staleFix}${state.locAcc>150?' · approximate position':''}`;
-  const showOrigin = leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
+  // While following, the place rows fold away with the other controls (12 Nov "controls under way"; review of #63).
+  let underWay=false; try{ underWay=!!activeFollow(); }catch(e){}
+  const showOrigin = !underWay && leisure && dir==="home" && S().provider!=="demo" && (!state.here || state.origin || anyPlace());
   $("#originRow").hidden = !showOrigin;
   if(anyPlace()) $("#originRow label").textContent = state.here ? "Where from? Leave empty to plan from where you are." : "Where from? Location isn't available: enter a postcode or a place.";
-  $("#destRow").hidden = !(anyPlace() && leisure && dir==="office");
+  $("#destRow").hidden = underWay || !(anyPlace() && leisure && dir==="office");
   if(!$("#destRow").hidden && document.activeElement!==$("#destInput")) $("#destInput").value=state.saved.dest||"";
   const s=S(); const fast=state.saved.pace==="fast";
   $("#modelNote").textContent = leisure
@@ -8072,6 +8372,7 @@ function onPosition(p){
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
+  try{ watchHomeFromFix(); }catch(e){}
   noteAldgate();
   const speed=typeof p.coords.speed==='number'&&p.coords.speed>=0?p.coords.speed:null;
   const railContext=C.railTrackingContext({fix:fix(),speed,track:state.lineTrack||null,train:lockedTrain()||state.rendered?.train?.t||null,trains:Object.values(state.boards||{}).flatMap(board=>board?.services||[]),dir:direction(),now:Date.now(),departingHub:state.lastHub?{hub:state.lastHub.hub,seen:state.lastHub.seen}:null,onTube:!!(state.saved.tubeRide||state.saved.tubePick||state.rendered?.ride)},PROFILE);
@@ -9155,7 +9456,7 @@ function setSimulationSources({gps,feeds},{settings,refreshAfter=true}={}){
  if(gps)next.simulatorEnabled=true;if(feeds)next.simulatedFeeds=true;
  const modeChanged=!!S().simulatorEnabled!==!!gps||!!S().simulatedFeeds!==!!feeds;
  if(modeChanged){simStop({resume:false,reason:'sources-changed'});endSimulationSession();}
- invalidateSources();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
+ invalidateSourcesAndTrip();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
  if(feeds&&!simClock.active){const value=window.Date.parse($("#simDate").value+'Z');simClock.start(new window.Date(value).toISOString());}
  if(!feeds)simClock.stop();if(!gps&&!feeds)restoreRealJourneyVisits();save();
  $("#s_simulator").checked=!!gps;$("#s_simulatedFeeds").checked=!!feeds;
@@ -9214,7 +9515,7 @@ function renderCanonicalBlocks(container, presentation) {
 // chosen route/vehicle/station are checked again after every await before any cache can be reused.
 let followTransportPending = null;
 function followTransportContext(now) {
-  const route = S().followRoute ? C.restoreFollowRoute(state.saved.followRoute) : null;
+  const route = followAvailable() ? C.restoreFollowRoute(state.saved.followRoute) : null;
   if (!route || route.direction !== 'home' || route.mode !== 'commute' || route.phase !== 'before-train' ||
     direction() !== 'home' || currentMode() !== 'commute') return rideTransportContext(now);
   const ride = homeRide(now);
@@ -9325,6 +9626,7 @@ function progressHtml(model){
     <ol class="jp-overall" aria-label="Journey stages">${model.legs.map(leg=>`<li class="jp-leg" data-kind="${leg.kind}" data-state="${leg.state}"${leg.state==='current'?' aria-current="step"':''}><span class="jp-leg-bar" aria-hidden="true"><i style="--complete:${leg.state==='current'?'0%':percentage(leg.fraction)}"></i></span><span class="jp-leg-caption"><span class="jp-leg-name">${esc(leg.label)}</span><span class="jp-leg-state">${leg.state==='complete'?'Done':leg.state==='current'?'Now':'Next'}</span></span></li>`).join('')}</ol>
     <div class="jp-current">
       <div class="jp-current-title"><b>Current leg · ${esc(current.label)}</b>${current.from||current.to?`<span>${esc(current.from||'')} → ${esc(current.to||'')}</span>`:''}</div>
+      ${current.kind==='tube'&&current.service?`<p class="jp-service"><span class="chip ${lineChip(current.service.line)}">${esc(current.service.line)}</span> ${current.service.dest?`to <b>${esc(current.service.dest)}</b>`:"<span class='jp-muted'>TfL isn't showing where it's going</span>"}</p>`:''}
       ${model.identityLabel?`<p class="jp-evidence">${esc(model.identityLabel)}</p>`:''}
       ${whereHtml(model)}
       ${model.where?'':`<p class="jp-evidence">${esc(model.evidenceLabel)}${unknownPast?' Earlier itinerary details are unavailable.':''}</p>`}
@@ -9422,7 +9724,10 @@ function renderJourneyProgress(){
         {id:active,kind:'tube',label:'Tube',start:context.departure,end:arrival,from:context.from,to:context.to}];
       if(context.finalArrival!=null&&arrival!=null)legs.push({id:'after-walk',kind:'walk',label:'Walk',start:arrival,end:context.finalArrival});
     }
-    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line)}:leg);
+    // Which tube, with where it's going (Sam, 19 Nov): "Met to Uxbridge", so you can check it against the train's front.
+    const destination=tubeDest(ride,!!context.homeward);
+    legs=legs.map(leg=>leg.id===active?{...leg,from:context.homeward?context.from:progressName(fromCode),to:context.homeward?progressName(toCode):context.to,fromCode,toCode,lineId:lineIdOf(ride.line),
+      service:{line:ride.line||'Tube',dest:destination}}:leg);
     calls=progressTubeCalls(ride,fromCode,toCode,arrival,context.from,context.to);
     // followTubeArrival already checks provider timestamps (including its small
     // allowed clock offset); freshness here uses our validated capture time.
@@ -9473,8 +9778,8 @@ const followChoices = new Map();
 // View choice is a shared app capability. A skin or Follow preference cannot
 // remove Auto/Plan/Live; Follow itself remains independently configurable.
 const journeyEnabled = () => true;
-const pendingReleasedFollow = () => S().followRoute&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
-const activeFollow = () => {const r=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
+const pendingReleasedFollow = () => followAvailable()&&!Object.prototype.hasOwnProperty.call(state.saved,'followRoute')&&C.isLegacyFollowRoute(state.saved.follow)&&state.saved.follow.dir===direction()?state.saved.follow:null;
+const activeFollow = () => {const r=followAvailable()&&C.restoreFollowRoute(state.saved.followRoute);return r&&r.phase!=='arrived'&&r.direction===direction()&&r.mode===currentMode()?r:pendingReleasedFollow();};
 function restoreReleasedFollow(){
   const legacy=pendingReleasedFollow();if(!legacy||!state.boards)return;
   const options=(currentMode()==='leisure'?buildLeisure:buildJourneys)(legacy.dir,Date.now(),{here:true});
@@ -9666,7 +9971,7 @@ function followMovedOff(route,observation){
 // (there the card says the platform). Not when you've pinned Plan or asked for another time: those are plans.
 function followSetOffNow(){
   if((state.saved.view||'now')!=='now'||state.saved.viewOverride?.mode==='plan')return false;
-  const route=S().followRoute&&C.restoreFollowRoute(state.saved.followRoute);
+  const route=followAvailable()&&C.restoreFollowRoute(state.saved.followRoute);
   if(!route||route.phase!=='before-train'||route.direction!==direction()||route.mode!==currentMode())return false;
   const observation=followedObservation(route,Date.now());
   return !observation.boarding&&followMovedOff(route,observation);
@@ -9809,7 +10114,7 @@ document.addEventListener('focusout',()=>{if(state.pendingView)setTimeout(()=>re
 document.addEventListener('toggle',e=>{if(e.target instanceof HTMLDetailsElement&&!e.target.open&&state.pendingView)setTimeout(()=>render(),0);},true);
 
 function followButton(option){
-  if(!S().followRoute)return '';
+  if(!followAvailable())return '';
   const key=C.followServiceKey(option);
   followChoices.set(key,option);
   const selected=C.restoreFollowRoute(state.saved.followRoute);
@@ -9961,7 +10266,7 @@ function renderFollowPanel(){
     panel.innerHTML=`<div class="lbl">Restoring your saved followed journey</div><div class="big">Last known arrival ${hhmm(pending.arrive)}</div><div>${esc(pending.train.std)} ${esc(pending.train.operator)}</div><div class="note">Waiting for the matching train and itinerary. Your saved selection is kept.</div>${pending.reason?`<div class="note">${esc(pending.reason.text)}</div>`:''}<button type="button" class="follow-action" data-follow-action="stop">Stop following</button>`;
     return;
   }
-  panel.hidden=!S().followRoute||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
+  panel.hidden=!followAvailable()||!route||route.phase==='arrived'||route.direction!==direction()||route.mode!==currentMode();
   if(!state.saved.followRoute||!route||route.phase==='arrived')state.setOffJourney=null;   // following stopped or done
   if(panel.hidden){panel.innerHTML='';panel._renderedHtml=null;return;}
   const now=Date.now(), observation=followedObservation(route,now);
@@ -10249,7 +10554,7 @@ $('#alongChoices').addEventListener('change',()=>{
 });
 function alongContext(){
   const progress=state.rendered?.progress;
-  const candidate=S().followRoute&&state.followUpdate?.route;
+  const candidate=followAvailable()&&state.followUpdate?.route;
   const restored=candidate&&C.restoreFollowRoute(state.saved.followRoute);
   const followed=restored&&candidate.id===restored.id&&candidate.direction===direction()&&candidate.mode===currentMode()&&candidate.phase!=='arrived'?candidate:null;
   const train=progress?.kind==='rail'?progress.train:followed?.phase==='on-train'?followed.lastTrain:null;
@@ -10624,6 +10929,11 @@ function createTripUi(deps) {
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, boardOkAt = {}, lastBest = null, better = false;
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
+  // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
+  // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
+  let liveGen = 0, boardSeq = {};
+  // After reset() (a change of live-data source; Sam, 19 Nov) the trip is planned again once, from the new source.
+  let needPlan = false;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -10846,9 +11156,17 @@ function createTripUi(deps) {
     const followed = st().follow ? st().follow.journey : null;
     const want = C.liveBudget(result?.journeys||[], followed, now(), cfg());
     // One board per station pair per 30 s (refreshMs), however often the screen asks: a forced redraw reuses it.
+    const gen = liveGen;
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
-      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); if (liveBoards[b.key]) boardOkAt[b.key] = now(); } catch (e) { liveBoards[b.key] = undefined; } }));
+      const seq = boardSeq[b.key] = (boardSeq[b.key] || 0) + 1;
+      let got;
+      try { got = await fetchBoard(b.from, b.to); } catch (e) { got = undefined; }
+      // Reset meanwhile (this response belongs to what was cleared), or a newer request for the same board has
+      // started since (after the iPhone suspends the app the clock can jump past the 30 s spacing): write nothing.
+      if (gen !== liveGen || seq !== boardSeq[b.key]) return;
+      liveBoards[b.key] = got; if (got) boardOkAt[b.key] = now(); }));
+    if (gen !== liveGen) return;
     const planned=resultQuestion||effectiveQuestion();
     const q = planned.kind === "now" ? { kind: "now", t: now() } : planned;
     const js = C.rankTrips((result?.journeys||[]).map(j => C.applyLive(j, liveBoards, cfg())), q, now(), cfg());
@@ -10880,6 +11198,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
+    if (needPlan) { needPlan = false; if (st().to) await plan(); }
     if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
@@ -11037,7 +11356,7 @@ function createTripUi(deps) {
       headline: () => following ? `<div class="trip-headline ${fu.level}">${tripFollowHeading(fu)}${followFacts}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice?`<p>${esc(fu.notice.text)}</p>`:''}${fu.arrival==null||fu.route.expectedArrival!==fu.route.plannedArrival?`<p>Original plan: arrive ${hhmm(fu.route.plannedArrival)}</p>`:''}
           ${fu.phase==='before'||fu.phase==='access'?tripAccessMarkup(fu.route.journey,{active:true}):''}
           ${fu.phase==='final'||fu.phase==='arrived'?'':tripNextMarkup(fu.route.journey,C.followedTripPhase(fu.route,now()).ride,fu.phase==='ride'?'Current service':'Next')}
-          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}${esc(fu.nextStep.d)}</p>`:''}
+          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}<span data-native-step>${esc(fu.nextStep.d)}</span></p>`:''}
           ${fu.route.notices.filter(n=>n.id.startsWith('recovery:')).slice(-1).map(n=>`<p>${esc(n.text)}</p>`).join('')}${tripConfirmation(fu)}
           ${fu.alternative?`<section class="follow-alternative"><b>A way on · not selected</b>${journeyRow(fu.alternative,{noFollow:true})}<button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button><button type="button" class="ghost" data-trip-dismiss="${esc(fu.alternative.id)}">Keep my route</button></section>`:''}
           ${fu.arrival==null?`<button type="button" class="ghost" data-trip-replan>Plan from ${esc(C.tripRecoveryStart(fu.route,now()).station.name)}</button>`:''}
@@ -11082,11 +11401,11 @@ function createTripUi(deps) {
   return {
     show() { mount(); root.hidden = false;
       const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
-      fill(); renderResults(); if (!result && st().to) plan(); },
+      fill(); renderResults(); if (!result && st().to) { needPlan = false; plan(); } },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults, pinView, followedDataAt,
-    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
-    state: () => ({ result, error, stage: stageText }),
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; needPlan = true; },
+    state: () => ({ result, error, stage: stageText, boards: Object.keys(liveBoards).filter(k => liveBoards[k]).sort() }),
   };
 }
 
@@ -11099,7 +11418,7 @@ const proxySetupLink = base => `${location.origin}${location.pathname}#setup=${e
 async function refreshProxyStatus(){
   const base=proxyBaseUrl(); if(!base) return null;
   try{ const r=await fetchT(`${base}/status`); if(!r.ok){ const e=new Error(`HTTP ${r.status}`); e.status=r.status; throw e; } const j=await r.json();
-    state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,at:Date.now(),base}; state.proxyStatusErr=""; }
+    state.saved.proxyStatus={rail:!!j.rail,serviceDetails:!!j.serviceDetails,tflKey:!!j.tflKey,google:!!j.google,anyStation:!!j.anyStation,alerts:!!j.alerts,ha:!!j.ha,at:Date.now(),base}; state.proxyStatusErr=""; }
   catch(e){ state.proxyStatusErr=e.status===404?"redeploy":(e.message||"unreachable"); }
   save(); renderProxyStatus(); return state.saved.proxyStatus||null;
 }
@@ -11117,8 +11436,8 @@ function liveServices(){
     row("serviceDetails","Train progress (stops and live position)",st&&st.serviceDetails,"not set up in the proxy (RDM_SD_KEY)"),
     row("tfl","TfL: tubes and line status",true,"",st&&!st.tflKey?"live, without a key (TfL's shared limit applies; TFL_KEY)":"live"),
   ];
-  if(S().trip) out.push(row("google","Google: walk and drive for Trip",st&&st.google,"not set up in the proxy (GOOGLE_KEY)"));
-  if(S().trip) out.push(row("anyStation","Any station for Trip",st&&st.anyStation,"not allowed by the proxy (ALLOW_ANY_STATION=yes)"));
+  if(tripEnabled()) out.push(row("google","Google: walk and drive for Trip",st&&st.google,"not set up in the proxy (GOOGLE_KEY)"));
+  if(tripEnabled()) out.push(row("anyStation","Any station for Trip",st&&st.anyStation,"not allowed by the proxy (ALLOW_ANY_STATION=yes)"));
   if(S().leaveAlerts) out.push(row("alerts","Time-to-leave alerts",st&&st.alerts,"not set up in the proxy (see docs/proxy-setup.md)"));
   return out;
 }
@@ -11158,7 +11477,7 @@ function askDisplaySetup(origin, clear){
     box.remove();
     if(b.dataset.displaySetup!=="yes"){ clear(); return; }
     state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:origin}; save();
-    refreshProxyStatus(); invalidateSources(); refresh({force:true}); };
+    refreshProxyStatus(); invalidateSourcesAndTrip(); refresh({force:true}); };
 }
 window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxyStatus(); refresh({force:true}); } });
 
@@ -11276,7 +11595,7 @@ const pushAlerts = (() => {
 
 const alertsMorning = s => ({ from:HOME, to:Object.keys(HUB_NAME), time:s.wakeAt||pushAlerts.DEFAULT_WAKE, days:[1,2,3,4,5], names:{...STATIONS,...HUB_NAME} });
 const leaveAlerts = pushAlerts.create({ S, saved:()=>state.saved, save, core:C, names:{...STATIONS,...HUB_NAME}, morning:alertsMorning,
-  followed:()=>S().followRoute?C.restoreFollowRoute(state.saved.followRoute):null,
+  followed:()=>followAvailable()?C.restoreFollowRoute(state.saved.followRoute):null,
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
   win:window, status:t=>{ const el=$("#alertsStatus"); if(el) el.textContent=t; } });
 // ---------- The iPhone app (docs/ios-app.md §6.2; nothing happens in a browser) ----------
@@ -11353,7 +11672,8 @@ const nativeBridge = (() => {
         return j;
       } finally { win.clearTimeout(timer); }
     }
-    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN });
+    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN, watch: s.commuteWatch === true,
+      ha: s.commuteWatch === true && s.watchHa === true });
     const prefixes = (v, dflt) => String(v == null ? dflt : v).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
     /**
      * What the shell is told (§6.7 rule 2): the proxy and this iPhone's registration (kept in Keychain), the alarm, the
@@ -11361,9 +11681,10 @@ const nativeBridge = (() => {
      * alarm is on).
      */
     const config = (s = S()) => {
-      const alarm = prefs(s);
-      return { v: 1, proxy: { origin: base() }, device: ids(), alarm, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
-        regions: alarm.alarm && deps.regions ? deps.regions() : [] };
+      const { watch, ha, ...alarm } = prefs(s);   // Home Assistant is the proxy's business, not the shell's
+      // Geofences run for the leave alarm, or for the commute watch (the home fence says you're home; #66).
+      return { v: 1, proxy: { origin: base() }, device: ids(), alarm, watch, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
+        regions: (alarm.alarm || watch) && deps.regions ? deps.regions() : [] };
     };
     const configure = () => { const p = plugin(); if (!p || !caps) return null; try { return Promise.resolve(p.configure(config())).catch(() => null); } catch (e) { return null; } };
 
@@ -11457,7 +11778,17 @@ const nativeBridge = (() => {
       configure();
       return ids() ? register() : null;
     }
-    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs };
+    /** You're home (#66): the proxy's afternoon watch stops for tonight. kind "wifi" (home network) or "place" (a fix). */
+    async function reportHome(kind, at) {
+      if (!ids() || !base() || simulating()) return null;
+      try { return await call("/native/evidence", { ...ids(), evidence: { kind, place: "home", at } }); } catch (e) { return null; }
+    }
+    /** Settings → Send a test to this iPhone (#66): the proxy sends one notification through Apple. */
+    async function test() {
+      if (!ids() || !base()) return { ok: false, error: "this iPhone isn't registered with your proxy yet" };
+      try { return await call("/native/test", ids()); } catch (e) { return { ok: false, error: e.message }; }
+    }
+    return { present: () => !!plugin(), init, publish, sync, cache, cached, request, onSave, configure, capabilities: () => caps, has, config, prefs, test, reportHome };
   }
   return { create, RETRY_MS, CACHE_MAX_BYTES, CACHE_KEYS, packCache, cacheBytes };
 })();
@@ -11466,7 +11797,7 @@ const nativeBridge = (() => {
 // The followed journey's last plan is kept once you're on the train (leaveAlertPlan ends at boarding), so the proxy
 // keeps the Live Activity going while the app is closed; it goes when you stop following.
 let nativeLastPlan=null;
-function nativeRoute(){ return S().followRoute&&state.saved.followRoute?C.restoreFollowRoute(state.saved.followRoute):null; }
+function nativeRoute(){ return followAvailable()&&state.saved.followRoute?C.restoreFollowRoute(state.saved.followRoute):null; }
 // Trip (Sam, 18 Nov: Trip in v1) has its own following engine and card; its plan comes from core tripNativePlan.
 const nativeTrip=()=>tripActive()&&state.saved.tripMode&&state.saved.tripMode.follow&&state.saved.tripMode.follow.journey?state.saved.tripMode.follow:null;
 const nativeHeading=()=>{ const el=nativeTrip()?$("#tripRoot .trip-follow-card .journey-heading"):(!$("#followPanel").hidden&&$("#followPanel .journey-heading")); return el||null; };
@@ -11492,6 +11823,19 @@ function nativeFollowPlan(){
   try{ setOff=trip?(C.followedTripPhase(trip,Date.now()).phase!=='before'||(nativeHeading()||{dataset:{}}).dataset.step==='platform'):(r.phase!=='before-train'||!!followSetOffNow()); }catch(e){}
   return {...nativeLastPlan,setOff};
 }
+// What to do next, in the card's own words (#57 H29): the live instruction marked data-native-step ("Get on the Met to
+// Aldgate", "Your tube: …"), with its details (data-native-detail; parts marked data-native-skip, such as the ticking
+// countdown, are left out because the lock screen draws its own). The followed card first, then the live card beside it.
+function nativeStep(trip){
+  const scopes=trip?[$("#tripRoot .trip-follow-card")]:[$("#followPanel:not([hidden])"),$("#hero:not([hidden])")];
+  for(const scope of scopes){
+    const el=scope&&scope.querySelector("[data-native-step]"); if(!el) continue;
+    const text=(n)=>{ if(!n) return ""; const c=n.cloneNode(true); c.querySelectorAll("[data-native-skip]").forEach(x=>x.remove()); return c.textContent; };
+    const detail=el.dataset.nativeDetail!=null&&el.dataset.nativeDetail!==""?el.dataset.nativeDetail:text(el.parentElement&&el.parentElement.querySelector("[data-native-detail]"));
+    return {text:el.textContent,detail:detail||null};
+  }
+  return null;
+}
 // The snapshot is what the followed card shows: its first heading's times and words, the route's phase and train.
 function nativeSnapshot(){
   const trip=nativeTrip(), r=trip?null:nativeRoute();
@@ -11504,23 +11848,27 @@ function nativeSnapshot(){
     const p=C.followedTripPhase(trip,Date.now()), rides=trip.journey.rides||[], ride=rides[p.ride]||rides.find(x=>x.kind==='rail');
     phase=p.phase==='arrived'?'arrived':p.phase==='final'?'walk-last':p.phase==='ride'?(ride&&ride.kind==='tube'?'tube':'train'):p.phase==='change'?'walk'
       :step==='platform'?'platform':step==='leave'?'leave':'walk';
-    const rail=rides.find(x=>x.kind==='rail');
+    // The train still ahead of you (or the one you're on), not the first of the trip (#57 H29): once off the last
+    // train it leaves the card.
+    const rail=p.phase==='final'||p.phase==='arrived'?null:rides.find((x,i)=>x.kind==='rail'&&i>=(p.ride??0));
     t=rail?{...(rail.train||{}),from:rail.from.crs,to:rail.to.crs,std:(rail.train&&rail.train.std)||hhmm(rail.schedDep),dep:rail.dep,depLate:Math.max(0,Math.round((rail.dep-rail.schedDep)/60e3)),platform:rail.platform||null,operator:rail.operator,cancelled:!!rail.cancelled,_names:[rail.from.name,rail.to.name]}:null;
     confirmed=(trip.confirmed||[]).length>0||trip.activeRide!=null; mode='trip'; dir=null; id=trip.id;
   } else {
     phase=r.incident==='cancelled'?'cancelled':r.incident==='missed'?'missed':r.phase==='arrived'?'arrived':r.phase==='on-train'?'train':r.phase==='after-train'?'walk-last'
       :step==='platform'?'platform':step==='leave'?'leave':'walk';
-    t=r.lastTrain||(r.option&&r.option.train)||null;
+    // Off the train it leaves the card (#57 H29, 19 Nov: the lock screen kept "07:30 Great Northern · 3 min late ·
+    // Platform 1" at King's Cross); the next step says what to do instead.
+    t=r.phase==='after-train'||r.phase==='arrived'?null:r.lastTrain||(r.option&&r.option.train)||null;
     // Boarding is confirmed only by the page's own boarding check (the route is on or past the train).
     confirmed=['on-train','after-train','arrived'].includes(r.phase); mode=r.mode; dir=r.direction; id=r.id;
   }
-  const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan;
+  const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan, doNext=nativeStep(trip);
   const nm=c=>STATIONS[c]||HUB_NAME[c]||c;
   return C.journeySnapshot({now:Date.now(),source:"page",dataAt:trip?((()=>{ try{ return tripUiFor().followedDataAt(); }catch(e){ return null; } })()):(state.fetchedAt||null),mode,direction:dir,followId:id,phase,confirmed,
     headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
-    status:status?{level:status.level,text:status.text}:null,
+    step:doNext,status:status?{level:status.level,text:status.text}:null,
     alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
 }
 // Siri (Sam, 18 Nov: Siri opens the app to follow): commute://next?direction=home|office shows that direction now;
@@ -11532,7 +11880,7 @@ function nativeOpen(url){
   if(nativeTrip()) return false;   // a Trip being followed stays on screen (review 18 Nov)
   if(tripActive()&&state.saved.tripMode) state.saved.tripMode.active=false;
   state.saved.dirMode=dir; state.saved.view="now"; save(); render();
-  if(q.get("follow")==="1"&&S().followRoute&&!state.saved.followRoute){
+  if(q.get("follow")==="1"&&followAvailable()&&!state.saved.followRoute){
     const tryFollow=(n)=>{ const b=document.querySelector("#hero [data-follow]:not([disabled])"); if(b){ b.click(); return; } if(n>0) setTimeout(()=>tryFollow(n-1),1000); };
     tryFollow(20);
   }
@@ -11569,12 +11917,28 @@ async function nativeAskPermissions(){
     }
   } finally { nativeAsking=false; renderNativePermissions(); }
 }
+// Home (#66): the proxy's afternoon watch stops for the rest of tonight. Said once per evening, only with the watch on
+// and its home window running; never from display mode or a simulation (the bridge checks).
+let watchHomeSent=null;
+function watchHome(kind,at){
+  if(DISPLAY||S().commuteWatch!==true||S().simulatorEnabled||S().simulatedFeeds||(typeof sim!=="undefined"&&sim.active)) return;
+  const w=C.watchWindow(Date.now()); if(!w||w.direction!=="home"||watchHomeSent===w.key) return;
+  watchHomeSent=w.key;
+  // Not delivered (offline, proxy down): said again on the next sign of home (review 19 Nov).
+  Promise.resolve(native.reportHome(kind,Number.isFinite(at)?at:Date.now())).then(r=>{ if(!r&&watchHomeSent===w.key) watchHomeSent=null; }).catch(()=>{ watchHomeSent=null; });
+}
+/** A good fix within the home geofence's reach (150 m) counts as home too. */
+function watchHomeFromFix(){
+  const h=state.saved.home; if(!Array.isArray(h)||!state.here||!(state.locAcc<=100)) return;
+  if(C.km(state.here,h)*1000<=150) watchHome("place",state.lastFixAt||Date.now());
+}
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
   regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
-  onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  onEvidence:ev=>{ if(ev&&ev.place==="home"&&(ev.kind==="wifi"||(ev.kind==="region"&&ev.event==="enter"))) watchHome(ev.kind==="wifi"?"wifi":"place",ev.at);
+    const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
   hydrate:()=>nativeHydrate(),
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
@@ -11590,11 +11954,21 @@ function nativeCacheNow(){
   if(state.boards&&state.boardsAt) e.push({key:"boards",v:1,dataAt:state.boardsAt,savedAt:now,value:state.boards});
   return native.cache(e);
 }
+/** The keys move (17 Nov), on settings that predate it: keys deleted, the phone-key sources become the proxy. */
+function keysMove(s){
+  if(s.keysInProxy) return s;
+  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
+  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
+  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
+  s.keysInProxy=1; return s;
+}
 async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
-  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy")){ state.saved.settings={...set.value}; save(); }
+  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones. A
+  // cleared device has only what start-up writes: the marker, the keys move and its default source, the proxy (19 Nov:
+  // that default had stopped the restore on a really cleared device).
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent"||(k==="provider"&&state.saved.settings.provider==="proxy"))){ state.saved.settings={...keysMove(dropRetired({...set.value})),featuresPermanent:1}; save(); }   // a cache from before 17 Nov still had keys: they go, as at start-up (review 19 Nov)   // restored settings are post-#63 (review: an older cache lacks the marker)
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }
@@ -11605,9 +11979,10 @@ const nativeReady=(native.present()?native.init().catch(()=>null):Promise.resolv
   .then(caps=>{ nativeBooted=true; if(caps){ renderNativePermissions(); document.querySelectorAll("[data-native]").forEach(n=>{ n.hidden=!native.has(n.dataset.native); }); render(); } return caps; });
 // ---------- Trip mode (Settings → Experimental → Trip; independently opt-in) ----------
 // The page only mounts it, routes the mode button to it and stops the commute pipeline while it is on screen.
-const tripEnabled = () => !!S().trip;
+// Trip is always available as a mode (#63), except on the read-only display; choosing it stays an explicit tap.
+const tripEnabled = () => !DISPLAY;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
-let tripUi=null;
+var tripUi=null;   // var, not let: invalidateSources() may read it before this line runs
 function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, tflUrl, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,arrangeJourneySummaries,tick,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
@@ -11634,42 +12009,45 @@ const dlg=$("#settings");
 function fillSettings(){
   const s=S();
   $("#s_alongLine").checked=s.alongLine===true;
-  $("#s_followRoute").checked=!!s.followRoute;
   $("#s_leaveAlarm").checked=s.leaveAlarm!==false; $("#s_leaveAlarmMin").value=Number.isInteger(s.leaveAlarmMin)?s.leaveAlarmMin:C.LEAVE_ALARM_DEFAULT_MIN;
   $("#s_wifiHome").value=s.wifiHome==null?"Panda":s.wifiHome; $("#s_wifiOffice").value=s.wifiOffice==null?"Ciklum":s.wifiOffice;
   $("#s_appearance").value=["light","dark"].includes(s.appearance)?s.appearance:"system";
   $("#s_provider").value=["proxy","tfl","demo"].includes(s.provider)?s.provider:"proxy"; $("#s_simulator").checked=!!s.simulatorEnabled; $("#s_simulatedFeeds").checked=!!s.simulatedFeeds;
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); if(el) el.value=Math.round(s[k]/60*100)/100; });
-  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); $("#s_anyPlace").checked=!!s.anyPlace; showProviderFields();
+  FACTOR_KEYS.forEach(k=>{ $("#s_"+k).value=s[k]; }); showProviderFields();
   // Trip: the switch, Google access and the allowances (minutes; engine defaults when not set). The key is never shown back.
   $("#s_leaveAlerts").checked=!!s.leaveAlerts; $("#s_wakeAt").value=s.wakeAt||pushAlerts.DEFAULT_WAKE; $("#alertsTestBtn").hidden=!(s.leaveAlerts&&state.saved.pushAlerts); $("#alertsStatus").textContent=s.leaveAlerts||state.saved.pushAlerts?state.saved.pushAlertsStatus||"":"";
-  $("#s_trip").checked=!!s.trip;
+  // Commute watch (#66): the iPhone app only (Apple's push service); off until turned on.
+  $("#watchFields").hidden=!native.capabilities()||!!DISPLAY; $("#s_commuteWatch").checked=s.commuteWatch===true;
+  // Home Assistant (Sam, 19 Nov): offered only when the app's proxy has it set up; kept if it was already on.
+  $("#watchHaRow").hidden=!(state.saved.proxyStatus&&state.saved.proxyStatus.ha)&&s.watchHa!==true; $("#s_watchHa").checked=s.watchHa===true;
+  $("#watchTestBtn").hidden=!(state.saved.native&&state.saved.native.id); $("#watchStatus").textContent="";
+
   const ta=C.TRIP_DEFAULTS.allow; ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const d=ta[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; $("#s_"+k).value=Number.isFinite(s[k])?s[k]:d; });
   showTripFields();
 }
-function showTripFields(){ $("#tripFields").hidden=!$("#s_trip").checked; }
+function showTripFields(){ $("#tripFields").hidden=false; }
 function showProviderFields(){ showTripFields(); renderProxyStatus(); }
 function readSettings(){
   const o={};
   o.provider=$("#s_provider").value||S().provider;
   // Internal adapter settings (tests, recorded feeds) are kept as they are; Settings never shows or sets them.
-  ["keysInProxy","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+  ["keysInProxy","featuresPermanent","rdmBase","rdmKey","rdmSdBase","rdmSdKey","tflKey","proxyBase","huxleyBase","huxleyToken","googleKey","googleVia"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   TIME_KEYS.forEach(k=>{ const el=$("#s_"+k); const v=parseFloat(el&&el.value); if(isFinite(v)&&v>=0) o[k]=Math.round(v*60); });
   // The iPhone app's settings: saved only once the app has shown them (a browser never writes them).
   if(native.capabilities()){
     o.leaveAlarm=$("#s_leaveAlarm").checked;
     const m=parseInt($("#s_leaveAlarmMin").value,10); if(m>=0&&m<=60) o.leaveAlarmMin=m;
     o.wifiHome=$("#s_wifiHome").value.trim(); o.wifiOffice=$("#s_wifiOffice").value.trim();
-  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
+    if($("#s_commuteWatch").checked) o.commuteWatch=true;
+    if($("#s_watchHa").checked) o.watchHa=true;
+  } else ["leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch","watchHa"].forEach(k=>{ if(state.saved.settings[k]!=null) o[k]=state.saved.settings[k]; });
   const f=parseFloat($("#s_fastFactor").value); if(isFinite(f)&&f>=0.5&&f<=1) o.fastFactor=f;
   const l=parseFloat($("#s_leisureFactor").value); if(isFinite(l)&&l>=1&&l<=2) o.leisureFactor=l;
   const rf=parseFloat($("#s_runFactor").value); if(isFinite(rf)&&rf>=1&&rf<=4) o.runFactor=rf;
   const rm=parseFloat($("#s_runM").value); if(isFinite(rm)&&rm>=0&&rm<=5000) o.runM=rm;
   if($("#s_alongLine").checked) o.alongLine=true;
-  if($("#s_followRoute").checked) o.followRoute=true;
   if(["light","dark"].includes($("#s_appearance").value))o.appearance=$("#s_appearance").value;
-  if($("#s_anyPlace").checked) o.anyPlace=true;
-  if($("#s_trip").checked) o.trip=true;
   if($("#s_leaveAlerts").checked){ o.leaveAlerts=true; const w=$("#s_wakeAt").value; if(/^([01]\d|2[0-3]):[0-5]\d$/.test(w)&&w!==pushAlerts.DEFAULT_WAKE) o.wakeAt=w; }
   ["tripParkMin","tripLockMin","tripStationMin","tripExitMin","tripCarBackMin"].forEach(k=>{ const v=parseFloat($("#s_"+k).value), d=C.TRIP_DEFAULTS.allow[k.replace(/^trip(.)/,(m,c)=>c.toLowerCase())]; if(isFinite(v)&&v>=0&&v<=60&&v!==d) o[k]=Math.round(v); });
   if($("#s_simulator").checked) o.simulatorEnabled=true;
@@ -11677,7 +12055,6 @@ function readSettings(){
   return o;
 }
 $("#settingsBtn").addEventListener("click",()=>{ fillSettings(); renderHomeNote(); try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } });
-$("#s_trip").addEventListener("change",showTripFields);
 $("#s_provider").addEventListener("change",showProviderFields);
 // Home location: saved on this phone only.
 function renderHomeNote(){ const h=state.saved.home; $("#homeNote").textContent = h ? `Set (${h[0].toFixed(4)}, ${h[1].toFixed(4)})${state.here?`, ${Math.round(km(state.here,h)*1000)} m from you now`:""}.` : `Not set. Set it while you're at home so "Nearly home" can count the walk from wherever you are.`; }
@@ -11716,8 +12093,15 @@ $("#settingsForm").addEventListener("submit",e=>{
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
  // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
  if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
+ // The commute watch turned on: notifications, and location "Always" so the home geofence can say you're home (#66).
+ // Asked once each, from Settings, never at start-up; a refusal stays refused.
+ else if(next.commuteWatch===true&&previous.commuteWatch!==true) setTimeout(async()=>{ try{
+   const auth=()=>((native.capabilities()||{}).auth||{});
+   if(auth().notifications==="notDetermined") await native.request("notifications");
+   if(auth().location==="notDetermined"||auth().location==="whenInUse") await native.request("location");
+   renderNativePermissions(); }catch(e){} },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
- const presentationKeys=new Set(["followRoute","appearance","follow","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice"]);
+ const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch","watchHa"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));
  if(presentationOnly){state.saved.settings=next;save();dlg.close();render();return;}
  let resetInvalidStart=false;
@@ -11733,6 +12117,9 @@ $("#settingsForm").addEventListener("submit",e=>{
 });
 dlg.addEventListener("click",e=>{ if(e.target===dlg) dlg.close(); });
 $("#alertsTestBtn").addEventListener("click",()=>leaveAlerts.test());
+$("#watchTestBtn").addEventListener("click",async()=>{ const st=$("#watchStatus"); st.textContent="Sending…";
+  const r=await native.test(); const ha=r&&r.ha==="home"?" Home Assistant says you're home.":r&&r.ha==="out"?" Home Assistant says you're out.":r&&r.ha==="unread"?" Home Assistant couldn't be read: your phone's location decides.":"";
+  st.textContent=r&&r.ok?`Sent: it should arrive in a few seconds. Nothing? Check Notifications for Commute in the iPhone's Settings.${ha}`:`Couldn't send${r&&r.error?`: ${r.error}`:""}.`; });
 
 // ---------- Controls ----------
 // The TfL timetable source only fetches the routes on screen, so a mode or direction change refetches.
@@ -11773,13 +12160,7 @@ window.addEventListener("pagehide",invalidateSources);
 // First run with no key: show example trains so the layout is visible.
 // Keys move to the app's proxy (Sam, 17 Nov: "Can you remove all the content I'm setting for the key"): once per
 // device, any key saved here is deleted, the phone-key sources become the proxy, and the Google choice goes.
-if(!state.saved.settings.keysInProxy){
-  const s=state.saved.settings;
-  PHONE_KEYS.forEach(k=>{ delete s[k]; }); delete s.googleVia;
-  if(!s.provider||s.provider==="rdm"||s.provider==="huxley") s.provider="proxy";
-  if(!String(s.proxyBase||"").trim()) delete s.proxyBase;
-  s.keysInProxy=1; save();
-}
+if(!state.saved.settings.keysInProxy){ keysMove(state.saved.settings); save(); }
 acceptSetupLink();
 if(allViaProxy()) refreshProxyStatus().then(()=>render());
 if(S().simulatedFeeds && !simClock.active)simClock.start("2026-11-03T08:44:00Z");
@@ -11793,7 +12174,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={hallNextMarkup,hallNextSpot,DISPLAY_NEXT,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT};
 })();
 </script>
 

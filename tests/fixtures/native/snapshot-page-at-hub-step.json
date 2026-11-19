@@ -1,0 +1,39 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": false,
+  "mode": "commute",
+  "direction": "office",
+  "followId": "f9",
+  "phase": "walk",
+  "headline": {
+    "label": "Next action",
+    "t": 1794940500000,
+    "countdown": {
+      "step": "next",
+      "calm": "in",
+      "urgent": "Now",
+      "passed": "",
+      "state": "calm",
+      "urgentAt": 1794940380000,
+      "passedAt": 1794940500000
+    }
+  },
+  "arrive": {
+    "label": "At office",
+    "t": 1794942060000
+  },
+  "train": null,
+  "progress": null,
+  "step": {
+    "text": "Get on the Met to Aldgate",
+    "detail": "eastbound · Platform 2 · due 18:40"
+  },
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9"
+}

@@ -37,6 +37,7 @@
     "late": 3
   },
   "progress": null,
+  "step": null,
   "status": {
     "level": "bad",
     "text": "No estimate"

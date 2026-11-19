@@ -1,5 +1,5 @@
 # Trip: door to door by rail, anywhere in the region (leisure journeys)
-Status: Behind toggle (Settings → Experimental → Trip, off by default; Signal is the sole design). Built 31 Oct night; independent
+Status: Done: Trip is a permanent mode since 18 Nov (Sam, #63; it was behind Settings → Experimental → Trip, off by default; Signal is the sole design). Choosing Trip is still a tap on the mode button. Built 31 Oct night; independent
 mutation review before merging; Google unverified until Sam has a key · Behind toggle when built
 (Settings → Experimental → "Trip", off by default; Sam, 31 Oct) · Since: 31 Oct 2026 (evening)
 
@@ -63,7 +63,7 @@ county edge.
 Minutes are whole minutes, rounded down.
 
 ### Switch and mode
-- Settings → Experimental → "Trip: plan door to door by rail between any two addresses in the region". Off by default.
+- Trip is always offered as a mode (18 Nov, #63; before: Settings → Experimental → "Trip", off by default). The app never switches into it by itself; the Trip settings are always shown in Settings.
   Off: the app is unchanged (Commute, Leisure, "Any start and end point", requests and saved data as today; no Google
   script loaded, no Trip request).
 - On: a third mode button **Trip** beside Commute and Leisure. Trip's opt-in remains independent and off by
@@ -221,6 +221,13 @@ Minutes are whole minutes, rounded down.
   two rides fit (within 1 km and 5 min) it asks "Are you on the 14:05 to Victoria?" and remembers for this trip.
 - Views: planning; on the way to the station; on a ride (headline = arrival); at a change (headline = next departure
   and spare); final leg. Auto / Plan / Live work as in the commute.
+- **A change of live-data source resets Trip (Sam, 19 Nov).** Saving Settings with anything other than display-only
+  settings changed (the source, the simulator, a walking time) clears what Trip loaded from the old source: its boards
+  and their ages, the planner and access caches, and the plan on screen; the trip is then planned again at once from the
+  new source, its boards asked for straight away (not after the 30 s spacing). A followed trip stays followed. A
+  response still out from the old source writes nothing (`liveGen`). Saving with nothing changed, or only display
+  settings, changes nothing. Entering or leaving Trip doesn't reset it (independent review, 19 Nov: it re-planned, with
+  Google's paid requests, every time you came back to Trip); the plan is kept until its 5-minute re-check, as before.
 
 ### Speed
 - First answer after at most 2 network steps one after another from choosing the second place (its place fetch, then
@@ -304,6 +311,9 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: unknown access keeps known rail duration without inventing a door-to-door total"
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: cancellation or an unknown rail time withdraws the rail sum and the total"
 - tests/core/trip-journey-facts.test.mjs: "Trip facts: a missing transfer time cannot become a claimed total; no rail cannot become zero minutes on trains"
+- tests/trip-page.test.mjs: "Trip resets on a settings change with the same source: planned once again (no double plan), boards asked again at once"
+- tests/trip-page.test.mjs: "Trip is not reset by a display-only save, or by leaving and coming back to Trip"
+- tests/trip-page.test.mjs: "Trip resets on a change of live-data source (Sam, 19 Nov): switching to the proxy clears Trip's live data and plans again at once through it"
 - tests/trip-shared-ui.test.mjs: "Trip cards: one complete recommendation and compact rows retain every connection, canonical facts and shared actions"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Journey steps keep their own disclosure state through refresh and Follow uses the selected itinerary"
 - tests/trip-shared-ui.test.mjs: "Trip cards: Next best has the same complete headline, facts, connections and actions in all planning questions"
@@ -311,7 +321,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/trip-controls-review.test.mjs: "Trip controls review: theme redraw preserves the original field, typed query, caret and keyboard suggestions"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a late place reply cannot replace commute context after leaving Trip"
 - tests/trip-controls-review.test.mjs: "Trip controls review: a saved active Trip mounts in the shared host before its first refresh"
-- tests/trip-controls-review.test.mjs: "Trip controls review: disabling Trip removes its controls and re-enabling keeps the same field handlers and places"
+- tests/trip-controls-review.test.mjs: "Trip controls review: leaving Trip removes its controls and returning keeps the same field handlers and places"
 - tests/trip-shared-ui-review.test.mjs: "Trip shared UI review: Follow retains rail duration and updates journey remaining through every phase"
 - tests/browser-connection-panels.py: rendered card/row geometry and connection clocks at 320/393 px, light/dark, 200% text; explicit Live baseline retained.
 - tests/core/trip.test.mjs: "TfL stops: a Tube stop 180 m from a mainline station keeps its own identity (Tower Hill is not Fenchurch Street); hubs match by ICS code or name"
@@ -394,7 +404,7 @@ Built so far (the build log in the architecture says what is and isn't on screen
 - tests/core/trip-live.test.mjs: "Follow a trip: phases by time and answers; a confirmed ride sets the earliest you can be on, not forever"
 - tests/core/trip-live.test.mjs: "Follow a trip: a later arrival is announced once with its reason; never replaced; alternatives only ≥ 5 min sooner or when broken"
 - tests/core/trip-live.test.mjs: "Follow a trip: saved state is checked; malformed is dropped"
-- tests/trip-page.test.mjs: "Trip switch off: no Trip button, the commute as before, and no Trip or Google request"
+- tests/trip-page.test.mjs: "Trip available but not chosen (#63): a Trip button, the commute as before, and no Trip or Google request"
 - tests/trip-page.test.mjs: "Trip upgrade: an obsolete disabled Signal preference cannot hide an enabled saved Trip"
 - tests/trip-page.test.mjs: "Trip without a Google key: the setup card, nothing planned, no Google script or request"
 - tests/trip-page.test.mjs: "Trip: address drop-down after 3 characters and 250 ms; keyboard choose; a late reply for older text is ignored"

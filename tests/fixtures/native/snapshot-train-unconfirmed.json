@@ -37,6 +37,7 @@
     "late": 0
   },
   "progress": null,
+  "step": null,
   "status": {
     "level": "ok",
     "text": "On time, last known"

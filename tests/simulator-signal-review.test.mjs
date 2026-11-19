@@ -13,7 +13,7 @@ async function checked(a){await until(()=>!view(a).verification.pending&&view(a)
 async function start(route='kgx'){
  const a=await createApp({settings:{provider:'rdm',rdmKey:'review-fixture-secret',followRoute:true},settle:120});apps.push(a);
  click(a,'journeySimulatorBtn');choose(a,'journeyRoute',route);click(a,'journeyStart');await until(()=>a.c.simulator.sim.active&&a.d.getElementById('simPanel').hidden,'guided Start collapses');await checked(a);
- assert.equal(a.d.documentElement.dataset.design,'signal','guided Start preserves the real application design');assert.equal(a.c.S().followRoute,true,'guided Start preserves Follow capability');return a;
+ assert.equal(a.d.documentElement.dataset.design,'signal','guided Start preserves the real application design');assert.ok(!('followRoute' in a.c.S()),'Follow is permanent (#63): no capability switch to preserve');return a;
 }
 async function next(a){const i=view(a).index;click(a,'journeyNext');await until(()=>view(a).index===i+1,'one sequential checkpoint');return checked(a);}
 function appControl(a,selector){const e=a.d.querySelector(selector);assert.ok(e,'genuine app control '+selector);e.click();}

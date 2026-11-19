@@ -21,8 +21,8 @@ async function live({now=NOW,geo={coords:{latitude:51.9799,longitude:-.229,accur
  a.moveClock=t=>{current=t;a.setNow(t);};return a;
 }
 
-test('follow page: feature off preserves the ordinary board and has no Follow actions',async()=>{
- const a=await demo({settings:{provider:'demo'}});assert.equal(a.d.querySelectorAll('[data-follow]').length,0);assert.equal(a.d.querySelector('#followPanel').hidden,true);assert.match(a.text('#hero'),/best, and the next best/);assert.ok(a.rows().length);assert.deepEqual(a.errors,[]);a.close();
+test('follow page: Follow is offered with no setting (#63); with nothing followed the ordinary board is unchanged',async()=>{
+ const a=await demo({settings:{provider:'demo'}});assert.ok(a.d.querySelectorAll('[data-follow]').length>0);assert.equal(a.d.querySelector('#followPanel').hidden,true);assert.match(a.text('#hero'),/best, and the next best/);assert.ok(a.rows().length);assert.deepEqual(a.errors,[]);a.close();
 });
 
 test('follow page: chosen itinerary and arrival survive re-ranking, refreshed access and approach location',async()=>{
@@ -75,7 +75,7 @@ test('follow page: malformed saved journey is ignored without breaking the rest 
 });
 
 test('follow page: appearance changes and reload retain route, full steps and planning question',async()=>{
- const a=await demo(),r=pick(a);settings(a,{appearance:'light',followRoute:true});await sleep(60);
+ const a=await demo(),r=pick(a);settings(a,{appearance:'light'});await sleep(60);
  assert.equal(a.d.documentElement.dataset.design,'signal');assert.equal(a.c.state.saved.followRoute.id,r.id);assert.deepEqual(plain(a.c.state.saved.followRoute.option.legs),r.option.legs);
  const saved=JSON.parse(a.w.localStorage.getItem('cartrefCommute.v1'));a.close();const b=await demo({saved});assert.equal(b.d.documentElement.dataset.design,'signal');assert.equal(b.c.state.saved.followRoute.id,r.id);assert.equal(b.d.querySelector('#followPanel').hidden,false);assert.deepEqual(b.errors,[]);b.close();
 });
@@ -84,7 +84,7 @@ test('follow page: changing presentation and rendering adds no transport calls o
  const a=await createApp({now:NOW,settings:{provider:'tfl',tflKey:'test',followRoute:true},saved:{dirMode:'office'},settle:600});
  const r=pick(a),count=a.calls.length,boards=a.c.state.boards;
  a.c.render();a.c.render();assert.equal(a.calls.length,count);
- settings(a,{followRoute:true,appearance:'dark'});await sleep(60);
+ settings(a,{appearance:'dark'});await sleep(60);
  assert.equal(a.calls.length,count,'design-only preference never fetches transport again');assert.equal(a.c.state.boards,boards,'same feed cache survives appearance change');assert.equal(a.c.state.saved.followRoute.id,r.id);assert.equal(a.d.documentElement.dataset.theme,'dark');assert.deepEqual(a.errors,[]);a.close();
 });
 

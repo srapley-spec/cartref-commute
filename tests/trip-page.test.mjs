@@ -64,9 +64,9 @@ const key = (app, end, k) => app.d.querySelector(`#tripInput-${end}`).dispatchEv
 const options = (app, end) => [...app.d.querySelectorAll(`#tripList-${end} [role=option]`)].map(li => li.textContent.trim());
 async function until(fn, ms = 4000) { const end = Date.now() + ms; while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(25); } return fn(); }
 
-test("Trip switch off: no Trip button, the commute as before, and no Trip or Google request", async () => {
+test("Trip available but not chosen (#63): a Trip button, the commute as before, and no Trip or Google request", async () => {
   const app = await createApp({ settings: { provider: "tfl" }, route });
-  assert.equal(app.d.querySelector("#tripModeBtn").hidden, true);
+  assert.equal(app.d.querySelector("#tripModeBtn").hidden, false, "Trip is offered as a mode");
   assert.equal(app.d.querySelector("#tripRoot").hidden, true);
   assert.equal(app.d.documentElement.dataset.trip, "off");
   assert.ok(!app.calls.some(isTrip), app.calls.filter(isTrip).join("\n"));
@@ -578,4 +578,71 @@ test("Trip with My proxy as the source: TfL's planner and Google both go through
   assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "TfL's planner through the proxy:\n" + seen.join("\n"));
   assert.ok(seen.some(u => u.startsWith(P + "/google/places/")) && seen.some(u => u.startsWith(P + "/google/routes/")), "Google through the proxy");
   assert.ok(app.calls.every(u => !u.startsWith("https://api.tfl.gov.uk") && !/maps\.googleapis/.test(u) && !/PHONEKEY|app_key/.test(u)), app.calls.join("\n"));
+});
+
+test("Trip resets on a change of live-data source (Sam, 19 Nov): switching to the proxy clears Trip's live data and plans again at once through it", async () => {
+  const P = "https://proxy.example", seen = [];
+  const proxyRoute = async (u, o) => {
+    if (u.startsWith(P)) seen.push(u);
+    if (u.startsWith(P + "/google/routes/distanceMatrix")) return json(JSON.parse(o.body).origins.flatMap((x, i) => JSON.parse(o.body).destinations.map((d, j) => {
+      const a = x.waypoint.location.latLng, z = d.waypoint.location.latLng, m = Math.round(Math.hypot((a.latitude - z.latitude) * 111, (a.longitude - z.longitude) * 70) * 1300);
+      return { originIndex: i, destinationIndex: j, condition: "ROUTE_EXISTS", distanceMeters: m, duration: `${Math.round(m / 1.3)}s` }; })));
+    if (u.startsWith(P + "/google/routes/directions")) return json({ routes: [] });
+    if (u === P + "/status") return json({ v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: false });
+    if (u.startsWith(P + "/board/")) return json({ trainServices: [], nrccMessages: [] });
+    return route(u, o);
+  };
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST", proxyBase: P }, route: proxyRoute });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length);
+  await sleep(1500);
+  assert.equal(seen.length, 0, "(nothing through the proxy before the change)");
+  app.d.querySelector("#settingsBtn").click(); await sleep(50);
+  app.d.querySelector("#s_provider").value = "proxy";
+  app.d.querySelector("#saveBtn").click();
+  await until(() => seen.some(u => /\/tfl\/Journey\/JourneyResults\/90000899\/to\/1001160/.test(u)), 6000);
+  assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "planned again through the new source:\n" + seen.join("\n"));
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3, app.text("#tripResults"));
+});
+
+// Review of 9ab0b72 (19 Nov): a settings change with the same source (a walking time) depends on Trip planning again
+// from its own refresh; re-entering Trip must not re-plan (it used to keep the plan until the 5-min re-check).
+const PLANNER = u => /JourneyResults/.test(u);
+async function planned(app) {
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length >= 3, 6000);
+  await sleep(1500);
+}
+async function saveWith(app, fn) { app.d.querySelector("#settingsBtn").click(); await sleep(50); fn(); app.d.querySelector("#saveBtn").click(); }
+
+test("Trip resets on a settings change with the same source: planned once again (no double plan), boards asked again at once", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route }); googleStub(app.w);
+  const b0 = app.calls.length; await planned(app);
+  const first = app.calls.slice(b0).filter(PLANNER).length;
+  const b1 = app.calls.length;
+  await saveWith(app, () => { const el = app.d.querySelector("#s_walkHomeStationAvg"); el.value = String(Number(el.value) + 1); });
+  await sleep(3000);
+  const after = app.calls.slice(b1);
+  assert.equal(after.filter(PLANNER).length, first, "the same planner searches as the first plan, once");
+  assert.ok(boardCalls(after).length >= 1, "boards asked again straight away");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+});
+
+test("Trip is not reset by a display-only save, or by leaving and coming back to Trip", async () => {
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST" }, route }); googleStub(app.w);
+  await planned(app);
+  let b = app.calls.length;
+  await saveWith(app, () => { app.d.querySelector("#s_appearance").value = "dark"; });
+  await sleep(2000);
+  assert.equal(app.calls.slice(b).filter(PLANNER).length, 0, "display-only save: no planner search");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+  app.d.querySelector('[data-mode]:not([data-mode="trip"])').click(); await sleep(800);
+  b = app.calls.length;
+  app.d.querySelector("#tripModeBtn").click(); await sleep(2500);
+  assert.equal(app.calls.slice(b).filter(PLANNER).length, 0, "back to Trip: the plan is kept, no new search");
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
 });

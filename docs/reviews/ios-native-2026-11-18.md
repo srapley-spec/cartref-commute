@@ -117,3 +117,31 @@ probe found that a response started before reset can advance the new `boardOkAt`
 because the board assignment captured the old object while the following timestamp update reads the new object.
 Any future production use of reset needs request-generation handling. This is not a reproduced current user path
 and was not expanded into this release.
+
+**Closed 19 Nov (Sam's follow-up).** The exact cause, in `live()`:
+- `liveBoards[b.key] = await fetchBoard(…)` evaluates `liveBoards` before the await, so a late success wrote into the
+  old, discarded object. The `boardOkAt[b.key] = now()` that follows read the new object, so it advanced the new age.
+- A late failure's `liveBoards[b.key] = undefined` ran after the await, against the new object, so it cleared a
+  newer request's board.
+
+Fix: a request generation (`liveGen`), increased by `reset()`. A response from an older generation writes nothing,
+and the rest of that `live()` run stops. `reset()` also clears the 30 s spacing, so the next refresh loads at once.
+Ordinary successes and failures are unchanged. Tests: `tests/trip-reset-race.test.mjs`, which resets during an
+outstanding request, starts a newer one, then delivers the old response as both a success and a failure. Both failed
+before the fix.
+
+**Independent review of the fix (19 Nov):**
+- 11 Trip mutations, 7 killed.
+- It found the same overlap could happen without a reset: an old request still out when a newer one starts for the
+  same board, after the iPhone suspends the app and the clock jumps past the 30 s spacing. A late failure then cleared
+  the newer board while its age still said fresh. Fixed with a per-board request number, and tested.
+- A board that loads and later fails is still cleared (now tested).
+- Survivors:
+  - the check after all responses (the rest of that run only recomputes from the cleared state, so nothing
+    observable changes; kept as a guard);
+  - `const`/`let`;
+  - a duplicate check.
+- **`reset()` still has no production caller**: only the tests call it. The fix is correct but latent. Whether a change
+  of live-data source should reset Trip (as `invalidateSources` does for the commute) is an open question for Sam.
+  **Closed 19 Nov:** Sam said yes. `invalidateSources()` now calls `tripUi.reset()`, and the next refresh plans the
+  trip again from the new source (`docs/stories/leisure-journeys.md`, "Live, and keeping you up to date").

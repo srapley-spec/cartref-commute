@@ -23,7 +23,7 @@ async function rail(end='09:41'){
 
 test('Signal progress: an inferred train without Follow shows complete stages, factual calling points and no additional requests',async()=>{
  const a=await rail(),section=a.d.querySelector('#hero .journey-progress');assert.ok(section);
- assert.equal(a.c.state.saved.settings.followRoute,false);
+ assert.equal(a.c.state.saved.followRoute??null,null,'nothing followed (Follow is permanent since #63; following is a choice)');
  assert.equal(section.dataset.source,'reported');
  assert.deepEqual([...section.querySelectorAll('.jp-leg-name')].map(n=>n.textContent),['Walk','Train','Tube','Walk']);
  assert.match(section.textContent,/Stevenage/);assert.match(section.textContent,/Finsbury Park/);
@@ -69,7 +69,7 @@ test('Signal progress: an inferred Tube without Follow shows route stops and hon
  assert.equal(section.querySelectorAll('.jp-stop[data-state="reported"]').length,0);
  assert.equal(a.c.state.rendered.progressModel.status.deltaMin,null);
  assert.ok(section.querySelectorAll('.jp-stop').length>=2);
- assert.equal(a.c.state.saved.settings.followRoute,false);assert.deepEqual(a.errors,[]);a.close();
+ assert.equal(a.c.state.saved.followRoute??null,null);assert.deepEqual(a.errors,[]);a.close();
 });
 
 test('Signal progress: a location projection without a live arrival stays modelled',async()=>{

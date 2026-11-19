@@ -7,11 +7,11 @@ after(closeAll);
 
 const NEAR_LET = { coords: { latitude: 51.975, longitude: -0.23, accuracy: 15 } };
 
-test("Toggle off: Leisure going out is unchanged (no 'Where to?', King's Cross or St Pancras)", async () => {
-  const app = await createApp({ settings: { provider: "demo" }, saved: { mode: "leisure", dirMode: "office", dest: "Science Museum" }, geo: NEAR_LET });
-  assert.equal(app.d.querySelector("#destRow").hidden, true);
-  assert.equal(app.text("#routeLabel"), "Cartref → King's Cross or St Pancras");
-  assert.doesNotMatch(app.text("#hero"), /Science Museum/);
+test("Permanent (#63): Leisure going out with no place typed plans as before (King's Cross or St Pancras), with 'Where to?' offered", async () => {
+  const app = await createApp({ settings: { provider: "demo", anyPlace: false }, saved: { mode: "leisure", dirMode: "office" }, geo: NEAR_LET });
+  assert.equal(app.d.querySelector("#destRow").hidden, false, "'Where to?' is there");
+  assert.equal(app.d.querySelector("#destInput").value, "");
+  assert.equal(app.text("#routeLabel"), "Cartref → King's Cross or St Pancras", "nothing typed: the same plan as before");
   app.close();
 });
 

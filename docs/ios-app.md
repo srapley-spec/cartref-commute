@@ -141,6 +141,7 @@ Times are epoch milliseconds; text is final, ready to show.
   "train": { "name": "18:56 Thameslink", "from": "Farringdon", "to": "Letchworth", "platform": "4",
              "scheduled": 1794943000000, "expected": 1794943420000, "late": 7 },
   "progress": { "next": "St Pancras", "stopsToGo": 3, "line": "Next: St Pancras · 3 stops" },
+  "step": { "text": "Get on the Met to Aldgate", "detail": "eastbound · Platform 2 · due 08:20" },
   "status": { "level": "warn", "text": "7 min late" },
   "alarm": { "at": 1794943200000, "leadMin": 5, "cancelled": false },
   "deepLink": "commute://follow/f_…"
@@ -149,7 +150,9 @@ Times are epoch milliseconds; text is final, ready to show.
 
 `headline` is exactly what the page's journey card shows on the left (Leave by / Be on platform… by / At King's Cross
 / Next tube), with the same countdown words (`COUNTDOWN_WORDS`). `alarm` is the leave alarm the shell should have
-scheduled: absent if there's none, `cancelled` once you've left. The shell schedules, moves or cancels its alarm to
+scheduled: absent if there's none, `cancelled` once you've left. `step` (added 19 Nov, #57 H29; optional, so still v1)
+is what to do next in the page's own words, drawn under the countdown; `null` when the headline and train already say
+it. Once you're off the train, `train` and `status` are `null`. The shell schedules, moves or cancels its alarm to
 match the newest snapshot. It never decides any of these itself.
 
 ### 6.2 Page ⇄ shell bridge
@@ -210,8 +213,10 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    Location events use `place`. **Replay:** until `ready()`, the shell holds the latest `apns`, the latest
    `liveActivity` per `followId` and the last 20 `wifi`/`region` events, and sends them on `ready()`.
 2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
-   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
-   [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
+   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `watch` (bool, 19 Nov, #66; optional), `wifi {home[], office[]}`, and
+   `regions [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm or the commute watch is on). With
+   the watch on and nothing followed, entering home is queued with `followId ""` and posted to `/native/evidence`; the
+   proxy then stops that evening's watch. The page posts `kind:"wifi"|"place"` home evidence the same way. Sent again when Settings or home
    change. Swift copies no profile data. **Home** (#58, 18 Nov): the home region exists only once home is saved, with
    Settings → Home → "Home is where I am now" at home; a fresh install has the office region only, and Settings →
    iPhone app says leaving home can't cancel the alarm until home is set. There is no automatic home (from Wi-Fi or
@@ -324,3 +329,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 - Widget: what it shows, and whether the proxy can keep it accurate enough (parked by Sam).
 - Snapshot/bridge/native-route alignment and missing lifecycle details: [ios-contract #58](https://github.com/srapley-spec/cartref-commute/issues/58). The existing APNs file has been located and provisioned; no replacement key needed.
 - The hall iPhone app: separate, later.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.

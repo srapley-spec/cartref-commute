@@ -27,20 +27,10 @@
     "label": "At home",
     "t": 1794945120000
   },
-  "train": {
-    "name": "18:56 Thameslink",
-    "from": "Farringdon",
-    "to": "Letchworth Garden City",
-    "platform": null,
-    "scheduled": 1794941760000,
-    "expected": null,
-    "late": 0
-  },
+  "train": null,
   "progress": null,
-  "status": {
-    "level": "ok",
-    "text": "On time, last known"
-  },
+  "step": null,
+  "status": null,
   "alarm": null,
   "deepLink": "commute://follow/f9"
 }

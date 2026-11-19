@@ -19,7 +19,7 @@ test('Along UI: default off and enabled on-train entry work independently of Fol
   assert.equal(a.d.querySelector('#alongPosition').hidden,false);assert.match(a.text('#alongPosition'),/approximate/);
   assert.equal(a.d.querySelector('[data-point="hitchin"]').hidden,false);
   assert.equal(a.d.querySelector('[data-point="hitchin"]').dataset.selected,'false');
-  assert.equal(a.c.state.saved.settings.followRoute,false);
+  assert.ok(!('followRoute' in a.c.state.saved.settings),'the retired Follow switch is dropped (permanent since #63)');
   assert.ok(a.d.querySelector('.al-station'));assert.ok(a.d.querySelector('a[href="https://en.wikipedia.org/wiki/Digswell_Viaduct"]'));
   const before=a.calls.slice();a.c.render();assert.deepEqual(a.calls,before);assert.deepEqual(a.errors,[]);a.close();
  }
@@ -98,7 +98,7 @@ test('Along UI: enabled navigation stays below the heading before boarding in ei
   a.d.querySelector('#alongClose').click();
   a.c.state.saved.settings.appearance=appearance==='light'?'dark':'light';a.c.render();
   assert.equal(nav.previousElementSibling.id,'signalModebar','changing appearance preserves the navigation position');
-  assert.equal(entry.hidden,false);assert.equal(a.c.state.saved.settings.followRoute,false);assert.deepEqual(a.calls,before);
+  assert.equal(entry.hidden,false);assert.ok(!('followRoute' in a.c.state.saved.settings));assert.deepEqual(a.calls,before);
   a.c.state.saved.settings.alongLine=false;a.c.render();assert.equal(nav.hidden,true);assert.equal(entry.hidden,true);
   assert.deepEqual(a.errors,[]);a.close();
  }

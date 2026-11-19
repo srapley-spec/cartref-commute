@@ -73,8 +73,9 @@ test("Settings: no key fields or proxy address at all; what the proxy is set up 
   assert.deepEqual(live, { rail: "true", serviceDetails: "true", tfl: "true", google: "false", anyStation: "false" });
   assert.match(app.text("#proxyStatus"), /✗ Google: walk and drive for Trip: not set up in the proxy \(GOOGLE_KEY\)/);
   assert.match(app.text("#proxyStatus"), /add the missing secret to GitHub's Actions secrets, then run Deploy proxy/);
-  // …and the home page says so at the top.
-  assert.match(app.text('[data-banner="not-live"]'), /^Not live.*Google: walk and drive for Trip: not set up in the proxy \(GOOGLE_KEY\)\. Any station for Trip: not allowed/);
+  // …and the home page says so at the top only in Trip (Trip's own services; review of #63: no warning for the commute).
+  assert.equal(app.d.querySelector('[data-banner="not-live"]'), null, "in the commute: no warning for Trip's services");
+
   app.close();
   // A new device: nothing saved at all, and it starts on the app's proxy.
   const fresh = await createApp({ settings: { keysInProxy: 0 }, route: (u) => (u.startsWith("https://cartref-rail.s-rapley.workers.dev") ? proxied()(u.replace("https://cartref-rail.s-rapley.workers.dev", PROXY)) : undefined) });
@@ -91,7 +92,7 @@ test("Settings: no key fields or proxy address at all; what the proxy is set up 
 });
 
 test("Setup link: opening #setup=<proxy> asks, naming the host; yes sets up My proxy and keeps everything else; no changes nothing", async () => {
-  const app = await createApp({ settings: { provider: "tfl", tflKey: "KEEP", trip: true } });
+  const app = await createApp({ settings: { provider: "tfl", tflKey: "KEEP", appearance: "dark" } });
   const asked = [];
   app.w.confirm = (m) => { asked.push(m); return true; };
   app.w.location.hash = `#setup=${encodeURIComponent(PROXY + "/")}`;
@@ -99,7 +100,7 @@ test("Setup link: opening #setup=<proxy> asks, naming the host; yes sets up My p
   assert.match(asked[0], /^Use cartref-rail\.example\.workers\.dev for all live data on this device\?/);
   assert.match(asked[0], /Only say yes if you set this proxy up or trust whoever sent the link/);
   assert.equal(app.c.S().provider, "proxy"); assert.equal(app.c.S().proxyBase, PROXY);
-  assert.equal(app.c.S().tflKey, "KEEP"); assert.equal(app.c.S().trip, true, "nothing else changed");
+  assert.equal(app.c.S().tflKey, "KEEP"); assert.equal(app.c.S().appearance, "dark", "nothing else changed");
   assert.equal(app.w.location.hash, `#setup=${encodeURIComponent(PROXY + "/")}`, "kept, so Add to Home Screen carries it");
   assert.equal(app.c.acceptSetupLink(), false, "already set up for it: not asked again");
   assert.equal(asked.length, 1);
@@ -194,9 +195,10 @@ test("TfL counts as keyed only when the proxy now in use said so; the advice poi
   await sleep(100);
   unkeyed.d.querySelector("#settingsBtn").click();
   assert.match(unkeyed.text("#proxyStatus"), /✓ TfL: tubes and line status: live, without a key \(TfL's shared limit applies; TFL_KEY\)/);
-  assert.equal(unkeyed.d.querySelector("#liveDataDetails summary").textContent, "All live", "unkeyed TfL is still live: no warning");
+  assert.doesNotMatch(unkeyed.d.querySelector("#liveDataDetails summary").textContent, /TfL/, "unkeyed TfL is still live: no warning");
   assert.equal(unkeyed.d.querySelector('[data-banner="not-live"]'), null);
-  assert.doesNotMatch(unkeyed.text("#proxyStatus"), /Google|Any station|alerts/, "Trip and alerts are off: not listed");
+  assert.match(unkeyed.text("#proxyStatus"), /Google: walk and drive for Trip/, "Trip is permanent (#63): its services are listed");
+  assert.doesNotMatch(unkeyed.text("#proxyStatus"), /alerts/, "alerts are off: not listed");
   assert.equal(unkeyed.c.tflKeyAdvice(), "add TFL_KEY to GitHub's Actions secrets and run Deploy proxy");
   const shown = unkeyed.d.body.cloneNode(true); shown.querySelectorAll("script,style").forEach(n => n.remove());
   assert.doesNotMatch(shown.textContent, /free TfL (app )?key in Settings/);

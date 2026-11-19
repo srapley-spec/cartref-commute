@@ -37,6 +37,7 @@
     "late": 7
   },
   "progress": null,
+  "step": null,
   "status": {
     "level": "warn",
     "text": "7 min late"

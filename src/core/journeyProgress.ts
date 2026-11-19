@@ -11,6 +11,8 @@ export interface JourneyProgressLeg {
   id: string; kind: ProgressKind; label: string; start: number; end: number | null;
   travelStart?: number; travelEnd?: number | null;
   from?: string; to?: string; fromCode?: string; toCode?: string; lineId?: string;
+  /** The tube on this leg as the page names it (19 Nov): its line and where it's going (empty when nobody says). */
+  service?: { line: string; dest: string };
 }
 export interface JourneyProgressCall {
   code?: string | null; name: string; scheduledAt?: number | null;

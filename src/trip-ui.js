@@ -33,6 +33,11 @@ function createTripUi(deps) {
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, boardOkAt = {}, lastBest = null, better = false;
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
+  // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
+  // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
+  let liveGen = 0, boardSeq = {};
+  // After reset() (a change of live-data source; Sam, 19 Nov) the trip is planned again once, from the new source.
+  let needPlan = false;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -255,9 +260,17 @@ function createTripUi(deps) {
     const followed = st().follow ? st().follow.journey : null;
     const want = C.liveBudget(result?.journeys||[], followed, now(), cfg());
     // One board per station pair per 30 s (refreshMs), however often the screen asks: a forced redraw reuses it.
+    const gen = liveGen;
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
-      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); if (liveBoards[b.key]) boardOkAt[b.key] = now(); } catch (e) { liveBoards[b.key] = undefined; } }));
+      const seq = boardSeq[b.key] = (boardSeq[b.key] || 0) + 1;
+      let got;
+      try { got = await fetchBoard(b.from, b.to); } catch (e) { got = undefined; }
+      // Reset meanwhile (this response belongs to what was cleared), or a newer request for the same board has
+      // started since (after the iPhone suspends the app the clock can jump past the 30 s spacing): write nothing.
+      if (gen !== liveGen || seq !== boardSeq[b.key]) return;
+      liveBoards[b.key] = got; if (got) boardOkAt[b.key] = now(); }));
+    if (gen !== liveGen) return;
     const planned=resultQuestion||effectiveQuestion();
     const q = planned.kind === "now" ? { kind: "now", t: now() } : planned;
     const js = C.rankTrips((result?.journeys||[]).map(j => C.applyLive(j, liveBoards, cfg())), q, now(), cfg());
@@ -289,6 +302,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
+    if (needPlan) { needPlan = false; if (st().to) await plan(); }
     if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
@@ -446,7 +460,7 @@ function createTripUi(deps) {
       headline: () => following ? `<div class="trip-headline ${fu.level}">${tripFollowHeading(fu)}${followFacts}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice?`<p>${esc(fu.notice.text)}</p>`:''}${fu.arrival==null||fu.route.expectedArrival!==fu.route.plannedArrival?`<p>Original plan: arrive ${hhmm(fu.route.plannedArrival)}</p>`:''}
           ${fu.phase==='before'||fu.phase==='access'?tripAccessMarkup(fu.route.journey,{active:true}):''}
           ${fu.phase==='final'||fu.phase==='arrived'?'':tripNextMarkup(fu.route.journey,C.followedTripPhase(fu.route,now()).ride,fu.phase==='ride'?'Current service':'Next')}
-          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}${esc(fu.nextStep.d)}</p>`:''}
+          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}<span data-native-step>${esc(fu.nextStep.d)}</span></p>`:''}
           ${fu.route.notices.filter(n=>n.id.startsWith('recovery:')).slice(-1).map(n=>`<p>${esc(n.text)}</p>`).join('')}${tripConfirmation(fu)}
           ${fu.alternative?`<section class="follow-alternative"><b>A way on · not selected</b>${journeyRow(fu.alternative,{noFollow:true})}<button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button><button type="button" class="ghost" data-trip-dismiss="${esc(fu.alternative.id)}">Keep my route</button></section>`:''}
           ${fu.arrival==null?`<button type="button" class="ghost" data-trip-replan>Plan from ${esc(C.tripRecoveryStart(fu.route,now()).station.name)}</button>`:''}
@@ -491,11 +505,11 @@ function createTripUi(deps) {
   return {
     show() { mount(); root.hidden = false;
       const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
-      fill(); renderResults(); if (!result && st().to) plan(); },
+      fill(); renderResults(); if (!result && st().to) { needPlan = false; plan(); } },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults, pinView, followedDataAt,
-    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
-    state: () => ({ result, error, stage: stageText }),
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; needPlan = true; },
+    state: () => ({ result, error, stage: stageText, boards: Object.keys(liveBoards).filter(k => liveBoards[k]).sort() }),
   };
 }
 if (typeof module !== "undefined") module.exports = { createTripUi, validTripState };

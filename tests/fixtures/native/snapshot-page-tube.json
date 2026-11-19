@@ -33,6 +33,7 @@
     "stopsToGo": 2,
     "line": "Next: Barbican · 2 stops"
   },
+  "step": null,
   "status": null,
   "alarm": null,
   "deepLink": "commute://follow/f9"

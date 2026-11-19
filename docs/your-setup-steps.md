@@ -61,6 +61,8 @@ to do on a device.
       `https://srapley-spec.github.io/cartref-commute/?display`. Pick the card's size (it scrolls if the list is
       longer than the card). Live times need nothing else since 17 Nov (the proxy is built in)
 - [ ] Tell Claude how it looks at the card's size
+- [ ] (19 Nov) The commute watch reads 3 boards every 2 minutes, 05:00–10:00 and from 15:00 until you're home (01:00 at
+      the latest): up to about 1,350 board requests on a watched weekday. Worth comparing with that limit.
 - [ ] Check the usage limit on your Rail Data Marketplace subscription (raildata.org.uk → your Live Departure Board
       subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
@@ -97,9 +99,26 @@ is integrated too. Use the native-feature build identified in
 [PR #61's release evidence](https://github.com/srapley-spec/cartref-commute/pull/61) for phone acceptance; earlier
 shell builds do not include the native features. Apple review submission must wait until the app is working;
 no review submission is configured.
-- [ ] On the native feature build, allow the desired permissions in Settings and enable Experimental → "Follow a
-      route". To test home-exit alarm cancellation,
+- [ ] On the native feature build, allow the desired permissions in Settings (Follow a route needs no switch since 18 Nov, #63), and
       while at home choose Settings → Home → "Home is where I am now". There is no automatic home inference in v1.
+- [ ] Commute watch (#66, 19 Nov): once TestFlight has the build after 19 Nov, open the app → Settings → Notifications →
+      tick **Commute watch** → Save (allow notifications when asked) → **Send a test to this iPhone**. A notification
+      "Alerts are on" should arrive within seconds. If it doesn't, tell Claude what the line under the button says.
+- [ ] Home Assistant for the evening watch (19 Nov, Sam: "use Home Assistant to be doubly sure"). Read-only; nothing
+      in Home Assistant is changed.
+      1. In Home Assistant: your profile (bottom left) → **Security** → **Long-lived access tokens** → Create token,
+         name it "Commute proxy". Copy it (it's shown once).
+      2. GitHub → the repo → Settings → Secrets and variables → Actions → New repository secret: `HA_TOKEN`, paste the
+         token. Another: `HA_BASE_URL`, Home Assistant's address from the internet, starting `https://` (your Nabu Casa
+         address, if you use it; not a home-network address like 192.168…). Only if your person entity isn't
+         `person.sam_rapley`, a third: `HA_PERSON`.
+      3. Actions → Deploy proxy → Run workflow. Its summary should show `"ha":true`.
+      4. In the app (after this release reaches TestFlight): Settings → Notifications → tick **Use Home Assistant to know
+         when I'm home** → Save → **Send a test to this iPhone**. The line under it says what Home Assistant reads.
+      Never paste the token into chat.
+- [ ] Optional, for earlier incident warnings: subscribe to **Knowledgebase Incidents data feed** on raildata.org.uk,
+      then add its consumer key and endpoint base as Actions secrets `RDM_KB_KEY` and `RDM_KB_BASE`, and the same two in the
+      cloud environment's secrets. Tell Claude when it's done (never paste the key).
 - [ ] Run the [first-phone acceptance checks](stories/ios-native.md#first-internal-testflight-phone-acceptance) and
       report the TestFlight build number with any failures. Actual APNs, alarms and region delivery need an iPhone.
 

@@ -29,6 +29,9 @@ const page = (phase, label, t, step, more = {}) => core.journeySnapshot({ now: a
   headline: { label, t, step }, arrive: { label: "At home", t: at(DAY, "19:52") }, ...more });
 Object.assign(CASES, {
   "page-walk": page("walk", "Next tube", at(DAY, "18:33"), "next", { progress: { next: "Farringdon", stopsToGo: 2 } }),
+  // At the change station off the train (#57 H29): what to do next, in the page's words; the train has left the card.
+  "page-at-hub-step": page("walk", "Next action", at(DAY, "18:35"), "next", { direction: "office", arrive: { label: "At office", t: at(DAY, "19:01") },
+    step: { text: "Get on the Met to Aldgate", detail: "eastbound · Platform 2 · due 18:40" } }),
   "page-tube": page("tube", "At Farringdon", at(DAY, "18:44"), "arrive", { confirmed: true, progress: { next: "Barbican", stopsToGo: 2 } }),
   "page-missed": page("missed", "Next train", at(DAY, "19:08"), "next", { status: { level: "bad", text: "Missed: the 18:56 has gone" } }),
   "page-switched": page("leave", "Leave by", at(DAY, "18:48"), "leave", { followId: "f10", alarm: core.leaveAlarm(at(DAY, "18:48"), { enabled: true, setOff: false, now: at(DAY, "18:30"), startPlace: "office" }) }),

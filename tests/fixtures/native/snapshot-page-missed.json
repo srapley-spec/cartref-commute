@@ -29,6 +29,7 @@
   },
   "train": null,
   "progress": null,
+  "step": null,
   "status": {
     "level": "bad",
     "text": "Missed: the 18:56 has gone"

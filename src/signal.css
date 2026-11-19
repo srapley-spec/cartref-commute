@@ -553,3 +553,6 @@ html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#si
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 html .signal-disruption-title[hidden] {display:none}
+/* Which tube, and where it's going (19 Nov): checked against the train's front. */
+html .journey-progress .jp-service {margin:0;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+html .journey-progress .jp-service .jp-muted {font-size:13px;color:var(--muted)}

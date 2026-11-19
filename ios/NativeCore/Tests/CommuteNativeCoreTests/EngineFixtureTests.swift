@@ -28,7 +28,14 @@ final class EngineFixtureTests: XCTestCase {
                 XCTAssertEqual(snapshot.headline.countdown?.urgentAt, countdown["urgentAt"] as? Double, file.lastPathComponent)
                 XCTAssertEqual(snapshot.headline.countdown?.passedAt, countdown["passedAt"] as? Double, file.lastPathComponent)
             }
+            // #57 H29: the step is the engine's words, carried as they are (absent or null decodes as none).
+            let rawStep = raw["step"] as? [String: Any]
+            XCTAssertEqual(snapshot.step?.text, rawStep?["text"] as? String, file.lastPathComponent)
+            XCTAssertEqual(snapshot.step?.detail, rawStep?["detail"] as? String, file.lastPathComponent)
         }
+        let atHub = try JSONDecoder().decode(JourneySnapshot.self, from: Data(contentsOf: directory.appendingPathComponent("snapshot-page-at-hub-step.json")))
+        XCTAssertEqual(atHub.step, .init(text: "Get on the Met to Aldgate", detail: "eastbound · Platform 2 · due 18:40"))
+        XCTAssertNil(atHub.train, "off the train, the train has left the card")
         let background = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background.json"))) as! [String: Any]
         let live = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-liveactivity-update.json"))) as! [String: Any]
         let content = (live["aps"] as! [String: Any])["content-state"]!

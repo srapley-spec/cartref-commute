@@ -72,12 +72,12 @@ test("iPhone routes: off until APNs is configured; origin-checked; registration 
   const stored = env.PUSH.m.get(`nat:${s.body.id}`);
   assert.ok(!stored.includes(s.body.token), "the token isn't stored");
   assert.deepEqual(JSON.parse(stored).apns, { token: TOKEN, env: "production" });
-  assert.deepEqual(JSON.parse(stored).prefs, { alarm: true, alarmLeadMin: 5 });
+  assert.deepEqual(JSON.parse(stored).prefs, { alarm: true, alarmLeadMin: 5, watch: false, ha: false });
   // Re-registering with the id and token updates the same iPhone (a new APNs token, the alarm off).
   const again = await register(env, { id: s.body.id, token: s.body.token, apnsToken: "C".repeat(64), env: "sandbox", prefs: { alarm: false, alarmLeadMin: 99 } });
   assert.equal(again.status, 200); assert.equal(again.body.id, s.body.id);
   assert.deepEqual(rec(env, s.body.id).apns, { token: "c".repeat(64), env: "sandbox" });
-  assert.deepEqual(rec(env, s.body.id).prefs, { alarm: false, alarmLeadMin: 5 }, "a nonsense lead falls back to 5 min");
+  assert.deepEqual(rec(env, s.body.id).prefs, { alarm: false, alarmLeadMin: 5, watch: false, ha: false }, "a nonsense lead falls back to 5 min");
   for (const bad of [{ apnsToken: "xyz", env: "production" }, { apnsToken: TOKEN, env: "dev" }, { apnsToken: TOKEN.slice(1), env: "production" }])
     assert.equal((await worker.fetch(post("/native/register", bad), env)).status, 400, JSON.stringify(bad));
   assert.equal((await worker.fetch(post("/native/other", {}), env)).status, 404);
@@ -340,7 +340,10 @@ test("Review: evidence says the journey's set-off state; Wi-Fi and old reports a
   const ev = (evidence) => worker.fetch(post("/native/evidence", { ...me, evidence }), env).then((r) => r.status === 200 ? r.json() : r.status);
   const r = await ev({ kind: "region", place: "office", event: "enter", at: Date.now() });
   assert.equal(r.setOff, true); assert.equal(r.snapshot.alarm.cancelled, true);
-  assert.equal(await ev({ kind: "wifi", place: "office", at: Date.now() }), 400);
+  // Wi-Fi at a place is accepted (#66: home Wi-Fi ends the evening watch) but never says the journey has set off.
+  assert.equal((await ev({ kind: "wifi", place: "office", at: Date.now() })).setOff, true, "(already set off above; unchanged)");
+  assert.equal(await ev({ kind: "wifi", place: "KGX", at: Date.now() }), 400, "Wi-Fi is only home or office");
+  assert.equal(await ev({ kind: "teleport", place: "home", at: Date.now() }), 400);
   assert.equal(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() - 7 * 3600e3 }), 400);
   await follow(env, me, null);
   const none = await ev({ kind: "region", place: "office", event: "exit", at: Date.now() });
