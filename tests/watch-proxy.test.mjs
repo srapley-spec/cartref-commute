@@ -229,6 +229,10 @@ test("Review (19 Nov): leaving home brings the evening watch back; an older arri
   await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.equal(fetched.length, 0, "home since 14:30, not left: not watched"); });
   await send({ kind: "region", place: "home", event: "enter" }, at(DAY, "14:10"));
   assert.equal(rec().homeAt, at(DAY, "14:30"), "an older arrival, delivered late, doesn't move it back");
+  await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "07:10"));
+  assert.equal(rec().leftAt, at(DAY, "07:30"), "an older exit, delivered late, doesn't move it back");
+  await send({ kind: "region", place: "office", event: "exit" }, at(DAY, "16:00"));
+  assert.equal(rec().leftAt, at(DAY, "07:30"), "leaving the office isn't leaving home");
   await send({ kind: "region", place: "home", event: "exit" }, at(DAY, "16:50"));
   await withFeeds(async ({ fetched }) => { await runWatch(env, at(DAY, "17:00")); assert.ok(fetched.length > 0, "out again: watched"); });
   assert.equal((await send({ kind: "region", place: "home", event: "wobble" }, at(DAY, "17:10"))).status, 400);

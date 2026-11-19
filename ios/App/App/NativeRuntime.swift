@@ -267,8 +267,6 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
             let circle = CLCircularRegion(center: CLLocationCoordinate2D(latitude: value.lat, longitude: value.lon), radius: value.radiusM, identifier: regionIdentifier(value.place))
             circle.notifyOnEntry = true; circle.notifyOnExit = true
             location.startMonitoring(for: circle)
-            // iOS reports no entry when monitoring starts with the phone already inside: ask once (review 19 Nov).
-            location.requestState(for: circle)
         }
     }
 
@@ -276,7 +274,11 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) { regionEvent(region, event: "enter") }
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) { regionEvent(region, event: "exit") }
-    /// The answer to `requestState`: already inside counts as arriving (an exit is left to `didExitRegion`).
+    /// iOS reports no entry when monitoring starts with the phone already inside: ask once it has started (review 19 Nov).
+    func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
+        if region.identifier.hasPrefix("commute:") { manager.requestState(for: region) }
+    }
+    /// The answer to `requestState` (and every crossing): inside counts as arriving; an exit is left to `didExitRegion`.
     func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
         if state == .inside { regionEvent(region, event: "enter") }
     }

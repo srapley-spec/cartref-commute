@@ -116,7 +116,7 @@ test("Review (19 Nov): home is never reported from display mode or a simulation,
   const wifi = async (app, l) => { l.wifi({ place: "home", at: app.w.Date.now() }); };
   assert.equal((await run({ url: "https://srapley-spec.github.io/cartref-commute/?display", act: wifi })).posts.length, 0, "display mode");
   // A simulation is a session opt-in (cleared on reload): switched on after start-up, as Settings does.
-  assert.equal((await run({ act: async (app, l) => { app.c.state.saved.settings.simulatedFeeds = true; await wifi(app, l); } })).posts.length, 0, "a simulation");
+  assert.equal((await run({ act: async (app) => { app.c.state.saved.settings.simulatedFeeds = true; await fix(51.975, -0.23, 20)(app); } })).posts.length, 0, "a simulation (a fix at home)");
   assert.equal((await run({ act: fix(51.9777, -0.23, 20) })).posts.length, 0, "a fix 300 m from home");
   assert.equal((await run({ act: fix(51.975, -0.23, 250) })).posts.length, 0, "a poor fix at home");
   assert.equal((await run({ act: async (app, l) => { l.region({ place: "home", event: "exit", at: app.w.Date.now() }); } })).posts.length, 0, "leaving the geofence");

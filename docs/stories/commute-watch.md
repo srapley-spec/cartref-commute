@@ -28,7 +28,11 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
     the arrival). The proxy keeps the latest arrival (`homeAt`) and departure (`leftAt`); an older one delivered late
     doesn't move either back.
   - **Already inside when monitoring starts:** iOS reports no entry, so the shell asks for the region's state once
-    (`requestState`); "inside" counts as arriving.
+    monitoring has started (`didStartMonitoringFor` → `requestState`); "inside" counts as arriving.
+  - **Trade-off (Sam, 19 Nov: "never miss an alert" until Home Assistant presence is added):** the 12 h limit means
+    a work-from-home evening may still be watched (an alert at home is possible). A longer limit would risk silence in
+    London if a "left home" signal were lost. Home Assistant's `person.sam_rapley` is the planned primary presence
+    signal, with the geofence as backup.
   - A report that doesn't reach the proxy (offline) is made again on the next sign of home.
   - Side effects, accepted: with the watch on and the leave alarm off, a followed journey also gets geofence set-off
     evidence (a cancel with no alarm does nothing). Starting to follow a journey drops a queued, unsent arrival home.
