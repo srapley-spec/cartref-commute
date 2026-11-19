@@ -54,9 +54,12 @@ const AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|re
 /** Cleared: specific phrases only (independent review, 19 Nov: "lines have now been blocked" is not cleared). */
 const CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-/** Planned, or for another day than today; never when it has overrun. */
+/**
+ * Planned work for another time: only a notice about planned work ("engineering", "no trains will run", "planned
+ * closure") can be for another day; an incident "expected to continue on Friday" is today's. Never when it has overrun.
+ */
 function notToday(m: string, now: number): boolean {
-  if (/overrun/i.test(m)) return false;
+  if (/overrun/i.test(m) || !/(planned|engineering|improvement works|no trains will run)/i.test(m)) return false;
   if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
   const today = DAYS[new Date(now).getDay()];
   const day = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
@@ -98,8 +101,12 @@ function onYourLine(m: string, corridor: string | undefined): boolean {
   const all = new RegExp(`^(london )?(${corridor})`, "i");
   const local = new RegExp(corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
   const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
-  if (stretches.length) return stretches.some(x => all.test(x[1].trim()) && all.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])));
-  return local.test(m);
+  if (stretches.some(x => all.test(x[1].trim()) && all.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
+  // A station of yours named outside any stretch ("… at Hatfield"), but not as a "via" on someone else's route.
+  let rest = m;
+  for (const x of stretches) rest = rest.replace(x[0], " ");
+  rest = rest.replace(/\bvia [A-Za-z][A-Za-z' .&-]*?(?=[.,:;]| may| will| is| are|$)/gi, " ");
+  return local.test(rest);
 }
 
 /**
@@ -113,14 +120,18 @@ export function watchVerdict(direction: WatchDirection, boards: Record<string, B
   const read = Object.values(boards).filter((b): b is Board => !!b);
   const out: WatchVerdict = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, stuck: 0, reasons: [] };
   if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
-  const horizon = now + WATCH_WINDOW_MIN * 60e3, back = now - STUCK_LOOKBACK_MIN * 60e3, seen = new Set<string>();
+  const horizon = now + WATCH_WINDOW_MIN * 60e3, back = now - STUCK_LOOKBACK_MIN * 60e3;
   // The same train on two boards (a Thameslink at Farringdon and at St Pancras) is one train: same operator, same
   // timetabled arrival. Service IDs differ by station in newer feeds.
   // Going out it is the same departure from Letchworth (on the LET-ZFD and LET-STP boards); coming home, the same
   // arrival at Letchworth.
-  const trains = read.flatMap(b => b.services || []).filter(t => {
-    const sa = schedArr(t), id = direction === "office" ? `${t.operator}|${t.from}|${schedDep(t)}` : sa != null ? `${t.operator}|${t.to}|${sa}` : t.serviceId || `${t.std}|${t.operator}|${t.to}`;
-    if (seen.has(id)) return false; seen.add(id);
+  // Of two copies, the one that runs: a Thameslink cancelled at Farringdon may still reach St Pancras (re-review, 19 Nov).
+  const keyOf = (t: Train) => { const sa = schedArr(t); return direction === "office" ? `${t.operator}|${t.from}|${schedDep(t)}` : sa != null ? `${t.operator}|${t.to}|${sa}` : t.serviceId || `${t.std}|${t.operator}|${t.to}`; };
+  const runs = (t: Train) => !t.cancelled && !t.depUnknown && !t.arrUnknown && t.arr != null;
+  const better = (a: Train, b: Train) => runs(b) && (!runs(a) || (b.arr as number) < (a.arr as number));
+  const chosen = new Map<string, Train>();
+  for (const t of read.flatMap(b => b.services || [])) { const k = keyOf(t), had = chosen.get(k); if (!had || better(had, t)) chosen.set(k, t); }
+  const trains = [...chosen.values()].filter(t => {
     const sd = schedDep(t);
     return sd <= horizon && (sd >= now || (!t.cancelled && (t.dep >= now || ((t.depUnknown || t.arrUnknown) && sd >= back))));
   });

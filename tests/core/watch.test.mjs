@@ -222,3 +222,30 @@ test("Re-review (19 Nov): the tube part suspended on all three lines is amber, n
   const r = core.watchStep(st, w, v(0), now);
   assert.equal(r.notice.title, "Commute: back to normal home");
 });
+
+test("Final re-check (19 Nov): a station of yours outside a stretch counts; a follow-on day isn't another day; London-only and facility notices aren't red", () => {
+  const now = T("17:00"), corridor = `${core.profiles.samCommute.corridorPattern}|ashwell|royston|cambridge`;
+  const lvl = (msg) => core.watchVerdict("home", boards([gn("17:05")], [], [msg]), null, now, undefined, corridor).level;
+  for (const msg of [
+    "Disruption between London Kings Cross and Peterborough. A person has been hit by a train at Hatfield.",
+    "Lines are blocked at Stevenage. Disruption is expected between now and the end of the day.",
+    "Lines are blocked between Hitchin and Stevenage due to damaged overhead wires. Disruption is expected to continue on Friday.",
+    "Lines are blocked between Hitchin and Stevenage. Disruption may continue this weekend.",
+    "Planned engineering works between Hitchin and Stevenage have overrun: lines are blocked.",
+  ]) assert.equal(lvl(msg), "red", msg);
+  for (const msg of [
+    "Lines are blocked between London St Pancras and Farringdon.",
+    "Step-free access at Stevenage is suspended.",
+  ]) assert.notEqual(lvl(msg), "red", msg);
+});
+
+test("Final re-check (19 Nov): of two copies of one morning train, the one that runs counts (cancelled at Farringdon, running to St Pancras)", () => {
+  const now = T("07:00");
+  const tl = (to, std, o = {}) => train({ from: "LET", to, std, dep: T(std), arr: T(std) + (to === "ZFD" ? 45 : 40) * MIN, operator: "Thameslink", ...o });
+  const gnm = (std) => train({ from: "LET", to: "KGX", std, dep: T(std), arr: T(std) + 35 * MIN, operator: "Great Northern" });
+  const v = core.watchVerdict("office", {
+    "LET-ZFD": { services: [tl("ZFD", "07:05", { cancelled: true }), tl("ZFD", "07:35", { cancelled: true })], msgs: [] },
+    "LET-STP": { services: [tl("STP", "07:05"), tl("STP", "07:35")], msgs: [] },
+    "LET-KGX": { services: [gnm("07:25"), gnm("07:50")], msgs: [] } }, null, now);
+  assert.equal(v.cancelled, 0); assert.equal(v.train.to, "STP"); assert.equal(v.level, "ok");
+});

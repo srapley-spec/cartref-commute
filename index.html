@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:50 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:53 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5737,7 +5737,7 @@ var CommuteCore = (() => {
   var CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
   var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   function notToday(m, now) {
-    if (/overrun/i.test(m)) return false;
+    if (/overrun/i.test(m) || !/(planned|engineering|improvement works|no trains will run)/i.test(m)) return false;
     if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
     const today = DAYS[new Date(now).getDay()];
     const day2 = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
@@ -5754,18 +5754,29 @@ var CommuteCore = (() => {
     const all2 = new RegExp(`^(london )?(${corridor})`, "i");
     const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
     const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
-    if (stretches.length) return stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])));
-    return local.test(m);
+    if (stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])))) return true;
+    let rest = m;
+    for (const x of stretches) rest = rest.replace(x[0], " ");
+    rest = rest.replace(/\bvia [A-Za-z][A-Za-z' .&-]*?(?=[.,:;]| may| will| is| are|$)/gi, " ");
+    return local.test(rest);
   }
   function watchVerdict(direction, boards, tube, now, policy, corridor) {
     const read = Object.values(boards).filter((b) => !!b);
     const out = { direction, level: "ok", lateMin: null, normalArrive: null, expectedArrive: null, train: null, cancelled: 0, stuck: 0, reasons: [] };
     if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
-    const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4, seen = /* @__PURE__ */ new Set();
-    const trains = read.flatMap((b) => b.services || []).filter((t2) => {
-      const sa = schedArr(t2), id = direction === "office" ? `${t2.operator}|${t2.from}|${schedDep(t2)}` : sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
-      if (seen.has(id)) return false;
-      seen.add(id);
+    const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4;
+    const keyOf3 = (t2) => {
+      const sa = schedArr(t2);
+      return direction === "office" ? `${t2.operator}|${t2.from}|${schedDep(t2)}` : sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
+    };
+    const runs = (t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null;
+    const better = (a, b) => runs(b) && (!runs(a) || b.arr < a.arr);
+    const chosen = /* @__PURE__ */ new Map();
+    for (const t2 of read.flatMap((b) => b.services || [])) {
+      const k = keyOf3(t2), had = chosen.get(k);
+      if (!had || better(had, t2)) chosen.set(k, t2);
+    }
+    const trains = [...chosen.values()].filter((t2) => {
       const sd = schedDep(t2);
       return sd <= horizon && (sd >= now || !t2.cancelled && (t2.dep >= now || (t2.depUnknown || t2.arrUnknown) && sd >= back));
     });

@@ -170,3 +170,12 @@ test("The cron: the watch starts only after the followed-journey run has finishe
     });
   }
 });
+
+test("The proxy's corridor runs on beyond Letchworth: 'between Hitchin and Cambridge' is your line", async () => {
+  const env = await envWith();
+  await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+  await withFeeds(async ({ pushes }) => {
+    await runWatch(env, at(DAY, "17:00"));
+    assert.equal(pushes.length, 1); assert.equal(pushes[0].body.aps.alert.title, "Commute: disruption on the way home");
+  }, () => "On time", { msgs: ["Lines are blocked between Hitchin and Cambridge."] });
+});

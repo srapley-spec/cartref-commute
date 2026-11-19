@@ -21,7 +21,8 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   timetable gave for trains still to leave, over the next 90 minutes. A cancellation with the next train 10 minutes
   behind is 10 minutes. A train already due, now running late, never sets "normal". The same train on two boards
   counts once: going out, the same departure from Letchworth (one Thameslink on the Farringdon and St Pancras boards);
-  coming home, the same timetabled arrival at Letchworth. When no
+  coming home, the same timetabled arrival at Letchworth. Of two copies, the one that runs counts: a Thameslink
+  cancelled at Farringdon may still reach St Pancras. When no
   timetable train is left to compare with, the best train's own lateness is used.
 - **Amber:** at least 15 minutes later than normal (`WATCH_AMBER_MIN`).
 - **Red:** any of these:
@@ -40,6 +41,11 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
     - **It must not be cleared or for another time.** Cleared means specific phrases only: "lines have reopened",
       "running normally", "disruption has cleared". Not today means planned engineering or works, "this weekend", or
       "on <a day other than today>". An overrun is never "planned".
+    - **A station of yours named outside any stretch** ("… hit by a train at Hatfield") counts, but not as a "via" on
+      another route.
+    - **Planned work only can be for another time.** "Expected to continue on Friday" after an incident is today's.
+    - **Accepted miss:** "between Peterborough and Stevenage" includes Stevenage–Hitchin, but telling that needs route
+      order, so it counts only once the trains show it.
     - **Design choice:** a blocking notice that names only King's Cross, St Pancras or Farringdon counts for nothing by
       itself. The train data shows its effect, because those trains go late or are cancelled.
 - **Also amber:**
@@ -111,6 +117,9 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/core/watch.test.mjs: "Re-review (19 Nov): one train on two morning boards counts once; one stuck train, or a 'Delayed' blip at departure, is not amber"
 - tests/core/watch.test.mjs: "Re-review (19 Nov): the tube part suspended on all three lines is amber, not red; 'ok' must hold 3 checks in a row"
 - tests/watch-proxy.test.mjs: "The cron: the watch starts only after the followed-journey run has finished, and still runs if that run fails"
+- tests/watch-proxy.test.mjs: "The proxy's corridor runs on beyond Letchworth: 'between Hitchin and Cambridge' is your line"
+- tests/core/watch.test.mjs: "Final re-check (19 Nov): a station of yours outside a stretch counts; a follow-on day isn't another day; London-only and facility notices aren't red"
+- tests/core/watch.test.mjs: "Final re-check (19 Nov): of two copies of one morning train, the one that runs counts (cancelled at Farringdon, running to St Pancras)"
 
 Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it found false reds (the tube's
 "Service Closed" every morning; planned, other-route, facility and cleared notices), missed reds (trains stuck at
@@ -125,6 +134,12 @@ today is Thursday, "Lifts … also out of use", "emergency services have cleared
 junction stations for other routes going red, one morning train on two boards counted twice (a false amber), and a
 'Delayed' blip at departure counted as stuck. All are fixed above, with tests. Survivors now caught: tube part
 suspended alone, one stuck train, arrival-only 'Delayed', 3 checks in a row, and the cron order and failure.
+
+Final re-check (19 Nov, of b1dd52c): the second round's fixes held. It found four ways a real incident still came
+out "ok": a local station named outside a stretch; a time phrase read as a stretch; "continue on Friday"; and "this
+weekend" after an incident. It also found that a Thameslink cancelled at Farringdon but running to St Pancras was
+counted as cancelled. All are fixed with tests, as are the low survivors it named: the overrun guard, a London-only
+stretch, the facility filter, and the proxy's corridor beyond Letchworth.
 
 Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
 test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.
