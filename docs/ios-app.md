@@ -222,8 +222,10 @@ This supersedes §6.2–6.3 where they differ. Fixtures under `tests/fixtures/na
    Location events use `place`. **Replay:** until `ready()`, the shell holds the latest `apns`, the latest
    `liveActivity` per `followId` and the last 20 `wifi`/`region` events, and sends them on `ready()`.
 2. **Credentials and geofences.** The page registers with the proxy. `configure` carries `proxy {origin}`, `device {id,
-   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `wifi {home[], office[]}`, and `regions
-   [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm is on). Sent again when Settings or home
+   token}|null` (shell keeps it in Keychain), `alarm {alarm, alarmLeadMin}`, `watch` (bool, 19 Nov, #66; optional), `wifi {home[], office[]}`, and
+   `regions [{place, lat, lon, radiusM}]` (home and office, 150 m, only while the alarm or the commute watch is on). With
+   the watch on and nothing followed, entering home is queued with `followId ""` and posted to `/native/evidence`; the
+   proxy then stops that evening's watch. The page posts `kind:"wifi"|"place"` home evidence the same way. Sent again when Settings or home
    change. Swift copies no profile data. **Home** (#58, 18 Nov): the home region exists only once home is saved, with
    Settings → Home → "Home is where I am now" at home; a fresh install has the office region only, and Settings →
    iPhone app says leaving home can't cancel the alarm until home is set. There is no automatic home (from Wi-Fi or
@@ -336,3 +338,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 - Widget: what it shows, and whether the proxy can keep it accurate enough (parked by Sam).
 - Snapshot/bridge/native-route alignment and missing lifecycle details: [ios-contract #58](https://github.com/srapley-spec/cartref-commute/issues/58). The existing APNs file has been located and provisioned; no replacement key needed.
 - The hall iPhone app: separate, later.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.

@@ -370,7 +370,7 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 ## Decisions log
 
 - **19 Nov, commute watch (Sam, #66).** On weekdays the proxy watches the commute without anything followed: 05:00–10:00
-  to the office, 15:00–20:00 home. It notifies only on a change to amber (15 min or more later than normal getting there)
+  to the office, and home from 15:00 until you're home (geofence, home Wi-Fi or a fix at home; 01:00 at the latest). It notifies only on a change to amber (15 min or more later than normal getting there)
   or red (more than 45, no trains, the tube to the stations closed, or a blocking incident on the line). Lateness is
   measured at arrival across all three London stations, not on one train. These are the watch's own thresholds; the
   page's delay colours are unchanged. iPhone app only, off until turned on (`commute-watch.md`). The lock-screen status
@@ -862,3 +862,7 @@ before AlarmKit is updated. Native platform adapters are tested separately from 
 The Live Activity is an embedded WidgetKit extension with its own App Store profile. TestFlight verifies both
 identities, entitlements and matching build numbers before upload. Details, evidence and remaining contract/phone
 gates: `docs/stories/ios-native.md`. Internal distribution does not submit either form of Apple review.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.

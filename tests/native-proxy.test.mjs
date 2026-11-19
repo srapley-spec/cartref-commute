@@ -340,7 +340,10 @@ test("Review: evidence says the journey's set-off state; Wi-Fi and old reports a
   const ev = (evidence) => worker.fetch(post("/native/evidence", { ...me, evidence }), env).then((r) => r.status === 200 ? r.json() : r.status);
   const r = await ev({ kind: "region", place: "office", event: "enter", at: Date.now() });
   assert.equal(r.setOff, true); assert.equal(r.snapshot.alarm.cancelled, true);
-  assert.equal(await ev({ kind: "wifi", place: "office", at: Date.now() }), 400);
+  // Wi-Fi at a place is accepted (#66: home Wi-Fi ends the evening watch) but never says the journey has set off.
+  assert.equal((await ev({ kind: "wifi", place: "office", at: Date.now() })).setOff, true, "(already set off above; unchanged)");
+  assert.equal(await ev({ kind: "wifi", place: "KGX", at: Date.now() }), 400, "Wi-Fi is only home or office");
+  assert.equal(await ev({ kind: "teleport", place: "home", at: Date.now() }), 400);
   assert.equal(await ev({ kind: "region", place: "office", event: "exit", at: Date.now() - 7 * 3600e3 }), 400);
   await follow(env, me, null);
   const none = await ev({ kind: "region", place: "office", event: "exit", at: Date.now() });

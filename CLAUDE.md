@@ -1,3 +1,5 @@
+**Canonical rules:** read `/Users/samrapley/Documents/ChatGPT/Home Assistant/how-we-work/RULES.md` (srapley-spec/how-we-work). Its 18 November rules supersede conflicting historical instructions below, including the old fast path and agent merges. Sam merges workflow PRs.
+
 # Cartref Commute — working rules
 
 Read this first, every session. The context for this project lives in this repo, not in any chat.
