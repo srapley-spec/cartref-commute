@@ -2866,8 +2866,15 @@ function nativeSnapshot(){
     headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
-    step:doNext,status:status?{level:status.level,text:status.text}:null,
+    step:doNext,status:status?{level:status.level,text:status.text}:null,strip:nativeStrip(trip,phase),
     alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
+}
+// The leg strip for the Live Activity (#71): the one the card draws, while you're on the train or tube it is for (the
+// tube after the train is the commute's "walk-last" phase; before it, "walk" or "platform"). Not for Trip: no calls.
+function nativeStrip(trip,phase){
+  const pm=state.rendered&&state.rendered.progressModel;
+  if(trip||!pm||!pm.strip||!['rail','tube'].includes(pm.current.kind)||['leave','arrived','missed','cancelled'].includes(phase)) return null;
+  return {strip:pm.strip,lineId:pm.current.kind==='tube'?pm.current.lineId:null,names:pm.calls.map(c=>shownStation(c))};
 }
 // Siri (Sam, 18 Nov: Siri opens the app to follow): commute://next?direction=home|office shows that direction now;
 // &follow=1 then follows the card's best train, exactly as tapping its Follow button. Anything else is ignored.
@@ -3172,6 +3179,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT};
+window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
 })();
 </script>

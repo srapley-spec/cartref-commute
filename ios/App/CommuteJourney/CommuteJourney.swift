@@ -86,7 +86,10 @@ private struct JourneyLockScreen: View {
                     if let platform = train.platform, !platform.isEmpty { Text("Platform \(platform)").fontWeight(.semibold) }
                 }.font(.system(size: 12))
             }
-            if let progress = snapshot.progress?.line { Text(progress).font(.system(size: 12)).lineLimit(1) }
+            // The leg strip (#71) replaces the one-line progress when the engine sends one. It holds its last position
+            // between updates: a Live Activity doesn't animate by itself.
+            if let strip = snapshot.strip { SnapshotStrip(strip: strip, ink: ink, accent: accent, card: card) }
+            else if let progress = snapshot.progress?.line { Text(progress).font(.system(size: 12)).lineLimit(1) }
             SnapshotAge(snapshot: snapshot, stale: stale)
         }
         .foregroundStyle(ink)
@@ -114,6 +117,54 @@ private struct SnapshotStep: View {
             if let detail = step.detail, !detail.isEmpty { Text(detail).font(.system(size: 12)).lineLimit(1) }
         }
     }
+}
+
+private struct SnapshotStrip: View {
+    let strip: JourneySnapshot.Strip
+    let ink: Color
+    let accent: Color
+    let card: Color
+    private var line: Color { strip.rgb.map { Color(hex: $0) } ?? accent }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            GeometryReader { geo in
+                let inset: CGFloat = 9, width = max(1, geo.size.width - inset * 2), mid = geo.size.height / 2
+                let x = { (p: Double) in inset + width * CGFloat(strip.fraction(p)) }
+                let filledTo = strip.marker.flatMap { $0.estimated ? nil : $0.at } ?? Double(strip.passed ?? 0)
+                ZStack(alignment: .topLeading) {
+                    Capsule().fill(line.opacity(0.35)).frame(width: width, height: 4).position(x: inset + width / 2, y: mid)
+                    Capsule().fill(ink).frame(width: max(0, x(filledTo) - inset), height: 4).position(x: inset + (x(filledTo) - inset) / 2, y: mid)
+                    ForEach(0..<strip.stations, id: \.self) { k in
+                        let yours = k == strip.stations - 1, passed = strip.passed.map { k <= $0 } ?? false
+                        Circle().fill(passed ? ink : card)
+                            .overlay(Circle().stroke(yours ? ink : (passed ? ink : line), lineWidth: yours ? 3 : 2))
+                            .frame(width: yours ? 12 : 8, height: yours ? 12 : 8)
+                            .position(x: x(Double(k)), y: mid)
+                    }
+                    if let marker = strip.marker {
+                        Circle().fill(marker.estimated ? card : accent)
+                            .overlay(Circle().strokeBorder(accent, style: StrokeStyle(lineWidth: marker.estimated ? 2 : 0, dash: marker.estimated ? [3, 2] : [])))
+                            .overlay(Circle().stroke(card, lineWidth: marker.estimated ? 0 : 2))
+                            .frame(width: 16, height: 16)
+                            .position(x: x(marker.at), y: mid)
+                    }
+                }
+            }.frame(height: 18).accessibilityHidden(true)
+            HStack(spacing: 6) {
+                if let last = strip.last { Text(last) }
+                if let next = strip.next {
+                    if strip.last != nil { Spacer(minLength: 0) }
+                    Text("Next: \(next)").fontWeight(.semibold).foregroundStyle(accent)
+                }
+                Spacer(minLength: 0)
+                Text("\(strip.yours)\(strip.yoursAt.map { " " + Self.clock.string(from: Date(timeIntervalSince1970: $0 / 1000)) } ?? "")")
+            }.font(.system(size: 11)).lineLimit(1)
+        }.accessibilityElement(children: .combine)
+    }
+    private static let clock: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; f.timeZone = TimeZone(identifier: "Europe/London"); return f
+    }()
 }
 
 private struct SnapshotClock: View {

@@ -8,6 +8,7 @@ import { trainStatus, delayStatus } from "./rules";
 import { platformBy } from "./follow";
 import type { Option } from "./types";
 import type { FollowTrip } from "./trip/followTrip";
+import type { LegStrip } from "./journeyProgress";
 
 export const SNAPSHOT_VERSION = 1;
 /** Data older than this is marked stale (the same 3 minutes as the status line's "may be out of date"). */
@@ -60,7 +61,18 @@ export interface JourneySnapshot {
   status: { level: "ok" | "info" | "warn" | "bad"; text: string } | null;
   alarm: LeaveAlarm | null;
   deepLink: string | null;
+  /** The leg strip (#71, 19 Nov): drawn on the Live Activity as on the card. Absent from snapshots made before #71. */
+  strip?: SnapshotStrip | null;
 }
+/** The leg as the Live Activity draws it: `stations` dots, those up to `passed` filled, the marker at `marker.at`
+ *  (0 = first station, stations - 1 = your stop; solid when reported, outlined when estimated). `colour` is the tube
+ *  line's (#RRGGBB) or null for a train (the app's accent). Labels are final text. */
+export interface SnapshotStrip {
+  stations: number; passed: number | null; marker: { at: number; kind: "reported" | "estimate" | "stale" } | null;
+  colour: string | null; last: string | null; next: string | null; yours: string; yoursAt: number | null;
+}
+/** TfL's line colours, for the strip on the Live Activity (the page uses the same values from its stylesheet). */
+export const TUBE_LINE_COLOURS: Record<string, string> = { circle: "#FFD329", metropolitan: "#9B0058", "hammersmith-city": "#F4A9BE" };
 
 export interface SnapshotInput {
   now: number; source: "page" | "proxy"; dataAt?: number | null;
@@ -74,6 +86,8 @@ export interface SnapshotInput {
   status?: JourneySnapshot["status"];
   alarm?: LeaveAlarm | null;
   confirmed?: boolean;
+  /** The current leg's strip from the progress model, its line and the stations' shown names. */
+  strip?: { strip: LegStrip | null; lineId?: string | null; names: readonly string[] } | null;
 }
 
 const fin = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
@@ -126,7 +140,19 @@ export function journeySnapshot(i: SnapshotInput): JourneySnapshot {
     status: i.status || null,
     alarm: i.alarm || null,
     deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null,
+    strip: snapshotStrip(i.strip),
   };
+}
+function snapshotStrip(x: SnapshotInput["strip"]): SnapshotStrip | null {
+  const st = x && x.strip; if (!st || st.stations.length < 2 || st.stations.length > 64 || x!.names.length !== st.stations.length) return null;
+  const name = (k: number | null) => k == null ? null : clean(x!.names[k]) || null;
+  // An estimate moves with the clock: to the nearest quarter station, so it isn't a change worth a push every second.
+  const q = (v: number, kind: string) => kind === "estimate" ? Math.round(v * 4) / 4 : Math.round(v * 100) / 100;
+  const m = st.marker && fin(st.marker.at) ? { at: Math.max(0, Math.min(st.yours, q(st.marker.at, st.marker.kind))), kind: st.marker.kind } : null;
+  return { stations: st.stations.length, passed: st.last, marker: m, colour: (x!.lineId && TUBE_LINE_COLOURS[x!.lineId]) || null,
+    last: name(st.last), next: st.next === st.yours ? null : name(st.next), yours: name(st.yours) || "",
+    // Only a live time for your stop: a timetable time would read as live on the lock screen (review, 19 Nov).
+    yoursAt: fin(st.stations[st.yours].time) && ["reported", "expected"].includes(String(st.stations[st.yours].timeKind)) ? st.stations[st.yours].time : null };
 }
 
 /** What the proxy knows about a followed journey beyond the alert plan (sent with it by the page; all optional). */
@@ -197,7 +223,9 @@ export function snapshotShown(s: JourneySnapshot | null | undefined, withRefresh
   return JSON.stringify([s.followId, s.phase, s.confirmed, s.progress && s.progress.line, !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS), s.headline.label, s.step ? [s.step.text, s.step.detail] : null,
     // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
     s.headline.countdown && s.headline.countdown.state, s.headline.t, s.arrive && s.arrive.t, s.train && [s.train.platform, s.train.expected, s.train.late],
-    s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale]);
+    s.status && s.status.text, s.alarm && [s.alarm.at, s.alarm.cancelled], s.stale,
+    // The strip moves with each push (#71): where the marker is and how it's drawn.
+    s.strip ? [s.strip.marker && s.strip.marker.at, s.strip.marker && s.strip.marker.kind, s.strip.passed, s.strip.yoursAt] : null]);
 }
 
 /**

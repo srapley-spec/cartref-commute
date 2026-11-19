@@ -144,7 +144,9 @@ Times are epoch milliseconds; text is final, ready to show.
   "step": { "text": "Get on the Met to Aldgate", "detail": "eastbound · Platform 2 · due 08:20" },
   "status": { "level": "warn", "text": "7 min late" },
   "alarm": { "at": 1794943200000, "leadMin": 5, "cancelled": false },
-  "deepLink": "commute://follow/f_…"
+  "deepLink": "commute://follow/f_…",
+  "strip": { "stations": 6, "passed": 1, "marker": { "at": 1.5, "kind": "reported | estimate | stale" }, "colour": "#9B0058",
+             "last": "Farringdon", "next": "Barbican", "yours": "Aldgate", "yoursAt": 1794943320000 }
 }
 ```
 
@@ -154,6 +156,13 @@ scheduled: absent if there's none, `cancelled` once you've left. `step` (added 1
 is what to do next in the page's own words, drawn under the countdown; `null` when the headline and train already say
 it. Once you're off the train, `train` and `status` are `null`. The shell schedules, moves or cancels its alarm to
 match the newest snapshot. It never decides any of these itself.
+`strip` (added 19 Nov, #71; optional, so still v1) is the current leg drawn as a line: `stations` dots (0 = first, the
+last is your stop), those up to `passed` filled, the marker at `marker.at` stations along (solid when `reported`,
+outlined when `estimate` or `stale`: a report from a feed gone out of date), in `colour` (the tube line's; `null` for a train: the app's accent). `last`, `next` and
+`yours` are final labels; `next` is `null` when it is your stop. `yoursAt` is a live (reported or expected) time
+only, never a timetable one. The engine sends no strip for a leg of more than 64 stations (the shell refuses one). Absent or `null` when there is no strip; the shell
+then shows `progress.line` as before. It is never moved between updates. Story: `docs/stories/journey-progress.md`,
+"Strip and diagram".
 
 ### 6.2 Page ⇄ shell bridge
 A Capacitor plugin named `CommuteNative`. The page reaches it only through `src/native-bridge.js`, which does nothing

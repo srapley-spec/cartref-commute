@@ -40,10 +40,11 @@ test("On the train: the leg is one line and a folded list of every station (opti
   assert.equal(legs.querySelector(".jp-stops"), null, "no sideways row of stations running off the page");
   const all = legs.querySelector("details.jp-all");
   assert.ok(all, "every station, folded"); assert.equal(all.open, false);
-  assert.match(squash(all.querySelector("summary").textContent), /^All \d+ stations$/);
+  // Since 19 Nov (#71, Sam: strip + diagram) the strip itself is what you tap: it ends "tap for all N stations".
+  assert.match(squash(all.querySelector("summary").textContent), /tap for all \d+ stations$/);
   assert.match(squash(all.textContent), /King's Cross · your stop/);
   // No report for this train in the example data: no position is claimed.
-  assert.match(squash(legs.querySelector(".jp-where").textContent), /^No live position yet · your stop: King's Cross/);
+  assert.match(squash(legs.querySelector(".jp-where").textContent), /^No live position yet( \(the marker is an estimate\))? · your stop: King's Cross/);
   assert.equal(panel.querySelectorAll(".jp-heading > .jp-status").length, 0, "the legs' own status goes: the card's status says how it stands (H10)");
   assert.doesNotMatch(text(), /Next train:/, "the train panel names the train: no 'Next train:' line (amendment §3)");
   assert.deepEqual(app.errors, []);

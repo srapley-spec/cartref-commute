@@ -48,5 +48,6 @@
     "cancelled": false,
     "cancelOnExit": null
   },
-  "deepLink": "commute://follow/t1"
+  "deepLink": "commute://follow/t1",
+  "strip": null
 }

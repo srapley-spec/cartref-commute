@@ -28,14 +28,40 @@ function progressTubeCalls(ride,from,to,arrival,fromName,toName){
 // stations"): National Rail writes "London Kings Cross", "Letchworth Garden City"; the leg heading says "King's Cross",
 // "Letchworth". Stations the app doesn't know keep the feed's name.
 const shownStation=c=>(c?.code&&((PROFILE.stationNames||{})[c.code]||(PROFILE.stationGeoNames||{})[c.code]))||c?.name||'';
+// The leg as a strip, then every station on tap (Sam chose strip + diagram, 19 Nov 2026, #71). The strip and the
+// times come from the engine's model (model.strip); nothing is placed or timed here. The sentence under the strip is
+// the same "Last … · Next … · Your stop …" as before (option A, 11 Nov), laid out under the strip's three places.
+const LEG_STRIP_COLOUR={circle:'var(--circle)',metropolitan:'var(--met)','hammersmith-city':'var(--hc)'};
+function legStripTime(st){
+  if(st.time==null)return '';
+  return st.timeKind==='estimate'?`about ${hhmm(st.time)} (estimate)`:st.timeKind==='scheduled'?`${hhmm(st.time)} timetable`:hhmm(st.time);
+}
+function legStripHtml(strip,colour){
+  const n=strip.yours,pc=k=>`${(100*k/n).toFixed(2)}%`,m=strip.marker;
+  const filled=m?.kind==='reported'?m.at:strip.last??0;
+  const dots=strip.stations.map((st,k)=>`<i class="jp-strip-dot" data-state="${st.state}" style="left:${pc(k)}"></i>`).join('');
+  const marker=m?`<i class="jp-strip-marker" data-kind="${m.kind}" style="left:${pc(m.at)}"></i>`:'';
+  return `<span class="jp-strip" aria-hidden="true" style="--strip:${colour}"><i class="jp-strip-track"></i><i class="jp-strip-fill" style="width:${pc(filled)}"></i>${dots}${marker}</span>`;
+}
 function whereHtml(model){
-  const calls=model.calls.map(c=>({...c,name:shownStation(c)})), w=model.where;
+  const calls=model.calls.map(c=>({...c,name:shownStation(c)})), w=model.where, strip=model.strip;
   if(calls.length<2)return '';
   const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
-  const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`
-    :`<p class="jp-where none">No live position yet · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</p>`;
-  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):''}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
-  return `${line}<details class="jp-all"><summary>All ${calls.length} stations</summary><ol class="jp-vlist">${calls.map(row).join('')}</ol></details>${model.sourceLine?`<p class="jp-source">${esc(model.sourceLine)}</p>`:''}`;
+  const sep='<span class="jp-sep"> · </span>';
+  const line=w?`<span class="jp-where">${w.last!==null?`<span class="jp-place jp-last"><span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}</span>`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?sep:''}<span class="jp-place jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?`${sep}<span class="jp-place jp-yours"><b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}</span>`:''}</span>`
+    :`<span class="jp-where none">No live position yet${strip?.marker?.kind==='estimate'?' (the marker is an estimate)':''} · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</span>`;
+  const colour=model.current.kind==='tube'?(LEG_STRIP_COLOUR[model.current.lineId]||'var(--accent)'):'var(--accent)';
+  const m=strip?.marker,hereText=m?.kind==='reported'?"You're here":m?.kind==='stale'?'Last reported here (out of date)':'About here (estimate)';
+  const here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${hereText}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
+  const row=(c,i)=>{const st=strip?.stations[i],state=st?(st.state==='upcoming'?c.state:st.state):c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state;
+    const time=st?legStripTime(st):c.time!=null?hhmm(c.time):'';
+    return `<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${state}"${st?` data-time="${st.timeKind||''}"`:''}><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${time}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;};
+  // "You're here" goes after the station it is at or has passed (before the first station when nothing is passed).
+  // At your stop too (review, 19 Nov: the list went quiet just as you arrived).
+  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i?here:'')).join('');
+  const source=model.sourceLine?`<span class="jp-source">${esc(model.sourceLine)}</span>`:'';
+  const hint=`<span class="jp-hint">${source}${source?' · ':''}tap for all ${calls.length} stations</span>`;
+  return `<details class="jp-all"><summary>${strip?legStripHtml(strip,colour):''}${line}${hint}</summary><ol class="jp-vlist" style="--strip:${colour}">${m&&m.at<0?here:''}${rows}</ol></details>`;
 }
 function progressHtml(model){
   const percentage=value=>`${Math.round(value*100)}%`;

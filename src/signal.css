@@ -513,7 +513,7 @@ html #followPanel .fold summary::-webkit-details-marker {display:none}
 html #followPanel .follow-ifmissed {font-size:14px;color:var(--muted);margin:2px 0 6px}
 html .tl-note {font-size:13px;color:var(--muted);margin:4px 0 0}
 /* Where you are on the leg (option A, 11 Nov 2026): one line, then every station folded top to bottom. */
-html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px}
+html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px;display:block}
 html .journey-progress .jp-where.none {color:var(--muted)}
 html .journey-progress .jp-tick {color:var(--ok);font-weight:700}
 html .journey-progress .jp-next {color:var(--accent);font-weight:650}
@@ -553,6 +553,29 @@ html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#si
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 html .signal-disruption-title[hidden] {display:none}
+/* The leg strip (#71, Sam 19 Nov): the line in its colour, a dot per station, the marker solid when reported and
+   outlined when estimated. The sentence under it is laid out as Last | Next | Your stop. */
+html .journey-progress .jp-all>summary {display:block;min-height:0;font-weight:400;color:var(--ink)}
+html .journey-progress .jp-all>summary::before {content:none}
+html .journey-progress .jp-strip {position:relative;display:block;height:26px;margin:10px 9px 0}
+html .journey-progress .jp-strip>i {position:absolute;display:block}
+html .journey-progress .jp-strip-track {left:0;right:0;top:10px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--strip) 35%,var(--card))}
+html .journey-progress .jp-strip-fill {left:0;top:10px;height:6px;border-radius:3px;background:var(--ink)}
+html .journey-progress .jp-strip-dot {top:7px;width:12px;height:12px;margin-left:-6px;border-radius:50%;box-sizing:border-box;background:var(--card);border:2px solid color-mix(in srgb,var(--strip) 70%,var(--ink))}
+html .journey-progress .jp-strip-dot[data-state="passed"] {background:var(--ink);border-color:var(--ink)}
+html .journey-progress .jp-strip-dot[data-state="yours"] {width:18px;height:18px;top:4px;margin-left:-9px;border:4px solid var(--ink);background:var(--card)}
+html .journey-progress .jp-strip-marker {top:2px;width:22px;height:22px;margin-left:-11px;border-radius:50%;box-sizing:border-box;background:var(--accent);border:3px solid var(--card);box-shadow:0 0 0 2px var(--accent)}
+html .journey-progress .jp-strip-marker:is([data-kind="estimate"],[data-kind="stale"]) {background:var(--card);border:3px dashed var(--accent);box-shadow:none}
+html .journey-progress .jp-all>summary .jp-where {display:flex;justify-content:space-between;gap:4px 10px;font-size:13px;line-height:1.35}
+html .journey-progress .jp-all>summary .jp-where .jp-sep {display:none}
+html .journey-progress .jp-place.jp-next {text-align:center}
+html .journey-progress .jp-place.jp-yours {text-align:right;margin-left:auto}
+html .journey-progress .jp-hint {display:block;font-size:12px;color:var(--muted);min-height:24px;padding-top:2px}
+html .journey-progress .jp-hint .jp-source {color:inherit}
+html .journey-progress .jp-vlist .jp-stop[data-time="estimate"] .jp-stop-time {font-weight:400;color:var(--muted)}
+html .journey-progress .jp-vlist .jp-here {display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:13px;font-weight:650;color:var(--accent)}
+html .journey-progress .jp-vlist .jp-here .jp-stop-dot {width:14px;height:14px;margin:0;border-radius:50%;background:var(--accent);border:2px solid var(--accent)}
+html .journey-progress .jp-vlist .jp-here:is([data-kind="estimate"],[data-kind="stale"]) .jp-stop-dot {background:var(--card);border-style:dashed}
 /* Which tube, and where it's going (19 Nov): checked against the train's front. */
 html .journey-progress .jp-service {margin:0;font-size:15px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
 html .journey-progress .jp-service .jp-muted {font-size:13px;color:var(--muted)}

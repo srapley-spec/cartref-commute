@@ -55,6 +55,12 @@ test('Signal progress: stale reports freeze the confirmed bar and keep report de
  assert.equal(model.source,'stale');assert.equal(model.fraction,before);assert.equal(model.status.deltaMin,null);
  assert.equal(a.d.querySelector('.jp-source-details').open,true);
  assert.match(a.text('.jp-source-details'),/timetable/);
+ // The strip (#71, review 19 Nov): a stale report is drawn outlined and said as "last reported", and a time that is
+ // only the timetable's says so.
+ assert.equal(a.d.querySelector('.jp-strip-marker').dataset.kind,'stale');
+ assert.match(a.text('.jp-vlist'),/Last reported here \(out of date\)/);
+ assert.doesNotMatch(a.text('.jp-vlist'),/You're here/);
+ assert.match(a.text('.jp-vlist'),/\d\d:\d\d timetable/);
  assert.deepEqual(a.errors,[]);a.close();
 });
 
