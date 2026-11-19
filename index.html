@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 15:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 16:32 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6404,6 +6404,10 @@ function invalidateSources({preserveRateLimits=false}={}){
  for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
  state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();if(preserveRateLimits)state.tflBackoffUntil=backoff;else reqLog.length=0;
 }
+// A change of live-data source (Settings, the display's setup link): Trip's boards, ages and plans belong to the old
+// source too (Sam, 19 Nov), so they are cleared and planned again on its next refresh. Not on entering or leaving Trip
+// or on pagehide (review 19 Nov: that re-planned every time you came back to Trip).
+function invalidateSourcesAndTrip(){ invalidateSources(); if(tripUi) tripUi.reset(); }
 function logRequest(url){ const now=Date.now(); reqLog.push({t:now,tfl:/api\.tfl\.gov\.uk/.test(url)}); while(reqLog.length && reqLog[0].t<now-60e3) reqLog.shift(); }
 function requestCounts(){ const now=Date.now(), r=reqLog.filter(x=>x.t>=now-60e3); return {tfl:r.filter(x=>x.tfl).length, other:r.filter(x=>!x.tfl).length}; }
 async function fetchT(url, opts){
@@ -9365,7 +9369,7 @@ function setSimulationSources({gps,feeds},{settings,refreshAfter=true}={}){
  if(gps)next.simulatorEnabled=true;if(feeds)next.simulatedFeeds=true;
  const modeChanged=!!S().simulatorEnabled!==!!gps||!!S().simulatedFeeds!==!!feeds;
  if(modeChanged){simStop({resume:false,reason:'sources-changed'});endSimulationSession();}
- invalidateSources();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
+ invalidateSourcesAndTrip();if(gps||feeds)beginSimulationSession();state.saved.settings=next;
  if(feeds&&!simClock.active){const value=window.Date.parse($("#simDate").value+'Z');simClock.start(new window.Date(value).toISOString());}
  if(!feeds)simClock.stop();if(!gps&&!feeds)restoreRealJourneyVisits();save();
  $("#s_simulator").checked=!!gps;$("#s_simulatedFeeds").checked=!!feeds;
@@ -10837,6 +10841,8 @@ function createTripUi(deps) {
   // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
   // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
   let liveGen = 0, boardSeq = {};
+  // After reset() (a change of live-data source; Sam, 19 Nov) the trip is planned again once, from the new source.
+  let needPlan = false;
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -11101,6 +11107,7 @@ function createTripUi(deps) {
   /** Refresh: live every 30 s, re-plan every 5 min (drive re-timed with it), when Trip is on screen. */
   async function refresh() {
     if (!st().active) return;
+    if (needPlan) { needPlan = false; if (st().to) await plan(); }
     if (result && now() - lastPlanAt >= 5 * 60e3) { await plan(result.picks[0] || null); return; }
     await live(false); renderResults();
   }
@@ -11303,10 +11310,10 @@ function createTripUi(deps) {
   return {
     show() { mount(); root.hidden = false;
       const form=find('#tripForm');if(deps.controlsRoot&&form.parentNode!==deps.controlsRoot)deps.controlsRoot.append(form);
-      fill(); renderResults(); if (!result && st().to) plan(); },
+      fill(); renderResults(); if (!result && st().to) { needPlan = false; plan(); } },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults, pinView, followedDataAt,
-    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; },
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; needPlan = true; },
     state: () => ({ result, error, stage: stageText, boards: Object.keys(liveBoards).filter(k => liveBoards[k]).sort() }),
   };
 }
@@ -11379,7 +11386,7 @@ function askDisplaySetup(origin, clear){
     box.remove();
     if(b.dataset.displaySetup!=="yes"){ clear(); return; }
     state.saved.settings={...state.saved.settings,provider:"proxy",proxyBase:origin}; save();
-    refreshProxyStatus(); invalidateSources(); refresh({force:true}); };
+    refreshProxyStatus(); invalidateSourcesAndTrip(); refresh({force:true}); };
 }
 window.addEventListener("hashchange",()=>{ if(acceptSetupLink()){ refreshProxyStatus(); refresh({force:true}); } });
 
@@ -11883,7 +11890,7 @@ const nativeReady=(native.present()?native.init().catch(()=>null):Promise.resolv
 // Trip is always available as a mode (#63), except on the read-only display; choosing it stays an explicit tap.
 const tripEnabled = () => !DISPLAY;
 const tripActive = () => tripEnabled() && !!(state.saved.tripMode && state.saved.tripMode.active === true);
-let tripUi=null;
+var tripUi=null;   // var, not let: invalidateSources() may read it before this line runs
 function tripUiFor(){
   if(!tripUi) tripUi=createTripUi({ root:$("#tripRoot"), C, S, esc, tflUrl, connectionMarkup:connectionPanelMarkup,
     journeyTimesMarkup,journeyFactsMarkup:journeyFactsContentMarkup,journeyStepsMarkup,arrangeJourneySummaries,tick,optionMarkup:planningOptionMarkup,flagsMarkup:flags=>pills(flags,false),now:()=>Date.now(),
