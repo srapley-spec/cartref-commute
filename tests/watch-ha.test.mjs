@@ -63,6 +63,9 @@ test("Home Assistant reading: one GET of the person entity with the token; https
   assert.equal(await haPresence(env, async () => new Response("no", { status: 401 })), null, "refused");
   assert.equal(await haPresence(env, async () => { throw new Error("timeout"); }), null, "unreachable");
   assert.equal(await haPresence(env, async () => new Response("{}", { status: 200 })), null, "no state");
+  let redirect; await haPresence(env, async (u, o) => { redirect = o.redirect; return new Response(null, { status: 302, headers: { Location: "http://elsewhere.example/" } }); });
+  assert.equal(redirect, "manual", "a redirect is never followed (it could carry the token elsewhere)");
+  assert.equal(await haPresence(env, async () => new Response(null, { status: 302, headers: { Location: "http://elsewhere.example/" } })), null, "and is no reading");
 });
 
 test("Proxy watch with Home Assistant: only an iPhone that opted in; HA home stops it, HA out overrides the geofence, HA down falls back; read once a run, never in the morning", async () => {

@@ -14,7 +14,8 @@ export async function haPresence(env, fetchImpl = fetch) {
     const base = String(env.HA_BASE_URL).replace(/\/+$/, "");
     if (!/^https:\/\//.test(base)) return null;
     const r = await fetchImpl(`${base}/api/states/${entity}`, { headers: { Authorization: `Bearer ${env.HA_TOKEN}`, "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(HA_TIMEOUT_MS) });
+      // Never followed: a redirect could carry the token to another address.
+      redirect: "manual", signal: AbortSignal.timeout(HA_TIMEOUT_MS) });
     if (!r.ok) return null;
     const j = await r.json();
     if (!j || typeof j.state !== "string") return null;
