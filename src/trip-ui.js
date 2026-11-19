@@ -33,6 +33,9 @@ function createTripUi(deps) {
   const hhmm = C.hhmm, dur = C.dur;
   let mounted = false, idx = null, idxLoading = null, result = null, stageText = "", error = "", liveBoards = {}, boardAt = {}, boardOkAt = {}, lastBest = null, better = false;
   let followUpdate=null,previousPresentation=null,resultQuestion=null;
+  // liveGen: which reset a board request belongs to. A request started before reset() leaves no trace after it
+  // (review 18 Nov: an old response advanced the new board ages; an old failure cleared a newer board).
+  let liveGen = 0, boardSeq = {};
   let planToken = 0, lastPlanAt = 0, lastLiveAt = 0, driveNote = "", googleAd = null, googleVia = null;
   const plannerCache = new Map();
   const st = () => validTripState(store.get(), C);
@@ -255,9 +258,17 @@ function createTripUi(deps) {
     const followed = st().follow ? st().follow.journey : null;
     const want = C.liveBudget(result?.journeys||[], followed, now(), cfg());
     // One board per station pair per 30 s (refreshMs), however often the screen asks: a forced redraw reuses it.
+    const gen = liveGen;
     await Promise.all(want.filter(b => !boardAt[b.key] || now() - boardAt[b.key] >= cfg().live.refreshMs).map(async b => {
       boardAt[b.key] = now();
-      try { liveBoards[b.key] = await fetchBoard(b.from, b.to); if (liveBoards[b.key]) boardOkAt[b.key] = now(); } catch (e) { liveBoards[b.key] = undefined; } }));
+      const seq = boardSeq[b.key] = (boardSeq[b.key] || 0) + 1;
+      let got;
+      try { got = await fetchBoard(b.from, b.to); } catch (e) { got = undefined; }
+      // Reset meanwhile (this response belongs to what was cleared), or a newer request for the same board has
+      // started since (after the iPhone suspends the app the clock can jump past the 30 s spacing): write nothing.
+      if (gen !== liveGen || seq !== boardSeq[b.key]) return;
+      liveBoards[b.key] = got; if (got) boardOkAt[b.key] = now(); }));
+    if (gen !== liveGen) return;
     const planned=resultQuestion||effectiveQuestion();
     const q = planned.kind === "now" ? { kind: "now", t: now() } : planned;
     const js = C.rankTrips((result?.journeys||[]).map(j => C.applyLive(j, liveBoards, cfg())), q, now(), cfg());
@@ -494,8 +505,8 @@ function createTripUi(deps) {
       fill(); renderResults(); if (!result && st().to) plan(); },
     hide() { const form=find('#tripForm');if(form&&form.parentNode!==root)root.prepend(form);root.hidden = true; },
     refresh, plan, renderResults, pinView, followedDataAt,
-    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; plannerCache.clear(); accessCache.clear(); planToken++; },
-    state: () => ({ result, error, stage: stageText }),
+    reset() { result = null; liveBoards = {}; boardAt = {}; boardOkAt = {}; lastBest = null; lastLiveAt = 0; plannerCache.clear(); accessCache.clear(); planToken++; liveGen++; },
+    state: () => ({ result, error, stage: stageText, boards: Object.keys(liveBoards).filter(k => liveBoards[k]).sort() }),
   };
 }
 if (typeof module !== "undefined") module.exports = { createTripUi, validTripState };

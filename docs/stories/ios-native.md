@@ -187,6 +187,13 @@ Met to Aldgate · eastbound · Platform 2 · due 08:20". Sam (08:15): fix both s
 - `ios/App/CommuteTests/NativeRuntimeTests.swift`: interrupted Keychain/JSON writes, obsolete region/Wi-Fi callbacks,
   unsupported versions, identified/unidentified stops, alarm authorization, scoped evidence replies, real Capacitor cache/error behavior and
   the Siri event retained until the page is listening. `BundledPageTests.swift` checks normal and blocked-network launch.
+- tests/trip-reset-race.test.mjs: "Trip reset race: a response that arrives after reset (late success) changes nothing, and never overwrites a newer request"
+- tests/trip-reset-race.test.mjs: "Trip reset race: an old request failing after reset (late failure) does not clear the boards a newer request loaded"
+- tests/trip-reset-race.test.mjs: "Trip without reset: ordinary successes and failures still work as before"
+- tests/trip-reset-race.test.mjs: "Trip reset race: after a reset, the old request goes no further (nothing saved, nothing re-ranked)"
+- tests/trip-reset-race.test.mjs: "Trip without reset: a board that loaded and then fails is cleared; an older overlapping request never overwrites a newer one"
+  (19 Nov: `createTripUi.reset()` now ends every request started before it, by request generation. See
+  `docs/reviews/ios-native-2026-11-18.md`, the follow-up.)
 - `tests/trip-native-age.test.mjs`: the actual Trip controller and engine board budget with deferred responses;
   oldest distinct successful source, no-fetch retention, failed older source, unknown required source and reset.
   The owner's `tests/native-page.test.mjs` also verifies the real page snapshot with absent and successful boards,

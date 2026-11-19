@@ -32,7 +32,7 @@ mutations. Reviewer: an independent agent; first pass on `e701c5c` against relea
 
 ## Not changed
 - `createTripUi.reset()` race (docs/reviews/ios-native-2026-11-18.md): this change adds no production caller; it stays a
-  separate follow-up.
+  separate follow-up. **Closed 19 Nov:** request generation; see that review.
 - Real-device APNs, Live Activity, alarm cancellation, geofences and Siri remain pending phone acceptance.
 
 ## Re-check (362ebdf)
@@ -48,3 +48,29 @@ GitHub-first path (saved-state shape, live request pattern). Mutations K, N, C, 
 decision accepted: hiding "Where from?" in every live view would remove the feature in London going home, where it is
 meant to work; the real 12 Nov loss (rows over a followed card) is fixed and both rows are tested. Open, not blocking:
 a stored state with no `settings` object; the `createTripUi.reset()` race (no caller); real-iPhone acceptance.
+
+## Follow-ups closed (19 Nov)
+- **Saved state with no settings object.** The cause: `load()` ran the migration only `if(saved?.settings)`, and start-up
+  then set the marker anyway, so a route, Trip or destination saved with no settings came back to life without the
+  migration. Now a missing or non-object `settings` becomes `{}` (every retired switch off, the pre-#63 defaults), and
+  the same one-time migration runs. Unreadable saved state starts fresh.
+- Found on the way: a really cleared iPhone web view never got its settings back from the app's cache, because
+  start-up's default source ("proxy") made it look like a device with settings of its own. Fixed.
+- **Trip reset race.** See `ios-native-2026-11-18.md`.
+- Tests: `tests/legacy-settings.test.mjs`, `tests/trip-reset-race.test.mjs`.
+- **Independent review (19 Nov):** 11 settings mutations, 9 killed.
+  - The two survivors guarded saved state that is a list or not an object; they're now tested (nothing from it is
+    loaded).
+  - It found that making the cleared-web-view restore work also made it restore a pre-17 Nov cache with raw API keys
+    in it, because the keys move had already run at start-up. Restored settings now go through the same keys move. A
+    test checks no key reaches storage. A device's own "tfl" or "demo" choice is never replaced (tested).
+  - Migration can't run twice through the restore: it never calls the migration, and it forces the marker.
+- **Final re-review (19 Nov, 6a552e2: the fixes plus `main` 0e3cf1d merged): satisfied, OK to merge.**
+  - 14 mutations, 12 killed: the per-board request number (4 ways), the keys move on restore (4 ways), the
+    saved-state guards, any-provider restore, and a failed board left in place.
+  - Two effectively equivalent survivors:
+    - T2, the check after all responses: the rest only redraws from current state, and nothing is saved.
+    - K2, the keys move ignoring `keysInProxy`: after the move only proxy, tfl or demo remain, which it leaves
+      alone.
+  - The merge with the commute watch was checked: `commuteWatch` is written only by Save, so it never blocks a
+    cleared web view's restore. Watch, native, legacy, Trip and permanent-features tests all pass.
