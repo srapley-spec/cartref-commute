@@ -123,7 +123,7 @@ iPhone; simulator and exported-package results do not substitute for actual APNs
    must not cancel it. Stop/switch the journey and verify the obsolete activity/alarm does not return.
 5. Check a closed-app live update, then go offline: the timer continues to zero and data ages; wording retains
    its last received state. Reconnect and verify the engine's current state arrives without creating a second activity.
-6. Keep "Follow a route" enabled. Ask Siri "When do I need to leave with Commute?" while following, then
+6. Ask Siri "When do I need to leave with Commute?" while following, then
    "Follow the next train home with Commute" without a follow. The former reads the saved engine answer with age;
    the latter opens the page to plan. Check home/office Wi-Fi classification.
 
