@@ -1,0 +1,31 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {parse} from 'yaml';
+const load=name=>parse(readFileSync(new URL(`../.github/workflows/${name}.yml`,import.meta.url),'utf8'));
+test('CI runs one PR gate and preserves tested main and nightly coverage',()=>{
+ const w=load('test');
+ assert.deepEqual(w.on.push.branches,['main']);
+ assert.deepEqual(w.on.pull_request.branches,['main']);
+ assert(w.on.schedule.length);
+ assert(Object.hasOwn(w.on,'workflow_dispatch'));
+ assert.equal(w.concurrency['cancel-in-progress'],"${{ github.event_name == 'pull_request' }}");
+ assert(w.concurrency.group.includes('github.event_name'));
+ assert(w.concurrency.group.includes('github.ref'));
+ assert.equal(w.jobs.ios.needs,'test');
+ assert(!w.jobs.test.if && !w.jobs.ios.if);
+ for(const command of ['npm run typecheck','node tools/run-tests.mjs']) assert(w.jobs.test.steps.some(s=>s.run===command),command);
+ for(const command of ['npm run ios:sync','npm run ios:test']) assert(w.jobs.ios.steps.some(s=>s.run===command),command);
+ assert(w.jobs.test.steps.some(s=>s.run?.includes('git diff --exit-code')));
+ assert(w.jobs.test.steps.some(s=>s.run?.includes('check-docs.mjs')));
+});
+test('cost changes preserve every tested main release and no PR signing',()=>{
+ const w=load('testflight');
+ assert.deepEqual(w.on.workflow_run.workflows,['Tests']);
+ assert.deepEqual(w.on.workflow_run.branches,['main']);
+ assert.equal(w.concurrency.queue,'max');
+ assert(!w.concurrency['cancel-in-progress']);
+ for(const text of ["conclusion == 'success'","event == 'push'","head_branch == 'main'","head_repository.full_name == 'srapley-spec/cartref-commute'"]) assert(w.jobs.upload.if.includes(text));
+ assert.equal(w.jobs.upload.steps[0].with.ref,'${{ github.event.workflow_run.head_sha }}');
+ assert(!JSON.stringify(load('test')).includes('secrets.'));
+});
