@@ -868,3 +868,7 @@ before AlarmKit is updated. Native platform adapters are tested separately from 
 The Live Activity is an embedded WidgetKit extension with its own App Store profile. TestFlight verifies both
 identities, entitlements and matching build numbers before upload. Details, evidence and remaining contract/phone
 gates: `docs/stories/ios-native.md`. Internal distribution does not submit either form of Apple review.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.

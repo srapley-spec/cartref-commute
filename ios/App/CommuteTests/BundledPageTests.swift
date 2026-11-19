@@ -5,6 +5,15 @@ import XCTest
 /// Exercises Capacitor's real local server and the shipped page with all web traffic blocked.
 @MainActor
 final class BundledPageTests: XCTestCase {
+    // The readiness wait below allows 300 s for a first WebKit launch on a busy simulator; Xcode's default allowance
+    // (6 min) left too little over it. Main went red on df90227 (19 Nov): the same tree took 90 s on its branch and
+    // 384 s on main, then passed. The allowance now covers the wait plus the launch, so a slow host fails only on the
+    // readiness check's own 300 s message.
+    override func setUp() async throws {
+        try await super.setUp()
+        executionTimeAllowance = 600
+    }
+
     func testApplicationLaunchesTheBundledPage() async throws {
         let window = try XCTUnwrap(UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }

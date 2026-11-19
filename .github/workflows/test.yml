@@ -1,7 +1,15 @@
 name: Tests
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  schedule:
+    - cron: '53 2 * * *'
+  workflow_dispatch:
+concurrency:
+  group: commute-tests-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test:
     runs-on: ubuntu-latest
