@@ -125,6 +125,39 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
     push-to-start in the iPhone shell and a new TestFlight build: #66.
   - Web push for a browser.
 
+## Home Assistant (built 19 Nov 2026)
+**Why.** Sam, on the evening watch ending when he's home: "The phone always knows where I am. And we can use Home
+Assistant to be doubly sure." The geofence alone can miss an arrival or a departure; Home Assistant already tracks Sam.
+
+**What it does:**
+- Settings → Notifications, under Commute watch: **"Use Home Assistant to know when I'm home"**. Offered only when the
+  app's proxy has Home Assistant set up so it can be read (an https address, a token, a person entity: `/status` says
+  `ha: true`), or when it is already on (so it can be turned off); off until ticked, and used only with the watch on.
+  The iPhone's registration carries `prefs.ha`; the shell isn't told.
+- In the evening window the proxy reads the `person` entity (`person.sam_rapley`, or `HA_PERSON`) once a run, only if an
+  iPhone opted in: `GET <HA_BASE_URL>/api/states/<entity>` with the token, 8 s timeout, https only. Read-only: no
+  service is called and nothing in Home Assistant changes.
+- **"home" ends the evening watch**, even if you were home all day (working from home: "I could get home at 3pm. No point
+  telling me then"). **Anything else** ("not_home", a zone) keeps it going, even if the geofence said home, unless the
+  phone saw you arrive home *after* Home Assistant's state last changed (a stuck tracker; the fresher wins; independent
+  review, 19 Nov). **No reading** (not set up, refused, a redirect, unreachable, "unknown"/"unavailable") falls back to
+  the geofence rule above. The morning watch is
+  never ended by either. Engine: `watchDone` (`src/core/watch.ts`); proxy: `proxy/ha.js`, `proxy/watch.js`.
+- **Send a test to this iPhone** says what Home Assistant reads now ("Home Assistant says you're home / out / couldn't
+  be read"), in the notification and under the button, so Sam can see it works.
+- **Needs from Sam:** a long-lived access token and Home Assistant's https address as Actions secrets `HA_TOKEN` and
+  `HA_BASE_URL` (`your-setup-steps.md`). Deploy proxy passes them to the Worker. **Unverified:** that the Worker can reach
+  Sam's Home Assistant from Cloudflare (an address reachable from the internet is needed, e.g. Nabu Casa's).
+- **Covers:** the commute watch only (Commute; it has no Leisure or Trip form).
+- tests/watch-ha.test.mjs: "Watch with Home Assistant (engine): home ends the evening watch, out keeps it whatever the geofence said, no reading falls back; never the morning"
+- tests/watch-ha.test.mjs: "Home Assistant reading: one GET of the person entity with the token; https only; any failure is no reading"
+- tests/watch-ha.test.mjs: "Proxy watch with Home Assistant: only an iPhone that opted in; HA home stops it, HA out overrides the geofence, HA down falls back; read once a run, never in the morning"
+- tests/watch-ha.test.mjs: "Home Assistant prefs and status: 'ha' kept only when true and with the watch on; /status says whether it's set up (booleans only); the test says what HA reads"
+- tests/watch-ha.test.mjs: "Review: a stuck 'out' loses to an arrival the phone saw later; 'unknown'/'unavailable' and a refusal with a JSON body are no reading; the read has a timeout; a missing last_changed is kept as unknown"
+- tests/watch-ha.test.mjs: "Review: with two iPhones, Home Assistant only decides for the one that opted in"
+- tests/watch-ha.test.mjs: "Review: 'Send a test' leaves Home Assistant alone without the opt-in, and says when it couldn't be read"
+- tests/watch-settings.test.mjs: "Home Assistant in Settings: offered only when the app's proxy has it set up; on, it goes to the proxy (not the shell); off with the watch off; the test says what HA reads"
+
 ## Tests
 - tests/core/watch.test.mjs: "Watch windows: weekdays 05:00–10:00 to the office, and home from 15:00 until 01:00 (or until you're home); never at weekends or on a bank holiday"
 - tests/core/watch.test.mjs: "Lateness is how much later you'd get there, not one train: a cancellation with the next train 10 min behind is OK"

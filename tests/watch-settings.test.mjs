@@ -129,3 +129,35 @@ test("Review (19 Nov): home is never reported from display mode or a simulation,
     app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true })); } });
   assert.deepEqual(up.requests, ["location"]);
 });
+
+test("Home Assistant in Settings: offered only when the app's proxy has it set up; on, it goes to the proxy (not the shell); off with the watch off; the test says what HA reads", async () => {
+  const sh = shell({ notifications: "authorized" });
+  const route = (u) => /\/native\/test/.test(u) ? new Response(JSON.stringify({ ok: true, status: 200, ha: "home" }), { status: 200 })
+    : /proxy\.test\/status$/.test(u) ? new Response(JSON.stringify({ v: 1, rail: true, ha: true }), { status: 200 }) : undefined;
+  const base = { provider: "proxy", proxyBase: "https://proxy.test", commuteWatch: true };
+  const none = await createApp({ settings: base, saved: { native: { id: "i1", token: "t1" }, proxyStatus: { v: 1, rail: true, ha: false } }, geo: null, now: T0, beforeScripts: sh.install,
+    route: (u) => /proxy\.test\/status$/.test(u) ? new Response(JSON.stringify({ v: 1, rail: true }), { status: 200 }) : undefined });
+  none.d.querySelector("#settingsBtn").click();
+  assert.equal(none.d.querySelector("#watchHaRow").hidden, true, "not set up on the proxy: not offered");
+  none.close();
+  const kept = await createApp({ settings: { ...base, watchHa: true }, saved: { native: { id: "i1", token: "t1" }, proxyStatus: { v: 1, rail: true, ha: false } }, geo: null, now: T0, beforeScripts: sh.install,
+    route: (u) => /proxy\.test\/status$/.test(u) ? new Response(JSON.stringify({ v: 1, rail: true }), { status: 200 }) : undefined });
+  kept.d.querySelector("#settingsBtn").click();
+  assert.equal(kept.d.querySelector("#watchHaRow").hidden, false, "already on: still shown, so it can be turned off");
+  kept.close();
+  // The proxy's /status says it's set up (read at start-up): offered.
+  const app = await createApp({ settings: base, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: sh.install, route });
+  await new Promise((r) => setTimeout(r, 100));
+  app.d.querySelector("#settingsBtn").click();
+  assert.equal(app.d.querySelector("#watchHaRow").hidden, false, "set up: offered");
+  assert.equal(app.d.querySelector("#s_watchHa").checked, false, "off until turned on");
+  app.d.querySelector("#s_watchHa").checked = true; await submit(app);
+  assert.equal(app.c.S().watchHa, true); assert.equal(app.c.native.prefs().ha, true, "the proxy is told");
+  assert.equal("ha" in sh.calls.filter((x) => x[0] === "configure").at(-1)[1].alarm, false, "the shell isn't");
+  app.d.querySelector("#settingsBtn").click();
+  app.d.querySelector("#watchTestBtn").click(); await new Promise((r) => setTimeout(r, 50));
+  assert.match(app.d.querySelector("#watchStatus").textContent, /Home Assistant says you're home\./);
+  app.d.querySelector("#s_commuteWatch").checked = false; await submit(app);
+  assert.equal(app.c.native.prefs().ha, false, "with the watch off, Home Assistant isn't used");
+  assert.deepEqual(app.errors, []); app.close();
+});

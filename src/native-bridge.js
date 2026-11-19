@@ -71,7 +71,8 @@ const nativeBridge = (() => {
         return j;
       } finally { win.clearTimeout(timer); }
     }
-    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN, watch: s.commuteWatch === true });
+    const prefs = (s = S()) => ({ alarm: s.leaveAlarm !== false, alarmLeadMin: Number.isInteger(s.leaveAlarmMin) ? s.leaveAlarmMin : core.LEAVE_ALARM_DEFAULT_MIN, watch: s.commuteWatch === true,
+      ha: s.commuteWatch === true && s.watchHa === true });
     const prefixes = (v, dflt) => String(v == null ? dflt : v).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5);
     /**
      * What the shell is told (§6.7 rule 2): the proxy and this iPhone's registration (kept in Keychain), the alarm, the
@@ -79,7 +80,7 @@ const nativeBridge = (() => {
      * alarm is on).
      */
     const config = (s = S()) => {
-      const { watch, ...alarm } = prefs(s);
+      const { watch, ha, ...alarm } = prefs(s);   // Home Assistant is the proxy's business, not the shell's
       // Geofences run for the leave alarm, or for the commute watch (the home fence says you're home; #66).
       return { v: 1, proxy: { origin: base() }, device: ids(), alarm, watch, wifi: { home: prefixes(s.wifiHome, "Panda"), office: prefixes(s.wifiOffice, "Ciklum") },
         regions: (alarm.alarm || watch) && deps.regions ? deps.regions() : [] };
