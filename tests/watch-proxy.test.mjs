@@ -145,3 +145,28 @@ test("Commute watch runs in London time on a UTC server in summer, and the cron 
   }, () => "On time", { onBoard: async (u) => order.push(u) });
   assert.ok(order.some((u) => u.startsWith("https://up.test/")), "the cron runs the watch");
 });
+
+test("The cron: the watch starts only after the followed-journey run has finished, and still runs if that run fails", async () => {
+  const realNow = Date.now;
+  for (const failNative of [false, true]) {
+    const env = await envWith();
+    await register(env, { alarm: true, alarmLeadMin: 5, watch: true });
+    const get = env.PUSH.get.bind(env.PUSH);
+    let natsCalls = 0, nativeDone = false, watchSawNativeDone = null;
+    env.PUSH.get = async (k, t) => {
+      if (k === "nats") {
+        natsCalls++;
+        if (natsCalls === 1) { await new Promise((r) => setTimeout(r, 30)); nativeDone = true; if (failNative) throw new Error("KV down"); return get(k, t); }
+        if (watchSawNativeDone == null) watchSawNativeDone = nativeDone;
+      }
+      return get(k, t);
+    };
+    await withFeeds(async ({ fetched }) => {
+      const waits = [];
+      Date.now = () => at(DAY, "17:00");
+      try { await worker.scheduled({}, env, { waitUntil: (p) => waits.push(p) }); await Promise.all(waits); } finally { Date.now = realNow; }
+      assert.equal(watchSawNativeDone, true, `the watch waited for the followed-journey run (fail=${failNative})`);
+      assert.ok(fetched.some((u) => u.startsWith("https://up.test/")), `the watch still ran (fail=${failNative})`);
+    });
+  }
+});

@@ -8,6 +8,8 @@ import { nativeConfigured, sendApns, apnsPayloads } from "./native.js";
 
 /** Checked every this many minutes inside a window (3 boards + 1 TfL status per check). */
 export const WATCH_EVERY_MIN = 2;
+/** The stations on the way, and the line on beyond Letchworth that its trains come from (Cambridge). */
+export const WATCH_CORRIDOR = `${C.profiles.samCommute.corridorPattern}|ashwell|royston|cambridge`;
 const PAIRS = { office: [["LET", "KGX"], ["LET", "ZFD"], ["LET", "STP"]], home: [["KGX", "LET"], ["ZFD", "LET"], ["STP", "LET"]] };
 
 export async function tubeStatus(env) {
@@ -31,7 +33,7 @@ export async function runWatch(env, now) {
   if (!recs.length) return [];
   const boards = {};
   for (const [from, to] of PAIRS[w.direction]) boards[`${from}-${to}`] = await board(env, from, to, lnow);
-  const verdict = C.watchVerdict(w.direction, boards, await tubeStatus(env), lnow, undefined, C.profiles.samCommute.corridorPattern);
+  const verdict = C.watchVerdict(w.direction, boards, await tubeStatus(env), lnow, undefined, WATCH_CORRIDOR);
   const sent = [];
   for (const rec of recs) {
     try {

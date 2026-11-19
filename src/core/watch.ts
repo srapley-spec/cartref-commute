@@ -45,17 +45,30 @@ export function watchWindow(now: number): { direction: WatchDirection; date: str
   return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
 }
 
-/** National Rail notices that mean a blocked or broken railway (red), or a disruption worth a look (amber). */
-const RED_NOTICE = /(lines? (are|is|have been) blocked|all lines|no trains (are|will be )?(running|able)|unable to run|suspended|overhead (line|electric|wire)|person (has been )?hit|hit by a train|emergency services|trespass|major disruption)/i;
+/** National Rail notices of a blocked or broken railway. Strong: these win over any other word in the notice. */
+const STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
+/** Weaker: count unless the notice is about a facility ("step-free access … suspended"). */
+const WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
+const FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|machine)|car park|waiting room)/i;
 const AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
-/** Not a blocking incident now: planned work, another day, a facility, or one that has cleared (independent review, 19 Nov). */
-const NOT_NOW_NOTICE = /(engineering|planned|improvement works|on (mon|tues|wednes|thurs|fri|satur|sun)day|this weekend|step-free|lift|escalator|toilet|ticket (office|machine)|car park|reopened|re-opened|have now|has now|resumed|now running|earlier today|cleared)/i;
+/** Cleared: specific phrases only (independent review, 19 Nov: "lines have now been blocked" is not cleared). */
+const CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+/** Planned, or for another day than today; never when it has overrun. */
+function notToday(m: string, now: number): boolean {
+  if (/overrun/i.test(m)) return false;
+  if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
+  const today = DAYS[new Date(now).getDay()];
+  const day = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
+  return !!day && day[1].toLowerCase() !== today;
+}
 /** The tube before it opens is "Service Closed" (20): not a closure. Closed, suspended, planned closure, not running. */
 const TUBE_CLOSED = [1, 2, 4, 16];
 /** Part suspended, part closure, severe delays, reduced service, bus service. */
 const TUBE_BAD = [3, 5, 6, 7, 8];
-/** Trains past their time with no estimate, looked back this far. */
+/** Trains past their time with no estimate, looked back this far; stuck from this long past their time. */
 const STUCK_LOOKBACK_MIN = 60;
+const STUCK_AFTER_MIN = 10;
 
 export interface WatchVerdict {
   direction: WatchDirection; level: WatchLevel;
@@ -74,13 +87,19 @@ const schedArr = (t: Train) => t.arr == null ? null : t.arr - (t.arrLate || 0) *
 const schedDep = (t: Train) => t.dep - (t.depLate || 0) * 60e3;
 
 /**
- * The stations a blocking notice must name to count: the profile's corridor without the London terminals, which carry
- * every operator's notices (St Pancras: Southeastern, East Midlands; King's Cross: the East Coast to Edinburgh).
+ * Whether a blocking notice is on your line. `corridor`: the profile's stations on the way (with the line beyond
+ * Letchworth, so "between Hitchin and Cambridge" counts). A "between X and Y" stretch counts only when both ends are
+ * on it ("between Hitchin and Peterborough" is the East Coast; "between Alexandra Palace and Hertford North" the
+ * Hertford loop). A notice with no stretch must name a station outside London: the London terminals carry every
+ * operator's notices (St Pancras: Southeastern, East Midlands; King's Cross: the East Coast to Edinburgh).
  */
-function localPattern(corridor: string | undefined): RegExp | null {
-  if (!corridor) return null;
-  const parts = corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x));
-  return parts.length ? new RegExp(parts.join("|"), "i") : null;
+function onYourLine(m: string, corridor: string | undefined): boolean {
+  if (!corridor) return true;
+  const all = new RegExp(`^(london )?(${corridor})`, "i");
+  const local = new RegExp(corridor.split("|").filter(x => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
+  const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+  if (stretches.length) return stretches.some(x => all.test(x[1].trim()) && all.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])));
+  return local.test(m);
 }
 
 /**
@@ -97,14 +116,17 @@ export function watchVerdict(direction: WatchDirection, boards: Record<string, B
   const horizon = now + WATCH_WINDOW_MIN * 60e3, back = now - STUCK_LOOKBACK_MIN * 60e3, seen = new Set<string>();
   // The same train on two boards (a Thameslink at Farringdon and at St Pancras) is one train: same operator, same
   // timetabled arrival. Service IDs differ by station in newer feeds.
+  // Going out it is the same departure from Letchworth (on the LET-ZFD and LET-STP boards); coming home, the same
+  // arrival at Letchworth.
   const trains = read.flatMap(b => b.services || []).filter(t => {
-    const sa = schedArr(t), id = sa != null ? `${t.operator}|${t.to}|${sa}` : t.serviceId || `${t.std}|${t.operator}|${t.to}`;
+    const sa = schedArr(t), id = direction === "office" ? `${t.operator}|${t.from}|${schedDep(t)}` : sa != null ? `${t.operator}|${t.to}|${sa}` : t.serviceId || `${t.std}|${t.operator}|${t.to}`;
     if (seen.has(id)) return false; seen.add(id);
     const sd = schedDep(t);
     return sd <= horizon && (sd >= now || (!t.cancelled && (t.dep >= now || ((t.depUnknown || t.arrUnknown) && sd >= back))));
   });
   out.cancelled = trains.filter(t => t.cancelled && schedDep(t) >= now).length;
-  out.stuck = trains.filter(t => !t.cancelled && (t.depUnknown || t.arrUnknown) && schedDep(t) < now).length;
+  // Darwin shows "Delayed" for a few minutes around departure: a train counts as stuck from 10 min past its time.
+  out.stuck = trains.filter(t => !t.cancelled && (t.depUnknown || t.arrUnknown) && schedDep(t) <= now - STUCK_AFTER_MIN * 60e3).length;
   // Normal: the timetable for trains still to leave (one already due would make "normal" earlier than you can reach).
   const normal = trains.filter(t => schedDep(t) >= now).map(schedArr).filter((x): x is number => x != null);
   const running = trains.filter(t => !t.cancelled && !t.depUnknown && !t.arrUnknown && t.arr != null && t.dep >= now);
@@ -128,9 +150,9 @@ export function watchVerdict(direction: WatchDirection, boards: Record<string, B
   const msgs = [...new Set(read.flatMap(b => b.msgs || []))];
   // A blocking incident counts only when it names a station on your line outside London, isn't planned or for
   // another day, isn't about a lift or a ticket office, and hasn't cleared.
-  const local = localPattern(corridor);
-  const redMsg = msgs.find(m => RED_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m) && (!corridor || (!!local && local.test(m))));
-  const amberMsg = msgs.find(m => AMBER_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m));
+  const blocking = (m: string) => STRONG_NOTICE.test(m) || (WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m));
+  const redMsg = msgs.find(m => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
+  const amberMsg = msgs.find(m => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
   if (redMsg) { raise("red"); out.reasons.push(redMsg); } else if (amberMsg && level !== "ok" && level !== "unknown") out.reasons.push(amberMsg);
   // The tube between the stations and the office: every line closed is red; every line badly disrupted is amber.
   const lines = (tube || []).filter(l => WATCH_TUBE_LINES.includes(l.id));

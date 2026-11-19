@@ -20,7 +20,8 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   give, from King's Cross, St Pancras and Farringdon (or from Letchworth to all three), against the earliest the
   timetable gave for trains still to leave, over the next 90 minutes. A cancellation with the next train 10 minutes
   behind is 10 minutes. A train already due, now running late, never sets "normal". The same train on two boards
-  (a Thameslink at Farringdon and at St Pancras: same operator, same timetabled arrival) counts once. When no
+  counts once: going out, the same departure from Letchworth (one Thameslink on the Farringdon and St Pancras boards);
+  coming home, the same timetabled arrival at Letchworth. When no
   timetable train is left to compare with, the best train's own lateness is used.
 - **Amber:** at least 15 minutes later than normal (`WATCH_AMBER_MIN`).
 - **Red:** any of these:
@@ -28,14 +29,22 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
   - no train running (all cancelled, or none with a time, counting trains stuck at "Delayed" past their time);
   - Circle, Met and H&C all closed, suspended, planned-closed or not running (TfL 1, 2, 4, 16). "Service Closed" (20),
     which is how TfL shows the tube before it opens, is not a closure.
-  - a National Rail notice on the boards of a blocking incident (lines blocked, unable to run, overhead line, person
-    hit by a train, emergency services, trespass, suspended). It must name a station on the line between Letchworth and
-    London outside the London terminals: King's Cross and St Pancras carry every operator's notices (the East Coast to
-    Edinburgh, Southeastern, Bedford). It must not be planned or for another day ("engineering", "on Sunday"), about a
-    facility (lift, step-free, ticket office), or cleared ("have now reopened", "earlier today").
+  - a National Rail notice on the boards of a blocking incident:
+    - **Strong phrases win over any other word in the notice:** lines blocked (also "have now been blocked"), unable to
+      run, no trains running, hit by a train, overhead line. "Suspended", "emergency services", "trespass" and "major
+      disruption" count unless the notice is about a facility (lift, step-free, ticket office, car park).
+    - **It must be on your line.** A "between X and Y" stretch counts only when both ends are stations on the way, or
+      on beyond Letchworth to Cambridge. "Between Hitchin and Peterborough" is the East Coast; "between Alexandra
+      Palace and Hertford North" is the Hertford loop. A notice with no stretch must name a station outside London:
+      King's Cross and St Pancras carry every operator's notices.
+    - **It must not be cleared or for another time.** Cleared means specific phrases only: "lines have reopened",
+      "running normally", "disruption has cleared". Not today means planned engineering or works, "this weekend", or
+      "on <a day other than today>". An overrun is never "planned".
+    - **Design choice:** a blocking notice that names only King's Cross, St Pancras or Farringdon counts for nothing by
+      itself. The train data shows its effect, because those trains go late or are cancelled.
 - **Also amber:**
-  - two or more trains stuck at "Delayed" with no estimate past their time (Darwin often hasn't updated the trains
-    behind them);
+  - two or more trains stuck at "Delayed" with no estimate, from 10 minutes past their time. Darwin shows "Delayed"
+    for a few minutes around departure, and often hasn't updated the trains behind a stuck one.
   - all three tube lines badly disrupted or worse (part suspended, part closure, Severe Delays, reduced service,
     replacement bus). One line alone is nothing, and Minor Delays are nothing.
 - **Unknown, never "ok" and never an alert:** no board read, or boards read but no train listed in the next 90 minutes.
@@ -98,6 +107,10 @@ Sam, 19 Nov 2026, on the first real iPhone commute:
 - tests/watch-settings.test.mjs: "Commute watch: the test button sends through the proxy and says what happened"
 - tests/watch-settings.test.mjs: "Commute watch: not in a browser, and not in display mode"
 - tests/watch-settings.test.mjs: "Commute watch: hidden in display mode even inside the iPhone app; a failed test says so"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): a blocking phrase wins over other words; stretches count only when both ends are on your line"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): one train on two morning boards counts once; one stuck train, or a 'Delayed' blip at departure, is not amber"
+- tests/core/watch.test.mjs: "Re-review (19 Nov): the tube part suspended on all three lines is amber, not red; 'ok' must hold 3 checks in a row"
+- tests/watch-proxy.test.mjs: "The cron: the watch starts only after the followed-journey run has finished, and still runs if that run fails"
 
 Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it found false reds (the tube's
 "Service Closed" every morning; planned, other-route, facility and cleared notices), missed reds (trains stuck at
@@ -105,6 +118,13 @@ Independent review (19 Nov, of 4de82d6): 26 of 68 mutations survived, and it fou
 time on a UTC server, the corridor passed by the proxy, the push type, the write over a fresh read, the cron calling
 the watch, display mode in the app, and a failed test message. Equivalent or low: the 90-minute horizon (the earliest
 times decide either way), `Math.max(0, …)`, the bridge's `!!`.
+
+Re-review (19 Nov, of 044d28a): the earlier fixes held (42 of 62 mutations caught). It found that the "not now" filter
+hid real incidents ("lines have now been blocked", "overrunning engineering … lines are blocked", "on Thursday" when
+today is Thursday, "Lifts … also out of use", "emergency services have cleared the area"). It also found notices from
+junction stations for other routes going red, one morning train on two boards counted twice (a false amber), and a
+'Delayed' blip at departure counted as stuck. All are fixed above, with tests. Survivors now caught: tube part
+suspended alone, one stuck train, arrival-only 'Delayed', 3 checks in a row, and the cron order and failure.
 
 Status: Built 19 Nov. Real delivery needs the next TestFlight build (for the Settings switch, the foreground banner and the
 test button) and the proxy deployed. Then Sam turns it on in Settings → Notifications and sends a test.

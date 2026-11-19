@@ -171,3 +171,54 @@ test("Notices that aren't a blocking incident on your line now: planned works, o
   assert.equal(lvl("A person has been hit by a train between Hatfield and Welwyn Garden City. Lines are blocked."), "red");
   assert.equal(lvl("Overhead line problems between Stevenage and Hitchin."), "red");
 });
+
+test("Re-review (19 Nov): a blocking phrase wins over other words; stretches count only when both ends are on your line", () => {
+  const now = T("17:00"), corridor = `${core.profiles.samCommute.corridorPattern}|ashwell|royston|cambridge`;
+  const lvl = (msg) => core.watchVerdict("home", boards([gn("17:05")], [], [msg]), null, now, undefined, corridor).level;
+  for (const msg of [
+    "Lines have now been blocked between Hitchin and Stevenage due to a person being hit by a train.",
+    "A person has been hit by a train between Hitchin and Stevenage. Lines are blocked until the emergency services have cleared the area.",
+    "Overrunning engineering works between Hitchin and Stevenage mean all lines are blocked.",
+    "Disruption between Hatfield and Stevenage on Thursday 19 November: overhead line damage. Lines are blocked.",
+    "Emergency services have been called to Welwyn North; lines are blocked. Lifts at Welwyn Garden City are also out of use.",
+    "Earlier today a train hit an obstruction at Knebworth; lines are blocked while it is inspected.",
+    "Lines are blocked between Hitchin and Cambridge.",
+  ]) assert.equal(lvl(msg), "red", msg);
+  for (const msg of [
+    "Disruption between Alexandra Palace and Hertford North: lines are blocked.",
+    "Lines are blocked between Hitchin and Peterborough due to overhead line damage.",
+    "Trains between London Kings Cross and Peterborough via Stevenage may be cancelled: a person has been hit by a train between Huntingdon and Peterborough.",
+    "Disruption between Hatfield and Stevenage on Saturday 21 November: planned engineering. Lines are blocked.",
+    "Lines between Hitchin and Stevenage have now reopened.",
+  ]) assert.notEqual(lvl(msg), "red", msg);
+});
+
+test("Re-review (19 Nov): one train on two morning boards counts once; one stuck train, or a 'Delayed' blip at departure, is not amber", () => {
+  const now = T("07:45");
+  const tlam = (from, to, o = {}) => train({ from, to, std: "07:40", dep: T("07:40"), arr: to === "ZFD" ? T("08:25") : T("08:20"), operator: "Thameslink", serviceId: `X@${to}`, ...o });
+  const gnam = train({ from: "LET", to: "KGX", std: "08:05", dep: T("08:05"), arr: T("08:40"), operator: "Great Northern" });
+  const am = (o) => ({ "LET-ZFD": { services: [tlam("LET", "ZFD", o)], msgs: [] }, "LET-STP": { services: [tlam("LET", "STP", o)], msgs: [] }, "LET-KGX": { services: [gnam], msgs: [] } });
+  const late = core.watchVerdict("office", am({ depUnknown: true, arrUnknown: true }), null, T("07:55"));
+  assert.equal(late.stuck, 1); assert.equal(late.level, "ok");
+  const off = core.watchVerdict("office", am({ cancelled: true }), null, now);
+  assert.equal(off.cancelled, 0, "(already due: not counted as a cancellation ahead)");
+  const cx = core.watchVerdict("office", am({ cancelled: true }), null, T("07:30"));
+  assert.equal(cx.cancelled, 1);
+  // 16:58 and 16:59 'Delayed' at 17:00: Darwin's blip around departure, not stuck.
+  assert.equal(core.watchVerdict("home", boards([gn("16:58", { unknown: true }), gn("16:59", { unknown: true }), gn("17:05")]), null, T("17:00")).level, "ok");
+  // Arrival-only "Delayed" counts as stuck.
+  const arrOnly = (std) => ({ ...gn(std), arrUnknown: true });
+  assert.equal(core.watchVerdict("home", boards([arrOnly("16:35"), arrOnly("16:45"), gn("17:05")]), null, T("17:00")).stuck, 2);
+});
+
+test("Re-review (19 Nov): the tube part suspended on all three lines is amber, not red; 'ok' must hold 3 checks in a row", () => {
+  const b = boards([gn("16:05")]);
+  assert.equal(core.watchVerdict("home", b, [line("circle", 3), line("metropolitan", 3), line("hammersmith-city", 3)], T("16:00")).level, "amber");
+  const w = { key: `${DAY}-home`, direction: "home" }, now = T("17:00");
+  const v = (late) => core.watchVerdict("home", boards([gn("17:05", { late })]), null, now);
+  let st = null, sent = [];
+  for (const late of [50, 0, 0, 20, 0, 0]) { const r = core.watchStep(st, w, v(late), now); st = r.state; if (r.notice) sent.push(r.notice.title); }
+  assert.deepEqual(sent, ["Commute: disruption on the way home"], "the amber broke the run: no all-clear yet");
+  const r = core.watchStep(st, w, v(0), now);
+  assert.equal(r.notice.title, "Commute: back to normal home");
+});

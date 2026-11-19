@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:44 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 09:50 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5730,18 +5730,32 @@ var CommuteCore = (() => {
     const w = WATCH_WINDOWS.find((x) => m >= minutesOf(x.from) && m < minutesOf(x.to));
     return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
   }
-  var RED_NOTICE = /(lines? (are|is|have been) blocked|all lines|no trains (are|will be )?(running|able)|unable to run|suspended|overhead (line|electric|wire)|person (has been )?hit|hit by a train|emergency services|trespass|major disruption)/i;
+  var STRONG_NOTICE = /(lines? (are|is|have been|have now been|has been|has now been) blocked|all lines (are )?blocked|unable to run|no trains (are |will be )?(running|able)|hit by a train|person (has been )?hit|overhead (line|electric|wire))/i;
+  var WEAK_NOTICE = /(suspended|emergency services|trespass|major disruption)/i;
+  var FACILITY_NOTICE = /(step-free|\blifts?\b|escalator|toilet|ticket (office|machine)|car park|waiting room)/i;
   var AMBER_NOTICE = /(disruption|signall?ing (problem|fault|failure)|a fault|reduced service|severe delays)/i;
-  var NOT_NOW_NOTICE = /(engineering|planned|improvement works|on (mon|tues|wednes|thurs|fri|satur|sun)day|this weekend|step-free|lift|escalator|toilet|ticket (office|machine)|car park|reopened|re-opened|have now|has now|resumed|now running|earlier today|cleared)/i;
+  var CLEARED_NOTICE = /(lines? (have|has|are|is) (now )?re-?opened|running (as )?normal(ly)?|disruption (has|is) (now )?(cleared|ended|over)|services (have|are) (now )?resumed|has been resolved)/i;
+  var DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  function notToday(m, now) {
+    if (/overrun/i.test(m)) return false;
+    if (/(planned (engineering|closure|works)|improvement works|this weekend)/i.test(m)) return true;
+    const today = DAYS[new Date(now).getDay()];
+    const day2 = /\bon (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i.exec(m);
+    return !!day2 && day2[1].toLowerCase() !== today;
+  }
   var TUBE_CLOSED = [1, 2, 4, 16];
   var TUBE_BAD = [3, 5, 6, 7, 8];
   var STUCK_LOOKBACK_MIN = 60;
+  var STUCK_AFTER_MIN = 10;
   var schedArr = (t2) => t2.arr == null ? null : t2.arr - (t2.arrLate || 0) * 6e4;
   var schedDep = (t2) => t2.dep - (t2.depLate || 0) * 6e4;
-  function localPattern(corridor) {
-    if (!corridor) return null;
-    const parts = corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x));
-    return parts.length ? new RegExp(parts.join("|"), "i") : null;
+  function onYourLine(m, corridor) {
+    if (!corridor) return true;
+    const all2 = new RegExp(`^(london )?(${corridor})`, "i");
+    const local = new RegExp(corridor.split("|").filter((x) => !/king|pancras|farringdon/i.test(x)).join("|"), "i");
+    const stretches = [...m.matchAll(/between ([A-Za-z][A-Za-z' .&-]*?) and ([A-Za-z][A-Za-z' .&-]*?)(?=[.,:;]| via| due| because| mean| until| while| for| following| after| may| is| are| has| have|$)/gi)];
+    if (stretches.length) return stretches.some((x) => all2.test(x[1].trim()) && all2.test(x[2].trim()) && (local.test(x[1]) || local.test(x[2])));
+    return local.test(m);
   }
   function watchVerdict(direction, boards, tube, now, policy, corridor) {
     const read = Object.values(boards).filter((b) => !!b);
@@ -5749,14 +5763,14 @@ var CommuteCore = (() => {
     if (!read.length) return { ...out, level: "unknown", reasons: ["The live National Rail feed didn't answer."] };
     const horizon = now + WATCH_WINDOW_MIN * 6e4, back = now - STUCK_LOOKBACK_MIN * 6e4, seen = /* @__PURE__ */ new Set();
     const trains = read.flatMap((b) => b.services || []).filter((t2) => {
-      const sa = schedArr(t2), id = sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
+      const sa = schedArr(t2), id = direction === "office" ? `${t2.operator}|${t2.from}|${schedDep(t2)}` : sa != null ? `${t2.operator}|${t2.to}|${sa}` : t2.serviceId || `${t2.std}|${t2.operator}|${t2.to}`;
       if (seen.has(id)) return false;
       seen.add(id);
       const sd = schedDep(t2);
       return sd <= horizon && (sd >= now || !t2.cancelled && (t2.dep >= now || (t2.depUnknown || t2.arrUnknown) && sd >= back));
     });
     out.cancelled = trains.filter((t2) => t2.cancelled && schedDep(t2) >= now).length;
-    out.stuck = trains.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown) && schedDep(t2) < now).length;
+    out.stuck = trains.filter((t2) => !t2.cancelled && (t2.depUnknown || t2.arrUnknown) && schedDep(t2) <= now - STUCK_AFTER_MIN * 6e4).length;
     const normal = trains.filter((t2) => schedDep(t2) >= now).map(schedArr).filter((x) => x != null);
     const running = trains.filter((t2) => !t2.cancelled && !t2.depUnknown && !t2.arrUnknown && t2.arr != null && t2.dep >= now);
     const best = running.reduce((a, t2) => !a || t2.arr < a.arr ? t2 : a, null);
@@ -5785,9 +5799,9 @@ var CommuteCore = (() => {
     }
     if (out.cancelled && best) out.reasons.push(`${out.cancelled} cancelled`);
     const msgs = [...new Set(read.flatMap((b) => b.msgs || []))];
-    const local = localPattern(corridor);
-    const redMsg = msgs.find((m) => RED_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m) && (!corridor || !!local && local.test(m)));
-    const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !NOT_NOW_NOTICE.test(m));
+    const blocking = (m) => STRONG_NOTICE.test(m) || WEAK_NOTICE.test(m) && !FACILITY_NOTICE.test(m);
+    const redMsg = msgs.find((m) => blocking(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now) && onYourLine(m, corridor));
+    const amberMsg = msgs.find((m) => AMBER_NOTICE.test(m) && !CLEARED_NOTICE.test(m) && !notToday(m, now));
     if (redMsg) {
       raise("red");
       out.reasons.push(redMsg);
