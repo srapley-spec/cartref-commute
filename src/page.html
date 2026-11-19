@@ -541,9 +541,13 @@ const followAvailable = () => !DISPLAY;
 function load(){
   try{
     const saved=JSON.parse(localStorage.getItem(LS)||"{}");
+    if(!saved||typeof saved!=="object"||Array.isArray(saved)) return {};
+    // No usable settings object (missing, null, not an object: follow-up to the #63 review, 19 Nov): nothing says a
+    // retired switch was on, so it is every switch off, as the defaults were, and the one-time migration runs on it.
+    if(!saved.settings||typeof saved.settings!=="object"||Array.isArray(saved.settings)) saved.settings={};
     // Retired appearance preference: ignore old true/false values without changing
     // any journey, source, home, timing or independently saved Follow preference.
-    if(saved?.settings){ delete saved.settings.signal; migratePermanent(saved); dropRetired(saved.settings); }
+    delete saved.settings.signal; migratePermanent(saved); dropRetired(saved.settings);
     return saved;
   }catch(e){return {};}
 }
@@ -2869,8 +2873,10 @@ function nativeCacheNow(){
 async function nativeHydrate(){
   const entries=await native.cached(), get=k=>entries.find(e=>e&&e.key===k&&e.v===1&&Number.isFinite(e.dataAt));
   const b=get("boards"), st=get("status"), set=get("settings");
-  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones.
-  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent")){ state.saved.settings={...dropRetired({...set.value}),featuresPermanent:1}; save(); }   // restored settings are post-#63 (review: an older cache lacks the marker)
+  // Settings come back only to a device that lost its own (the web view's storage cleared), never over saved ones. A
+  // cleared device has only what start-up writes: the marker, the keys move and its default source, the proxy (19 Nov:
+  // that default had stopped the restore on a really cleared device).
+  if(set&&set.value&&typeof set.value==="object"&&Object.keys(state.saved.settings||{}).every(k=>k==="keysInProxy"||k==="featuresPermanent"||(k==="provider"&&state.saved.settings.provider==="proxy"))){ state.saved.settings={...dropRetired({...set.value}),featuresPermanent:1}; save(); }   // restored settings are post-#63 (review: an older cache lacks the marker)
   if(b&&!state.boards&&b.value&&typeof b.value==="object"){ state.boards=b.value; state.boardsAt=b.dataAt; state.fetchedAt=b.dataAt; }
   if(st&&!(state.status&&state.status.length)&&Array.isArray(st.value)){ state.status=st.value; state.statusAt=st.dataAt; }
 }

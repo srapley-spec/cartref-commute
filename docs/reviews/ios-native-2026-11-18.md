@@ -117,3 +117,15 @@ probe found that a response started before reset can advance the new `boardOkAt`
 because the board assignment captured the old object while the following timestamp update reads the new object.
 Any future production use of reset needs request-generation handling. This is not a reproduced current user path
 and was not expanded into this release.
+
+**Closed 19 Nov (Sam's follow-up).** The exact cause, in `live()`:
+- `liveBoards[b.key] = await fetchBoard(…)` evaluates `liveBoards` before the await, so a late success wrote into the
+  old, discarded object. The `boardOkAt[b.key] = now()` that follows read the new object, so it advanced the new age.
+- A late failure's `liveBoards[b.key] = undefined` ran after the await, against the new object, so it cleared a
+  newer request's board.
+
+Fix: a request generation (`liveGen`), increased by `reset()`. A response from an older generation writes nothing,
+and the rest of that `live()` run stops. `reset()` also clears the 30 s spacing, so the next refresh loads at once.
+Ordinary successes and failures are unchanged. Tests: `tests/trip-reset-race.test.mjs`, which resets during an
+outstanding request, starts a newer one, then delivers the old response as both a success and a failure. Both failed
+before the fix.

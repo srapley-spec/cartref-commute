@@ -39,7 +39,13 @@ not a claim that every criterion has already passed release verification. See [S
   Save and the iPhone app's cache restore (`RETIRED_SETTINGS`). Once per device from before #63 (`featuresPermanent`
   absent), what was switched off stays unused: a route saved while Follow was off isn't followed, a Trip left open
   while Trip was off isn't reopened (its followed Trip dropped), a "Where to?" place saved while Any start and end point
-  was off isn't planned to; anyone who had a feature on keeps everything. Availability isn't use: nothing is followed
+  was off isn't planned to; anyone who had a feature on keeps everything. **Saved state with no usable settings
+  object** (missing, null, or not an object; 19 Nov follow-up) is ambiguous. Nothing says a switch was on, so it is
+  treated as every switch off, as the defaults were before #63: the same one-time migration drops a dormant route,
+  Trip and destination, and the marker keeps it one-time across Save, reload and the iPhone's cache restore.
+  Unreadable saved state starts fresh. A really cleared iPhone web view, holding only what start-up writes (the marker,
+  the keys move, the default source "proxy"), gets its settings back from the app's cache; before 19 Nov that default
+  source stopped the restore. Availability isn't use: nothing is followed
   and Trip isn't entered by itself. Display mode: no Follow, no Trip, no simulation. In Leisure the "Where from?" and
   "Where to?" rows are hidden while following (12 Nov controls under way), not in a live view without following
   (in London going home that is where "Where from?" is used). Trip's own services (Google, any station)
@@ -567,6 +573,13 @@ From the trip debrief (#57) and the [journey card amendment](../design-system.md
 - tests/permanent-features.test.mjs: "A device from before #63 with Any start and end point off: a 'Where to?' place left saved isn't planned to"
 - tests/permanent-features.test.mjs: "Leisure: 'Where from?' is offered with location, and folds away with the controls while following"
 - tests/permanent-features.test.mjs: "Any start and end point: an ambiguous typed place takes TfL's best guess once per station (4 requests, not 6)"
+- `tests/legacy-settings.test.mjs`: one generated test per kind of unusable settings (missing, null, a string, an array,
+  a number): "Settings <kind>: a dormant route, Trip and destination stay dormant; the migration is done once".
+- tests/legacy-settings.test.mjs: "Missing settings: the one-time migration doesn't run again: a route followed after it survives save and reload, twice"
+- tests/legacy-settings.test.mjs: "Missing settings on the iPhone: cached settings restored after the migration can't bring the dormant route back"
+- tests/legacy-settings.test.mjs: "Valid settings are unchanged by this: explicit switches on keep their journey; a migrated device keeps everything"
+- tests/legacy-settings.test.mjs: "Unreadable saved state starts fresh rather than half-loading"
+- tests/legacy-settings.test.mjs: "A really cleared iPhone web view (nothing saved at all) gets its settings back from the app's cache"
 - tests/core/journey-card-batch.test.mjs: "Still at the start when a delay moves Leave by: the clock passing the old time isn't evidence you've left (18 Nov review)"
 - tests/core/journey-card-batch.test.mjs: "A step whose own time has come is taken as done once you've set off: a late train doesn't bring it back as the next thing, and at the station the next thing is the train"
 - tests/wrong-train.test.mjs: "I'm on it: when the app can't tell two trains apart it asks which, the one you follow first; your answer is taken at its word"
