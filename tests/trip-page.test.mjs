@@ -129,6 +129,7 @@ test("Trip: Brighton → Canterbury plans door to door from TfL, every journey l
   assert.match(app.text("#tripResults"), /Brighton → .*Canterbury West/);
   assert.match(app.text("#tripResults"), /3 changes/);
   const after = app.calls.slice(before);
+  console.log("CALLS", after.join("\n"));
   assert.ok(after.some(u => /JourneyResults\/90000899\/to\/1001160/.test(u)));
   assert.ok(!after.some(u => /JourneyResults\/51\.|Line\/|national-rail\/Status|GetDepBoard.*LET/.test(u)), after.filter(u => !isTrip(u)).join("\n"));
   const planner = after.filter(u => /JourneyResults/.test(u)).length;
@@ -578,4 +579,32 @@ test("Trip with My proxy as the source: TfL's planner and Google both go through
   assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "TfL's planner through the proxy:\n" + seen.join("\n"));
   assert.ok(seen.some(u => u.startsWith(P + "/google/places/")) && seen.some(u => u.startsWith(P + "/google/routes/")), "Google through the proxy");
   assert.ok(app.calls.every(u => !u.startsWith("https://api.tfl.gov.uk") && !/maps\.googleapis/.test(u) && !/PHONEKEY|app_key/.test(u)), app.calls.join("\n"));
+});
+
+test("Trip resets on a change of live-data source (Sam, 19 Nov): switching to the proxy clears Trip's live data and plans again at once through it", async () => {
+  const P = "https://proxy.example", seen = [];
+  const proxyRoute = async (u, o) => {
+    if (u.startsWith(P)) seen.push(u);
+    if (u.startsWith(P + "/google/routes/distanceMatrix")) return json(JSON.parse(o.body).origins.flatMap((x, i) => JSON.parse(o.body).destinations.map((d, j) => {
+      const a = x.waypoint.location.latLng, z = d.waypoint.location.latLng, m = Math.round(Math.hypot((a.latitude - z.latitude) * 111, (a.longitude - z.longitude) * 70) * 1300);
+      return { originIndex: i, destinationIndex: j, condition: "ROUTE_EXISTS", distanceMeters: m, duration: `${Math.round(m / 1.3)}s` }; })));
+    if (u.startsWith(P + "/google/routes/directions")) return json({ routes: [] });
+    if (u === P + "/status") return json({ v: 1, rail: true, serviceDetails: true, tflKey: true, google: true, anyStation: true, alerts: false });
+    if (u.startsWith(P + "/board/")) return json({ trainServices: [], nrccMessages: [] });
+    return route(u, o);
+  };
+  const app = await createApp({ settings: { ...ON, googleKey: "AIzaTEST", proxyBase: P }, route: proxyRoute });
+  googleStub(app.w);
+  app.d.querySelector("#tripModeBtn").click(); await sleep(50);
+  await choose(app, "from", "brighton station"); await choose(app, "to", "canterbury cath");
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length);
+  await sleep(1500);
+  assert.equal(seen.length, 0, "(nothing through the proxy before the change)");
+  app.d.querySelector("#settingsBtn").click(); await sleep(50);
+  app.d.querySelector("#s_provider").value = "proxy";
+  app.d.querySelector("#saveBtn").click();
+  await until(() => seen.some(u => /\/tfl\/Journey\/JourneyResults\/90000899\/to\/1001160/.test(u)), 6000);
+  assert.ok(seen.some(u => u.startsWith(P + "/tfl/Journey/JourneyResults/90000899/to/1001160?")), "planned again through the new source:\n" + seen.join("\n"));
+  await until(() => app.d.querySelectorAll("#tripResults .trip-row").length >= 3);
+  assert.ok(app.d.querySelectorAll("#tripResults .trip-row").length >= 3, app.text("#tripResults"));
 });
