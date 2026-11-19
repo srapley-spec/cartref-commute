@@ -61,6 +61,8 @@ to do on a device.
       `https://srapley-spec.github.io/cartref-commute/?display`. Pick the card's size (it scrolls if the list is
       longer than the card). Live times need nothing else since 17 Nov (the proxy is built in)
 - [ ] Tell Claude how it looks at the card's size
+- [ ] (19 Nov) The commute watch reads 3 boards every 2 minutes, 05:00–10:00 and from 15:00 until you're home (01:00 at
+      the latest): up to about 1,350 board requests on a watched weekday. Worth comparing with that limit.
 - [ ] Check the usage limit on your Rail Data Marketplace subscription (raildata.org.uk → your Live Departure Board
       subscription → Specification) and tell Claude the figure. An always-on display asks for about 4,400 boards a
       day; Cloudflare (about 5% of the free 100,000 a day) and TfL (under 1 a minute of 500) are fine
