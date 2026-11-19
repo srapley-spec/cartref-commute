@@ -26,6 +26,7 @@ struct CommuteJourneyActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 5) {
                         SnapshotCountdown(snapshot: context.state)
+                        if let step = context.state.step { SnapshotStep(step: step) }
                         if let progress = context.state.progress?.line { Text(progress).font(.caption).lineLimit(1) }
                         SnapshotAge(snapshot: context.state, stale: context.isStale)
                     }.frame(maxWidth: .infinity, alignment: .leading)
@@ -76,6 +77,8 @@ private struct JourneyLockScreen: View {
                         .foregroundStyle(statusColor(status.level)).lineLimit(1)
                 }
             }
+            // What to do next (#57 H29): drawn as the page words it; the train below is gone once you're off it.
+            if let step = snapshot.step { SnapshotStep(step: step) }
             if let train = snapshot.train {
                 HStack(spacing: 8) {
                     Text(train.name).lineLimit(1)
@@ -98,6 +101,17 @@ private struct JourneyLockScreen: View {
         case "warn": return Color(hex: scheme == .dark ? 0xffd08a : 0x805000)
         case "ok": return Color(hex: scheme == .dark ? 0x82ddb8 : 0x14654c)
         default: return ink
+        }
+    }
+}
+
+private struct SnapshotStep: View {
+    let step: JourneySnapshot.Step
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(step.text).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            if let detail = step.detail, !detail.isEmpty { Text(detail).font(.system(size: 12)).lineLimit(1) }
         }
     }
 }

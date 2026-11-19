@@ -29,6 +29,7 @@
   },
   "train": null,
   "progress": null,
+  "step": null,
   "status": null,
   "alarm": {
     "at": 1794940980000,

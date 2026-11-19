@@ -899,7 +899,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 18 Nov 21:45 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 08:20 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -5823,6 +5823,7 @@ var CommuteCore = (() => {
     next: { calm: "in", urgent: "Now", passed: "" }
   };
   var fin = (n2) => typeof n2 === "number" && Number.isFinite(n2);
+  var clean = (s) => typeof s !== "string" ? "" : s.replace(/\s+/g, " ").split(" \xB7 ").map((x) => x.trim()).filter(Boolean).join(" \xB7 ").replace(/^·\s*|\s*·$/g, "").trim();
   function platformLabelText(platform, station) {
     return `Be on ${platform ? `platform ${platform}` : "the platform"}${station ? ` at ${station}` : ""} by`;
   }
@@ -5866,6 +5867,7 @@ var CommuteCore = (() => {
       arrive: i.arrive ? { label: i.arrive.label, t: fin(i.arrive.t) ? i.arrive.t : null } : null,
       train: i.train || null,
       progress,
+      step: i.step && clean(i.step.text) ? { text: clean(i.step.text), detail: clean(i.step.detail) || null } : null,
       status: i.status || null,
       alarm: i.alarm || null,
       deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null
@@ -5896,7 +5898,16 @@ var CommuteCore = (() => {
     };
     if (observed && observed.cancelled) return journeySnapshot({ ...base, phase: "cancelled", headline: { label: "Cancelled", t: null, step: "" }, arrive: null, alarm: null });
     const arriveOut = { label: plan.arriveLabel || (plan.direction === "office" ? "At office" : "At home"), t: doorArrive };
-    if (arr != null && now >= arr) return journeySnapshot({ ...base, phase: "walk-last", headline: { label: arriveOut.label, t: doorArrive, step: "arrive" }, arrive: arriveOut, alarm: null });
+    if (arr != null && now >= arr) return journeySnapshot({
+      ...base,
+      phase: "walk-last",
+      headline: { label: arriveOut.label, t: doorArrive, step: "arrive" },
+      arrive: arriveOut,
+      alarm: null,
+      // Off the train, it leaves the card (#57 H29): its "3 min late" and platform are no longer yours.
+      train: null,
+      status: null
+    });
     if (now >= dep) return journeySnapshot({ ...base, phase: "train", headline: { label: `At ${plan.toName || plan.to}`, t: arr, step: "arrive" }, arrive: arriveOut, alarm: null });
     const alarm = leaveAlarm(leaveBy2, { enabled: opts.alarm.enabled, leadMin: opts.alarm.leadMin, setOff: opts.setOff, now, startPlace: plan.startPlace });
     if (opts.setOff) return journeySnapshot({ ...base, phase: "platform", headline: { label: platformLabelText(platform, plan.fromName || plan.from), t: platformAt, step: "platform" }, arrive: arriveOut, alarm });
@@ -5925,6 +5936,7 @@ var CommuteCore = (() => {
       s.progress && s.progress.line,
       !withRefresh || s.dataAt == null ? null : Math.floor(s.dataAt / SNAPSHOT_REFRESH_MS),
       s.headline.label,
+      s.step ? [s.step.text, s.step.detail] : null,
       // The countdown turning urgent or passed is a change (#58: a closed Live Activity keeps the last wording it got).
       s.headline.countdown && s.headline.countdown.state,
       s.headline.t,
@@ -7185,7 +7197,7 @@ function renderOnTubeHome(now){
   const off = `<div class="pick" data-block="which"><small>Got off already?</small>${[...new Set(legs.map(l=>l.stop))].map(st=>`<button type="button" class="pickbtn" data-ride="off">At ${esc(st)}</button>`).join("")}</div>`;
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:best.stop,stationArrival:best.stopAt,arrival:best.arrive,dest:'home'})}</div>
-    <div data-block="which"><span class="slack ${lineCls(r.line)}">${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
+    <div data-block="which"><span class="slack ${lineCls(r.line)}" data-native-step${(best&&best.stop)||r.stop?` data-native-detail="Get off at ${esc((best&&best.stop)||r.stop)}"`:""}>${r.picked||r.confirmed?"Your tube: the":"Probably the"} ${esc(r.line||"tube")}${r.dest?` to ${esc(r.dest)}`:""} that left Aldgate at ${hhmm(r.t)}</span><span style="opacity:.85;font-size:13px">${other?` or the ${esc(other.line)} at ${hhmm(other.t)}`:""}${r.picked?" · you picked this":""}</span></div>
     <div class="meta" data-block="which">${journeyFactsMarkup(best.o,{arrival:best.arrive,duration:'remaining'})}<span data-fact="tube-duration" data-ms="${best.rideMs}">~${dur(best.rideMs)} Tube</span></div>
     ${ask}${line(best,true)}${alt?line(alt,false):""}${swap}${off}
     ${statusStrip([...opLines(best.o), lineIdOf(r.line)])}
@@ -7222,7 +7234,7 @@ function renderOnTube(now){
   $("#hero").innerHTML=`${head}
     <div data-block="headline">${activeJourneyHeadingMarkup({station:leg.stop,stationArrival:aldT,arrival:office,dest:live?'office':'office · estimate'})}</div>
     ${journeyFactsMarkup(null,{arrival:office,unavailable:false,duration:'remaining'})}
-    <div data-block="which"><span class="slack ${lineCls(w.best.line)}">${r.picked||r.confirmed?`Your tube: ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`:`Probably the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
+    <div data-block="which"><span class="slack ${lineCls(w.best.line)}" data-native-step${leg&&leg.stop?` data-native-detail="Get off at ${esc(leg.stop)}"`:""}>${r.picked||r.confirmed?`Your tube: ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`:`Probably the ${esc(C.tubeName(hhmm(w.best.t), w.best.line, w.best.dest))}`}</span>${w.other?` <span style="opacity:.85;font-size:13px">or the ${esc(C.tubeName(hhmm(w.other.t), w.other.line, w.other.dest))}</span>`:""}${r.picked?` <span style="opacity:.85;font-size:13px">· you picked this</span>`:""}</div>
     <div class="meta" data-block="which"><span data-fact="tube-duration" data-ms="${ride}">~${dur(ride)} Tube</span></div>
     ${ask}
     <ol class="legs" data-block="then">
@@ -7298,7 +7310,7 @@ function renderAtHub(now){
     const nearly = "";
     hero=`${head}
       <div data-block="headline">${journeyTimesMarkup({leave:n.t,arrive:n.office,dest:'office',leftLabel:'Next tube',isLeave:false,step:'next'})}</div>${journeyFactsMarkup(null,{arrival:n.office,unavailable:false,duration:'remaining'})}
-      <div data-block="which"><span class="slack ${lineCls(n.line)}">${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px">eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}"></span>${plan.spareMin>=1?` · about ${plan.spareMin} min to spare on the platform`:""}</span></div>
+      <div data-block="which"><span class="slack ${lineCls(n.line)}" data-native-step>${chosen?"You're getting":"Get on"} the ${esc(n.line)} ${esc(tubeDestWords(n))}</span> <span style="opacity:.85;font-size:13px" data-native-detail>eastbound${C.platformNo(n.platform)?` · Platform ${esc(C.platformNo(n.platform))}`:""} · due <span class="t">${hhmm(n.t)}</span> · <span data-tube="${n.t}" data-native-skip></span>${plan.spareMin>=1?`<span data-native-skip> · about ${plan.spareMin} min to spare on the platform</span>`:""}</span></div>
       <ol class="legs" data-block="then">
         <li class="t">${hhmm(Math.max(now,since??now))}</li><li class="d">Walk to the eastbound platform <small>· about ${dur(ic)}${since!=null&&since<now-60e3?`, from when ${stopped?"your train stopped":"you arrived"} (${hhmm(since)})`:""}</small></li>
         <li class="t">${hhmm(n.t)}</li><li class="d">${esc(n.line)} towards ${esc(n.dest||"Aldgate")} <small>· ${esc(n.platform)}</small></li>
@@ -7311,7 +7323,7 @@ function renderAtHub(now){
     const why = tube&&tube.err ? `Live tube times unavailable (${tube.err}).` : tube&&tube.arrivals ? "No live eastbound Circle, Met or H&C trains listed." : "Loading live tube times…";
     hero=`${head}
       <div data-block="headline">${journeyTimesMarkup({leave:now,arrive:office,dest:'office · estimate',leftLabel:'Now',isLeave:false})}</div>${journeyFactsMarkup(null,{arrival:office,unavailable:false,duration:'remaining'})}
-      <div data-block="which"><span class="slack">Get on the next Circle or Met eastbound to Aldgate</span></div>
+      <div data-block="which"><span class="slack" data-native-step>Get on the next Circle or Met eastbound to Aldgate</span></div>
       <div class="note" data-block="source" style="color:inherit;opacity:.85">${esc(why)} Allowing ${dur(ic)} to the platform, a ${dur(s.tubeWait*1000)} wait and ${dur(ride)} to Aldgate.</div>${issues}`;
   }
   $("#hero").innerHTML=hero+statusStrip(["circle","metropolitan","hammersmith-city"]);
@@ -11029,7 +11041,7 @@ function createTripUi(deps) {
       headline: () => following ? `<div class="trip-headline ${fu.level}">${tripFollowHeading(fu)}${followFacts}<b class="${esc(fu.level)}">${esc(fu.text)}</b>${fu.notice?`<p>${esc(fu.notice.text)}</p>`:''}${fu.arrival==null||fu.route.expectedArrival!==fu.route.plannedArrival?`<p>Original plan: arrive ${hhmm(fu.route.plannedArrival)}</p>`:''}
           ${fu.phase==='before'||fu.phase==='access'?tripAccessMarkup(fu.route.journey,{active:true}):''}
           ${fu.phase==='final'||fu.phase==='arrived'?'':tripNextMarkup(fu.route.journey,C.followedTripPhase(fu.route,now()).ride,fu.phase==='ride'?'Current service':'Next')}
-          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}${esc(fu.nextStep.d)}</p>`:''}
+          ${fu.nextStep&&fu.arrival!=null?`<p>Next action: ${fu.nextStep.t!=null&&!fu.nextStep.d.startsWith(hhmm(fu.nextStep.t))?hhmm(fu.nextStep.t)+' ':''}<span data-native-step>${esc(fu.nextStep.d)}</span></p>`:''}
           ${fu.route.notices.filter(n=>n.id.startsWith('recovery:')).slice(-1).map(n=>`<p>${esc(n.text)}</p>`).join('')}${tripConfirmation(fu)}
           ${fu.alternative?`<section class="follow-alternative"><b>A way on · not selected</b>${journeyRow(fu.alternative,{noFollow:true})}<button type="button" class="ghost" data-trip-follow="${esc(fu.alternative.id)}">Follow this instead</button><button type="button" class="ghost" data-trip-dismiss="${esc(fu.alternative.id)}">Keep my route</button></section>`:''}
           ${fu.arrival==null?`<button type="button" class="ghost" data-trip-replan>Plan from ${esc(C.tripRecoveryStart(fu.route,now()).station.name)}</button>`:''}
@@ -11484,6 +11496,19 @@ function nativeFollowPlan(){
   try{ setOff=trip?(C.followedTripPhase(trip,Date.now()).phase!=='before'||(nativeHeading()||{dataset:{}}).dataset.step==='platform'):(r.phase!=='before-train'||!!followSetOffNow()); }catch(e){}
   return {...nativeLastPlan,setOff};
 }
+// What to do next, in the card's own words (#57 H29): the live instruction marked data-native-step ("Get on the Met to
+// Aldgate", "Your tube: …"), with its details (data-native-detail; parts marked data-native-skip, such as the ticking
+// countdown, are left out because the lock screen draws its own). The followed card first, then the live card beside it.
+function nativeStep(trip){
+  const scopes=trip?[$("#tripRoot .trip-follow-card")]:[$("#followPanel:not([hidden])"),$("#hero:not([hidden])")];
+  for(const scope of scopes){
+    const el=scope&&scope.querySelector("[data-native-step]"); if(!el) continue;
+    const text=(n)=>{ if(!n) return ""; const c=n.cloneNode(true); c.querySelectorAll("[data-native-skip]").forEach(x=>x.remove()); return c.textContent; };
+    const detail=el.dataset.nativeDetail!=null&&el.dataset.nativeDetail!==""?el.dataset.nativeDetail:text(el.parentElement&&el.parentElement.querySelector("[data-native-detail]"));
+    return {text:el.textContent,detail:detail||null};
+  }
+  return null;
+}
 // The snapshot is what the followed card shows: its first heading's times and words, the route's phase and train.
 function nativeSnapshot(){
   const trip=nativeTrip(), r=trip?null:nativeRoute();
@@ -11496,23 +11521,27 @@ function nativeSnapshot(){
     const p=C.followedTripPhase(trip,Date.now()), rides=trip.journey.rides||[], ride=rides[p.ride]||rides.find(x=>x.kind==='rail');
     phase=p.phase==='arrived'?'arrived':p.phase==='final'?'walk-last':p.phase==='ride'?(ride&&ride.kind==='tube'?'tube':'train'):p.phase==='change'?'walk'
       :step==='platform'?'platform':step==='leave'?'leave':'walk';
-    const rail=rides.find(x=>x.kind==='rail');
+    // The train still ahead of you (or the one you're on), not the first of the trip (#57 H29): once off the last
+    // train it leaves the card.
+    const rail=p.phase==='final'||p.phase==='arrived'?null:rides.find((x,i)=>x.kind==='rail'&&i>=(p.ride??0));
     t=rail?{...(rail.train||{}),from:rail.from.crs,to:rail.to.crs,std:(rail.train&&rail.train.std)||hhmm(rail.schedDep),dep:rail.dep,depLate:Math.max(0,Math.round((rail.dep-rail.schedDep)/60e3)),platform:rail.platform||null,operator:rail.operator,cancelled:!!rail.cancelled,_names:[rail.from.name,rail.to.name]}:null;
     confirmed=(trip.confirmed||[]).length>0||trip.activeRide!=null; mode='trip'; dir=null; id=trip.id;
   } else {
     phase=r.incident==='cancelled'?'cancelled':r.incident==='missed'?'missed':r.phase==='arrived'?'arrived':r.phase==='on-train'?'train':r.phase==='after-train'?'walk-last'
       :step==='platform'?'platform':step==='leave'?'leave':'walk';
-    t=r.lastTrain||(r.option&&r.option.train)||null;
+    // Off the train it leaves the card (#57 H29, 19 Nov: the lock screen kept "07:30 Great Northern · 3 min late ·
+    // Platform 1" at King's Cross); the next step says what to do instead.
+    t=r.phase==='after-train'||r.phase==='arrived'?null:r.lastTrain||(r.option&&r.option.train)||null;
     // Boarding is confirmed only by the page's own boarding check (the route is on or past the train).
     confirmed=['on-train','after-train','arrived'].includes(r.phase); mode=r.mode; dir=r.direction; id=r.id;
   }
-  const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan;
+  const status=t?C.trainStatus(t):null, fp=nativeFollowPlan(), alarmPlan=fp&&fp.plan, doNext=nativeStep(trip);
   const nm=c=>STATIONS[c]||HUB_NAME[c]||c;
   return C.journeySnapshot({now:Date.now(),source:"page",dataAt:trip?((()=>{ try{ return tripUiFor().followedDataAt(); }catch(e){ return null; } })()):(state.fetchedAt||null),mode,direction:dir,followId:id,phase,confirmed,
     headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
-    status:status?{level:status.level,text:status.text}:null,
+    step:doNext,status:status?{level:status.level,text:status.text}:null,
     alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
 }
 // Siri (Sam, 18 Nov: Siri opens the app to follow): commute://next?direction=home|office shows that direction now;

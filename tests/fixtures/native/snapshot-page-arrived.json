@@ -21,6 +21,7 @@
   },
   "train": null,
   "progress": null,
+  "step": null,
   "status": null,
   "alarm": null,
   "deepLink": "commute://follow/f9"

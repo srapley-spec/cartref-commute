@@ -130,6 +130,49 @@ iPhone; simulator and exported-package results do not substitute for actual APNs
 Record the TestFlight build number, time, journey mode and expected/observed behavior for any failure. No Apple
 review is part of this acceptance process.
 
+## What to do next on the lock screen (#57 H29, 19 Nov)
+**Who and why:** Sam, first real iPhone commute, 19 Nov. At King's Cross at 08:11, off the 07:30 Great Northern, the
+Live Activity said "Next action 08:15 · in 4:05" and, under it, "07:30 Great Northern to London Kings Cross · 3 min
+late · Platform 1": a time with no action, and the train he had just left. The page at the same moment said "Get on the
+Met to Aldgate · eastbound · Platform 2 · due 08:20". Sam (08:15): fix both sides as one change, page and Swift.
+
+**Acceptance criteria**
+- The snapshot carries `step: { text, detail }`, what to do next in the page's own words, read from the instruction
+  the page marks `data-native-step` (and its `data-native-detail`). It is not reworded in Swift, and no Swift logic
+  decides it.
+  - At the change station: "Get on the Met to Aldgate" with "eastbound · Platform 2 · due 08:20". Parts marked
+    `data-native-skip` are left out: the ticking "in 8m 38s", because the lock screen draws its own countdown, and
+    "about 3 min to spare".
+  - With no live tubes: "Get on the next Circle or Met eastbound to Aldgate".
+  - On the tube, either way: "Your tube: …" with "Get off at Aldgate" (or Farringdon going home).
+  - Trip: the followed card's "Next action" step.
+  - `null` when the headline and the train already say it (before and on the train). Snapshots from before H29 have
+    no `step`; the shell treats that as none.
+- Once you're off the train, `train` and its `status` are `null` on the snapshot, from the page and from the proxy
+  (the closed app's `walk-last`). Coming home, the train still ahead stays while you're on the tube. In Trip, the train
+  shown is the current or next one, not the first of the trip, and none after the last.
+- The Live Activity draws the step under the countdown (text bold, detail beneath), on the lock screen and in the
+  expanded Dynamic Island. A change of step is a push-worthy change (`snapshotShown`).
+- Modes: Commute and Leisure share the page's following, so both get it. In Leisure the change-station tube
+  instruction isn't drawn, because it is tied to the office's stop (`follow-a-route.md`, "Modes"), so there the step
+  is shown only where the page has one. Trip, as above.
+- "3 min late" drawn green is the same level as the page: under 5 minutes late is `ok` (`railDelayLevel`, warn from
+  5 min). Unchanged.
+- Snapshot stays v1: the field is additive and optional, and older shells ignore it. The bundled page and the
+  extension ship together in the next internal TestFlight build.
+
+**Tests**
+- tests/native-next-step.test.mjs: "Lock screen at the change station: the page's 'Get on the …' with its platform and due time; the train you got off has gone"
+- tests/native-next-step.test.mjs: "Lock screen with no live tubes yet: 'Get on the next Circle or Met eastbound to Aldgate'"
+- tests/native-next-step.test.mjs: "Lock screen on the tube to the office: 'Your tube: …' and where to get off"
+- tests/native-next-step.test.mjs: "Lock screen before and on the train: no step, the train stays (it is what to do next)"
+- tests/native-next-step.test.mjs: "Coming home on the tube: the step names your tube and where to get off; the train still ahead stays"
+- tests/native-next-step.test.mjs: "Trip: the lock screen's step is the followed card's 'Next action', and the train is the one still ahead"
+- `tests/fixtures/native/snapshot-page-at-hub-step.json` (and `snapshot-walk-last.json`, now with no train), decoded
+  in `EngineFixtureTests.swift`, which also checks `step` on every fixture.
+
+**Status:** built 19 Nov. Lock screen layout to check on the phone in the next TestFlight build.
+
 ## Tests
 - `ios/NativeCore/Tests/CommuteNativeCoreTests/NativeCoreTests.swift`: state ordering, tombstones, local cancellation,
   transactional cache, corrupt files, event replay, configuration/privacy, permission completion identity, version
