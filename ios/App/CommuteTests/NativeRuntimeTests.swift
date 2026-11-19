@@ -218,6 +218,10 @@ final class NativeRuntimeTests: XCTestCase {
         guard loaded else { return }
         let result = try await webView.callAsyncJavaScript(#"""
             const p = window.Capacitor.Plugins.CommuteNative;
+            // The bundled page keeps its own offline cache (and explicitly clears keys it has no data for), so it
+            // could replace this test's entries between cache() and cached() (main 81c43dd, 19 Nov). This test is
+            // about the plugin: the page's writes are switched off for it.
+            if (window.__commute && window.__commute.native) window.__commute.native.cache = async () => null;
             const errorCode = async f => { try { await f(); return 'NO_ERROR'; } catch (e) { return e.code; } };
             const snapshot = await errorCode(() => p.publish({snapshot:{v:2}}));
             const cache = await errorCode(() => p.cache({entries:[{v:2}]}));
