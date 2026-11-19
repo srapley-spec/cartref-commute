@@ -839,12 +839,26 @@ body[data-underway]:not([data-controls-open]) #alongNavigation{display:none}
 html.display-mode .wrap > :not(#displaySetup):not(#signalStatus):not(#signalDisruptions):not(#hero):not(#signalBoardHeading):not(#list):not(footer),
 html.display-mode #simDock, html.display-mode #refreshBtn, html.display-mode #build, html.display-mode .build-sep,
 html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [data-follow], html.display-mode .follow-actions{display:none!important}
+/* ?display=next (hall iPhone): true black, dim grey, one card, nothing else. Text changes at most once a minute. */
+#hallNext{display:none}
+html.display-next,html.display-next body{background:#000!important}
+html.display-next body>:not(#hallNext){display:none!important}
+html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+.hn-card{text-align:center;line-height:1.25;color:#9a9a9a;font-variant-numeric:tabular-nums}
+.hn-leave{font-size:clamp(28px,9vw,64px);font-weight:600}
+.hn-leave span{font-size:.5em;font-weight:400;margin-right:.3em}
+.hn-in{font-size:clamp(18px,5vw,32px);margin:.2em 0 .6em}
+.hn-train,.hn-arrive,.hn-msg{font-size:clamp(14px,3.6vw,24px)}
+.hn-status:not(.ok){color:#a8823f}
+.hn-age{margin-top:.8em;font-size:clamp(11px,2.6vw,16px);color:#5c5c5c}
+.hn-card.stale{color:#5c5c5c}
 #displaySetup{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent);display:grid;gap:8px}
 #displaySetup .row-actions{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 
+<div id="hallNext" aria-live="polite"></div>
 <div class="wrap">
   <header>
     <div>
@@ -925,7 +939,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:34 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:39 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6429,7 +6443,10 @@ const LS = "cartrefCommute.v1";
 // Home Assistant dashboard. No controls and no location: the next journeys from home to the office in Leave now.
 // It starts from the defaults (not this browser's saved journey state) and saves nothing except the live-data source.
 const DISPLAY = new URLSearchParams(location.search).has("display");
+// ?display=next: one dim card for the hall iPhone (story display-mode.md, "The hall's next train"). Every display rule applies.
+const DISPLAY_NEXT = DISPLAY && new URLSearchParams(location.search).get("display") === "next";
 if(DISPLAY) document.documentElement.classList.add("display-mode");
+if(DISPLAY_NEXT) document.documentElement.classList.add("display-next");
 const displaySaved = saved => DISPLAY ? { mode:"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
 // Display mode never follows a route, opens Along the line or runs the simulator, whatever Settings say.
 const DISPLAY_OFF = { alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
@@ -7716,6 +7733,33 @@ function verdictHtml(arrive, T){
     ? `<div class="verdict ok" data-block="verdict">On time for ${hhmm(T)} · ${d>=1?`${d} min to spare`:"just in time"}</div>`
     : `<div class="verdict bad" data-block="verdict">Late for ${hhmm(T)} by about ${-d} min · ${esc(dest)} ${hhmm(arrive)}</div>`;
 }
+// ?display=next (docs/stories/display-mode.md, "The hall's next train"; Cartref Hall contract §4, Sam 18 Nov 2026,
+// option A). One card for the hall iPhone: the full display's top recommendation (same ranked list, same pick), its
+// Leave by, train, platform, status and arrival. No timing rules here: the engine ranks and qualifies; this draws.
+// For an always-on OLED screen it shows whole minutes only, so its text changes at most once a minute, and the card
+// moves to one of nine spots each minute against burn-in.
+const HALL_STEP_PX = 10;
+function hallNextSpot(now){ const m=Math.floor(now/60e3); return {x:((m*37)%9-4)*HALL_STEP_PX, y:((m*53)%9-4)*HALL_STEP_PX}; }
+function hallNextMarkup(list, now){
+  const stale = !state.fetchedAt || now - state.fetchedAt > C.SNAPSHOT_STALE_MS;
+  const j = state.boards ? list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended)[0] : null;
+  let body;
+  if(!state.boards) body = `<div class="hn-msg">${state.loading?"Loading live trains…":"No train data yet"}</div>`;
+  else if(!j) body = `<div class="hn-msg">No catchable trains in the next two hours</div>`;
+  else { const t=j.train, st=C.trainStatus(t), mins=Math.floor(j.leave/60e3)-Math.floor(now/60e3);   // clock minutes: "Leave by 06:34" at 06:30 is "in 4 min", all minute
+    body = `<div class="hn-leave"><span>Leave by</span> <b class="t">${hhmm(j.leave)}</b></div>`
+      + `<div class="hn-in">${mins>=1?`in ${mins} min`:"Leave now"}</div>`
+      + `<div class="hn-train">${esc(C.trainName(t))}${t.platform?` · platform ${esc(t.platform)}`:""}${st?` · <span class="hn-status ${esc(st.level)}">${esc(st.text)}</span>`:""}</div>`
+      + `<div class="hn-arrive">${j.dest==="home"?"At home":"At office"} <b class="t">${hhmm(j.arrive)}</b></div>`; }
+  const age = state.fetchedAt ? `<div class="hn-age">as of ${hhmm(state.fetchedAt)}${stale?" · not up to date":""}</div>` : "";
+  const p = hallNextSpot(now);
+  return `<div class="hn-card${stale?" stale":""}" style="transform:translate(${p.x}px,${p.y}px)">${body}${age}</div>`;
+}
+function renderHallNext(list, now){
+  const html = hallNextMarkup(list, now);
+  if(state.hallNextHtml === html) return;     // unchanged: don't touch the screen
+  state.hallNextHtml = html; $("#hallNext").innerHTML = html;
+}
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
   const out=leisure && outTo(dir,"leisure");
@@ -8267,6 +8311,7 @@ function renderInner(){
   } else {
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
+    if(DISPLAY_NEXT) renderHallNext(list, now);
   }
   renderStatus(); renderDiag(); tick();
   const rc=requestCounts();
@@ -12253,7 +12298,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeStrip,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
 })();
 </script>
 

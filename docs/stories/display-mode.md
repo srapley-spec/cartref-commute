@@ -1,5 +1,5 @@
 # Display mode: a read-only board for a wall screen or a Home Assistant frame
-Status: Done (10 Nov 2026)
+Status: Done (10 Nov 2026); the hall's next-train card (`?display=next`) built 18 Nov 2026
 
 ## Story
 As someone at home about to leave for work, I want the next journeys from Letchworth on a screen in the house (a
@@ -55,6 +55,23 @@ for the Home App that will live in HA."
   change that raises it fails the test and is a decision for Sam.
 - **The normal app is unchanged** without `?display`.
 
+## The hall's next train (`?display=next`, 18 Nov 2026)
+For the hall iPhone's native app (Cartref Hall, in `srapley-spec/Ring---HA-Integration`, `docs/hall/`). Sam, 18 Nov,
+chose option A: the hall app shows a Commute page rather than Commute's planning moving into the proxy. The app shows
+it on its side (landscape) and in the portrait screen saver; the screen is always on, so it is built for an OLED panel.
+- **Turned on by** `?display=next`. Every display-mode rule above applies (Commute, To office, Leave now, from home,
+  no location, never Follow, saves nothing, same refresh and request budget).
+- **One card, nothing else:** Leave by, "in N min" (or "Leave now"), the train (core `trainName`), its platform and
+  status (core `trainStatus`: "On time", "7 min late", "Cancelled"…), At office, and "as of" the last update. It is
+  the full display's top recommendation from the same ranked list, so the two can't disagree.
+- **Kind to an always-on screen:** true black background, dim grey text, no seconds. Minutes are counted on the clock
+  ("Leave by 06:34" at 06:30 says "in 4 min"), so the text changes at most once a minute; the page doesn't redraw
+  the card when nothing changed. The card moves to one of nine spots (within 40 px of the middle) each minute.
+- **Stale data says so:** older than 3 minutes (core `SNAPSHOT_STALE_MS`), the card greys and adds "not up to date".
+  No data yet: "No train data yet" (or "Loading live trains…"); nothing catchable: "No catchable trains in the next
+  two hours".
+- **Plain `?display` and the normal app are unchanged.**
+
 ## Tests
 - tests/display.test.mjs: "Display mode: Leave now from home to the office, whatever this browser last had on screen"
 - tests/display.test.mjs: "Display mode: only the status line, the recommendation, the list and 'Updated' are shown; every control is hidden"
@@ -63,6 +80,10 @@ for the Home App that will live in HA."
 - tests/display.test.mjs: "Display mode: a setup link asks on the page (a framed page can't show a browser dialog); Yes saves only the live-data source"
 - tests/display.test.mjs: "Display mode: saying No to a setup link changes nothing; a look-alike address isn't offered; already set up isn't asked again"
 - tests/display.test.mjs: "Display mode: an always-on screen stays inside its request budget: three boards a minute and under four requests a minute through the proxy"
+- tests/display.test.mjs: "Display next: one card with the full display's top recommendation — Leave by, train, platform, status and arrival"
+- tests/display.test.mjs: "Display next: whole minutes only, so the card's text changes at most once a minute, and it moves each minute"
+- tests/display.test.mjs: "Display next: data more than 3 minutes old is greyed and says so; no data says so"
+- tests/display.test.mjs: "Display next: plain ?display and the normal app are unchanged"
 - Checked in a real browser (Chromium, 420 px and 800 px wide, light and dark) with example trains: no control is
   visible; only "Journey steps" and "Full details" can be tapped.
 
