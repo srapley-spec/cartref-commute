@@ -55,6 +55,33 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
         public var level: String
         public var text: String
     }
+    /// The leg strip (#71): dots, a marker (solid when reported, outlined when estimated) and three labels, all from
+    /// the engine. Optional: snapshots from before #71 have none. Swift only draws it.
+    public struct Strip: Codable, Hashable, Sendable {
+        public struct Marker: Codable, Hashable, Sendable {
+            public var at: Double
+            public var kind: String
+            public var estimated: Bool { kind != "reported" }
+        }
+        public var stations: Int
+        public var passed: Int?
+        public var marker: Marker?
+        public var colour: String?
+        public var last: String?
+        public var next: String?
+        public var yours: String
+        public var yoursAt: Double?
+
+        /// 0...1 along the line for station `index` or a marker position.
+        public func fraction(_ position: Double) -> Double {
+            stations > 1 ? min(1, max(0, position / Double(stations - 1))) : 0
+        }
+        /// The line's colour as 0xRRGGBB, or nil for a train (the app's accent).
+        public var rgb: UInt32? {
+            guard let colour, colour.count == 7, colour.hasPrefix("#") else { return nil }
+            return UInt32(colour.dropFirst(), radix: 16)
+        }
+    }
     public struct Alarm: Codable, Hashable, Sendable {
         public var at: Double?
         public var leadMin: Double
@@ -80,6 +107,7 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
     public var status: Status?
     public var alarm: Alarm?
     public var deepLink: String
+    public var strip: Strip?
 
     public func validate() throws {
         guard v == 1 else { throw NativeError.unsupported }
@@ -87,6 +115,12 @@ public struct JourneySnapshot: Codable, Hashable, Sendable {
               [dataAt, staleAt, headline.t, headline.countdown?.urgentAt, headline.countdown?.passedAt, arrive?.t, alarm?.at]
                 .compactMap({ $0 }).allSatisfy({ $0.isFinite && $0 >= 0 })
         else { throw NativeError.invalid }
+        if let strip {
+            guard (2...64).contains(strip.stations), strip.passed.map({ (0..<strip.stations).contains($0) }) ?? true,
+                  strip.marker.map({ $0.at.isFinite && $0.at >= 0 && $0.at <= Double(strip.stations - 1) }) ?? true,
+                  strip.yoursAt.map({ $0.isFinite && $0 >= 0 }) ?? true
+            else { throw NativeError.invalid }
+        }
     }
 
     public var staleDate: Date? { staleAt.map { Date(timeIntervalSince1970: $0 / 1000) } }

@@ -36,6 +36,18 @@ final class EngineFixtureTests: XCTestCase {
         let atHub = try JSONDecoder().decode(JourneySnapshot.self, from: Data(contentsOf: directory.appendingPathComponent("snapshot-page-at-hub-step.json")))
         XCTAssertEqual(atHub.step, .init(text: "Get on the Met to Aldgate", detail: "eastbound · Platform 2 · due 18:40"))
         XCTAssertNil(atHub.train, "off the train, the train has left the card")
+        // #71: the leg strip is the engine's, drawn as it comes: dots, marker, colour, labels.
+        let tube = try JSONDecoder().decode(JourneySnapshot.self, from: Data(contentsOf: directory.appendingPathComponent("snapshot-page-tube-strip.json")))
+        let strip = try XCTUnwrap(tube.strip)
+        XCTAssertEqual(strip.stations, 6); XCTAssertEqual(strip.passed, 1)
+        XCTAssertEqual(strip.marker, .init(at: 1.5, kind: "reported")); XCTAssertEqual(strip.marker?.estimated, false)
+        XCTAssertEqual(strip.rgb, 0x9B0058); XCTAssertEqual(strip.fraction(1.5), 0.3, accuracy: 1e-9)
+        XCTAssertEqual([strip.last, strip.next, strip.yours], ["Farringdon", "Barbican", "Aldgate"])
+        XCTAssertNil(atHub.strip, "snapshots without a strip decode as none")
+        var bad = tube; bad.strip?.marker?.at = 9
+        XCTAssertThrowsError(try bad.validate(), "a marker beyond your stop is refused")
+        bad = tube; bad.strip?.stations = 1
+        XCTAssertThrowsError(try bad.validate(), "a strip needs two stations")
         let background = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-background.json"))) as! [String: Any]
         let live = try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("apns-liveactivity-update.json"))) as! [String: Any]
         let content = (live["aps"] as! [String: Any])["content-state"]!

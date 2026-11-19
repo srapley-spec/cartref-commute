@@ -48,5 +48,6 @@
     "cancelled": true,
     "cancelOnExit": "office"
   },
-  "deepLink": "commute://follow/f9"
+  "deepLink": "commute://follow/f9",
+  "strip": null
 }

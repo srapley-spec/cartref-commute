@@ -46,6 +46,18 @@ export interface JourneyProgressModel {
   where: { last: number | null; next: number | null; yours: number; stopsToGo: number; approaching: boolean } | null;
   /** Where the position comes from, in a few words: "National Rail report, 07:51" or "TfL, 08:26". */
   sourceLine: string;
+  /** The leg drawn as a line with a dot per station (Sam chose strip + diagram, 19 Nov 2026, #71). Null with fewer
+   *  than two stations or when the train isn't confirmed. */
+  strip: LegStrip | null;
+}
+export type StripTimeKind = 'reported' | 'expected' | 'estimate' | 'scheduled';
+export interface LegStrip {
+  stations: { name: string; code: string | null; state: 'passed' | 'next' | 'upcoming' | 'yours'; time: number | null; timeKind: StripTimeKind | null }[];
+  /** Where the train is, in stations from the first (0) to your stop (stations.length - 1). Reported: from a station
+   *  report or the provider's location text. Estimate: from the clock between the leg's start and its arrival, stations
+   *  spaced evenly; drawn outlined and never called a position. Null when neither is known. */
+  marker: { at: number; kind: 'reported' | 'estimate' } | null;
+  last: number | null; next: number | null; yours: number;
 }
 /** Station names as two feeds write them ("Kings Cross St. Pancras", "King's Cross St Pancras"): compared loosely. */
 export const sameStation = (a: string | null | undefined, b: string | null | undefined): boolean => {
@@ -137,7 +149,7 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
       fraction:index<currentIndex?1:index===currentIndex?(f??0):0}));
   if(i.contradictedIdentity)return {current,currentIndex,fraction:null,source:'unknown',progressLabel:'Progress unavailable',
     evidenceLabel:'Station reports are hidden until you say which train you’re on.',identityLabel:'',
-    status:{text:'Train not confirmed',level:'info',deltaMin:null},calls:[],legs:stages(null),where:null,sourceLine:''};
+    status:{text:'Train not confirmed',level:'info',deltaMin:null},calls:[],legs:stages(null),where:null,sourceLine:'',strip:null};
   // Where you are (option A): a station counts as passed only from a report: National Rail's actual time, or TfL's
   // "At", "Left" or "Between" text for the tube you're matched to. Nothing is placed from elapsed time.
   let where:JourneyProgressModel['where']=null;
@@ -157,7 +169,39 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
     :`National Rail report${finite(e.observedAt)?`, ${hhmm(e.observedAt)}`:''}`;
   return {current,currentIndex,fraction,source,progressLabel,evidenceLabel,
     identityLabel:i.uncertainIdentity?'Likely service · identity not confirmed':'',status,
-    legs:stages(fraction),where,sourceLine,calls:graded};
+    legs:stages(fraction),where,sourceLine,calls:graded,
+    strip:legStrip(graded,where,e,accepted,fraction,source,current.travelStart??current.start,!!(i.cancelled||i.noEstimate))};
+}
+/** The strip and the full diagram (#71). Times between the leg's two ends that no feed gives are estimates, spread
+ *  evenly by station between the last known time and the arrival, and always labelled "about … (estimate)". */
+function legStrip(calls:JourneyProgressModel['calls'],where:JourneyProgressModel['where'],e:JourneyProgressEvidence,
+  accepted:boolean,fraction:number|null,source:JourneyProgressModel['source'],legStart:number,unusable:boolean):LegStrip|null{
+  const n=calls.length;if(n<2)return null;const yours=n-1;
+  const kinds:(StripTimeKind|null)[]=calls.map(c=>c.state==='reported'?'reported':c.state==='expected'?'expected':finite(c.time)?'scheduled':null);
+  const times:(number|null)[]=calls.map(c=>finite(c.time)?c.time:null);
+  if(!unusable){
+    // Fill the gaps between two known times (the leg's start counts as one, at its first station).
+    const known=times.map((t,k)=>t!==null?k:-1).filter(k=>k>=0);
+    const anchors:[number,number][]=known.map(k=>[k,times[k] as number]);
+    if(times[0]===null&&finite(legStart)){anchors.unshift([0,legStart]);times[0]=legStart;kinds[0]='estimate';}
+    for(let a=0;a+1<anchors.length;a++){const [k0,t0]=anchors[a],[k1,t1]=anchors[a+1];
+      if(t1<t0)continue;
+      for(let k=k0+1;k<k1;k++){times[k]=t0+(t1-t0)*(k-k0)/(k1-k0);kinds[k]='estimate';}}
+  }
+  let marker:LegStrip['marker']=null;
+  if(where){
+    // On a station only when TfL says "At X". A National Rail report is a time at a station already passed: the train
+    // is drawn past it, halfway to the next (golden, 19 Nov: "You're here · at Stevenage" three minutes after leaving it).
+    const atStation=/^At\s/i.test(String(e.where||''));
+    marker={at:where.approaching&&where.next!==null?Math.max(0,where.next-0.25):where.last===null?0:atStation||where.next===null?where.last:where.last+0.5,kind:'reported'};
+  }else if(fraction!==null&&(source==='prediction'||source==='modelled'||source==='stale')&&!unusable){
+    marker={at:fraction*yours,kind:'estimate'};
+  }
+    // Last and Next only from a report: an estimate never names a station as passed or next.
+  const last=where?.last??null,next=where?.next??null;
+  return {stations:calls.map((c,k)=>({name:c.name,code:c.code??null,
+      state:k===yours?'yours':c.passed||(last!==null&&k<=last)?'passed':k===next?'next':'upcoming',
+      time:times[k],timeKind:times[k]===null?null:kinds[k]})),marker,last,next,yours};
 }
 
 const kindLabel=(kind:ProgressKind)=>({walk:'Walk',rail:'Train',tube:'Tube',connection:'Connection'})[kind];

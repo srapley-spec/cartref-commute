@@ -220,3 +220,22 @@ test("A countdown turning urgent or passed is a change worth sending (#58: the L
   assert.notEqual(core.snapshotShown(snap(t - 60e3)), core.snapshotShown(snap(t + 1)), "urgent → passed");
   assert.notEqual(core.snapshotShown(snap(t - 200e3), false), core.snapshotShown(snap(t - 60e3), false), "a real change, not just a refresh");
 });
+
+test("Snapshot strip (#71): the leg's dots, marker, line colour and names; an estimate moves in quarter stations; none without names to match", () => {
+  const now = at(DAY, "19:10");
+  const st = (marker, last = 1, next = 2) => ({ stations: [0, 1, 2, 3].map((k) => ({ name: `S${k}`, code: null, state: "upcoming", time: k === 3 ? at(DAY, "19:20") : null, timeKind: k === 3 ? "expected" : null })), marker, last, next, yours: 3 });
+  const base = { now, source: "page", mode: "commute", direction: "home", followId: "f9", phase: "walk-last", headline: { label: "Arrive", t: at(DAY, "19:20"), step: "arrive" } };
+  const names = ["King's Cross", "Farringdon", "Barbican", "Aldgate"];
+  const tube = core.journeySnapshot({ ...base, strip: { strip: st({ at: 1.5, kind: "reported" }), lineId: "metropolitan", names } }).strip;
+  assert.deepEqual(tube, { stations: 4, passed: 1, marker: { at: 1.5, kind: "reported" }, colour: "#9B0058", last: "Farringdon", next: "Barbican", yours: "Aldgate", yoursAt: at(DAY, "19:20") });
+  const rail = core.journeySnapshot({ ...base, strip: { strip: st({ at: 1.37, kind: "estimate" }, null, null), lineId: null, names } }).strip;
+  assert.equal(rail.colour, null, "a train: the app's accent");
+  assert.equal(rail.marker.at, 1.25, "an estimate to the nearest quarter station");
+  assert.equal(rail.last, null); assert.equal(rail.next, null);
+  assert.equal(core.journeySnapshot({ ...base, strip: { strip: st({ at: 2.6, kind: "reported" }, 2, 3), lineId: "circle", names } }).strip.next, null, "next is your stop: named once, as your stop");
+  assert.equal(core.journeySnapshot({ ...base, strip: { strip: st(null), lineId: "circle", names: names.slice(1) } }).strip, null, "names that don't match the stations: no strip");
+  assert.equal(core.journeySnapshot(base).strip, null);
+  const a = core.journeySnapshot({ ...base, strip: { strip: st({ at: 1.5, kind: "reported" }), lineId: "circle", names } });
+  const b = core.journeySnapshot({ ...base, strip: { strip: st({ at: 2, kind: "reported" }, 2, 3), lineId: "circle", names } });
+  assert.notEqual(core.snapshotShown(a), core.snapshotShown(b), "the marker moving is worth a push");
+});

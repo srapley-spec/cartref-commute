@@ -707,7 +707,7 @@ html #followPanel .fold summary::-webkit-details-marker {display:none}
 html #followPanel .follow-ifmissed {font-size:14px;color:var(--muted);margin:2px 0 6px}
 html .tl-note {font-size:13px;color:var(--muted);margin:4px 0 0}
 /* Where you are on the leg (option A, 11 Nov 2026): one line, then every station folded top to bottom. */
-html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px}
+html .journey-progress .jp-where {font-size:15px;line-height:1.55;margin:8px 0 2px;display:block}
 html .journey-progress .jp-where.none {color:var(--muted)}
 html .journey-progress .jp-tick {color:var(--ok);font-weight:700}
 html .journey-progress .jp-next {color:var(--accent);font-weight:650}
@@ -747,6 +747,29 @@ html body[data-underway]:not([data-controls-open]) :is(#signalModebar > .seg,#si
 html body[data-underway]:not([data-controls-open]) #dirNote:not(.needed) {display:none}
 html #dirNote .linkbtn {border:0;background:none;padding:4px 0;min-height:32px;color:var(--accent);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
 html .signal-disruption-title[hidden] {display:none}
+/* The leg strip (#71, Sam 19 Nov): the line in its colour, a dot per station, the marker solid when reported and
+   outlined when estimated. The sentence under it is laid out as Last | Next | Your stop. */
+html .journey-progress .jp-all>summary {display:block;min-height:0;font-weight:400;color:var(--ink)}
+html .journey-progress .jp-all>summary::before {content:none}
+html .journey-progress .jp-strip {position:relative;display:block;height:26px;margin:10px 9px 0}
+html .journey-progress .jp-strip>i {position:absolute;display:block}
+html .journey-progress .jp-strip-track {left:0;right:0;top:10px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--strip) 35%,var(--card))}
+html .journey-progress .jp-strip-fill {left:0;top:10px;height:6px;border-radius:3px;background:var(--ink)}
+html .journey-progress .jp-strip-dot {top:7px;width:12px;height:12px;margin-left:-6px;border-radius:50%;box-sizing:border-box;background:var(--card);border:2px solid color-mix(in srgb,var(--strip) 70%,var(--ink))}
+html .journey-progress .jp-strip-dot[data-state="passed"] {background:var(--ink);border-color:var(--ink)}
+html .journey-progress .jp-strip-dot[data-state="yours"] {width:18px;height:18px;top:4px;margin-left:-9px;border:4px solid var(--ink);background:var(--card)}
+html .journey-progress .jp-strip-marker {top:2px;width:22px;height:22px;margin-left:-11px;border-radius:50%;box-sizing:border-box;background:var(--accent);border:3px solid var(--card);box-shadow:0 0 0 2px var(--accent)}
+html .journey-progress .jp-strip-marker[data-kind="estimate"] {background:var(--card);border:3px dashed var(--accent);box-shadow:none}
+html .journey-progress .jp-all>summary .jp-where {display:flex;justify-content:space-between;gap:4px 10px;font-size:13px;line-height:1.35}
+html .journey-progress .jp-all>summary .jp-where .jp-sep {display:none}
+html .journey-progress .jp-place.jp-next {text-align:center}
+html .journey-progress .jp-place.jp-yours {text-align:right;margin-left:auto}
+html .journey-progress .jp-hint {display:block;font-size:12px;color:var(--muted);min-height:24px;padding-top:2px}
+html .journey-progress .jp-hint .jp-source {color:inherit}
+html .journey-progress .jp-vlist .jp-stop[data-time="estimate"] .jp-stop-time {font-weight:400;color:var(--muted)}
+html .journey-progress .jp-vlist .jp-here {display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:13px;font-weight:650;color:var(--accent)}
+html .journey-progress .jp-vlist .jp-here .jp-stop-dot {width:14px;height:14px;margin:0;border-radius:50%;background:var(--accent);border:2px solid var(--accent)}
+html .journey-progress .jp-vlist .jp-here[data-kind="estimate"] .jp-stop-dot {background:var(--card);border-style:dashed}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -899,7 +922,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 11:22 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 16:18 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4121,7 +4144,7 @@ var CommuteCore = (() => {
   var clamp = (v) => Math.max(0, Math.min(1, v));
   var fractionAt = (at, start, end) => finite5(start) && finite5(end) && end > start ? clamp((at - start) / (end - start)) : null;
   function journeyProgress(i) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     if (!finite5(i.now) || !Array.isArray(i.legs) || !i.legs.length) return null;
     if (i.legs.some((l) => !l || !finite5(l.start) || l.end !== null && (!finite5(l.end) || l.end < l.start))) return null;
     const currentIndex = i.legs.findIndex((l) => l.id === i.activeLeg);
@@ -4194,7 +4217,8 @@ var CommuteCore = (() => {
       calls: [],
       legs: stages(null),
       where: null,
-      sourceLine: ""
+      sourceLine: "",
+      strip: null
     };
     let where = null;
     const yours = calls.length - 1;
@@ -4224,8 +4248,52 @@ var CommuteCore = (() => {
       legs: stages(fraction),
       where,
       sourceLine,
-      calls: graded
+      calls: graded,
+      strip: legStrip(graded, where, e, accepted, fraction, source, (_e = current.travelStart) != null ? _e : current.start, !!(i.cancelled || i.noEstimate))
     };
+  }
+  function legStrip(calls, where, e, accepted, fraction, source, legStart, unusable) {
+    var _a, _b;
+    const n2 = calls.length;
+    if (n2 < 2) return null;
+    const yours = n2 - 1;
+    const kinds2 = calls.map((c) => c.state === "reported" ? "reported" : c.state === "expected" ? "expected" : finite5(c.time) ? "scheduled" : null);
+    const times = calls.map((c) => finite5(c.time) ? c.time : null);
+    if (!unusable) {
+      const known = times.map((t2, k) => t2 !== null ? k : -1).filter((k) => k >= 0);
+      const anchors = known.map((k) => [k, times[k]]);
+      if (times[0] === null && finite5(legStart)) {
+        anchors.unshift([0, legStart]);
+        times[0] = legStart;
+        kinds2[0] = "estimate";
+      }
+      for (let a = 0; a + 1 < anchors.length; a++) {
+        const [k0, t0] = anchors[a], [k1, t1] = anchors[a + 1];
+        if (t1 < t0) continue;
+        for (let k = k0 + 1; k < k1; k++) {
+          times[k] = t0 + (t1 - t0) * (k - k0) / (k1 - k0);
+          kinds2[k] = "estimate";
+        }
+      }
+    }
+    let marker = null;
+    if (where) {
+      const atStation = /^At\s/i.test(String(e.where || ""));
+      marker = { at: where.approaching && where.next !== null ? Math.max(0, where.next - 0.25) : where.last === null ? 0 : atStation || where.next === null ? where.last : where.last + 0.5, kind: "reported" };
+    } else if (fraction !== null && (source === "prediction" || source === "modelled" || source === "stale") && !unusable) {
+      marker = { at: fraction * yours, kind: "estimate" };
+    }
+    const last = (_a = where == null ? void 0 : where.last) != null ? _a : null, next = (_b = where == null ? void 0 : where.next) != null ? _b : null;
+    return { stations: calls.map((c, k) => {
+      var _a2;
+      return {
+        name: c.name,
+        code: (_a2 = c.code) != null ? _a2 : null,
+        state: k === yours ? "yours" : c.passed || last !== null && k <= last ? "passed" : k === next ? "next" : "upcoming",
+        time: times[k],
+        timeKind: times[k] === null ? null : kinds2[k]
+      };
+    }), marker, last, next, yours };
   }
   var kindLabel = (kind) => ({ walk: "Walk", rail: "Train", tube: "Tube", connection: "Connection" })[kind];
   function segmentLegs(segments, start, prefix) {
@@ -5996,6 +6064,7 @@ var CommuteCore = (() => {
     arrive: { calm: "arrives in", urgent: "Arriving", passed: "" },
     next: { calm: "in", urgent: "Now", passed: "" }
   };
+  var TUBE_LINE_COLOURS = { circle: "#FFD329", metropolitan: "#9B0058", "hammersmith-city": "#F4A9BE" };
   var fin = (n2) => typeof n2 === "number" && Number.isFinite(n2);
   var clean = (s) => typeof s !== "string" ? "" : s.replace(/\s+/g, " ").split(" \xB7 ").map((x) => x.trim()).filter(Boolean).join(" \xB7 ").replace(/^·\s*|\s*·$/g, "").trim();
   function platformLabelText(platform, station) {
@@ -6044,7 +6113,25 @@ var CommuteCore = (() => {
       step: i.step && clean(i.step.text) ? { text: clean(i.step.text), detail: clean(i.step.detail) || null } : null,
       status: i.status || null,
       alarm: i.alarm || null,
-      deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null
+      deepLink: i.followId ? `commute://follow/${encodeURIComponent(i.followId)}` : null,
+      strip: snapshotStrip(i.strip)
+    };
+  }
+  function snapshotStrip(x) {
+    const st = x && x.strip;
+    if (!st || st.stations.length < 2 || x.names.length !== st.stations.length) return null;
+    const name = (k) => k == null ? null : clean(x.names[k]) || null;
+    const q = (v, kind) => kind === "estimate" ? Math.round(v * 4) / 4 : Math.round(v * 100) / 100;
+    const m = st.marker && fin(st.marker.at) ? { at: Math.max(0, Math.min(st.yours, q(st.marker.at, st.marker.kind))), kind: st.marker.kind } : null;
+    return {
+      stations: st.stations.length,
+      passed: st.last,
+      marker: m,
+      colour: x.lineId && TUBE_LINE_COLOURS[x.lineId] || null,
+      last: name(st.last),
+      next: st.next === st.yours ? null : name(st.next),
+      yours: name(st.yours) || "",
+      yoursAt: fin(st.stations[st.yours].time) ? st.stations[st.yours].time : null
     };
   }
   function proxySnapshot(plan, state, observed, opts) {
@@ -6118,7 +6205,9 @@ var CommuteCore = (() => {
       s.train && [s.train.platform, s.train.expected, s.train.late],
       s.status && s.status.text,
       s.alarm && [s.alarm.at, s.alarm.cancelled],
-      s.stale
+      s.stale,
+      // The strip moves with each push (#71): where the marker is and how it's drawn.
+      s.strip ? [s.strip.marker && s.strip.marker.at, s.strip.marker && s.strip.marker.kind, s.strip.passed, s.strip.yoursAt] : null
     ]);
   }
   var EVIDENCE_SKEW_MS = 6e4;
@@ -9490,14 +9579,38 @@ function progressTubeCalls(ride,from,to,arrival,fromName,toName){
 // stations"): National Rail writes "London Kings Cross", "Letchworth Garden City"; the leg heading says "King's Cross",
 // "Letchworth". Stations the app doesn't know keep the feed's name.
 const shownStation=c=>(c?.code&&((PROFILE.stationNames||{})[c.code]||(PROFILE.stationGeoNames||{})[c.code]))||c?.name||'';
+// The leg as a strip, then every station on tap (Sam chose strip + diagram, 19 Nov 2026, #71). The strip and the
+// times come from the engine's model (model.strip); nothing is placed or timed here. The sentence under the strip is
+// the same "Last … · Next … · Your stop …" as before (option A, 11 Nov), laid out under the strip's three places.
+const LEG_STRIP_COLOUR={circle:'var(--circle)',metropolitan:'var(--met)','hammersmith-city':'var(--hc)'};
+function legStripTime(st){
+  if(st.time==null)return '';
+  return st.timeKind==='estimate'?`about ${hhmm(st.time)} (estimate)`:st.timeKind==='scheduled'?`${hhmm(st.time)} timetable`:hhmm(st.time);
+}
+function legStripHtml(strip,colour){
+  const n=strip.yours,pc=k=>`${(100*k/n).toFixed(2)}%`,m=strip.marker;
+  const filled=m?.kind==='reported'?m.at:strip.last??0;
+  const dots=strip.stations.map((st,k)=>`<i class="jp-strip-dot" data-state="${st.state}" style="left:${pc(k)}"></i>`).join('');
+  const marker=m?`<i class="jp-strip-marker" data-kind="${m.kind}" style="left:${pc(m.at)}"></i>`:'';
+  return `<span class="jp-strip" aria-hidden="true" style="--strip:${colour}"><i class="jp-strip-track"></i><i class="jp-strip-fill" style="width:${pc(filled)}"></i>${dots}${marker}</span>`;
+}
 function whereHtml(model){
-  const calls=model.calls.map(c=>({...c,name:shownStation(c)})), w=model.where;
+  const calls=model.calls.map(c=>({...c,name:shownStation(c)})), w=model.where, strip=model.strip;
   if(calls.length<2)return '';
   const t=c=>c&&c.time!=null?` ${hhmm(c.time)}`:'';
-  const line=w?`<p class="jp-where">${w.last!==null?`<span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?' · ':''}<span class="jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?` · <b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}`:''}</p>`
-    :`<p class="jp-where none">No live position yet · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</p>`;
-  const row=(c,i)=>`<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state}"><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${c.time!=null?hhmm(c.time):''}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;
-  return `${line}<details class="jp-all"><summary>All ${calls.length} stations</summary><ol class="jp-vlist">${calls.map(row).join('')}</ol></details>${model.sourceLine?`<p class="jp-source">${esc(model.sourceLine)}</p>`:''}`;
+  const sep='<span class="jp-sep"> · </span>';
+  const line=w?`<span class="jp-where">${w.last!==null?`<span class="jp-place jp-last"><span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}</span>`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?sep:''}<span class="jp-place jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?`${sep}<span class="jp-place jp-yours"><b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}</span>`:''}</span>`
+    :`<span class="jp-where none">No live position yet${strip?.marker?.kind==='estimate'?' (the marker is an estimate)':''} · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</span>`;
+  const colour=model.current.kind==='tube'?(LEG_STRIP_COLOUR[model.current.lineId]||'var(--accent)'):'var(--accent)';
+  const m=strip?.marker,here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${m.kind==='reported'?"You're here":'About here (estimate)'}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
+  const row=(c,i)=>{const st=strip?.stations[i],state=st?(st.state==='upcoming'?c.state:st.state):c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state;
+    const time=st?legStripTime(st):c.time!=null?hhmm(c.time):'';
+    return `<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${state}"${st?` data-time="${st.timeKind||''}"`:''}><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${time}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;};
+  // "You're here" goes after the station it is at or has passed (before the first station when nothing is passed).
+  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i&&i<calls.length-1?here:'')).join('');
+  const source=model.sourceLine?`<span class="jp-source">${esc(model.sourceLine)}</span>`:'';
+  const hint=`<span class="jp-hint">${source}${source?' · ':''}tap for all ${calls.length} stations</span>`;
+  return `<details class="jp-all"><summary>${strip?legStripHtml(strip,colour):''}${line}${hint}</summary><ol class="jp-vlist" style="--strip:${colour}">${m&&m.at<0?here:''}${rows}</ol></details>`;
 }
 function progressHtml(model){
   const percentage=value=>`${Math.round(value*100)}%`;
@@ -11736,8 +11849,15 @@ function nativeSnapshot(){
     headline:{label:smalls[0]||'',t:num(h.dataset.left),step},arrive:{label:smalls[1]||'',t:num(h.dataset.arrive)},
     train:t?{name:C.trainName?C.trainName(t):`${t.std||''} ${t.operator||''}`.trim(),from:t._names?t._names[0]:nm(t.from),to:t._names?t._names[1]:nm(t.to),platform:t.platform||null,
       scheduled:C.timetabledDeparture(t),expected:t.depUnknown?null:t.dep,late:t.depLate||0}:null,
-    step:doNext,status:status?{level:status.level,text:status.text}:null,
+    step:doNext,status:status?{level:status.level,text:status.text}:null,strip:nativeStrip(trip,phase),
     alarm:C.leaveAlarm(alarmPlan?alarmPlan.leaveBy:null,{enabled:S().leaveAlarm!==false,leadMin:S().leaveAlarmMin,setOff:phase!=='leave',now:Date.now(),startPlace:fp&&fp.extra.startPlace})});
+}
+// The leg strip for the Live Activity (#71): the one the card draws, while you're on the train or tube it is for (the
+// tube after the train is the commute's "walk-last" phase; before it, "walk" or "platform"). Not for Trip: no calls.
+function nativeStrip(trip,phase){
+  const pm=state.rendered&&state.rendered.progressModel;
+  if(trip||!pm||!pm.strip||!['rail','tube'].includes(pm.current.kind)||['leave','arrived','missed','cancelled'].includes(phase)) return null;
+  return {strip:pm.strip,lineId:pm.current.kind==='tube'?pm.current.lineId:null,names:pm.calls.map(c=>shownStation(c))};
 }
 // Siri (Sam, 18 Nov: Siri opens the app to follow): commute://next?direction=home|office shows that direction now;
 // &follow=1 then follows the card's best train, exactly as tapping its Follow button. Anything else is ignored.

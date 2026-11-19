@@ -33,6 +33,11 @@ Object.assign(CASES, {
   "page-at-hub-step": page("walk", "Next action", at(DAY, "18:35"), "next", { direction: "office", arrive: { label: "At office", t: at(DAY, "19:01") },
     step: { text: "Get on the Met to Aldgate", detail: "eastbound · Platform 2 · due 18:40" } }),
   "page-tube": page("tube", "At Farringdon", at(DAY, "18:44"), "arrive", { confirmed: true, progress: { next: "Barbican", stopsToGo: 2 } }),
+  // The leg strip (#71): on the tube with TfL's place for it ("Between Farringdon and Barbican"), in the Met's colour.
+  "page-tube-strip": page("walk-last", "At Aldgate", at(DAY, "18:44"), "arrive", { direction: "office", confirmed: true, arrive: { label: "At office", t: at(DAY, "18:53") },
+    strip: { lineId: "metropolitan", names: ["King's Cross", "Farringdon", "Barbican", "Moorgate", "Liverpool Street", "Aldgate"],
+      strip: { stations: [0, 1, 2, 3, 4, 5].map((k) => ({ name: "", code: null, state: k <= 1 ? "passed" : k === 2 ? "next" : k === 5 ? "yours" : "upcoming", time: k === 5 ? at(DAY, "18:44") : null, timeKind: k === 5 ? "expected" : null })),
+        marker: { at: 1.5, kind: "reported" }, last: 1, next: 2, yours: 5 } } }),
   "page-missed": page("missed", "Next train", at(DAY, "19:08"), "next", { status: { level: "bad", text: "Missed: the 18:56 has gone" } }),
   "page-switched": page("leave", "Leave by", at(DAY, "18:48"), "leave", { followId: "f10", alarm: core.leaveAlarm(at(DAY, "18:48"), { enabled: true, setOff: false, now: at(DAY, "18:30"), startPlace: "office" }) }),
   "page-urgent": page("platform", "Be on platform 4 at Farringdon by", at(DAY, "18:31"), "platform"),
