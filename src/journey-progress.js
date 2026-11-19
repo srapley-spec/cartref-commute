@@ -51,12 +51,14 @@ function whereHtml(model){
   const line=w?`<span class="jp-where">${w.last!==null?`<span class="jp-place jp-last"><span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}</span>`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?sep:''}<span class="jp-place jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?`${sep}<span class="jp-place jp-yours"><b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}</span>`:''}</span>`
     :`<span class="jp-where none">No live position yet${strip?.marker?.kind==='estimate'?' (the marker is an estimate)':''} · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</span>`;
   const colour=model.current.kind==='tube'?(LEG_STRIP_COLOUR[model.current.lineId]||'var(--accent)'):'var(--accent)';
-  const m=strip?.marker,here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${m.kind==='reported'?"You're here":'About here (estimate)'}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
+  const m=strip?.marker,hereText=m?.kind==='reported'?"You're here":m?.kind==='stale'?'Last reported here (out of date)':'About here (estimate)';
+  const here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${hereText}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
   const row=(c,i)=>{const st=strip?.stations[i],state=st?(st.state==='upcoming'?c.state:st.state):c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state;
     const time=st?legStripTime(st):c.time!=null?hhmm(c.time):'';
     return `<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${state}"${st?` data-time="${st.timeKind||''}"`:''}><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${time}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;};
   // "You're here" goes after the station it is at or has passed (before the first station when nothing is passed).
-  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i&&i<calls.length-1?here:'')).join('');
+  // At your stop too (review, 19 Nov: the list went quiet just as you arrived).
+  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i?here:'')).join('');
   const source=model.sourceLine?`<span class="jp-source">${esc(model.sourceLine)}</span>`:'';
   const hint=`<span class="jp-hint">${source}${source?' · ':''}tap for all ${calls.length} stations</span>`;
   return `<details class="jp-all"><summary>${strip?legStripHtml(strip,colour):''}${line}${hint}</summary><ol class="jp-vlist" style="--strip:${colour}">${m&&m.at<0?here:''}${rows}</ol></details>`;

@@ -158,7 +158,7 @@ private struct SnapshotStrip: View {
                     Text("Next: \(next)").fontWeight(.semibold).foregroundStyle(accent)
                 }
                 Spacer(minLength: 0)
-                Text(strip.yours) + Text(strip.yoursAt.map { " " + Self.clock.string(from: Date(timeIntervalSince1970: $0 / 1000)) } ?? "")
+                Text("\(strip.yours)\(strip.yoursAt.map { " " + Self.clock.string(from: Date(timeIntervalSince1970: $0 / 1000)) } ?? "")")
             }.font(.system(size: 11)).lineLimit(1)
         }.accessibilityElement(children: .combine)
     }

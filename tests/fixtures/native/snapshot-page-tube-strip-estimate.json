@@ -1,0 +1,49 @@
+{
+  "v": 1,
+  "at": 1794940200000,
+  "source": "page",
+  "dataAt": 1794940200000,
+  "stale": false,
+  "staleAt": 1794940380000,
+  "confirmed": true,
+  "mode": "commute",
+  "direction": "office",
+  "followId": "f9",
+  "phase": "walk-last",
+  "headline": {
+    "label": "At Aldgate",
+    "t": 1794941040000,
+    "countdown": {
+      "step": "arrive",
+      "calm": "arrives in",
+      "urgent": "Arriving",
+      "passed": "",
+      "state": "calm",
+      "urgentAt": 1794940920000,
+      "passedAt": 1794941040000
+    }
+  },
+  "arrive": {
+    "label": "At office",
+    "t": 1794941580000
+  },
+  "train": null,
+  "progress": null,
+  "step": null,
+  "status": null,
+  "alarm": null,
+  "deepLink": "commute://follow/f9",
+  "strip": {
+    "stations": 6,
+    "passed": null,
+    "marker": {
+      "at": 2.25,
+      "kind": "estimate"
+    },
+    "colour": "#FFD329",
+    "last": null,
+    "next": null,
+    "yours": "Aldgate",
+    "yoursAt": 1794941040000
+  }
+}

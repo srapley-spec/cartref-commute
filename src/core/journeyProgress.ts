@@ -56,7 +56,7 @@ export interface LegStrip {
   /** Where the train is, in stations from the first (0) to your stop (stations.length - 1). Reported: from a station
    *  report or the provider's location text. Estimate: from the clock between the leg's start and its arrival, stations
    *  spaced evenly; drawn outlined and never called a position. Null when neither is known. */
-  marker: { at: number; kind: 'reported' | 'estimate' } | null;
+  marker: { at: number; kind: 'reported' | 'estimate' | 'stale' } | null;
   last: number | null; next: number | null; yours: number;
 }
 /** Station names as two feeds write them ("Kings Cross St. Pancras", "King's Cross St Pancras"): compared loosely. */
@@ -172,11 +172,13 @@ export function journeyProgress(i:JourneyProgressInput):JourneyProgressModel|nul
     legs:stages(fraction),where,sourceLine,calls:graded,
     strip:legStrip(graded,where,e,accepted,fraction,source,current.travelStart??current.start,!!(i.cancelled||i.noEstimate))};
 }
+/** A strip is drawn for a leg of at most this many stations (the iPhone refuses more; review, 19 Nov). */
+export const LEG_STRIP_MAX = 64;
 /** The strip and the full diagram (#71). Times between the leg's two ends that no feed gives are estimates, spread
  *  evenly by station between the last known time and the arrival, and always labelled "about … (estimate)". */
 function legStrip(calls:JourneyProgressModel['calls'],where:JourneyProgressModel['where'],e:JourneyProgressEvidence,
   accepted:boolean,fraction:number|null,source:JourneyProgressModel['source'],legStart:number,unusable:boolean):LegStrip|null{
-  const n=calls.length;if(n<2)return null;const yours=n-1;
+  const n=calls.length;if(n<2||n>LEG_STRIP_MAX)return null;const yours=n-1;
   const kinds:(StripTimeKind|null)[]=calls.map(c=>c.state==='reported'?'reported':c.state==='expected'?'expected':finite(c.time)?'scheduled':null);
   const times:(number|null)[]=calls.map(c=>finite(c.time)?c.time:null);
   if(!unusable){
@@ -193,7 +195,9 @@ function legStrip(calls:JourneyProgressModel['calls'],where:JourneyProgressModel
     // On a station only when TfL says "At X". A National Rail report is a time at a station already passed: the train
     // is drawn past it, halfway to the next (golden, 19 Nov: "You're here · at Stevenage" three minutes after leaving it).
     const atStation=/^At\s/i.test(String(e.where||''));
-    marker={at:where.approaching&&where.next!==null?Math.max(0,where.next-0.25):where.last===null?0:atStation||where.next===null?where.last:where.last+0.5,kind:'reported'};
+    // A report from a stale feed is where the train was, not where it is: drawn outlined, as "last reported here"
+    // (independent review, 19 Nov).
+    marker={at:where.approaching&&where.next!==null?Math.max(0,where.next-0.25):where.last===null?0:atStation||where.next===null?where.last:where.last+0.5,kind:source==='stale'?'stale':'reported'};
   }else if(fraction!==null&&(source==='prediction'||source==='modelled'||source==='stale')&&!unusable){
     marker={at:fraction*yours,kind:'estimate'};
   }

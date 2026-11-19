@@ -44,6 +44,10 @@ final class EngineFixtureTests: XCTestCase {
         XCTAssertEqual(strip.rgb, 0x9B0058); XCTAssertEqual(strip.fraction(1.5), 0.3, accuracy: 1e-9)
         XCTAssertEqual([strip.last, strip.next, strip.yours], ["Farringdon", "Barbican", "Aldgate"])
         XCTAssertNil(atHub.strip, "snapshots without a strip decode as none")
+        let estimate = try JSONDecoder().decode(JourneySnapshot.self, from: Data(contentsOf: directory.appendingPathComponent("snapshot-page-tube-strip-estimate.json")))
+        XCTAssertEqual(estimate.strip?.marker?.estimated, true, "an estimate is drawn outlined, never as a reported position")
+        XCTAssertEqual(estimate.strip?.marker?.at, 2.25); XCTAssertNil(estimate.strip?.last); XCTAssertNil(estimate.strip?.next)
+        XCTAssertEqual(estimate.strip?.rgb, 0xFFD329)
         var bad = tube; bad.strip?.marker?.at = 9
         XCTAssertThrowsError(try bad.validate(), "a marker beyond your stop is refused")
         bad = tube; bad.strip?.stations = 1

@@ -170,6 +170,15 @@ Trip has no calling points (`leisure-journeys.md`), so no strip.
   progress, from the page while you're on the train or tube it is for. An estimate is sent to the nearest quarter
   station, so a moving estimate isn't a change worth a push every second. Between updates it holds its last position:
   iOS doesn't animate a Live Activity by itself. The proxy doesn't build a strip (it has no calling points).
+- **Independent review (19 Nov) and fixes:** a report from a stale feed was drawn as a solid "You're here"; it is now
+  drawn outlined and the list says "Last reported here (out of date)" (marker kind `stale`). The list said nothing once
+  the train was at your stop; it now adds "You're here · at Aldgate". The lock screen got your stop's timetable time as
+  if live; it now gets a live time only. A leg of more than 64 stations gets no strip (the iPhone refused the whole
+  snapshot). The page's estimate drawing (outlined marker, no dark line to it, "(estimate)" in every such time and in
+  the line), the Met's colour, "Left X" halfway past X, no estimates for a train with no estimate, and the lock screen's
+  estimate and its Trip/phase/leg guards are now tested. **Known limit:** once the app is closed the proxy's pushes
+  carry no strip (it has no calling points), so the Live Activity falls back to the one-line progress until the app is
+  open again.
 - **Unverified:** the Live Activity's layout on a phone (height with the strip; colours in dark mode): Sam and the iOS
   agent check on the next tube ride. TfL's location text forms beyond the 30–31 Oct fixtures.
 - tests/core/leg-strip.test.mjs: "Leg strip: TfL's 'Between' text puts a reported marker halfway between the two stations; Last and Next named, your stop ringed"
@@ -180,6 +189,13 @@ Trip has no calling points (`leisure-journeys.md`), so no strip.
 - tests/core/leg-strip.test.mjs: "Leg strip: none when the train isn't confirmed, and no estimated marker or times for a cancelled train"
 - tests/core/leg-strip.test.mjs: "Leg strip: an unmatched tube (modelled) still gets an estimated marker, never a reported one"
 - tests/core/snapshot.test.mjs: "Snapshot strip (#71): the leg's dots, marker, line colour and names; an estimate moves in quarter stations; none without names to match"
+- tests/core/leg-strip.test.mjs: "Leg strip review: 'Left X' is halfway past X; 'Between' naming only the next station puts the marker at the start"
+- tests/core/leg-strip.test.mjs: "Leg strip review: a stale feed's report is drawn as 'stale' (outlined), not as where the train is now"
+- tests/core/leg-strip.test.mjs: "Leg strip review: no estimated times for a train with no estimate; times going backwards are left alone; over 64 stations, no strip"
+- tests/core/snapshot.test.mjs: "Snapshot strip review (#71): an estimate stays an estimate on the lock screen; only a live time for your stop; the marker's kind changing is a push; over 64 stations, none"
+- tests/leg-strip-page.test.mjs: "Strip on the card: TfL's place is a solid marker in the Met's colour, passed dots filled, the line dark up to the marker; 'You're here · between stations' in the list"
+- tests/leg-strip-page.test.mjs: "Strip on the card: with no place from TfL the marker is outlined (estimate), nothing is filled or called passed, and the words say it's an estimate"
+- tests/leg-strip-page.test.mjs: "Strip on the card: at your stop the list still says where you are"
 - tests/native-strip.test.mjs: "Lock screen strip: none before you set off; on the tube after the train, the Met's colour, TfL's place as a solid marker, Last/Next/Your stop named"
 
 ## Tests

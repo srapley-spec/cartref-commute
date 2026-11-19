@@ -38,6 +38,11 @@ Object.assign(CASES, {
     strip: { lineId: "metropolitan", names: ["King's Cross", "Farringdon", "Barbican", "Moorgate", "Liverpool Street", "Aldgate"],
       strip: { stations: [0, 1, 2, 3, 4, 5].map((k) => ({ name: "", code: null, state: k <= 1 ? "passed" : k === 2 ? "next" : k === 5 ? "yours" : "upcoming", time: k === 5 ? at(DAY, "18:44") : null, timeKind: k === 5 ? "expected" : null })),
         marker: { at: 1.5, kind: "reported" }, last: 1, next: 2, yours: 5 } } }),
+  // The same with no place from TfL: the marker is an estimate (drawn outlined), and no station is Last or Next.
+  "page-tube-strip-estimate": page("walk-last", "At Aldgate", at(DAY, "18:44"), "arrive", { direction: "office", confirmed: true, arrive: { label: "At office", t: at(DAY, "18:53") },
+    strip: { lineId: "circle", names: ["King's Cross", "Farringdon", "Barbican", "Moorgate", "Liverpool Street", "Aldgate"],
+      strip: { stations: [0, 1, 2, 3, 4, 5].map((k) => ({ name: "", code: null, state: k === 5 ? "yours" : "upcoming", time: k === 5 ? at(DAY, "18:44") : null, timeKind: k === 5 ? "expected" : null })),
+        marker: { at: 2.3, kind: "estimate" }, last: null, next: null, yours: 5 } } }),
   "page-missed": page("missed", "Next train", at(DAY, "19:08"), "next", { status: { level: "bad", text: "Missed: the 18:56 has gone" } }),
   "page-switched": page("leave", "Leave by", at(DAY, "18:48"), "leave", { followId: "f10", alarm: core.leaveAlarm(at(DAY, "18:48"), { enabled: true, setOff: false, now: at(DAY, "18:30"), startPlace: "office" }) }),
   "page-urgent": page("platform", "Be on platform 4 at Farringdon by", at(DAY, "18:31"), "platform"),

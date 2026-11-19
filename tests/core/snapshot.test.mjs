@@ -239,3 +239,17 @@ test("Snapshot strip (#71): the leg's dots, marker, line colour and names; an es
   const b = core.journeySnapshot({ ...base, strip: { strip: st({ at: 2, kind: "reported" }, 2, 3), lineId: "circle", names } });
   assert.notEqual(core.snapshotShown(a), core.snapshotShown(b), "the marker moving is worth a push");
 });
+
+test("Snapshot strip review (#71): an estimate stays an estimate on the lock screen; only a live time for your stop; the marker's kind changing is a push; over 64 stations, none", () => {
+  const now = at(DAY, "19:10");
+  const st = (marker, kind = "expected", n = 4) => ({ stations: Array.from({ length: n }, (_, k) => ({ name: "", code: null, state: "upcoming", time: k === n - 1 ? at(DAY, "19:20") : null, timeKind: k === n - 1 ? kind : null })), marker, last: null, next: null, yours: n - 1 });
+  const base = { now, source: "page", mode: "commute", direction: "home", followId: "f9", phase: "walk-last", headline: { label: "Arrive", t: at(DAY, "19:20"), step: "arrive" } };
+  const names = ["A", "B", "C", "D"];
+  const est = core.journeySnapshot({ ...base, strip: { strip: st({ at: 2, kind: "estimate" }), lineId: "circle", names } });
+  assert.equal(est.strip.marker.kind, "estimate");
+  assert.equal(core.journeySnapshot({ ...base, strip: { strip: st({ at: 2, kind: "stale" }), lineId: "circle", names } }).strip.marker.kind, "stale");
+  assert.equal(core.journeySnapshot({ ...base, strip: { strip: st(null, "scheduled"), lineId: "circle", names } }).strip.yoursAt, null, "a timetable time isn't sent as your stop's time");
+  const rep = core.journeySnapshot({ ...base, strip: { strip: st({ at: 2, kind: "reported" }), lineId: "circle", names } });
+  assert.notEqual(core.snapshotShown(est), core.snapshotShown(rep), "estimate → reported at the same place is a push");
+  assert.equal(core.journeySnapshot({ ...base, strip: { strip: st(null, "expected", 65), lineId: "circle", names: Array(65).fill("x") } }).strip, null);
+});

@@ -759,7 +759,7 @@ html .journey-progress .jp-strip-dot {top:7px;width:12px;height:12px;margin-left
 html .journey-progress .jp-strip-dot[data-state="passed"] {background:var(--ink);border-color:var(--ink)}
 html .journey-progress .jp-strip-dot[data-state="yours"] {width:18px;height:18px;top:4px;margin-left:-9px;border:4px solid var(--ink);background:var(--card)}
 html .journey-progress .jp-strip-marker {top:2px;width:22px;height:22px;margin-left:-11px;border-radius:50%;box-sizing:border-box;background:var(--accent);border:3px solid var(--card);box-shadow:0 0 0 2px var(--accent)}
-html .journey-progress .jp-strip-marker[data-kind="estimate"] {background:var(--card);border:3px dashed var(--accent);box-shadow:none}
+html .journey-progress .jp-strip-marker:is([data-kind="estimate"],[data-kind="stale"]) {background:var(--card);border:3px dashed var(--accent);box-shadow:none}
 html .journey-progress .jp-all>summary .jp-where {display:flex;justify-content:space-between;gap:4px 10px;font-size:13px;line-height:1.35}
 html .journey-progress .jp-all>summary .jp-where .jp-sep {display:none}
 html .journey-progress .jp-place.jp-next {text-align:center}
@@ -769,7 +769,7 @@ html .journey-progress .jp-hint .jp-source {color:inherit}
 html .journey-progress .jp-vlist .jp-stop[data-time="estimate"] .jp-stop-time {font-weight:400;color:var(--muted)}
 html .journey-progress .jp-vlist .jp-here {display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;font-size:13px;font-weight:650;color:var(--accent)}
 html .journey-progress .jp-vlist .jp-here .jp-stop-dot {width:14px;height:14px;margin:0;border-radius:50%;background:var(--accent);border:2px solid var(--accent)}
-html .journey-progress .jp-vlist .jp-here[data-kind="estimate"] .jp-stop-dot {background:var(--card);border-style:dashed}
+html .journey-progress .jp-vlist .jp-here:is([data-kind="estimate"],[data-kind="stale"]) .jp-stop-dot {background:var(--card);border-style:dashed}
 
 /* Self-contained Signal surface: it also works when the surrounding app uses Panda. */
 #alongLine.along-dialog{--paper:#f2f5f8;--card:#fff;--ink:#142436;--muted:#506174;--line:#d4dde7;--accent:#1453b6;--signal-soft:#e8f0fd;color-scheme:light;box-sizing:border-box;width:min(620px,calc(100% - 16px));max-height:calc(100dvh - 24px);padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:auto}
@@ -922,7 +922,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 16:18 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:06 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -4252,10 +4252,11 @@ var CommuteCore = (() => {
       strip: legStrip(graded, where, e, accepted, fraction, source, (_e = current.travelStart) != null ? _e : current.start, !!(i.cancelled || i.noEstimate))
     };
   }
+  var LEG_STRIP_MAX = 64;
   function legStrip(calls, where, e, accepted, fraction, source, legStart, unusable) {
     var _a, _b;
     const n2 = calls.length;
-    if (n2 < 2) return null;
+    if (n2 < 2 || n2 > LEG_STRIP_MAX) return null;
     const yours = n2 - 1;
     const kinds2 = calls.map((c) => c.state === "reported" ? "reported" : c.state === "expected" ? "expected" : finite5(c.time) ? "scheduled" : null);
     const times = calls.map((c) => finite5(c.time) ? c.time : null);
@@ -4279,7 +4280,7 @@ var CommuteCore = (() => {
     let marker = null;
     if (where) {
       const atStation = /^At\s/i.test(String(e.where || ""));
-      marker = { at: where.approaching && where.next !== null ? Math.max(0, where.next - 0.25) : where.last === null ? 0 : atStation || where.next === null ? where.last : where.last + 0.5, kind: "reported" };
+      marker = { at: where.approaching && where.next !== null ? Math.max(0, where.next - 0.25) : where.last === null ? 0 : atStation || where.next === null ? where.last : where.last + 0.5, kind: source === "stale" ? "stale" : "reported" };
     } else if (fraction !== null && (source === "prediction" || source === "modelled" || source === "stale") && !unusable) {
       marker = { at: fraction * yours, kind: "estimate" };
     }
@@ -6119,7 +6120,7 @@ var CommuteCore = (() => {
   }
   function snapshotStrip(x) {
     const st = x && x.strip;
-    if (!st || st.stations.length < 2 || x.names.length !== st.stations.length) return null;
+    if (!st || st.stations.length < 2 || st.stations.length > 64 || x.names.length !== st.stations.length) return null;
     const name = (k) => k == null ? null : clean(x.names[k]) || null;
     const q = (v, kind) => kind === "estimate" ? Math.round(v * 4) / 4 : Math.round(v * 100) / 100;
     const m = st.marker && fin(st.marker.at) ? { at: Math.max(0, Math.min(st.yours, q(st.marker.at, st.marker.kind))), kind: st.marker.kind } : null;
@@ -6131,7 +6132,8 @@ var CommuteCore = (() => {
       last: name(st.last),
       next: st.next === st.yours ? null : name(st.next),
       yours: name(st.yours) || "",
-      yoursAt: fin(st.stations[st.yours].time) ? st.stations[st.yours].time : null
+      // Only a live time for your stop: a timetable time would read as live on the lock screen (review, 19 Nov).
+      yoursAt: fin(st.stations[st.yours].time) && ["reported", "expected"].includes(String(st.stations[st.yours].timeKind)) ? st.stations[st.yours].time : null
     };
   }
   function proxySnapshot(plan, state, observed, opts) {
@@ -9602,12 +9604,14 @@ function whereHtml(model){
   const line=w?`<span class="jp-where">${w.last!==null?`<span class="jp-place jp-last"><span class="jp-tick">✓</span> <b>Last:</b> ${esc(calls[w.last].name)}${t(calls[w.last])}</span>`:''}${w.next!==null&&w.next!==w.yours?`${w.last!==null?sep:''}<span class="jp-place jp-next">Next: ${esc(calls[w.next].name)}${w.approaching?', approaching':t(calls[w.next])}</span>`:''}${w.last!==w.yours?`${sep}<span class="jp-place jp-yours"><b>Your stop:</b> ${esc(calls[w.yours].name)}${w.next===w.yours&&w.approaching?', approaching':t(calls[w.yours])}${w.stopsToGo>0?`, ${w.stopsToGo} stop${w.stopsToGo>1?'s':''}`:''}</span>`:''}</span>`
     :`<span class="jp-where none">No live position yet${strip?.marker?.kind==='estimate'?' (the marker is an estimate)':''} · your stop: ${esc(calls[calls.length-1].name)}${t(calls[calls.length-1])}</span>`;
   const colour=model.current.kind==='tube'?(LEG_STRIP_COLOUR[model.current.lineId]||'var(--accent)'):'var(--accent)';
-  const m=strip?.marker,here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${m.kind==='reported'?"You're here":'About here (estimate)'}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
+  const m=strip?.marker,hereText=m?.kind==='reported'?"You're here":m?.kind==='stale'?'Last reported here (out of date)':'About here (estimate)';
+  const here=m?`<li class="jp-here" data-kind="${m.kind}"><span class="jp-stop-dot" aria-hidden="true"></span><span>${hereText}${Number.isInteger(m.at)?` · at ${esc(calls[m.at].name)}`:' · between stations'}</span></li>`:'';
   const row=(c,i)=>{const st=strip?.stations[i],state=st?(st.state==='upcoming'?c.state:st.state):c.passed?'passed':w&&i===w.next?'next':i===calls.length-1?'yours':c.state;
     const time=st?legStripTime(st):c.time!=null?hhmm(c.time):'';
     return `<li class="jp-stop" data-code="${esc(c.code||'')}" data-state="${state}"${st?` data-time="${st.timeKind||''}"`:''}><span class="jp-stop-dot" aria-hidden="true"></span><span class="jp-stop-name">${esc(c.name)}${i===calls.length-1?' · your stop':''}</span><span class="jp-stop-time">${time}${c.deltaMin>0?` <small>${c.deltaMin} late</small>`:''}</span></li>`;};
   // "You're here" goes after the station it is at or has passed (before the first station when nothing is passed).
-  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i&&i<calls.length-1?here:'')).join('');
+  // At your stop too (review, 19 Nov: the list went quiet just as you arrived).
+  const rows=calls.map((c,i)=>row(c,i)+(m&&Math.floor(m.at)===i?here:'')).join('');
   const source=model.sourceLine?`<span class="jp-source">${esc(model.sourceLine)}</span>`:'';
   const hint=`<span class="jp-hint">${source}${source?' · ':''}tap for all ${calls.length} stations</span>`;
   return `<details class="jp-all"><summary>${strip?legStripHtml(strip,colour):''}${line}${hint}</summary><ol class="jp-vlist" style="--strip:${colour}">${m&&m.at<0?here:''}${rows}</ol></details>`;
@@ -12137,7 +12141,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
+window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeStrip,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S};
 })();
 </script>
 

@@ -62,3 +62,28 @@ test("Leg strip: an unmatched tube (modelled) still gets an estimated marker, ne
   const s=tubeAt(time('08:17'),'At Barbican',{evidence:{source:'prediction',observedAt:time('08:17'),identityMatched:false,where:'At Barbican'}}).strip;
   assert.equal(s.marker.kind,'estimate');assert.equal(s.last,null);
 });
+
+// ---------- Independent review of ce04f73 (19 Nov) ----------
+test("Leg strip review: 'Left X' is halfway past X; 'Between' naming only the next station puts the marker at the start", () => {
+  assert.equal(tubeAt(time('08:18'),'Left Barbican').strip.marker.at,2.5);
+  const s=tubeAt(time('08:14'),"Between Euston Square and King's Cross St Pancras").strip;
+  assert.equal(s.marker.at,0,"only the leg's first station is named: at the start, not before it");
+});
+
+test("Leg strip review: a stale feed's report is drawn as 'stale' (outlined), not as where the train is now", () => {
+  const rail=[{id:'rail',kind:'rail',label:'Train',start:time('09:00'),end:time('10:00')}];
+  const c=[{code:'A',name:'A',scheduledAt:time('09:00'),actualAt:time('09:01')},{code:'B',name:'B',scheduledAt:time('09:20')},{code:'C',name:'C',scheduledAt:time('09:40'),expectedAt:time('09:41')}];
+  const obs=time('09:05');
+  const s=core.journeyProgress({now:time('09:40'),legs:rail,activeLeg:'rail',calls:c,evidence:{source:'reported',observedAt:obs,identityMatched:true,expectedAt:time('09:41'),scheduledAt:time('09:40')}}).strip;
+  assert.equal(s.marker.kind,'stale');
+});
+
+test("Leg strip review: no estimated times for a train with no estimate; times going backwards are left alone; over 64 stations, no strip", () => {
+  const x=tubeAt(time('08:16'),null,{noEstimate:true}).strip;
+  assert.ok(x.stations.every(st=>st.timeKind!=='estimate')); assert.equal(x.marker,null);
+  const back=core.journeyProgress({now:time('08:16'),legs:tube,activeLeg:'tube',calls:calls.map((c,k)=>({...c,expectedAt:k===5?time('08:10'):null})),
+    evidence:{source:'prediction',observedAt:time('08:16'),identityMatched:true,expectedAt:time('08:10'),where:null}}).strip;
+  assert.ok(back.stations.slice(1,5).every(st=>st.time===null),'an arrival before the start: no times invented between');
+  const many=Array.from({length:65},(_,k)=>({name:`S${k}`,expectedAt:k===64?time('09:30'):null}));
+  assert.equal(core.journeyProgress({now:time('08:16'),legs:tube,activeLeg:'tube',calls:many,evidence:{source:'modelled'}}).strip,null);
+});
