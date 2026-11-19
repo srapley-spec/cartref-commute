@@ -95,3 +95,5 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 - [Journey facts across planning and live views](journey-facts.md) · Implemented; two-design parity rule retired 1 Nov
 - [Every live train says how late it is, in colour](train-status.md) · Done
 - [Signal design system and automatic journey presentation](signal-design-system.md) · Default and sole design; Panda archived 1 Nov
+
+- [CI cost controls](ci-cost-controls.md): duplicate-check cancellation with full regression and release safeguards.
