@@ -327,3 +327,7 @@ Full combined-code CI, GitHub validation and internal TestFlight processing rema
 - Widget: what it shows, and whether the proxy can keep it accurate enough (parked by Sam).
 - Snapshot/bridge/native-route alignment and missing lifecycle details: [ios-contract #58](https://github.com/srapley-spec/cartref-commute/issues/58). The existing APNs file has been located and provisioned; no replacement key needed.
 - The hall iPhone app: separate, later.
+
+## CI cost controls — 19 November 2026
+
+[CI-COST-01](stories/ci-cost-controls.md) removes duplicate branch/PR runs, cancels only superseded PR checks and adds full nightly coverage. Regression and exact-source release safeguards remain; workflow owner review pending.
