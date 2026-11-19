@@ -29,6 +29,17 @@ jobs:
             if (typeof v === "string") return `string: ${v.replace(/\s+/g, " ").slice(0, 90)}`;
             return typeof v + (v === null ? "(null)" : `: ${v}`);
           };
+          // The base is an endpoint path, not a credential: its segments say which product and version it is.
+          try { console.log("base path:", new URL(base).pathname.split("/").filter(Boolean).map((x, i) => i < 6 ? x : "…").join(" / ")); } catch {}
+          const parts = new URL(base).pathname.split("/").filter(Boolean), origin = new URL(base).origin;
+          const roots = [0, 1, 2, 3].map((n) => origin + "/" + parts.slice(0, parts.length - n).join("/"));
+          for (const root of roots) for (const t of ["", "?crs=LET", "?CRS=LET", "/LET", "/incidents?crs=LET"]) {
+            try {
+              const r = await fetch(root + t, { headers: { "x-apikey": key, accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+              const text = await r.text(); let body; try { body = JSON.parse(text); } catch { body = text.replace(/\s+/g, " ").slice(0, 160); }
+              console.log(`\n--- root-${roots.indexOf(root)}${t} -> ${r.status}`); console.log(JSON.stringify(shape(body), null, 1).slice(0, 2500));
+            } catch (e) { console.log(`--- root-${roots.indexOf(root)}${t} -> error ${e.message}`); }
+          }
           const tries = [
             "/stations/disruptions/incidents?crs=LET,HIT,SVG,KGX",
             "/stations/disruptions/incidents?crsCodes=LET,HIT,SVG,KGX",
