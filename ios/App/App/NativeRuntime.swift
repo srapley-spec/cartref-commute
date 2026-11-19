@@ -160,7 +160,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
         var next = document
         if device != value || next.configuration?.normalizedOrigin != configuration.normalizedOrigin { next.outbox = [] }
         if next.regionGeneration == nil || next.configuration?.regions != configuration.regions ||
-            next.configuration?.alarm.alarm != configuration.alarm.alarm { next.regionGeneration = UUID().uuidString }
+            next.configuration?.geofencing != configuration.geofencing { next.regionGeneration = UUID().uuidString }
         next.configuration = configuration
         // The Keychain record binds the token to the proxy independently of the JSON commit. A failure or
         // process exit between these writes cannot pair a new token with an old proxy after restart.
@@ -253,7 +253,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
 
     private func reconcileRegions() {
         guard platformEnabled else { return }
-        let enabled = file != nil && document.regionGeneration != nil && location.authorizationStatus == .authorizedAlways && document.configuration?.alarm.alarm == true
+        let enabled = file != nil && document.regionGeneration != nil && location.authorizationStatus == .authorizedAlways && document.configuration?.geofencing == true
         let desired = enabled ? document.configuration?.regions ?? [] : []
         for region in location.monitoredRegions where region.identifier.hasPrefix("commute:") {
             let same = desired.contains { value in
@@ -275,7 +275,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) { regionEvent(region, event: "enter") }
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) { regionEvent(region, event: "exit") }
     private func regionEvent(_ region: CLRegion, event: String) {
-        guard document.configuration?.alarm.alarm == true,
+        guard document.configuration?.geofencing == true,
               document.regionGeneration != nil,
               let configured = document.configuration?.regions.first(where: { region.identifier == regionIdentifier($0.place) }) else { return }
         let now = Self.now
@@ -284,8 +284,12 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
             surfaces?.cancelAlarm()
         }
         let evidence = RegionEvidence(place: configured.place, event: event, at: now)
-        if let id = document.snapshots.current?.followId, let device, let origin = document.configuration?.normalizedOrigin {
-            document.enqueue(.init(followId: id, deviceID: device.id, origin: origin, evidence: evidence))
+        // Evidence for a followed journey; or, with the commute watch on and nothing followed, arriving home (#66: the
+        // proxy's afternoon watch stops). Watch evidence has no journey ("").
+        let follow = document.snapshots.current?.followId
+        let watchHome = follow == nil && document.configuration?.watch == true && configured.place == "home" && event == "enter"
+        if follow != nil || watchHome, let device, let origin = document.configuration?.normalizedOrigin {
+            document.enqueue(.init(followId: follow ?? "", deviceID: device.id, origin: origin, evidence: evidence))
         }
         persistBestEffort()
         emit(.init("region", ["place": .string(configured.place), "event": .string(event), "at": .number(now)]))
@@ -357,7 +361,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                 draining = false
             }
             while let first = document.outbox.first, let device, online {
-                guard first.followId == document.snapshots.current?.followId, first.deviceID == device.id,
+                guard first.followId.isEmpty || first.followId == document.snapshots.current?.followId, first.deviceID == device.id,
                       first.origin == document.configuration?.normalizedOrigin else {
                     document.outbox.removeFirst(); persistBestEffort(); continue
                 }
@@ -370,7 +374,7 @@ final class NativeRuntime: NSObject, @preconcurrency CLLocationManagerDelegate {
                     let (data, response) = try await proxySession.data(for: request)
                     guard let http = response as? HTTPURLResponse else { throw NativeError.unavailable }
                     guard (200..<300).contains(http.statusCode) || http.statusCode == 400 else { throw NativeError.unavailable }
-                    if http.statusCode == 200, let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if http.statusCode == 200, !first.followId.isEmpty, let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                         try receiveEvidence(reply, for: first, credentials: device)
                     }
                     document.outbox.removeAll { $0.id == first.id }; persistBestEffort()

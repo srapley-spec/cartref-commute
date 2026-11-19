@@ -370,7 +370,7 @@ html.display-mode #signalBoardHeading > :not(#listTitle), html.display-mode [dat
       <button type="button" class="ghost" id="alertsTestBtn">Send a test alert</button>
       <p class="hint" id="alertsStatus" aria-live="polite"></p>
       <div id="watchFields" hidden>
-        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and 15:00–20:00 home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). Not on bank holidays. Nothing needs following.</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="s_commuteWatch" style="margin-top:3px"><span>Commute watch: on weekdays, 05:00–10:00 to the office and from 15:00 until you're home, a notification only when it matters. Amber: 15 min or more later than normal. Red: more than 45 min, no trains running, the tube to the stations closed, or a blocking incident ("consider working from home", "head home now"). The evening watch runs until you're home: your home Wi-Fi, or your location (Always) at home, ends it for the night. Not on bank holidays. Nothing needs following.</span></label>
         <button type="button" class="ghost" id="watchTestBtn">Send a test to this iPhone</button>
         <p class="hint" id="watchStatus" aria-live="polite"></p>
       </div>
@@ -2492,6 +2492,7 @@ function onPosition(p){
   // When the phone took the fix (it may hand over one up to 30 s old), never in the future. Recorded before
   // anything below reads it: an old time with a new position would look like being underground.
   state.lastFixAt=Math.min(Date.now(), p.timestamp||Date.now()); state.lastFixRecvAt=Date.now();
+  try{ watchHomeFromFix(); }catch(e){}
   noteAldgate();
   const speed=typeof p.coords.speed==='number'&&p.coords.speed>=0?p.coords.speed:null;
   const railContext=C.railTrackingContext({fix:fix(),speed,track:state.lineTrack||null,train:lockedTrain()||state.rendered?.train?.t||null,trains:Object.values(state.boards||{}).flatMap(board=>board?.services||[]),dir:direction(),now:Date.now(),departingHub:state.lastHub?{hub:state.lastHub.hub,seen:state.lastHub.seen}:null,onTube:!!(state.saved.tubeRide||state.saved.tubePick||state.rendered?.ride)},PROFILE);
@@ -2854,12 +2855,26 @@ async function nativeAskPermissions(){
     }
   } finally { nativeAsking=false; renderNativePermissions(); }
 }
+// Home (#66): the proxy's afternoon watch stops for the rest of tonight. Said once per evening, only with the watch on
+// and its home window running; never from display mode or a simulation (the bridge checks).
+let watchHomeSent=null;
+function watchHome(kind,at){
+  if(DISPLAY||S().commuteWatch!==true) return;
+  const w=C.watchWindow(Date.now()); if(!w||w.direction!=="home"||watchHomeSent===w.key) return;
+  watchHomeSent=w.key; native.reportHome(kind,Number.isFinite(at)?at:Date.now());
+}
+/** A good fix within the home geofence's reach (150 m) counts as home too. */
+function watchHomeFromFix(){
+  const h=state.saved.home; if(!Array.isArray(h)||!state.here||!(state.locAcc<=100)) return;
+  if(C.km(state.here,h)*1000<=150) watchHome("place",state.lastFixAt||Date.now());
+}
 const nativePlaces=()=>({...(Array.isArray(state.saved.home)?{home:state.saved.home}:{}),...(PROFILE.places&&PROFILE.places.office?{office:PROFILE.places.office}:{})});
 const native=nativeBridge.create({ win:window, core:C, S, saved:()=>state.saved, save, proxyBase:proxyBaseUrl,
   snapshot:nativeSnapshot, followPlan:nativeFollowPlan,
   regions:()=>Object.entries(nativePlaces()).map(([place,[lat,lon]])=>({place,lat,lon,radiusM:150})),
   simulating:()=>!!(simulationSnapshot || (typeof sim!=="undefined" && sim.active) || S().simulatedFeeds || S().simulatorEnabled),
-  onEvidence:ev=>{ const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
+  onEvidence:ev=>{ if(ev&&ev.place==="home"&&(ev.kind==="wifi"||(ev.kind==="region"&&ev.event==="enter"))) watchHome(ev.kind==="wifi"?"wifi":"place",ev.at);
+    const f=C.evidenceFix(ev,nativePlaces(),Date.now()); if(f) onPosition({coords:{latitude:f.lat,longitude:f.lon,accuracy:f.acc,speed:null},timestamp:f.at}); },
   hydrate:()=>nativeHydrate(),
   onResume:()=>refresh({force:true}), onOpen:nativeOpen, status:t=>{ const el=$("#nativeStatus"); if(el) el.textContent=t; } });
 // Offline (§6.7 rule 7): the last boards and line status are kept with their time; a launch with no boards yet shows
@@ -3011,8 +3026,13 @@ $("#settingsForm").addEventListener("submit",e=>{
  setTimeout(()=>{ try{ native.onSave(); }catch(e){} },0);   // once the new settings are saved
  // The leave alarm turned on: ask for what it needs (once each; a refusal stays refused and is shown).
  if(next.leaveAlarm===true&&previous.leaveAlarm!==true) setTimeout(()=>{ nativeAskPermissions().catch(()=>{}); },0);
- // The commute watch turned on: it needs notifications only (asked once; from Settings, never at start-up).
- else if(next.commuteWatch===true&&previous.commuteWatch!==true&&((native.capabilities()||{}).auth||{}).notifications==="notDetermined") setTimeout(()=>{ native.request("notifications").then(()=>renderNativePermissions()).catch(()=>{}); },0);
+ // The commute watch turned on: notifications, and location "Always" so the home geofence can say you're home (#66).
+ // Asked once each, from Settings, never at start-up; a refusal stays refused.
+ else if(next.commuteWatch===true&&previous.commuteWatch!==true) setTimeout(async()=>{ try{
+   const auth=()=>((native.capabilities()||{}).auth||{});
+   if(auth().notifications==="notDetermined") await native.request("notifications");
+   if(auth().location==="notDetermined"||auth().location==="whenInUse") await native.request("location");
+   renderNativePermissions(); }catch(e){} },0);
  if(effective.provider==="proxy"&&!effective.simulatedFeeds&&(previous.provider!=="proxy"||String(previous.proxyBase||"")!==String(effective.proxyBase||"")||!state.saved.proxyStatus)) setTimeout(()=>refreshProxyStatus().then(()=>render()),0);
  const presentationKeys=new Set(["appearance","alongLine","leaveAlerts","wakeAt","leaveAlarm","leaveAlarmMin","wifiHome","wifiOffice","commuteWatch"]);
  const presentationOnly=Object.keys({...previous,...effective}).every(k=>presentationKeys.has(k)||(previous[k]??false)===(effective[k]??false));

@@ -25,6 +25,11 @@ public struct NativeConfiguration: Codable, Equatable, Sendable {
     public var alarm: Alarm
     public var wifi: Wifi
     public var regions: [Region]
+    /// The commute watch is on (#66): the home geofence also tells the proxy you're home. Absent in older pages.
+    public var watch: Bool?
+
+    /// Geofences run for the leave alarm or the commute watch; the page decides which regions to send.
+    public var geofencing: Bool { alarm.alarm || watch == true }
 
     public var normalizedOrigin: String { proxy.origin.hasSuffix("/") ? String(proxy.origin.dropLast()) : proxy.origin }
 
@@ -36,7 +41,7 @@ public struct NativeConfiguration: Codable, Equatable, Sendable {
               wifi.home.count <= 5, wifi.office.count <= 5,
               (wifi.home + wifi.office).allSatisfy({ !$0.isEmpty && $0.utf8.count <= 128 }),
               regions.count <= 2, Set(regions.map(\.place)).count == regions.count,
-              alarm.alarm || regions.isEmpty,
+              geofencing || regions.isEmpty,
               regions.allSatisfy({ ["home", "office"].contains($0.place) && (-90...90).contains($0.lat)
                   && (-180...180).contains($0.lon) && $0.radiusM == 150 }) else { throw NativeError.invalid }
     }

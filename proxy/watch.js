@@ -1,5 +1,5 @@
-// Commute watch (#66; docs/stories/commute-watch.md): on weekdays, 05:00–10:00 towards the office and 15:00–20:00
-// home, the proxy reads the live boards for the commute (and the tube lines to the office) every 2 minutes, and an
+// Commute watch (#66; docs/stories/commute-watch.md): on weekdays, 05:00–10:00 towards the office and from 15:00
+// until you're home (01:00 at the latest), the proxy reads the live boards for the commute (and the tube lines to the office) every 2 minutes, and an
 // iPhone with the watch turned on hears about it only when it turns amber or red (core watchVerdict/watchStep). No
 // board is fetched when no iPhone has the watch on, or outside the windows. What to say comes from the engine.
 import * as C from "../dist/core.mjs";
@@ -29,7 +29,11 @@ export async function runWatch(env, now) {
   if (!w || Math.floor(lnow / 60e3) % WATCH_EVERY_MIN !== 0) return [];
   const ids = (await env.PUSH.get("nats", "json")) || [];
   const recs = [];
-  for (const id of ids) { const rec = await env.PUSH.get(`nat:${id}`, "json"); if (rec && rec.prefs && rec.prefs.watch && rec.apns) recs.push(rec); }
+  for (const id of ids) {
+    const rec = await env.PUSH.get(`nat:${id}`, "json");
+    // Home already since the afternoon window started: nothing more to watch tonight (#66).
+    if (rec && rec.prefs && rec.prefs.watch && rec.apns && !C.watchHomeDone({ ...w, from: w.from - d }, rec.homeAt)) recs.push(rec);
+  }
   if (!recs.length) return [];
   const boards = {};
   for (const [from, to] of PAIRS[w.direction]) boards[`${from}-${to}`] = await board(env, from, to, lnow);

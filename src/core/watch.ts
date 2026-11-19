@@ -21,10 +21,14 @@ export const WATCH_AMBER_MIN = 15;
 export const WATCH_RED_MIN = 45;
 /** Trains considered: those leaving in this window from now. */
 export const WATCH_WINDOW_MIN = 90;
-/** The windows (local time, Monday–Friday): morning to the office, afternoon home. */
+/**
+ * The windows (local time, Monday–Friday): morning to the office, 05:00–10:00; home from 15:00 until you're home
+ * (Sam, 19 Nov: "I could be in the pub at 8.30 and need to rush to King's Cross"). The home watch ends early on
+ * evidence that you're home (`watchHomeDone`); with none, after the last trains home (01:00 the next morning).
+ */
 export const WATCH_WINDOWS: { direction: WatchDirection; from: string; to: string }[] = [
   { direction: "office", from: "05:00", to: "10:00" },
-  { direction: "home", from: "15:00", to: "20:00" },
+  { direction: "home", from: "15:00", to: "25:00" },
 ];
 /** England and Wales bank holidays: no watch (gov.uk; profile-style data, extend each year). */
 export const BANK_HOLIDAYS = new Set([
@@ -36,13 +40,29 @@ export const WATCH_TUBE_LINES = ["circle", "metropolitan", "hammersmith-city"];
 const isoLocal = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const minutesOf = (hm: string) => +hm.slice(0, 2) * 60 + +hm.slice(3, 5);
 
-/** Which watch runs now (local time), or null: weekdays only, never on a bank holiday. */
-export function watchWindow(now: number): { direction: WatchDirection; date: string; key: string } | null {
-  const d = new Date(now), day = d.getDay(), date = isoLocal(now);
-  if (day === 0 || day === 6 || BANK_HOLIDAYS.has(date)) return null;
-  const m = d.getHours() * 60 + d.getMinutes();
-  const w = WATCH_WINDOWS.find(x => m >= minutesOf(x.from) && m < minutesOf(x.to));
-  return w ? { direction: w.direction, date, key: `${date}-${w.direction}` } : null;
+/**
+ * Which watch runs now (local time), or null: weekdays only, never on a bank holiday. A window may run past midnight
+ * ("25:00"): its small hours belong to the day it started. `from` is when the window started.
+ */
+export function watchWindow(now: number): { direction: WatchDirection; date: string; key: string; from: number } | null {
+  for (const back of [0, 1]) {
+    const start = new Date(now); start.setDate(start.getDate() - back); start.setHours(0, 0, 0, 0);
+    const day = start.getDay(), date = isoLocal(start.getTime());
+    if (day === 0 || day === 6 || BANK_HOLIDAYS.has(date)) continue;
+    const m = Math.round((now - start.getTime()) / 60e3);
+    const w = WATCH_WINDOWS.find(x => m >= minutesOf(x.from) && m < minutesOf(x.to));
+    if (w) { const from = new Date(start); from.setHours(0, minutesOf(w.from), 0, 0); return { direction: w.direction, date, key: `${date}-${w.direction}`, from: from.getTime() }; }
+  }
+  return null;
+}
+
+/** Evidence that you're home: the home geofence entered, home Wi-Fi joined, or the app placing you at home. */
+export function watchHomeEvidence(ev: { kind?: string; place?: string; event?: string } | null | undefined): boolean {
+  return !!ev && ev.place === "home" && (ev.kind === "region" ? ev.event === "enter" : ev.kind === "wifi" || ev.kind === "place");
+}
+/** The home watch is over for this window once you've been home since it started. */
+export function watchHomeDone(window: { direction: WatchDirection; from: number } | null | undefined, homeAt: number | null | undefined): boolean {
+  return !!window && window.direction === "home" && typeof homeAt === "number" && Number.isFinite(homeAt) && homeAt >= window.from;
 }
 
 /** National Rail notices of a blocked or broken railway. Strong: these win over any other word in the notice. */

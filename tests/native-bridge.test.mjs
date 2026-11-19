@@ -54,13 +54,17 @@ test("Bridge in a browser: no shell, nothing happens and nothing is sent", async
 test("Bridge: the shell gets the Settings (alarm, Wi-Fi name prefixes; defaults Panda and Ciklum)", async () => {
   const { b, shell } = setup();
   await b.init();
-  assert.deepEqual(shell.calls[0], ["configure", { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: true, alarmLeadMin: 5 },
+  assert.deepEqual(shell.calls[0], ["configure", { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: true, alarmLeadMin: 5 }, watch: false,
     wifi: { home: ["Panda"], office: ["Ciklum"] }, regions: [{ place: "home", lat: 51.98, lon: -0.23, radiusM: 150 }] }]);
   assert.deepEqual(shell.calls[1], ["ready", { v: 1 }], "ready after listening and configuring: the shell replays what it held");
   // Alarm off: no geofences.
   const s = setup({ settings: { leaveAlarm: false, leaveAlarmMin: 1, wifiHome: "Panda, Home ,", wifiOffice: "" } });
   await s.b.init();
-  assert.deepEqual(s.shell.calls[0][1], { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: false, alarmLeadMin: 1 }, wifi: { home: ["Panda", "Home"], office: [] }, regions: [] });
+  assert.deepEqual(s.shell.calls[0][1], { v: 1, proxy: { origin: "https://proxy.test" }, device: null, alarm: { alarm: false, alarmLeadMin: 1 }, watch: false, wifi: { home: ["Panda", "Home"], office: [] }, regions: [] });
+  // The commute watch on, the alarm off: the geofences run for the watch (the home fence says you're home; #66).
+  const w = setup({ settings: { leaveAlarm: false, commuteWatch: true } });
+  await w.b.init();
+  assert.equal(w.shell.calls[0][1].watch, true); assert.equal(w.shell.calls[0][1].regions.length, 1);
 });
 
 test("Bridge: the snapshot is published when what it shows changes, not on every render; never in a simulation", async () => {

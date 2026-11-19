@@ -15,7 +15,7 @@ function shell(auth = { notifications: "notDetermined", alarm: "notDetermined", 
 }
 const submit = async (app) => { app.d.querySelector("#settingsForm").dispatchEvent(new app.w.Event("submit", { bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 30)); };
 
-test("Commute watch: in the iPhone app, off by default; turning it on asks for notifications only, and goes in what the proxy is sent", async () => {
+test("Commute watch: in the iPhone app, off by default; turning it on asks for notifications and location, and goes in what the proxy is sent", async () => {
   const sh = shell(), posts = [];
   const route = (u, o) => { if (/\/native\//.test(u)) { posts.push([u.replace(/^.*\/native\//, ""), JSON.parse(o.body)]); return new Response(JSON.stringify({ id: "i1", token: "t1", ok: true }), { status: 200 }); } return undefined; };
   const app = await createApp({ settings: { provider: "demo", leaveAlarm: true }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now: T0, beforeScripts: sh.install, route });
@@ -26,7 +26,7 @@ test("Commute watch: in the iPhone app, off by default; turning it on asks for n
   app.d.querySelector("#s_commuteWatch").checked = true;
   await submit(app);
   assert.equal(app.c.S().commuteWatch, true);
-  assert.deepEqual(sh.calls.filter((x) => x[0] === "request").map((x) => x[1]), ["notifications"], "notifications only, not the alarm or location");
+  assert.deepEqual(sh.calls.filter((x) => x[0] === "request").map((x) => x[1]), ["notifications", "location"], "notifications and location (the home fence), never the alarm");
   const shellCfg = sh.calls.filter((x) => x[0] === "configure").at(-1)[1];
   assert.equal("watch" in shellCfg.alarm, false, "the shell isn't told about the watch");
   // The proxy hears about it when the page registers (the bridge registers once it has an APNs token).
@@ -73,4 +73,29 @@ test("Commute watch: hidden in display mode even inside the iPhone app; a failed
   b.d.querySelector("#watchTestBtn").click(); await new Promise((r) => setTimeout(r, 30));
   assert.match(b.d.querySelector("#watchStatus").textContent, /^Couldn't send: BadDeviceToken/);
   b.close();
+});
+
+test("The app tells the proxy you're home once per evening: home Wi-Fi or a good fix at home, only with the watch on, only in the evening window", async () => {
+  const run = async ({ settings, now, act }) => {
+    const posts = [], listeners = {};
+    const install = (w) => { w.Capacitor = { isNativePlatform: () => true, Plugins: { CommuteNative: {
+      capabilities: async () => ({ v: 1, offline: true, wifi: true, geofence: true, auth: { notifications: "authorized", location: "authorizedAlways" } }),
+      publish: async () => {}, configure: async () => {}, cache: async () => {}, ready: async () => {}, addListener: (n, fn) => { listeners[n] = fn; } } } }; };
+    const route = (u, o) => { if (/\/native\/evidence/.test(u)) { posts.push(JSON.parse(o.body).evidence); return new Response(JSON.stringify({ ok: true }), { status: 200 }); } return undefined; };
+    const app = await createApp({ settings: { provider: "proxy", proxyBase: "https://proxy.test", ...settings }, saved: { native: { id: "i1", token: "t1" } }, geo: null, now, beforeScripts: install, route });
+    await new Promise((r) => setTimeout(r, 30));
+    await act(app, listeners); await new Promise((r) => setTimeout(r, 30));
+    app.close(); return posts;
+  };
+  const EVE = at("2026-11-19", "17:00"), MORN = at("2026-11-19", "07:00");
+  const wifiHome = async (app, l) => { l.wifi({ place: "home", at: app.w.Date.now() }); l.wifi({ place: "home", at: app.w.Date.now() }); };
+  const fixHome = async (app) => { app.c.onPosition({ coords: { latitude: 51.975, longitude: -0.23, accuracy: 20, speed: null }, timestamp: app.w.Date.now() }); };
+  const wifiPosts = await run({ settings: { commuteWatch: true }, now: EVE, act: wifiHome });
+  assert.equal(wifiPosts.length, 1, "once, though Wi-Fi was seen twice"); assert.equal(wifiPosts[0].kind, "wifi"); assert.equal(wifiPosts[0].place, "home");
+  const fixPosts = await run({ settings: { commuteWatch: true }, now: EVE, act: fixHome });
+  assert.equal(fixPosts.length, 1); assert.equal(fixPosts[0].kind, "place");
+  assert.equal((await run({ settings: {}, now: EVE, act: wifiHome })).length, 0, "watch off: nothing");
+  assert.equal((await run({ settings: { commuteWatch: true }, now: MORN, act: wifiHome })).length, 0, "morning: nothing (only the evening watch ends at home)");
+  const away = await run({ settings: { commuteWatch: true }, now: EVE, act: async (app) => { app.c.onPosition({ coords: { latitude: 51.53, longitude: -0.12, accuracy: 20, speed: null }, timestamp: app.w.Date.now() }); } });
+  assert.equal(away.length, 0, "a fix in London: nothing");
 });
