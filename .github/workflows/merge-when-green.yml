@@ -1,0 +1,76 @@
+# Pipeline merge (srapley-spec/how-we-work RULES 3 and 4, 18 Nov 2026; Sam asked for it here 20 Nov 2026).
+# Agent sessions push a branch and open a pull request; they do not merge. When the Tests workflow (web checks and
+# the iPhone simulator job) has passed on the pull request's final commit, this merges it into main (squash),
+# deletes the branch, then starts what main needs. A merge made with GITHUB_TOKEN does not trigger push workflows,
+# so this asks for the Pages build and dispatches Tests on main itself; Tests, once green on main, starts TestFlight.
+#
+# Branches merged: the agent prefixes in AGENT_PREFIXES (claude/, codex/). Add a prefix in how-we-work first.
+# Not merged automatically (Sam merges these himself): draft pull requests, other branch names, pull requests from
+# forks, and anything that changes .github/workflows (so a session cannot weaken the gate and merge in one step).
+# Never merges on top of a red main (RULES 4.3): it says so on the pull request and waits; re-run the pull
+# request's Tests once main is green.
+name: Merge when green
+on:
+  pull_request_target:
+    branches: [main]
+    types: [ready_for_review]
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  pages: write
+concurrency:
+  group: merge-when-green
+  cancel-in-progress: false
+env:
+  AGENT_PREFIXES: "claude/ codex/"
+jobs:
+  merge:
+    if: >-
+      (github.event_name == 'pull_request_target' && github.event.pull_request.draft == false &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       (startsWith(github.event.pull_request.head.ref, 'claude/') || startsWith(github.event.pull_request.head.ref, 'codex/'))) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository &&
+       (startsWith(github.event.workflow_run.head_branch, 'claude/') || startsWith(github.event.workflow_run.head_branch, 'codex/')))
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout: this job only reads metadata through the API and never runs the pull request's code.
+      - name: Merge when Tests passed, delete the branch, start main's checks and Pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref || github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          ok=no; for p in $AGENT_PREFIXES; do case "$BRANCH" in "$p"*) ok=yes;; esac; done
+          if [ "$ok" != yes ]; then echo "$BRANCH is not an agent branch. Nothing to merge."; exit 0; fi
+          pr=$(gh api "repos/$REPO/pulls?state=open&head=${REPO%%/*}:$BRANCH" --jq '[.[] | select(.draft == false)][0].number // empty')
+          if [ -z "$pr" ]; then echo "No open, ready pull request for $BRANCH. Nothing to merge."; exit 0; fi
+          head=$(gh api "repos/$REPO/pulls/$pr" --jq .head.sha)
+          if [ "$head" != "$SHA" ]; then echo "PR #$pr has new commits since this run; the next green run merges it."; exit 0; fi
+          files=$(gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[] | .filename, (.previous_filename // empty)')
+          if printf '%s\n' "$files" | grep -q '^\.github/workflows/'; then
+            gh api "repos/$REPO/issues/$pr/comments" -f body="Not merged automatically: this changes \`.github/workflows\`, so Sam merges it himself."
+            echo "Changes .github/workflows; left for Sam."; exit 0
+          fi
+          # The latest Tests run on the final commit (re-runs count by attempt) must have passed.
+          pr_tests=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&event=pull_request&per_page=100" \
+            --jq '[.workflow_runs[] | select(.name == "Tests")] | sort_by(.id, .run_attempt) | last | "\(.status)/\(.conclusion)"')
+          if [ "$pr_tests" != "completed/success" ]; then echo "Tests on $SHA is $pr_tests; waiting."; exit 0; fi
+          # Never merge on top of a red main.
+          main_tests=$(gh api "repos/$REPO/actions/runs?branch=main&status=completed&per_page=30" \
+            --jq '[.workflow_runs[] | select(.name == "Tests" and .event != "pull_request")] | sort_by(.id) | last | .conclusion // "none"')
+          if [ "$main_tests" != "success" ]; then
+            gh api "repos/$REPO/issues/$pr/comments" -f body="Not merged yet: the latest Tests run on \`main\` is \`$main_tests\`. Fix \`main\` first, then re-run this pull request's Tests."
+            echo "main is $main_tests; not merging."; exit 0
+          fi
+          merged=$(gh api -X PUT "repos/$REPO/pulls/$pr/merge" -f merge_method=squash -f sha="$SHA" --jq .sha)
+          gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH" || echo "Branch already gone."
+          gh api -X POST "repos/$REPO/pages/builds" >/dev/null || echo "::warning::Could not request a Pages build; check Pages for $merged."
+          gh workflow run test.yml --repo "$REPO" --ref main
+          echo "Merged PR #$pr as $merged; Pages build and Tests on main started (Tests starts TestFlight when green)."

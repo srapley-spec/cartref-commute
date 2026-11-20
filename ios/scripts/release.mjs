@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { appStoreClient, nextBuildNumber } from './app-store.mjs';
-import { testedMainSHA } from './release-policy.mjs';
+import { releaseSHA } from './release-policy.mjs';
 import { verifyBundle } from './verify-bundle.mjs';
 import { signingTargets, verifyProfile } from './signing-policy.mjs';
 
@@ -49,10 +49,10 @@ let originalKeychains;
 try {
   const head = await run('git', ['rev-parse', 'HEAD'], true);
   if (!exportOnly) {
-    if (process.env.GITHUB_EVENT_NAME !== 'workflow_run' || process.env.GITHUB_ACTIONS !== 'true') {
+    if (!['workflow_run', 'workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME) || process.env.GITHUB_ACTIONS !== 'true') {
       throw new Error('Uploads run only from the trusted TestFlight workflow. Use --export-only for local signing checks.');
     }
-    const tested = testedMainSHA(JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8')));
+    const tested = releaseSHA(process.env.GITHUB_EVENT_NAME, JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8')));
     if (head !== tested) throw new Error('Checkout differs from the exact main SHA that passed Tests.');
   }
   for (const name of secretNames) if (!process.env[name]) throw new Error(`Missing GitHub Actions secret ${name}.`);

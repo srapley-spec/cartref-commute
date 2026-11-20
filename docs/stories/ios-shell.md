@@ -29,7 +29,13 @@ said not to submit for Apple review until the app works. Account invitations and
   (19 Nov: build 14 from `4ad81b4` uploaded, then one poll failed with "fetch failed" and the release was reported
   as failed, though the upload had gone through.) Test: `tests/ios-release.test.mjs`, "TestFlight wait: a dropped
   check is retried".
-- Only successful pushes from this repository's main branch may access signing inputs. PR validation has no signing
+- A merge made by "Merge when green" (20 Nov) is a push by GitHub's own token, which starts no workflows. So the
+  pipeline dispatches Tests on main itself, and that run's last job (after the web and iPhone jobs pass) dispatches
+  TestFlight with the commit and the run id. Before any signing, TestFlight checks through GitHub's API that the
+  commit is on main and that this Tests run, on main for that commit, passed both jobs; the release script accepts
+  only those two events (a main push's completed Tests run, or this dispatch). Tests: `tests/ios-shell.test.mjs`,
+  "a pipeline merge reaches TestFlight…" and "iOS release accepts a dispatched main commit…".
+- Only successful pushes from this repository's main branch (or the checked dispatch above) may access signing inputs. PR validation has no signing
   secrets. The app is exported with `testFlightInternalTestingOnly=true`; no workflow submits for review.
 - Signing happens in a temporary keychain and private directory, cleaned on success or failure; the API key's role
   remains Developer. SIGINT/SIGTERM cancel in-flight commands and API requests and still run cleanup; hard-killed
@@ -47,6 +53,8 @@ said not to submit for Apple review until the app works. Account invitations and
 - tests/test-runner.test.mjs: "test runner discovers page and core suites and propagates either failure"
 - tests/ios-shell.test.mjs: "iOS bundles the committed page verbatim and excludes credentials and stale files"
 - tests/ios-shell.test.mjs: "iOS release accepts only the exact successful main push from this repository"
+- tests/ios-shell.test.mjs: "iOS release accepts a dispatched main commit only with its Tests run, and only from the two trusted events"
+- tests/ios-shell.test.mjs: "a pipeline merge reaches TestFlight: Tests starts it only after both jobs pass on a dispatched main run"
 - tests/ios-shell.test.mjs: "iOS build numbers increase over every existing build and reject ambiguous formats"
 - tests/ios-shell.test.mjs: "Apple API authentication handles pagination without exposing credentials or following foreign links"
 - tests/ios-shell.test.mjs: "TestFlight queues every passing main revision with internal-only export and no PR signing secrets"

@@ -26,6 +26,10 @@ test('cost changes preserve every tested main release and no PR signing',()=>{
  assert.equal(w.concurrency.queue,'max');
  assert(!w.concurrency['cancel-in-progress']);
  for(const text of ["conclusion == 'success'","event == 'push'","head_branch == 'main'","head_repository.full_name == 'srapley-spec/cartref-commute'"]) assert(w.jobs.upload.if.includes(text));
- assert.equal(w.jobs.upload.steps[0].with.ref,'${{ github.event.workflow_run.head_sha }}');
+ const checkout=w.jobs.upload.steps.find(s=>s.uses?.startsWith('actions/checkout@'));
+ assert.equal(checkout.with.ref,'${{ github.event.workflow_run.head_sha || inputs.source_sha }}');
+ // A dispatched release (after a pipeline merge) is checked through the API before checkout and signing.
+ assert.equal(w.jobs.upload.steps[0].if,"github.event_name == 'workflow_dispatch'");
+ assert(w.jobs.upload.if.includes("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"));
  assert(!JSON.stringify(load('test')).includes('secrets.'));
 });

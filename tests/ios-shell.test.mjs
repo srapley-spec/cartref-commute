@@ -8,7 +8,7 @@ import { createHash, generateKeyPairSync, verify } from 'node:crypto';
 import { parse } from 'yaml';
 import { stageWeb } from '../ios/scripts/stage-web.mjs';
 import { nextBuildNumber, appStoreClient } from '../ios/scripts/app-store.mjs';
-import { testedMainSHA, repository } from '../ios/scripts/release-policy.mjs';
+import { testedMainSHA, dispatchedMainSHA, releaseSHA, repository } from '../ios/scripts/release-policy.mjs';
 import { checkChange } from '../tools/check-docs.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -35,6 +35,44 @@ test('iOS bundles the committed page verbatim and excludes credentials and stale
     await rm(path.join(dir, 'index.html'));
     await assert.rejects(stageWeb(dir, output), /ENOENT/);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('iOS release accepts a dispatched main commit only with its Tests run, and only from the two trusted events', () => {
+  const event = { ref: 'refs/heads/main', repository: { full_name: repository }, inputs: { source_sha: 'b'.repeat(40), tests_run_id: '123' } };
+  assert.equal(dispatchedMainSHA(event), 'b'.repeat(40));
+  assert.equal(releaseSHA('workflow_dispatch', event), 'b'.repeat(40));
+  assert.throws(() => dispatchedMainSHA({ ...event, ref: 'refs/heads/claude/anything' }));
+  assert.throws(() => dispatchedMainSHA({ ...event, repository: { full_name: 'someone/fork' } }));
+  assert.throws(() => dispatchedMainSHA({ ...event, inputs: { ...event.inputs, source_sha: 'main' } }));
+  assert.throws(() => dispatchedMainSHA({ ...event, inputs: { source_sha: 'b'.repeat(40) } }));
+  assert.throws(() => dispatchedMainSHA({ ...event, inputs: { ...event.inputs, tests_run_id: '12; rm' } }));
+  assert.throws(() => releaseSHA('push', event));
+  assert.throws(() => releaseSHA('pull_request', event));
+  assert.throws(() => releaseSHA('workflow_run', event));
+});
+
+test('a pipeline merge reaches TestFlight: Tests starts it only after both jobs pass on a dispatched main run', async () => {
+  const job = parse(await read('.github/workflows/test.yml')).jobs.testflight;
+  assert.deepEqual(job.needs, ['test', 'ios']);
+  assert.equal(job.if, "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");
+  assert.deepEqual(job.permissions, { actions: 'write' });
+  assert.match(job.steps[0].run, /^gh workflow run testflight\.yml .*--ref main -f source_sha="\$\{\{ github\.sha \}\}" -f tests_run_id="\$\{\{ github\.run_id \}\}"$/);
+  const upload = parse(await read('.github/workflows/testflight.yml')).jobs.upload;
+  const names = upload.steps.map(step => step.name ?? step.uses);
+  const check = upload.steps[0];
+  assert.equal(check.if, "github.event_name == 'workflow_dispatch'");
+  assert.match(check.run, /compare\/\$SHA\.\.\.main/);
+  assert.match(check.run, /"Tests\|\$SHA\|main\|workflow_dispatch\|\$REPO"/);
+  assert.match(check.run, /"ios=success,test=success"/);
+  assert.ok(names.indexOf('Sign and upload for internal testing') > 0, 'the API check runs before signing');
+  const merge = parse(await read('.github/workflows/merge-when-green.yml'));
+  assert.deepEqual(merge.on.workflow_run.workflows, ['Tests']);
+  const steps = merge.jobs.merge.steps;
+  assert.equal(steps.some(step => step.uses?.startsWith('actions/checkout')), false, 'never checks out pull request code');
+  const script = steps.map(step => step.run ?? '').join('\n');
+  assert.match(script, /\.github\/workflows\//, 'leaves workflow changes for Sam');
+  assert.match(script, /latest Tests run on \\`main\\` is/, 'refuses to merge on a red main');
+  assert.match(script, /gh workflow run test\.yml --repo "\$REPO" --ref main/);
 });
 
 test('iOS release accepts only the exact successful main push from this repository', () => {
@@ -102,20 +140,22 @@ test('Apple API authentication handles pagination without exposing credentials o
 
 test('TestFlight queues every passing main revision with internal-only export and no PR signing secrets', async () => {
   const release = parse(await read('.github/workflows/testflight.yml'));
-  assert.deepEqual(release.on, { workflow_run: { workflows: ['Tests'], types: ['completed'], branches: ['main'] } });
+  assert.deepEqual(release.on.workflow_run, { workflows: ['Tests'], types: ['completed'], branches: ['main'] });
+  assert.deepEqual(Object.keys(release.on).sort(), ['workflow_dispatch', 'workflow_run']);
+  assert.deepEqual(Object.keys(release.on.workflow_dispatch.inputs).sort(), ['source_sha', 'tests_run_id']);
   assert.equal(release.concurrency.queue, 'max');
   assert.notEqual(release.concurrency['cancel-in-progress'], true);
-  assert.deepEqual(release.permissions, { contents: 'read' });
+  assert.deepEqual(release.permissions, { contents: 'read', actions: 'read' });
   const job = release.jobs.upload;
-  assert.equal(job.if.replace(/\s+/g, ' ').trim(), [
+  assert.equal(job.if.replace(/\s+/g, ' ').replace(/\( /g, '(').trim(), [
+    "github.repository == 'srapley-spec/cartref-commute' && ((github.event_name == 'workflow_run'",
     "github.event.workflow_run.conclusion == 'success'",
     "github.event.workflow_run.event == 'push'",
     "github.event.workflow_run.head_branch == 'main'",
-    "github.event.workflow_run.head_repository.full_name == 'srapley-spec/cartref-commute'",
-    "github.repository == 'srapley-spec/cartref-commute'"
-  ].join(' && '));
+    "github.event.workflow_run.head_repository.full_name == 'srapley-spec/cartref-commute') ||",
+  ].join(' && ').replace('&& ) ||', ') ||') + " (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))");
   const checkout = job.steps.find(s => s.uses?.startsWith('actions/checkout@'));
-  assert.equal(checkout.with.ref, '${{ github.event.workflow_run.head_sha }}');
+  assert.equal(checkout.with.ref, '${{ github.event.workflow_run.head_sha || inputs.source_sha }}');
   assert.equal(checkout.with['persist-credentials'], false);
   const testWorkflow = await read('.github/workflows/test.yml');
   assert.doesNotMatch(testWorkflow, /secrets\./);

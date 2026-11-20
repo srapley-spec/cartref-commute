@@ -112,6 +112,11 @@ If a chat, issue or memory disagrees with these files, the files win until they'
   by PID. A fresh clone may fetch only some branches: add a fetch refspec for a branch you need to track.
 
 ## Release
+- **The pipeline merges (20 Nov, RULES 3).** Open a ready pull request from a `claude/*` or `codex/*` branch and
+  "Merge when green" squash-merges it once the Tests workflow (web and iPhone jobs) passes on its final commit and the
+  latest Tests run on `main` is green; it then requests the Pages build and runs Tests on `main`, which starts
+  TestFlight when green. Not ready to go live? Open a draft. Drafts, other branch names, forks and `.github/workflows`
+  changes are left for Sam. Sessions don't merge by hand. Where this conflicts with the merge paths below, this wins.
 - `main` is live (GitHub Pages publishes every push at once, before GitHub's tests finish). Work on a branch; merge
   to `main` as below.
 - **Finish authorised work through release (Sam, 1 Nov).** Once the work, tests and required independent review

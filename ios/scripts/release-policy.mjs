@@ -9,3 +9,20 @@ export function testedMainSHA(event) {
   }
   return run.head_sha;
 }
+
+// A run that Merge when green dispatched creates no workflow_run event, so Tests dispatches TestFlight itself once its
+// web and iPhone jobs pass on main. The workflow's first step checks that run through GitHub's API before this runs.
+export function dispatchedMainSHA(event) {
+  const sha = event.inputs?.source_sha;
+  if (event.ref !== 'refs/heads/main' || event.repository?.full_name !== repository ||
+      !/^[a-f0-9]{40}$/.test(sha ?? '') || !/^[0-9]+$/.test(event.inputs?.tests_run_id ?? '')) {
+    throw new Error('A dispatched TestFlight needs a main commit and the Tests run that passed it, in the Commute repository.');
+  }
+  return sha;
+}
+
+export function releaseSHA(eventName, event) {
+  if (eventName === 'workflow_run') return testedMainSHA(event);
+  if (eventName === 'workflow_dispatch') return dispatchedMainSHA(event);
+  throw new Error('Uploads run only from the trusted TestFlight workflow.');
+}
