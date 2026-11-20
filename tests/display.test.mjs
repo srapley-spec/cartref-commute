@@ -223,6 +223,7 @@ test("Display next: plain ?display and the normal app are unchanged", async () =
 // Sam, 20 Nov 2026): Leisure's Leave now from home to London, with the rail and every tube line's status.
 const line = (id, name, sev, desc) => ({ id, name, statuses: [{ sev, desc, reason: "" }] });
 const GOOD = 10;
+const TUBE = ["bakerloo", "central", "circle", "district", "hammersmith-city", "jubilee", "metropolitan", "northern", "piccadilly", "victoria", "waterloo-city"];
 
 test("Display hall: the fastest way to London from home, the same pick as the Leisure display, arriving at a London terminal", async () => {
   const app = await hallApp("?display=hall");
@@ -238,6 +239,7 @@ test("Display hall: the fastest way to London from home, the same pick as the Le
   assert.match(board, /in \d+ min|Leave now/);
   assert.match(board, /Thameslink/);
   assert.match(board, /platform 1/);
+  assert.match(board, /On time/, "the train's own status");
   assert.match(board, /In London\s*\d\d:\d\d at (King's Cross|St Pancras)/, board);
   assert.doesNotMatch(board, /office/i, "nothing about Sam's office");
   assert.ok(visible(app, app.d.querySelector("#hallBoard")), "the board is shown");
@@ -259,7 +261,7 @@ test("Display hall: the status row says good service only when every line is kno
   assert.match(row, /Trains: unavailable/); assert.match(row, /Tube: unavailable/, "a failed fetch says so, not 'checking…' for ever");
   assert.doesNotMatch(row, /good service/, "an empty answer isn't good service either");
   s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
-  s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id[0].toUpperCase() + id.slice(1), GOOD, "Good Service"));
+  s.status = TUBE.map((id) => line(id, id[0].toUpperCase() + id.slice(1), GOOD, "Good Service"));
   s.nrOkAt = s.statusAt = now - 2 * M;
   row = pills();
   assert.match(row, /Trains: good service/); assert.match(row, /Tube: good service/);
@@ -271,7 +273,7 @@ test("Display hall: the status row says good service only when every line is kno
   assert.doesNotMatch(row, /Trains: good service/); assert.doesNotMatch(row, /Tube: good service/);
   assert.match(row, /hb-pill warn/, "a problem looks different, not only by colour: it carries a mark");
   assert.match(row, /hb-warn/);
-  s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id, 5, "Part Closure"));
+  s.status = TUBE.slice(0, 4).map((id) => line(id, id, 5, "Part Closure")).concat(TUBE.slice(4).map((id) => line(id, id, GOOD, "Good Service")));
   row = pills();
   assert.equal((row.match(/: Part Closure/g) || []).length, 2, "at most two tube lines by name");
   assert.match(row, /\+2 more tube lines/);
@@ -283,7 +285,7 @@ test("Display hall: an old answer, a line with no status or a missing rail line 
   const s = app.c.state, now = HALL_START;
   const good = (id, name) => line(id, name, GOOD, "Good Service");
   const rail = () => [good("thameslink", "Thameslink"), good("great-northern", "Great Northern")];
-  const tube = () => ["bakerloo", "central", "circle"].map((id) => good(id, id));
+  const tube = () => TUBE.map((id) => good(id, id));
   s.nrStatus = rail(); s.status = tube(); s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS + M;
   assert.match(app.c.hallStatusPills(now), /Trains: good service.*Tube: good service/, "fresh enough");
   s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS - M;
@@ -291,18 +293,22 @@ test("Display hall: an old answer, a line with no status or a missing rail line 
   assert.match(row, /Trains: not up to date/); assert.match(row, /Tube: not up to date/);
   assert.doesNotMatch(row, /good service/, "an old 'good' is not shown as current");
   s.nrOkAt = s.statusAt = now - M;
-  s.status = [...tube(), { id: "victoria", name: "Victoria", statuses: [] }];
+  s.status = [...tube().slice(0, 10), { id: "waterloo-city", name: "Waterloo & City", statuses: [] }];
   row = app.c.hallStatusPills(now);
   assert.match(row, /Tube: not every line known/); assert.doesNotMatch(row, /Tube: good service/);
+  s.status = tube().slice(0, 3);
+  assert.match(app.c.hallStatusPills(now), /Tube: not every line known/, "TfL's answer leaving lines out isn't good service");
   s.status = tube(); s.nrStatus = [good("thameslink", "Thameslink")];
   row = app.c.hallStatusPills(now);
   assert.match(row, /Trains: not every line known/, "Great Northern missing from the answer");
   assert.doesNotMatch(row, /Trains: good service/);
   s.nrStatus = [good("thameslink", "Thameslink"), line("great-northern", "Great Northern", 6, "Severe Delays")];
-  s.status = [...tube(), { id: "victoria", name: "Victoria", statuses: [] }];
+  s.status = [...tube().slice(0, 10), { id: "waterloo-city", name: "Waterloo & City", statuses: [] }];
   row = app.c.hallStatusPills(now);
   assert.match(row, /Great Northern: Severe Delays/); assert.doesNotMatch(row, /Trains: good service/);
   assert.match(row, /Tube: not every line known/);
+  s.status = [line("central", "Central", 6, "Severe Delays"), ...tube().slice(1, 10), { id: "victoria", name: "Victoria", statuses: [] }];
+  assert.match(app.c.hallStatusPills(now), /Central: Severe Delays.*Tube: others unknown/, "named problems still show");
   s.status = [good("x", "<img src=x onerror=alert(1)>")]; s.status[0].statuses[0].sev = 6; s.status[0].statuses[0].desc = "Severe Delays";
   assert.doesNotMatch(app.c.hallStatusPills(now), /<img/, "line names are escaped");
   app.close();
@@ -313,15 +319,17 @@ test("Display hall: the tube closed overnight is routine, not a problem", async 
   const s = app.c.state, now = HALL_START;
   s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
   s.nrOkAt = s.statusAt = now - M;
-  s.status = ["bakerloo", "central", "circle"].map((id) => line(id, id, 20, "Service Closed"));
+  s.status = TUBE.map((id) => line(id, id, 20, "Service Closed"));
   let row = app.c.hallStatusPills(now);
-  assert.match(row, /Tube: closed for the night/); assert.doesNotMatch(row, /Tube: good service/);
+  assert.match(row, /Tube: closed for the night/); assert.match(row, /hb-pill unknown">Tube: closed/, "not drawn as a good ✓"); assert.doesNotMatch(row, /Tube: good service/);
   assert.doesNotMatch(row, /Service Closed/, "no line is named as a problem");
-  s.status = [line("bakerloo", "Bakerloo", 20, "Service Closed"), line("central", "Central", GOOD, "Good Service"), line("victoria", "Victoria", GOOD, "Good Service")];
+  s.status = TUBE.map((id) => line(id, id, GOOD, "Good Service")); s.status[0] = line("bakerloo", "Bakerloo", 20, "Service Closed");
   row = app.c.hallStatusPills(now);
   assert.match(row, /Tube: good service · 1 closed/);
   s.status[1] = line("central", "Central", 2, "Suspended");
   assert.match(app.c.hallStatusPills(now), /Central: Suspended/, "a suspension is still a problem");
+  s.status[1] = { id: "central", name: "Central", statuses: [{ sev: 20, desc: "Service Closed" }, { sev: 9, desc: "Minor Delays" }] };
+  assert.match(app.c.hallStatusPills(now), /Central: Minor Delays/, "a delay isn't hidden behind the overnight closure");
   app.close();
 });
 
@@ -329,6 +337,28 @@ test("Display hall: the hall actually fetches every tube line, and the row shows
   const app = await hallApp("?display=hall");
   assert.ok(app.calls.some((u) => u.includes("/Line/Mode/tube/Status")), `the whole tube mode is fetched:\n${app.calls.join("\n")}`);
   assert.ok(!app.calls.some((u) => u.includes("/Line/circle,metropolitan,hammersmith-city/Status")), "not only the three lines");
+  app.close();
+});
+
+test("Display hall: when the status feeds fail, an old good service turns into 'not up to date', and recovers", async () => {
+  let failing = false;
+  const tflLines = (names) => names.map((id) => ({ id, name: id, lineStatuses: [{ statusSeverity: GOOD, statusSeverityDescription: "Good Service" }] }));
+  const route = (u) => {
+    if (u.startsWith(PROXY) && u.includes("/Line/Mode/tube/Status")) return failing ? json({ err: 1 }, 500) : json(tflLines(TUBE));
+    if (u.startsWith(PROXY) && u.includes("/national-rail/Status")) return failing ? json({ err: 1 }, 500) : json(tflLines(["thameslink", "great-northern"]));
+    return hallRoute(u);
+  };
+  const app = await createApp({ url: BASE + "?display=hall", settings: { provider: "proxy", proxyBase: PROXY }, now: HALL_START, route });
+  const row = () => app.d.querySelector("#hallBoard .hb-row").textContent;
+  const at = async (min) => { app.setNow(HALL_START + min * M); await app.c.refresh(); await sleep(20); app.c.render(); return row(); };
+  assert.match(await at(1), /Trains: good service.*Tube: good service/);
+  failing = true;
+  assert.match(await at(14), /Trains: good service.*Tube: good service/, "within 15 minutes the last answer stands");
+  const old = await at(17);
+  assert.match(old, /Trains: not up to date/); assert.match(old, /Tube: not up to date/);
+  assert.doesNotMatch(old, /good service/);
+  failing = false;
+  assert.match(await at(25), /Trains: good service.*Tube: good service/, "back once the feeds are");
   app.close();
 });
 

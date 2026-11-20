@@ -91,8 +91,9 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
   "+N more". A problem carries a mark as well as a colour. **Never "good" while unknown** (tightened after the
   independent review, 20 Nov): no answer yet says "checking…"; a failed or empty answer says "unavailable"; an answer
   more than 15 minutes old (3× the slowest status refresh, rail's 5 minutes) says "not up to date"; a line with no
-  status, or Thameslink or Great Northern missing from the answer, says "not every line known" (any named problems
-  still show). Line names are escaped.
+  status, Thameslink or Great Northern missing from the answer, or fewer than the 11 tube lines, says "not every
+  line known" (any named problems still show, then "others unknown"). A line closed overnight that also has a delay
+  is named for the delay. Line names are escaped.
 - **The tube overnight:** TfL's "Service Closed" (severity 20) is routine, not a problem: no line is named for it.
   All closed says "Tube: closed for the night"; some closed with the rest good says "Tube: good service · N closed".
   Other closures and suspensions are still problems. (Claude's default, 20 Nov, for Sam to confirm.)
@@ -103,7 +104,9 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
   isn't redrawn; stale data (over 3 minutes) is greyed and says "not up to date"; 2 minutes old is fresh. The board
   isn't a live region: a screen reader isn't made to re-read it each minute.
 - **Not yet tested:** the choice between King's Cross and St Pancras when the two boards differ (the fixture gives both
-  the same Thameslink trains); the train's own status text on the card.
+  the same Thameslink trains; the ranking is the shared Leisure code, and the pick is checked against Leisure's own).
+- **For Sam to confirm:** "Service Closed" is treated as routine at any hour, so a line closed all day (Waterloo & City
+  on a Sunday) is counted ("· 1 closed"), not warned.
 - **Plain `?display`, `?display=next` and the normal app are unchanged.**
 
 ## Tests
@@ -123,6 +126,7 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
 - tests/display.test.mjs: "Display hall: an old answer, a line with no status or a missing rail line is unknown, never good service"
 - tests/display.test.mjs: "Display hall: the tube closed overnight is routine, not a problem"
 - tests/display.test.mjs: "Display hall: the hall actually fetches every tube line, and the row shows the answer"
+- tests/display.test.mjs: "Display hall: when the status feeds fail, an old good service turns into 'not up to date', and recovers"
 - tests/display.test.mjs: "Display hall: the board's times are the pick's, in whole minutes against the clock"
 - tests/display.test.mjs: "Display hall: every tube line's status in the same single request; the other displays keep their three lines"
 - tests/display.test.mjs: "Display hall: an always-on screen stays inside its request budget, like the other displays"

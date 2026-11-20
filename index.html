@@ -962,7 +962,7 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 14:03 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 14:25 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -7800,6 +7800,7 @@ function renderHallNext(list, now){
 const HALL_STATUS_STALE_MS = 15 * 60e3;                      // 3× the slowest status refresh (rail, 5 min)
 const HALL_RAIL_LINES = [/thameslink/i, /great.?northern/i];
 const HALL_CLOSED_FOR_NIGHT = 20;
+const HALL_TUBE_LINES = 11;                                  // fewer in TfL's answer: not every line known
 function hallStatusPills(now = Date.now()){
   const pill=(ok,txt)=>`<span class="hb-pill ${ok?"ok":"warn"}">${ok?"":`<span class="hb-warn" aria-hidden="true">!</span>`}${esc(txt)}</span>`;
   const unknown=(label,txt)=>`<span class="hb-pill unknown">${esc(label)}: ${esc(txt)}</span>`;
@@ -7810,16 +7811,19 @@ function hallStatusPills(now = Date.now()){
     const nightOnly=l=>l.statuses.length>0&&l.statuses.every(s=>s.sev===HALL_CLOSED_FOR_NIGHT);
     const known=lines.filter(l=>Array.isArray(l.statuses)&&l.statuses.length);
     const bad=known.filter(l=>!nightOnly(l)&&!lineOk(l)), closed=known.filter(nightOnly).length;
-    const missing=(expected||[]).some(re=>!known.some(l=>re.test(`${l.id} ${l.name}`)))||known.length<lines.length;
+    const missing=(Array.isArray(expected)?expected.some(re=>!known.some(l=>re.test(`${l.id} ${l.name}`))):known.length<expected)
+      ||known.length<lines.length;
     const plural=label==="Tube"?"tube lines":"lines";
-    const named=bad.slice(0,2).map(l=>pill(false,`${l.name}: ${(worst(l)||{}).desc||"disrupted"}`)).join("")
+    // A line closed overnight with a delay as well is named for the delay, not the routine closure.
+    const why=l=>(worst({...l,statuses:l.statuses.filter(s=>s.sev!==HALL_CLOSED_FOR_NIGHT)})||worst(l)||{}).desc||"disrupted";
+    const named=bad.slice(0,2).map(l=>pill(false,`${l.name}: ${why(l)}`)).join("")
       +(bad.length>2?pill(false,`+${bad.length-2} more ${plural}`):"");
     if(missing) return named+unknown(label,bad.length?"others unknown":"not every line known");
     if(bad.length) return named;
     if(closed===known.length) return unknown(label,"closed for the night");
     return pill(true,`${label}: good service${closed?` · ${closed} closed`:""}`);
   };
-  return group("Trains",state.nrStatus,state.nrOkAt,HALL_RAIL_LINES)+group("Tube",state.status,state.statusAt,null);
+  return group("Trains",state.nrStatus,state.nrOkAt,HALL_RAIL_LINES)+group("Tube",state.status,state.statusAt,HALL_TUBE_LINES);
 }
 // A few pixels each minute, so an always-on OLED panel doesn't keep the same picture (the card stays put).
 function hallBoardSpot(now){ const m=Math.floor(now/60e3); return {x:((m*37)%7-3), y:((m*53)%7-3)}; }
