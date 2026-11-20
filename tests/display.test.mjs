@@ -218,3 +218,122 @@ test("Display next: plain ?display and the normal app are unchanged", async () =
   assert.ok(!visible(n, n.d.querySelector("#hallNext")));
   n.close();
 });
+
+// ?display=hall: the hall iPhone on its stand (docs/stories/display-mode.md, "The hall's fastest way to London";
+// Sam, 20 Nov 2026): Leisure's Leave now from home to London, with the rail and every tube line's status.
+const line = (id, name, sev, desc) => ({ id, name, statuses: [{ sev, desc, reason: "" }] });
+const GOOD = 10;
+
+test("Display hall: the fastest way to London from home, the same pick as the Leisure display, arriving at a London terminal", async () => {
+  const app = await hallApp("?display=hall");
+  const html = app.d.documentElement;
+  assert.ok(html.classList.contains("display-hall") && html.classList.contains("display-mode"), "every display rule applies");
+  assert.ok(!html.classList.contains("display-next"));
+  assert.equal(app.c.state.saved.mode, "leisure", "Leisure: home to London, not the office");
+  assert.equal(app.c.direction(), "office");
+  const board = app.text("#hallBoard");
+  assert.match(board, /Fastest to London/);
+  const heroLeave = app.text("#hero").match(/Leave by\s*(\d\d:\d\d)/)[1];
+  assert.match(board, new RegExp(`Leave by\\s*${heroLeave}`), `the same Leave by as Leisure's best (${heroLeave}): ${board}`);
+  assert.match(board, /in \d+ min|Leave now/);
+  assert.match(board, /Thameslink/);
+  assert.match(board, /platform 1/);
+  assert.match(board, /In London\s*\d\d:\d\d at (King's Cross|St Pancras)/, board);
+  assert.doesNotMatch(board, /office/i, "nothing about Sam's office");
+  assert.ok(visible(app, app.d.querySelector("#hallBoard")), "the board is shown");
+  assert.ok(!visible(app, app.d.querySelector(".wrap")) && !visible(app, app.d.querySelector("#hallNext")), "nothing else is");
+  assert.deepEqual(app.errors, []);
+  app.close();
+});
+
+test("Display hall: the status row says good service only when every line is known to be good, and names each problem", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state;
+  s.nrStatus = null; s.status = null;
+  let row = app.c.hallStatusPills();
+  assert.match(row, /Trains: checking…/); assert.match(row, /Tube: checking…/);
+  assert.doesNotMatch(row, /good service/, "never 'good' while unknown");
+  s.nrStatus = []; s.status = [];
+  row = app.c.hallStatusPills();
+  assert.match(row, /Trains: checking…/); assert.match(row, /Tube: checking…/);
+  assert.doesNotMatch(row, /good service/, "an empty answer isn't good service either");
+  s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
+  s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id[0].toUpperCase() + id.slice(1), GOOD, "Good Service"));
+  row = app.c.hallStatusPills();
+  assert.match(row, /Trains: good service/); assert.match(row, /Tube: good service/);
+  assert.doesNotMatch(row, /hb-pill warn/);
+  s.nrStatus[1] = line("great-northern", "Great Northern", 6, "Severe Delays");
+  s.status[2] = line("circle", "Circle", 9, "Minor Delays");
+  row = app.c.hallStatusPills();
+  assert.match(row, /Great Northern: Severe Delays/); assert.match(row, /Circle: Minor Delays/);
+  assert.doesNotMatch(row, /Trains: good service/); assert.doesNotMatch(row, /Tube: good service/);
+  assert.match(row, /hb-pill warn/, "a problem looks different, not only by colour: it carries a mark");
+  assert.match(row, /hb-warn/);
+  s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id, 5, "Part Closure"));
+  row = app.c.hallStatusPills();
+  assert.equal((row.match(/: Part Closure/g) || []).length, 2, "at most two tube lines by name");
+  assert.match(row, /\+2 more tube lines/);
+  app.close();
+});
+
+test("Display hall: every tube line's status in the same single request; the other displays keep their three lines", async () => {
+  const h = await hallApp("?display=hall");
+  assert.equal(h.c.TFL_STATUS_URL, "https://api.tfl.gov.uk/Line/Mode/tube/Status");
+  h.close();
+  for (const url of ["?display", "?display=next", ""]) {
+    const a = await hallApp(url);
+    assert.equal(a.c.TFL_STATUS_URL, "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status", url || "the app");
+    assert.equal(a.c.DISPLAY_HALL, false);
+    a.close();
+  }
+});
+
+test("Display hall: an always-on screen stays inside its request budget, like the other displays", async () => {
+  const start = HALL_START;
+  const app = await hallApp("?display=hall", start);
+  const atLoad = app.calls.length, perMinute = [];
+  for (let i = 1; i <= 10; i++) {
+    app.setNow(start + i * M);
+    const before = app.calls.length;
+    await app.c.refresh(); await sleep(30);
+    const made = app.calls.slice(before);
+    assert.ok(made.filter((u) => /\/board\//.test(u)).length <= 3, `minute ${i}: at most three boards\n${made.join("\n")}`);
+    perMinute.push(made.length);
+  }
+  assert.ok(app.calls.every((u) => u.startsWith(PROXY)), "everything goes through the proxy");
+  assert.ok(atLoad <= 8, `at load: ${atLoad}`);
+  const total = perMinute.reduce((a, b) => a + b, 0);
+  assert.ok(total <= 40, `under four requests a minute on average: ${perMinute.join(",")}`);
+  app.close();
+});
+
+test("Display hall: whole minutes only, a few pixels' drift each minute, stale data greyed and said", async () => {
+  const app = await hallApp("?display=hall");
+  const list = app.c.ranked(HALL_START);
+  const a = app.c.hallBoardMarkup(list, HALL_START + 5e3), b = app.c.hallBoardMarkup(list, HALL_START + 50e3);
+  assert.equal(a, b, "nothing changes within a minute");
+  const spots = new Set();
+  for (let i = 0; i < 7; i++) { const p = app.c.hallBoardSpot(HALL_START + i * M); spots.add(`${p.x},${p.y}`);
+    assert.ok(Math.abs(p.x) <= 3 && Math.abs(p.y) <= 3, `only a few pixels: ${p.x},${p.y}`); }
+  assert.ok(spots.size >= 6, `it does move: ${[...spots].join(" ")}`);
+  app.c.state.fetchedAt = HALL_START - 4 * M;
+  const stale = app.c.hallBoardMarkup(list, HALL_START);
+  assert.match(stale, /class="hb stale"/); assert.match(stale, /not up to date/);
+  const boards = app.c.state.boards; app.c.state.boards = null; app.c.state.loading = false;
+  assert.match(app.c.hallBoardMarkup([], HALL_START), /No train data yet/);
+  app.c.state.boards = boards;
+  app.close();
+});
+
+test("Display hall: ?display, ?display=next and the normal app are unchanged", async () => {
+  for (const url of ["?display", "?display=next"]) {
+    const a = await hallApp(url);
+    assert.equal(a.c.state.saved.mode, "commute", url);
+    assert.ok(!a.d.documentElement.classList.contains("display-hall"), url);
+    assert.ok(!visible(a, a.d.querySelector("#hallBoard")), `${url}: no hall board`);
+    a.close();
+  }
+  const n = await hallApp("");
+  assert.ok(!visible(n, n.d.querySelector("#hallBoard")));
+  n.close();
+});

@@ -852,6 +852,29 @@ html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:cent
 .hn-status:not(.ok){color:#a8823f}
 .hn-age{margin-top:.8em;font-size:clamp(11px,2.6vw,16px);color:#5c5c5c}
 .hn-card.stale{color:#5c5c5c}
+/* ?display=hall (hall iPhone on its stand, beside the wall screen's clock): fills its frame; text changes at most
+   once a minute; a few pixels' drift each minute for the OLED panel. */
+#hallBoard{display:none}
+html.display-hall,html.display-hall body{background:#0c0e13!important}
+html.display-hall body>:not(#hallBoard){display:none!important}
+html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:border-box;padding:4vh 4vw 4vh 0;color:#fff;font-variant-numeric:tabular-nums}
+.hb{flex:1;display:flex;flex-direction:column;gap:3vh;min-width:0}
+.hb-card{flex:1;border-radius:22px;background:#1b1f28;padding:4vh 5vw;display:flex;flex-direction:column;justify-content:center;gap:1.2vh;min-height:0}
+.hb-lbl{font-size:clamp(11px,4vh,16px);font-weight:700;letter-spacing:.04em;color:#a9b0bd;text-transform:uppercase}
+.hb-leave{font-size:clamp(28px,15vh,64px);font-weight:800;line-height:1}
+.hb-leave span{font-size:.34em;font-weight:600;color:#c9ced8;margin-right:.3em;vertical-align:middle}
+.hb-in{font-size:clamp(16px,6.6vh,28px);font-weight:700;color:#ffd166}
+.hb-train,.hb-arrive,.hb-msg{font-size:clamp(12px,4.6vh,19px);line-height:1.4}
+.hb-arrive{color:#c9ced8}.hb-arrive b{color:#fff}
+.hb-status:not(.ok){display:inline-block;padding:0 .4em;border-radius:6px;background:#ffd166;color:#1c1600;font-weight:800}
+.hb-age{font-size:clamp(10px,3vh,13px);color:#9aa1ad}
+.hb-row{display:flex;flex-wrap:wrap;gap:1.5vh 1vw}
+.hb-pill{display:inline-flex;align-items:center;gap:.4em;min-height:clamp(28px,10vh,40px);padding:0 .9em;border-radius:12px;font-size:clamp(12px,4vh,16px);font-weight:600;background:#16261a}
+.hb-pill.ok::before{content:"✓";color:#7ee07e;font-weight:800}
+.hb-pill.warn{background:#ffd166;color:#1c1600;font-weight:700}
+.hb-warn{display:inline-flex;align-items:center;justify-content:center;width:1.2em;height:1.2em;border-radius:50%;background:#1c1600;color:#ffd166;font-size:.8em;font-weight:800}
+.hb-pill.unknown{background:#1b1f28;color:#a9b0bd}
+.hb.stale .hb-card{opacity:.55}
 #displaySetup{border-radius:12px;padding:12px;background:var(--card);border-left:4px solid var(--accent);display:grid;gap:8px}
 #displaySetup .row-actions{display:flex;gap:8px;flex-wrap:wrap}
 </style>
@@ -859,6 +882,7 @@ html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:cent
 <body>
 
 <div id="hallNext" aria-live="polite"></div>
+<div id="hallBoard" aria-live="polite"></div>
 <div class="wrap">
   <header>
     <div>
@@ -939,7 +963,7 @@ html.display-next #hallNext{display:flex;position:fixed;inset:0;align-items:cent
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 19 Nov 18:39 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 13:16 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -6445,9 +6469,14 @@ const LS = "cartrefCommute.v1";
 const DISPLAY = new URLSearchParams(location.search).has("display");
 // ?display=next: one dim card for the hall iPhone (story display-mode.md, "The hall's next train"). Every display rule applies.
 const DISPLAY_NEXT = DISPLAY && new URLSearchParams(location.search).get("display") === "next";
+// ?display=hall: the hall iPhone on its stand (story display-mode.md, "The hall's fastest way to London"; Sam, 20 Nov
+// 2026). Leisure's Leave now from home to London (first London terminal: King's Cross or St Pancras), not Sam's
+// office, with the rail and every tube line's status. Every display rule applies.
+const DISPLAY_HALL = DISPLAY && new URLSearchParams(location.search).get("display") === "hall";
 if(DISPLAY) document.documentElement.classList.add("display-mode");
 if(DISPLAY_NEXT) document.documentElement.classList.add("display-next");
-const displaySaved = saved => DISPLAY ? { mode:"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
+if(DISPLAY_HALL) document.documentElement.classList.add("display-hall");
+const displaySaved = saved => DISPLAY ? { mode:DISPLAY_HALL?"leisure":"commute", dirMode:"office", pace:saved.pace||"avg", view:"now", settings:saved.settings||{} } : saved;
 // Display mode never follows a route, opens Along the line or runs the simulator, whatever Settings say.
 const DISPLAY_OFF = { alongLine:false, simulatorEnabled:false, simulatedFeeds:false };
 // Retired feature switches (Sam, 18 Nov, #63): Follow a route, Any start and end point and Trip are permanent. Saved
@@ -6795,8 +6824,10 @@ async function fetchAldgateArrivals(){
       platform:a.platformName||'',stopId:a.naptanId||null,observedAt:a.timestamp?Date.parse(a.timestamp):null,where:a.currentLocation||'' }))
     .filter(a=>Number.isFinite(a.t));
 }
+// The hall board summarises every tube line (Sam, 20 Nov): the whole mode in the same single request.
+const TFL_STATUS_URL = DISPLAY_HALL ? "https://api.tfl.gov.uk/Line/Mode/tube/Status" : "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status";
 async function fetchTfl(){
-  const r=await fetchTfl_("https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status");
+  const r=await fetchTfl_(TFL_STATUS_URL);
   if(!r.ok) throw new Error(`TfL status error (HTTP ${r.status}).`);
   return (await r.json()).map(l=>({ id:l.id, name:l.name, statuses:(l.lineStatuses||[]).map(s=>({sev:s.statusSeverity,desc:s.statusSeverityDescription,reason:s.reason||""})) }));
 }
@@ -7760,6 +7791,41 @@ function renderHallNext(list, now){
   if(state.hallNextHtml === html) return;     // unchanged: don't touch the screen
   state.hallNextHtml = html; $("#hallNext").innerHTML = html;
 }
+// ?display=hall. The status row: the rail lines on the way (Thameslink, Great Northern) and every tube line,
+// "good service" or each line with a problem by name (at most two, then "+N more"). Never "good" while unknown.
+function hallStatusPills(){
+  const pill=(ok,txt)=>`<span class="hb-pill ${ok?"ok":"warn"}">${ok?"":`<span class="hb-warn" aria-hidden="true">!</span>`}${esc(txt)}</span>`;
+  const group=(label,lines)=>{
+    if(!Array.isArray(lines)||!lines.length) return `<span class="hb-pill unknown">${esc(label)}: checking…</span>`;
+    const bad=lines.filter(l=>!lineOk(l));
+    if(!bad.length) return pill(true,`${label}: good service`);
+    const named=bad.slice(0,2).map(l=>pill(false,`${l.name}: ${(worst(l)||{}).desc||"disrupted"}`)).join("");
+    return named+(bad.length>2?pill(false,`+${bad.length-2} more ${label==="Tube"?"tube lines":"lines"}`):"");
+  };
+  return group("Trains",state.nrStatus)+group("Tube",state.status);
+}
+// A few pixels each minute, so an always-on OLED panel doesn't keep the same picture (the card stays put).
+function hallBoardSpot(now){ const m=Math.floor(now/60e3); return {x:((m*37)%7-3), y:((m*53)%7-3)}; }
+function hallBoardMarkup(list, now){
+  const stale = !state.fetchedAt || now - state.fetchedAt > C.SNAPSHOT_STALE_MS;
+  const j = state.boards ? list.filter(o=>o.recommended).sort((a,b)=>a.recommended-b.recommended)[0] : null;
+  let body;
+  if(!state.boards) body = `<div class="hb-msg">${state.loading?"Loading live trains…":"No train data yet"}</div>`;
+  else if(!j) body = `<div class="hb-msg">No catchable trains to London in the next two hours</div>`;
+  else { const t=j.train, st=C.trainStatus(t), mins=Math.floor(j.leave/60e3)-Math.floor(now/60e3);
+    body = `<div class="hb-leave"><span>Leave by</span> <b class="t">${hhmm(j.leave)}</b></div>`
+      + `<div class="hb-in">${mins>=1?`in ${mins} min`:"Leave now"}</div>`
+      + `<div class="hb-train">${esc(C.trainName(t))}${t.platform?` · platform ${esc(t.platform)}`:""}${st?` · <span class="hb-status ${esc(st.level)}">${esc(st.text)}</span>`:""}</div>`
+      + `<div class="hb-arrive">In London <b class="t">${hhmm(j.arrive)}</b>${j.dest?` at ${esc(j.dest)}`:""}</div>`; }
+  const age = state.fetchedAt ? `<div class="hb-age">as of ${hhmm(state.fetchedAt)}${stale?" · not up to date":""}</div>` : "";
+  const p = hallBoardSpot(now);
+  return `<div class="hb${stale?" stale":""}" style="transform:translate(${p.x}px,${p.y}px)"><div class="hb-card"><div class="hb-lbl">Fastest to London</div>${body}${age}</div><div class="hb-row">${hallStatusPills()}</div></div>`;
+}
+function renderHallBoard(list, now){
+  const html = hallBoardMarkup(list, now);
+  if(state.hallBoardHtml === html) return;
+  state.hallBoardHtml = html; $("#hallBoard").innerHTML = html;
+}
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
   const out=leisure && outTo(dir,"leisure");
@@ -8312,6 +8378,7 @@ function renderInner(){
     const list=state.boards?ranked(now):[];
     renderHero(list, now); renderList(list, now); $("#listTitle").textContent="Next trains, in leaving order";
     if(DISPLAY_NEXT) renderHallNext(list, now);
+    if(DISPLAY_HALL) renderHallBoard(list, now);
   }
   renderStatus(); renderDiag(); tick();
   const rc=requestCounts();
@@ -12298,7 +12365,7 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
+window.__commute={hallBoardMarkup,hallStatusPills,hallBoardSpot,DISPLAY_HALL,TFL_STATUS_URL,fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
 })();
 </script>
 
