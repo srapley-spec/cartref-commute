@@ -369,6 +369,12 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **20 Nov, the hall board is the fastest way to London, not Sam's office (Sam: "why not say the next fastest route
+  to London. It should also show if there is a good service or if there are issues on the train or tubes").**
+  `?display=hall` uses Leisure's home-to-London planning (first London terminal: King's Cross or St Pancras) and
+  summarises Thameslink, Great Northern and every tube line; the tube status request asks for the whole mode in the
+  same one request (`display-mode.md`, "The hall's fastest way to London").
+
 - **19 Nov, Home Assistant says when you're home (Sam: "The phone always knows where I am. And we can use Home
   Assistant to be doubly sure").** The proxy reads Sam's `person` entity from Home Assistant (read-only, a long-lived
   token in the Worker's secrets) for the evening watch of an iPhone that opted in: "home" ends it, anything else keeps

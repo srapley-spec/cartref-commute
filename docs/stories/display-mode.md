@@ -1,5 +1,5 @@
 # Display mode: a read-only board for a wall screen or a Home Assistant frame
-Status: Done (10 Nov 2026); the hall's next-train card (`?display=next`) built 18 Nov 2026
+Status: Done (10 Nov 2026); the hall's next-train card (`?display=next`) built 18 Nov 2026; the hall's fastest way to London (`?display=hall`) built 20 Nov 2026
 
 ## Story
 As someone at home about to leave for work, I want the next journeys from Letchworth on a screen in the house (a
@@ -72,6 +72,43 @@ it on its side (landscape) and in the portrait screen saver; the screen is alway
   two hours".
 - **Plain `?display` and the normal app are unchanged.**
 
+## The hall's fastest way to London (`?display=hall`, 20 Nov 2026)
+For the hall iPhone on its stand (landscape), beside the wall screen's own clock and alarm button (Cartref Hall,
+`srapley-spec/Ring---HA-Integration`, `docs/hall/CONTRACT.md` §4). Sam, 20 Nov 2026, choosing design D on the canvas
+"Hall landscape options": "Instead of next train to the office as that's very specific to me … why not say the next
+fastest route to London. It should also show if there is a good service or if there are issues on the train or
+tubes." His choices the same day: "First arrival at any London terminal"; "Every tube line, summarised".
+- **Turned on by** `?display=hall`. Every display-mode rule applies (no controls, no location, never Follow, saves
+  nothing, same refresh and request budget), except the question: **Leisure, To London, Leave now, from home**, the
+  same planning as the Leisure display. London means the first London terminal on the way: King's Cross (Great
+  Northern) or St Pancras (Thameslink); Farringdon always comes after St Pancras on the same train. Leisure's
+  walking pace applies.
+- **The card:** "Fastest to London", Leave by, "in N min" (or "Leave now"), the train, its platform and status,
+  "In London HH:MM at King's Cross" (or St Pancras), and "as of" the last update. It is the Leisure display's top
+  recommendation from the same ranked list.
+- **The status row:** "Trains: good service" (Thameslink and Great Northern) and "Tube: good service" (every tube
+  line), or each line with a problem by name ("Great Northern: Severe Delays"), at most two per group, then
+  "+N more". A problem carries a mark as well as a colour. **Never "good" while unknown** (tightened after the
+  independent review, 20 Nov): no answer yet says "checking…"; a failed or empty answer says "unavailable"; an answer
+  more than 15 minutes old (3× the slowest status refresh, rail's 5 minutes) says "not up to date"; a line with no
+  status, Thameslink or Great Northern missing from the answer, or fewer than the 11 tube lines, says "not every
+  line known" (any named problems still show, then "others unknown"). A line closed overnight that also has a delay
+  is named for the delay. Line names are escaped.
+- **The tube overnight:** TfL's "Service Closed" (severity 20) is routine, not a problem: no line is named for it.
+  All closed says "Tube: closed for the night"; some closed with the rest good says "Tube: good service · N closed".
+  Other closures and suspensions are still problems. (Claude's default, 20 Nov, for Sam to confirm.)
+- **Every tube line in one request:** the hall board asks TfL for the whole tube mode instead of three lines, in the
+  same single status request, so the request budget is unchanged (held by a test).
+- **Kind to an always-on screen:** text changes at most once a minute; the whole board drifts up to 3 px each minute
+  (a big static picture would mark an OLED panel) by moving the board, not by rewriting its text, and unchanged text
+  isn't redrawn; stale data (over 3 minutes) is greyed and says "not up to date"; 2 minutes old is fresh. The board
+  isn't a live region: a screen reader isn't made to re-read it each minute.
+- **Not yet tested:** the choice between King's Cross and St Pancras when the two boards differ (the fixture gives both
+  the same Thameslink trains; the ranking is the shared Leisure code, and the pick is checked against Leisure's own).
+- **For Sam to confirm:** "Service Closed" is treated as routine at any hour, so a line closed all day (Waterloo & City
+  on a Sunday) is counted ("· 1 closed"), not warned.
+- **Plain `?display`, `?display=next` and the normal app are unchanged.**
+
 ## Tests
 - tests/display.test.mjs: "Display mode: Leave now from home to the office, whatever this browser last had on screen"
 - tests/display.test.mjs: "Display mode: only the status line, the recommendation, the list and 'Updated' are shown; every control is hidden"
@@ -84,6 +121,17 @@ it on its side (landscape) and in the portrait screen saver; the screen is alway
 - tests/display.test.mjs: "Display next: whole minutes only, so the card's text changes at most once a minute, and it moves each minute"
 - tests/display.test.mjs: "Display next: data more than 3 minutes old is greyed and says so; no data says so"
 - tests/display.test.mjs: "Display next: plain ?display and the normal app are unchanged"
+- tests/display.test.mjs: "Display hall: the fastest way to London from home, the same pick as the Leisure display, arriving at a London terminal"
+- tests/display.test.mjs: "Display hall: the status row says good service only when every line is known to be good, and names each problem"
+- tests/display.test.mjs: "Display hall: an old answer, a line with no status or a missing rail line is unknown, never good service"
+- tests/display.test.mjs: "Display hall: the tube closed overnight is routine, not a problem"
+- tests/display.test.mjs: "Display hall: the hall actually fetches every tube line, and the row shows the answer"
+- tests/display.test.mjs: "Display hall: when the status feeds fail, an old good service turns into 'not up to date', and recovers"
+- tests/display.test.mjs: "Display hall: the board's times are the pick's, in whole minutes against the clock"
+- tests/display.test.mjs: "Display hall: every tube line's status in the same single request; the other displays keep their three lines"
+- tests/display.test.mjs: "Display hall: an always-on screen stays inside its request budget, like the other displays"
+- tests/display.test.mjs: "Display hall: whole minutes only, a few pixels' drift each minute, stale data greyed and said"
+- tests/display.test.mjs: "Display hall: ?display, ?display=next and the normal app are unchanged"
 - Checked in a real browser (Chromium, 420 px and 800 px wide, light and dark) with example trains: no control is
   visible; only "Journey steps" and "Full details" can be tapped.
 

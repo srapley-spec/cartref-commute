@@ -218,3 +218,231 @@ test("Display next: plain ?display and the normal app are unchanged", async () =
   assert.ok(!visible(n, n.d.querySelector("#hallNext")));
   n.close();
 });
+
+// ?display=hall: the hall iPhone on its stand (docs/stories/display-mode.md, "The hall's fastest way to London";
+// Sam, 20 Nov 2026): Leisure's Leave now from home to London, with the rail and every tube line's status.
+const line = (id, name, sev, desc) => ({ id, name, statuses: [{ sev, desc, reason: "" }] });
+const GOOD = 10;
+const TUBE = ["bakerloo", "central", "circle", "district", "hammersmith-city", "jubilee", "metropolitan", "northern", "piccadilly", "victoria", "waterloo-city"];
+
+test("Display hall: the fastest way to London from home, the same pick as the Leisure display, arriving at a London terminal", async () => {
+  const app = await hallApp("?display=hall");
+  const html = app.d.documentElement;
+  assert.ok(html.classList.contains("display-hall") && html.classList.contains("display-mode"), "every display rule applies");
+  assert.ok(!html.classList.contains("display-next"));
+  assert.equal(app.c.state.saved.mode, "leisure", "Leisure: home to London, not the office");
+  assert.equal(app.c.direction(), "office");
+  const board = app.text("#hallBoard");
+  assert.match(board, /Fastest to London/);
+  const heroLeave = app.text("#hero").match(/Leave by\s*(\d\d:\d\d)/)[1];
+  assert.match(board, new RegExp(`Leave by\\s*${heroLeave}`), `the same Leave by as Leisure's best (${heroLeave}): ${board}`);
+  assert.match(board, /in \d+ min|Leave now/);
+  assert.match(board, /Thameslink/);
+  assert.match(board, /platform 1/);
+  assert.match(board, /On time/, "the train's own status");
+  assert.match(board, /In London\s*\d\d:\d\d at (King's Cross|St Pancras)/, board);
+  assert.doesNotMatch(board, /office/i, "nothing about Sam's office");
+  assert.ok(visible(app, app.d.querySelector("#hallBoard")), "the board is shown");
+  assert.ok(!visible(app, app.d.querySelector(".wrap")) && !visible(app, app.d.querySelector("#hallNext")), "nothing else is");
+  assert.deepEqual(app.errors, []);
+  app.close();
+});
+
+test("Display hall: the status row says good service only when every line is known to be good, and names each problem", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state, now = HALL_START;
+  const pills = () => app.c.hallStatusPills(now);
+  s.nrStatus = null; s.status = null;
+  let row = pills();
+  assert.match(row, /Trains: checking…/); assert.match(row, /Tube: checking…/);
+  assert.doesNotMatch(row, /good service/, "never 'good' while unknown");
+  s.nrStatus = []; s.status = [];
+  row = pills();
+  assert.match(row, /Trains: unavailable/); assert.match(row, /Tube: unavailable/, "a failed fetch says so, not 'checking…' for ever");
+  assert.doesNotMatch(row, /good service/, "an empty answer isn't good service either");
+  s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
+  s.status = TUBE.map((id) => line(id, id[0].toUpperCase() + id.slice(1), GOOD, "Good Service"));
+  s.nrOkAt = s.statusAt = now - 2 * M;
+  row = pills();
+  assert.match(row, /Trains: good service/); assert.match(row, /Tube: good service/);
+  assert.doesNotMatch(row, /hb-pill warn/);
+  s.nrStatus[1] = line("great-northern", "Great Northern", 6, "Severe Delays");
+  s.status[2] = line("circle", "Circle", 9, "Minor Delays");
+  row = pills();
+  assert.match(row, /Great Northern: Severe Delays/); assert.match(row, /Circle: Minor Delays/);
+  assert.doesNotMatch(row, /Trains: good service/); assert.doesNotMatch(row, /Tube: good service/);
+  assert.match(row, /hb-pill warn/, "a problem looks different, not only by colour: it carries a mark");
+  assert.match(row, /hb-warn/);
+  s.status = TUBE.slice(0, 4).map((id) => line(id, id, 5, "Part Closure")).concat(TUBE.slice(4).map((id) => line(id, id, GOOD, "Good Service")));
+  row = pills();
+  assert.equal((row.match(/: Part Closure/g) || []).length, 2, "at most two tube lines by name");
+  assert.match(row, /\+2 more tube lines/);
+  app.close();
+});
+
+test("Display hall: an old answer, a line with no status or a missing rail line is unknown, never good service", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state, now = HALL_START;
+  const good = (id, name) => line(id, name, GOOD, "Good Service");
+  const rail = () => [good("thameslink", "Thameslink"), good("great-northern", "Great Northern")];
+  const tube = () => TUBE.map((id) => good(id, id));
+  s.nrStatus = rail(); s.status = tube(); s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS + M;
+  assert.match(app.c.hallStatusPills(now), /Trains: good service.*Tube: good service/, "fresh enough");
+  s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS - M;
+  let row = app.c.hallStatusPills(now);
+  assert.match(row, /Trains: not up to date/); assert.match(row, /Tube: not up to date/);
+  assert.doesNotMatch(row, /good service/, "an old 'good' is not shown as current");
+  s.nrOkAt = s.statusAt = now - M;
+  s.status = [...tube().slice(0, 10), { id: "waterloo-city", name: "Waterloo & City", statuses: [] }];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: not every line known/); assert.doesNotMatch(row, /Tube: good service/);
+  s.status = tube().slice(0, 3);
+  assert.match(app.c.hallStatusPills(now), /Tube: not every line known/, "TfL's answer leaving lines out isn't good service");
+  s.status = tube(); s.nrStatus = [good("thameslink", "Thameslink")];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Trains: not every line known/, "Great Northern missing from the answer");
+  assert.doesNotMatch(row, /Trains: good service/);
+  s.nrStatus = [good("thameslink", "Thameslink"), line("great-northern", "Great Northern", 6, "Severe Delays")];
+  s.status = [...tube().slice(0, 10), { id: "waterloo-city", name: "Waterloo & City", statuses: [] }];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Great Northern: Severe Delays/); assert.doesNotMatch(row, /Trains: good service/);
+  assert.match(row, /Tube: not every line known/);
+  s.status = [line("central", "Central", 6, "Severe Delays"), ...tube().slice(1, 10), { id: "victoria", name: "Victoria", statuses: [] }];
+  assert.match(app.c.hallStatusPills(now), /Central: Severe Delays.*Tube: others unknown/, "named problems still show");
+  s.status = [good("x", "<img src=x onerror=alert(1)>")]; s.status[0].statuses[0].sev = 6; s.status[0].statuses[0].desc = "Severe Delays";
+  assert.doesNotMatch(app.c.hallStatusPills(now), /<img/, "line names are escaped");
+  app.close();
+});
+
+test("Display hall: the tube closed overnight is routine, not a problem", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state, now = HALL_START;
+  s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
+  s.nrOkAt = s.statusAt = now - M;
+  s.status = TUBE.map((id) => line(id, id, 20, "Service Closed"));
+  let row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: closed for the night/); assert.match(row, /hb-pill unknown">Tube: closed/, "not drawn as a good ✓"); assert.doesNotMatch(row, /Tube: good service/);
+  assert.doesNotMatch(row, /Service Closed/, "no line is named as a problem");
+  s.status = TUBE.map((id) => line(id, id, GOOD, "Good Service")); s.status[0] = line("bakerloo", "Bakerloo", 20, "Service Closed");
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: good service · 1 closed/);
+  s.status[1] = line("central", "Central", 2, "Suspended");
+  assert.match(app.c.hallStatusPills(now), /Central: Suspended/, "a suspension is still a problem");
+  s.status[1] = { id: "central", name: "Central", statuses: [{ sev: 20, desc: "Service Closed" }, { sev: 9, desc: "Minor Delays" }] };
+  assert.match(app.c.hallStatusPills(now), /Central: Minor Delays/, "a delay isn't hidden behind the overnight closure");
+  app.close();
+});
+
+test("Display hall: the hall actually fetches every tube line, and the row shows the answer", async () => {
+  const app = await hallApp("?display=hall");
+  assert.ok(app.calls.some((u) => u.includes("/Line/Mode/tube/Status")), `the whole tube mode is fetched:\n${app.calls.join("\n")}`);
+  assert.ok(!app.calls.some((u) => u.includes("/Line/circle,metropolitan,hammersmith-city/Status")), "not only the three lines");
+  app.close();
+});
+
+test("Display hall: when the status feeds fail, an old good service turns into 'not up to date', and recovers", async () => {
+  let failing = false;
+  const tflLines = (names) => names.map((id) => ({ id, name: id, lineStatuses: [{ statusSeverity: GOOD, statusSeverityDescription: "Good Service" }] }));
+  const route = (u) => {
+    if (u.startsWith(PROXY) && u.includes("/Line/Mode/tube/Status")) return failing ? json({ err: 1 }, 500) : json(tflLines(TUBE));
+    if (u.startsWith(PROXY) && u.includes("/national-rail/Status")) return failing ? json({ err: 1 }, 500) : json(tflLines(["thameslink", "great-northern"]));
+    return hallRoute(u);
+  };
+  const app = await createApp({ url: BASE + "?display=hall", settings: { provider: "proxy", proxyBase: PROXY }, now: HALL_START, route });
+  const row = () => app.d.querySelector("#hallBoard .hb-row").textContent;
+  const at = async (min) => { app.setNow(HALL_START + min * M); await app.c.refresh(); await sleep(20); app.c.render(); return row(); };
+  assert.match(await at(1), /Trains: good service.*Tube: good service/);
+  failing = true;
+  assert.match(await at(14), /Trains: good service.*Tube: good service/, "within 15 minutes the last answer stands");
+  const old = await at(17);
+  assert.match(old, /Trains: not up to date/); assert.match(old, /Tube: not up to date/);
+  assert.doesNotMatch(old, /good service/);
+  failing = false;
+  assert.match(await at(25), /Trains: good service.*Tube: good service/, "back once the feeds are");
+  app.close();
+});
+
+test("Display hall: the board's times are the pick's, in whole minutes against the clock", async () => {
+  const app = await hallApp("?display=hall");
+  const now = HALL_START;
+  app.c.state.fetchedAt = now - 2 * M;
+  const list = app.c.ranked(now), j = list.filter((o) => o.recommended).sort((a, b) => a.recommended - b.recommended)[0];
+  const html = app.c.hallBoardMarkup(list, now);
+  const mins = Math.floor(j.leave / M) - Math.floor(now / M);
+  assert.match(html, new RegExp(mins >= 1 ? `in ${mins} min` : "Leave now"));
+  assert.match(html, new RegExp(`In London <b class="t">${hm(j.arrive)}</b>`), "the arrival, not the leave time");
+  assert.match(html, /as of \d\d:\d\d/);
+  assert.doesNotMatch(html, /not up to date/, "2 minutes old is still fresh");
+  assert.doesNotMatch(html, /class="hb stale"/);
+  app.close();
+});
+
+test("Display hall: every tube line's status in the same single request; the other displays keep their three lines", async () => {
+  const h = await hallApp("?display=hall");
+  assert.equal(h.c.TFL_STATUS_URL, "https://api.tfl.gov.uk/Line/Mode/tube/Status");
+  h.close();
+  for (const url of ["?display", "?display=next", ""]) {
+    const a = await hallApp(url);
+    assert.equal(a.c.TFL_STATUS_URL, "https://api.tfl.gov.uk/Line/circle,metropolitan,hammersmith-city/Status", url || "the app");
+    assert.equal(a.c.DISPLAY_HALL, false);
+    a.close();
+  }
+});
+
+test("Display hall: an always-on screen stays inside its request budget, like the other displays", async () => {
+  const start = HALL_START;
+  const app = await hallApp("?display=hall", start);
+  const atLoad = app.calls.length, perMinute = [];
+  for (let i = 1; i <= 10; i++) {
+    app.setNow(start + i * M);
+    const before = app.calls.length;
+    await app.c.refresh(); await sleep(30);
+    const made = app.calls.slice(before);
+    assert.ok(made.filter((u) => /\/board\//.test(u)).length <= 3, `minute ${i}: at most three boards\n${made.join("\n")}`);
+    perMinute.push(made.length);
+  }
+  assert.ok(app.calls.every((u) => u.startsWith(PROXY)), "everything goes through the proxy");
+  assert.ok(atLoad <= 8, `at load: ${atLoad}`);
+  const total = perMinute.reduce((a, b) => a + b, 0);
+  assert.ok(total <= 40, `under four requests a minute on average: ${perMinute.join(",")}`);
+  app.close();
+});
+
+test("Display hall: whole minutes only, a few pixels' drift each minute, stale data greyed and said", async () => {
+  const app = await hallApp("?display=hall");
+  const list = app.c.ranked(HALL_START);
+  const a = app.c.hallBoardMarkup(list, HALL_START + 5e3), b = app.c.hallBoardMarkup(list, HALL_START + 50e3);
+  assert.equal(a, b, "nothing changes within a minute");
+  assert.doesNotMatch(a, /translate/, "the drift moves the board, not its text");
+  const board = app.d.querySelector("#hallBoard");
+  app.c.renderHallBoard(list, HALL_START); const t0 = board.style.transform, h0 = board.innerHTML;
+  app.c.renderHallBoard(list, HALL_START + M); const t1 = board.style.transform;
+  assert.match(t0, /translate\(-?\dpx, ?-?\dpx\)/); assert.notEqual(t0, t1, "it moves each minute");
+  board.innerHTML = "kept"; app.c.renderHallBoard(list, HALL_START + M + 5e3);
+  assert.equal(board.innerHTML, "kept", "unchanged text isn't redrawn");
+  board.innerHTML = h0;
+  const spots = new Set();
+  for (let i = 0; i < 7; i++) { const p = app.c.hallBoardSpot(HALL_START + i * M); spots.add(`${p.x},${p.y}`);
+    assert.ok(Math.abs(p.x) <= 3 && Math.abs(p.y) <= 3, `only a few pixels: ${p.x},${p.y}`); }
+  assert.ok(spots.size >= 6, `it does move: ${[...spots].join(" ")}`);
+  app.c.state.fetchedAt = HALL_START - 4 * M;
+  const stale = app.c.hallBoardMarkup(list, HALL_START);
+  assert.match(stale, /class="hb stale"/); assert.match(stale, /not up to date/);
+  const boards = app.c.state.boards; app.c.state.boards = null; app.c.state.loading = false;
+  assert.match(app.c.hallBoardMarkup([], HALL_START), /No train data yet/);
+  app.c.state.boards = boards;
+  app.close();
+});
+
+test("Display hall: ?display, ?display=next and the normal app are unchanged", async () => {
+  for (const url of ["?display", "?display=next"]) {
+    const a = await hallApp(url);
+    assert.equal(a.c.state.saved.mode, "commute", url);
+    assert.ok(!a.d.documentElement.classList.contains("display-hall"), url);
+    assert.ok(!visible(a, a.d.querySelector("#hallBoard")), `${url}: no hall board`);
+    a.close();
+  }
+  const n = await hallApp("");
+  assert.ok(!visible(n, n.d.querySelector("#hallBoard")));
+  n.close();
+});
