@@ -235,7 +235,6 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
 </style>
 
 <div id="hallNext" aria-live="polite"></div>
-<div id="hallBoard" aria-live="polite"></div>
 <div class="wrap">
   <header>
     <div>
@@ -455,6 +454,8 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
   </form>
 </dialog>
 
+<!-- ?display=hall. After the page, not before it: an extra element ahead of .wrap shifts :nth-child matches. -->
+<div id="hallBoard" aria-live="polite"></div>
 <!--__SIMULATOR_PANEL__-->
 <script>
 (() => {

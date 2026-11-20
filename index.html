@@ -882,7 +882,6 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
 <body>
 
 <div id="hallNext" aria-live="polite"></div>
-<div id="hallBoard" aria-live="polite"></div>
 <div class="wrap">
   <header>
     <div>
@@ -963,7 +962,7 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 13:16 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 13:47 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1102,6 +1101,8 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
   </form>
 </dialog>
 
+<!-- ?display=hall. After the page, not before it: an extra element ahead of .wrap shifts :nth-child matches. -->
+<div id="hallBoard" aria-live="polite"></div>
 <style>
 #simDock{position:fixed;z-index:9998;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;max-height:100vh;max-height:100dvh;pointer-events:none;font:14px system-ui;color:var(--ink)}
 #simPanel{pointer-events:auto;display:flex;flex-direction:column;flex:0 1 auto;min-height:0;width:calc(100% - 16px);max-width:580px;margin:8px;max-height:58vh;max-height:58dvh;overflow:hidden;padding:14px 14px 0;border:1px solid var(--accent);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 4px 24px #0007}
