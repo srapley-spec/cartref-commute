@@ -4,9 +4,20 @@ on:
     workflows: [Tests]
     types: [completed]
     branches: [main]
+  # Started by Tests once its web and iPhone jobs pass on a dispatched main run (Merge when green dispatches Tests
+  # with GITHUB_TOKEN, which creates no workflow_run event). The first step checks that run through the API.
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Main commit that passed Tests
+        required: true
+      tests_run_id:
+        description: The Tests run on main whose web and iPhone jobs passed it
+        required: true
 
 permissions:
   contents: read
+  actions: read
 
 # Preserve every tested main revision, including web-only commits. GitHub allows up to 100 pending runs.
 concurrency:
@@ -16,11 +27,13 @@ concurrency:
 jobs:
   upload:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == 'srapley-spec/cartref-commute' &&
-      github.repository == 'srapley-spec/cartref-commute'
+      github.repository == 'srapley-spec/cartref-commute' && (
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == 'srapley-spec/cartref-commute') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
     runs-on: xcode-27
     timeout-minutes: 60
     env:
@@ -29,10 +42,27 @@ jobs:
       ASC_ISSUER_ID: aedb05d9-7e5f-424f-b147-64f12ec0567a
       ASC_APP_ID: '6836040622'
     steps:
+      - name: A dispatched commit must be on main and have passed Tests there
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ inputs.source_sha }}
+          RUN: ${{ inputs.tests_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "source_sha must be a full commit id"; exit 1; }
+          [[ "$RUN" =~ ^[0-9]+$ ]] || { echo "tests_run_id must be a run id"; exit 1; }
+          on_main=$(gh api "repos/$REPO/compare/$SHA...main" --jq .status)
+          case "$on_main" in identical|ahead) ;; *) echo "$SHA is not on main ($on_main)"; exit 1;; esac
+          run=$(gh api "repos/$REPO/actions/runs/$RUN" --jq '"\(.name)|\(.head_sha)|\(.head_branch)|\(.event)|\(.head_repository.full_name)"')
+          [ "$run" = "Tests|$SHA|main|workflow_dispatch|$REPO" ] || { echo "Run $RUN is not a main Tests run of $SHA ($run)"; exit 1; }
+          jobs=$(gh api "repos/$REPO/actions/runs/$RUN/jobs?filter=latest" --jq '[.jobs[] | select(.name == "test" or .name == "ios") | "\(.name)=\(.conclusion)"] | sort | join(",")')
+          [ "$jobs" = "ios=success,test=success" ] || { echo "Tests run $RUN jobs: $jobs"; exit 1; }
       - name: Check out the exact tested main commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || inputs.source_sha }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -52,7 +82,7 @@ jobs:
       - name: Build provenance (no signing inputs)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: testflight-provenance-${{ github.event.workflow_run.head_sha }}
+          name: testflight-provenance-${{ github.event.workflow_run.head_sha || inputs.source_sha }}
           path: ios/App/output/build-provenance.json
           if-no-files-found: error
           retention-days: 90
