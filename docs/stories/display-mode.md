@@ -88,12 +88,22 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
   recommendation from the same ranked list.
 - **The status row:** "Trains: good service" (Thameslink and Great Northern) and "Tube: good service" (every tube
   line), or each line with a problem by name ("Great Northern: Severe Delays"), at most two per group, then
-  "+N more". A problem carries a mark as well as a colour. **Never "good" while unknown:** no answer yet, or an
-  empty one, says "checking…".
+  "+N more". A problem carries a mark as well as a colour. **Never "good" while unknown** (tightened after the
+  independent review, 20 Nov): no answer yet says "checking…"; a failed or empty answer says "unavailable"; an answer
+  more than 15 minutes old (3× the slowest status refresh, rail's 5 minutes) says "not up to date"; a line with no
+  status, or Thameslink or Great Northern missing from the answer, says "not every line known" (any named problems
+  still show). Line names are escaped.
+- **The tube overnight:** TfL's "Service Closed" (severity 20) is routine, not a problem: no line is named for it.
+  All closed says "Tube: closed for the night"; some closed with the rest good says "Tube: good service · N closed".
+  Other closures and suspensions are still problems. (Claude's default, 20 Nov, for Sam to confirm.)
 - **Every tube line in one request:** the hall board asks TfL for the whole tube mode instead of three lines, in the
   same single status request, so the request budget is unchanged (held by a test).
 - **Kind to an always-on screen:** text changes at most once a minute; the whole board drifts up to 3 px each minute
-  (a big static picture would mark an OLED panel); stale data (over 3 minutes) is greyed and says "not up to date".
+  (a big static picture would mark an OLED panel) by moving the board, not by rewriting its text, and unchanged text
+  isn't redrawn; stale data (over 3 minutes) is greyed and says "not up to date"; 2 minutes old is fresh. The board
+  isn't a live region: a screen reader isn't made to re-read it each minute.
+- **Not yet tested:** the choice between King's Cross and St Pancras when the two boards differ (the fixture gives both
+  the same Thameslink trains); the train's own status text on the card.
 - **Plain `?display`, `?display=next` and the normal app are unchanged.**
 
 ## Tests
@@ -110,6 +120,10 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
 - tests/display.test.mjs: "Display next: plain ?display and the normal app are unchanged"
 - tests/display.test.mjs: "Display hall: the fastest way to London from home, the same pick as the Leisure display, arriving at a London terminal"
 - tests/display.test.mjs: "Display hall: the status row says good service only when every line is known to be good, and names each problem"
+- tests/display.test.mjs: "Display hall: an old answer, a line with no status or a missing rail line is unknown, never good service"
+- tests/display.test.mjs: "Display hall: the tube closed overnight is routine, not a problem"
+- tests/display.test.mjs: "Display hall: the hall actually fetches every tube line, and the row shows the answer"
+- tests/display.test.mjs: "Display hall: the board's times are the pick's, in whole minutes against the clock"
 - tests/display.test.mjs: "Display hall: every tube line's status in the same single request; the other displays keep their three lines"
 - tests/display.test.mjs: "Display hall: an always-on screen stays inside its request budget, like the other displays"
 - tests/display.test.mjs: "Display hall: whole minutes only, a few pixels' drift each minute, stale data greyed and said"

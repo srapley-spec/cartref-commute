@@ -455,7 +455,7 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
 </dialog>
 
 <!-- ?display=hall. After the page, not before it: an extra element ahead of .wrap shifts :nth-child matches. -->
-<div id="hallBoard" aria-live="polite"></div>
+<div id="hallBoard"></div>
 <!--__SIMULATOR_PANEL__-->
 <script>
 (() => {
@@ -660,7 +660,7 @@ function invalidateSources({preserveRateLimits=false}={}){
  sourceEpoch++; for(const controller of pendingRequests)controller.abort(); pendingRequests.clear();
  clearTimeout(state.retryTimer);state.retryTimer=null;
  state.byToken={};state.atToken={};state.loading=false;state.again=false;
- for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
+ for(const key of ['boards','boardsAt','boardsSource','boardsDir','fetchedAt','lastRefreshAt','status','statusAt','nrStatus','nrAt','nrOkAt','tube','ald','aldDeps','lastHub','hubSince','toOffice','toOfficeErr','london','londonTo','londonAt','londonToErr','londonErr','by','at','retryAt','tflBackoffUntil','routeFailed','followFailedBoards','followTransport','followable','tubeEta'])state[key]=null;
  state.progressById={};state.byCache={};state.atCache={};state.errors=[];state.followUpdate=null;state.presentation=null;state.journeySituationKey=null;followChoices.clear();if(preserveRateLimits)state.tflBackoffUntil=backoff;else reqLog.length=0;
 }
 // A change of live-data source (Settings, the display's setup link): Trip's boards, ages and plans belong to the old
@@ -1882,17 +1882,33 @@ function renderHallNext(list, now){
   state.hallNextHtml = html; $("#hallNext").innerHTML = html;
 }
 // ?display=hall. The status row: the rail lines on the way (Thameslink, Great Northern) and every tube line,
-// "good service" or each line with a problem by name (at most two, then "+N more"). Never "good" while unknown.
-function hallStatusPills(){
+// "good service" or each line with a problem by name (at most two, then "+N more"). Never "good" while unknown
+// (independent review, 20 Nov): an answer older than HALL_STATUS_STALE_MS, a line with no status, or a rail line
+// missing from the answer is unknown, not good. A failed fetch says "unavailable", not "checking…" for ever.
+// TfL's "Service Closed" (severity 20, the tube overnight) is routine, not a problem: counted, never warned.
+const HALL_STATUS_STALE_MS = 15 * 60e3;                      // 3× the slowest status refresh (rail, 5 min)
+const HALL_RAIL_LINES = [/thameslink/i, /great.?northern/i];
+const HALL_CLOSED_FOR_NIGHT = 20;
+function hallStatusPills(now = Date.now()){
   const pill=(ok,txt)=>`<span class="hb-pill ${ok?"ok":"warn"}">${ok?"":`<span class="hb-warn" aria-hidden="true">!</span>`}${esc(txt)}</span>`;
-  const group=(label,lines)=>{
-    if(!Array.isArray(lines)||!lines.length) return `<span class="hb-pill unknown">${esc(label)}: checking…</span>`;
-    const bad=lines.filter(l=>!lineOk(l));
-    if(!bad.length) return pill(true,`${label}: good service`);
-    const named=bad.slice(0,2).map(l=>pill(false,`${l.name}: ${(worst(l)||{}).desc||"disrupted"}`)).join("");
-    return named+(bad.length>2?pill(false,`+${bad.length-2} more ${label==="Tube"?"tube lines":"lines"}`):"");
+  const unknown=(label,txt)=>`<span class="hb-pill unknown">${esc(label)}: ${esc(txt)}</span>`;
+  const group=(label,lines,at,expected)=>{
+    if(lines==null) return unknown(label,"checking…");
+    if(!Array.isArray(lines)||!lines.length) return unknown(label,"unavailable");
+    if(!at||now-at>HALL_STATUS_STALE_MS) return unknown(label,"not up to date");
+    const nightOnly=l=>l.statuses.length>0&&l.statuses.every(s=>s.sev===HALL_CLOSED_FOR_NIGHT);
+    const known=lines.filter(l=>Array.isArray(l.statuses)&&l.statuses.length);
+    const bad=known.filter(l=>!nightOnly(l)&&!lineOk(l)), closed=known.filter(nightOnly).length;
+    const missing=(expected||[]).some(re=>!known.some(l=>re.test(`${l.id} ${l.name}`)))||known.length<lines.length;
+    const plural=label==="Tube"?"tube lines":"lines";
+    const named=bad.slice(0,2).map(l=>pill(false,`${l.name}: ${(worst(l)||{}).desc||"disrupted"}`)).join("")
+      +(bad.length>2?pill(false,`+${bad.length-2} more ${plural}`):"");
+    if(missing) return named+unknown(label,bad.length?"others unknown":"not every line known");
+    if(bad.length) return named;
+    if(closed===known.length) return unknown(label,"closed for the night");
+    return pill(true,`${label}: good service${closed?` · ${closed} closed`:""}`);
   };
-  return group("Trains",state.nrStatus)+group("Tube",state.status);
+  return group("Trains",state.nrStatus,state.nrOkAt,HALL_RAIL_LINES)+group("Tube",state.status,state.statusAt,null);
 }
 // A few pixels each minute, so an always-on OLED panel doesn't keep the same picture (the card stays put).
 function hallBoardSpot(now){ const m=Math.floor(now/60e3); return {x:((m*37)%7-3), y:((m*53)%7-3)}; }
@@ -1908,13 +1924,15 @@ function hallBoardMarkup(list, now){
       + `<div class="hb-train">${esc(C.trainName(t))}${t.platform?` · platform ${esc(t.platform)}`:""}${st?` · <span class="hb-status ${esc(st.level)}">${esc(st.text)}</span>`:""}</div>`
       + `<div class="hb-arrive">In London <b class="t">${hhmm(j.arrive)}</b>${j.dest?` at ${esc(j.dest)}`:""}</div>`; }
   const age = state.fetchedAt ? `<div class="hb-age">as of ${hhmm(state.fetchedAt)}${stale?" · not up to date":""}</div>` : "";
-  const p = hallBoardSpot(now);
-  return `<div class="hb${stale?" stale":""}" style="transform:translate(${p.x}px,${p.y}px)"><div class="hb-card"><div class="hb-lbl">Fastest to London</div>${body}${age}</div><div class="hb-row">${hallStatusPills()}</div></div>`;
+  return `<div class="hb${stale?" stale":""}"><div class="hb-card"><div class="hb-lbl">Fastest to London</div>${body}${age}</div><div class="hb-row">${hallStatusPills(now)}</div></div>`;
 }
 function renderHallBoard(list, now){
+  // The drift moves the board itself, so the text (and the HTML) only changes when what it says changes.
+  const p = hallBoardSpot(now), el = $("#hallBoard"), spot = `translate(${p.x}px,${p.y}px)`;
+  if(el.style.transform !== spot) el.style.transform = spot;
   const html = hallBoardMarkup(list, now);
   if(state.hallBoardHtml === html) return;
-  state.hallBoardHtml = html; $("#hallBoard").innerHTML = html;
+  state.hallBoardHtml = html; el.innerHTML = html;
 }
 function renderHero(list, now){
   const h=$("#hero"), dir=direction(), leisure=state.saved.mode==="leisure";
@@ -2534,7 +2552,7 @@ async function refresh(opts){
       toOffice: state.toOffice ? { at:state.toOffice.at, movedKm: state.here ? km(state.toOffice.from,state.here) : 0 } : null,
       statusAt:state.statusAt||null, nrAt:state.nrAt||null });
     const statusP = () => !plan.lineStatus ? Promise.resolve() : fetchTfl().then(v=>{if(epoch!==sourceEpoch)return;state.status=v; state.statusAt=Date.now();}).catch(e=>{if(epoch!==sourceEpoch)return; if(!state.status||!state.status.length) state.status=[]; state.errors.push(e.rateLimited?e.message:"Couldn't load TfL line status."); });
-    const nrP = () => !plan.nrStatus ? Promise.resolve() : fetchNrStatus().then(v=>{if(epoch!==sourceEpoch)return; state.nrAt=Date.now(); return v; }).then(v=>{if(epoch!==sourceEpoch)return; if(v) state.nrStatus=v; else if(!state.nrStatus) state.nrStatus=[]; });
+    const nrP = () => !plan.nrStatus ? Promise.resolve() : fetchNrStatus().then(v=>{if(epoch!==sourceEpoch)return; state.nrAt=Date.now(); return v; }).then(v=>{if(epoch!==sourceEpoch)return; if(v){ state.nrStatus=v; state.nrOkAt=Date.now(); } else if(!state.nrStatus) state.nrStatus=[]; });
     let railP=Promise.resolve();
     if(plan.rail==="toOffice"){
       if(plan.toOfficeNeeded) railP=fetchToOffice().then(v=>{if(epoch!==sourceEpoch)return; state.toOffice=v; state.toOfficeErr=null; }).catch(e=>{if(epoch!==sourceEpoch)return; state.toOfficeErr=e.message; });
@@ -3247,6 +3265,6 @@ setInterval(()=>{ if(!document.hidden) render(); },15e3);
 
 { const b=$("#build"); if(b && b.textContent.includes("__")) b.textContent="preview build"; }
 // Exposed for testing only.
-window.__commute={hallBoardMarkup,hallStatusPills,hallBoardSpot,DISPLAY_HALL,TFL_STATUS_URL,fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
+window.__commute={hallBoardMarkup,hallStatusPills,hallBoardSpot,renderHallBoard,HALL_STATUS_STALE_MS,DISPLAY_HALL,TFL_STATUS_URL,fetchLondon,native,nativeOpen,nativeCacheNow,renderNativePermissions,tripUiFor,setBoards,nativeSnapshot,nativeFollowPlan,refreshGoogleNear,googleNear,fetchAldgateArrivals,fetchTubeArrivals,tflKeyAdvice,proxyOrigin,proxySetupLink,acceptSetupLink,refreshProxyStatus,tflKeyed,tflUrl,leaveAlerts,fetchServiceDetails,journeyUI,simulationSession,simulationReporter,readSimulationActual,startGuidedJourney,refreshFollowTransport,followedTubeArrival,renderCanonicalBlocks,renderOnTrain,renderNearlyHome,renderOnTubeHome,renderOnTube,renderInLondon,journeyPresentation,pinJourneyView,renderFollowPanel,followChoices,simulator,simClock,captureAldgate,effortProfile,atHome,homeRide,onTubeHomeAuto,homeLegs,fastRefresh,onWay,onTubeAuto,currentRide,onTubeHome,whichTubeHome,km,onPosition,mergeBeyond,liveHorizon,tubeFlags,aldgateUnusable,nearOffice,completePairs,fetchLiveAhead,mergeSameTrain,atOptions,planAt,dropReason,inLondonToOffice,onTube,whichTube,linesStatus,lineProgress,onLine,whichTrain,hubHere,renderAtHub,routesFor,walkFromHere,liveAdjust,keepEveryRoute,requestCounts,parseBoard,resolve,clock,buildJourneys,buildLeisure,state,ranked,demoBoards,demoLondon,render,refresh,planBy,byOptions,plannable,isStopping,standingRoomOnly,busyDay,railWarnings,stripHtml,trainFromJourney,fetchT,boardKeys,direction,S,hallNextMarkup,hallNextSpot,DISPLAY_NEXT,nativeStrip};
 })();
 </script>

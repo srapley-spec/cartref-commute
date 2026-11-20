@@ -248,31 +248,102 @@ test("Display hall: the fastest way to London from home, the same pick as the Le
 
 test("Display hall: the status row says good service only when every line is known to be good, and names each problem", async () => {
   const app = await hallApp("?display=hall");
-  const s = app.c.state;
+  const s = app.c.state, now = HALL_START;
+  const pills = () => app.c.hallStatusPills(now);
   s.nrStatus = null; s.status = null;
-  let row = app.c.hallStatusPills();
+  let row = pills();
   assert.match(row, /Trains: checking…/); assert.match(row, /Tube: checking…/);
   assert.doesNotMatch(row, /good service/, "never 'good' while unknown");
   s.nrStatus = []; s.status = [];
-  row = app.c.hallStatusPills();
-  assert.match(row, /Trains: checking…/); assert.match(row, /Tube: checking…/);
+  row = pills();
+  assert.match(row, /Trains: unavailable/); assert.match(row, /Tube: unavailable/, "a failed fetch says so, not 'checking…' for ever");
   assert.doesNotMatch(row, /good service/, "an empty answer isn't good service either");
   s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
   s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id[0].toUpperCase() + id.slice(1), GOOD, "Good Service"));
-  row = app.c.hallStatusPills();
+  s.nrOkAt = s.statusAt = now - 2 * M;
+  row = pills();
   assert.match(row, /Trains: good service/); assert.match(row, /Tube: good service/);
   assert.doesNotMatch(row, /hb-pill warn/);
   s.nrStatus[1] = line("great-northern", "Great Northern", 6, "Severe Delays");
   s.status[2] = line("circle", "Circle", 9, "Minor Delays");
-  row = app.c.hallStatusPills();
+  row = pills();
   assert.match(row, /Great Northern: Severe Delays/); assert.match(row, /Circle: Minor Delays/);
   assert.doesNotMatch(row, /Trains: good service/); assert.doesNotMatch(row, /Tube: good service/);
   assert.match(row, /hb-pill warn/, "a problem looks different, not only by colour: it carries a mark");
   assert.match(row, /hb-warn/);
   s.status = ["bakerloo", "central", "circle", "victoria"].map((id) => line(id, id, 5, "Part Closure"));
-  row = app.c.hallStatusPills();
+  row = pills();
   assert.equal((row.match(/: Part Closure/g) || []).length, 2, "at most two tube lines by name");
   assert.match(row, /\+2 more tube lines/);
+  app.close();
+});
+
+test("Display hall: an old answer, a line with no status or a missing rail line is unknown, never good service", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state, now = HALL_START;
+  const good = (id, name) => line(id, name, GOOD, "Good Service");
+  const rail = () => [good("thameslink", "Thameslink"), good("great-northern", "Great Northern")];
+  const tube = () => ["bakerloo", "central", "circle"].map((id) => good(id, id));
+  s.nrStatus = rail(); s.status = tube(); s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS + M;
+  assert.match(app.c.hallStatusPills(now), /Trains: good service.*Tube: good service/, "fresh enough");
+  s.nrOkAt = s.statusAt = now - app.c.HALL_STATUS_STALE_MS - M;
+  let row = app.c.hallStatusPills(now);
+  assert.match(row, /Trains: not up to date/); assert.match(row, /Tube: not up to date/);
+  assert.doesNotMatch(row, /good service/, "an old 'good' is not shown as current");
+  s.nrOkAt = s.statusAt = now - M;
+  s.status = [...tube(), { id: "victoria", name: "Victoria", statuses: [] }];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: not every line known/); assert.doesNotMatch(row, /Tube: good service/);
+  s.status = tube(); s.nrStatus = [good("thameslink", "Thameslink")];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Trains: not every line known/, "Great Northern missing from the answer");
+  assert.doesNotMatch(row, /Trains: good service/);
+  s.nrStatus = [good("thameslink", "Thameslink"), line("great-northern", "Great Northern", 6, "Severe Delays")];
+  s.status = [...tube(), { id: "victoria", name: "Victoria", statuses: [] }];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Great Northern: Severe Delays/); assert.doesNotMatch(row, /Trains: good service/);
+  assert.match(row, /Tube: not every line known/);
+  s.status = [good("x", "<img src=x onerror=alert(1)>")]; s.status[0].statuses[0].sev = 6; s.status[0].statuses[0].desc = "Severe Delays";
+  assert.doesNotMatch(app.c.hallStatusPills(now), /<img/, "line names are escaped");
+  app.close();
+});
+
+test("Display hall: the tube closed overnight is routine, not a problem", async () => {
+  const app = await hallApp("?display=hall");
+  const s = app.c.state, now = HALL_START;
+  s.nrStatus = [line("thameslink", "Thameslink", GOOD, "Good Service"), line("great-northern", "Great Northern", GOOD, "Good Service")];
+  s.nrOkAt = s.statusAt = now - M;
+  s.status = ["bakerloo", "central", "circle"].map((id) => line(id, id, 20, "Service Closed"));
+  let row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: closed for the night/); assert.doesNotMatch(row, /Tube: good service/);
+  assert.doesNotMatch(row, /Service Closed/, "no line is named as a problem");
+  s.status = [line("bakerloo", "Bakerloo", 20, "Service Closed"), line("central", "Central", GOOD, "Good Service"), line("victoria", "Victoria", GOOD, "Good Service")];
+  row = app.c.hallStatusPills(now);
+  assert.match(row, /Tube: good service · 1 closed/);
+  s.status[1] = line("central", "Central", 2, "Suspended");
+  assert.match(app.c.hallStatusPills(now), /Central: Suspended/, "a suspension is still a problem");
+  app.close();
+});
+
+test("Display hall: the hall actually fetches every tube line, and the row shows the answer", async () => {
+  const app = await hallApp("?display=hall");
+  assert.ok(app.calls.some((u) => u.includes("/Line/Mode/tube/Status")), `the whole tube mode is fetched:\n${app.calls.join("\n")}`);
+  assert.ok(!app.calls.some((u) => u.includes("/Line/circle,metropolitan,hammersmith-city/Status")), "not only the three lines");
+  app.close();
+});
+
+test("Display hall: the board's times are the pick's, in whole minutes against the clock", async () => {
+  const app = await hallApp("?display=hall");
+  const now = HALL_START;
+  app.c.state.fetchedAt = now - 2 * M;
+  const list = app.c.ranked(now), j = list.filter((o) => o.recommended).sort((a, b) => a.recommended - b.recommended)[0];
+  const html = app.c.hallBoardMarkup(list, now);
+  const mins = Math.floor(j.leave / M) - Math.floor(now / M);
+  assert.match(html, new RegExp(mins >= 1 ? `in ${mins} min` : "Leave now"));
+  assert.match(html, new RegExp(`In London <b class="t">${hm(j.arrive)}</b>`), "the arrival, not the leave time");
+  assert.match(html, /as of \d\d:\d\d/);
+  assert.doesNotMatch(html, /not up to date/, "2 minutes old is still fresh");
+  assert.doesNotMatch(html, /class="hb stale"/);
   app.close();
 });
 
@@ -312,6 +383,14 @@ test("Display hall: whole minutes only, a few pixels' drift each minute, stale d
   const list = app.c.ranked(HALL_START);
   const a = app.c.hallBoardMarkup(list, HALL_START + 5e3), b = app.c.hallBoardMarkup(list, HALL_START + 50e3);
   assert.equal(a, b, "nothing changes within a minute");
+  assert.doesNotMatch(a, /translate/, "the drift moves the board, not its text");
+  const board = app.d.querySelector("#hallBoard");
+  app.c.renderHallBoard(list, HALL_START); const t0 = board.style.transform, h0 = board.innerHTML;
+  app.c.renderHallBoard(list, HALL_START + M); const t1 = board.style.transform;
+  assert.match(t0, /translate\(-?\dpx, ?-?\dpx\)/); assert.notEqual(t0, t1, "it moves each minute");
+  board.innerHTML = "kept"; app.c.renderHallBoard(list, HALL_START + M + 5e3);
+  assert.equal(board.innerHTML, "kept", "unchanged text isn't redrawn");
+  board.innerHTML = h0;
   const spots = new Set();
   for (let i = 0; i < 7; i++) { const p = app.c.hallBoardSpot(HALL_START + i * M); spots.add(`${p.x},${p.y}`);
     assert.ok(Math.abs(p.x) <= 3 && Math.abs(p.y) <= 3, `only a few pixels: ${p.x},${p.y}`); }
