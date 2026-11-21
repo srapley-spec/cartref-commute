@@ -96,7 +96,7 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
   is named for the delay. Line names are escaped.
 - **The tube overnight:** TfL's "Service Closed" (severity 20) is routine, not a problem: no line is named for it.
   All closed says "Tube: closed for the night"; some closed with the rest good says "Tube: good service · N closed".
-  Other closures and suspensions are still problems. (Claude's default, 20 Nov, for Sam to confirm.)
+  Other closures and suspensions are still problems. (Sam confirmed, 21 Nov 2026: at any hour.)
 - **Every tube line in one request:** the hall board asks TfL for the whole tube mode instead of three lines, in the
   same single status request, so the request budget is unchanged (held by a test).
 - **Kind to an always-on screen:** text changes at most once a minute; the whole board drifts up to 3 px each minute
@@ -105,7 +105,7 @@ tubes." His choices the same day: "First arrival at any London terminal"; "Every
   isn't a live region: a screen reader isn't made to re-read it each minute.
 - **Not yet tested:** the choice between King's Cross and St Pancras when the two boards differ (the fixture gives both
   the same Thameslink trains; the ranking is the shared Leisure code, and the pick is checked against Leisure's own).
-- **For Sam to confirm:** "Service Closed" is treated as routine at any hour, so a line closed all day (Waterloo & City
+- **Decided (Sam, 21 Nov 2026):** "Service Closed" is routine at any hour, so a line closed all day (Waterloo & City
   on a Sunday) is counted ("· 1 closed"), not warned.
 - **Plain `?display`, `?display=next` and the normal app are unchanged.**
 
