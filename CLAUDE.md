@@ -166,6 +166,18 @@ tests are good enough); this decides when to merge. The fast path is accepted te
    finishes, and a push to `main` doesn't wake this session; only pull requests do).
 5. Tell Sam about every failure found: the cause and the fix, even when the fix is already pushed.
 
+## Release notes (Sam, 21 Nov 2026; RULES 16)
+
+Sam (21 Nov 2026): "We need release notes for every release. They can be brief and need to summarise what fixes or changes have been introduced."
+
+- **What counts as a release here:** each publish of `main` to GitHub Pages (every merge), each Worker deploy from "Deploy proxy", and each TestFlight build.
+- **Where:** `docs/release-notes.md`, newest first. A pull request that changes what the app or Worker does adds its entry **in the same pull request**: date, what it reaches (web app, Worker, iPhone app), then one short line per item under **Fixes** and **Changes**, and the pull request number. Write for the person using the app ("Leave by no longer jumps when the train is late"), not for the code. Like the commit message rule above.
+- **TestFlight:** a build's notes are the entries since the previous build; they belong in TestFlight's "What to Test". Until the pipeline sets it (issue: "Release notes", RULES 16.4), say in the build record that it wasn't set.
+- **Nothing released** (tests, docs, CI only): no entry; put `Release note: none — <reason>` in the pull request description.
+- **Public repository:** nothing about the household's routines, addresses or people in the notes (RULES 12.1, 15.4).
+- **Found a release with no notes?** Write them from the merged pull requests in your next pull request and tell Sam.
+
+
 ## Working with Sam
 - Direct, evidence-based; state confidence and what's unverified. Investigate root causes from code and data
   before proposing fixes. Run the tests before saying something works.
