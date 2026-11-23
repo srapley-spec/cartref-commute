@@ -88,7 +88,7 @@ timetable #18 · Early platforms #19 · Structured incidents #20 · Train length
 #2–#7, #10–#12.
 
 ### How changes reach the live app
-- [Only tested code goes live](only-tested-code-goes-live.md) · Planned, low priority (accepted debt, #30)
+- [Only tested code goes live](only-tested-code-goes-live.md) · Built, waiting for Sam to merge it and switch the Pages source (#30)
 
 ### Design and presentation
 - [Display mode: a read-only board for a wall screen or a Home Assistant frame](display-mode.md) · Done (10 Nov)

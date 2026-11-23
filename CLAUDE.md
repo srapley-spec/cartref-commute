@@ -114,11 +114,12 @@ If a chat, issue or memory disagrees with these files, the files win until they'
 ## Release
 - **The pipeline merges (20 Nov, RULES 3).** Open a ready pull request from a `claude/*` or `codex/*` branch and
   "Merge when green" squash-merges it once the Tests workflow (web and iPhone jobs) passes on its final commit and the
-  latest Tests run on `main` is green; it then requests the Pages build and runs Tests on `main`, which starts
-  TestFlight when green. Not ready to go live? Open a draft. Drafts, other branch names, forks and `.github/workflows`
+  latest Tests run on `main` is green; it then runs Tests on `main`, which publishes Pages and starts TestFlight when
+  green (while the Pages source is still a branch, it requests the old Pages build instead). Not ready to go live? Open a draft. Drafts, other branch names, forks and `.github/workflows`
   changes are left for Sam. Sessions don't merge by hand. Where this conflicts with the merge paths below, this wins.
-- `main` is live (GitHub Pages publishes every push at once, before GitHub's tests finish). Work on a branch; merge
-  to `main` as below.
+- `main` is live. GitHub Pages publishes a `main` commit once its Tests run passes, from the Tests workflow
+  (`docs/stories/only-tested-code-goes-live.md`); until Sam switches the Pages source to GitHub Actions, it still
+  publishes every push at once, before GitHub's tests finish. Work on a branch; merge to `main` as below.
 - **Finish authorised work through release (Sam, 1 Nov).** Once the work, tests and required independent review
   are complete, merge to `main` and verify its tests and live deployment. Do not leave completed work on an open
   PR or ask Sam for routine merge approval. A PR is a merge mechanism, not another approval gate; create one only

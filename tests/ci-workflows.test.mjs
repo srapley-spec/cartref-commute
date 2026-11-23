@@ -33,3 +33,27 @@ test('cost changes preserve every tested main release and no PR signing',()=>{
  assert(w.jobs.upload.if.includes("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"));
  assert(!JSON.stringify(load('test')).includes('secrets.'));
 });
+test('Pages publishes only a main commit that passed Tests (only-tested-code-goes-live)',()=>{
+ const w=load('test');
+ const source=w.jobs['pages-source'], pages=w.jobs.pages;
+ // Only after both the web and the iPhone jobs pass, only on main, never for a pull request or the nightly run.
+ assert.deepEqual(source.needs,['test','ios']);
+ assert.equal(source.if,"github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')");
+ assert.equal(pages.needs,'pages-source');
+ assert.equal(pages.if,"needs.pages-source.outputs.publish == 'yes'");
+ // Publishes nothing while the source is still a branch, nor from an older commit once main has moved on.
+ const check=source.steps.find(s=>s.id==='check').run;
+ for(const text of ['.build_type','"$source" != workflow','repos/$REPO/commits/main','"$newest" != "$SHA"','publish=yes']) assert(check.includes(text),text);
+ assert.equal(source.permissions.pages,'read');
+ assert.deepEqual(pages.permissions,{contents:'read',pages:'write','id-token':'write'});
+ assert.equal(pages.environment.name,'github-pages');
+ assert(pages.steps.some(s=>s.uses?.startsWith('actions/upload-pages-artifact@')));
+ assert(pages.steps.some(s=>s.uses?.startsWith('actions/deploy-pages@')));
+ // The test and iPhone jobs stay unconditional; the Pages jobs read no secrets (checked for the whole file above).
+ assert(!w.jobs.test.needs && w.jobs.ios.needs==='test');
+ // After a pipeline merge, the old branch build is requested only while Pages still builds from a branch.
+ const merge=load('merge-when-green').jobs.merge.steps.at(-1).run;
+ assert(merge.includes('--jq .build_type'));
+ assert(merge.indexOf('!= workflow')<merge.indexOf('pages/builds'));
+ assert(merge.includes('gh workflow run test.yml'));
+});

@@ -82,3 +82,59 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run testflight.yml --repo "${{ github.repository }}" --ref main -f source_sha="${{ github.sha }}" -f tests_run_id="${{ github.run_id }}"
+  # how-we-work RULES 3-4: the live site publishes only a main commit whose web and iPhone jobs passed in this run
+  # (docs/stories/only-tested-code-goes-live.md). It needs Settings → Pages → Source set to "GitHub Actions" (Sam).
+  # Until then the source is still "Deploy from a branch": this finds that and publishes nothing, and the old branch
+  # build carries on (Merge when green asks for it after a pipeline merge). Covers Sam's own merges (push) and the
+  # Tests run Merge when green dispatches; not the nightly run or pull requests.
+  pages-source:
+    needs: [test, ios]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - name: Publish only from GitHub Actions, and only the newest main
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          source=$(gh api "repos/$REPO/pages" --jq .build_type)
+          newest=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          if [ "$source" != workflow ]; then
+            echo "::notice::Pages source is '$source', not GitHub Actions: nothing published from here (the branch build still publishes)."
+            echo publish=no >> "$GITHUB_OUTPUT"
+          elif [ "$newest" != "$SHA" ]; then
+            echo "::notice::main has moved on to $newest; that commit's Tests run publishes it, not this older one."
+            echo publish=no >> "$GITHUB_OUTPUT"
+          else
+            echo publish=yes >> "$GITHUB_OUTPUT"
+          fi
+  pages:
+    needs: pages-source
+    if: needs.pages-source.outputs.publish == 'yes'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # The committed site as it is (the test job has checked index.html is built from src/); no build step.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Publish the tested commit
+        id: deploy
+        uses: actions/deploy-pages@v4

@@ -2,7 +2,8 @@
 # Agent sessions push a branch and open a pull request; they do not merge. When the Tests workflow (web checks and
 # the iPhone simulator job) has passed on the pull request's final commit, this merges it into main (squash),
 # deletes the branch, then starts what main needs. A merge made with GITHUB_TOKEN does not trigger push workflows,
-# so this asks for the Pages build and dispatches Tests on main itself; Tests, once green on main, starts TestFlight.
+# so this dispatches Tests on main itself; Tests, once green on main, publishes Pages (Pages source "GitHub Actions")
+# and starts TestFlight. While the Pages source is still "Deploy from a branch", this asks for that build instead.
 #
 # Branches merged: the agent prefixes in AGENT_PREFIXES (claude/, codex/). Add a prefix in how-we-work first.
 # Not merged automatically (Sam merges these himself): draft pull requests, other branch names, pull requests from
@@ -39,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # No checkout: this job only reads metadata through the API and never runs the pull request's code.
-      - name: Merge when Tests passed, delete the branch, start main's checks and Pages
+      - name: Merge when Tests passed, delete the branch, start main's checks (and Pages, while it builds from a branch)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -71,6 +72,10 @@ jobs:
           fi
           merged=$(gh api -X PUT "repos/$REPO/pulls/$pr/merge" -f merge_method=squash -f sha="$SHA" --jq .sha)
           gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH" || echo "Branch already gone."
-          gh api -X POST "repos/$REPO/pages/builds" >/dev/null || echo "::warning::Could not request a Pages build; check Pages for $merged."
+          # Pages from GitHub Actions: Tests on main publishes the commit once it passes (nothing to ask for here).
+          # Still "Deploy from a branch" (until Sam switches the source): ask for the old branch build, as before.
+          if [ "$(gh api "repos/$REPO/pages" --jq .build_type || echo unknown)" != workflow ]; then
+            gh api -X POST "repos/$REPO/pages/builds" >/dev/null || echo "::warning::Could not request a Pages build; check Pages for $merged."
+          fi
           gh workflow run test.yml --repo "$REPO" --ref main
-          echo "Merged PR #$pr as $merged; Pages build and Tests on main started (Tests starts TestFlight when green)."
+          echo "Merged PR #$pr as $merged; Tests on main started (once green it publishes Pages and starts TestFlight)."
