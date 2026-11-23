@@ -4,7 +4,7 @@ What you need to do yourself, in order, for what's been built. Keep this file cu
 from Sam adds it here, and a step is ticked when Sam says it's done. Keys never go in this file, the repo or chat.
 Detail for each step: [proxy-setup.md](proxy-setup.md).
 
-Last updated: 18 Nov 2026 (native proxy released; Apple signing complete; family invitations rechecked).
+Last updated: 23 Nov 2026 (7: Pages source switch, after the workflow change).
 
 ## 1–3. The proxy: every key in one place, deployed from GitHub (17 Nov; no computer needed)
 Sam, 17 Nov: "I want to move all the keys to a proxy." The Worker (`proxy/`) has held every key since 4 Nov but was
@@ -121,6 +121,13 @@ no review submission is configured.
       cloud environment's secrets. Tell Claude when it's done (never paste the key).
 - [ ] Run the [first-phone acceptance checks](stories/ios-native.md#first-internal-testflight-phone-acceptance) and
       report the TestFlight build number with any failures. Actual APNs, alarms and region delivery need an iPhone.
+
+## 7. The live site publishes only tested code (23 Nov)
+After you merge the pull request "Pages publishes only after Tests pass on main":
+- [ ] github.com/srapley-spec/cartref-commute → Settings → Pages → Build and deployment → Source → **GitHub
+      Actions** (it says "Deploy from a branch" now). Nothing else to choose; don't pick a suggested workflow.
+      From then on the Tests workflow publishes each `main` commit once its web and iPhone jobs pass. Tell Claude
+      when it's done, so it can check the next merge publishes after its tests.
 
 ## After a change to `proxy/` or `src/core/`
 Nothing: once B is done, Deploy proxy redeploys when such a change reaches main.
