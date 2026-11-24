@@ -562,8 +562,26 @@ function renderFollowPanel(){
   // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
   const altOverview=!alt?'':(()=>{const was=state.rowsUnderWay;state.rowsUnderWay=was||movedOff||(panelLayout&&!!observation.boarding);
     try{return journeyOverviewMarkup(alt);}finally{state.rowsUnderWay=was;}})();
+  // The earlier-train prompt (Sam, 24 Nov 2026; docs/stories/earlier-train-prompt.md). The engine decided that a
+  // catchable train this much sooner outranks "On track" (result.prompt, with its tier); this only draws it: first
+  // under the title, the answer and the two choices, with the train's own journey folded under "Details".
+  const prompt=result.prompt&&alt&&alt.train?result.prompt:null;
+  const promptMarkup=!prompt?'':(()=>{
+    const tight=prompt.tier==='tight';
+    const spare=prompt.spareMin>0?`${prompt.spareMin} min to spare`:'go now';
+    const tier=prompt.effort==='fast'?'Tight · walk fast':tight?`Tight · ${spare}`:`Comfortable · ${spare}`;
+    const platformNote=alt.train.platform?'':' · platform not announced yet';
+    const detail=altOverview+altLines(alt)+pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true);
+    return `<div class="follow-prompt ${prompt.tier}" data-block="earlier-train" role="group" aria-label="An earlier train you can catch">
+      <div class="prompt-top"><span class="prompt-kicker">Earlier train catchable</span><span class="pill ${tight?'warn':'ok'}">${esc(tier)}</span></div>
+      <div class="prompt-answer"><b>${r.direction==='office'?'Office':'Home'} <span class="t">${hhmm(alt.arrive)}</span></b> <span class="prompt-gain">${prompt.gainMin} min sooner</span></div>
+      <div class="prompt-train">${esc(C.trainName(alt.train))} · ${esc(platformLabel(alt.train))} <span class="t">${hhmm(platformTime(alt,alt.train))}</span>${platformNote}${tight?'':' · walk at your usual pace'}</div>
+      <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Switch to ${esc(alt.train.std)}</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep ${esc(r.option.train.std)}</button></div>
+      <details class="prompt-more" data-key="follow-prompt|${esc(r.id)}"><summary>Details of the ${esc(alt.train.std)}</summary><div class="follow-alternative follow-alternative-detail" data-journey-service="${esc(journeyServiceKey(alt.train))}">${detail}</div></details>
+    </div>`;})();
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+    ${promptMarkup}
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(t),isLeave:false,step:'platform'})
@@ -588,7 +606,7 @@ function renderFollowPanel(){
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep&&!(r.phase==='before-train'&&result.nextStep.train)&&!(r.phase==='after-train'&&result.nextIsLast)?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
-    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${altOverview}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
+    ${alt&&!prompt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${altOverview}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${legs.map(l=>`<li class="t">${stepTime(l)==null?'':hhmm(stepTime(l))}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}

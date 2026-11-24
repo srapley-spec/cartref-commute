@@ -369,6 +369,14 @@ Design: Signal selected ([`design/`](design/README.md), [design system](design-s
 
 ## Decisions log
 
+- **24 Nov, a catchable train much sooner outranks "On track" (Sam, from King's Cross: "The app should have highlighted this
+  more clearly"; chose option 1: "Just needs to be clear and I can make the decision").** The engine decides it
+  (`updateFollowRoute` → `prompt`: an alternative 10+ minutes sooner that the existing checks already allow, before
+  boarding with the followed train still ahead, not for a missed or cancelled one; tier comfortable or tight from the spare minutes, 3 the line, or a fast walk), and the
+  followed train's green "On track" gives way; the page only draws it, first under the title, with Switch and Keep and the
+  alternative's journey folded inside. Never switches for you. Thresholds and no-toggle are mine, flagged to Sam
+  (`stories/earlier-train-prompt.md`).
+
 - **20 Nov, the hall board is the fastest way to London, not Sam's office (Sam: "why not say the next fastest route
   to London. It should also show if there is a good service or if there are issues on the train or tubes").**
   `?display=hall` uses Leisure's home-to-London planning (first London terminal: King's Cross or St Pancras) and

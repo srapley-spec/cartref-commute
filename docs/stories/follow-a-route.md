@@ -124,6 +124,8 @@ not a claim that every criterion has already passed release verification. See [S
   offered: live times move by a minute or two all the time, and switching for them would make the arrival jumpy.
   Ordinary better-option prompts stay quiet during an actual Tube approach; a necessary recovery can still be
   offered when cancellation, a missed connection, no estimate or a serious delay makes the chosen route unusable.
+  **Since 24 Nov 2026: 10 minutes or more sooner is the earlier-train prompt**, first on the card with Switch and Keep and
+  "On track" giving way (`earlier-train-prompt.md`); 5 to under 10 stays this quieter "Another option".
 
 ### Live mode when not following
 - If you seem to be on the move (at a station, on a train or tube, or walking to the station) and aren't following a

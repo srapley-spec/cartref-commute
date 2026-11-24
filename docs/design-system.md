@@ -469,6 +469,15 @@ exceptions. Earlier preview/token artifacts remain design history; they do not o
 geometry or justify copying old routing logic. The shared engine, status colours, source truthfulness, manual-view
 lifetime and preservation rules remain binding.
 
+## Earlier-train prompt on the followed card (Sam, 24 November 2026)
+
+When the engine reports `prompt` (a catchable train 10+ minutes sooner; `docs/stories/earlier-train-prompt.md`), the
+followed card draws it **first under "Following your route"**, above the arrival headline: the tier pill (amber tight,
+green comfortable), the answer first ("Home 19:38 · 18 min sooner"), the train as it is met on the platform, **Switch to
+…** and **Keep …**, and the alternative's own journey folded under "Details". The followed train's status line loses
+"On track" and its green while the prompt shows. Status colour stays reserved: the block is warning-toned whatever the tier,
+and the tier is the pill. Not Trip, which has its own following engine.
+
 ## Evidence and scope
 
 Read `src/page.html` on main (912e0977c386789aa2a892f84bb88a18cdd16734) and the architecture and all capability stories on `docs/context-in-repo` (tree 1454801756ce71a8a9fc4d8c348027c79760c958). The context branch's screen differs from main only in the location-resume fix; main's newer fix must be retained. This is a source audit, not a claim to have tested the production app with live credentials.

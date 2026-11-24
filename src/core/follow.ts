@@ -8,6 +8,11 @@ import { railDelayLevel, type DisruptionConfig } from './disruption';
 
 const MIN = 60e3;
 export const FOLLOW_BETTER_MIN = 5;
+/** The earlier-train prompt (Sam, 24 Nov 2026): an alternative this much sooner takes the status slot, with Switch / Keep.
+ *  Between FOLLOW_BETTER_MIN and this, it stays the quieter "Another option" below the card. */
+export const FOLLOW_PROMPT_MIN = 10;
+/** Its catchability: you need to be moving within this many minutes (or walk fast) and it is "tight", else "comfortable". */
+export const FOLLOW_PROMPT_SPARE_MIN = 3;
 /** A position counts towards "set off" only while it is this fresh (Sam, 17 Nov: an old fix fell back to nothing). */
 export const FOLLOW_SET_OFF_FIX_MS = 2 * MIN;
 export const FOLLOW_CHANGE_MS = 60e3;
@@ -71,6 +76,16 @@ export interface FollowInput {
    */
   boarding?: 'at' | 'was' | null;
 }
+/** A train that gets you there much sooner than the one you follow, and that you can still catch (24 Nov 2026). */
+export interface EarlierTrainPrompt {
+  /** Minutes sooner than your followed journey's expected arrival. */
+  gainMin: number;
+  /** "comfortable": walk at your usual pace with time in hand; "tight": a fast walk, or under FOLLOW_PROMPT_SPARE_MIN to spare. */
+  tier: 'comfortable' | 'tight';
+  /** Whole minutes until you need to be moving for it (the same "spare" the followed train's status uses), never below 0. */
+  spareMin: number;
+  effort: 'walk' | 'fast';
+}
 export interface FollowUpdate {
   route: FollowRoute; status: 'on-track' | 'hurry' | 'missed' | 'cancelled' | 'unknown' | 'arrived';
   level: 'ok' | 'warn' | 'bad' | 'info'; text: string; nextStep: Leg | null;
@@ -79,6 +94,8 @@ export interface FollowUpdate {
   notice: FollowNotice | null; alternative: Option | null; deltaMin: number | null; trainStatus: TrainStatus | null;
   /** "Very tight · run": the next train you could take instead, and when it gets you there. */
   ifMissed?: { std: string; arrive: number } | null;
+  /** The earlier-train prompt: present only when `alternative` is FOLLOW_PROMPT_MIN or more sooner and catchable. */
+  prompt?: EarlierTrainPrompt | null;
 }
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const record = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -469,11 +486,33 @@ export function updateFollowRoute(previous: FollowRoute, input: FollowInput): Fo
     const later = Math.floor(route.expectedArrival / MIN) - Math.floor(route.plannedArrival / MIN);
     if (later >= 1) { level = 'warn'; text = `${later} min later than planned${text.slice('On track'.length)}`; }
   }
+  // The earlier-train prompt (Sam, 24 Nov 2026, from the 18:44 King's Cross trip: the app said "On track" while a train
+  // 18 min sooner was catchable). The engine decides that this outranks "On track"; the page only draws it. Only the
+  // normal engine's own alternative (so its effort checks already ran), which exists before boarding only, and during
+  // a connection only as a recovery offer (never a prompt there). A missed, cancelled or no-estimate followed train
+  // keeps its "A way on" (the status test below); a badly late one is where a much better train matters most.
+  let prompt: EarlierTrainPrompt | null = null;
+  const gain = alternative ? route.expectedArrival - alternative.arrive : 0;
+  // The followed train must still be ahead of you: once it has gone you may well be aboard ("confirm if you are on
+  // it"), and "Switch to …" would be a question about a train you might be on, not a better choice.
+  const followedDeparture = selected?.train.dep ?? route.lastTrain.dep;
+  if (alternative && !boardingRecovery && !input.activeConnection
+      && (status === 'on-track' || status === 'hurry') && followedDeparture > input.now && gain >= FOLLOW_PROMPT_MIN * MIN) {
+    const effort = alternative.effort === 'fast' ? 'fast' : 'walk';
+    const spareMin = Math.max(0, Math.floor((alternative.leave - input.now) / MIN));
+    prompt = { gainMin: Math.round(gain / MIN), effort, spareMin, tier: effort === 'fast' || spareMin < FOLLOW_PROMPT_SPARE_MIN ? 'tight' : 'comfortable' };
+    // The followed train's own green "On track" gives way (it is still true, but it must not read as "all is well"
+    // beside a better train): the same words without it, in the neutral colour.
+    if (status === 'on-track' && level === 'ok' && text.startsWith('On track')) {
+      const rest = text.slice('On track'.length).replace(/^ · /, '');
+      text = rest ? rest[0].toUpperCase() + rest.slice(1) : 'Your train is unchanged'; level = 'info';
+    }
+  }
   const nextStep = boardingRecovery ? ((alternative?.legs as Leg[] | undefined)?.find(l => l.train) || null) : route.phase === 'arrived' ? null : route.phase === 'before-train'
     ? (input.activeConnection || input.boarding ? legs.find(l => l.train) : legs.find(l => (l.t as number) >= input.now)) || legs[legs.length - 1] || null
     : route.phase === 'on-train' ? legs.find(l => !l.train && (l.t as number) >= (route.lastTrain.arr as number)) || null
     : legs.find(l => (l.t as number) >= input.now) || legs[legs.length - 1] || null;
   const nextIsLast = !!nextStep && nextStep === legs[legs.length - 1];
   return { route, status, level, text, nextStep, nextIsLast, trainStatus: railStatus, notice: route.notices[0] || null, alternative,
-    deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null, ifMissed };
+    deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null, ifMissed, prompt };
 }

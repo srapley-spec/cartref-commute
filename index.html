@@ -460,6 +460,21 @@ html #followPanel .follow-status.bad {color:var(--bad)}
 html #followPanel .note {font-size:12px}
 html #followPanel :is(.follow-actions,.actions) {display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 html #followPanel .follow-alternative {font-size:13px;line-height:1.4;padding-top:7px;border-top:1px solid var(--line)}
+/* The earlier-train prompt (24 Nov 2026): a decision, not a status, so it sits first under the title in the warning tones
+   whatever the tier; the tier is the pill. Geometry only: which train, whether it is shown and the tier are the engine's. */
+html #followPanel .follow-prompt {display:grid;gap:8px;margin:2px 0 4px;padding:12px;border:1px solid var(--warn);border-radius:12px;background:var(--warn-bg)}
+html #followPanel .prompt-top {display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+html #followPanel .prompt-top .pill {padding:3px 10px;border-radius:10px;border:0;font-size:13px;font-weight:700;color:var(--warn-bg);background:var(--warn)}
+html #followPanel .prompt-top .pill.ok {color:var(--ok-bg);background:var(--ok)}
+html #followPanel .prompt-kicker {font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+html #followPanel .prompt-answer {display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:26px;line-height:1.15}
+html #followPanel .prompt-gain {font-size:15px;font-weight:650;color:var(--warn)}
+html #followPanel .prompt-train {font-size:14px;line-height:1.4;color:var(--ink)}
+html #followPanel .follow-prompt .follow-actions {margin-top:2px}
+html #followPanel .follow-prompt .follow-btn {flex:1 1 auto}
+html #followPanel .prompt-more > summary {min-height:44px;display:flex;align-items:center;font-size:14px;color:var(--accent)}
+html #followPanel .follow-alternative-detail {padding-top:0;border-top:0}
+
 html #followPanel>[data-follow-action="stop"] {align-self:flex-start;border-color:transparent;padding-left:0;min-height:44px}
 html #followPanel .banner {display:flex;flex-direction:row;align-items:center;gap:8px}
 html #followPanel .banner>span {flex:1;min-width:0}
@@ -962,7 +977,7 @@ html.display-hall #hallBoard{display:flex;position:fixed;inset:0;box-sizing:bord
   <div class="status" id="status"></div>
 
   <footer>
-    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 20 Nov 14:25 UTC</span></span>
+    <span><span id="updated">Not updated yet</span><span class="build-sep"> · </span><span id="build">build 24 Nov 20:20 UTC</span></span>
     <button class="iconbtn" id="refreshBtn" type="button">Refresh</button>
   </footer>
 </div>
@@ -1265,6 +1280,8 @@ var CommuteCore = (() => {
     FOLLOW_FIX_FRESH_MS: () => FOLLOW_FIX_FRESH_MS,
     FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS: () => FOLLOW_LOOKBACK_AFTER_ARRIVAL_MS,
     FOLLOW_NOTICE_MIN: () => FOLLOW_NOTICE_MIN,
+    FOLLOW_PROMPT_MIN: () => FOLLOW_PROMPT_MIN,
+    FOLLOW_PROMPT_SPARE_MIN: () => FOLLOW_PROMPT_SPARE_MIN,
     FOLLOW_SET_OFF_FIX_MS: () => FOLLOW_SET_OFF_FIX_MS,
     FOLLOW_STATION_ACC_M: () => FOLLOW_STATION_ACC_M,
     FOLLOW_STATION_GONE_MS: () => FOLLOW_STATION_GONE_MS,
@@ -3608,6 +3625,8 @@ var CommuteCore = (() => {
   // src/core/follow.ts
   var MIN = 6e4;
   var FOLLOW_BETTER_MIN = 5;
+  var FOLLOW_PROMPT_MIN = 10;
+  var FOLLOW_PROMPT_SPARE_MIN = 3;
   var FOLLOW_SET_OFF_FIX_MS = 2 * MIN;
   var FOLLOW_CHANGE_MS = 6e4;
   var FOLLOW_NOTICE_MIN = 3;
@@ -3765,7 +3784,7 @@ var CommuteCore = (() => {
   }
   var followedLegs = (route, now, evidence) => legsFor(route, now, evidence);
   function updateFollowRoute(previous, input) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const route = { ...previous, notices: previous.notices.slice(), dismissedAlternatives: previous.dismissedAlternatives.slice(), seenEvents: previous.seenEvents.slice() };
     const phase = input.phase || route.phase;
     const order = ["before-train", "on-train", "after-train", "arrived"];
@@ -3993,7 +4012,20 @@ var CommuteCore = (() => {
         text2 = `${later} min later than planned${text2.slice("On track".length)}`;
       }
     }
-    const nextStep = boardingRecovery ? ((_j = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _j.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection || input.boarding ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
+    let prompt = null;
+    const gain = alternative ? route.expectedArrival - alternative.arrive : 0;
+    const followedDeparture = (_j = selected == null ? void 0 : selected.train.dep) != null ? _j : route.lastTrain.dep;
+    if (alternative && !boardingRecovery && !input.activeConnection && (status === "on-track" || status === "hurry") && followedDeparture > input.now && gain >= FOLLOW_PROMPT_MIN * MIN) {
+      const effort = alternative.effort === "fast" ? "fast" : "walk";
+      const spareMin = Math.max(0, Math.floor((alternative.leave - input.now) / MIN));
+      prompt = { gainMin: Math.round(gain / MIN), effort, spareMin, tier: effort === "fast" || spareMin < FOLLOW_PROMPT_SPARE_MIN ? "tight" : "comfortable" };
+      if (status === "on-track" && level === "ok" && text2.startsWith("On track")) {
+        const rest = text2.slice("On track".length).replace(/^ · /, "");
+        text2 = rest ? rest[0].toUpperCase() + rest.slice(1) : "Your train is unchanged";
+        level = "info";
+      }
+    }
+    const nextStep = boardingRecovery ? ((_k = alternative == null ? void 0 : alternative.legs) == null ? void 0 : _k.find((l) => l.train)) || null : route.phase === "arrived" ? null : route.phase === "before-train" ? (input.activeConnection || input.boarding ? legs.find((l) => l.train) : legs.find((l) => l.t >= input.now)) || legs[legs.length - 1] || null : route.phase === "on-train" ? legs.find((l) => !l.train && l.t >= route.lastTrain.arr) || null : legs.find((l) => l.t >= input.now) || legs[legs.length - 1] || null;
     const nextIsLast = !!nextStep && nextStep === legs[legs.length - 1];
     return {
       route,
@@ -4006,7 +4038,8 @@ var CommuteCore = (() => {
       notice: route.notices[0] || null,
       alternative,
       deltaMin: alternative ? Math.round((alternative.arrive - route.expectedArrival) / MIN) : null,
-      ifMissed
+      ifMissed,
+      prompt
     };
   }
 
@@ -10543,8 +10576,26 @@ function renderFollowPanel(){
   // its deadline is its platform (review, 12 Nov: on the tube home it said "Leave by 10:29 · leave time passed").
   const altOverview=!alt?'':(()=>{const was=state.rowsUnderWay;state.rowsUnderWay=was||movedOff||(panelLayout&&!!observation.boarding);
     try{return journeyOverviewMarkup(alt);}finally{state.rowsUnderWay=was;}})();
+  // The earlier-train prompt (Sam, 24 Nov 2026; docs/stories/earlier-train-prompt.md). The engine decided that a
+  // catchable train this much sooner outranks "On track" (result.prompt, with its tier); this only draws it: first
+  // under the title, the answer and the two choices, with the train's own journey folded under "Details".
+  const prompt=result.prompt&&alt&&alt.train?result.prompt:null;
+  const promptMarkup=!prompt?'':(()=>{
+    const tight=prompt.tier==='tight';
+    const spare=prompt.spareMin>0?`${prompt.spareMin} min to spare`:'go now';
+    const tier=prompt.effort==='fast'?'Tight · walk fast':tight?`Tight · ${spare}`:`Comfortable · ${spare}`;
+    const platformNote=alt.train.platform?'':' · platform not announced yet';
+    const detail=altOverview+altLines(alt)+pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true);
+    return `<div class="follow-prompt ${prompt.tier}" data-block="earlier-train" role="group" aria-label="An earlier train you can catch">
+      <div class="prompt-top"><span class="prompt-kicker">Earlier train catchable</span><span class="pill ${tight?'warn':'ok'}">${esc(tier)}</span></div>
+      <div class="prompt-answer"><b>${r.direction==='office'?'Office':'Home'} <span class="t">${hhmm(alt.arrive)}</span></b> <span class="prompt-gain">${prompt.gainMin} min sooner</span></div>
+      <div class="prompt-train">${esc(C.trainName(alt.train))} · ${esc(platformLabel(alt.train))} <span class="t">${hhmm(platformTime(alt,alt.train))}</span>${platformNote}${tight?'':' · walk at your usual pace'}</div>
+      <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Switch to ${esc(alt.train.std)}</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep ${esc(r.option.train.std)}</button></div>
+      <details class="prompt-more" data-key="follow-prompt|${esc(r.id)}"><summary>Details of the ${esc(alt.train.std)}</summary><div class="follow-alternative follow-alternative-detail" data-journey-service="${esc(journeyServiceKey(alt.train))}">${detail}</div></details>
+    </div>`;})();
   panel.dataset.journeyService=journeyServiceKey(t);
   const html=`<div class="lbl">${result.status==='arrived'?'Journey complete':'Following your route'} · ${esc(r.direction==='office'?'outbound':'homeward')}</div>
+    ${promptMarkup}
     ${giveUpWay?`<div class="follow-instead">Instead: the ${esc(C.trainName(giveUpWay.train))}</div>${wayOnTimes}`
       :access?journeyHeadlineMarkup({...access,arrive:r.expectedArrival},r.direction==='office'?'office':'home')
       :panelLayout&&(observation.boarding||setOff)&&!unknown?journeyTimesMarkup({leave:platformBy,arrive:r.expectedArrival,dest:r.direction==='office'?'office':'home',leftLabel:platformLabel(t),isLeave:false,step:'platform'})
@@ -10569,7 +10620,7 @@ function renderFollowPanel(){
     ${observation.onwardSource?`<div class="note">${esc(observation.onwardSource)}</div>`:''}
     ${result.nextStep&&!(r.phase==='before-train'&&result.nextStep.train)&&!(r.phase==='after-train'&&result.nextIsLast)?`<div class="follow-next"><b>Next:</b> ${stepTime(result.nextStep)==null?'':hhmm(stepTime(result.nextStep))+' · '}${esc(result.nextStep.d)}${result.nextStep.note?` <span class="note">${esc(result.nextStep.note)}</span>`:''}</div>`:''}
     ${notice?`<div class="banner ${notice.kind==='cancelled'||notice.kind==='missed'?'bad':notice.kind==='recovered'?'info':'warn'}" role="status"><span>${noticeMarkup(notice.text)}</span><button type="button" class="follow-action follow-close" data-follow-action="seen" aria-label="Dismiss this notice">✕</button></div>`:''}
-    ${alt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${altOverview}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
+    ${alt&&!prompt?`<div class="follow-alternative" data-journey-service="${esc(journeyServiceKey(alt.train))}"><b>${result.status==='missed'||result.status==='cancelled'?'A way on':'Another option'}</b>${delta==null?'':` · ${Math.abs(delta)} min ${delta<=0?'sooner':'later'}`}${altOverview}${altLines(alt)}${pills(alt.flags.filter(f=>!f.status&&!isEffortFlag(f)),true)}
       <div class="follow-actions"><button type="button" class="follow-btn" data-follow-action="switch">Follow this instead</button><button type="button" class="follow-action" data-follow-action="dismiss">Keep my route</button></div></div>`:''}
     <details class="steps" data-key="follow-steps|${esc(r.id)}"><summary>Your journey steps</summary><ol class="legs">${legs.map(l=>`<li class="t">${stepTime(l)==null?'':hhmm(stepTime(l))}</li><li class="d">${esc(l.d)}${l.note?` <small>· ${esc(l.note)}</small>`:''}</li>`).join('')}</ol></details>
     ${r.phase==='before-train'&&now>=r.option.train.dep?boardingMarkup(r,now):''}
