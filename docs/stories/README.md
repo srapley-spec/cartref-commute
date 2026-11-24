@@ -65,6 +65,7 @@ As <who>, when <situation>, I want <what>, so that <why>.
 - [Location prompts](location-prompts.md) · Done, limited by Safari
 - [Capture live data from the platform](capture-live-data.md) · Done
 - [Follow a route](follow-a-route.md) · Done (permanent since 18 Nov, #63)
+- [Earlier-train prompt: a catchable train much sooner outranks "On track"](earlier-train-prompt.md) · Built 24 Nov
 - [Live before a journey: the next stop's departure board](live-station-board.md) · Implemented in Signal; Leisure going out: all departures not yet
 - [Every key in the proxy: a new device needs nothing](keys-in-the-proxy.md) · Proxy built 4 Nov; deployed from GitHub and the key settings removed from the app (17 Nov)
 - [The iPhone app: download it and it works](ios-app.md) · Proposed (17 Nov); web app made ready here, the app built by another agent

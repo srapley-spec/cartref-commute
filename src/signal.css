@@ -266,6 +266,21 @@ html #followPanel .follow-status.bad {color:var(--bad)}
 html #followPanel .note {font-size:12px}
 html #followPanel :is(.follow-actions,.actions) {display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 html #followPanel .follow-alternative {font-size:13px;line-height:1.4;padding-top:7px;border-top:1px solid var(--line)}
+/* The earlier-train prompt (24 Nov 2026): a decision, not a status, so it sits first under the title in the warning tones
+   whatever the tier; the tier is the pill. Geometry only: which train, whether it is shown and the tier are the engine's. */
+html #followPanel .follow-prompt {display:grid;gap:8px;margin:2px 0 4px;padding:12px;border:1px solid var(--warn);border-radius:12px;background:var(--warn-bg)}
+html #followPanel .prompt-top {display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+html #followPanel .prompt-top .pill {padding:3px 10px;border-radius:10px;border:0;font-size:13px;font-weight:700;color:var(--warn-bg);background:var(--warn)}
+html #followPanel .prompt-top .pill.ok {color:var(--ok-bg);background:var(--ok)}
+html #followPanel .prompt-kicker {font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+html #followPanel .prompt-answer {display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:26px;line-height:1.15}
+html #followPanel .prompt-gain {font-size:15px;font-weight:650;color:var(--warn)}
+html #followPanel .prompt-train {font-size:14px;line-height:1.4;color:var(--ink)}
+html #followPanel .follow-prompt .follow-actions {margin-top:2px}
+html #followPanel .follow-prompt .follow-btn {flex:1 1 auto}
+html #followPanel .prompt-more > summary {min-height:44px;display:flex;align-items:center;font-size:14px;color:var(--accent)}
+html #followPanel .follow-alternative-detail {padding-top:0;border-top:0}
+
 html #followPanel>[data-follow-action="stop"] {align-self:flex-start;border-color:transparent;padding-left:0;min-height:44px}
 html #followPanel .banner {display:flex;flex-direction:row;align-items:center;gap:8px}
 html #followPanel .banner>span {flex:1;min-width:0}
